@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Include nested git trees | `nested_repo_roots`, `_nested_trees_recursive` | Submodules and vendored clones are indexed, not cut out. Their own `.gitignore` is applied too\nVERDICT: MISS\nWHY: The answer says nested git trees are indexed, not cut out, but it never says they are tagged, and the item requires indexing plus tagging."
+}

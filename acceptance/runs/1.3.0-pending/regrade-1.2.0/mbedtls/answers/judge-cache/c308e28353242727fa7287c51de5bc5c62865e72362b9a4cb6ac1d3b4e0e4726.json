@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `library/common.h:132` contains `#define MBEDTLS_ALLOW_PRIVATE_ACCESS`. Library translation units that include `common.h` therefore get the real field names. Inside the library, the wrapper does nothing.\nVERDICT: HIT\nWHY: The answer states that the shared header library/common.h defines the opt-out, so library translation units see bare member names."
+}

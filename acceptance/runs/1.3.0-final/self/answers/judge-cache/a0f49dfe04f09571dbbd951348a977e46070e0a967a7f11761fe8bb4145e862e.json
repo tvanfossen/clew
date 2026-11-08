@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `.clew.yaml` at the repo root (`clew/declaration.py`) | Standing, re-read on every build\nVERDICT: MISS\nWHY: The answer names `.clew.yaml` at repo root as tier 2, but never says that both entry points (CLI and MCP/in-process) discover it themselves rather than having it passed in section by section."
+}

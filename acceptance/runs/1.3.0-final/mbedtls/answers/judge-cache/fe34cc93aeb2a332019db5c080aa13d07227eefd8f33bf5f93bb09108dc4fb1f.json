@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Calls `mbedtls_platform_set_calloc_free()` with its own wrappers: `buffer_alloc_calloc_mutexed` / `buffer_alloc_free_mutexed` when threading is on, otherwise the unlocked pair.\"\nVERDICT: HIT\nWHY: The answer says that `mbedtls_memory_buffer_alloc_init` installs the mutexed pair when `MBEDTLS_THREADING_C` is on and the plain pair otherwise. It doesn't say the choice is made at compile time, but the `MBEDTLS_THREADING_C` condition implies it."
+}

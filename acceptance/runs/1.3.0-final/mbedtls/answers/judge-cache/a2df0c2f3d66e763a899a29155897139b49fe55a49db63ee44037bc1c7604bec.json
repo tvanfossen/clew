@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The index found four spawn sites, all in `programs/`, and none in `library/`.\" and \"What the locks protect when threading is enabled \u2014 The library's protection...\" with a table of `mbedtls_threading_*_mutex` objects and the `mutex->mutex` identity in `library/threading.c`.\nVERDICT: HIT\nWHY: The answer says no thread is spawned in library/. It also says the library supplies the threading mutexes (`library/threading.c`, `mbedtls_threading_*` mutexes, PTHREAD/ALT options) for threaded callers when `MBEDTLS_THREADING_C` is on."
+}

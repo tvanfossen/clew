@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Facts and ecosystem layers: these accumulate under any stated tier... `main` survives any stated tier.\" and \"a stated value replaces the guesses for that option, but facts never get dropped\" and tiers 1\u20132 \"Replaces the stated layer\"\nVERDICT: HIT\nWHY: The answer states that stated tiers replace each other while discovered facts accumulate and survive any stated tier."
+}

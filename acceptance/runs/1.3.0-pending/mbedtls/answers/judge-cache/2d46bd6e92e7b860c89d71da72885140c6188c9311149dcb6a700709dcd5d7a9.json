@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says the setter is absent (undeclared and uncompiled) when `MBEDTLS_PLATFORM_CALLOC_MACRO` and `MBEDTLS_PLATFORM_FREE_MACRO` are used. It only says those macros point `mbedtls_calloc` and `mbedtls_free` at your functions."
+}

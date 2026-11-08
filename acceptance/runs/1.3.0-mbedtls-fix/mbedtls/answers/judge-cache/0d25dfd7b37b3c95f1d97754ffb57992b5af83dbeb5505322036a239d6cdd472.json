@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_ct_compiler_opaque` (`constant_time_impl.h:85`) passes a value through an empty `asm volatile` with a `+r` constraint, so the compiler cannot prove what the value is.\nVERDICT: HIT\nWHY: The answer states the asm is an empty `asm volatile` with a `+r` (input-output register) operand that acts as a barrier hiding the value from the compiler."
+}

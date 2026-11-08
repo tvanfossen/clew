@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `entropic install-engine` fetches the native tarball, so the package works before the library exists.\nVERDICT: HIT\nWHY: The answer states the package is usable before the engine library is on disk and that an install-engine subcommand ships inside it, which is the substance of the item."
+}

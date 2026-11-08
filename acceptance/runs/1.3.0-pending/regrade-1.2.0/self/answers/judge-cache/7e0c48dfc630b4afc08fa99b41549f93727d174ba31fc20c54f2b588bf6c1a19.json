@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Its root is the repository itself, and nested git trees are included and tagged rather than cut out.\nVERDICT: HIT\nWHY: The answer explicitly states that, under the default whole-repo scope, nested git trees are included and tagged rather than cut out."
+}

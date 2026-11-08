@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`data`: \"N indexed source file(s) have changed\u2026 Call `index(action='refresh')`\", with the cost.\" / \"`code`: reads are fine but writes are unsafe, so restart the client. A rebuild cannot fix it.\"\nVERDICT: MISS\nWHY: The answer gives the per-axis clearing actions (refresh for data, restart for code), but never states that this difference is why a single flag would not have sufficed."
+}

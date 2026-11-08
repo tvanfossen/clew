@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer covers ctypes memory ownership and never mentions that `import entropic` works before the engine is installed or that an install-engine subcommand ships in the package."
+}

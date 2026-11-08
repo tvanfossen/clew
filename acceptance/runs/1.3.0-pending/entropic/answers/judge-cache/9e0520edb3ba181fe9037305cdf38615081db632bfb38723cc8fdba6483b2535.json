@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: HealthMonitor::process_events (health_monitor.cpp:118) takes event_mutex_, swaps event_queue_ into a local vector, releases the lock, then invokes the callbacks on the engine thread. The monitor thread only ever touches the queue under the lock, and callbacks never run under it.\nVERDICT: HIT\nWHY: The answer states the monitor thread queues events under a mutex and the callbacks are invoked by process_events on the engine (caller) thread."
+}

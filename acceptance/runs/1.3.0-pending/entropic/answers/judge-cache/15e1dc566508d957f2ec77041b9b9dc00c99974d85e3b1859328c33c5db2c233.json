@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Log scope propagation. Each spawned thread installs a `HandleLogScope` with the owning handle's `log_id`, so logs from background threads go to the right session log.\nVERDICT: HIT\nWHY: The answer states each spawned thread installs a per-handle log scope so background logs go to the owning handle's log; it omits \"first statement\", but the mechanism and purpose are stated."
+}

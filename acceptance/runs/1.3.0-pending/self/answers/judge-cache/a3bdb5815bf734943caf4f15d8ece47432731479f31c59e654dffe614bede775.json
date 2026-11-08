@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Every tier-1 query reply gets a `staleness` key when any axis is live (`server.py:1841`).\nVERDICT: HIT\nWHY: The answer says staleness is attached to every query reply (not on request) and that the list is empty when the index is current."
+}

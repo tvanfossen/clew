@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "ITEMS:\napp/screens/home/search/search.tsx\napp/screens/home/recent_mentions/recent_mentions.tsx\napp/screens/home/saved_messages/saved_messages.tsx\napp/screens/channel/header/header.tsx\napp/products/agents/screens/agent_chat/header.tsx\napp/screens/global_drafts/global_drafts.tsx\napp/screens/global_threads/global_threads.tsx\napp/products/playbooks/screens/participant_playbooks/participant_playbooks.tsx\nEND"
+}

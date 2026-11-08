@@ -1,0 +1,163 @@
+{
+  "cell": "Q2_claude-haiku-5-5_index_only_r1",
+  "arm": "index_only",
+  "rubric_version": "3.1.0",
+  "rubric_digest": "bbf6195f605be452",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.8787878787878788,
+  "unmarked_pct": 0.0,
+  "split_decisions": 1,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "locates the macro's definition in include/mbedtls/private_access.h",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: `MBEDTLS_PRIVATE(member)` is a macro in `include/mbedtls/private_access.h`. Its definition is gated on `MBEDTLS_ALLOW_PRIVATE_ACCESS` (line 14) | WHY: The answer explicitly locates the macro's definition in include/mbedtls/private_access.h with line references. || QUOTE: `MBEDTLS_PRIVATE(member)` is a macro in `include/mbedtls/private_access.h`. Its definition is gated on `MBEDTLS_ALLOW_PRIVATE_ACCESS` (line 14) | WHY: The answer explicitly locates the macro's definition in include/mbedtls/private_access.h, with line references. || QUOTE: `MBEDTLS_PRIVATE(member)` is a macro in `include/mbedtls/private_access.h`. Its definition is gated on `MBEDTLS_ALLOW_PRIVATE_ACCESS` (line 14) | WHY: The answer explicitly locates the macro's definition in include/mbedtls/private_access.h, with line numbers and expansion details.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that by default the macro RENAMES the member to private_<member>, and that defining MBEDTLS_ALLOW_PRIVATE_ACCESS makes it expand to the member name unchanged",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: **Default (macro not defined):** `MBEDTLS_PRIVATE(member)` expands to `private_##member` (line 15). ... **Opt-out defined:** it expands to `member` (line 17), so the name is public again. | WHY: The answer states the default expansion to `private_##member` and that defining the opt-out macro makes it expand to the unchanged member name. || QUOTE: **Default (macro not defined):** `MBEDTLS_PRIVATE(member)` expands to `private_##member` (line 15). ... **Opt-out defined:** it expands to `member` (line 17), so the name is public again. | WHY: The answer states the default expansion to private_##member and that defining MBEDTLS_ALLOW_PRIVATE_ACCESS expands to the plain member name. || QUOTE: \"**Default (macro not defined):** `MBEDTLS_PRIVATE(member)` expands to `private_##member` (line 15)... **Opt-out defined:** it expands to `member` (line 17), so the name is public again.\" | WHY: The answer states the default renaming to private_member and that defining the opt-out macro makes it expand to the unchanged member name.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "explains that the two branches give different consumers different views \u2014 code that defines MBEDTLS_ALLOW_PRIVATE_ACCESS sees plain member names while an ordinary consumer of the public headers sees the renamed ones",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"Everywhere else (applications and integrators), the default applies and direct member access is a compile error unless they define the macro themselves before including the headers.\" and \"**Opt-out defined:** it expands to `member`\" | WHY: The answer contrasts consumers that define MBEDTLS_ALLOW_PRIVATE_ACCESS (plain member names, e.g. the library and the two programs) with ordinary consumers who see the `private_` renamed members. || QUOTE: \"**Everywhere else** (applications and integrators), the default applies and direct member access is a compile error unless they define the macro themselves before including the headers.\" and \"The define is turned on in three places... `library/common.h`... `programs/ssl/ssl_client2.c`...\" | WHY: The answer states that code defining the opt-out (the library and the ssl programs) gets plain member names, while ordinary consumers of the public headers get the renamed `private_` members.",
+      "agreement": 0.6666666666666666,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that this enforces API opacity at COMPILE time by breaking the member name, rather than by hiding the struct layout \u2014 the fields remain visible and sized",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: The struct member is really named `private_member`, so `ctx->member` fails to compile in application code. ... The struct definitions remain in the public headers, so `sizeof`, stack allocation and layout are still visible. | WHY: States that compile-time enforcement works by renaming the member to `private_member`, while the struct definitions stay in the public headers with layout still visible. || QUOTE: \"The struct definitions remain in the public headers, so `sizeof`, stack allocation and layout are still visible.\" | WHY: The answer says the member is renamed to `private_member`, so `ctx->member` fails to compile, and it says the struct layout stays visible and sized. || QUOTE: The struct definitions remain in the public headers, so `sizeof`, stack allocation and layout are still visible. | WHY: The answer says the member is renamed to `private_member` so access fails to compile, while the struct layout stays visible and sized.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "conveys that the macro is applied at a scale of many hundreds of sites, overwhelmingly in the public headers rather than in library implementation",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never states that MBEDTLS_PRIVATE is applied at many hundreds of sites, mostly in public headers; it gives only one example and the three places the opt-out is defined. || QUOTE: NONE | WHY: The answer never states that the macro is applied at many hundreds of sites, mostly in public headers; it only gives one example usage. || QUOTE: NONE | WHY: The answer never states that MBEDTLS_PRIVATE is applied at many hundreds of sites, mostly in public headers; it only cites a single example use.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that library-internal code turns the opt-out ON in a shared header, so every library translation unit sees plain member names",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: `library/common.h` | 132 | The library itself. This is the internal header it uses, so library code gets direct member access. | WHY: The answer states that the opt-out define is turned on in library/common.h, the library's internal header, giving library code direct member access, which matches the item. The caveat about not confirming every TU includes it doesn't remove the statement. || QUOTE: `library/common.h` | 132 | The library itself. This is the internal header it uses, so library code gets direct member access. | WHY: The answer states that the opt-out is defined in the library-internal header common.h, giving library code direct (plain-name) member access. It hedges on whether every TU includes it, but the core mechanism is stated. || QUOTE: `library/common.h` | 132 | The library itself. This is the internal header it uses, so library code gets direct member access. | WHY: The answer states the opt-out is defined in the library-internal header common.h so library code gets direct member access (plain names), though it hedges on whether every TU includes it.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies that some example programs ALSO define the opt-out for themselves, deliberately reaching past the public API they otherwise demonstrate",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: `programs/ssl/ssl_client2.c` | 8 | The SSL client test/example program. ... \"In the two `programs/ssl` tools, which are outside the library, the rule is off. They can read and write internals directly\" | WHY: The answer states that two example programs (ssl_client2.c, ssl_server2.c) define MBEDTLS_ALLOW_PRIVATE_ACCESS themselves, reaching into internals outside the public API. || QUOTE: `programs/ssl/ssl_client2.c` | 8 | The SSL client test/example program. ... \"In the two `programs/ssl` tools, which are outside the library, the rule is off. They can read and write internals directly\" | WHY: The answer states that the example programs ssl_client2.c and ssl_server2.c define MBEDTLS_ALLOW_PRIVATE_ACCESS themselves, reaching into internals outside the library. || QUOTE: `programs/ssl/ssl_client2.c` | 8 | The SSL client test/example program. ... \"In the two `programs/ssl` tools, which are outside the library, the rule is off. They can read and write internals directly\" | WHY: The answer states that the example programs ssl_client2.c and ssl_server2.c define MBEDTLS_ALLOW_PRIVATE_ACCESS themselves, bypassing the private-member restriction.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "every file that turns the private-access opt-out on \u2014 library/common.h",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every file that turns the private-access opt-out on \u2014 programs/ssl/ssl_client2.c",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every file that turns the private-access opt-out on \u2014 programs/ssl/ssl_server2.c",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every file that turns the private-access opt-out on \u2014 precision",
+      "kind": "set_precision",
+      "weight": 2,
+      "hit": true,
+      "detail": "clean",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the top-level directories where MBEDTLS_PRIVATE is used \u2014 include",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": false,
+      "detail": "not named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the top-level directories where MBEDTLS_PRIVATE is used \u2014 library",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the top-level directories where MBEDTLS_PRIVATE is used \u2014 programs",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the top-level directories where MBEDTLS_PRIVATE is used \u2014 precision",
+      "kind": "set_precision",
+      "weight": 2,
+      "hit": true,
+      "detail": "clean",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says \"four ways to say how clew should index a repo, plus the defaults,\" which makes five tiers. But those tiers are heterogeneous: the single-valued options replace, the accumulating ones union, and the answer calls tier 5 a \"floor.\" It doesn't state that layered build options resolve through five named precedence tiers, so the item's substance is absent."
+}

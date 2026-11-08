@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 36020,
+  "stop_reason": "end_turn",
+  "session_id": "64d0c46c-623a-43e6-b02b-3e750f7ebaac",
+  "total_cost_usd": 0.012243780000000001,
+  "usage": {
+    "input_tokens": 20,
+    "cache_creation_input_tokens": 23710,
+    "cache_read_input_tokens": 448528,
+    "output_tokens": 6029,
+    "output_tokens_details": {
+      "thinking_tokens": 1641
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 23710,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2560,
+        "cache_read_input_tokens": 55608,
+        "cache_creation_input_tokens": 971,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 971
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 20,
+      "outputTokens": 6029,
+      "cacheReadInputTokens": 448528,
+      "cacheCreationInputTokens": 23710,
+      "webSearchRequests": 0,
+      "costUSD": 0.012243780000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1641,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 23710,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 19,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "Short answer: the permission lists don't decide much on their own. A tool call passes through a fixed chain of checks in `ToolExecutor`, and the allow/deny lists only feed two of those checks. The deny list is the one real hard gate, and it runs last.\n\n## The call path\n\n```\nToolCall arrives\n \u2514\u2500 process_single_call                        tool_executor.cpp:729\n     \u251c\u2500 PRE_TOOL_CALL hook  \u2192 may cancel      :733\n     \u2514\u2500 check_call_preconditions              :667  (in order)\n         1. anti-spiral hard block\n         2. schema validation\n         3. MCP key authorization   (only if identity is enforced)\n         4. tier allowed_tools\n         5. duplicate-call detection\n         6. check_approval_pc \u2192 check_approval  :705 / :161\n              auto_ok = auto_approve_tools || is_explicitly_allowed(allow list)\n              if !auto_ok and on_tool_call set  \u2192 approved = true\n              else if !auto_ok                  \u2192 denied\n     \u2514\u2500 execute \u2192 ServerManager::execute      server_manager.cpp:153\n         \u2514\u2500 is_denied(deny list)? \u2192 return \"Permission denied\" JSON, no run\n         \u2514\u2500 route_tool_call \u2192 in-process server or external MCP client\n```\n\nAny rejection stops the chain and returns a denial message to the model.\n\n## What each list does\n\nPatterns come from `permissions.allow` and `permissions.deny` in config (`config/loader.cpp:365`, `types/config.h:589`). They are loaded into `PermissionManager` (`mcp/permission_manager.cpp`), which is built in `ServerManager`'s constructor at `server_manager.cpp:35`. `add_permission` can add more at runtime, and the persister writes them back to config.\n\nEach pattern has the form `tool` or `tool:argpattern`, and both halves use `fnmatch` with no flags:\n\n| Pattern | Matches |\n|---|---|\n| `filesystem.*` | Any tool on the filesystem server (no `:`, so tool name only) |\n| `git.commit` | Exactly that tool, any args |\n| `bash.execute:python*` | `bash.execute` whose first string argument starts with `python` |\n| `bash.execute:*` | `bash.execute` with any first argument |\n\nThe argument side is not the full argument list. `args_to_pattern` (`server_manager.cpp:426`) takes the value of the first JSON key, if it is a string, and otherwise uses `*`. A pattern like `bash.execute:rm*` therefore constrains only the first string argument. Because `fnmatch` runs without `FNM_PATHNAME`, `*` also matches `/` and `:`.\n\n- **Deny list:** checked in `ServerManager::execute`, after approval. A match returns an error result and the tool never runs. The deny list is therefore enforced even when approval said yes, which makes it the one hard gate.\n- **Allow list:** checked only inside `check_approval`. A match skips the approval callback. Allow does not override deny: a call that is both allowed and denied is approved, then blocked at execute time.\n- **`auto_approve`:** a global switch that makes `auto_ok` true for every call. It skips the allow list but not the deny list.\n\n## Things to know\n\n- **The approval callback cannot veto.** `on_tool_call` returns `void`. If it is registered, `check_approval` sets `approved = true` after calling it (`tool_executor.cpp:168-172`). The \"prompt\" is therefore a notification, and the calling application cannot stop the call through it. The header comment at `permission_manager.h:6` says \"default-deny\", but that default only holds when no callback is registered. This looks like the most important gap in the chain, and I'd want to confirm it against the frontend that registers the callback.\n- **Denied calls still reach the callback.** Because approval runs before the deny check, a call that is only blocked by a deny pattern still fires `on_tool_call` first.\n- **MCP keys and tier rules run before the lists.** A call the identity's keys or tier `allowed_tools` reject never reaches the allow/deny lists at all.\n- **The hook is advisory on approval.** `ON_PERMISSION_CHECK` fires with \"allowed\" or \"denied\" but does not change the outcome.\n\nI traced this by reading the code and did not run the tests. `get_permission_pattern` exists on `ServerManager` but is not on the path I traced.",
+  "ttft_ms": 1669,
+  "type": "result",
+  "duration_ms": 36445,
+  "uuid": "3ee2272e-7433-471f-91a1-c6f755aea6b7",
+  "ttft_stream_ms": 1364,
+  "time_to_request_ms": 146,
+  "first_content_frame_ms": 1364,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

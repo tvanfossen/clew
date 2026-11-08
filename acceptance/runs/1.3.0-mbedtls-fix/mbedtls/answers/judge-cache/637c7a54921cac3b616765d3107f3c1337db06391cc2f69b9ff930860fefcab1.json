@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_PLATFORM_MEMORY` off (default) | Plain `calloc` / `free` (`platform.h:163-167`). No indirection.\nVERDICT: HIT\nWHY: The answer says that in the default config (PLATFORM_MEMORY off) mbedtls_calloc/free become plain calloc/free with no indirection, though it doesn't use the word \"macro\" in that row. The substance matches."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Parse-built front end (`clew/synth.py`):** it claims `.js/.mjs/.cjs/.jsx/.ts/.mts/.cts/.tsx`, `.sh/.bash/.cmake`, `CMakeLists.txt`, and `.yaml/.yml/.json`.\nVERDICT: HIT\nWHY: The answer states that scope is only the first step and that file types must be accepted by a front end. It names the parse-built front end claiming the file types doxygen cannot read (JS/TS, shell, CMake, YAML/JSON)."
+}

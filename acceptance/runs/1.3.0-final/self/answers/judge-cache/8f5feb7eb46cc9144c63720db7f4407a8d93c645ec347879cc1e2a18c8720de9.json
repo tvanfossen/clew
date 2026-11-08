@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Writes are refused when the code axis is stale. `stale_code_refusal` returns a `REFUSED:` message, and `force` does not bypass it.\nVERDICT: HIT\nWHY: The answer states that writes are refused (not warned) on a stale code axis and that `force` cannot bypass it, which covers the item's substance."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The section is rejected, and the build falls back to the whole repo with a WARNING, if it is not a mapping, has an unknown key (so `exclude:` for `excludes:` fails), or has no usable `roots:`.\nVERDICT: HIT\nWHY: It says a declared index_scope is read first and that malformed, unknown-key or rootless declarations fall back to the whole repo, and \"Nothing usable declared means\" the whole-repo default."
+}

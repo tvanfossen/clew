@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Schema and code staleness are never auto-refreshed.** ... A build through an outdated process would run old pipeline logic and re-stamp the index with it\" and \"For a code notice, the caller restarts the MCP client so the process loads the current code, then calls `index(action='refresh', force=True)`.\" and \"**Data staleness is fixed automatically.**\" (rebuild)\nVERDICT: MISS\nWHY: The answer describes different remedies per axis (rebuild for data, restart for code), but never states that this is why a single flag would not have sufficed."
+}

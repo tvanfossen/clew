@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The note's wording depends on what was actually checked\" and \"the index holds matching rows in a corpus `search` doesn't read | \"NOT DEFINITIVE\", with the rows named and counted\"\nVERDICT: HIT\nWHY: The answer says the strong \"definitive\" wording is decided per empty search by checking whether the index holds matching rows in corpora search did not read, not by result shape alone."
+}

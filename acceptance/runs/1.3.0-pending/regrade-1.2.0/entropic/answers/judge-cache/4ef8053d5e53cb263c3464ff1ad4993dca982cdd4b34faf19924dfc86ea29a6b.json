@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says non-allow-listed calls are default-deny without a callback, and approved if a callback exists. It never concludes that a tool matching neither list runs by default at the blocking gate."
+}

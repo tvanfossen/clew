@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"When the server omits the setting:** `getConfigValue` returns `undefined`, so `undefined !== 'false'` is true. Archived channels are viewable\"\nVERDICT: HIT\nWHY: The answer states that a missing setting leaves archived channels viewable and that only an explicit 'false' disables them."
+}

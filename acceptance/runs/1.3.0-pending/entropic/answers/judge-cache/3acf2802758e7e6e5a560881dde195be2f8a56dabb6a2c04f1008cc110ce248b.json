@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Neither call retries a failed tokenization.\" and \"The first call is a query, not an attempt.\" and \"Both are resizing, not retrying.\"\nVERDICT: HIT\nWHY: The answer concludes it is size negotiation (size-query-then-fill) rather than retry, and notes the second call is a sized fill; it does not explicitly state \"no backoff/delay/counter\", but the core conclusion is clearly stated."
+}

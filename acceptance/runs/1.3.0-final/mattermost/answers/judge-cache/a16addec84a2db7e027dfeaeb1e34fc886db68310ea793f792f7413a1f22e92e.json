@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A matching `*HandlerMix` interface is merged in at `index.ts:23-38` so TypeScript knows the methods exist.\nVERDICT: HIT\nWHY: The answer states a same-named interface is merged (declaration merging) with the class, typed via the `*HandlerMix` types so TypeScript knows the mixed-in methods exist."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: With no allow match and no callback, the call is denied (default-deny).\nVERDICT: MISS\nWHY: The answer claims default-deny when there's no callback, and says the callback auto-approves; it never concludes that a tool matching neither list simply runs."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_ct_compiler_opaque(x)` is an empty `asm volatile (\"\" : [x] \"+r\" (x))`. The compiler must treat the value as unknown, so it cannot prove a condition constant and fold a branch.\nVERDICT: HIT\nWHY: The answer names the primitive as the compiler-opacity barrier and puts the `mbedtls_ct_*` layer in `library/constant_time_impl.h`, so location and mechanism are both stated."
+}

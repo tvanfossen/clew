@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The main way is a `.clew.yaml` at the repository root. ... | 2 | `.clew.yaml` in the repo root | Replaces the stated layer | ... Because the file is read from the repo root, both the CLI and the MCP server pick it up. The MCP server passes no flags, so the file is its only route to declared conventions.\nVERDICT: HIT\nWHY: The answer places `.clew.yaml` at tier 2, discovered from the repo root, and says both the CLI and the MCP server read it."
+}

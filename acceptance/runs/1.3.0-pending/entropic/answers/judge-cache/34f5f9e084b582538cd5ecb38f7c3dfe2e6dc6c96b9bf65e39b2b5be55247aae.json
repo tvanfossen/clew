@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Deny list (`permissions.deny`) is checked only in `ServerManager::execute`, after approval has already happened. `check_approval` never consults it.\nVERDICT: HIT\nWHY: The answer says deny is enforced in ServerManager::execute via is_denied, but not that it is the only list that blocks execution. It names the allow list as the thing that skips prompting and says it is not a veto, which matches the item's substance."
+}

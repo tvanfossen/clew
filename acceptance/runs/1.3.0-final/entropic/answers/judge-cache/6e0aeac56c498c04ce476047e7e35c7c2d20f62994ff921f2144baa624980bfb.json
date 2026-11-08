@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Tokenization failure is logged at the tokenizer level only. The backend and the public APIs return empty or zero with no error code.\nVERDICT: HIT\nWHY: The answer says failure yields an empty vector/0 that is \"Indistinguishable from empty input\", and that callers (do_complete, compute_prefix_token_count) proceed without checking or surfacing an error."
+}

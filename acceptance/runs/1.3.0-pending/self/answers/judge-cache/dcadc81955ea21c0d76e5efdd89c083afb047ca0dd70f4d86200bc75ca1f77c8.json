@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A Doxyfile's `INPUT` is a documentation target, not a reasoning boundary. Repos with a Doxyfile used to get the narrower published-API subset, and repos without one got everything. Now both get the whole repository.\nVERDICT: HIT\nWHY: The answer says the Doxyfile's INPUT is deliberately not used, and gives the reason: a repo with a Doxyfile would get only the documented subset while a repo without one gets everything."
+}

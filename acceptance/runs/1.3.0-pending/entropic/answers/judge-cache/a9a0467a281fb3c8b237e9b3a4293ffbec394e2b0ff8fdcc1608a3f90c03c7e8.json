@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Source-level reach stops at `src/inference/`, but the orchestrator, the facade's adapter path, and the `speculative_compat` and `orchestrator` headers reach past it.\"\nVERDICT: MISS\nWHY: The answer lists leaks outside src/inference, including facade and interface_factory, but it says orchestrator and speculative_compat are the leaking files. Those are in src/inference per its own list. It never concludes that a minority of the reaching files sit outside the layer."
+}

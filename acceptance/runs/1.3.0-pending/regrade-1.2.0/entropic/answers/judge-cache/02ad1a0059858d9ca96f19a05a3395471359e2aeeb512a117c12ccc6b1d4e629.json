@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `LlamaCppBackend` (`src/inference/llama_cpp_backend.{h,cpp}`) uses the llama.cpp C API directly (`llama_model_load_from_file`, `llama_init_from_model`, `llama_decode`, `llama_chat_apply_template`, and related calls).\nVERDICT: HIT\nWHY: The answer says the seam is the llama.cpp C API and names `llama_`-prefixed free functions rather than C++ classes or inheritance."
+}

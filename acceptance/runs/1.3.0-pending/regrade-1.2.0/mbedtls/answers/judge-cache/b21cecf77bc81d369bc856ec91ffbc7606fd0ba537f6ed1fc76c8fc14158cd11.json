@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the default build uses function pointers in platform.c, and only the MEMORY-undefined case maps to calloc directly. It never concludes that the default build has no indirection with macros expanding to calloc/free."
+}

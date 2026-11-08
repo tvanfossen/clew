@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the library never creates threads and THREADING_C is off by default, but it never mentions a pthread example compiling to a stub main."
+}

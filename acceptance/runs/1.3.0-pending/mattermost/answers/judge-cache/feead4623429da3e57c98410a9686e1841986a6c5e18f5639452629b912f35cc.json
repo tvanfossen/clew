@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Without it, `sanitizeReactions` would diff the *whole* post's reaction table against `rawReactions`. The payload only carries the one new reaction, so every other reaction on that post would be marked for deletion.\"\nVERDICT: HIT\nWHY: The answer explicitly says skipSync prevents the single incoming reaction from being treated as the full set, which would delete all other reactions on the post."
+}

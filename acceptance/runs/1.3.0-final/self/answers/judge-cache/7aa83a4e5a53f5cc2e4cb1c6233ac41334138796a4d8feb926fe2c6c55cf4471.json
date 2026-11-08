@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Schema stale, index newer, or code stale: restart the MCP client. A rebuild does not help in either case.\" and \"Data stale: ... call `index(action='refresh')`\"\nVERDICT: HIT\nWHY: The answer states that data is cleared by a rebuild/refresh while code staleness needs a client restart because a rebuild cannot fix it, which is the item's different-action-per-axis substance. It never says that this is why one flag would not have been enough, but the item's core fact is stated."
+}

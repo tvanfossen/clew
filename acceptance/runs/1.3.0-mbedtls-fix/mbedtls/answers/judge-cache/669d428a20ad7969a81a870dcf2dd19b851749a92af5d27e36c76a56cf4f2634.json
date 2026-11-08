@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never mentions a separate, off-by-default testing facility built on MemorySanitizer or valgrind, and says verification rests on \"testing with specific compilers\" and no static proof."
+}

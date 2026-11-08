@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The runtime setter is not compiled in at all in this mode, so calling it fails to link.\nVERDICT: HIT\nWHY: The answer says that in macro mode the setter is not compiled in, and that calling it fails to link. It also says platform.c:20-64 is compiled out. Together these mean the function does not exist, rather than being present and ignored."
+}

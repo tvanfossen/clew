@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The three axes are defined in `clew/mcp_server/freshness.py:62-64`: `data`, `code` and `schema`.\nVERDICT: HIT\nWHY: The answer states staleness has three independent axes and names them: data, code, schema."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"no section \u2192 None \u2192 fall through\" and \"`whole_repo_scope` ... (no declaration)\"\nVERDICT: MISS\nWHY: The answer shows declared scope being used and falling through only when no section exists. It says a bad declaration makes the build refuse with exit 1 rather than widen, which contradicts \"every failure to find one falls through.\""
+}

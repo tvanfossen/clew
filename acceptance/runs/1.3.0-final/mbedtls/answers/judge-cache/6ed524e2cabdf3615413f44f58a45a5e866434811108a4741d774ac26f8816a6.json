@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_CT_ASM` (`:42`) is defined only when `MBEDTLS_HAVE_ASM` is set (default on, `mbedtls_config.h:52`) and a GNU or ARMCC compiler is detected.\nVERDICT: HIT\nWHY: The answer states MBEDTLS_CT_ASM is defined from MBEDTLS_HAVE_ASM plus compiler detection (not a user config entry), which is the derived-macro substance."
+}

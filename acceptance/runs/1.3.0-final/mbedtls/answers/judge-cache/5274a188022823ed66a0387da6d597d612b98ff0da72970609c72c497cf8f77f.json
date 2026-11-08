@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: ret & 0xFF80 \u2260 0 ? \u2500\u2500yes\u2500\u2500\u25ba mbedtls_high_level_strerr(ret) ... append \" : \" (only if high part already written) \u25bc mbedtls_low_level_strerr(ret); \"The two strings are joined with `\" : \"`. Either part can be absent.\"\nVERDICT: HIT\nWHY: The answer describes the high-level module part and low-level part of the code layout, and says `mbedtls_strerror` renders both, joined with \" : \", when both are present."
+}

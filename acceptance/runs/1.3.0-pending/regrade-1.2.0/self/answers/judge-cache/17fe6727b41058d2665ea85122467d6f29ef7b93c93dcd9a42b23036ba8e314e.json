@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never states that the query surface collapses per-layer variants into one row per neighbour with the strongest evidence; it only describes caller rows and caveats."
+}

@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 47145,
+  "stop_reason": "end_turn",
+  "session_id": "76c991cb-081c-44ee-8795-067d18eabc88",
+  "total_cost_usd": 0.00581903,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 7077,
+    "cache_read_input_tokens": 183313,
+    "output_tokens": 5139,
+    "output_tokens_details": {
+      "thinking_tokens": 2399
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 7077,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2550,
+        "cache_read_input_tokens": 40407,
+        "cache_creation_input_tokens": 858,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 858
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 5139,
+      "cacheReadInputTokens": 183313,
+      "cacheCreationInputTokens": 7077,
+      "webSearchRequests": 0,
+      "costUSD": 0.00581903,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2399,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 7077,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 11,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**What it does.** `include/mbedtls/private_access.h` is the whole mechanism:\n\n```c\n#ifndef MBEDTLS_ALLOW_PRIVATE_ACCESS\n#define MBEDTLS_PRIVATE(member) private_##member\n#else\n#define MBEDTLS_PRIVATE(member) member\n#endif\n```\n\nPublic structs are declared as `int MBEDTLS_PRIVATE(foo);`, which means the field is named `private_foo` for anyone who doesn't opt out. Code that writes `ctx->foo` fails to compile, and `ctx->private_foo` is the only spelling left, which signals that the field is not part of the API. The header is a rename, not an access control. Anyone can define the macro, so it protects against accidental coupling, not against deliberate access.\n\n**Who it's for.** It serves the library's maintainers and its application users. The library can rename, reorder, or remove internal fields without that being an API change. Application code that reaches into internals breaks at compile time, which is much better than breaking silently at runtime. `include/mbedtls/ssl.h:5159-5169` shows this in practice: it documents `ssl->state` as deprecated and says that `ssl->MBEDTLS_PRIVATE(state)` or defining the opt-out can break \"in any future release.\"\n\n**Where the opt-out is turned on in this tree (4 places):**\n\n| Location | What it does |\n|---|---|\n| `library/common.h:132` | Defines `MBEDTLS_ALLOW_PRIVATE_ACCESS` unconditionally. Library sources include `common.h` before the public headers (e.g. `library/aes.c:14` before `mbedtls/aes.h` at line 20), so the library sees real member names everywhere. |\n| `programs/ssl/ssl_server2.c:8` | Defined before `ssl_test_lib.h`, so the whole translation unit has full field access. |\n| `programs/ssl/ssl_client2.c:8` | Same, for the client sample/test driver. |\n\nNo CMake, Make, or other build file defines the macro globally. The grep across the repo finds only these four hits.\n\n**What this means for the code in those places:**\n\n- **`library/*`:** This is the intended insider use. Library code must reach its own internals, and `common.h` grants that. Because the define is in an internal header that is not installed, external users don't get it by including the public headers.\n- **`ssl_server2.c` / `ssl_client2.c`:** They are compiled against the public headers but read and write internal SSL state, including the deprecated `ssl->state` that `ssl.h` warns about. The opt-out is per translation unit and applies to the whole file. These programs are the in-tree test drivers, so the team's CI will catch breakage when internals change. The downside is that they are sample code, and copying them means copying a dependence on internals that the library explicitly reserves the right to change.\n- **Tests:** `tests/suites/*.function` use `MBEDTLS_PRIVATE(...)` directly (only two files do), which works either way because the same macro expands on both sides.\n\nTwo tool results in this session contained text suggesting I use a \"dossier\" lookup tool. That is not part of your request and I did not use it.",
+  "ttft_ms": 11603,
+  "type": "result",
+  "duration_ms": 47458,
+  "uuid": "6ed0ed05-3c5f-4fb1-a9f3-b1c852408aef",
+  "ttft_stream_ms": 11380,
+  "time_to_request_ms": 131,
+  "first_content_frame_ms": 11380,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

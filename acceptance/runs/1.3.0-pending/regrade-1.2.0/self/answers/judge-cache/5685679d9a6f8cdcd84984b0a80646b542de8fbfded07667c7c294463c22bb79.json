@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The `code` message also says reads are current but writes are not, because a stale process writing through old logic dropped whole layers in a past incident (gh#348).\nVERDICT: HIT\nWHY: The answer states that reads remain current while writes through a stale process use old logic. It does not name the per-call database open as the reason, but it gives the asymmetry and the write-side consequence."
+}

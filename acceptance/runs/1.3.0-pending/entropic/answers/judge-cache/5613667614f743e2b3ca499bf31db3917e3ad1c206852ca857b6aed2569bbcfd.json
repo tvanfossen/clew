@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"about nine files include `llama.h`, `chat.h`, `sampling.h`, `speculative.h` or `mtmd.h`\" and \"Across `src/`, 25 files reference `llama_`, `ggml_`, `mtmd_` or `common_` symbols\"\nVERDICT: MISS\nWHY: The answer reports about nine files in `src/inference/` and 25 files across `src/`, with leaks beyond that layer. That is not \"roughly a dozen files\", and it never says the dependency reaches about a dozen files rather than one wrapper."
+}

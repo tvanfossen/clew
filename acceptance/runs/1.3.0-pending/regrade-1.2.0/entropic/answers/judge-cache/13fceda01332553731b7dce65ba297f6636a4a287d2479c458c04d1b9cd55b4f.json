@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"they are a size-query-then-fill pair, not retry logic.\" and \"The second call is the real work, and there is no loop, backoff, or second attempt at the same operation.\"\nVERDICT: HIT\nWHY: The answer identifies a size-query-then-fill pattern rather than retry, stating there is no loop or backoff and exactly one second call that does the real work."
+}

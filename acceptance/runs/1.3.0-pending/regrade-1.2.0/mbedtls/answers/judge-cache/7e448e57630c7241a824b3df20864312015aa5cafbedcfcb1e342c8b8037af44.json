@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Default build:** `MBEDTLS_PLATFORM_MEMORY` is off in `include/mbedtls/mbedtls_config.h:208`.\"\nVERDICT: HIT\nWHY: The answer names MBEDTLS_PLATFORM_MEMORY as the gate and says it is off by default in the shipped mbedtls_config.h. It does not use the words \"commented out\", but \"off in mbedtls_config.h\" carries the same substance."
+}

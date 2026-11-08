@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `<repo>/.clew.yaml`, one section per option | Replaces the stated layer. This is the standing, in-tree statement of conventions.\nVERDICT: MISS\nWHY: The answer places `.clew.yaml` at tier 2 as a standing in-tree declaration, but it never says both entry points (CLI and MCP) discover it from the repo root rather than having it plumbed per section."
+}

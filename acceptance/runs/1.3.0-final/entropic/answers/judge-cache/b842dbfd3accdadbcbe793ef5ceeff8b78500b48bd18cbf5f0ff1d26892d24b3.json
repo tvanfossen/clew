@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **No colon** (`filesystem.*`, `git.commit`): only the tool name is matched. Every call to that tool matches, whatever its args. **With a colon** (`bash.execute:python*`): the tool part must match the tool name, and the whole `tool:arg` string must match the pattern. ... Matching is `fnmatch` (no `FNM_PATHNAME`)\n\nVERDICT: MISS\n\nWHY: The answer states fnmatch and the no-colon behavior, but doesn't say the pattern is split at the first colon into a tool part and an argument part. It only says the full `tool:arg` string is matched against the pattern."
+}

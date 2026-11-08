@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer mentions a `platform_calloc_uninit` that always returns NULL, but it never says the free default does nothing, and it describes the NULL-returning calloc as \"inferred from the gating.\""
+}

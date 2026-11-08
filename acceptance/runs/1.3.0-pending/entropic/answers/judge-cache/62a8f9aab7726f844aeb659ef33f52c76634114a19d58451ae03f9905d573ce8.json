@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer mentions set_permission_persist and PermissionPersister::save_permission as dead code, but never says a decision can be persisted by appending to config.local.yaml separately from add_permission."
+}

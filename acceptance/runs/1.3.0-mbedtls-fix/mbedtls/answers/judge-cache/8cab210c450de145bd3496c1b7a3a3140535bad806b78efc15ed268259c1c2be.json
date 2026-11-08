@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The generator is `scripts/generate_errors.pl`, whose header says it writes `error.c` from an include directory and a data directory.\nVERDICT: MISS\nWHY: The answer names the generator script and says error.c is auto-generated, but it explicitly says the template (error.fmt) is unverified and doesn't say it's generated from the public headers with that template."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Add the define in the module's header under `include/mbedtls/`, with a one-line doc comment before it or as a `/*!<` after-comment, not both ... Regenerate from the repo root with `scripts/generate_errors.pl`, which writes `library/error.c`. Do not edit `error.c` directly.\nVERDICT: HIT\nWHY: The answer states adding the documented #define to the public header, re-running the generator, and not editing error.c by hand."
+}

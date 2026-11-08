@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Symbols corpus, target is the right repo, no relevant extension in `not_indexed`: reasonably strong evidence that no such symbol exists... The tool itself declines to call this definitive.\"\nVERDICT: MISS\nWHY: The answer describes absence-evidence strength levels but never distinguishes a \"definitive for a reason that is not absence\" grade (e.g. definitive because the answer is structurally empty); it says nothing is definitive."
+}

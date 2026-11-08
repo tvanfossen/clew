@@ -554,11 +554,14 @@ def _parsed_function(node: Any, src_bytes: bytes) -> ParsedFunction | None:
     )
 
 
+## Version 2 (gh#62): an error-recovered definition ends where its body's braces close, a
+## definition swallowed by one is found inside it, and a C keyword is never a function name.
+##
 ## @brief Every top-level function definition in one parsed C/C++ tree.
 ## @param tree The parsed tree.
 ## @param src_bytes The file's raw bytes.
 ## @return ParsedFunction records in document order.
-## @version 1
+## @version 2
 ## @req REQ-DDB-INDEX-004
 def harvest_function_definitions(tree: Any, src_bytes: bytes) -> list[ParsedFunction]:
     """Does NOT descend into a definition once one is found. A function nested
@@ -582,9 +585,67 @@ def harvest_function_definitions(tree: Any, src_bytes: bytes) -> list[ParsedFunc
             stack.extend(reversed(node.children))
             continue
         parsed = _parsed_function(node, src_bytes)
+        if parsed is not None and node.has_error:
+            parsed = _brace_extent(parsed, node, src_bytes)
+            ## AN ERROR-RECOVERED NODE CAN HOLD WHOLE DEFINITIONS: mbedtls's overrunning
+            ## `ssl_parse_server_key_exchange` contained the eight that follow it in the file.
+            stack.extend(reversed(node.children))
         if parsed is not None:
             found.append(parsed)
-    return found
+    return _settled(found)
+
+
+## C keywords a recovered "definition" can be named after; none is ever a function (gh#62).
+_C_KEYWORDS = frozenset(
+    ("if", "else", "while", "for", "do", "switch", "case", "return", "sizeof", "goto")
+)
+
+
+## @brief A recovered definition with its end taken from its body's braces, when they balance.
+## @param parsed The definition as the parse recorded it.
+## @param node Its `function_definition` node, which carries `has_error`.
+## @param src_bytes The file's raw bytes.
+## @return The definition, its `end` corrected when the braces say otherwise.
+## @version 1
+## @dg_internal
+def _brace_extent(parsed: ParsedFunction, node: Any, src_bytes: bytes) -> ParsedFunction:
+    """THE PARSE'S EXTENT IS WRONG BOTH WAYS on mbedtls 068ff080: 2163-3688 for a function
+    ending at 2542, and 1182-1639 for one ending at 1665. Only error-recovered nodes are
+    re-measured — 472 of 2,983 bodied definitions there, most of them already right, which the
+    brace match then confirms rather than changes.
+
+    @brief Correct a recovered definition's end.
+    @return The corrected record.
+    """
+    from dataclasses import replace
+
+    from .c_extent import body_end_line
+
+    body = node.child_by_field_name("body")
+    end = body_end_line(src_bytes, body.start_byte) if body is not None else None
+    return parsed if end is None or end == parsed.end else replace(parsed, end=end)
+
+
+## @brief Drop keyword-named definitions, and any that lie inside one already kept.
+## @param found Definitions in walk order.
+## @return The survivors, in document order.
+## @version 1
+## @dg_internal
+def _settled(found: list[ParsedFunction]) -> list[ParsedFunction]:
+    """INSIDE A KEPT SPAN IS A FRAGMENT: once a recovered definition's end is corrected, the
+    pieces of its body the parse had split off — `if` blocks under an `#if` — sit inside it.
+
+    @brief Settle the harvested definitions.
+    @return Survivors.
+    """
+    kept: list[ParsedFunction] = []
+    for fn in sorted(found, key=lambda f: (f.start, -f.end)):
+        if fn.name in _C_KEYWORDS:
+            continue
+        if kept and kept[-1].start <= fn.start and fn.end <= kept[-1].end:
+            continue
+        kept.append(fn)
+    return kept
 
 
 ## @brief Step one link down a declarator chain, handling the parenthesized shape.
@@ -1050,7 +1111,9 @@ class _FunctionDefinitionHarvester(Harvester):
     ## 7 -> 8: C/C++ files now carry an `enumerators` key (gh#6). Same reasoning: doxygen
     ## emits no `enumvalue` rows at all, so a version-7 payload leaves every enum value
     ## unaddressable on targets already built.
-    stage_version = 8
+    ## 8 -> 9: an error-recovered C definition's span is corrected by its braces and no keyword
+    ## is a function (gh#62). A version-8 payload holds the overrunning spans and the `if` rows.
+    stage_version = 9
     label = "ast symbols"
 
     ## @brief Harvest one file's function definitions, file-scope variables, typedefs and macros.

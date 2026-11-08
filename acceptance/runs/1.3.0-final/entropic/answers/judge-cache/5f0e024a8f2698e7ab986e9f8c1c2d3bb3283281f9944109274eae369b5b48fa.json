@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: With a callback and no allow match, the call is approved, and the callback is only a notification.\nVERDICT: MISS\nWHY: The answer says unlisted calls are approved only when a callback is registered, and denied when none is. It does not conclude that a tool matching neither list simply runs. Its \"deny\" path (no callback \u2192 \"Permission denied\") contradicts default-allow."
+}

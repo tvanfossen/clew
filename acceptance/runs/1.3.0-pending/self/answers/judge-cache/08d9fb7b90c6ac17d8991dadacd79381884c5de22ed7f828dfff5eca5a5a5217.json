@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `edge_class`: `'call'` or `'key'`. This is the field to check first. ... `'key'` rows do not call `fn`. `callers()` deliberately merges in functions that write a shared key `fn` reads, with no call between them.\nVERDICT: HIT\nWHY: The answer says callers returns both call and shared-key rows in one list, distinguished by `edge_class`, and tells the consumer to split on it."
+}

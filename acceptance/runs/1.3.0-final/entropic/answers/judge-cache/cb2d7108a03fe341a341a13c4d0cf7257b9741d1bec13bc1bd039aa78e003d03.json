@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names two directories as containing code that calls into llama.cpp: `src/inference/` for the actual API calls, and `src/facade/` through `entropic.cpp`, which includes the backend header and downcasts to `LlamaCppBackend`.\n\nITEMS:\nsrc/inference/\nsrc/facade/\nEND"
+}

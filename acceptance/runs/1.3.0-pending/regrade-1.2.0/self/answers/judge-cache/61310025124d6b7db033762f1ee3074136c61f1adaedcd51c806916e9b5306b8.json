@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says rows are caller functions with a single edge class, but never concludes that the surface returns one row per neighbour and collapses variants (per-layer evidence) to the strongest."
+}

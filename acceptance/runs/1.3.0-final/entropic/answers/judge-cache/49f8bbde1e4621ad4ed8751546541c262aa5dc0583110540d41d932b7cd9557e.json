@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: plain ctypes, no C++ extension and no pybind. The wheel is pure Python and loads `librentropic.so` at runtime.\nVERDICT: HIT\nWHY: The answer states ctypes loading `librentropic.so` via `ctypes.CDLL` and says there is no C++ extension and no pybind, so no compiled extension module is involved."
+}

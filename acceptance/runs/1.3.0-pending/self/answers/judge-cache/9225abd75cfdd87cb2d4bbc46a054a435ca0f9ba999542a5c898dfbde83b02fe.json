@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Tree-sitter (`harvest.py`) handles Python, Rust, C/C++, JS/TS, shell and CMake. `synth.py` claims JS/TS, shell, CMake and YAML/JSON.\nVERDICT: MISS\nWHY: The answer names a binary-removal step and other-language front ends, but never says that the scope is not the whole answer or that these filters decide which files reach the index. It states \"There is no extension filter\" and doesn't mention extensions that lie about file type."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "ITEMS:\ntool_executor.cpp\nmcp_authorization.cpp\ntypes/config.h\nloader.cpp\nfacade/entropic.cpp\nserver_manager.cpp\npermission_manager.cpp\nengine_types.h\ntests/unit/mcp/tool_executor_test.cpp\npermission_manager.h\ntool_executor.h\nEND"
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the library spawns no threads and lists `ssl_pthread_server.c:277` as a spawn site. It never says the pthread example compiles to a stub main in a default build."
+}

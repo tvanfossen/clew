@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Unless `MBEDTLS_ALLOW_PRIVATE_ACCESS` is defined, `MBEDTLS_PRIVATE(member)` expands to `private_##member`, so the struct field is renamed.\nVERDICT: HIT\nWHY: The answer states the default rename to private_<member>, and that defining the opt-out leaves the plain name (`MBEDTLS_PRIVATE(x)` becomes plain `x`)."
+}

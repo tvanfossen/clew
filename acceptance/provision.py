@@ -41,7 +41,7 @@ from pathlib import Path
 
 from .grader.judge import CAPACITY_PHRASES
 from .grader.rubric import RubricError, Rubric, load
-from .runner import check_declaration_applied, check_revision
+from .runner import check_declaration_applied, check_revision, check_tool_tree
 
 GIT_TIMEOUT = 900
 BUILD_TIMEOUT = 3600
@@ -375,19 +375,27 @@ def write_provision_record(rubric: Rubric, db: Path, meta: dict, path: Path) -> 
     path.write_text(json.dumps(record, indent=2), encoding="utf-8")
 
 
+## Version 2 refuses a modified or unidentifiable clew tree before fetching anything.
+##
 ## @brief Provision one target end to end.
 ## @param rubric The validated rubric.
 ## @param root Directory to hold the checkout, index and config.
 ## @return Provisioned.
-## @version 1
+## @version 2
 def provision(rubric: Rubric, root: Path) -> Provisioned:
     """Every step refuses rather than degrades, and the order is what makes the refusals mean
     something — see the module docstring.
 
     @brief Provision a target.
     @return Provisioned.
-    @version 2
+    @version 3
     """
+    ## THE CLEW TREE FIRST, before the fetch and the build — the expensive steps, both
+    ## worthless if the code that would answer cannot be named.
+    try:
+        check_tool_tree()
+    except ValueError as exc:
+        raise ProvisionError(str(exc)) from exc
     root.mkdir(parents=True, exist_ok=True)
     root = root.resolve()
     repo = root / "repo"

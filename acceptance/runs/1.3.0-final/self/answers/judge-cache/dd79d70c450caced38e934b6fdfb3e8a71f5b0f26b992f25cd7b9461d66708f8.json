@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer notes name collisions and the `qualified=` fix but never says the flat surface selects by resolved identity while the traversal (callers) surface still matches on the bare name."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`library/common.h:132` | Unconditional `#define` | Every `library/*.c` file that includes `common.h` sees real field names.\"\nVERDICT: HIT\nWHY: The answer states that the library turns on the opt-out in the shared header `common.h`, so every library translation unit that includes it sees real member names."
+}

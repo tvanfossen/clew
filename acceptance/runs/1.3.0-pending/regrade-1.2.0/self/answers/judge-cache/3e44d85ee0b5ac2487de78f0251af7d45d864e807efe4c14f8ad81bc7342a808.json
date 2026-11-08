@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Shell functions get no parameter list because bash has none.\nVERDICT: MISS\nWHY: The answer says shell functions have no parameter list because bash has none, but it never says they have no return, so only half of the item is stated."
+}

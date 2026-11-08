@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Hand-written helpers sit on top: `hooks.py` (a `register_hooks` registry), `streams.py` (`register_token_observer`), `helpers.py`, and `_bindings_manifest.py`.\nVERDICT: MISS\nWHY: The answer only mentions `_bindings_manifest.py` in passing as a helper. It never explains the deliberate split between a names-only manifest that imports no ctypes and the bindings module that loads the library."
+}

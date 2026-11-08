@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names these top-level directories as containing uses of MBEDTLS_PRIVATE:\n\n- `library`: `library/common.h`, `library/ecdh.c`, `library/x509_crt.c`\n- `programs`: `programs/ssl/...` and `programs/fuzz/...`\n- `tests`: `tests/suites/test_suite_x509write.function`\n- `include`: `include/mbedtls/private_access.h` and `include/mbedtls/ssl.h`\n- `docs`: `docs/3.0-migration-guide.md`\n\nITEMS:\nlibrary\nprograms\ntests\ninclude\ndocs\nEND"
+}

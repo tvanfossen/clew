@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 14223,
+  "stop_reason": "end_turn",
+  "session_id": "4cb80643-28f2-4c6e-aff3-dcf62c913717",
+  "total_cost_usd": 0.00395296,
+  "usage": {
+    "input_tokens": 6,
+    "cache_creation_input_tokens": 7708,
+    "cache_read_input_tokens": 117476,
+    "output_tokens": 2472,
+    "output_tokens_details": {
+      "thinking_tokens": 965
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 7708,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1750,
+        "cache_read_input_tokens": 41018,
+        "cache_creation_input_tokens": 4919,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 4919
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 6,
+      "outputTokens": 2472,
+      "cacheReadInputTokens": 117476,
+      "cacheCreationInputTokens": 7708,
+      "webSearchRequests": 0,
+      "costUSD": 0.00395296,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 965,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 7708,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 6,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**What's in the answer**\n\n`callers(db, fn, qualified)` in `clew/query/symbols.py:756` returns a list of `CallEdge` rows. Despite the name, it is not only call sites. It is \"everything that causally precedes `fn`\": direct call edges (`edge_class='call'`) plus writers of shared keys whose values `fn` reads (`edge_class='key'`). A `'key'` row does not call `fn` and may run on another thread. The docstring tells you to check `edge_class` on every row, so reading the list as calls is the first mistake to avoid.\n\nEach row also carries the layer that produced it and a confidence. The dossier for `callers` shows `_call_edges` (doxygen_sqlite, exact) and `connect` (ast, resolved). `_callers_of` in `clew/dispatch_edges.py:194` shows the same caller can appear once per extraction layer, and the strongest confidence is kept. Virtual and function-pointer dispatch appear as synthetic edges whose confidence is the weakest link in their premise, so a high-confidence-looking edge can rest on a fuzzy name match.\n\n`qualified` selects among same-named functions, but it narrows only the `'call'` rows, not the `'key'` rows.\n\n**What would make it wrong to read it as a list of call sites**\n\n1. **Key rows are not callers.** A `'key'` row means a value flows from that writer to `fn`. It says nothing about who invokes `fn`.\n2. **Empty is not a negative.** `callers: []` means \"nothing recorded\", not \"nothing calls this\". The `callers` function itself is a live example: its dossier returns `callers: []` with `callers_unresolved: 16`, meaning 16 call sites named a function that did not resolve to a specific one. The file `tests/test_unresolved_inbound.py` exists for this exact reading (gh#15). An empty list with `callers_unresolved: 0` is a measured negative. Without that count, the empty list cannot be taken as absence.\n3. **Edges are only as good as their resolution.** Member calls through pointers or references resolve only when the receiver's declared type pins the class. Callers reached through function pointers or callbacks are missed or appear only via dispatch edges. The reachability note also says functions with no non-fuzzy callers are \"likely library APIs or callbacks\".\n4. **Scope is the index.** A caller outside the indexed file set is not in the list. `test_a_callee_outside_the_index_records_nothing` covers this.\n5. **Same-name collisions.** Without `qualified`, same-named functions can merge. Use `candidates` to see which identity you have.\n6. **Noise exists in the raw layer.** The `test_self_edges.py` note records that of 37 self-edge `callers` rows in one measurement, only 10 were genuine. The rest were `obj.name()` on another object or `super().__init__()`. Caller rows are measurements with known false positives, not verified sites.\n\n**Reading it correctly:** check `edge_class`, check `confidence` and the layer, and check `callers_unresolved` before treating an empty list as meaningful. For a specific call site, read the body at the reported line range rather than trusting the list alone.\n\nI answered from the index only, so I have not checked these edges against the source text.",
+  "ttft_ms": 2134,
+  "type": "result",
+  "duration_ms": 14637,
+  "uuid": "1fa966d6-5289-47e3-8ccc-02df8876efe8",
+  "ttft_stream_ms": 1208,
+  "time_to_request_ms": 69,
+  "first_content_frame_ms": 1208,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

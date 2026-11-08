@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Its word for the distinction is the scope and \"NOT searched\" fields, not an `absent` flag.\" and \"**A \"NOT searched\" line.** It lists the corpora the query did not touch.\"\nVERDICT: MISS\nWHY: The answer describes the scope and \"NOT searched\" fields on empty results, but it never says the strong wording is earned per call by querying unread corpora rather than attached to a result shape."
+}

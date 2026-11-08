@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Only one screen renders a search field through NavigationHeader: the Home Search screen. Eight files render `<NavigationHeader>`, and the Search screen is the only one that turns search on.\nVERDICT: HIT\nWHY: The answer names `app/screens/home/search/search.tsx` (with `hasSearch={true}`) as the only renderer that enables search."
+}

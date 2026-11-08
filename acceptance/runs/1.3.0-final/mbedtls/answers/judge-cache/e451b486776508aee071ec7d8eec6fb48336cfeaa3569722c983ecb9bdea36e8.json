@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `#ifndef MBEDTLS_ALLOW_PRIVATE_ACCESS #define MBEDTLS_PRIVATE(member) private_##member #else #define MBEDTLS_PRIVATE(member) member #endif` and \"the field is named `private_foo` for anyone who doesn't opt out. Code that writes `ctx->foo` fails to compile\"\nVERDICT: HIT\nWHY: The answer shows both macro branches and explains that opt-out code sees plain names while others see the `private_` renamed ones."
+}

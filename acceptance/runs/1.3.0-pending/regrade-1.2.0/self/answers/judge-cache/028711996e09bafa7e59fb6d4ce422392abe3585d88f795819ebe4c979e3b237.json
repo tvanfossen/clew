@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "ITEMS:\nclew/query/symbols.py\nmodels.py\nvocabulary.py\nexterncalls.py\nEND"
+}

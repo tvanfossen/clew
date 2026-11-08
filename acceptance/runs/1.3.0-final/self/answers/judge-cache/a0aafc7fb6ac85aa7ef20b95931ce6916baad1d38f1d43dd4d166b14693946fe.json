@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "ITEMS:\nclew/tiers.py\n<repo>/.clew.yaml\nclew/declaration.py\nEND"
+}

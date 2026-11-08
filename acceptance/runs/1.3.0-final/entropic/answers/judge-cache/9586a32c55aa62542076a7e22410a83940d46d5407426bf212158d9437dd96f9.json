@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The argument comes from `args_to_pattern` (`server_manager.cpp:426`), which takes only the first key of the JSON args object. If that value is a string it is used, otherwise the argument is `*`. Empty args also give `*`.\nVERDICT: HIT\nWHY: The answer states only the first argument value reaches matching and that a non-string value becomes `*`; it also says that other arguments are not seen, which the weak-spot section confirms."
+}

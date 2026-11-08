@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**code:** reads are current, but writes are affected. A rebuild cannot clear it. Restart the MCP client.\" and \"It refuses first if the process predates its source (`stale_code_refusal`...\"\nVERDICT: MISS\nWHY: The answer says reads are current and writes are affected, but never states the mechanism that query tools open the database per call, and never says a build through a stale process writes old pipeline logic."
+}

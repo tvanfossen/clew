@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The `MBEDTLS_ERROR_STRERROR_DUMMY` gate keeps the code compiled but still returns no text.\nVERDICT: MISS\nWHY: The answer mentions the DUMMY gate vaguely, but doesn't say it keeps mbedtls_strerror linkable while the table is compiled out, and doesn't say it is enabled by default."
+}

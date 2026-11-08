@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes scope selection and explicitly says it could not settle whether a language-level filter applies; it never names the parse-built front end for types doxygen can't read or binary classification of files with misleading extensions."
+}

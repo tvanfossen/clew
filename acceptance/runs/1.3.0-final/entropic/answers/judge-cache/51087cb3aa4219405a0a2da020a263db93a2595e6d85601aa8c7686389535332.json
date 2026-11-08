@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Stdio stderr reader | `src/mcp/transport_stdio.cpp:164` | Per open child process | Child's stderr fd ... SSE reader | `src/mcp/transport_sse.cpp:107` | Per SSE connection | `pending_mutex_`, `pending_cv_`, atomics `running_`/`connected_`\nVERDICT: HIT\nWHY: The answer lists a stdio stderr reader thread in transport_stdio.cpp and an SSE reader thread in transport_sse.cpp, each per-transport."
+}

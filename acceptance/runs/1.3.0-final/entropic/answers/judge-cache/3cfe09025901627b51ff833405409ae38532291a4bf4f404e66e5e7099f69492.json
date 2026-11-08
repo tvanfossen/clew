@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: | ExternalBridge accept loop | `external_bridge.cpp:796` | `poll()` with 500 ms timeout, accepts clients | and | Per-client serve thread | `external_bridge.cpp:945` | One per accepted MCP client |\nVERDICT: HIT\nWHY: The answer names an accept-loop thread and a per-accepted-client serve thread in ExternalBridge, and the teardown notes confirm the accept thread plus client threads."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the library itself is single-threaded and mutexes are compiled out, but it never mentions the pthread example compiling to a stub main; it also lists ssl_pthread_server.c as a thread spawn site."
+}

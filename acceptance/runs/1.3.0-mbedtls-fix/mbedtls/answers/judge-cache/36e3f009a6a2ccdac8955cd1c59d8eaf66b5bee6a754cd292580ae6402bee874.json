@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Library code:** nothing. The index finds no threads spawned from `library/`. Every `threading.c` function and every `mbedtls_threading_*` mutex is gated by `MBEDTLS_THREADING_C`\"; \"Every lock goes through the function pointer `mbedtls_mutex_lock`, which defaults to `threading_mutex_lock_pthread` (`library/threading.c:103`).\"\nVERDICT: HIT\nWHY: The answer states library/ spawns no threads and also that library/threading.c supplies the mutex abstraction (mbedtls_mutex_lock and the threading mutexes) that callers use."
+}

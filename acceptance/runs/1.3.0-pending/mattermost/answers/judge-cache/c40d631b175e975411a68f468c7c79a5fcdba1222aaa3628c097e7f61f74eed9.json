@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `handleReactionRemovedFromPostEvent` looks up the row and calls `destroyPermanently()` directly, with no operator... `database.write(() => reaction[0].destroyPermanently())`\nVERDICT: HIT\nWHY: The answer says the removal handler bypasses the operator, queries the reaction, and destroys it with a direct `database.write`."
+}

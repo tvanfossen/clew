@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: If those are not defined, they become stubs: calloc returns NULL and free does nothing.\nVERDICT: HIT\nWHY: The answer states that without standard functions defined, the default pointers are stubs where calloc returns NULL and free does nothing, i.e. they fail rather than fall back."
+}

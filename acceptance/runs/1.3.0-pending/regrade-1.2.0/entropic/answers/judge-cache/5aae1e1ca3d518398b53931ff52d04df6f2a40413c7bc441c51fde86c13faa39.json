@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The first call passes a null buffer and size 0 to get the required token count. ... This is the standard size-query idiom ... The second call is unconditional, there is no loop, and nothing re-issues a call after a failure. It is a two-phase allocate-then-fill.\n\nVERDICT: HIT\nWHY: The answer identifies the two calls as size negotiation (query then fill), not retry, noting no loop and an unconditional single second call; backoff and attempt counter are not named explicitly, but the substance matches."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_PRIVATE(member)` expands to `private_##member`. The real member is renamed, so `ctx->MBEDTLS_PRIVATE(foo)` fails to compile for anyone who writes it.\nVERDICT: MISS\nWHY: The answer explains the compile-time renaming of the member, but never says the struct layout stays visible and sized, so it lacks the contrast with hiding the layout."
+}

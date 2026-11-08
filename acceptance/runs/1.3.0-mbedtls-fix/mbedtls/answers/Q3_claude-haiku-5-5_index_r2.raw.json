@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 35463,
+  "stop_reason": "end_turn",
+  "session_id": "b46d7240-0b01-47e3-94f7-bd7f69354d79",
+  "total_cost_usd": 0.01157748,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 24966,
+    "cache_read_input_tokens": 300508,
+    "output_tokens": 7156,
+    "output_tokens_details": {
+      "thinking_tokens": 2971
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 24966,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3800,
+        "cache_read_input_tokens": 64054,
+        "cache_creation_input_tokens": 784,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 784
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 7156,
+      "cacheReadInputTokens": 300508,
+      "cacheCreationInputTokens": 24966,
+      "webSearchRequests": 0,
+      "costUSD": 0.01157748,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2971,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 24966,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 17,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "## Short answer\n\nLibrary code never calls `calloc`/`free` directly. Every allocation goes through `mbedtls_calloc()` and `mbedtls_free()`, and what those resolve to depends on configuration. With the default config they are plain libc `calloc`/`free`. A project substitutes its own allocator either at compile time (macros) or at runtime (a function-pointer setter).\n\n## What gets called\n\n```\nlibrary code (cipher_wrap.c, ecp.c, asn1parse.c, ...)\n        \u2502  mbedtls_calloc(n, sz) / mbedtls_free(p)\n        \u25bc\nlibrary/platform.c:47,52     mbedtls_calloc / mbedtls_free      (only if MBEDTLS_PLATFORM_MEMORY)\n        \u2502  (*mbedtls_calloc_func)(n, sz)\n        \u25bc                       platform.c:44-45 (static pointers)\n  default = MBEDTLS_PLATFORM_STD_CALLOC / _FREE\n  or set by mbedtls_platform_set_calloc_free()  (platform.c:57)\n```\n\nThree build modes, from `include/mbedtls/platform.h:138-168`:\n\n| Config | `mbedtls_calloc` resolves to |\n|---|---|\n| `MBEDTLS_PLATFORM_MEMORY` off (default, `mbedtls_config.h:208` is commented out) | `calloc` via macro, no indirection |\n| `MBEDTLS_PLATFORM_MEMORY` + both `_CALLOC_MACRO` and `_FREE_MACRO` | your macro, inlined at compile time |\n| `MBEDTLS_PLATFORM_MEMORY` only | a function pointer, set at runtime |\n\n## How a project substitutes its allocator\n\n**Compile time.** Define `MBEDTLS_PLATFORM_MEMORY`, `MBEDTLS_PLATFORM_CALLOC_MACRO` and `MBEDTLS_PLATFORM_FREE_MACRO`. You must define both macros or neither. `platform.h:139-144` aliases `mbedtls_calloc`/`mbedtls_free` to them, and `platform.c:20-22` drops its own pointer machinery entirely. The macro must zero the memory and `free` must accept `NULL`, per the `MBEDTLS_PLATFORM_STD_CALLOC` contract (`mbedtls_config.h:4113-4133`).\n\n**Runtime.** Define only `MBEDTLS_PLATFORM_MEMORY`, then call early at startup:\n\n```c\nmbedtls_platform_set_calloc_free(my_calloc, my_free);\n```\n\nThe default target without a set call is `MBEDTLS_PLATFORM_STD_CALLOC` if you define it, and otherwise a stub that returns `NULL` (`platform.c:24-33`). The stub `free` does nothing. So forgetting the setter does not crash. Every allocation quietly fails and the library reports out-of-memory errors.\n\n## What the library does with the facility\n\n- **Everything routes through it.** A grep of `library/` for raw `calloc(`/`free(` finds no real calls outside the hook. The one exception is `memory_buffer_alloc.c:404`, `free(hdr->trace)`, which looks like a backtrace-only path. I did not confirm its guard. The index resolves about 147 callers of `mbedtls_calloc` and 133 of `mbedtls_free`, across cipher, pk, ecp, asn1 and the test programs.\n- **The library ships its own allocator on top of the hook.** `mbedtls_memory_buffer_alloc_init(buf, len)` (`memory_buffer_alloc.c:566`) carves allocations out of a caller-supplied static buffer. It calls `mbedtls_platform_set_calloc_free()` to install `buffer_alloc_calloc_mutexed`/`_free_mutexed`, or the unmutexed pair if threading is off. Block headers carry `magic1`/`magic2` checks, and misuse is reported with `FATAL` messages (lines 373, 390).\n- **Test design reinforces it.** `component_test_psa_crypto_without_heap` (`tests/scripts/components-configuration-crypto.sh`) builds a config where the core library, including PSA core, cannot call `calloc`/`free`, while test code can.\n\n## Caveats\n\n- The hooks are process-global, unsynchronized function pointers. I'd set them once at startup, before any threads start. That is an inference from the code, not something the docs state.\n- `mbedtls_memory_buffer_alloc_init` returns early on a too-small buffer, after installing the hooks but before setting up the heap (`memory_buffer_alloc.c:580-582`). I did not trace what an allocation then does. Check that before relying on it in a constrained build.",
+  "ttft_ms": 1887,
+  "type": "result",
+  "duration_ms": 36137,
+  "uuid": "ace4e270-7299-48bc-8a93-18effe46b8e0",
+  "ttft_stream_ms": 1241,
+  "time_to_request_ms": 68,
+  "first_content_frame_ms": 1241,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

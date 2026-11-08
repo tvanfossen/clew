@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer covers only scope derivation (declared vs whole-repo, git ignores, pruned dirs). It never says a file must also be readable to reach the index, and it names neither the parse-built front end for types doxygen can't read nor binary classification of files with misleading extensions."
+}

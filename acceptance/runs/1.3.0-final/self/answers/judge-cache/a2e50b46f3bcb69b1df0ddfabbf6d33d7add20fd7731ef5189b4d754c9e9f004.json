@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes how index scope is determined and never mentions a containment call being removed rather than left in place with its callers dropped."
+}

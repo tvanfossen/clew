@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Neither path loops, backs off, or re-attempts after an error. Calling this retry logic would be wrong.\nVERDICT: HIT\nWHY: The answer says the tokenize double call is a size probe then fill, not retry, with no looping or backoff, and exactly one second call."
+}

@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 11218,
+  "stop_reason": "end_turn",
+  "session_id": "8933e9a2-f9e1-44e5-8fc7-8d9c4ceec9ec",
+  "total_cost_usd": 0.0021476000000000004,
+  "usage": {
+    "input_tokens": 4,
+    "cache_creation_input_tokens": 1358,
+    "cache_read_input_tokens": 76310,
+    "output_tokens": 2225,
+    "output_tokens_details": {
+      "thinking_tokens": 1126
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 1358,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1778,
+        "cache_read_input_tokens": 38155,
+        "cache_creation_input_tokens": 1358,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1358
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 4,
+      "outputTokens": 2225,
+      "cacheReadInputTokens": 76310,
+      "cacheCreationInputTokens": 1358,
+      "webSearchRequests": 0,
+      "costUSD": 0.0021476000000000004,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1126,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 1358,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 3,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** the reply tells you which place it searched and how many tokens it matched. Whether an empty result is a real absence depends on which corpus you queried, so the confidence has to be read per reply.\n\n**What distinguishes the two cases in the reply**\n\n- **Symbol search (the default corpus).** The reply says the empty result is \"NOT a definitive negative.\" It lists what it searched: names, `@brief` text, macros, typedefs, enums, classes/structs, config symbols, and file docs. It also lists what it did not search: markdown and Kconfig prose. It gives `token_hits` per word, so a zero on one token is visible. It also gives a `scope` block: 426 indexed files, the extensions covered, and a `not_indexed` list (14 entries, including `.rs`, `.toml`, `.csv`, `.sql`, `.lock`, and extensionless files). The `target` field names the repository that answered.\n- **Prose search (`corpus='prose'`).** The reply says \"This IS a definitive empty result from the database\" and tells you not to retry. It does not repeat the `scope` block, so the bounds of that claim come only from the `target` field and the repository's own index.\n\n**What each answer is entitled to**\n\n| Reply | Entitled to | Not entitled to |\n|---|---|---|\n| Symbol search, all tokens zero | The name is not a symbol, brief, macro, type, or config symbol in the 426 indexed files of `target`. Strong evidence. | That the name is absent from the repo. It may sit in an unindexed extension, in a markdown or Kconfig file, or be spelled differently. |\n| Symbol search, one token zero | The zero token is the cause. The reply's own guidance is to retry without it. | Anything about the other token alone, since matching is a conjunction. |\n| Prose search, zero | Absent from the indexed markdown for `target`. Stated as definitive. | Absence from non-markdown text or unindexed files. |\n\n**Where the search did not look**\n\n- Files outside the 426 indexed files, and extensions in `not_indexed`.\n- Markdown and Kconfig prose, if you queried symbols.\n- Build and CI files such as Makefiles and CI configs, which the clew instructions say sit outside the indexed set.\n- A different repository, if `target` is not the one you meant.\n\n**What I checked:** two probe searches with a nonsense token. The symbol search returned zero with the \"not definitive\" note, per-token zeros, and the scope block. The prose search returned zero with the \"definitive\" note. I did not run `dossier` or `index`, so the claims about `not_searched` on split indexes and about how absent keys are handled come from the tool descriptions and the repo's AGENTS.md, not from a reply I observed.",
+  "ttft_ms": 1646,
+  "type": "result",
+  "duration_ms": 11515,
+  "uuid": "6a429396-b2e0-4635-8315-c00ab7b525de",
+  "ttft_stream_ms": 520,
+  "time_to_request_ms": 84,
+  "first_content_frame_ms": 520,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

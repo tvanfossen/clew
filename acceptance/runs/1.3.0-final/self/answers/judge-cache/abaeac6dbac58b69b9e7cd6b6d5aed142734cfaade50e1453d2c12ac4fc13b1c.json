@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"A clew index can go stale in three independent ways, and each query reply reports which of them applies.\" and the bullets \"**data:** the index is older than the source\", \"**schema:** the index was stamped by a newer build...\", \"**code:** the running server process predates the source tree.\"\nVERDICT: HIT\nWHY: The answer explicitly says staleness has three independent axes and names data, schema, and code, each with a distinct meaning."
+}

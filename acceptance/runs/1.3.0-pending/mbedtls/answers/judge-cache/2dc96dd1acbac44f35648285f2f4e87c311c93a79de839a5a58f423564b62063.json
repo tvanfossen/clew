@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_PLATFORM_MEMORY` off (shipped default, `mbedtls_config.h:208` commented out) | the libc `calloc`, by macro (`platform.h:166-167`)\nVERDICT: HIT\nWHY: The answer states that in the shipped default build, mbedtls_calloc resolves by macro directly to libc calloc, which is the no-indirection point. The same row covers free only implicitly, and the opening says \"they are the libc `calloc` and `free`\"."
+}

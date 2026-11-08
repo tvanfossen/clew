@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It carves allocations out of a caller-supplied static buffer, with a mutex if `MBEDTLS_THREADING_C` is on.\nVERDICT: MISS\nWHY: The answer mentions a mutex under MBEDTLS_THREADING_C but doesn't say the init function picks a mutexed versus plain calloc/free pair at compile time."
+}

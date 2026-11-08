@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Async `entropic.ask` worker | `external_bridge.cpp:1158` (detached at `:1222`) ... The worker at `external_bridge.cpp:1158` captures `this` and runs `.detach()` at `:1222`. Nothing I read joins it.\nVERDICT: HIT\nWHY: The answer identifies the async ask worker as detached, outliving its owner with no join found, though it doesn't state it is the only detached thread."
+}

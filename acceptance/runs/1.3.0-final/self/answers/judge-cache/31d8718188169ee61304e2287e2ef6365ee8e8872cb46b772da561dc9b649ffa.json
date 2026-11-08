@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Clew takes repo-specific indexing conventions from five tiers.\nVERDICT: HIT\nWHY: The answer states five named precedence tiers (explicit, declared, target-fact, ecosystem, heuristic) and explains how they resolve, which goes beyond a single override."
+}

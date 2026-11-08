@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The library spawns nothing, so under default settings it runs on whatever threads the caller provides.\nVERDICT: MISS\nWHY: The answer says the library spawns no threads, but it doesn't say that library/ supplies the mutex abstraction for threaded callers. It describes library mutexes as protecting library globals and the heap, and the contrast between \"no threads\" and \"provides the mutex abstraction\" is never stated."
+}

@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 23602,
+  "stop_reason": "end_turn",
+  "session_id": "2b53c13e-0aba-46ac-a2ff-0de81f932f54",
+  "total_cost_usd": 0.01014356,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 29011,
+    "cache_read_input_tokens": 186606,
+    "output_tokens": 4949,
+    "output_tokens_details": {
+      "thinking_tokens": 2753
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 29011,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3390,
+        "cache_read_input_tokens": 64014,
+        "cache_creation_input_tokens": 3255,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 3255
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 8,
+      "outputTokens": 4949,
+      "cacheReadInputTokens": 186606,
+      "cacheCreationInputTokens": 29011,
+      "webSearchRequests": 0,
+      "costUSD": 0.01014356,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2753,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 29011,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 9,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** library code never calls `calloc`/`free` directly. It calls `mbedtls_calloc()` and `mbedtls_free()`, which dispatch through two static function pointers in `library/platform.c`. By default those pointers point at the C standard library, and a project can replace them.\n\n**What gets called**\n\n```\nlibrary code (ssl, x509, pk, cipher_wrap, psa ...)\n  \u2514\u2500 mbedtls_calloc(n, size)      library/platform.c:47\n       \u2514\u2500 (*mbedtls_calloc_func)(n, size)\n            default: MBEDTLS_PLATFORM_STD_CALLOC  (libc calloc)\n  \u2514\u2500 mbedtls_free(p)              library/platform.c:52\n       \u2514\u2500 (*mbedtls_free_func)(p)\n            default: MBEDTLS_PLATFORM_STD_FREE    (libc free)\n```\n\n- `mbedtls_calloc_func` and `mbedtls_free_func` are `static` in `platform.c` (lines 44\u201345), initialised to the standard functions.\n- The index shows 147 callers of `mbedtls_calloc`, so the facade is used broadly. The reply capped the list at 25.\n- When `MBEDTLS_PLATFORM_STD_CALLOC` is not defined, `platform.c` (around lines 24\u201333) falls back to a static `platform_calloc_uninit` that always returns `NULL`. So a build with no allocator fails allocations rather than linking to libc.\n- `platform.h` also defines the `mbedtls_calloc`/`mbedtls_free` macros (lines 143\u2013144 and 166\u2013167). Their expansions depend on `MBEDTLS_PLATFORM_CALLOC_MACRO`/`_FREE_MACRO` and `MBEDTLS_PLATFORM_MEMORY`. The index does not show the `#if` arms clearly enough for me to say which expansion wins in each configuration, so read `platform.h` before relying on the macro path.\n\n**How a project substitutes its allocator**\n\nTwo routes, both shown in the index:\n\n1. **Runtime, global:** call `mbedtls_platform_set_calloc_free(my_calloc, my_free)` (`platform.c:57`). It assigns the two pointers and returns 0. It has no locking and no error path, so call it before any other mbedtls use.\n2. **Compile time:** enable `MBEDTLS_PLATFORM_MEMORY` and supply `MBEDTLS_PLATFORM_CALLOC_MACRO` / `MBEDTLS_PLATFORM_FREE_MACRO` in the user config. Overriding `MBEDTLS_PLATFORM_STD_CALLOC` changes the default pointer value. The test fixture `tests/configs/user-config-malloc-0-null.h` does this with a `custom_calloc`. The index has no definition site for `MBEDTLS_PLATFORM_CALLOC_MACRO` or `_FREE_MACRO`, so the project's own config must provide them.\n\n**What the library does with the facility**\n\n- **Its own allocator is a client of it.** `mbedtls_memory_buffer_alloc_init(buf, len)` (`library/memory_buffer_alloc.c:566`) does not call libc. It calls `mbedtls_platform_set_calloc_free` with its own `buffer_alloc_calloc_mutexed` (or unlocked `buffer_alloc_calloc` if `MBEDTLS_THREADING_C` is off), then carves the caller's buffer into a heap.\n- **That call is process-global.** It replaces the pointers for the whole process, not just for one context.\n- **Edge case:** the pointer swap happens before the `len < sizeof(memory_header) + \u2026` check. An undersized buffer therefore leaves the replacement allocator installed with no usable heap, and the function returns `void`, so the caller gets no error.\n- **No locking on the pointers.** The pointers are plain statics written without synchronisation. The index shows a `pthread` entry point (`handle_ssl_connection`, medium confidence) that reaches `mbedtls_free`. If you swap the allocator while threads are running, you own that race.",
+  "ttft_ms": 1687,
+  "type": "result",
+  "duration_ms": 24459,
+  "uuid": "d64849a3-b9e6-4ec9-a3d7-b50935b22681",
+  "ttft_stream_ms": 1125,
+  "time_to_request_ms": 68,
+  "first_content_frame_ms": 1125,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

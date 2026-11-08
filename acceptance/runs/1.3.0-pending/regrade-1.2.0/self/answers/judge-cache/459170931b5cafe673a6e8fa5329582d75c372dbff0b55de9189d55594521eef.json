@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"it is attached to a query reply only when the index is stale\" and \"The agent ... should read the `target` and `staleness` fields on each reply. If a `staleness` block appears...\"\nVERDICT: MISS\nWHY: The answer says the staleness list is empty when current and attached only when stale, but it never says the annotation rides on every query reply unprompted. It also describes the caller as reading fields on each reply, which falls short of that claim."
+}

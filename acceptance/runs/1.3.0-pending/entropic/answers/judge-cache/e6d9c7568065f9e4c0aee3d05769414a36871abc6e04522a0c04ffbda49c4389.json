@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"A match makes `check_approval` return true without invoking the frontend callback.\" and \"The allow list only suppresses the callback.\"\nVERDICT: HIT\nWHY: The answer says the allow list suppresses the approval callback rather than granting execution, and ties it to `check_approval` in tool_executor.cpp, separate from the deny check in server_manager.cpp. It never says in so many words that allow is consulted only there, but the mechanism and location are named."
+}

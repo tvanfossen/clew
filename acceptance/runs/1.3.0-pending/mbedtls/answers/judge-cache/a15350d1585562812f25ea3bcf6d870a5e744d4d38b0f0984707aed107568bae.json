@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"So `ctx->MBEDTLS_PRIVATE(state)` compiles to `ctx->private_state` by default. A user who writes `ctx->state` gets a compile error\"\nVERDICT: HIT\nWHY: The answer states that the macro renames the member (private_ prefix) so that access by the plain name fails at compile time. That is the member-name-breaking mechanism. It never says the layout is hidden, so the layout stays visible."
+}

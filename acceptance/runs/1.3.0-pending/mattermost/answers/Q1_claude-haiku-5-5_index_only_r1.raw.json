@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 19959,
+  "stop_reason": "end_turn",
+  "session_id": "c2ab5886-2d5b-4729-87c0-9cfb19163f18",
+  "total_cost_usd": 0.01647653,
+  "usage": {
+    "input_tokens": 18,
+    "cache_creation_input_tokens": 52202,
+    "cache_read_input_tokens": 465233,
+    "output_tokens": 2764,
+    "output_tokens_details": {
+      "thinking_tokens": 636
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 52202,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 922,
+        "cache_read_input_tokens": 67528,
+        "cache_creation_input_tokens": 3241,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 3241
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 18,
+      "outputTokens": 2764,
+      "cacheReadInputTokens": 465233,
+      "cacheCreationInputTokens": 52202,
+      "webSearchRequests": 0,
+      "costUSD": 0.01647653,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 636,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 52202,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 16,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** a failed new post stays in the local database, marked as failed, and is not retried automatically. Retry is manual, from the user's \"Try Again\" action.\n\n**What happens on failure** (`createPost`, `app/actions/remote/post.ts:74-226`):\n\n1. Before the network call, the post is written locally with a temporary `pending_post_id` and is shown in the UI as pending.\n2. The server call is `client.createPost(...)`. If it throws, the code logs the error and builds an error copy of the post with `props.failed = true`.\n3. Most errors leave that failed post in the database. Three server errors are different: `DELETED_ROOT_POST_ERROR`, `TOWN_SQUARE_READ_ONLY_ERROR` and `PLUGIN_DISMISSED_POST_ERROR`. For those the post is removed instead of kept as failed. A `BOR_DENIED_BY_POLICY_ERROR` also expires the cached render-permission entry for the channel, and the post is still kept as failed.\n\n**How many automatic retries:** none. I found one attempt per send.\n- `ClientPosts.createPost` (`app/client/rest/posts.ts:43-48`) calls `doFetch` with `noRetry: true`. That is the only retry-related setting on the send path.\n- I did not read `doFetch`'s body, so I can't say exactly how `noRetry` is handled there. The name strongly suggests it turns off the client's transport-level retry, but that is an inference from the flag name.\n- Nothing in the send path loops or reschedules.\n\n**What retrying does** (`retryFailedPost`, `app/actions/remote/post.ts:228-307`):\n\n- It is triggered only from the failed-post bottom sheet, where the user taps \"Try Again\" (`post.failed.retry`, `app/components/post_list/post/body/failed/index.tsx:38-65`). Tapping \"Delete Message\" calls `removePost` instead.\n- It rebuilds the post with a new timestamp and `failed: false`, updates the local record so the UI shows it as pending again, and then calls `client.createPost` once more.\n- On success it stores the server's post in place of the local one and updates the channel's last-post time (unless it is a CRT reply).\n- On failure it sets `failed: true` again, or removes the post if the error is one of the three terminal errors above. Each tap is one more attempt; nothing repeats on its own.",
+  "ttft_ms": 1548,
+  "type": "result",
+  "duration_ms": 23434,
+  "uuid": "afa7af74-c30a-472d-803e-590ef04a0954",
+  "ttft_stream_ms": 1151,
+  "time_to_request_ms": 94,
+  "first_content_frame_ms": 1151,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

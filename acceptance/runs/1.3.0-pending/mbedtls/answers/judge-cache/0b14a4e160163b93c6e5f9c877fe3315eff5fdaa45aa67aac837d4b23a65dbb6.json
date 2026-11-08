@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `private_access.h:14-18` gates the two branches on it: if it is undefined, `MBEDTLS_PRIVATE(m)` becomes `private_##m`; if it is defined, it becomes plain `m`.\nVERDICT: HIT\nWHY: The answer states that defining MBEDTLS_ALLOW_PRIVATE_ACCESS yields plain names while the default (ordinary consumers) gets the private_-prefixed names, and it lists the library and bundled programs as the ones that define it."
+}

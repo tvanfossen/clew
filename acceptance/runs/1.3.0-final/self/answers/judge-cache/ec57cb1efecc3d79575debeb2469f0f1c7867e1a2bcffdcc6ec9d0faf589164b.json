@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `clew/scope.py:derive_scope` checks for a declared `index_scope:` section, in the repo's `.clew.yaml` or a `--declare` file\nVERDICT: HIT\nWHY: The answer names derive_scope in clew/scope.py as the place where the index scope decision is resolved."
+}

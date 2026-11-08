@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The winning tier is written to `build_meta` (and into the stamped provenance), so you can see afterwards which tier won.\nVERDICT: MISS\nWHY: The answer says the winning tier is recorded but never says the record is derived from stored rows rather than stamped separately; it even says \"stamped provenance\"."
+}

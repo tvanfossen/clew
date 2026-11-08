@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `benchmark.c` (alarm timer and signal handler)\nVERDICT: MISS\nWHY: The answer mentions the benchmark.c alarm timer but never says it is Windows-only or gated on a platform condition rather than the threading config."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Rebuild with `force=True` if the index is older. If the index is *newer*, a rebuild cannot clear it. Restart the client. | Only restarting the MCP client\nVERDICT: MISS\nWHY: The answer lists different remedies per axis (rebuild for data, restart for code) but never explains that this difference is why a single flag would not have been enough."
+}

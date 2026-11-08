@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_ct_compiler_opaque` (`impl.h:85-93`) is an empty asm with a `+r` constraint when asm is available. Otherwise it XORs with a `volatile` zero (`constant_time.c:23-30`). That stops the compiler from proving a value at compile time and folding a branch away.\nVERDICT: HIT\nWHY: The answer names mbedtls_ct_compiler_opaque as the primitive that stops the compiler from knowing a value, and places it in impl.h (constant_time_impl.h)."
+}

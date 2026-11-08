@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer claims the dependency is contained in src/inference/llama_cpp_* and reaches the rest only through interfaces; it never says some reaching files sit outside src/inference."
+}

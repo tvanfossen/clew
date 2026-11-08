@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The text before the first `:` is matched against the tool name with `fnmatch`. Example: `filesystem.*` matches all filesystem tools. - With no `:`, a match on the tool name is enough.\nVERDICT: HIT\nWHY: The answer states that the pattern splits at the first colon, the tool part is matched with fnmatch, and a pattern with no colon matches on the tool name alone."
+}

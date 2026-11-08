@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`q.unsearched_corpora` subtracts the searched kinds from the kinds the database holds, and any hit downgrades the verdict and is published as `unsearched_corpus_hits`.\"\nVERDICT: HIT\nWHY: The answer says the definitive wording is decided on each empty reply by querying the index for matches in corpora `search` did not read, \"checking the index itself, not by the wording of the note\", and not by the shape of the result."
+}

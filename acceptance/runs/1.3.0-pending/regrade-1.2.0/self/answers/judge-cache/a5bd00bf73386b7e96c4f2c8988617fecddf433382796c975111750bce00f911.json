@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"| `definitive` note, matching `target`, no `staleness`, the name's *kind* is inside the searched set | Strong evidence the repo has no indexed symbol by that name.\" and \"| The likely home is an extension in `scope.not_indexed` ... | No answer. The file exists but was never read, so the empty result is \"not looked.\" |\"\nVERDICT: MISS\nWHY: The answer separates definitive-for-scope from not-looked/not-definitive, but it never names a middle grade of definitive for a reason other than absence."
+}

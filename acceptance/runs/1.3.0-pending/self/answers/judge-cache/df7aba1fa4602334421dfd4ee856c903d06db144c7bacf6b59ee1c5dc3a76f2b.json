@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer explains how to read the scope of an empty result. It never states the rule to fix the corpus (widen what is indexed) rather than hedge the wording of the absence claim."
+}

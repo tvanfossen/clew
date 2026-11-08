@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Regenerate the switch cases in `library/error.c`. The two switch bodies are marked `/* Begin Auto-Generated Code. */`, and the index holds `scripts/generate_errors.pl`.\nVERDICT: MISS\nWHY: The answer says error.c is auto-generated and mentions generate_errors.pl, but it admits not knowing how the script works. It never names error.fmt as the template, and it doesn't clearly say the script generates error.c from the public headers."
+}

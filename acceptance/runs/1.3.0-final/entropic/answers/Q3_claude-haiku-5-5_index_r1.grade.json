@@ -1,0 +1,143 @@
+{
+  "cell": "Q3_claude-haiku-5-5_index_r1",
+  "arm": "index",
+  "rubric_version": "3.1.1",
+  "rubric_digest": "705c131e354e5c22",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.6,
+  "unmarked_pct": 0.0,
+  "split_decisions": 0,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "names PermissionManager and locates the allow and deny lists as coming from the PermissionsConfig the ServerManager is constructed with",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer discusses permission checks, but it never names PermissionManager as the holder of the lists or says the lists come from the PermissionsConfig that ServerManager is constructed with. || QUOTE: NONE | WHY: The answer names PermissionManager only for pattern matching and never says the allow and deny lists come from the PermissionsConfig that ServerManager is constructed with. || QUOTE: NONE | WHY: The answer discusses PermissionManager and the allow/deny lists but never says they come from the PermissionsConfig that ServerManager is constructed with.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that the DENY list is the only one that blocks execution \u2014 ServerManager's execute path consults is_denied and nothing else before routing the call",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: \"The deny check in `execute` is the authoritative gate, since nothing reaches a server without passing it.\" | WHY: The answer says the deny check in `execute` is the authoritative gate, but it also describes an approval step (`check_approval`) that can deny a call (\"With no callback and no allow match, the call is denied\"). So it does not conclude that the deny list is the only thing that blocks execution. || QUOTE: \"The deny check in `execute` is the authoritative gate, since nothing reaches a server without passing it.\" | WHY: The answer says that `execute` checks the deny list and that this is the authoritative gate. It also says that `check_approval` can approve any call when a callback is set. It never says the deny list is the only list that blocks execution, and it presents the allow-list check as a separate gate in the approval step. || QUOTE: The deny check in `execute` is the authoritative gate, since nothing reaches a server without passing it. | WHY: The answer says the deny list is enforced in ServerManager::execute but also says the allow list gates approval earlier, so it doesn't conclude that deny is the only list that blocks execution.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the ALLOW list does not grant execution but suppresses the approval step \u2014 it is consulted only from ToolExecutor::check_approval, in a different file",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: The permission lists are read in two places: `check_approval` for allow and `ServerManager::execute` for deny. | WHY: The answer says allow is read in `check_approval` (a different file from the deny check), but it never says the allow list doesn't grant execution and only suppresses the approval step. It says the opposite of the \"suppress the prompt\" framing: a callback can approve anything not on the allow list. || QUOTE: The permission lists are read in two places: `check_approval` for allow and `ServerManager::execute` for deny. | WHY: The answer says the allow list is read only in `check_approval`, but it never says the allow list does not grant execution or only suppresses the approval step. It also says the deny check in `execute` is the authoritative gate. || QUOTE: NONE | WHY: The answer says the allow list is read in `check_approval` and the deny list in `execute`. It never says the allow list only suppresses the approval step and does not grant execution.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that the effective posture is default-ALLOW at the blocking gate \u2014 a tool matching neither list is not denied and runs",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: With a callback and no allow match, the call is approved, and the callback is only a notification. | WHY: The answer says unlisted calls are approved only when a callback is registered, and denied when none is. It does not conclude that a tool matching neither list simply runs. Its \"deny\" path (no callback \u2192 \"Permission denied\") contradicts default-allow. || QUOTE: With a callback and no allow match, the call is approved, and the callback is only a notification. | WHY: The answer says the approval step grants a call not on the allow list when a callback is registered, but it never concludes that a tool matching neither list runs. Without a callback it says such a call is denied, and its closing questions cast the gap as a callback-denial and ordering problem. It never states that default-allow is the effective posture at the blocking gate. || QUOTE: With a callback and no allow match, the call is approved, and the callback is only a notification. | WHY: The answer says that with a callback registered, a call off the allow list is approved. It also says that with no callback and no allow match, the call is denied. The item needs the conclusion that a tool matching neither list runs by default. The answer does not say that, and it treats the deny list as the authoritative gate.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies that the approval callback CANNOT refuse \u2014 it returns void, and the code sets approved to true unconditionally after firing it",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"`check_approval` (`tool_executor.cpp:161-188`) sets `approved = true` after calling `on_tool_call`. That callback is typed `void` (`engine_types.h:370`), so the engine never receives a yes or no from the consumer.\" | WHY: The answer states the callback returns void and approved is set to true after it fires, so the callback cannot refuse. || QUOTE: \"`check_approval` (`tool_executor.cpp:161-188`) sets `approved = true` after calling `on_tool_call`. That callback is typed `void` (`engine_types.h:370`), so the engine never receives a yes or no from the consumer.\" | WHY: The answer states the callback returns void and approved is set to true unconditionally after it fires, so the callback cannot refuse.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "explains that a pattern is matched with fnmatch, split at the first colon into a tool part and an argument part, and that a pattern with no colon matches on the tool name alone",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: The part before the first `:` is matched against the tool name. If there is a colon, the whole string is matched against `tool:<argvalue>`. | WHY: The answer states fnmatch matching, splitting at the first colon into a tool part and an argument part, and that a pattern with no colon matches on the tool name alone (\"no colon means tool-only match\"). || QUOTE: The part before the first `:` is matched against the tool name. If there is a colon, the whole string is matched against `tool:<argvalue>`. | WHY: The answer names fnmatch globbing, the first-colon split into a tool part and an argument part, and that a pattern with no colon matches on the tool name alone (\"no colon means tool-only match\"). || QUOTE: The part before the first `:` is matched against the tool name. If there is a colon, the whole string is matched against `tool:<argvalue>`. | WHY: The answer states the fnmatch matching, the split at the first colon into tool and argument parts, and that a pattern with no colon matches on the tool name alone (\"no colon means tool-only match\").",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that only ONE argument value ever reaches the pattern \u2014 the rest of the call's arguments are invisible to permission matching, and a non-string or unparseable argument collapses to a wildcard",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: The argument value is `args_to_pattern` (`server_manager.cpp:426`): the value of the first JSON member if it is a string, otherwise `*`. \"First\" is nlohmann's default key order, which is alphabetical... A deny like `filesystem.write:/etc/*` therefore checks whichever argument sorts first, not `path`. | WHY: The answer states that only the first argument value is used for matching, and that a non-string value becomes `*`. It also implies the other arguments are not checked. It doesn't mention unparseable arguments, but the core of the item is there. || QUOTE: The argument value is `args_to_pattern` (`server_manager.cpp:426`): the value of the first JSON member if it is a string, otherwise `*`. ... A deny like `filesystem.write:/etc/*` therefore checks whichever argument sorts first, not `path`. | WHY: The answer says only the first member's value reaches the pattern, other arguments are ignored, and a non-string collapses to `*`. It doesn't mention unparseable arguments, but that is a minor omission. || QUOTE: The argument value is `args_to_pattern` (`server_manager.cpp:426`): the value of the first JSON member if it is a string, otherwise `*`. ... A deny like `filesystem.write:/etc/*` therefore checks whichever argument sorts first, not `path`. | WHY: The answer states that only the first argument's value is matched, the others are ignored, and a non-string value becomes `*`. It doesn't mention unparseable arguments, but the substance is there.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies that a decision can be PERSISTED for future sessions by appending to config.local.yaml, separately from the in-memory add_permission call",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: \"Always Allow/Deny\" calls `add_permission` (`server_manager.cpp:361`) and persists through `PermissionPersister`, which writes `config.local.yaml`. | WHY: The answer states that the Always Allow/Deny decision calls `add_permission` and is also persisted through `PermissionPersister`, which writes `config.local.yaml`. || QUOTE: \"Always Allow/Deny\" calls `add_permission` (`server_manager.cpp:361`) and persists through `PermissionPersister`, which writes `config.local.yaml`. | WHY: The answer says the Always Allow/Deny decision calls `add_permission` and is also persisted through `PermissionPersister`, which writes `config.local.yaml`. That covers persisting a decision separately from the in-memory call. || QUOTE: \"Always Allow/Deny\" calls `add_permission` (`server_manager.cpp:361`) and persists through `PermissionPersister`, which writes `config.local.yaml`. | WHY: The answer states that the \"Always Allow/Deny\" decision calls `add_permission` and is also persisted through `PermissionPersister`, which writes `config.local.yaml`.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "the files a permission decision passes through \u2014 src/mcp/permission_manager.cpp",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the files a permission decision passes through \u2014 src/mcp/server_manager.cpp",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the files a permission decision passes through \u2014 src/mcp/tool_executor.cpp",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the files a permission decision passes through \u2014 include/entropic/types/config.h",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the files a permission decision passes through \u2014 precision",
+      "kind": "set_precision",
+      "weight": 2,
+      "hit": false,
+      "detail": "named 5 not in the set: ['bash.cpp', 'config.local.yaml', 'engine_types.h', 'loader.cpp', 'permission_manager.h']",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    }
+  ]
+}

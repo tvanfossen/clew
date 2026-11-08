@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer lists many inference-layer files plus facade and public headers, but never states that the dependency touches roughly a dozen of entropic's source files as a count or aggregate."
+}

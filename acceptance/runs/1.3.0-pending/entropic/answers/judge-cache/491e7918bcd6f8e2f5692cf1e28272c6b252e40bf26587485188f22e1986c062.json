@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Its C API is used from one directory, `src/inference/`; \"Direct C API\" (`docs/architecture-cpp.md`); `llama_decode`, wrap `llama_sampler` chains and `llama_vocab`\nVERDICT: HIT\nWHY: The answer identifies llama.cpp's \"Direct C API\" and names llama_-prefixed free functions and types (`llama_decode`, `llama_sampler`, `llama_vocab`) as what the backend calls, rather than C++ classes or inheritance."
+}

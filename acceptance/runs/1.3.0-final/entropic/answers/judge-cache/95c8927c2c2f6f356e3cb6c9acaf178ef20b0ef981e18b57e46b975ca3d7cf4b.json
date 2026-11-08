@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Allow** (`is_explicitly_allowed` \u2192 `PermissionManager::is_allowed`): returns true if any allow entry matches. Its only effect is to skip the prompt.\"\nVERDICT: HIT\nWHY: The answer states that the allow list only skips the approval prompt (not execution, which is gated separately by deny at execution), and shows it consulted in ToolExecutor::check_approval, with execution in ServerManager::execute (different file)."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: On a variable, the same field is \"causal neighbours\", meaning writers as well as callers.\nVERDICT: MISS\nWHY: The answer says that for a variable, callers also covers writers. It never says that a reader's \"callers\" are the functions whose writes it observes, and it never says the polarity is inverted between the two halves."
+}

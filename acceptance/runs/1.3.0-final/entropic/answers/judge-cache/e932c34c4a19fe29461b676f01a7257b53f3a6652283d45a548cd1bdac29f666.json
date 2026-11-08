@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: With a callback wired, the default is effectively allow-with-notification.\nVERDICT: HIT\nWHY: The answer says a call matching neither list runs when a callback is wired, since the callback result is ignored and only the deny list stops it. That is default-allow at the gate. It also notes the default-deny claim holds only in headless mode."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Failure is reported as an empty vector, and that empty vector is indistinguishable from \"empty input,\" so callers can't tell the two apart.\nVERDICT: MISS\nWHY: The answer says failure returns an empty vector, which matches empty input, but it never says the backend wrapper returns the same empty value when no tokenizer is wired."
+}

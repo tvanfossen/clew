@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Stated vs. recorded: only a tier-1 statement is written to the database for replay. A declaration is re-read on each build rather than frozen\nVERDICT: MISS\nWHY: The answer discusses recording tier-1 statements for replay, but never says the winning tier is recorded with the index or that the record is derived from stored rows rather than stamped separately."
+}

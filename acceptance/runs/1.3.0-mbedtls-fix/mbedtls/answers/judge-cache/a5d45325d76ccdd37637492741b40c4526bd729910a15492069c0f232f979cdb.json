@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names these top-level directories as containing uses of MBEDTLS_PRIVATE:\n\n- `library`: it says `library/common.h` defines the opt-out for the library `.c` files, which use the real member names. The answer does not say these files use `MBEDTLS_PRIVATE(...)` itself.\n- `programs`: `programs/ssl/ssl_context_info.c` and `programs/fuzz/fuzz_dtlsserver.c` spell out `MBEDTLS_PRIVATE(...)`.\n- `include`: `include/mbedtls/private_access.h` defines the macro.\n\nITEMS:\nprograms\ninclude\nlibrary\nEND"
+}

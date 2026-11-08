@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Precedence: the compile-time macros win. `platform.c:16-19` says so, and it compiles out the runtime setter entirely in that case.\nVERDICT: HIT\nWHY: The answer states that on the macro path the runtime setter is compiled out entirely, which means it is not compiled and so not merely ignored."
+}

@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 25087,
+  "stop_reason": "end_turn",
+  "session_id": "dabd517f-8098-43f7-9e4d-ffa920293fd2",
+  "total_cost_usd": 0.010916529999999999,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 29007,
+    "cache_read_input_tokens": 313893,
+    "output_tokens": 3950,
+    "output_tokens_details": {
+      "thinking_tokens": 991
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 29007,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1999,
+        "cache_read_input_tokens": 67085,
+        "cache_creation_input_tokens": 370,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 370
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 3950,
+      "cacheReadInputTokens": 313893,
+      "cacheCreationInputTokens": 29007,
+      "webSearchRequests": 0,
+      "costUSD": 0.010916529999999999,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 991,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 29007,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 10,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "Ten thread spawn sites in first-party code (the index's exact count for the patterns it searches). They fall into three groups: long-lived background loops, short-lived helper threads that exist only for one call, and a detached worker. The main safety mechanisms are a mutex on each shared structure, an atomic flag or `poll` timeout to stop loops, and a few per-handle or per-process guards. One real gap is the detached async-ask thread.\n\n**1. Long-lived background threads**\n\n| Thread | Spawned at | What it does | Protection |\n|---|---|---|---|\n| `ExternalBridge::accept_loop` | `external_bridge.cpp:796` in `start()` | Polls the listen socket every 500 ms, checks peer uid, spawns one serve thread per client | `running_` atomic; `poll()` timeout; `client_threads_mutex_` around the vector push and reap |\n| Per-client `serve_client` threads | `external_bridge.cpp:945` in `accept_loop` | Read requests from one MCP client | Each has its own fd, closed by the thread on exit; `stop()` moves the list out under `client_threads_mutex_`, then `shutdown(SHUT_RDWR)`s each fd and joins |\n| `HealthMonitor::monitor_loop` | `health_monitor.cpp:92` in `start()` | Health pings and reconnect backoff for MCP servers | Events go through `event_queue_` under `event_mutex_`; `process_events()` swaps the queue out and runs the callbacks on the engine thread |\n| `StdioTransport::stderr_reader_loop` | `transport_stdio.cpp:164` in `open()` | Drains child-process stderr | `io_mutex_` on the transport |\n| `SSETransport::sse_reader_loop` | `transport_sse.cpp:107` in `open()` | Reads the SSE stream | `pending_mutex_` on the transport |\n\nThe engine thread never calls into the health-monitor loop directly. It only drains the queue, so callbacks always run on the caller's side.\n\n**2. Short-lived helper threads (one per call)**\n\nThese are joined before the function returns, so they are bounded by the call itself:\n\n- `iface_generate_with_cancel` (`interface_factory.cpp:246`) starts a poller that turns the C `int*` cancel flag into an `atomic<bool>`, polling every 10 ms. The poller is joined after `orchestrator->generate` returns.\n- `CancelFlagBridge` (`inference_c_api.cpp:385`) is the same pattern for the C API. Its destructor stops the poller.\n- `ResponseGenerator::dispatch_batch_generate` (`response_generator.cpp:413`) starts an observer that mirrors the engine's `interrupt_flag_` into the cancel int. It is joined after the call. Speculative decoding skips this path entirely (gh#110).\n- Test-only: `MockSSEServer::listen_after_bind`.\n\nCancellation is safe here because each poller reads a flag and writes only its own atomic or int. The `done` flag is released before `join()`, so the poller always exits.\n\n**3. Detached worker: `ExternalBridge::run_async_ask`**\n\n`run_async_ask` (`external_bridge.cpp:1142`, `.detach()` at line 1222) runs `entropic_run` on a detached thread for an `entropic.ask` call. Its safety rests on:\n\n- `tasks_mutex_` guards the `tasks_` map. The terminal status and the sentinel file are written under the same lock (issue #12), so an external reader cannot see a result before its sentinel exists.\n- Log routing uses `HandleLogScope(log_id)` captured by value at spawn time.\n- The broadcast uses `send(MSG_DONTWAIT | MSG_NOSIGNAL)`, so a slow subscriber cannot stall the worker. `broadcast_notification` also snapshots the subscriber set under `subscribers_mutex_` and writes outside the lock.\n\n**The gap:** the worker captures `this` and `handle_`, but it is detached. `ExternalBridge::stop()` (`external_bridge.cpp:826`) joins the accept thread and the client threads and then returns. It does not wait for in-flight async tasks. I found no in-flight counter (grepped `src/facade` for `in_flight`, `active_async`, `async_count`, `outstanding`, `pending_async`). If the handle is destroyed while an ask is running, the worker can dereference a dead `this` or `handle_`. I did not verify this with a test. The fix would be a counter or a join list for async workers, drained in `stop()`.\n\n**Lock-ordering notes**\n\n- The index reports one nesting that needs checking: `HealthMonitor::event_mutex_` taken before `AdapterManager::adapter_mutex_` in `process_events` (`health_monitor.cpp:122`). It has zero resolved call sites, so I cannot confirm it from the index. I also did not check whether any path takes the two locks in the reverse order, so no deadlock claim is made.\n- `auth_mutex_` \u2192 `key_mutex_` in `check_access` (`mcp_authorization.cpp:105`) has four sites. None are resolved, so this is unverified too.",
+  "ttft_ms": 1815,
+  "type": "result",
+  "duration_ms": 26341,
+  "uuid": "62c92417-33f8-4bf5-8eef-d19b44e49000",
+  "ttft_stream_ms": 1570,
+  "time_to_request_ms": 64,
+  "first_content_frame_ms": 1570,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `edge_class` | `call` (synchronous, same thread) or `key` (shared-key dataflow, no call)\nVERDICT: HIT\nWHY: The answer says callers/callees rows carry an `edge_class` of `call` or `key` (shared-key dataflow), and it tells the reader to filter on it."
+}

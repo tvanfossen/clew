@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 14177,
+  "stop_reason": "end_turn",
+  "session_id": "636fab95-2b64-4649-a921-c3e61cb44585",
+  "total_cost_usd": 0.01106891,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 42033,
+    "cache_read_input_tokens": 150251,
+    "output_tokens": 2318,
+    "output_tokens_details": {
+      "thinking_tokens": 423
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 42033,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1398,
+        "cache_read_input_tokens": 51938,
+        "cache_creation_input_tokens": 8775,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 8775
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 8,
+      "outputTokens": 2318,
+      "cacheReadInputTokens": 150251,
+      "cacheCreationInputTokens": 42033,
+      "webSearchRequests": 0,
+      "costUSD": 0.01106891,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 423,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 42033,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 9,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "Python reaches the engine through a plain `ctypes` binding over the C ABI in `include/entropic/entropic.h`. There is no C++ or pybind layer, and no OOP wrapper: the package exposes flat functions such as `entropic_create`, `entropic_run_streaming` and `entropic_destroy`. The engine is a shared library, `librentropic.so`, which `python/src/entropic/_loader.py` finds through a fixed search order: `$ENTROPIC_LIB`, then `$ENTROPIC_HOME` (nested and flat layouts), then `~/.entropic/`, then the system `ldconfig` cache. If nothing matches, `find()` returns `None` and the CLI tells the user to run `entropic install-engine`. Binding symbols are imported lazily, so the install step can run before the library exists.\n\nThe C ABI is the public surface. The `.so` boundary follows the repo's design rules: pure C, opaque handles, no C++ types, and exceptions converted to error codes. `scripts/gen_bindings.py` (run via the `gen_bindings` task in `tasks.py`) parses the header and generates the ctypes declarations, so the Python side tracks the header rather than being hand-maintained. I did not confirm the generated file's name.\n\n**Memory rules across the boundary** (from the header and the functions I checked):\n\n1. **Engine-allocated returns belong to the caller.** Any `char*` the engine returns transfers ownership. It must be released with `entropic_free()`, which is `free()` in `src/facade/entropic.cpp`. `NULL` is a no-op. Example: `entropic_run(handle, input, &result_json)` requires `entropic_free(*result_json)`, even on the partial-context error path.\n2. **Caller-provided buffers the engine will free must come from the engine's allocator.** Hook `modified_json` is the case here: `_build_trampoline` in `python/src/entropic/hooks.py` calls `entropic_alloc()`, and the engine frees the result. Memory from Python's own allocator must never be handed to the engine to free.\n3. **`const char*` returns are borrowed.** They are owned by the handle and valid only until the next call on that handle. Copy them out immediately if you need them later.\n4. **Input strings are borrowed for the call.** The engine does not keep pointers to `messages_json`, `params_json` or `prompt` after the call returns, per the interface headers.\n5. **Callbacks need their Python objects kept alive.** `register_hooks` stores each trampoline in a per-handle list so it survives as long as the handle does. If the trampoline is garbage-collected while C still holds the function pointer, the call crashes. Deregistration must match.\n6. **Exceptions never cross into C.** The hook trampoline catches every Python exception, prints the traceback, and returns pass-through (`rc = 0`). A hook that raises is silently skipped, which hides failures; that is a real trade-off.\n7. **Threading:** each handle is serialized, one call at a time. `entropic_interrupt()` is designed to be callable from another thread, so it must not take the API mutex. Handle creation and destruction must not race other calls on the same handle.\n\n**Gaps:** the index does not show whether the ctypes calls release the GIL, or how `entropic_destroy` interacts with live callbacks. I also did not check whether every Python-side `char*` return is wrapped so that `entropic_free` runs automatically. Those are the first places to read in `python/src/entropic/` if you need to confirm them.",
+  "ttft_ms": 1497,
+  "type": "result",
+  "duration_ms": 14829,
+  "uuid": "7a8b860c-e2b2-40df-ae58-bbc73581eb9a",
+  "ttft_stream_ms": 1183,
+  "time_to_request_ms": 63,
+  "first_content_frame_ms": 1183,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

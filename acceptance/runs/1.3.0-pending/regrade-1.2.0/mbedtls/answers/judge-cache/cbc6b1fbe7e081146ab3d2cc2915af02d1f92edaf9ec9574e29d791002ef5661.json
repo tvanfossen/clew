@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: With asm it is an empty `asm volatile(\"\" : \"+r\"(x))` barrier.\nVERDICT: HIT\nWHY: The answer states the empty asm volatile with \"+r\"(x) input-output operand used as an optimiser barrier (it \"stops the optimiser from learning a value\"), which carries the item's substance."
+}

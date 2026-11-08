@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: | 1 | CLI flag, or the `options` argument for embedding callers | Replaces the stated layer for that run |\nVERDICT: HIT\nWHY: The answer states that tier 1 is reachable via both a CLI flag and an `options` argument for embedding callers."
+}

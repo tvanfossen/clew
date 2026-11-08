@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"YAML (`.yaml`, `.yml`) and JSON (`.json`):** the files are registered in the file set so they are findable by name. They carry no `memberdef` rows, no call edges and no symbols.\"\nVERDICT: HIT\nWHY: The answer states that YAML and JSON are in the file set with no symbols, and it contrasts them with shell/CMake files, which do yield symbols."
+}

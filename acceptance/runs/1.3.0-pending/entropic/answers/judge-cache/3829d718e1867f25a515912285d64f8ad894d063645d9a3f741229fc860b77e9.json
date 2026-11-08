@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **`do_count_tokens` (`:825`)** returns `0`. This reaches `entropic_inference_count_tokens` in `inference_c_api.cpp:558`, so a C API consumer gets a count of 0 with no error code.\nVERDICT: HIT\nWHY: The answer states the token-counting path (do_count_tokens) returns 0 on tokenization failure with no error signalled."
+}

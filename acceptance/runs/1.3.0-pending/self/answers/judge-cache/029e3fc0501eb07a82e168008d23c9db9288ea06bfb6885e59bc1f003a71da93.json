@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `options` argument on the MCP `index` tool, keyed by `.clew.yaml` section name\nVERDICT: HIT\nWHY: The answer says the embedding caller's MCP `options` are keyed by `.clew.yaml` section name. That is the item's substance, that caller option names are the same words as the declaration file's section names. It does not mention the diagnostics, but I judged the section-name match enough."
+}

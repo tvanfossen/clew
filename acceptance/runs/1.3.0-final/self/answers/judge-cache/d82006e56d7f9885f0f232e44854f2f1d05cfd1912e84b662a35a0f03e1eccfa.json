@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer separates \"read\" corpora from \"never read\" ones, but it never says a single unmatched token used to be treated as proof of absence. It gives no account of that earlier behavior or of the fix."
+}

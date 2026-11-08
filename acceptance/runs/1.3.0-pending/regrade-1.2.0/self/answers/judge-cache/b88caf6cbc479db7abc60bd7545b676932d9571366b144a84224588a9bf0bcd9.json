@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: So a zero from `search` licenses \"no indexed code symbol by this name.\" It does not license \"the repository does not contain it.\"\nVERDICT: MISS\nWHY: The item asks for the general rule \"fix the corpus, not the sentence about the corpus,\" meaning that when coverage is lacking you should extend the index rather than just hedge the claim. The answer only calibrates how much confidence to claim and suggests fallbacks. It never says the fix is to repair or extend the corpus."
+}

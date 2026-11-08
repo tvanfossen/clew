@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 47046,
+  "stop_reason": "end_turn",
+  "session_id": "df4922ae-c359-4568-8d45-f4620841f2d7",
+  "total_cost_usd": 0.01709834,
+  "usage": {
+    "input_tokens": 22,
+    "cache_creation_input_tokens": 38134,
+    "cache_read_input_tokens": 562684,
+    "output_tokens": 7685,
+    "output_tokens_details": {
+      "thinking_tokens": 2905
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 38134,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1812,
+        "cache_read_input_tokens": 70068,
+        "cache_creation_input_tokens": 1500,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1500
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 22,
+      "outputTokens": 7685,
+      "cacheReadInputTokens": 562684,
+      "cacheCreationInputTokens": 38134,
+      "webSearchRequests": 0,
+      "costUSD": 0.01709834,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2905,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 38134,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 20,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The short answer: a call runs only if it clears a fixed chain of gates in `ToolExecutor`, and the allow/deny lists feed into only two of those gates. Deny is enforced a second time, later, inside `ServerManager::execute`. Nothing I read in the approval path lets a user-facing prompt veto a call.\n\n## The decision path\n\n```\nToolExecutor::process_single_call          (src/mcp/tool_executor.cpp:729)\n  1. PRE_TOOL_CALL hook                    \u2192 may cancel (\"Cancelled by hook\")\n  2. check_call_preconditions              (:667)\n     a. anti-spiral hard block\n     b. check_schema                       \u2192 argument validation\n     c. check_mcp_authorization            \u2192 MCP key set for the locked tier (:575)\n     d. check_tier_allowed                \u2192 tier's allowed_tools (gh#83)\n     e. check_duplicate                   \u2192 repeated identical call\n     f. check_approval_pc \u2192 check_approval (:161)\n        \u251c\u2500 auto_ok = permissions.auto_approve\n        \u2502            OR ServerManager::is_explicitly_allowed (allow list)\n        \u251c\u2500 if !auto_ok and on_tool_call callback set \u2192 callback, approved = true\n        \u2514\u2500 else denied (\"Permission denied\")\n  3. execute_tool \u2192 ServerManager::execute (server_manager.cpp:153)\n        \u251c\u2500 is_denied(tool, pattern)  \u2192 \"Error: Permission denied\" (deny list)\n        \u2514\u2500 route_tool_call \u2192 in-process server or external MCP client\n```\n\nThe gates that actually decide:\n\n- **Allow list** (`permissions.allow`) is the only thing that skips prompting. `auto_approve: true` skips it for everything.\n- **Deny list** (`permissions.deny`) is checked only in `ServerManager::execute`, after approval has already happened. `check_approval` never consults it.\n- **Callback** (`on_tool_call`) is `void`-returning. Its mere presence sets `approved = true` (`tool_executor.cpp:168-172`). It can notify but cannot refuse.\n- **No callback and no allow match** means the call is denied.\n\n## What a pattern in each list does\n\nLists are loaded from `permissions.allow` / `permissions.deny` (`config/loader.cpp:369`) into `PermissionManager` (`permission_manager.cpp`). Each pattern is split at the first `:`.\n\n| Pattern | Left of `:` | Right of `:` | Matches |\n|---|---|---|---|\n| `bash.execute` | tool name, fnmatch against `bash.execute` | none | every call to that tool |\n| `filesystem.*` | fnmatch on the tool name | none | all filesystem tools |\n| `bash.execute:python*` | fnmatch on the tool name | fnmatch on `tool:argvalue` | calls whose first string argument starts with `python` |\n\nThe argument value comes from `args_to_pattern` (`server_manager.cpp:426`). It takes the first string value of the JSON args object, or `*` if there are none. For bash that is the whole `command` string, so the match is `bash.execute:<command>`.\n\nMatching uses `fnmatch` with flags 0, so `*` also matches `/` and shell separators. A rule `bash.execute:ls*` therefore allows `ls; rm -rf ~` as well. Rules are a convenience, not a sandbox. The `command` value is what the bash server's own comment says the operator approves.\n\n## Things that don't match the header docs\n\n1. **The header says \"default-deny \u2026 approved via callback.\"** In practice the callback can't say no. Any registered callback approves. Without a callback, only allow-list hits and `auto_approve` run.\n2. **Deny is not checked at the approval gate.** With `auto_approve: true` a denied tool still gets `auto_ok`. It is stopped only at `ServerManager::execute`, so it does get blocked, but the error comes back as a tool result rather than a permission rejection.\n3. **`BashServer::get_permission_pattern` is dead code.** Nothing calls `ServerManager::get_permission_pattern`, so the live pattern is always the raw first-argument value, not `bash.execute:<base-cmd> *`.\n4. **Tier and MCP-key checks run before approval.** An allow-list entry does not bypass them. A tier whose `allowed_tools` excludes the tool, or an identity lacking the MCP key, is rejected first.\n\nI did not build or run tests; these are readings of the source. The tests that would confirm them are in `tests/unit/mcp/permission_manager_test.cpp` and `tests/unit/mcp/tool_executor_test.cpp`, and `tool_executor_authorization_test.cpp` covers the auth gate.",
+  "ttft_ms": 4328,
+  "type": "result",
+  "duration_ms": 47674,
+  "uuid": "f7b6ac66-54b8-4706-8728-dfe237d19498",
+  "ttft_stream_ms": 3985,
+  "time_to_request_ms": 140,
+  "first_content_frame_ms": 3985,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

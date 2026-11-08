@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Direct C API (from `docs/architecture-cpp.md`); \"Its C API is used from one directory\"; \"model load, context, `llama_decode`, batching...\"; \"wrap `llama_sampler` chains and `llama_vocab`\"\nVERDICT: HIT\nWHY: The answer identifies llama.cpp's C API as the integration seam, with `llama_`-prefixed free functions such as `llama_decode` used from the backend. It also notes the C++ classes only wrap them."
+}

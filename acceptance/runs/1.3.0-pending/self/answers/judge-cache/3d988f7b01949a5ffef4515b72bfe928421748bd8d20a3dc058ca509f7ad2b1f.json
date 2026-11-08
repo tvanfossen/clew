@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`derive_scope(repo_root)` ... `_declared_index_scope(root)` ... no index_scope section \u2192 None (fall through) ... present but unusable \u2192 _Rejected ... no declaration \u2192 whole_repo_scope(root)\" and \"The library-level `derive_scope` falls back to the whole repo and logs the rejection.\"\nVERDICT: HIT\nWHY: The answer says a declared index_scope is used first, and that an absent, malformed or unusable declaration falls back to indexing the whole repo. It does note that the CLI refuses a rejected declaration instead of widening, but the library-level fall-through is still stated."
+}

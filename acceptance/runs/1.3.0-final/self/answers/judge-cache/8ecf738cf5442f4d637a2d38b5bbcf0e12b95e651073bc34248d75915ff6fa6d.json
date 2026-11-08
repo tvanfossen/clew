@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Facts (tier 3) and ecosystem signatures (tier 4) are never displaced.** They accumulate beneath any stated value. So passing `--entry-patterns` does not drop `main`. The stated tier can only correct guesses; it cannot un-discover a fact.\"\nVERDICT: HIT\nWHY: The answer says stated tiers replace each other (CLI replaces declaration, declaration replaces guesses) while discovered tiers 3 and 4 accumulate and are never displaced."
+}

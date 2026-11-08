@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes the new graded-emptiness mechanism and the \"not in the repo\" versus \"not looked at\" distinction. It never says a single unmatched token was previously treated as proof of absence, and it still allows a \"definitive\" verdict for single tokens."
+}

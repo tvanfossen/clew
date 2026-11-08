@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer lists about six files in src/inference/ and says llama.cpp is confined there. It never says the dependency reaches roughly a dozen files of entropic's own source, and it describes the reach as narrow."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_ct_` symbols are used in about 30 library files.\nVERDICT: HIT\nWHY: The answer states the primitives are used across roughly 30 library files and backs it with a table of many modules, so they are consumed broadly rather than confined to a few."
+}

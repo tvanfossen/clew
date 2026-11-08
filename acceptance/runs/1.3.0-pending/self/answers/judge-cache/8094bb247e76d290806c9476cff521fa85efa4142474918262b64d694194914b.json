@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says shell and CMake functions are recorded as definitions with docs from `#` blocks, but it never says shell functions have no argument list or return type."
+}

@@ -1,0 +1,113 @@
+{
+  "cell": "Q4_claude-haiku-5-5_index_r1",
+  "arm": "index",
+  "rubric_version": "1.0.0",
+  "rubric_digest": "32294778c2753056",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.9285714285714286,
+  "unmarked_pct": 0.0,
+  "split_decisions": 0,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "concludes that a missing setting means archived channels ARE viewable \u2014 only an explicit 'false' turns them off",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: The helper treats a missing value as enabled and only an explicit `'false'` as disabled. | WHY: The answer states that a missing setting counts as viewable and only an explicit 'false' disables archived channels. || QUOTE: The helper treats a missing value as enabled and only an explicit `'false'` as disabled. | WHY: The answer states that a missing setting means archived channels are viewable and that only an explicit 'false' disables them. || QUOTE: The helper treats a missing value as enabled and only an explicit `'false'` as disabled. | WHY: The answer states that a missing setting means archived channels are viewable and only an explicit 'false' turns them off.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "every file whose behaviour depends on the setting \u2014 app/actions/websocket/channel.ts",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every file whose behaviour depends on the setting \u2014 app/actions/remote/channel.ts",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every file whose behaviour depends on the setting \u2014 app/actions/remote/search.ts",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every file whose behaviour depends on the setting \u2014 app/screens/browse_channels/index.ts",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every file whose behaviour depends on the setting \u2014 app/screens/channel_settings/archive/index.ts",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every file whose behaviour depends on the setting \u2014 app/screens/home/channel_list/categories_list/categories/header/index.ts",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every file whose behaviour depends on the setting \u2014 precision",
+      "kind": "set_precision",
+      "weight": 1,
+      "hit": false,
+      "detail": "named 6 not in the set: ['app/database/models/server/category.ts', 'app/screens/browse_channels/browse_channels.tsx', 'archive.tsx', 'channel_dropdown.tsx', 'dropdown_slideup.tsx', 'search_handler.tsx']",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "states that when a channel is archived while archived channels are NOT viewable, the user is removed from it (and kicked out if it is the current channel); when viewable, the channel is kept and marked deleted",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: On a channel-archived websocket event, the current user is kicked out if the channel is open and their membership is removed. When viewable, the channel is left in place with `delete_at` set. | WHY: The answer states that when archived channels are not viewable, the user is kicked out if the channel is open and their membership is removed. When viewable, the channel stays and is marked deleted via `delete_at`. || QUOTE: On a channel-archived websocket event, the current user is kicked out if the channel is open and their membership is removed. When viewable, the channel is left in place with `delete_at` set. | WHY: The answer states that when archived channels are not viewable, the user is kicked out of the open channel and their membership is removed. When viewable, the channel is kept with `delete_at` set, which marks it deleted. || QUOTE: On a channel-archived websocket event, the current user is kicked out if the channel is open and their membership is removed. When viewable, the channel is left in place with `delete_at` set. | WHY: Row 1 states that when not viewable, the user is kicked out of the current channel and their membership is removed. When viewable, the channel is kept with `delete_at` set, which matches \"marked deleted\".",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that post search sends the setting to the server as `include_deleted_channels`",
+      "kind": "retrieval",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: `app/actions/remote/search.ts:62-73` (`searchPosts`) | Sends `include_deleted_channels` with the value of the gate, so archived-channel posts are included in search only when viewable. | WHY: The answer explicitly states searchPosts sends `include_deleted_channels` with the setting's value. || QUOTE: `app/actions/remote/search.ts:62-73` (`searchPosts`) | Sends `include_deleted_channels` with the value of the gate, so archived-channel posts are included in search only when viewable. | WHY: The answer explicitly says searchPosts sends `include_deleted_channels` carrying the setting's value. || QUOTE: `app/actions/remote/search.ts:62-73` (`searchPosts`) | Sends `include_deleted_channels` with the value of the gate, so archived-channel posts are included in search only when viewable. | WHY: The answer explicitly states that searchPosts sends `include_deleted_channels` carrying the archived-channels setting.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    }
+  ]
+}

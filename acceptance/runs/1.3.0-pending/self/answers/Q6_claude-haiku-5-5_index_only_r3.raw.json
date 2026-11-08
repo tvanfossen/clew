@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 18585,
+  "stop_reason": "end_turn",
+  "session_id": "2b089854-c546-49d2-b6f3-54e7408b4ebd",
+  "total_cost_usd": 0.006118660000000001,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 12615,
+    "cache_read_input_tokens": 213466,
+    "output_tokens": 2920,
+    "output_tokens_details": {
+      "thinking_tokens": 843
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 12615,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1357,
+        "cache_read_input_tokens": 49510,
+        "cache_creation_input_tokens": 1286,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1286
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 2920,
+      "cacheReadInputTokens": 213466,
+      "cacheCreationInputTokens": 12615,
+      "webSearchRequests": 0,
+      "costUSD": 0.006118660000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 843,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 12615,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 14,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** for YAML and JSON, the index holds only that the files exist, plus a name the miss report can point to. It holds no symbols and no content. Shell and CMake do get symbols. On an installation whose parser lacks the grammars, nothing crashes: the files are reported as not indexed.\n\n**What the index holds for each type**\n\n| File type | In the index? | Symbols? | Source of this claim |\n|---|---|---|---|\n| `.sh`, `.bash` | Yes | Yes. Functions become `memberdef` rows, with docs taken from the `#` block above them | `tests/test_script_front_end.py` |\n| `CMakeLists.txt`, `.cmake` | Yes | Yes. `function`/`macro` definitions become rows, with macros recorded as macros | same |\n| `.yaml`, `.yml`, `.json` | Yes, as a `path` row | No. Keys such as `steps:` are deliberately not symbols | `clew/synth.py`, `tests/test_script_front_end.py` |\n\nThe reason for the YAML/JSON exception is in the docs. Their grammars expose `block_mapping_pair` and `pair`. Treating those as symbols would put every config key into the namespace that answers `dossier(\"my_function\")`, which would bury real functions. So these files are findable by name and nothing more.\n\n**What the index does not hold**\n\n- No YAML or JSON keys, values, or structure as queryable rows.\n- No call edges or dataflow from these files.\n- No symbols at all for YAML or JSON.\n- The CMake and shell walkers are their own modules (`clew/cmakeast.py`, `clew/shast.py`). I did not check their coverage, so I cannot say how much of a large script's logic becomes a row.\n\nOne separate path reads YAML as data: the requirements catalog (`requirements.format: yaml` in `docs/GUARD.md`). That is a documented input, not part of the general file-type indexing, and I did not check it further.\n\n**On an installation whose parser lacks the grammars**\n\n- `clew/substrate.py` asks the installed `lang_parsing_substrate` what is compiled in. The version string cannot answer this, because the fork that adds these grammars reports the same version as the published wheel.\n- If the grammars are absent, `compiled_languages()` returns the empty set. It logs an error, and the front ends register nothing for those types.\n- The router checks for a grammar before parsing. A missing grammar routes to nothing instead of raising, so a build does not fail partway through.\n- Queries that come back empty then pass through the not-indexed report. It was built to tell a caller three cases apart:\n  - the symbol does not exist;\n  - the file type is not indexed by this build, so read the file directly;\n  - the file type is outside the declared scope.\n  The report counts in-scope files of a type that has no rows. Its example is \"14 `.sh` files were in scope and none of them are in this index.\"\n- The report is measured at build time, not at query time. An index built before this release reports nothing rather than a fabricated empty set.\n\n**Caveat:** I can't see from the index which wheel this particular index was built against. The index is current (`stale: false`, build version 9), so the behaviour above applies to whichever grammars that build has. To confirm, check whether `compiled_languages()` includes `bash`, `cmake`, `yaml` and `json` on the installation in question.",
+  "ttft_ms": 2125,
+  "type": "result",
+  "duration_ms": 20403,
+  "uuid": "6b949a54-3c37-4fae-b498-90ded3b9edcf",
+  "ttft_stream_ms": 1458,
+  "time_to_request_ms": 139,
+  "first_content_frame_ms": 1458,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

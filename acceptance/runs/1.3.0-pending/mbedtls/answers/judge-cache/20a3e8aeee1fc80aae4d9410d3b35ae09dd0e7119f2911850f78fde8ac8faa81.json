@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Define `MBEDTLS_PLATFORM_MEMORY` plus both `MBEDTLS_PLATFORM_CALLOC_MACRO` and `MBEDTLS_PLATFORM_FREE_MACRO` in `mbedtls_config.h` or the compiler flags.\nVERDICT: MISS\nWHY: The answer names MBEDTLS_PLATFORM_MEMORY as the option that enables substitution, but never says it is commented out in the shipped mbedtls_config.h."
+}

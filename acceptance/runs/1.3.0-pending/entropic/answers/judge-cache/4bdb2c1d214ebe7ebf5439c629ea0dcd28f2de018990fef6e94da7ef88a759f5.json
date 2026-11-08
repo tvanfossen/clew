@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Both are resizing, not retrying.\" and \"`nullptr, 0` to get the token count | Fills a vector of that size | No. The first call is a query, not an attempt.\"\nVERDICT: MISS\nWHY: The answer concludes size negotiation rather than retry, but it never states the specific facts that there is no backoff, no delay, no attempt counter, and exactly one second call."
+}

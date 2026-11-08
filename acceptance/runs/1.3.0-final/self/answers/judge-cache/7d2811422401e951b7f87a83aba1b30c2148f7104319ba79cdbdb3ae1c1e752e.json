@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: | 1 | CLI flags, or the `options` argument for embedding callers | Replaces the stated layer |\nVERDICT: HIT\nWHY: The table states tier 1 is reachable via CLI flags or the `options` argument for embedding callers."
+}

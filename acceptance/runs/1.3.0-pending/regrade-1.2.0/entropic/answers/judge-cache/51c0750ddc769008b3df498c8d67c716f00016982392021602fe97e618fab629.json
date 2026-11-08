@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Pre-commit runs `gen-bindings --check`, so the file cannot drift from the header.\nVERDICT: HIT\nWHY: The answer states that a pre-commit hook runs the bindings generator in check mode so the bindings can't drift from the header. It doesn't say the check \"diffs\", but `--check` on a generator conveys regenerate-and-compare."
+}

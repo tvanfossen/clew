@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer mentions a generator script producing ctypes declarations and lazy binding imports, but never describes a split into a names-only manifest (no ctypes) and a separate bindings module that loads the library."
+}

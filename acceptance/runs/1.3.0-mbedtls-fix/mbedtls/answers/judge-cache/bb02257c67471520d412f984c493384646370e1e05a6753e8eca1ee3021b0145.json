@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: That file is produced by `scripts/generate_errors.pl` from `MBEDTLS_ERR_*` macros in `include/mbedtls/*.h`\nVERDICT: MISS\nWHY: The answer names the generator script and public headers but never identifies `scripts/data_files/error.fmt` as the template, which the item requires."
+}

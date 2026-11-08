@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The interface contract (`include/entropic/inference/tokenizer.h:55`) says \"empty on failure or empty input.\" Those two cases look identical to every caller.\nVERDICT: HIT\nWHY: The answer says failure and empty input are indistinguishable, and its caller table shows callers continue with no emptiness check or error handling, which covers the no-caller-checks half."
+}

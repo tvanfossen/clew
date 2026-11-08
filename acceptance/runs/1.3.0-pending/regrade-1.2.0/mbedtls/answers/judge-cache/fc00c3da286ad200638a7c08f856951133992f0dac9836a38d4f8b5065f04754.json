@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Enable `MBEDTLS_PLATFORM_C` and `MBEDTLS_PLATFORM_MEMORY` but not the two macros. Then call `mbedtls_platform_set_calloc_free(my_calloc, my_free)` ... Define `MBEDTLS_PLATFORM_CALLOC_MACRO` and `MBEDTLS_PLATFORM_FREE_MACRO` in the user config.\nVERDICT: HIT\nWHY: The answer separates the compile-time macro pair from the runtime function-pointer pair. Its diagram and the \"but not the two macros\" condition show that the runtime route only exists when the macros are unset, so the two are mutually exclusive."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "ITEMS:\napp/screens/browse_channels/index.ts\napp/screens/home/channel_list/categories_list/categories/header/index.ts\napp/screens/channel_settings/archive/index.ts\napp/actions/remote/channel.ts\napp/actions/websocket/channel.ts\napp/actions/remote/search.ts\nEND"
+}

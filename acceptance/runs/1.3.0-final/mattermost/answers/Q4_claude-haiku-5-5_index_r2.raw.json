@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 19301,
+  "stop_reason": "end_turn",
+  "session_id": "02371ce6-3177-4381-9d95-47c1bd94bdef",
+  "total_cost_usd": 0.009803000000000001,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 27439,
+    "cache_read_input_tokens": 203140,
+    "output_tokens": 4566,
+    "output_tokens_details": {
+      "thinking_tokens": 1571
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 27439,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2631,
+        "cache_read_input_tokens": 57886,
+        "cache_creation_input_tokens": 15912,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 15912
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 8,
+      "outputTokens": 4566,
+      "cacheReadInputTokens": 203140,
+      "cacheCreationInputTokens": 27439,
+      "webSearchRequests": 0,
+      "costUSD": 0.009803000000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1571,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 27439,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 13,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The setting only has an effect when the server sends it explicitly as `'false'`. Every other case, including absent, leaves archived channels viewable.\n\n**Single decision point**\n\n`app/queries/servers/system.ts:297-315` holds the whole rule:\n\n- `archivedChannelsViewable = (value) => value !== 'false'`\n- `canViewArchivedChannels(database)` is the async form and `observeCanViewArchivedChannels(database)` the observable form (with `distinctUntilChanged`). Both read the `ExperimentalViewArchivedChannels` config row.\n\n**Every place the behaviour depends on it**\n\n| Location | When viewable (absent, `'true'`) | When `'false'` |\n|---|---|---|\n| `app/actions/websocket/channel.ts:463-468` (channel archived/deleted WS event) | Channel stays in the local DB as archived | If the user is viewing that channel, kick them out with `CHANNEL_ARCHIVED`; then remove the current user from the channel locally |\n| `app/actions/remote/channel.ts:1397-1401` (`archiveChannel`) | Set `delete_at = now` locally | Remove the current user from the channel locally instead |\n| `app/actions/remote/search.ts:62,73` (`searchPosts`) | Sends `include_deleted_channels: true` | Sends `false` |\n| `app/screens/browse_channels/index.ts:21,49` \u2192 `browse_channels.tsx:75,190` \u2192 `channel_dropdown.tsx:67`, `dropdown_slideup.tsx:74` | Archived-channels option shown in Browse Channels; the dropdown renders when this or shared channels is on | Option hidden |\n| `app/screens/home/channel_list/categories_list/categories/header/index.ts:15-22` \u2192 `app/database/models/server/category.ts:107-110` | Archived channels count toward a category's `hasChannels` | Archived channels are excluded from that check |\n| `app/screens/channel_settings/archive/index.ts:21` \u2192 `archive.tsx:73,109,121` | Shows the \"can view archived\" description; the screen stays open after archiving | Shows the \"cannot view\" description; the screen closes after archiving |\n\nTwo things to note:\n\n- `app/screens/home/search/search.tsx:77` hardcodes `include_deleted_channels: true`, so the search screen ignores the setting. Only the `searchPosts` action in `remote/search.ts` honours it.\n- The `browse_channels.tsx:126` comment says archived channels can be selected without a join only because the setting is on. That is an assumption about the server, not something the code checks.\n\n**When the server does not send the setting**\n\nThe app treats it as enabled. `system.ts:297-303` says servers newer than v10.11 stopped sending the field and that an absent value means on. The unit tests confirm it: `app/queries/servers/system.test.ts:692-693` expects `canViewArchivedChannels` to resolve `true` when the key is absent, and the observable variant at lines 706-707 does the same. The Detox baseline agrees: `detox/shared/server-baseline.ts:80` sets `absentIsBaseline: true`, and `detox/e2e/support/server_api/system.ts:139` says \"Mobile treats a missing ExperimentalViewArchivedChannels as enabled.\"\n\nAbsent-means-on is an inference from `value !== 'false'`. I did not open the config-observation helper to confirm that a missing row yields `undefined`, but the tests above cover the behaviour.\n\nThe code also carries a TODO (`system.ts:302-303`): once support for servers \u2264 v10.11 is dropped, these helpers and their callers can go, and archived channels can be treated as always viewable.",
+  "ttft_ms": 884,
+  "type": "result",
+  "duration_ms": 19509,
+  "uuid": "6f0b4ff4-8067-4c92-8262-438caa4b991d",
+  "ttft_stream_ms": 689,
+  "time_to_request_ms": 71,
+  "first_content_frame_ms": 689,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

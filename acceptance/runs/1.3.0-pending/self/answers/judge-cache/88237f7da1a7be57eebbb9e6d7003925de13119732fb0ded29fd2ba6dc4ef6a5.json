@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **`.clew.yaml`** at the repo root | Repo owner, checked in | All declared conventions ... | Yes, in the repo; also \"**tier 2** (`.clew.yaml`)\"\nVERDICT: MISS\nWHY: The answer identifies `.clew.yaml` as the repo-root, checked-in declaration and as tier 2. It never says that both entry points (CLI and MCP) discover it from the repo root, as opposed to plumbing it per section."
+}

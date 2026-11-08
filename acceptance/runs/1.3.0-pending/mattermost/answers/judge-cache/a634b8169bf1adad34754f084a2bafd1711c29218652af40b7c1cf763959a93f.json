@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`createPost` in `app/client/rest/posts.ts:43-47` passes `noRetry: true`, and `buildRequestOptions` turns that into `retryPolicyConfiguration: {retryLimit: 0}`... So a failed send is attempted once.\"\nVERDICT: HIT\nWHY: The answer states the create-post request is sent with retries disabled and is attempted only once, with no automatic retry."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Two options, and the compile-time one wins if both are present (platform.c:16\u201319).\" and \"**Compile time.** Enable `MBEDTLS_PLATFORM_MEMORY` and define both `MBEDTLS_PLATFORM_CALLOC_MACRO` and `MBEDTLS_PLATFORM_FREE_MACRO`\" and \"**Runtime.** Enable `MBEDTLS_PLATFORM_MEMORY` without the macros.\"\nVERDICT: MISS\nWHY: The answer distinguishes the compile-time macro pair from the runtime function-pointer pair, but says the compile-time one takes precedence if both are present, and that contradicts the item's claim that the two are mutually exclusive."
+}

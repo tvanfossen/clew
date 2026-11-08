@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Every public struct field is spelled this way in the headers (889 occurrences across 74 files).\nVERDICT: HIT\nWHY: States ~889 occurrences across 74 files and that the spelling is applied throughout the headers, conveying hundreds of sites predominantly in public headers."
+}

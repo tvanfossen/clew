@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Each concrete handler is a factory that takes a superclass constrained to `Constructor<ServerDataOperatorBase>` and returns a subclass.\nVERDICT: MISS\nWHY: The answer says ServerDataOperator is an interface extending 14 handler mixins and describes the factory pattern. It never mentions a `mix(ServerDataOperatorBase).with(...)` helper."
+}

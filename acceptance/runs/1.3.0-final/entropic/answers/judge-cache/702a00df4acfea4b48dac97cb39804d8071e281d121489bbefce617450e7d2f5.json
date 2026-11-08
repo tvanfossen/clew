@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **The async-ask worker is detached.** `run_async_ask` starts a `std::thread` with no stored handle and captures `this`. `ExternalBridge::stop` drains only the client threads and never waits for it.\nVERDICT: HIT\nWHY: The answer identifies the async-ask worker as detached, with no stored handle and no join, so it outlives its caller's scope."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: When `MBEDTLS_THREADING_C` is enabled it installs mutex-wrapped variants.\nVERDICT: HIT\nWHY: The answer says the buffer allocator init installs mutex-wrapped variants under MBEDTLS_THREADING_C. It doesn't say the alternative is a plain pair, or that the choice is made at compile time. The init-function context and the mutexed-versus-plain contrast are clear enough to count."
+}

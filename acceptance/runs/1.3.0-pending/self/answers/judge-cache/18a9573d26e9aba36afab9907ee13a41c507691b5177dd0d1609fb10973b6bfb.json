@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: An unknown key inside `index_scope:` rejects that scope and falls back to the whole repository, with a warning.\nVERDICT: MISS\nWHY: It mentions an unknown key inside index_scope being refused, but says nothing about a correctly-spelled derived key being refused with its reason rather than as unknown."
+}

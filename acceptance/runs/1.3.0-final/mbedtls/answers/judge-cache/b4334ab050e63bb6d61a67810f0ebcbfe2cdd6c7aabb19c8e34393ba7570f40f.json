@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the function-pointer layer defaults to `MBEDTLS_PLATFORM_STD_CALLOC` and never says that the uninitialised defaults fail (calloc returns NULL, free does nothing). It also says it did not check the `mbedtls_free_func` initialiser."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Its thread function is gated on `MBEDTLS_THREADING_C` and `MBEDTLS_THREADING_PTHREAD`, which are both off by default, so it does not build under the defaults either.\nVERDICT: MISS\nWHY: The answer says the library creates no threads of its own and the pthread example doesn't build by default. It never says the example compiles to a stub main, and it never says a default build creates no threads at all. It also says the example programs spawn threads."
+}

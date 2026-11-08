@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A contributor adds a `#define MBEDTLS_ERR_*` with a doc comment in the module header, then regenerates `error.c` with `scripts/generate_errors.pl`. Don't hand-edit `error.c`.\nVERDICT: MISS\nWHY: The answer says error.c is generated from the headers by scripts/generate_errors.pl, but it never names scripts/data_files/error.fmt as the template."
+}

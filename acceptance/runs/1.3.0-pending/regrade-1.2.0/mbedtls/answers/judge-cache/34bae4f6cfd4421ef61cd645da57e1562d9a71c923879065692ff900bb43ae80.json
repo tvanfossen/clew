@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_HAVE_ASM` is defined. It is on by default and can be turned off by commenting it out (`mbedtls_config.h:32-52`). - The compiler defines `__GNUC__`, and it is not armcc5.\nVERDICT: MISS\nWHY: The answer lists the gating conditions (HAVE_ASM plus compiler macros) but never states that MBEDTLS_CT_ASM is a derived macro rather than a configured one, and it implies CT_ASM is defined only as a consequence without saying it is not set in mbedtls_config.h."
+}

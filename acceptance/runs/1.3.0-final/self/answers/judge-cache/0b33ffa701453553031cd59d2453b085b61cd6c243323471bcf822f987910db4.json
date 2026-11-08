@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Unknown input is refused, not ignored. An unknown section in `.clew.yaml` raises `DeclarationError`. An unknown option key or a misspelled entry key in `options` raises `BuildOptionError`. Refusing is deliberate: an ignored key would let the build report success under defaults.\nVERDICT: HIT\nWHY: States that unknown sections are refused (DeclarationError) rather than ignored, with the reason that ignoring would let the build report success under defaults. It doesn't say \"by name\" or mention the allowed set, but the mechanism and reason are there."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Only translation units that define `MBEDTLS_ALLOW_PRIVATE_ACCESS` before the first include of `private_access.h` see the real names. ... The default is the external user. ... Public headers declare struct members as `MBEDTLS_PRIVATE(state)`, so the member is really named `private_state`. A user writing `ssl->state` gets a compile error.\nVERDICT: HIT\nWHY: The answer states that code defining the opt-out macro sees the real plain names, while ordinary external consumers see the `private_`-prefixed names."
+}

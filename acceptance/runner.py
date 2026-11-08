@@ -32,6 +32,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from .grader.rubric import Rubric
+from .identity import tool_identity
 
 ## THE TWO ARMS 1.1.0 COMPARES (owner ruling, 2026-08-22).
 ##
@@ -351,6 +352,42 @@ def check_revision(rubric: Rubric, root: Path) -> None:
             f"{root} is at the pinned commit but its working tree is MODIFIED:\n{dirty}\n"
             f"The rubric was verified against the pin, not against these edits. Stash or commit "
             f"them; do not measure a tree nobody checked"
+        )
+
+
+## @brief Refuse unless the clew under test is a clean tree at a known commit.
+## @param identity `tool_identity()`'s record; read fresh when None.
+## @return None.
+## @version 1
+def check_tool_tree(identity: dict | None = None) -> None:
+    """`check_revision` REFUSES A MODIFIED TARGET; NOTHING REFUSED A MODIFIED CLEW. `clew_dirty`
+    was recorded in `run.json`, every window and `provision.json`, and read by nothing — so the
+    1.2.0 grid ran dirty and its RESULTS.md had to concede that `844fee55` does not resolve to the
+    tree that answered. A recorded flag nobody acts on is a disclosure, not a guard.
+
+    UNKNOWN REFUSES TOO. `tool_identity` drops `clew_commit` when git cannot answer, which is right
+    for a record — absent, never blank — and wrong for a gate. A number that cannot be attributed
+    to a build of clew is not evidence about clew, so "nobody could check" is refused exactly like
+    "checked and dirty". Untracked files do not count: the check matches `check_revision`'s
+    `--untracked-files=no`, since an untracked file is not part of any commit either side names.
+
+    @brief The clew tree is clean and named.
+    @return None.
+    @version 1
+    """
+    record = tool_identity() if identity is None else identity
+    commit = record.get("clew_commit")
+    if not commit:
+        raise ValueError(
+            "cannot establish which clew is under test: git could not report its commit or "
+            "working-tree state. A result that cannot be attributed to a build of clew is not "
+            "evidence about clew; run the harness from a git checkout of clew"
+        )
+    if record.get("clew_dirty", True):
+        raise ValueError(
+            f"the clew under test is at {commit} but its working tree is MODIFIED, so that commit "
+            f"does not describe the code that would answer. Commit or stash the changes; do not "
+            f"measure a tree nobody can resolve"
         )
 
 

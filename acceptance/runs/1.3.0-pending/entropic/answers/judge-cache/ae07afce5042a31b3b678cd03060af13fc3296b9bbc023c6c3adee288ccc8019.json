@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The C ABI only ever sees `int*`, so no `std::atomic` crosses the `.so` boundary.\" and \"Interrupt observer | `response_generator.cpp:413` | Mirrors the engine's interrupt flag into an `int` for the duration of one batch call\"\n\nVERDICT: HIT\nWHY: The answer says the observer mirrors an atomic interrupt flag into a plain int, and it says the C ABI only sees `int*`, so no atomic crosses the boundary. That covers the bridging purpose."
+}

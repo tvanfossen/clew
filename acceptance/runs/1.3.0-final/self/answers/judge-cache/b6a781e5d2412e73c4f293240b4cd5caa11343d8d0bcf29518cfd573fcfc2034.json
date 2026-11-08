@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `clew/declaration.py` rejects unknown top-level keys by name.\nVERDICT: MISS\nWHY: The answer says unknown top-level keys are rejected by name, but it doesn't mention the allowed set. It also doesn't give the reason that an ignored section would build with defaults while reporting the declaration was honoured."
+}

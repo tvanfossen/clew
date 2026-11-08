@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `ExternalBridge::run_async_ask` spawns `std::thread(...).detach()` per `entropic.ask` (`external_bridge.cpp:1158-1222`). The thread captures `this` and `handle_`, and nothing joins it. `stop()` and the destructor (`:612-614`) do not wait for it.\nVERDICT: HIT\nWHY: The answer identifies the async-ask worker as a detached thread with no join that outlives its caller. It doesn't say \"the one\" detached thread, but it calls this the unbounded hazard and says the other threads are joined."
+}

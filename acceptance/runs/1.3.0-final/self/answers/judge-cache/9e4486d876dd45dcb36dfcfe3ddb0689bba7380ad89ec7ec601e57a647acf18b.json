@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`stale_code_refusal` makes `build_or_refresh` refuse when the process predates its source, and `force=True` does not override that.\"\nVERDICT: HIT\nWHY: The answer says the write path refuses (not warns) and that force=True cannot override it, which is the substance of the item. It never says the refusal sits ahead of the build decision, but the force-flag point implies it."
+}

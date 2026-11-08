@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`sanitizeReactions` returns `deleteReactions: []`. Without it, `deleteReactions` would be every stored reaction on the post not in the one-element list, so a single `reaction_added` would delete all other users' reactions.\"\nVERDICT: HIT\nWHY: The answer explicitly says skipSync prevents the single incoming reaction from being treated as the full set, which would delete all other reactions on the post."
+}

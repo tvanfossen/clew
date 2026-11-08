@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Both calls are in `entropic::LlamaCppTokenizer::tokenize` (`src/inference/llama_cpp_tokenizer.cpp:49-71`), at lines 55 and 61\nVERDICT: HIT\nWHY: The answer names the file and function and identifies the sizing-call-then-fill-call pattern with line numbers."
+}

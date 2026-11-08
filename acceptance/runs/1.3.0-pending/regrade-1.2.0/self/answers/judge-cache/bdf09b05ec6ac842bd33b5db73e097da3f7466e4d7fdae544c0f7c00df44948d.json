@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`schema` | ... | Rebuild if the db is older. If the db is *newer* than the server, only a client restart helps.\" and \"`code` | ... | Client restart only. The running process holds old logic.\" and \"3. `schema`, server older than index, or `code`: restart the MCP client. Rebuilding does nothing for these, and the message says so.\"\nVERDICT: MISS\nWHY: The answer says data is cleared by a rebuild and code by a client restart, but it never explains that this difference is why a single flag would not have been enough."
+}

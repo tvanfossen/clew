@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: it is enforced by how the primitives are written, plus a Valgrind test subset. The index only shows that test's name and brief, not its method.\nVERDICT: MISS\nWHY: The answer mentions a Valgrind test subset but doesn't say the property is verified by a separate off-by-default facility, and it doesn't say that facility is not part of the library API."
+}

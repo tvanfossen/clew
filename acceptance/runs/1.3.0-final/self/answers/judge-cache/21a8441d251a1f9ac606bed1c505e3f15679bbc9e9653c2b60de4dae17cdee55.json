@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `.sh`, `.bash` | Yes | `memberdef` for `name() {}` and `function name {}` ... `CMakeLists.txt`, `.cmake` | Yes ... Routing is by extension and, for `CMakeLists.txt`, by whole filename, so `oldCMakeLists.txt` is not claimed\nVERDICT: HIT\nWHY: The answer names the shell extensions (.sh, .bash) and CMake (.cmake) and explicitly says CMakeLists.txt is matched by whole file name rather than by extension."
+}

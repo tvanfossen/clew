@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: On failure, the same branch rules apply again: server-error cases remove the post, and anything else marks it failed again.\nVERDICT: HIT\nWHY: The answer says retry calls `client.createPost` once more, with no retry-limit loop or backoff (`retryLimit: 0`). On failure it removes the post for the server-error cases or marks it failed again."
+}

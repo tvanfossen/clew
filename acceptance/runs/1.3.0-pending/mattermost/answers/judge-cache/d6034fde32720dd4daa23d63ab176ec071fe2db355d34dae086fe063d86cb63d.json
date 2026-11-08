@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The REST call `ClientPosts.createPost` in `app/client/rest/posts.ts` (lines 43\u201348) passes `noRetry: true` to `doFetch`. So the client's own retry layer is explicitly disabled for this call.\nVERDICT: MISS\nWHY: The answer says posting opts out of retry but never states that requests in general retry with exponential backoff, limit 3, set by the network manager. It only speculates that a retry layer exists in the network-client dependency."
+}

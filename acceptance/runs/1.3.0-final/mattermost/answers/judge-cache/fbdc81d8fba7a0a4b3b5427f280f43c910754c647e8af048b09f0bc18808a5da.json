@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"There is no automatic retry, so the send happens once.\" and \"`ClientPosts.createPost` ... passes `noRetry: true`... retryLimit: 0 ... exactly one attempt\"\nVERDICT: HIT\nWHY: The answer explicitly states the create-post request has no automatic retry and is sent once (noRetry: true, retryLimit 0)."
+}

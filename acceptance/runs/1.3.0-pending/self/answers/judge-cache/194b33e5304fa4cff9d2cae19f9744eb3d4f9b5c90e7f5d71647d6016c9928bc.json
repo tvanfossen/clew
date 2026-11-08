@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `.clew.yaml` at the repo root\nVERDICT: MISS\nWHY: The answer names `.clew.yaml` at the repo root as tier 2, but it never says both entry points discover it from the repo root rather than having it plumbed per section."
+}

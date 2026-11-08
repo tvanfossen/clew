@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Doxygen itself reads only files matching `FILE_PATTERNS`... The in-scope set is also passed on as `scanned_files`, which lets the JS/TS front end register files doxygen will not read (cli.py:1747). Also: `_drop_binary_files` non-text files removed (cli.py:1745, filetypes.py)\nVERDICT: HIT\nWHY: The answer says scope isn't the whole story and names both the JS/TS front end registering files doxygen can't read and binary-file dropping after scope."
+}

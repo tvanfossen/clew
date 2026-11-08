@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Each of those three conditions is a separate axis in `clew/mcp_server/freshness.py`, built by `notices()` and ordered data \u2192 schema \u2192 code:\nVERDICT: HIT\nWHY: The answer states staleness has three distinct axes (data, schema, code), names them, and explains each with a different remedy."
+}

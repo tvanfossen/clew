@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Exceptions never cross into C.** Both trampolines catch `Exception`, print the traceback, and return a pass-through value.\nVERDICT: HIT\nWHY: The answer states that the hook trampolines catch all exceptions rather than letting them reach C, and that they return a pass-through value."
+}

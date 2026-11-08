@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Retrying happens only when the user taps \"Try Again\", which calls `retryFailedPost`.\"\nVERDICT: HIT\nWHY: The answer explicitly says retry occurs only when the user taps \"Try Again\" and names `retryFailedPost`."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Nested git trees are indexed, not excluded. Their own ignores are collected separately, since the parent's `ls-files` stops at the submodule boundary.\nVERDICT: HIT\nWHY: The answer explicitly says nested git trees are indexed rather than excluded."
+}

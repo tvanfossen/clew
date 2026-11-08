@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Each handler is a mixin function of the form `const XHandler = <TBase extends Constructor<ServerDataOperatorBase>>(superclass) => class extends superclass {...}`. ... Every handler write funnels through `BaseDataOperator.batchRecords`, which is the single `database.write(...)` call.\nVERDICT: HIT\nWHY: The answer states that each mixin is constrained to extend ServerDataOperatorBase (which extends BaseDataOperator) and that all handler writes go through the inherited `batchRecords`."
+}

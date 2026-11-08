@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_ct_compiler_opaque` (`impl.h:85`) is `asm volatile(\"\" : \"+r\"(x))` under assembly.\nVERDICT: HIT\nWHY: The answer gives the empty `asm volatile(\"\" : \"+r\"(x))` with an input-output register operand and calls it an opaque barrier that stops the compiler folding branches. It never says outright that the statement emits no instruction."
+}

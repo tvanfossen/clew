@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `queryReaction(database, emoji_name, post_id, user_id).fetch()` ... `if found: database.write(() => reaction[0].destroyPermanently())` and \"This path never calls `handleReactions`, `sanitizeReactions`, or `batchRecords`.\"\nVERDICT: HIT\nWHY: The answer states that removal bypasses the operator, queries the reaction, and destroys it with a direct `database.write`."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Facts from tiers 3 and 4 are kept under any stated tier.\" and \"| 3 | ... | Accumulates |\", \"| 4 | ... | Accumulates |\"\nVERDICT: MISS\nWHY: The answer shows tiers 3 and 4 both accumulate, but never says the distinction between them is deliberately inert or that the real line is fact-versus-guess."
+}

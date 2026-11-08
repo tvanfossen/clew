@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer mentions benchmark.c's alarm TimerProc but never says it is Windows-only or gated on a platform condition rather than the threading config."
+}

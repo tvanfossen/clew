@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: neither double call is retry logic. Both are the llama.cpp two-phase sizing idiom: call once with no buffer to learn the required size, then call again with a buffer of that size. Failure is not retried, and a failed tokenization returns an empty result that the callers mostly don't check.\nVERDICT: HIT\nWHY: The answer explicitly concludes the double calls are size negotiation (probe size, then fill), not retry; it notes failure isn't retried and neither loops, covering the \"exactly one second call\" and no-retry substance."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The same empty return is used for a null vocab (`:52`), so an invalid vocab is silent. `detokenize` returns `\"\"` on failure... `LlamaCppBackend::tokenize` ... Returns `{}` when `tokenizer_` is null.\nVERDICT: HIT\nWHY: The answer states tokenize failure returns `{}` (empty vector) and that the backend wrapper returns `{}` when `tokenizer_` is null, and says that callers cannot tell the empty return from other cases."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Each is selected by a macro chain. The base gate is `MBEDTLS_HAVE_ASM`, which defaults on (`include/mbedtls/mbedtls_config.h:52`). The compiler and CPU must also match `__GNUC__` or `__ARMCC_VERSION` and `__x86_64__`/`__amd64__` and so on\"\nVERDICT: MISS\nWHY: The answer describes the gating macros but never states that MBEDTLS_CT_ASM itself is derived rather than a configured option in mbedtls_config.h."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Downstream, the empty vector propagates without a check\nVERDICT: HIT\nWHY: The answer says a failed tokenization yields an empty vector that callers pass through unchecked, treating it as zero tokens. It also says nothing surfaces the failure as an error. That covers both parts of the item: failure looks like an empty result, and no caller checks for it."
+}

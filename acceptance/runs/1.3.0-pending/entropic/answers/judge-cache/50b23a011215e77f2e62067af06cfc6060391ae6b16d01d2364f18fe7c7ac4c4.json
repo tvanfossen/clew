@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `ExternalBridge::accept_loop` | `ExternalBridge::start` ... Long-lived, joined in `stop()`; Per-client `serve_client` threads | `accept_loop` (`external_bridge.cpp:945`) | One per MCP client, joined in `stop()`\nVERDICT: HIT\nWHY: The answer says the accept loop thread is spawned in start, and that accept_loop spawns one serve_client thread per MCP client."
+}

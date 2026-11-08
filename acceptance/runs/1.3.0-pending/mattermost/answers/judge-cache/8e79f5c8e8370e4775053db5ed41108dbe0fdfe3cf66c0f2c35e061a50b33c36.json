@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `ServerDataOperator` is an interface that intersects 11 handler mixins from `handlers/` with 3 product mixins from `app/products/`, all built on `ServerDataOperatorBase`.\nVERDICT: MISS\nWHY: The answer says ServerDataOperator is an interface extending the mixin types, but it never states that this is a same-named interface merged with the class, so the class ends up typed with every mixed-in method."
+}

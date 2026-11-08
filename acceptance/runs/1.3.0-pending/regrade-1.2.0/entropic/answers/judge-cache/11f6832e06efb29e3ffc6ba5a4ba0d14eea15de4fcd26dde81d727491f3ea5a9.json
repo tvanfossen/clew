@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `find()` at line 63 checks candidate paths, then falls back to `ctypes.util.find_library(\"rentropic\")`\nVERDICT: MISS\nWHY: The answer mentions candidate paths and a system-library fallback but never states the env-override-first, default user directory, system cache order, or the two directory layouts per root."
+}

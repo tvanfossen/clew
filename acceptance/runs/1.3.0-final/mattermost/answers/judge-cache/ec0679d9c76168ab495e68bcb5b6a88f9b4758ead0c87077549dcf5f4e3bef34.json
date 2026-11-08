@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `createPost` (`app/actions/remote/post.ts:74`) first writes the post to the local database with a pending ID, so it shows in the UI immediately. ... **Normal failure:** the post is saved with `props.failed = true` and kept in the channel.\nVERDICT: HIT\nWHY: The answer states the post is written locally before sending and, on failure, is kept with `props.failed = true`."
+}

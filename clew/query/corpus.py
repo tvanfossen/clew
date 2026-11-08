@@ -24,8 +24,10 @@ from __future__ import annotations
 import fnmatch
 import re
 import sqlite3
+from pathlib import Path
 
 from ..vocabulary import EXTERNAL_ROOT_COLUMN, UNRESOLVED_PATH_COLUMN
+from .source import compound_declaration
 from ._common import (
     MAX_CANDIDATES,
     DbSource,
@@ -47,6 +49,7 @@ from .models import (
     GenerationArg,
     GenerationRule,
     IndexScope,
+    MergedDeclaration,
     ProseHit,
     ProseSearch,
 )
@@ -397,7 +400,9 @@ def _file_members(conn: sqlite3.Connection, name: str) -> list[FileMember]:
 ## @param conn Open connection.
 ## @param name The repo-relative path of the candidate generated file.
 ## @return The rule, or None.
-## @version 1
+## v2: matches a self-declared row on its EXACT path and keeps it out of the basename join, which
+## would otherwise mark every same-named file generated.
+## @version 2
 ## @req REQ-DDB-QUERY-004
 def generation_rule(conn: sqlite3.Connection, name: str) -> GenerationRule | None:
     """MATCHED ON BASENAME, AND THAT IS A STATED LIMIT RATHER THAN A SHORTCUT. A build file writes
@@ -413,17 +418,30 @@ def generation_rule(conn: sqlite3.Connection, name: str) -> GenerationRule | Non
 
     @brief Look up the rule producing this file.
     @return The GenerationRule, or None.
-    @version 1
+    @version 2
     """
     if not table_exists(conn, "generated_files"):
         return None
-    base = name.rsplit("/", 1)[-1]
-    rows = conn.execute(
+    columns = (
         "SELECT output_name, output_literal, kind, source_file, source_line, "
         "role, arg_name, arg_literal, unresolved FROM generated_files "
-        "WHERE output_name = ? AND output_name <> '' ORDER BY rowid",
-        (base,),
+    )
+    ## A SELF-DECLARED ROW KNOWS ITS EXACT PATH, so it is matched on it — and kept OUT of the
+    ## basename join below. Joined by basename, mattermost-mobile's one generated file,
+    ## `app/utils/emoji/index.ts`, would have marked every `index.ts` in the repository generated.
+    rows = conn.execute(
+        columns + "WHERE output_literal = ? AND kind LIKE 'self-declared:%' ORDER BY rowid",
+        (name,),
     ).fetchall()
+    base = name.rsplit("/", 1)[-1]
+    rows = (
+        rows
+        or conn.execute(
+            columns + "WHERE output_name = ? AND output_name <> '' "
+            "AND kind NOT LIKE 'self-declared:%' ORDER BY rowid",
+            (base,),
+        ).fetchall()
+    )
     if not rows:
         return None
     head = rows[0]
@@ -1052,7 +1070,7 @@ def gate_symbol_rows(
 ## @param row Candidate row (rowid, name, kind, file, line, brief).
 ## @param wanted The name the caller asked for.
 ## @return Sort key tuple; lower sorts first.
-## @version 1
+## @version 2
 ## @dg_internal
 def _class_rank(row: tuple, wanted: str) -> tuple:
     """Rank so a project class always outranks the `std::` noise doxygen
@@ -1060,8 +1078,8 @@ def _class_rank(row: tuple, wanted: str) -> tuple:
     and a tail match beats an incidental substring.
 
     @brief Sort key for class-lookup candidates.
-    @return (is_stl, match tier, name length, name).
-    @version 1
+    @return (is_stl, match tier, kind rank, name length, name).
+    @version 2
     """
     name, file = row[1], row[3]
     tail = name.rsplit("::", 1)[-1]
@@ -1073,7 +1091,11 @@ def _class_rank(row: tuple, wanted: str) -> tuple:
         tier = 2
     else:
         tier = 3
-    return (bool(SYNTHETIC_PATH.match(file)), tier, len(name), name)
+    ## A CLASS BEFORE A SAME-NAMED INTERFACE (1.3.0): TypeScript declaration merging gives a class
+    ## and the interface typing it one qualified name, and the class is the implementation a
+    ## reader asks about. `kind` on the dossier still selects either.
+    kind_rank = 1 if row[2] == "interface" else 0
+    return (bool(SYNTHETIC_PATH.match(file)), tier, kind_rank, len(name), name)
 
 
 ## @brief Members of one compound, ordered by declaration line, with their documentation.
@@ -1158,7 +1180,7 @@ def _hierarchy(conn: sqlite3.Connection, rowid: int) -> tuple[list[str], list[st
 ## @brief The capped candidate list for an ambiguous class lookup, empty when unambiguous.
 ## @param ranked Candidate rows already sorted best-first by `_class_rank`.
 ## @return Up to MAX_CANDIDATES ClassCandidate rows, or [] when one compound matched.
-## @version 1
+## @version 2
 ## @dg_internal
 def _compound_candidates(ranked: list[tuple]) -> list[ClassCandidate]:
     """Collapses on the QUALIFIED NAME, which is a compound's identity the way a
@@ -1176,23 +1198,31 @@ def _compound_candidates(ranked: list[tuple]) -> list[ClassCandidate]:
     @return ClassCandidate rows, best-ranked first.
     @version 1
     """
-    seen: dict[str, ClassCandidate] = {}
+    ## KEYED BY NAME AND KIND (1.3.0). A TypeScript interface and class of one qualified name are
+    ## two declarations merged by the language — the way a mixin-composed class is typed — and
+    ## keying on the name alone hid the class behind the interface. Same-kind duplicates are
+    ## still the one compound seen twice.
+    seen: dict[tuple[str, str], ClassCandidate] = {}
     for _rowid, name, kind, file, line, _brief in ranked:
-        if name not in seen:
-            seen[name] = ClassCandidate(qualified=name, kind=kind, file=file, line=line or None)
+        if (name, kind) not in seen:
+            seen[(name, kind)] = ClassCandidate(
+                qualified=name, kind=kind, file=file, line=line or None
+            )
     if len(seen) < 2:
         return []
     return list(seen.values())[:MAX_CANDIDATES]
 
 
+## Version 5: names the same-name compounds of other kinds it merges with (`merged`).
+##
 ## @brief Look up a class/struct by name, preferring project over STL noise.
 ## @param db Database path or open connection.
 ## @param name Class name, bare or qualified (`PolygonWidget` or `demo::shape::PolygonWidget`).
 ## @return The best-ranked ClassEntry (carrying the rejected candidates), or None when nothing matches.
-## @version 4
+## @version 5
 ## @req REQ-DDB-QUERY-001
 ## @req REQ-DDB-QUERY-010
-def lookup_class(db: DbSource, name: str) -> ClassEntry | None:
+def lookup_class(db: DbSource, name: str, repo_root: Path | str | None = None) -> ClassEntry | None:
     """Resolve a class/struct/union name to its definition, members, and
     immediate hierarchy. Matching is exact-first then substring, and every
     project compound outranks the `std::` compounds doxygen registers against
@@ -1238,7 +1268,43 @@ def lookup_class(db: DbSource, name: str) -> ClassEntry | None:
             bases=bases,
             derived=derived,
             candidates=_compound_candidates(ranked),
+            declaration=(
+                None if repo_root is None else compound_declaration(conn, best[0], repo_root)
+            ),
+            merged=_merged(conn, ranked, best, repo_root),
         )
+
+
+## @brief The compounds sharing the chosen one's qualified name under another kind.
+## @param conn Open connection.
+## @param ranked Every matching compound row, ranked.
+## @param best The chosen row.
+## @param repo_root Working tree for declaration heads, or None.
+## @return MergedDeclaration rows; empty when nothing merges with the chosen compound.
+## @version 1
+## @dg_internal
+def _merged(
+    conn: sqlite3.Connection, ranked: list[tuple], best: tuple, repo_root: Path | str | None
+) -> list[MergedDeclaration]:
+    """@brief Same-name other-kind compounds. @return Rows."""
+    seen: set[str] = set()
+    out = []
+    for row in ranked:
+        if row[1] != best[1] or row[2] == best[2] or row[2] in seen:
+            continue
+        seen.add(row[2])
+        out.append(
+            MergedDeclaration(
+                kind=row[2],
+                file=row[3],
+                line=row[4] or None,
+                bases=_hierarchy(conn, row[0])[0],
+                declaration=(
+                    None if repo_root is None else compound_declaration(conn, row[0], repo_root)
+                ),
+            )
+        )
+    return out
 
 
 ## Top-level directories listed before the reply says it stopped. Generous because a rollup is a

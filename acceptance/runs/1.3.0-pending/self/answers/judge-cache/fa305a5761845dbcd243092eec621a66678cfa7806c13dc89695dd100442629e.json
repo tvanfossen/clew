@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A repo's Doxyfile `INPUT` no longer decides scope. The Doxyfile is still read for `ALIASES` and `PREDEFINED`, but its `INPUT` and `FILE_PATTERNS` are replaced.\nVERDICT: MISS\nWHY: It says the Doxyfile's INPUT no longer decides scope, but it never gives the reason: a repo that ships a Doxyfile would get only its documented subset, while a repo with none would get its whole tree."
+}

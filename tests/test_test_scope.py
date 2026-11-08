@@ -236,3 +236,21 @@ def test_a_repo_with_no_tests_gets_an_empty_table_not_a_missing_one(tmp_path: Pa
         assert conn.execute("SELECT COUNT(*) FROM test_scope").fetchone()[0] == 0
     finally:
         conn.close()
+
+
+## @brief An end-to-end test directory is test code.
+## @return None.
+## @version 1
+def test_an_e2e_directory_is_test_code() -> None:
+    """Detox, Playwright and Cypress keep end-to-end suites and their helpers under `e2e/`, and
+    none of the existing patterns matched it: on mattermost-mobile 144 TypeScript helpers under
+    `detox/e2e/support/` read as production code and crowded a code search for `retry`.
+
+    @brief e2e/ paths are test scope.
+    @return None.
+    @version 1
+    """
+    assert is_test_path("e2e/login.ts", TEST_PATH_FACTS)
+    assert is_test_path("detox/e2e/support/helpers.ts", TEST_PATH_FACTS)
+    assert not is_test_path("src/e2ee/crypto.ts", TEST_PATH_FACTS), "a substring is not a directory"
+    assert is_test_path("app/upload/file_upload_max_size.e2e.ts", TEST_PATH_FACTS)

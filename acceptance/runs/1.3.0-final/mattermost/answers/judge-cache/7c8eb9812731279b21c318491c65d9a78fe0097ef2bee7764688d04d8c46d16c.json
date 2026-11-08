@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`skipSync: true` | add path | `sanitizeReactions` returns before computing `deleteReactions`. The `!skipSync` guard in `handleReactions` also blocks the delete branch. Without this, the single-reaction payload would look like a full snapshot and delete every other reaction on the post.\"\nVERDICT: HIT\nWHY: The answer states that without skipSync the single-reaction payload would be treated as a full snapshot and delete all other reactions on the post."
+}

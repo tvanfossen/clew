@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`freshness.py` names three axes:\" followed by the table of `data`, `code`, `schema`, each with its own meaning and \"Cleared by\" action.\nVERDICT: HIT\nWHY: The answer states staleness is three distinct axes (data, code, schema), each needing a different fix, rather than a single flag."
+}

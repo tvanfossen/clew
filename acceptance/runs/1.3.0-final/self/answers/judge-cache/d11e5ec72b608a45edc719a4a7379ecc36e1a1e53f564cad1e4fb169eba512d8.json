@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never mentions dossier asking for only the call half of a merged form, nor that merging would double-report dataflow edges. The closest it gets is saying `qualified` narrows only the call half, which is a different point."
+}

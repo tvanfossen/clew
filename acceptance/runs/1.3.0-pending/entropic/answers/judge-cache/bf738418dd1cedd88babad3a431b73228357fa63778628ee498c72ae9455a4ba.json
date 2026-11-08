@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `src/inference/llama_cpp_backend.{h,cpp}`: the main user... `llama_cpp_sampler.cpp`, `llama_cpp_tokenizer.cpp`, `grammar_registry.cpp`, `orchestrator.cpp`, `adapter_manager.cpp`, `speculative_compat.cpp`: each includes `llama.h`. `tool_call_markers.h` includes `chat.h`.\nVERDICT: HIT\nWHY: The answer lists about a dozen of entropic's own source files that directly include llama.cpp headers, and says the reach is wide inside the engine rather than confined to one wrapper."
+}

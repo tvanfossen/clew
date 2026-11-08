@@ -1,0 +1,93 @@
+{
+  "cell": "Q2_claude-haiku-5-5_baseline_r3",
+  "arm": "baseline",
+  "rubric_version": "5.0.0",
+  "rubric_digest": "d8447c7b18eafbf5",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.3333333333333333,
+  "unmarked_pct": 0.0,
+  "split_decisions": 0,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "locates the grading in clew/mcp_server/emptiness.py",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: The grading lives in `clew/mcp_server/emptiness.py` (`search_emptiness`, `_verdict`, `_conjunction_note`) | WHY: The answer explicitly names clew/mcp_server/emptiness.py as where the empty-result grading lives. || QUOTE: The grading lives in `clew/mcp_server/emptiness.py` (`search_emptiness`, `_verdict`, `_conjunction_note`) | WHY: The answer explicitly names clew/mcp_server/emptiness.py as the location of the empty-result grading. || QUOTE: The grading lives in `clew/mcp_server/emptiness.py` (`search_emptiness`, `_verdict`, `_conjunction_note`) | WHY: The answer explicitly names `clew/mcp_server/emptiness.py` as where the grading of empty results lives.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the strong wording is EARNED PER CALL by querying which corpora the search did not read, rather than being attached to a result shape",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"`unsearched_corpus_hits`: rows the query would have matched in a corpus `search` does not read... computed by subtracting the searched kinds from the kinds the database holds\" and \"'definitive' is earned per call by checking the other corpora\" | WHY: The answer says the definitive wording is earned per call by querying unread corpora (unsearched_corpus_hits), and it is not tied to a fixed result shape. || QUOTE: \"In short: \"definitive\" is earned per call by checking the other corpora, and it is a claim about this index, not the working tree.\" | WHY: The answer says the definitive wording is earned per call by checking the unsearched corpora. It also describes how: `unsearched_corpus_hits` is computed by subtracting the searched kinds from the kinds the database holds. || QUOTE: \"It is computed by subtracting the searched kinds from the kinds the database holds, so a new kind is picked up without an edit.\" and \"'definitive' is earned per call by checking the other corpora\" | WHY: The answer says the definitive wording is earned per call by checking unread corpora (unsearched_corpus_hits), not attached to a fixed result shape.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "explains that a single token matching nothing was previously treated as proof of absence, and that this confuses \"nothing exists\" with \"I did not look there\"",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: \"A definitive empty answer means only that no searched corpus in this index holds the token. It does not prove the file is absent from the tree.\" and \"'definitive' is earned per call by checking the other corpora, and it is a claim about this index, not the working tree.\" | WHY: The answer describes the current graded design and caveats on definitive negatives. It never says a single token matching nothing was previously treated as proof of absence, or frames the old behavior as conflating \"nothing exists\" with \"I did not look there.\" || QUOTE: NONE | WHY: The answer describes how emptiness is now graded, but never says a single non-matching token was previously treated as proof of absence or that this conflated \"nothing exists\" with \"didn't look there.\" || QUOTE: Single token, no unread-corpus hits, file docs present | \"definitive empty result\u2026 do not retry\"; \"A definitive empty answer means only that no searched corpus in this index holds the token. It does not prove the file is absent from the tree.\" | WHY: The answer describes the new graded verdicts but never says a single-token miss was previously treated as proof of absence, nor frames the old behavior as conflating \"nothing exists\" with \"I did not look there\".",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the downgrades are ORDERED most-specific first, and explains why \u2014 a matching row in an unread corpus is a statement about THIS query and outranks statements about the index as a whole",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer gives a table of verdict cases but never states that downgrades are ordered most-specific first, nor explains that a matching row in an unread corpus outranks index-wide statements. || QUOTE: NONE | WHY: The answer lists verdict cases in a table but never states that the downgrades are ordered most-specific first or that an unread-corpus match outranks index-wide statements. || QUOTE: NONE | WHY: The answer's table lists verdicts but never states that downgrades are ordered most-specific first, nor that an unread-corpus match outranks index-wide statements.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "conveys that there is exactly ONE absent-corpus downgrade and that keeping it to one is deliberate, because downgrading on every absent layer turns the grading into a blanket hedge",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never mentions a single absent-corpus downgrade or that limiting it to one is deliberate to avoid a blanket hedge. || QUOTE: NONE | WHY: The answer describes several different downgrade cases (unsearched corpus hits, missing file_docs, multi-token miss, prose) and never says there is exactly one absent-corpus downgrade or that keeping it to one is deliberate to avoid blanket hedging. || QUOTE: NONE | WHY: The answer describes several different \"NOT definitive\" downgrade cases and never says there is exactly one absent-corpus downgrade, or that keeping it to one is deliberate to avoid a blanket hedge.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "conveys the general rule the module leaves behind \u2014 fix the corpus, not the sentence about the corpus",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer describes how the empty-result grading works but never states the general rule that you fix the corpus (index/search scope) rather than the sentence describing it. || QUOTE: NONE | WHY: The answer describes how empty results are graded, but never states the general rule about fixing the corpus rather than the sentence describing it. || QUOTE: NONE | WHY: The answer describes how the empty-result verdicts are graded. It never states the general rule of fixing the corpus rather than the sentence about the corpus.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "distinguishes all three grades an empty reply can receive: definitive for the scope, definitive for a reason that is not absence, and not definitive",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer separates \"definitive empty\" from \"NOT definitive\" (including cases where the name exists in an unread corpus). It never describes a third grade, an empty reply that is definitive for a reason other than absence. || QUOTE: \"Single token, unread corpus holds a match | \"NOT DEFINITIVE\u2026 the name exists\u2026 ask dossier\" | The name exists; search just cannot see that kind\" and \"Single token, no unread-corpus hits, file docs present | \"definitive empty result\u2026 do not retry\"\" | WHY: The answer separates definitive from not definitive, and the unread-corpus case (name exists elsewhere) is a form of \"definitive for a reason that is not absence\". It never states that third grade as a distinct category, though, and it doesn't identify the three grades the item requires. || QUOTE: \"Single token, unread corpus holds a match | \"NOT DEFINITIVE\u2026 the name exists\u2026 ask dossier\"\" and \"Single token, no unread-corpus hits, file docs present | \"definitive empty result\u2026 do not retry\"\" | WHY: The answer shows definitive-for-scope and not-definitive cases, but it never states a \"definitive for a reason that is not absence\" grade (for example, definitive because the scope or something else rules out an answer). The \"NOT DEFINITIVE\u2026 name exists\" row says the name exists, so it is a non-definitive result, not a distinct third grade.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the reply also names the file types that WERE in scope and produced no rows, so \"this repository does not contain that\" and \"that file type is not indexed here\" are distinguishable rather than the same empty answer",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: **`not_indexed` / `not_indexed_count`:** file types the build walked and produced no rows for. The build measured this against its own tree, not the query-time tree. | WHY: The answer says the reply carries `not_indexed`, the file types that were in scope (walked) but produced no rows. It also separates \"not indexed\" from \"absent from the tree\". || QUOTE: `not_indexed` / `not_indexed_count`: file types the build walked and produced no rows for. | WHY: The answer states the reply names walked-but-no-rows file types (`not_indexed`), and that \"definitive\" is relative to this index, so \"not indexed\" is distinguishable from \"absent.\" || QUOTE: **`not_indexed` / `not_indexed_count`:** file types the build walked and produced no rows for. The build measured this against its own tree, not the query-time tree. | WHY: The answer says the reply carries `not_indexed` naming file types that were in scope (walked) but produced no rows, which separates \"not indexed\" from \"absent\". The answer also says a definitive empty answer \"does not prove the file is absent from the tree\" and that this depends on `not_indexed`.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    }
+  ]
+}

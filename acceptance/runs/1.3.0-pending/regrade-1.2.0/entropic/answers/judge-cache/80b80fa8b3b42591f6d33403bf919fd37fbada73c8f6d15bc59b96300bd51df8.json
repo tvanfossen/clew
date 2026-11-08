@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `ExternalBridge::accept_loop` ... `HealthMonitor::monitor_loop` ... `StdioTransport::stderr_reader_loop` ... `SSETransport::sse_reader_loop` ... `iface_generate_with_cancel` ... `ResponseGenerator::dispatch_batch_generate`\nVERDICT: HIT\nWHY: The answer lists thread spawn sites across the external bridge, health monitor, MCP transports (stdio and SSE) and the inference path, which shows creation is spread across subsystems. It never says outright that creation is not centralised."
+}

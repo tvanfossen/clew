@@ -1,0 +1,103 @@
+{
+  "cell": "Q1_claude-haiku-5-5_index_only_r3",
+  "arm": "index_only",
+  "rubric_version": "3.1.0",
+  "rubric_digest": "bbf6195f605be452",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.55,
+  "unmarked_pct": 0.0,
+  "split_decisions": 2,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "names MBEDTLS_THREADING_C and MBEDTLS_THREADING_PTHREAD as the gating macros",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: `MBEDTLS_THREADING_C` defaults to off (`include/mbedtls/mbedtls_config.h:3787`). - `MBEDTLS_THREADING_PTHREAD` defaults to off (`include/mbedtls/mbedtls_config.h:2196`). | WHY: The answer names both macros and describes them as gating macros: the mutexes only exist when MBEDTLS_THREADING_C is enabled, and the pthread spawn is gated by MBEDTLS_THREADING_PTHREAD. || QUOTE: `MBEDTLS_THREADING_C` defaults to off (`include/mbedtls/mbedtls_config.h:3787`). - `MBEDTLS_THREADING_PTHREAD` defaults to off (`include/mbedtls/mbedtls_config.h:2196`). | WHY: The answer explicitly names both MBEDTLS_THREADING_C and MBEDTLS_THREADING_PTHREAD as the macros gating the threading code and mutexes. || QUOTE: `MBEDTLS_THREADING_C` defaults to off (`include/mbedtls/mbedtls_config.h:3787`). - `MBEDTLS_THREADING_PTHREAD` defaults to off (`include/mbedtls/mbedtls_config.h:2196`). | WHY: The answer names both macros as the gates for threading/mutex code, stating that the mutexes exist only when `MBEDTLS_THREADING_C` is enabled and that the pthread spawn site is gated by `MBEDTLS_THREADING_PTHREAD`.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the shipped mbedtls_config.h leaves BOTH threading macros undefined, so a default build defines neither",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: `MBEDTLS_THREADING_C` defaults to off (`include/mbedtls/mbedtls_config.h:3787`). - `MBEDTLS_THREADING_PTHREAD` defaults to off (`include/mbedtls/mbedtls_config.h:2196`). - With both off... | WHY: The answer states both threading macros default to off in the shipped mbedtls_config.h, so a default build enables neither. || QUOTE: `MBEDTLS_THREADING_C` defaults to off (`include/mbedtls/mbedtls_config.h:3787`). `MBEDTLS_THREADING_PTHREAD` defaults to off (`include/mbedtls/mbedtls_config.h:2196`). | WHY: The answer says both threading macros are off by default in the shipped mbedtls_config.h, with line references, so a default build defines neither. || QUOTE: `MBEDTLS_THREADING_C` defaults to off (`include/mbedtls/mbedtls_config.h:3787`). - `MBEDTLS_THREADING_PTHREAD` defaults to off (`include/mbedtls/mbedtls_config.h:2196`). - With both off... | WHY: The answer states that both threading macros default to off in the shipped mbedtls_config.h, so a default build enables neither.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that a default build of mbedtls creates no threads at all, and that the pthread example compiles to a stub main under that condition",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: The library spawns nothing, so under default settings it runs on whatever threads the caller provides. | WHY: The answer says the library spawns no threads by default, but it never says the pthread example compiles to a stub main under that condition. It also lists `ssl_pthread_server.c:277` as a spawn site gated on `MBEDTLS_THREADING_PTHREAD`. || QUOTE: With both off, `library/threading.c` (gated at lines 18\u2013193) compiles to nothing... The four thread spawn sites the index found are all in `programs/`, not `library/`... The library spawns nothing, so under default settings it runs on whatever threads the caller provides. | WHY: The answer says the library spawns no threads by default. But it never says the pthread example compiles to a stub main under the default build. It says the example is gated on `MBEDTLS_THREADING_PTHREAD` and lists it as a spawn site, without giving that consequence. || QUOTE: With both off, `library/threading.c` (gated at lines 18\u2013193) compiles to nothing... The four thread spawn sites the index found are all in `programs/`, not `library/`... The library spawns nothing | WHY: The answer says the library spawns no threads by default, but it never states that the pthread example compiles to a stub main under a default build. It instead lists `ssl_pthread_server.c:277` as a spawn site gated on `MBEDTLS_THREADING_PTHREAD`.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states BOTH halves of the contrast: that nothing in library/ creates a thread, AND that library/ nonetheless supplies the mutex abstraction used by threaded callers",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"The library spawns nothing, so under default settings it runs on whatever threads the caller provides.\" and \"With both off, `library/threading.c` ... compiles to nothing\" plus the lock table showing `library/threading.c` declaring `mbedtls_threading_*_mutex` and \"`MBEDTLS_THREADING_C` ... then they protect a small set of library globals plus the heap.\" | WHY: The answer states that the library spawns no threads (all spawn sites are in programs/) and that library/threading.c supplies the mutex abstraction and locks used by threaded callers. || QUOTE: The library spawns nothing, so under default settings it runs on whatever threads the caller provides. ... `library/threading.c` ... `mbedtls_threading_key_slot_mutex` ... PSA key slots. | WHY: The answer states the library spawns no threads (all spawn sites are in programs/) and that library/threading.c supplies the mutexes (PSA key slot, heap, etc.) used by threaded callers.",
+      "agreement": 0.6666666666666666,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "every source file containing a thread-creation site \u2014 programs/ssl/ssl_pthread_server.c",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every source file containing a thread-creation site \u2014 programs/test/benchmark.c",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every source file containing a thread-creation site \u2014 precision",
+      "kind": "set_precision",
+      "weight": 2,
+      "hit": false,
+      "detail": "named 1 not in the set: ['programs/ssl/ssl_server2.c']",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "identifies the benchmark timer thread as Windows-only, gated on a platform condition rather than on the threading config",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: `TimerProc` (Win32) | `programs/test/benchmark.c:430` | Windows timing alarm | WHY: The answer labels TimerProc as Win32 with a \"Windows timing alarm\" gate, but it never says the thread is gated on a platform condition rather than on the threading config. It also admits it did not inspect TimerProc. || QUOTE: `TimerProc` (Win32) | `programs/test/benchmark.c:430` | Windows timing alarm | WHY: The answer labels TimerProc as Win32 with a \"Windows timing alarm\" gate, but it never says the thread is Windows-only gated on a platform condition rather than the threading config, and it also admits it did not inspect TimerProc.",
+      "agreement": 0.6666666666666666,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies debug_mutex as serialising debug output so that concurrent connections do not interleave their logging",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never mentions debug_mutex or its role in serialising debug output across concurrent connections. || QUOTE: NONE | WHY: The answer never mentions debug_mutex or serialising debug/logging output across connections. || QUOTE: NONE | WHY: The answer never mentions debug_mutex or serialising debug output across connections.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    }
+  ]
+}

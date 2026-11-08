@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Only one of them shows a search field: `app/screens/home/search/search.tsx`.\nVERDICT: HIT\nWHY: The answer states that search.tsx is the only renderer that shows a search field. Its table gives `hasSearch` as `true` for that file and `false` or unset for the other seven."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Traversals like `chain_trace` do filter fuzzy edges; the flat list does not.\nVERDICT: MISS\nWHY: The answer notes that the flat list keeps fuzzy edges while traversals filter them. It never gives the reason, which is that a walk expands each hop so one fuzzy edge multiplies into a wrong subtree."
+}

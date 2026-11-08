@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 19515,
+  "stop_reason": "end_turn",
+  "session_id": "10a03d54-9f8e-401c-bb2b-10fb96b83077",
+  "total_cost_usd": 0.012412649999999999,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 36872,
+    "cache_read_input_tokens": 336755,
+    "output_tokens": 3339,
+    "output_tokens_details": {
+      "thinking_tokens": 821
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 36872,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1822,
+        "cache_read_input_tokens": 72557,
+        "cache_creation_input_tokens": 2460,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2460
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 3339,
+      "cacheReadInputTokens": 336755,
+      "cacheCreationInputTokens": 36872,
+      "webSearchRequests": 0,
+      "costUSD": 0.012412649999999999,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 821,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 36872,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 14,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short version:** `mbedtls_strerror()` in `library/error.c` splits the code into a high-level part and a low-level part, looks each up in a generated `switch`, and concatenates the results. To add a new string, you add the error macro to its module header, then add a `case` to the generated `switch` in `library/error.c`. The index doesn't show how the generator script orders or validates entries, so the second step needs checking against the script itself.\n\n**The lookup path**\n\n```\ncaller: ret = -0x0021 (negative)\n  \u2502\n  \u25bc\nmbedtls_strerror(ret, buf, buflen)              library/error.c:792\n  \u251c\u2500 buflen == 0 \u2192 return; else memset(buf, 0)\n  \u251c\u2500 ret = -ret                                  (sign is dropped)\n  \u251c\u2500 if (ret & 0xFF80):                          high-level part present\n  \u2502    mbedtls_high_level_strerr(ret)            library/error.c:174\n  \u2502      switch on (ret & 0xFF80), one case per module\n  \u2502      e.g. \"CIPHER - Authentication failed \u2026\"\n  \u2502    NULL \u2192 \"UNKNOWN ERROR CODE (%04X)\"\n  \u2502    if high == MBEDTLS_ERR_SSL_FATAL_ALERT_MESSAGE \u2192 return (no low-level text)\n  \u251c\u2500 use_ret = ret & ~0xFF80; if 0 \u2192 return\n  \u251c\u2500 if buf already has text \u2192 append \" : \"\n  \u2514\u2500 mbedtls_low_level_strerr(ret)               library/error.c:537\n       switch on (ret & ~0xFF80), one case per module\n       e.g. \"AES - Invalid input data\"\n       NULL \u2192 \"UNKNOWN ERROR CODE (%04X)\"\n```\n\nKey points:\n\n- **Public entry point:** `mbedtls_strerror()` is declared in `include/mbedtls/error.h:165`. It writes a null-terminated string and truncates if the buffer is too small.\n- **Two-part code:** the high-level part is the mask `0xFF80` and the low-level part is everything outside it. A single error such as `CIPHER - \u2026` plus `AES - \u2026` can therefore print as `CIPHER - \u2026 : AES - \u2026`.\n- **Fatal SSL alerts:** when the high-level part is `MBEDTLS_ERR_SSL_FATAL_ALERT_MESSAGE`, the function returns early and skips the low-level lookup.\n- **Gating:** both lookup functions sit under `MBEDTLS_ERROR_C` (`include/mbedtls/mbedtls_config.h:2907`, default on). Each module's `case` lines are wrapped in `#if defined(MBEDTLS_<MODULE>_C)`. A code whose module is compiled out has no string in that build and falls through to `UNKNOWN ERROR CODE`.\n- **Generated code:** both `switch` bodies are marked `Begin Auto-Generated Code` and produced by `scripts/generate_errors.pl` (usage: `generate_errors.pl include_dir data_dir error_file`). Do not hand-edit the switches. The index holds no symbols for the script itself, so I could not read how it chooses case order or what it validates.\n\n**What a contributor does to add a new error**\n\n1. Pick the module header in `include/mbedtls/` (e.g. `aes.h`) and add `#define MBEDTLS_ERR_<MODULE>_<NAME> -0x00XX` in that module's range. The index shows the existing pattern, e.g. `MBEDTLS_ERR_AES_BAD_INPUT_DATA` is `-0x0021`, expanded in `include/mbedtls/aes.h:50`.\n2. Add a description entry for that code in the generator's data source. The index does not show where that lives, so check `scripts/generate_errors.pl` and its `data_dir` input.\n3. Regenerate `library/error.c` with the script, not by hand.\n4. Verify through pre-commit as the repo's `AGENTS.md` requires. Check that the new code translates to a string and not `UNKNOWN ERROR CODE`.\n\nI could not verify step 2 or the exact pre-commit hook names from the index alone. The index has the `error.h` and `error.c` pieces but nothing from the generator's internals or the `data_dir` inputs.",
+  "ttft_ms": 1695,
+  "type": "result",
+  "duration_ms": 20911,
+  "uuid": "afea0d21-bdb8-4bbe-8669-a1a8df9a1d72",
+  "ttft_stream_ms": 1464,
+  "time_to_request_ms": 91,
+  "first_content_frame_ms": 1464,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

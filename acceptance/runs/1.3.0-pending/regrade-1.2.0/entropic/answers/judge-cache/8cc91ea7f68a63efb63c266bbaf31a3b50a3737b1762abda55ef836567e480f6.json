@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: it reaches into the engine's inference and facade layers, but the public headers mostly keep it out. ... **Facade:** `src/facade/entropic.cpp` includes `llama_cpp_backend.h` and calls `llama_model_ptr()` and `llama_context_ptr()`\nVERDICT: HIT\nWHY: The answer says llama.cpp is concentrated in src/inference but also reaches a file outside it (src/facade/entropic.cpp), so it isn't contained by the inference layer."
+}

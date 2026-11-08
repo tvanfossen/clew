@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the default build takes no mutexes and that threading.c compiles to nothing. But it never says a default build creates no threads, and it never says the pthread example compiles to a stub main. It instead lists `ssl_pthread_server.c:277` as a pthread spawn site that runs concurrently by default."
+}

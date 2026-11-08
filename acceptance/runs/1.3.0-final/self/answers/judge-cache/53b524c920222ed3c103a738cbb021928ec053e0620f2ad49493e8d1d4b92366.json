@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Each section of `.clew.yaml` is named after its option (`shared_key_patterns`, `thread_patterns`, `locks`, ...). `--declare` takes the same document shape.\nVERDICT: MISS\nWHY: The answer ties `.clew.yaml` section names to option names, but it never says the embedding caller's option names are those same words, and it never says the diagnostics use them too."
+}

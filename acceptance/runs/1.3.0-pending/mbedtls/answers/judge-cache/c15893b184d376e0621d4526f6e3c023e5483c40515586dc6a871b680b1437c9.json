@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the buffer allocator's init calls `mbedtls_platform_set_calloc_free()`. It never says `MBEDTLS_MEMORY_BUFFER_ALLOC_C` requires `MBEDTLS_PLATFORM_MEMORY`, or that enabling the allocator alone does not route allocations through it."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Explicit statement: a CLI flag, or the `options` argument on the MCP `index` tool, keyed by `.clew.yaml` section name\nVERDICT: MISS\nWHY: The answer says the MCP options argument is keyed by section name, but it never says the embedding caller's option names are the same words the diagnostics use, so half of the item is missing."
+}

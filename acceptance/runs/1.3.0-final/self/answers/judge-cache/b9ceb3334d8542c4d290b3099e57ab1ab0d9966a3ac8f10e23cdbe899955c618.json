@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says binaries are classified downstream but explicitly leaves it unverified. It names neither the parse-built front end nor the extension-lies-about-it binary classification as a filter."
+}

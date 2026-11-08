@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: the repo's own declared `index_scope:`, or the whole repository minus a set of subtractions. ... `no index_scope: key \u2192 None \u2192 fall through` ... `present but unusable \u2192 _Rejected(reason) \u2192 WARNING, whole repo`\nVERDICT: HIT\nWHY: The answer says a declared index_scope is the first choice and shows that absent, unreadable, malformed or unusable declarations all fall through to indexing the whole repo."
+}

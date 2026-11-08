@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `scripts/gen_bindings.py` (run via the `gen_bindings` task in `tasks.py`) parses the header and generates the ctypes declarations, so the Python side tracks the header rather than being hand-maintained.\nVERDICT: MISS\nWHY: The answer names the generator but never says a pre-commit check re-runs it and diffs to catch drift."
+}

@@ -1,0 +1,83 @@
+{
+  "cell": "Q1_claude-haiku-5-5_index_only_r1",
+  "arm": "index_only",
+  "rubric_version": "5.0.0",
+  "rubric_digest": "d8447c7b18eafbf5",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.4375,
+  "unmarked_pct": 0.0,
+  "split_decisions": 0,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "names derive_scope in clew/scope.py as where the decision is resolved",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: derive_scope(repo_root)                       clew/scope.py:639 | WHY: The answer names derive_scope in clew/scope.py as the entry point that resolves the scope decision (declared vs whole repo). || QUOTE: derive_scope(repo_root)                       clew/scope.py:639 | WHY: The answer names derive_scope in clew/scope.py as the entry point that decides the file set, with the two-tier resolution flowing from it. || QUOTE: derive_scope(repo_root)                       clew/scope.py:639 | WHY: The answer names derive_scope in clew/scope.py as the entry point where the file-set decision is resolved (\"Clew decides the file set in `clew/scope.py`\").",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that a repository's own declared index_scope is preferred, and that every failure to find one falls through to indexing the whole repository",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"`derive_scope(repo_root)` ... `_declared_index_scope(root)` ... no index_scope section \u2192 None (fall through) ... present but unusable \u2192 _Rejected ... no declaration \u2192 whole_repo_scope(root)\" and \"The library-level `derive_scope` falls back to the whole repo and logs the rejection.\" | WHY: The answer says a declared index_scope is used first, and that an absent, malformed or unusable declaration falls back to indexing the whole repo. It does note that the CLI refuses a rejected declaration instead of widening, but the library-level fall-through is still stated. || QUOTE: \"A `.clew.yaml` with `index_scope:` present but unusable (non-mapping, unknown keys, no existing roots) is `_Rejected`. The library-level `derive_scope` falls back to the whole repo and logs the rejection.\" and \"no index_scope section \u2192 None (fall through)\" and \"no declaration \u2192 whole_repo_scope(root)\" | WHY: The answer states that a declared index_scope is used first and that absent, unusable or rejected declarations fall back to indexing the whole repository. || QUOTE: \"A `.clew.yaml` with `index_scope:` present but unusable (non-mapping, unknown keys, no existing roots) is `_Rejected`. The library-level `derive_scope` falls back to the whole repo and logs the rejection.\" and \"no declaration \u2192 whole_repo_scope(root)\" | WHY: The answer states that a declared index_scope is preferred and that both an absent declaration and an unusable one fall through to indexing the whole repo. It also notes that a malformed `.clew.yaml` is treated as absent. The CLI refuses a rejected declaration instead of widening, which is a caveat, but the library-level fall-through is stated.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "conveys that the fallback carries a REASON explaining which scope was used and why, so an unstated scope is never silently guessed",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: Stated scope from a tool call (tier 1) goes through the same construction as a written declaration, and only the reason text differs. | WHY: The answer only mentions that \"reason text differs\" in passing; it never says the fallback carries a reason explaining which scope was used and why, so an unstated scope is never silently guessed. The rejected-declaration fallback is described as logged, not as carrying a reason. || QUOTE: Stated scope from a tool call (tier 1) goes through the same construction as a written declaration, and only the reason text differs. | WHY: It only mentions \"reason text\" in passing for a tier-1 scope; it never says the fallback carries a reason stating which scope was used and why. The rejection is only logged. || QUOTE: Stated scope from a tool call (tier 1) goes through the same construction as a written declaration, and only the reason text differs. | WHY: It only mentions \"reason text\" in passing; it never says the fallback carries a reason explaining which scope was used and why. The rejected-declaration case logs a rejection but doesn't convey a reason attached to the fallback scope.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that a Doxyfile's own INPUT is deliberately NOT used to decide the indexed tree, and explains why \u2014 a repository that ships one would get only its documented subset while a repository that ships none gets its whole tree",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: A Doxyfile's `INPUT` is no longer a tier either (gh#333). The repo's Doxyfile still supplies aliases and predefines, but its `INPUT` is replaced, because it is a documentation target, not a reasoning boundary. | WHY: The answer says Doxyfile INPUT is not used and gives a reason (\"documentation target, not a reasoning boundary\"), but it never states the specific rationale that a repo shipping a Doxyfile would get only its documented subset while one without gets the whole tree. || QUOTE: A Doxyfile's `INPUT` is no longer a tier either (gh#333). The repo's Doxyfile still supplies aliases and predefines, but its `INPUT` is replaced, because it is a documentation target, not a reasoning boundary. | WHY: It says Doxyfile INPUT is not used and gives a \"documentation target\" reason, but it never states the asymmetry the item requires: a repo with a Doxyfile would get only its documented subset while a repo without one gets its whole tree. || QUOTE: A Doxyfile's `INPUT` is no longer a tier either (gh#333). The repo's Doxyfile still supplies aliases and predefines, but its `INPUT` is replaced, because it is a documentation target, not a reasoning boundary. | WHY: The answer says Doxyfile INPUT is not used and gives a generic reason, but it never explains the specific consequence that a repo shipping a Doxyfile would get only its documented subset while one without gets the whole tree.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that nested git trees are INDEXED and tagged rather than excluded from the scope",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: Nested clones and submodules are indexed, not excluded. `external.py` tags their rows afterwards so answers can still tell the codebases apart. | WHY: The answer explicitly states nested git trees are indexed and tagged afterward rather than excluded. || QUOTE: Nested clones and submodules are indexed, not excluded. `external.py` tags their rows afterwards so answers can still tell the codebases apart. | WHY: The answer explicitly states nested clones/submodules are indexed rather than excluded and are tagged by external.py. || QUOTE: Nested clones and submodules are indexed, not excluded. `external.py` tags their rows afterwards so answers can still tell the codebases apart. | WHY: The answer explicitly states nested clones/submodules are indexed rather than excluded and are tagged afterward by external.py.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "conveys that the containment call was REMOVED rather than left in place with its callers dropped",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never mentions a containment call being removed. It describes the current scope behavior and says only that a Doxyfile `INPUT` is \"no longer a tier\", which is a different fact. || QUOTE: NONE | WHY: The answer never mentions a containment call being removed; it only says a Doxyfile's INPUT is no longer a tier, which is a different fact. || QUOTE: NONE | WHY: The answer never mentions a containment call being removed; it says a Doxyfile's INPUT is \"no longer a tier\", which is not about a containment call or its callers.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the resolved scope is not the whole answer \u2014 within it, a file reaches the index only if something can read it, and names at least one of the two filters: the parse-built front end claiming the file types doxygen cannot read, or binary classification dropping files whose extension lies about them",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: Nothing is extension-filtered. `enumerate_tree` hands every file under the roots to the pipeline, so hashing and invalidation see any change. Files that no grammar handles are simply not indexed; the `files` inventory counts only what the index holds. | WHY: The answer says files no grammar handles are not indexed, but it doesn't name the parse-built front end claiming file types doxygen can't read, and it doesn't name binary classification dropping files whose extension lies about them. || QUOTE: Nothing is extension-filtered. `enumerate_tree` hands every file under the roots to the pipeline... Files that no grammar handles are simply not indexed; the `files` inventory counts only what the index holds. | WHY: The answer says files no grammar handles aren't indexed, but it names neither the parse-built front end claiming file types doxygen can't read nor binary classification dropping files with misleading extensions. || QUOTE: Nothing is extension-filtered. `enumerate_tree` hands every file under the roots to the pipeline, so hashing and invalidation see any change. Files that no grammar handles are simply not indexed; the `files` inventory counts only what the index holds. | WHY: The answer says files no grammar handles aren't indexed, but it never names the parse-built front end claiming file types doxygen can't read, or binary classification dropping files whose extension lies about them.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    }
+  ]
+}

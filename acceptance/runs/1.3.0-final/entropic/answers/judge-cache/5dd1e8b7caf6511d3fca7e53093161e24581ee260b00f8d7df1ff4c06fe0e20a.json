@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The monitor thread only queues events. `process_events()` drains them and runs the callbacks on the engine thread.\" Also: \"`watched_mutex_` and `event_mutex_`\"\nVERDICT: HIT\nWHY: The answer states the monitor thread only queues events (guarded by event_mutex_) and that process_events() drains them and runs callbacks on the engine thread, not the monitor thread."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The asm is a barrier as well as a computation: the compiler cannot see through it to rewrite it as a branch.\nVERDICT: MISS\nWHY: The answer describes the asm as hand-written computation sequences that also act as a barrier, not as an empty asm volatile with an input-output register operand that emits no instruction."
+}

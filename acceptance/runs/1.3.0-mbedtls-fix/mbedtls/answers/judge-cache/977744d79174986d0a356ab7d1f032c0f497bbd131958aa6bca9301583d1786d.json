@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: MBEDTLS_HAVE_ASM && __GNUC__ && !armcc5 \u2500\u2500\u25ba MBEDTLS_CT_ASM\nVERDICT: MISS\nWHY: The answer shows MBEDTLS_CT_ASM being set from HAVE_ASM plus compiler macros in a diagram, but never says it is derived rather than configured or that it is not an mbedtls_config.h entry."
+}

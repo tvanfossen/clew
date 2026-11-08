@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "Paths the answer names as depending on the setting:\n\nITEMS:\napp/actions/websocket/channel.ts\napp/actions/remote/channel.ts\napp/actions/remote/search.ts\napp/screens/browse_channels/index.ts\napp/screens/browse_channels/browse_channels.tsx\ndropdown_slideup.tsx\nchannel_dropdown.tsx\nsearch_handler.tsx\napp/screens/home/channel_list/categories_list/categories/header/index.ts\napp/database/models/server/category.ts\napp/screens/channel_settings/archive/index.ts\narchive.tsx\nEND"
+}

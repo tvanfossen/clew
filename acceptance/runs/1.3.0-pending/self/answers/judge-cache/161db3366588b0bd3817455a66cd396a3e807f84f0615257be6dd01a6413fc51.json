@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The `qualified` selector narrows `'call'` rows but not `'key'` rows, because the key join is on `memberdef.name`\nVERDICT: MISS\nWHY: The answer never contrasts a flat surface selecting by resolved identity with a traversal surface (chain_trace) still matching the focal on bare name. It says only that `qualified` narrows `'call'` rows but not `'key'` rows, which is a different mechanism."
+}

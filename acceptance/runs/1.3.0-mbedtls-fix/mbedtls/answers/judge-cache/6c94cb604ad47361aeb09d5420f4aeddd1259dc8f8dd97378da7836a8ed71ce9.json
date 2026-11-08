@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `library/platform.c:47,52     mbedtls_calloc / mbedtls_free      (only if MBEDTLS_PLATFORM_MEMORY)` and \"It calls `mbedtls_platform_set_calloc_free()` to install `buffer_alloc_calloc_mutexed`/`_free_mutexed`\"\nVERDICT: MISS\nWHY: The answer never says the buffer allocator itself requires MBEDTLS_PLATFORM_MEMORY, so enabling the buffer allocator alone is not enough. It only ties the hook to that macro and describes the buffer allocator as sitting on top of the hook."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The argument value is `args_to_pattern` (`server_manager.cpp:426`): the value of the first JSON member if it is a string, otherwise `*`. \"First\" is nlohmann's default key order, which is alphabetical... A deny like `filesystem.write:/etc/*` therefore checks whichever argument sorts first, not `path`.\nVERDICT: HIT\nWHY: The answer states that only the first argument value is used for matching, and that a non-string value becomes `*`. It also implies the other arguments are not checked. It doesn't mention unparseable arguments, but the core of the item is there."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says fuzzy edges appear in `callers` results (flagged by confidence), but never contrasts this with traversal excluding them or explains the per-hop multiplication into a wrong subtree."
+}

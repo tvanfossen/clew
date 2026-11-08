@@ -1,0 +1,4 @@
+preprocessor:
+  predefined:
+  - MBEDTLS_THREADING_C
+  - MBEDTLS_THREADING_PTHREAD

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The same settings as the declaration file, passed as a structured mapping.\" and \"`.clew.yaml` has one section per setting, with the same format as the standalone manifest.\"\nVERDICT: MISS\nWHY: The answer says the options argument carries the same settings as the declaration file, but it never says the option names are the same words as the section names and the diagnostics' wording."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"section present but unusable \u2500\u2500\u25ba logged as rejected, falls through (excludes-only, unknown key, no existing roots, not a mapping)\" and \"nothing usable \u2500\u2500\u25ba whole_repo_scope(root)\"\nVERDICT: HIT\nWHY: The answer says a declared `index_scope` is used when valid, and that every failure (absent, unusable, or rejected) falls through to whole-repo scope."
+}

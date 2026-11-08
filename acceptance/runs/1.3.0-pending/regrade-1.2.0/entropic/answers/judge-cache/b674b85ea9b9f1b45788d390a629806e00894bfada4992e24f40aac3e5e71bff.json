@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The approval callback cannot deny. `on_tool_call` is `void(*)(const char*, void*)` (`engine_types.h:370`). In `check_approval`, a registered callback sets `approved = true` unconditionally.\"\nVERDICT: HIT\nWHY: The answer states the callback returns void and that approval is set to true unconditionally after the callback fires."
+}

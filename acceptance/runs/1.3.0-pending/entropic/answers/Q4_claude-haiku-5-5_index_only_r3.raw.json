@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 18865,
+  "stop_reason": "end_turn",
+  "session_id": "d16afa3b-413f-4200-b33f-13e5ab61d2fa",
+  "total_cost_usd": 0.00861108,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 25353,
+    "cache_read_input_tokens": 174018,
+    "output_tokens": 3599,
+    "output_tokens_details": {
+      "thinking_tokens": 1707
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 25353,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2291,
+        "cache_read_input_tokens": 54496,
+        "cache_creation_input_tokens": 8256,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 8256
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 8,
+      "outputTokens": 3599,
+      "cacheReadInputTokens": 174018,
+      "cacheCreationInputTokens": 25353,
+      "webSearchRequests": 0,
+      "costUSD": 0.00861108,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1707,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 25353,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 5,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** Ten thread spawn sites in first-party code (all `std::thread`/pthread, medium confidence). Shared state is guarded by named mutexes and atomics, and each spawned thread is joined or reaped by its owner. Two things I could not confirm from the index: the detached async-ask thread's lifetime, and one plain-`int` cancel flag.\n\n**Threads that run off the caller's thread**\n\n| Area | Spawn site | Role |\n|---|---|---|\n| External MCP bridge | `ExternalBridge::start` \u2192 `accept_loop` | Accepts socket clients, polls every 500 ms |\n| External MCP bridge | `accept_loop` \u2192 per-client thread | `serve_client` per connection |\n| External MCP bridge | `ExternalBridge::run_async_ask` | Detached thread that runs `entropic_run` for `entropic.ask` |\n| Health | `HealthMonitor::start` \u2192 `monitor_loop` | Background health and reconnect checks |\n| MCP stdio | `StdioTransport::open` \u2192 `stderr_reader_loop` | Drains child-process stderr |\n| MCP SSE | `SSETransport::open` \u2192 `sse_reader_loop` | Reads the event stream |\n| Inference cancel | `iface_generate_with_cancel` poller, `CancelFlagBridge` poller | Bridges a C `int*` cancel flag to an atomic |\n| Generation | `ResponseGenerator::dispatch_batch_generate` observer | Mirrors `interrupt_flag_` into the cancel `int` for one call |\n| Tests | `MockSSEServer` listener | Test-only |\n\n**What keeps them safe**\n\n1. **Shared task state is behind one mutex.** `run_async_ask` takes `tasks_mutex_` to create the queued entry and again to store the terminal state. It writes the sentinel file inside that same lock, so an external monitor that sees the sentinel can immediately read the same state.\n2. **Atomics for flags.** `running_`, `connected_`, the cancel flags, and `interrupt_flag_` (`std::atomic<bool>`, `engine.h:1415`) are all atomics. The pollers use acquire/release on their `done` flags.\n3. **Owned lifetimes.** `ExternalBridge::stop()` clears `running_`, closes the listen socket, joins the accept thread, `shutdown(SHUT_RDWR)`s each client fd to wake blocking reads, then joins each client thread. `accept_loop` also reaps finished clients under `client_threads_mutex_`.\n4. **Access control at accept.** Every accepted fd must pass `peer_uid_matches` (SO_PEERCRED) before a serve thread is spawned.\n5. **Log scope is propagated.** Each thread body opens `HandleLogScope(log_id)`, so logs from worker threads land in the owning handle's session log.\n6. **Lock ordering.** The index sees three two-lock nestings: `auth_mutex_`\u2192`key_mutex_`, `event_mutex_`\u2192`adapter_mutex_`, and `mu_`\u2192`adapter_mutex_` in a test. None is taken in reverse, so there is no deadlock pair. However, all three have `resolved_sites=0`, so I would not call the ordering verified.\n\n**Gaps and risks**\n\n- **`run_async_ask` is detached.** It captures `this` and `handle_`, and I found no join or tracking for it in the index. If the bridge is destroyed while a task is running, that is a use-after-free. Check whether `stop()` or the destructor waits for these tasks; the index does not show it.\n- **Plain `int` cancel flag.** In `dispatch_batch_generate`, the observer thread writes `cancel_int` (a plain `int`) while the backend reads it through `&cancel_int` on the calling thread. That is a data race under the C++ memory model, even though the code is meant to keep the C ABI `int*`-only. The `iface_generate_with_cancel` poller has the same shape: it reads `*cancel` non-atomically. This is the item I would check first.\n- **Coverage.** The thread count covers only the spawn primitives this index's patterns match. Other spawn helpers would not appear.",
+  "ttft_ms": 1625,
+  "type": "result",
+  "duration_ms": 20166,
+  "uuid": "0414a61c-9140-4f17-ade9-7844596b1ddc",
+  "ttft_stream_ms": 1228,
+  "time_to_request_ms": 71,
+  "first_content_frame_ms": 1228,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

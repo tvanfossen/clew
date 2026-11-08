@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_PLATFORM_MEMORY` off (default, `mbedtls_config.h:208` is commented out) | `calloc` via macro, no indirection\nVERDICT: HIT\nWHY: The answer states that in the default build mbedtls_calloc resolves to calloc via macro with no indirection, which is the item's substance. It doesn't name free in that row, but the \"plain libc calloc/free\" summary line covers it."
+}

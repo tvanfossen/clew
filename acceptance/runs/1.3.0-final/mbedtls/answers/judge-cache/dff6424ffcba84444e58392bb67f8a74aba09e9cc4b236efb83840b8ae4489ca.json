@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `include/mbedtls/mbedtls_config.h:3787` has `//#define MBEDTLS_THREADING_C`, so the threading layer is off. / Neither `MBEDTLS_THREADING_PTHREAD` nor `MBEDTLS_THREADING_ALT` is selected\nVERDICT: HIT\nWHY: The answer names MBEDTLS_THREADING_C and MBEDTLS_THREADING_PTHREAD as the config macros that control the threading layer, and it says `library/threading.c` compiles to nothing without THREADING_C."
+}

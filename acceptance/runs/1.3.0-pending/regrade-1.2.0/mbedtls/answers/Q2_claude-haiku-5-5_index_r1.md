@@ -1,0 +1,17 @@
+**What it does.** `MBEDTLS_PRIVATE(member)` is defined in `include/mbedtls/private_access.h:14-18`. Unless `MBEDTLS_ALLOW_PRIVATE_ACCESS` is defined, it expands to `private_##member`, so the field is renamed in the public header. Code that writes `ctx->state` stops compiling. Code that writes `ctx->MBEDTLS_PRIVATE(state)` still compiles, because it names the renamed field. Access is possible but has to be spelled out on purpose, and every such spelling is greppable.
+
+**Who it is for.** Mostly application authors, who get a compile error if they reach into internals they were never meant to touch. The library itself can rename or reorganise those fields without it looking like a breaking change to users who used the documented API. It is a source-level guard, not a security boundary: the struct definitions are still in the public headers, `sizeof` is still visible, and anyone can define the opt-out macro. The guard's effect is to make internal access a deliberate act. `ssl.h:5159-5169` says direct access (`ssl->state`, or `ssl->MBEDTLS_PRIVATE(state)`) is deprecated and "could be broken in any future release".
+
+**Where the opt-out is turned on in this tree:**
+
+| Location | Scope | Effect on that code |
+|---|---|---|
+| `library/common.h:132` | Every library `.c` that includes `common.h` | `MBEDTLS_PRIVATE(x)` becomes plain `x`; the library reads and writes fields directly |
+| `programs/ssl/ssl_server2.c:8` | Whole file | Plain member names everywhere in the sample server |
+| `programs/ssl/ssl_client2.c:8` | Whole file | Same for the sample client |
+
+Inside the library, the `MBEDTLS_PRIVATE(...)` spellings are effectively no-ops. Examples are `library/md.c:915` (`ctx->MBEDTLS_PRIVATE(md_info)`), `library/ecdh.c:150-152` and `library/x509_crt.c:3306`. In `ecdh.c` and `md.c`, `common.h` is the first include, so the opt-out is active before the public struct is parsed. The opt-out only holds if `common.h` comes before the public header in each translation unit. I checked that for `md.c` and `ecdh.c` only, not for every library file. `library/ssl_ciphersuites_internal.h` and `library/pk_internal.h` use the spelling too, and I did not verify their include order.
+
+The one place outside the opt-out that uses the spelling for real is `programs/ssl/ssl_context_info.c:553-568`. It reads `ciphersuite_info->MBEDTLS_PRIVATE(flags|cipher|mac)`. That file does not define the opt-out, so these lines access the renamed private fields. This is the case the mechanism is built for: an external consumer that has to reach past the API, and whose access is visible in the source. The test suites `test_suite_psa_crypto.function` and `test_suite_x509write.function` also use the spelling, and they are not on the opt-out list. I did not check how they are compiled.
+
+**Practical consequence.** Inside the library, and in the two SSL sample programs, you can write plain member names and the code compiles. Anywhere else, including `ssl_context_info.c`, you must write `MBEDTLS_PRIVATE(...)` or the build fails. Defining `MBEDTLS_ALLOW_PRIVATE_ACCESS` before any mbedtls header switches the guard off for that translation unit. Nothing in this tree defines it in a header a downstream user would normally include.

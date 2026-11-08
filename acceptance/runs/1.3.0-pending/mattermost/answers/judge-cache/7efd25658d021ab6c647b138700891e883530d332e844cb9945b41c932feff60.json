@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"It is never retried automatically.\" and \"`ClientPosts.createPost` passes `noRetry: true` ... which sets `retryLimit: 0`... So a failed send is not retried at the network layer either.\"\nVERDICT: HIT\nWHY: The answer states that create-post is never retried automatically and that it is sent once (zero retries via noRetry, one attempt per manual tap)."
+}

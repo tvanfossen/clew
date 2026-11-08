@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `check_approval` fires `on_tool_call` and then sets `approved = true` without reading a return value. With a callback registered, every call passes the approval layer.\nVERDICT: HIT\nWHY: The answer states the callback is fired and approved is set to true unconditionally, so the callback cannot refuse. It doesn't say the callback returns void, but it does say no return value is read."
+}

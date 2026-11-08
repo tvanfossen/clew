@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Layer 1: grading the empty search (`clew/mcp_server/emptiness.py`)**\nVERDICT: HIT\nWHY: The answer explicitly locates the grading of empty search results in `clew/mcp_server/emptiness.py`."
+}

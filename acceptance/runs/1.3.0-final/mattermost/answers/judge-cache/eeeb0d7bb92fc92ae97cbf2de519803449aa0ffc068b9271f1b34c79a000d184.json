@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"If it is the current channel, kick the user out with `CHANNEL_ARCHIVED`; then remove the user from the channel\" (row 1, when `'false'`); \"After the server call, set `delete_at` to now and keep the channel\" (row 2, viewable)\n\nVERDICT: HIT\n\nWHY: The answer states that when archived channels are not viewable the user is removed from the channel (and kicked out if it is the current channel). When they are viewable, the channel is kept and `delete_at` is set, which marks it deleted."
+}

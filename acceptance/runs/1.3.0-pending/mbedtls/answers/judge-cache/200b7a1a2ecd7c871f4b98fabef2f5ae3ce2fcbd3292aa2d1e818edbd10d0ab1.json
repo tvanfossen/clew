@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The rename turns accidental use into a compile error, which keeps the internal layout free to change.\" and \"`private_##member` ... Code that writes `ctx->nr` against the public header fails to compile\" and \"Public headers declare full struct layouts\"\nVERDICT: HIT\nWHY: The answer states that the mechanism is a member rename (`private_##member`) that causes compile errors, while the struct layout stays fully declared in the public headers."
+}

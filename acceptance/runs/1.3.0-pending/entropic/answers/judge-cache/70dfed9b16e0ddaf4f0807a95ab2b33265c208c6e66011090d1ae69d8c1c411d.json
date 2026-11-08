@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Call 1 uses a fixed 256-byte stack buffer. If the piece is longer, llama.cpp returns the negative required size. Call 2 uses a heap buffer of that size.\"\nVERDICT: HIT\nWHY: The answer states that detokenize tries a fixed 256-byte stack buffer and heap-allocates only when the piece is longer. It also says tokenize always probes the size first, with call 1 passing nullptr and size 0."
+}

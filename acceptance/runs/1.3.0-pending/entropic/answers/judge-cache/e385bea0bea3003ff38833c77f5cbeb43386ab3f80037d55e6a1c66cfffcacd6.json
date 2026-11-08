@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the fill call runs once with no second attempt after failure, and that failure returns `{}`. It never says a negative or non-positive result from the second call is terminal in the sense of returning empty without retrying, so the item's specific claim isn't stated."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never states that the macro is applied at hundreds of sites or that these are mostly in public headers; it only says struct declarations use it."
+}

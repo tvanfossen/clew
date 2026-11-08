@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Removes the current user from the channel instead | Sets `delete_at` locally, so the channel stays in the list as archived\nVERDICT: MISS\nWHY: The answer covers the local archiveChannel path (delete_at set vs. user removed) and a websocket kick, but it doesn't state that the channel is \"marked deleted\" when viewable or \"kicked out if it is the current channel\" when not viewable. It puts the kick under the websocket event with a different condition (\"If the user is in the archived channel\")."
+}

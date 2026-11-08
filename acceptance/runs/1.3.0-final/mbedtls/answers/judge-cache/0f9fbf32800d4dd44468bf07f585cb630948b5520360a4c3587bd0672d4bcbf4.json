@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The index does not show the exact branch that excludes the runtime pointers in this mode, so I'd verify that in `platform.c` before relying on it.\nVERDICT: MISS\nWHY: The answer explicitly says it doesn't know whether the runtime setter is excluded on the macro path, so it never states that the function is neither declared nor compiled there."
+}

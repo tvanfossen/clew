@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 27110,
+  "stop_reason": "end_turn",
+  "session_id": "eb2bd157-5a80-4ab4-b97a-143a536877a7",
+  "total_cost_usd": 0.012533790000000001,
+  "usage": {
+    "input_tokens": 16,
+    "cache_creation_input_tokens": 35863,
+    "cache_read_input_tokens": 299009,
+    "output_tokens": 4739,
+    "output_tokens_details": {
+      "thinking_tokens": 1866
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 35863,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2564,
+        "cache_read_input_tokens": 49228,
+        "cache_creation_input_tokens": 2144,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2144
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 16,
+      "outputTokens": 4739,
+      "cacheReadInputTokens": 299009,
+      "cacheCreationInputTokens": 35863,
+      "webSearchRequests": 0,
+      "costUSD": 0.012533790000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1866,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 35863,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 8,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "Short answer: the `callers` field is a list of name-resolved, graded graph edges, not a list of verified call sites. Each entry says which extraction layer produced it and how sure clew is about it, so you can tell a direct call from an inferred one.\n\nI answered from the source and docs in this checkout. I did not run a live query against a built index.\n\n**What the answer contains**\n\n`dossier` returns `callers` and `callees` alongside the body, locks, threads, requirements and liveness. Each neighbour is a `CallEdge` (`clew/query/models.py`) with:\n\n- `name` and `rowid`\n- `source`: the layer that found it\n- `confidence`: `exact`, `resolved` or `fuzzy`\n- `via_macro` and `via_macro_expansion`, when the call is written as a macro invocation\n- `implementors`, for virtual endpoints (an annotation, not an edge)\n\nThe layers, from `clew/call_edges.py` and the language docs:\n\n| `source` | What it means |\n|---|---|\n| `doxygen_sqlite` | Doxygen cross-reference, `exact` |\n| `ast` | Tree-sitter, bare-identifier callee; `resolved` if unique, `fuzzy` if the name is shared |\n| `ast_member` | Callee unwrapped from `obj.f()` or `Ns::f()` to its tail; mostly `fuzzy` on C++ |\n| `macro_hop` | Call reached through a macro; no matching text in the caller's body |\n| `fnptr` | Registered callback, `GLOBAL = PARAM` then `GLOBAL(...)` |\n| `declared_dispatch`, `binding` | Inferred links through declared dispatch or bindings |\n\nOne row is stored per layer per pair, but the reply collapses them to the strongest evidence per endpoint (`CallEdge` docstring). Clew's own index has 520 rows for 260 distinct pairs, so a row count is not a relationship count.\n\n**What makes it wrong to read as a list of call sites**\n\n1. **Resolution is by name, not identity.** Several unrelated file-private helpers with the same name collapse into one node, and their edges merge at full confidence. `candidates` disambiguates which symbol you asked about, not its edges (`CPP_INTEGRATION.md`, \"Overloads\").\n2. **Not every neighbour is a call.** `key` rows are shared-key dataflow with no call between the endpoints; they may be asynchronous and cross threads. `implementors` names possible override bodies and asserts nothing about which runs. `fnptr`, `binding` and `declared_dispatch` are inferred through pointers or registrations, not written at the call site.\n3. **Confidence grades the link, not the code.** A `fuzzy` edge is a name match that might be wrong. A `resolved` edge can still be wrong if it was built on a shared name.\n4. **An empty or short list is not proof of none.** Causes include:\n   - `#if` blocks whose macro is not predefined (the preprocessor and Kconfig gating).\n   - Functions defined by macros, which the `memberdef`-based detector cannot see.\n   - Python: incremental refresh misses a new cross-file call until a full rebuild, and entry points only count via the `console_scripts` and `__main__` seeds.\n   - Callers in code that was never indexed.\n5. **Callees that do not resolve are not edges.** `external_callees` is recovered by name at query time and kept out of `callees` on purpose; calls to libc primitives are invisible in the graph.\n6. **Self-edges are filtered.** A `caller == callee` row survives only if the body contains a self-directed call. Unparseable files keep their edges untouched rather than being pruned.\n7. **Staleness.** `anchor_mismatch: true` means the file changed since the build, so the lines and neighbours may belong to something else.\n8. **Caps.** Batch fan-out can be trimmed with `_limited` naming what was dropped. Detail prose is cut at 4,000 characters with a notice.\n\n**How to read it**\n\nTreat `callers` as candidate call sites ranked by evidence. For a `fuzzy` or `macro_hop` entry, read the caller's body before relying on it. For an empty list, first check whether the detector could see the code at all (preprocessor gating, macro definitions, language coverage) before concluding nothing calls it.",
+  "ttft_ms": 1954,
+  "type": "result",
+  "duration_ms": 27562,
+  "uuid": "cb492559-b42e-490f-b008-0238ced50a84",
+  "ttft_stream_ms": 1415,
+  "time_to_request_ms": 146,
+  "first_content_frame_ms": 1416,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

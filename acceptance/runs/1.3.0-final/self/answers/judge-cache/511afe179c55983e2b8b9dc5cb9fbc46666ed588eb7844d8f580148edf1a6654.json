@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `key` rows are shared-key dataflow with no call between the endpoints; they may be asynchronous and cross threads.\nVERDICT: MISS\nWHY: The answer mentions `key` rows as shared-key dataflow, but it frames the distinguishing fields as `source` and `confidence`, never an `edge_class` field. It also never concludes that direct calls and dataflow come back mixed in one list."
+}

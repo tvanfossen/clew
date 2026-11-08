@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says allocation goes through function pointers defaulting to libc and never states that a default build has no indirection (macros expanding directly to calloc/free); it implies the opposite."
+}

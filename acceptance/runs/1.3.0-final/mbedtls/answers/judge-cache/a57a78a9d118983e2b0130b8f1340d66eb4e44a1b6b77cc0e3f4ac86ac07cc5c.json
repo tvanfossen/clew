@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never states that mbedtls_platform_set_calloc_free is absent (not declared or compiled) on the macro path; it only guesses the function-pointer layer is compiled when macros are not supplied."
+}

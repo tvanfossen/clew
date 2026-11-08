@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The second `llama_tokenize` returns negative (`:64-68`). It logs an error with the text length, not the content, then returns `{}`.\nVERDICT: HIT\nWHY: The answer states that a negative result from the second `llama_tokenize` call logs an error and returns an empty vector. It also says neither call site retries."
+}

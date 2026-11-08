@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`scripts/generate_errors.pl` builds it from `scripts/data_files/error.fmt` plus every `include/mbedtls/*.h`.\"\nVERDICT: HIT\nWHY: The answer states error.c is generated, names generate_errors.pl as the generator, error.fmt as the template, and the public headers as the source."
+}

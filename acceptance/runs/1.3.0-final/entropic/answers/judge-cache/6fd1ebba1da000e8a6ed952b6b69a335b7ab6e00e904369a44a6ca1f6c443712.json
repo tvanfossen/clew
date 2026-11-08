@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Patterns come from config (`permissions.allow`, `permissions.deny`, `auto_approve`, parsed at loader.cpp:365).\nVERDICT: MISS\nWHY: The answer never names PermissionsConfig as what the ServerManager is constructed with, and it names PermissionManager only as the file path `permission_manager.cpp`. It gives only a generic \"come from config\" statement."
+}

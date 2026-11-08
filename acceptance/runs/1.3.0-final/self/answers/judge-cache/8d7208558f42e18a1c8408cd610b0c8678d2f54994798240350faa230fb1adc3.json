@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`scope` on a symbol-corpus miss gives the covered shape: file count, top-level directories, extensions, and `not_indexed` with counts. Files of other types, such as `.rs`, `.toml`, or `.sql`, are listed there as outside the index.\"\nVERDICT: MISS\nWHY: The answer describes `scope` listing `not_indexed` file types outside the index, which is the opposite of what the item asks for. The item requires naming the file types that were in scope and produced no rows, and the answer never says that."
+}

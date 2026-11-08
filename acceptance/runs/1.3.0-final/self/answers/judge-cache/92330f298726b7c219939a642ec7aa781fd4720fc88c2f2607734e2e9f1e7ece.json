@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The note's wording depends on what was actually checked\" and \"the index holds matching rows in a corpus `search` doesn't read\" \u2192 \"NOT DEFINITIVE\"\nVERDICT: HIT\nWHY: The answer states that the strong \"definitive\" wording is decided per empty search by checking whether unread corpora hold matching rows. It is not tied to the result shape, and \"The module's own rule is that 'nothing matched' is only a negative once the code has checked the other corpora\" confirms this."
+}

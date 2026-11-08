@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says that only one argument value reaches the pattern, or that other arguments are invisible or non-string/unparseable arguments become a wildcard. It only says the full pattern is matched against a `tool:args` string and that the argument format wasn't read."
+}

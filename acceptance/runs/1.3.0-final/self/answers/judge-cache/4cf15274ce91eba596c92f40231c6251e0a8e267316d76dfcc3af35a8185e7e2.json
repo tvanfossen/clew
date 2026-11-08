@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says nested git trees are included in the whole-repo scope and that `external.py` tags nested clones under declared roots. It never says nested git trees are indexed and tagged instead of excluded as the default scope behavior, and the \"tags\" statement applies only to declared roots."
+}

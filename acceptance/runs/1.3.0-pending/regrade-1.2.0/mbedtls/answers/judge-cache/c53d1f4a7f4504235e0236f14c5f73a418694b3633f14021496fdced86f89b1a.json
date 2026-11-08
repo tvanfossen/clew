@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Set `MBEDTLS_PLATFORM_MEMORY` in the config, then pick one of three options\nVERDICT: MISS\nWHY: The answer names MBEDTLS_PLATFORM_MEMORY as the enabling setting but never says it is commented out in the shipped mbedtls_config.h."
+}

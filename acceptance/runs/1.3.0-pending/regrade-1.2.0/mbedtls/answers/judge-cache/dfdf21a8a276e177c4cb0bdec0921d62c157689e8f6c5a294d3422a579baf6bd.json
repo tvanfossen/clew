@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: With `MBEDTLS_THREADING_C` it uses mutex-wrapped variants.\nVERDICT: MISS\nWHY: The answer mentions mutex-wrapped variants under THREADING_C but doesn't say the choice is a compile-time one made inside the init function, with a plain pair otherwise."
+}

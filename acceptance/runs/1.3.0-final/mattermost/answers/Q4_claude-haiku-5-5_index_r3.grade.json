@@ -1,0 +1,113 @@
+{
+  "cell": "Q4_claude-haiku-5-5_index_r3",
+  "arm": "index",
+  "rubric_version": "1.0.0",
+  "rubric_digest": "32294778c2753056",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.9285714285714286,
+  "unmarked_pct": 0.0,
+  "split_decisions": 0,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "concludes that a missing setting means archived channels ARE viewable \u2014 only an explicit 'false' turns them off",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"If the server omits the key, the app behaves as if it is enabled.\" and \"Only a `'false'` string turns the feature off.\" | WHY: The answer states that a missing setting is treated as archived channels viewable and only an explicit 'false' disables it. || QUOTE: If the server omits the key, the app behaves as if it is enabled. ... `archivedChannelsViewable = (value?) => value !== 'false'` ... Only a `'false'` string turns the feature off. | WHY: The answer states that a missing setting means archived channels are viewable and that only an explicit 'false' disables them. || QUOTE: \"If the server omits the key, the app behaves as if it is enabled.\" and \"`archivedChannelsViewable = (value?) => value !== 'false'`\" | WHY: The answer states that a missing setting means archived channels are viewable and that only an explicit `'false'` turns the feature off.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "every file whose behaviour depends on the setting \u2014 app/actions/websocket/channel.ts",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every file whose behaviour depends on the setting \u2014 app/actions/remote/channel.ts",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every file whose behaviour depends on the setting \u2014 app/actions/remote/search.ts",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every file whose behaviour depends on the setting \u2014 app/screens/browse_channels/index.ts",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every file whose behaviour depends on the setting \u2014 app/screens/channel_settings/archive/index.ts",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every file whose behaviour depends on the setting \u2014 app/screens/home/channel_list/categories_list/categories/header/index.ts",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every file whose behaviour depends on the setting \u2014 precision",
+      "kind": "set_precision",
+      "weight": 1,
+      "hit": false,
+      "detail": "named 6 not in the set: ['app/database/models/server/category.ts', 'app/queries/servers/system.ts', 'archive.tsx', 'browse_channels.tsx', 'browse_channels/channel_dropdown.tsx', 'dropdown_slideup.tsx']",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "states that when a channel is archived while archived channels are NOT viewable, the user is removed from it (and kicked out if it is the current channel); when viewable, the channel is kept and marked deleted",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: `archiveChannel`) | Sets local `delete_at` so the channel stays visible as archived | Removes the current user from the channel locally; and `searchPosts`... websocket row: \"Keeps the archived channel in the local DB | If the user is viewing it, kicks them out with `CHANNEL_ARCHIVED`, then removes the membership\" | WHY: The table states that when archived channels aren't viewable, the user is removed and kicked out if viewing it. When viewable, the channel is kept and marked with `delete_at`, which is \"marked deleted\". || QUOTE: `app/actions/remote/channel.ts:1397` (`archiveChannel`) | Sets local `delete_at` so the channel stays visible as archived | Removes the current user from the channel locally; `app/actions/websocket/channel.ts:463` ... Keeps the archived channel in the local DB | If the user is viewing it, kicks them out with `CHANNEL_ARCHIVED`, then removes the membership | WHY: The table states that when viewing is off the user is removed from the channel and kicked out if it's the current one. When viewable, the channel is kept and marked deleted via `delete_at`. || QUOTE: `archiveChannel`: \"Removes the current user from the channel locally\" when `'false'`; websocket handler: \"If the user is viewing it, kicks them out with `CHANNEL_ARCHIVED`, then removes the membership\"; viewable: \"Sets local `delete_at` so the channel stays visible as archived\" / \"Keeps the archived channel in the local DB\" | WHY: The table states that non-viewable removes the user (and kicks them out if viewing the channel), while viewable keeps the channel and sets `delete_at`, which marks it deleted.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that post search sends the setting to the server as `include_deleted_channels`",
+      "kind": "retrieval",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: `app/actions/remote/search.ts:62\u201373` (`searchPosts`) | Sends `include_deleted_channels: true` to the server | Sends `false` | WHY: The answer states that searchPosts sends `include_deleted_channels` to the server, true or false depending on the setting. || QUOTE: `app/actions/remote/search.ts:62\u201373` (`searchPosts`) | Sends `include_deleted_channels: true` to the server | Sends `false` | WHY: The answer states that searchPosts sends `include_deleted_channels` to the server based on the setting. || QUOTE: `app/actions/remote/search.ts:62\u201373` (`searchPosts`) | Sends `include_deleted_channels: true` to the server | Sends `false` | WHY: The answer states that searchPosts sends `include_deleted_channels` to the server, based on this setting.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    }
+  ]
+}

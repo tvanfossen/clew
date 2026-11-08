@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `library/common.h` | 132 | The library itself. This is the internal header it uses, so library code gets direct member access.\nVERDICT: HIT\nWHY: The answer states that the opt-out define is turned on in library/common.h, the library's internal header, giving library code direct member access, which matches the item. The caveat about not confirming every TU includes it doesn't remove the statement."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The first call passes `nullptr` and capacity `0`. llama.cpp reports the required count as a negative number (`include/llama.h`, `llama_tokenize`). 2. The code negates that value, allocates a vector of that size, and calls again to fill it.\"\nVERDICT: HIT\nWHY: The answer states the first call returns the required count as a negative number and that the code negates it to size the vector for the second call."
+}

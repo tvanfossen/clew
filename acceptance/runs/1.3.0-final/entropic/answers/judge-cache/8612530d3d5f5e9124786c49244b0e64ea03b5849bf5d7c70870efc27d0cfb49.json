@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A negative `actual` here is the only real failure check.\nVERDICT: HIT\nWHY: The answer says a negative result from the second call is a failure, and that `tokenize` then logs an error and returns an empty vector, with no further attempt. The second call \"runs unconditionally\" and the answer says it is not retry logic."
+}

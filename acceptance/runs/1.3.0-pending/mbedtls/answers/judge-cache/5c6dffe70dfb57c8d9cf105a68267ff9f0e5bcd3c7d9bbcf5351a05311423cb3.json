@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `programs/test/benchmark.c` (a signal handler and a Windows `TimerProc`)\nVERDICT: MISS\nWHY: The answer mentions a Windows TimerProc in benchmark.c but never says the timer thread is Windows-only or gated on a platform condition rather than the threading config."
+}

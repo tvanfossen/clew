@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: handed to `PermissionManager` through the `ServerManager` constructor (`server_manager.cpp:35`)\nVERDICT: HIT\nWHY: The answer names PermissionManager and says the lists (from permissions.allow/deny config) are handed to it via the ServerManager constructor, which covers the item's substance. It does not name \"PermissionsConfig\" explicitly."
+}

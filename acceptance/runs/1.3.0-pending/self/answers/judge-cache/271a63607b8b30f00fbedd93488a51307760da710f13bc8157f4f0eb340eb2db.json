@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Clew has five ways to set indexing conventions, and when they disagree the rule is simple... | Tier | Source | ... | 1 | CLI flag... | 2 | `.clew.yaml` ... | 3 | Facts the repo already wrote... | 4 | Known-ecosystem signatures... | 5 | Built-in name-pattern heuristics\nVERDICT: HIT\nWHY: The answer lays out five named precedence tiers (CLI/options, .clew.yaml, repo facts, ecosystem signatures, heuristics) rather than a single override."
+}

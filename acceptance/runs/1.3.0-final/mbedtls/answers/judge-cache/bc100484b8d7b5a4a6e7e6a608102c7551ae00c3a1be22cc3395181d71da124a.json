@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The C fallback is `x ^ mbedtls_ct_zero`, where `mbedtls_ct_zero` is a `volatile` zero defined in `library/constant_time.c:29`.\nVERDICT: HIT\nWHY: The answer says that without asm the opaque function falls back to XOR with the volatile zero global `mbedtls_ct_zero`, and it names that global."
+}

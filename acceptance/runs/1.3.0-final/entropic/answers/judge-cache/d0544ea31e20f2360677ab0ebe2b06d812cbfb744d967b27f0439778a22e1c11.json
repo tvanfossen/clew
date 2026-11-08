@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Nothing distinguishes failure from a legitimately empty result, and no error code reaches the caller.\"\nVERDICT: HIT\nWHY: The answer says failure is indistinguishable from a legitimately empty result. It also says most callers keep going without an empty check, and the table shows no caller checking for it except the `tokens.size() < 2` guards, which hide the cause."
+}

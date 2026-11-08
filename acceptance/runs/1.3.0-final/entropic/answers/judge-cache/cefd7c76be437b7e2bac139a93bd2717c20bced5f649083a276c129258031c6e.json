@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Pre-commit runs `gen-bindings --check` and fails on drift.\nVERDICT: HIT\nWHY: The answer states that a pre-commit hook runs the generator in check mode and fails on drift, which matches the item's re-run-and-diff mechanism."
+}

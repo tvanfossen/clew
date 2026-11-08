@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Parse-built front end (`clew/synth.py`):** it claims `.js/.mjs/.cjs/.jsx/.ts/.mts/.cts/.tsx`, `.sh/.bash/.cmake`, `CMakeLists.txt`, and `.yaml/.yml/.json`.\nVERDICT: HIT\nWHY: The answer separates scope from per-file-type readability and names the parse-built front end claiming types doxygen can't read (JS/TS, shell, cmake, etc.)."
+}

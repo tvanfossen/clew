@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The Doxyfile's `INPUT` is not consulted. Since gh#333 it is a documentation target, not a reasoning boundary.\n\nVERDICT: MISS\n\nWHY: The answer says INPUT isn't consulted and calls it a \"documentation target, not a reasoning boundary\", but it never gives the required reason: a repo shipping a Doxyfile would get only its documented subset, while a repo with none gets its whole tree."
+}

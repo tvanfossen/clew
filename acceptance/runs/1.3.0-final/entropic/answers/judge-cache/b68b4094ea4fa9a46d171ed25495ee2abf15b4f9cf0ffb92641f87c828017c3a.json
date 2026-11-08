@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Argument value: `args_to_pattern` (`server_manager.cpp:426`) takes the first JSON key's value, if it is a string. Iteration order is nlohmann's default, which is sorted by key, so \"first\" means alphabetically first, not first in the schema. If there is no string arg, or parsing fails, the value is `*`.\nVERDICT: HIT\nWHY: The answer says only one argument (the first string value) reaches the pattern, and that a non-string or unparseable argument becomes `*`."
+}

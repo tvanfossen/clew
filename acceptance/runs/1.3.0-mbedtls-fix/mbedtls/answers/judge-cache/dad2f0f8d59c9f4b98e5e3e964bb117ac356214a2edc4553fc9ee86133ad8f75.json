@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the function is callable at runtime and never says it is undeclared and uncompiled on the macro path. It states the opposite: that `platform.h` macros exist and that it can't tell which expansion wins."
+}

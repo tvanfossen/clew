@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `programs/ssl/ssl_server2.c:8` | Whole file | Plain member names everywhere in the sample server; `programs/ssl/ssl_client2.c:8` | Whole file | Same for the sample client\nVERDICT: HIT\nWHY: The answer lists ssl_server2.c and ssl_client2.c as example programs that define the opt-out for themselves, so they use plain member names instead of `MBEDTLS_PRIVATE`. It never says they reach past the public API they otherwise demonstrate, but the table states the substance."
+}

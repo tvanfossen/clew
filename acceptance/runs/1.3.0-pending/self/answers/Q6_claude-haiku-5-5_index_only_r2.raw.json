@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 16499,
+  "stop_reason": "end_turn",
+  "session_id": "36c368fe-2759-4f73-98eb-fd34f0450006",
+  "total_cost_usd": 0.00657862,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 16884,
+    "cache_read_input_tokens": 171902,
+    "output_tokens": 2964,
+    "output_tokens_details": {
+      "thinking_tokens": 1085
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 16884,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2056,
+        "cache_read_input_tokens": 50969,
+        "cache_creation_input_tokens": 4096,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 4096
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 8,
+      "outputTokens": 2964,
+      "cacheReadInputTokens": 171902,
+      "cacheCreationInputTokens": 16884,
+      "webSearchRequests": 0,
+      "costUSD": 0.00657862,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1085,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 16884,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 7,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** for shell, CMake, YAML and JSON, the index holds the file paths and, for shell and CMake, the function and macro definitions. It holds no symbols for the contents of YAML or JSON files. If the installed parser lacks the grammars, the build degrades without crashing: those files are registered but contribute nothing, and an empty answer names the file types that were not read.\n\n**What the index holds**\n\n| File type | In the file set | Symbols | Source of the rows |\n|---|---|---|---|\n| `.sh`, `.bash` | yes | yes: `name() { }` and `function name { }` only | `clew/shast.py`, written to `memberdef` by `clew/synth.py` |\n| `CMakeLists.txt` (matched by whole name), `.cmake` | yes | yes: `function` and `macro` definitions only | `clew/cmakeast.py` |\n| `.yaml`, `.yml`, `.json` | yes | none | registered, never harvested |\n\nShell and CMake definitions take their doc text from the `#` block directly above them, and a blank line between the block and the definition means no doc. Tags such as `@version` and `@req` are kept as literal text. A shell function has no parameter list, so its `args` are empty, which is a fact about bash rather than a gap in the harvest. CMake records whether each definition is a `function` (own scope, named parameters) or a `macro` (body pastes into the caller's scope).\n\n**What it does not hold**\n\n- Top-level shell or CMake statements: `add_executable`, `target_link_libraries`, the body of a deploy script outside any function. The harvest takes definitions only.\n- Any YAML or JSON key. Writing `block_mapping_pair` or `pair` as `memberdef` rows would put every `steps:` key into the namespace that answers `dossier(\"my_function\")`. So those files are findable by name, but `dossier` returns no symbols from them.\n- Call edges or dataflow from these files, as far as I can tell from the module docs. I did not confirm that directly.\n\nSome YAML and JSON are still read, but by clew's own code rather than the index. `.clew.yaml` and the shared-key and data-model manifests are parsed by `_read_mapping`, `load_shared_key_patterns` and `_parse_data_model_yaml`. Those results feed the declaration and edge layers, not the symbol table.\n\n**On an installation whose parser lacks the grammars**\n\n- `clew/substrate.py` decides this by asking what is compiled in, not by checking a version. The fork that adds bash, cmake, yaml, json and markdown reports the same version string (0.11.2) as the published wheel, so a version check cannot tell them apart. `compiled_languages()` returns the keys, and `missing_languages()` returns the absent ones in the order asked.\n- With the published wheel the new keys are absent. The routing is capability-gated, so a `.sh` file resolves to no grammar. It is registered and searchable, with no symbols, the same outcome as YAML. No `ValueError` reaches the build.\n- A substrate that cannot be imported at all yields no languages and logs an ERROR. Per the module docs, this is treated as a broken install rather than a silent gap, and that log line is the only signal.\n- The not-indexed report is stamped at build time. It says, for example, that 14 `.sh` files were in scope and none are in the index. That lets a caller tell \"the symbol does not exist\" from \"this build did not read that file type\". An index built before this release reports nothing rather than an empty set it did not measure.\n\n**Limits of this answer:** I worked from the index's documentation and symbol records, not the source bodies, and I did not query the stamped not-indexed report on this target. The `cmakeast.py` record shows 8 symbols and the shell harvester has tests, which suggests this particular index was built with the grammars present. I could not confirm that from the index alone.",
+  "ttft_ms": 1516,
+  "type": "result",
+  "duration_ms": 17191,
+  "uuid": "6c7110e4-5b5b-4ea6-95d0-594f2b23e7c8",
+  "ttft_stream_ms": 966,
+  "time_to_request_ms": 66,
+  "first_content_frame_ms": 966,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

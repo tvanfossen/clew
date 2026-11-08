@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes how empty results are graded now. It never says that a single-token miss used to be treated as proof of absence, or that this confused \"nothing exists\" with \"I did not look there\"."
+}

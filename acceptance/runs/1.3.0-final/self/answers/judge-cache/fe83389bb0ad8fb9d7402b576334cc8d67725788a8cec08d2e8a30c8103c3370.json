@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A disagreement here only changes labels, not the resolved set.\nVERDICT: MISS\nWHY: The answer says tiers 3 and 4 accumulate and conflicts only change labels. It never says the tier 3/4 distinction is deliberately inert, and it never says the load-bearing line is fact versus guess."
+}

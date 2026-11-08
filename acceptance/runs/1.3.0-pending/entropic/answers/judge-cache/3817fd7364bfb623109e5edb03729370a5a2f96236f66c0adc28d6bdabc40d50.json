@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Exceptions must not cross into C.** The Python trampolines catch and print, then return 0.\"\nVERDICT: HIT\nWHY: The answer states that Python trampolines catch exceptions (so they don't unwind into C) and return 0, which matches swallowing exceptions and treating a failed hook as a pass-through."
+}

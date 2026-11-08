@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`MBEDTLS_HAVE_ASM` defined (`include/mbedtls/mbedtls_config.h:52`, which you can comment out), `__GNUC__`, which excludes MSVC and ARMCC 5, one of arm/thumb, aarch64, x86-64 or i386. Otherwise `MBEDTLS_CT_ASM` is undefined\"\nVERDICT: MISS\nWHY: The answer describes the conditions under which the asm path is chosen, but it never says that MBEDTLS_CT_ASM is derived rather than configured, and it doesn't contrast it with an mbedtls_config.h entry."
+}

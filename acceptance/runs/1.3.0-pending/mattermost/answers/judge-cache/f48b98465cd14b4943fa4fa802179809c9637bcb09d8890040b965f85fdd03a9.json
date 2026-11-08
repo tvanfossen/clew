@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`AppDataOperator` (`app/database/operator/app_data_operator/index.ts`) extends the same `BaseDataOperator`, so it shares `batchRecords` and the other helpers. It writes to the app DB rather than a server DB.\"\nVERDICT: HIT\nWHY: The answer names AppDataOperator as a BaseDataOperator subclass sharing batchRecords, writing to the app-level database."
+}

@@ -1,0 +1,143 @@
+{
+  "cell": "Q3_claude-haiku-5-5_baseline_r2",
+  "arm": "baseline",
+  "rubric_version": "3.1.1",
+  "rubric_digest": "705c131e354e5c22",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.7666666666666667,
+  "unmarked_pct": 0.0,
+  "split_decisions": 3,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "names PermissionManager and locates the allow and deny lists as coming from the PermissionsConfig the ServerManager is constructed with",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": false,
+      "detail": "QUOTE: The lists are loaded from `permissions.allow`, `permissions.deny` and `permissions.auto_approve` (`config/loader.cpp:365`), and handed to `PermissionManager` through the `ServerManager` constructor (`server_manager.cpp:35`). | WHY: It names PermissionManager and says the lists are handed in via the ServerManager constructor. It never says they come from a PermissionsConfig the ServerManager is constructed with. || QUOTE: The lists are loaded from `permissions.allow`, `permissions.deny` and `permissions.auto_approve` (`config/loader.cpp:365`), and handed to `PermissionManager` through the `ServerManager` constructor (`server_manager.cpp:35`). | WHY: The answer names PermissionManager and says the lists come from config and pass through the ServerManager constructor. It never names PermissionsConfig as the object the ServerManager is constructed with.",
+      "agreement": 0.6666666666666666,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that the DENY list is the only one that blocks execution \u2014 ServerManager's execute path consults is_denied and nothing else before routing the call",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"The deny list is checked later, at execution, and is the only list that can stop a call that was already approved.\" and \"7. deny-list match \u2192 \"Error: Permission denied for <tool>\"\" under ServerManager::execute; also \"With a callback registered, the only way a call is refused is the deny list.\" | WHY: The answer states the deny list is checked in ServerManager::execute and is the only list that blocks, with the allow list only skipping the approval prompt. || QUOTE: \"The deny list is checked later, at execution, and is the only list that can stop a call that was already approved.\" and \"ServerManager::execute server_manager.cpp:153 ... 7. deny-list match \u2192 'Error: Permission denied for <tool>' 8. route to in-process server or external client\" | WHY: The answer places the is_denied check in ServerManager::execute immediately before routing, and states the deny list is the only list that can block an approved call. It also says \"With a callback registered, the only way a call is refused is the deny list.\"",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the ALLOW list does not grant execution but suppresses the approval step \u2014 it is consulted only from ToolExecutor::check_approval, in a different file",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: Allow pattern: if it matches, step 6 is skipped and the call proceeds to execution. Nothing else changes. The deny list still applies at step 7. | WHY: The answer says the allow list only decides whether the approval prompt is skipped, with `auto_ok = auto_approve OR allow-list match` at `check_approval` in `tool_executor.cpp:161`. The deny list is checked separately in `server_manager.cpp`, so the allow list is consulted from `check_approval` in a different file. || QUOTE: \"Allow pattern:** if it matches, step 6 is skipped and the call proceeds to execution. Nothing else changes.\" and \"auto_ok = auto_approve OR allow-list match\" under \"approval (check_approval_pc \u2192 check_approval, :161)\" | WHY: The answer says the allow list only decides whether the approval prompt is skipped, and that it is consulted in check_approval (tool_executor.cpp). It does not say that execution is a separate step, though it implies this by placing the deny check in server_manager.cpp.",
+      "agreement": 0.6666666666666666,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that the effective posture is default-ALLOW at the blocking gate \u2014 a tool matching neither list is not denied and runs",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"if !auto_ok and on_tool_call set \u2192 approved = true\" and \"With a callback registered, the only way a call is refused is the deny list.\" | WHY: The answer says an unmatched call is approved when a callback is registered, because the callback cannot deny, so only the deny list refuses. That is default-allow in effect. The no-callback denial it also mentions is a caveat and doesn't change that. || QUOTE: \"With a callback registered, the only way a call is refused is the deny list.\" (also: \"`check_approval` sets `approved = true` after calling it\") | WHY: The answer says the host callback cannot deny, so an unmatched tool is approved and runs and only the deny list refuses. That is default-allow at the gate, though the answer qualifies it with a no-callback denial.",
+      "agreement": 0.6666666666666666,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies that the approval callback CANNOT refuse \u2014 it returns void, and the code sets approved to true unconditionally after firing it",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"The host callback cannot deny.** `on_tool_call` is `void(const char*, void*)` (`engine_types.h:370`), and `check_approval` sets `approved = true` after calling it.\" | WHY: The answer states the callback returns void and approved is set to true after calling it, so the callback cannot refuse. || QUOTE: \"**The host callback cannot deny.** `on_tool_call` is `void(const char*, void*)` (`engine_types.h:370`), and `check_approval` sets `approved = true` after calling it.\" | WHY: The answer states the callback returns void and approved is set to true after calling it, so it cannot refuse. || QUOTE: \"**The host callback cannot deny.** `on_tool_call` is `void(const char*, void*)` (`engine_types.h:370`), and `check_approval` sets `approved = true` after calling it.\" | WHY: The answer states the callback returns void and approved is set true after calling it, so it cannot refuse.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "explains that a pattern is matched with fnmatch, split at the first colon into a tool part and an argument part, and that a pattern with no colon matches on the tool name alone",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: \"the pattern is split at the first `:`. The left side is fnmatched against the tool name. With no `:`, that is the whole test (tool-level).\" | WHY: The answer states the pattern is split at the first colon, the left (tool) part is fnmatched against the tool name, and a colon-less pattern matches on tool name alone; the argument part is also covered. || QUOTE: \"**Matching** (`permission_manager.cpp:101`): the pattern is split at the first `:`. The left side is fnmatched against the tool name. With no `:`, that is the whole test (tool-level). With a `:`, the full pattern is fnmatched against `tool_name:<arg-pattern>`.\" | WHY: The answer states fnmatch, a split at the first colon into a tool part and an argument part, and that a pattern with no colon matches the tool name alone. || QUOTE: \"the pattern is split at the first `:`. The left side is fnmatched against the tool name. With no `:`, that is the whole test (tool-level). With a `:`, the full pattern is fnmatched against `tool_name:<arg-pattern>`.\" | WHY: The answer states fnmatch, splitting at the first colon into tool and argument parts, and that a pattern with no colon matches on the tool name alone.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that only ONE argument value ever reaches the pattern \u2014 the rest of the call's arguments are invisible to permission matching, and a non-string or unparseable argument collapses to a wildcard",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"the value of the first string-valued argument, where \"first\" means alphabetically first key because nlohmann objects are sorted maps. If the first arg isn't a string or there are no args, it becomes `*`.\" and \"**Only the first string argument is matched.** Any other argument is invisible to both lists.\" | WHY: The answer says only one argument value reaches the pattern, other arguments are invisible to matching, and a non-string or missing first argument becomes `*`. || QUOTE: \"the value of the first string-valued argument, where \"first\" means alphabetically first key because nlohmann objects are sorted maps. If the first arg isn't a string or there are no args, it becomes `*`.\" and \"Only the first string argument is matched. Any other argument is invisible to both lists.\" | WHY: The answer states that only one argument value reaches the pattern, that other arguments are invisible to matching, and that a non-string or missing argument becomes the wildcard `*`. || QUOTE: \"the value of the first string-valued argument, where \"first\" means alphabetically first key because nlohmann objects are sorted maps. If the first arg isn't a string or there are no args, it becomes `*`.\" and \"**Only the first string argument is matched.** Any other argument is invisible to both lists.\" | WHY: The answer states that only one argument value reaches the pattern, that other arguments are invisible to matching, and that a non-string or missing argument becomes `*`. It doesn't mention unparseable arguments, but the rest of the item is covered.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies that a decision can be PERSISTED for future sessions by appending to config.local.yaml, separately from the in-memory add_permission call",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never mentions config.local.yaml or persisting decisions by appending to it; it only says runtime \"always allow\" persistence isn't wired and patterns come from config. || QUOTE: NONE | WHY: The answer never mentions config.local.yaml or persisting a decision by appending to it; it only says runtime persistence isn't wired and patterns come from config. || QUOTE: NONE | WHY: The answer says runtime \"always allow\" persistence isn't wired and never mentions appending to config.local.yaml as a way to persist a decision.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "the files a permission decision passes through \u2014 src/mcp/permission_manager.cpp",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the files a permission decision passes through \u2014 src/mcp/server_manager.cpp",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the files a permission decision passes through \u2014 src/mcp/tool_executor.cpp",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the files a permission decision passes through \u2014 include/entropic/types/config.h",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": false,
+      "detail": "not named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the files a permission decision passes through \u2014 precision",
+      "kind": "set_precision",
+      "weight": 2,
+      "hit": false,
+      "detail": "named 4 not in the set: ['bash.cpp', 'config/loader.cpp', 'engine_types.h', 'tool_executor.h']",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    }
+  ]
+}

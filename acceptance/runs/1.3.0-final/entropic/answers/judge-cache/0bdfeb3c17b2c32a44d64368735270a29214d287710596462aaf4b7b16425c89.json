@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Async `entropic.ask` worker | `external_bridge.cpp:1158`, `.detach()` at `:1222` ... `stop()` ... does not track or join the detached async-ask threads ... the detached thread can keep using `handle_` and `this` after they are freed.\nVERDICT: HIT\nWHY: The answer identifies the async-ask worker as the detached thread (`.detach()` at :1222) and says nothing joins it, so it can outlive the handle and bridge. It doesn't say \"the ONE detached thread\" outright, but the other threads in the table are all joined, which implies it."
+}

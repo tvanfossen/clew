@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: With a callback, `check_approval` sets `approved = true` after calling it, and the callback's return value is not read. The callback can notify but cannot veto\nVERDICT: HIT\nWHY: The answer states the callback cannot veto and that approved is set to true after calling it regardless of return value."
+}

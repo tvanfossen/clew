@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Suites annotated with `TEST_CF_SECRET` and `TEST_CF_PUBLIC` are run under Valgrind (`MBEDTLS_TEST_CONSTANT_FLOW_VALGRIND`) or MSan. ... Eight suites carry annotations ... All other suites are skipped in those components.\nVERDICT: MISS\nWHY: The answer describes Valgrind/MSan constant-flow checking in test components, but never says it is off-by-default or explicitly not part of the library API."
+}

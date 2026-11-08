@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It is not retried automatically: there is one network attempt, and the user has to retry by hand. ... `ClientPosts.createPost` in `app/client/rest/posts.ts:43` passes `noRetry: true`, which turns off the client's transport retry for this request.\nVERDICT: HIT\nWHY: The answer states the create-post request is sent once with no automatic retry, and names the `noRetry: true` mechanism."
+}

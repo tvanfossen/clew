@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: cli._apply_scope \u2500\u2500\u25ba scope.derive_scope(repo_root)\nVERDICT: HIT\nWHY: The answer names `scope.derive_scope`, which is `clew/scope.py`'s `derive_scope`, as the place the scope decision is resolved. It says so directly: \"Scope is still decided by `derive_scope`\"."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the library spawns no threads and the examples hold the only threads, but it never concludes that a default build creates no threads at all or that the pthread example compiles to a stub main. It describes `handle_ssl_connection` as running one thread per connection."
+}

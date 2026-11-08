@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_strerror` has a second definition at `error.c:867`, gated on `MBEDTLS_ERROR_STRERROR_DUMMY`. I did not trace which build selects which one.\nVERDICT: MISS\nWHY: The answer names the macro and a second definition, but never says it keeps the function linkable while the table is compiled out, and never says it is enabled by default."
+}

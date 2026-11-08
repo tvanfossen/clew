@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"the two `llama_tokenize` calls are a size-query pattern, not retry logic. Nothing that fails is retried.\"\nVERDICT: HIT\nWHY: The answer concludes it is size negotiation (first call with nullptr/0 reports needed count, second fills) rather than retry, and says the second call is deterministic with nothing retried."
+}

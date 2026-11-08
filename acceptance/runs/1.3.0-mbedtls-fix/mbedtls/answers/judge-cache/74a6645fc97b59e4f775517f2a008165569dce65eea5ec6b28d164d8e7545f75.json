@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`mbedtls_memory_buffer_alloc_init(buf, len)` ... inits a mutex and calls `mbedtls_platform_set_calloc_free(buffer_alloc_calloc_mutexed, buffer_alloc_free_mutexed)`. Otherwise it installs the unlocked variants. So \"library uses the facility\" means this module is the only in-tree caller of `mbedtls_platform_set_calloc_free` according to the index.\"\nVERDICT: HIT\nWHY: The answer names the memory buffer allocator, says its init function installs itself via the runtime setter, and calls it the only in-tree caller. It never writes the MBEDTLS_MEMORY_BUFFER_ALLOC_C macro, but the module is clearly identified."
+}

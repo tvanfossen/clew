@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The wait is on `wake_cv_` with a `!running_` predicate.\nVERDICT: MISS\nWHY: The answer mentions the condition variable wait with a `!running_` predicate, but it never says shutdown is an atomic flag exchange plus a wake. It also never says `HealthMonitor::stop()` joins the thread. The joins it describes are for other threads."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_memory_buffer_alloc_init` (memory_buffer_alloc.c:566) is the library's own use of the hook. It zeroes its heap, creates a mutex when `MBEDTLS_THREADING_C` is set, and installs its own functions through `mbedtls_platform_set_calloc_free`.\nVERDICT: HIT\nWHY: The answer states the library's only in-tree use of the setter is the buffer allocator's init function installing its own functions over the pointers. It doesn't name the `MBEDTLS_MEMORY_BUFFER_ALLOC_C` macro, but the mechanism and location are clear."
+}

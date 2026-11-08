@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "Looking at the answer, it names no top-level directories as containing uses of MBEDTLS_PRIVATE. It mentions `include/`, `library/`, `programs/`, and `docs/`, but only as locations of the macro definition or the `MBEDTLS_ALLOW_PRIVATE_ACCESS` opt-out. It names `psa/crypto_struct.h` as holding PSA driver-ID fields wrapped in the macro, but gives no top-level directory for it.\n\nThe closest case is `include/`, which holds headers (`bignum.h`, `ctr_drbg.h`) with wrapped fields. The answer doesn't state that those headers contain uses of `MBEDTLS_PRIVATE`. It says only that their fields are wrapped, and that `include/mbedtls/private_access.h` defines the macro. So I'm not listing it.\n\nITEMS:\nNONE\nEND"
+}

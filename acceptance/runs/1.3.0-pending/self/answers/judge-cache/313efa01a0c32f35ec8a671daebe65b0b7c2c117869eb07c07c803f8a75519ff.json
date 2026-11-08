@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `not_indexed` / `not_indexed_count`: file types the build walked and produced no rows for.\nVERDICT: HIT\nWHY: The answer states the reply names walked-but-no-rows file types (`not_indexed`), and that \"definitive\" is relative to this index, so \"not indexed\" is distinguishable from \"absent.\""
+}

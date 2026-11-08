@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer lists about a dozen files across src/inference and the facade, but never states that llama.cpp reaches roughly a dozen of entropic's source files. It also frames the boundary as limited to the `src/inference/` layer."
+}

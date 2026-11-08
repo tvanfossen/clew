@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Otherwise it is `x ^ mbedtls_ct_zero`, where `mbedtls_ct_zero` is a `volatile` global (`constant_time_impl.h:85-93`, `constant_time.c:29`).\nVERDICT: HIT\nWHY: The answer says that without asm, the opaque function XORs with `mbedtls_ct_zero`, a volatile global, and it names that global. It doesn't say the value is zero or that it's extern, but the XOR with `mbedtls_ct_zero` makes the zero value clear."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes callers/callees of a call-edge function but never mentions reader/writer causal polarity inversion."
+}

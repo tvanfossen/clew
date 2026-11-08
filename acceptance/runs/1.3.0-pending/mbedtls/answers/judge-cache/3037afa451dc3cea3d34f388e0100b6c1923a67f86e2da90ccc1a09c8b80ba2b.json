@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `programs/ssl/ssl_client2.c:8` | The `ssl_client2` example/test program. ... They compile against mbedtls internals, so a field rename or restructure will break them, but external applications will not be affected.\nVERDICT: HIT\nWHY: The answer identifies example programs (ssl_client2, ssl_server2) that define MBEDTLS_ALLOW_PRIVATE_ACCESS themselves, reaching into internals rather than staying on the public API."
+}

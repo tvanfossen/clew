@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: If `MBEDTLS_ERROR_C` is off, `mbedtls_strerror` writes an empty string.\nVERDICT: MISS\nWHY: The answer only describes the behavior when MBEDTLS_ERROR_C is disabled. It never says the shipped mbedtls_config.h enables it by default."
+}

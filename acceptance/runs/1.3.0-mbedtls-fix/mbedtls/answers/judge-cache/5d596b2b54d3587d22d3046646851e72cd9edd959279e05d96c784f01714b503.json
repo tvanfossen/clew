@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It needs `MBEDTLS_HAVE_ASM`, which `mbedtls_config.h:52` enables by default, plus GNU-compatible `__GNUC__`.\nVERDICT: MISS\nWHY: The answer describes the asm path selection but never says MBEDTLS_CT_ASM is a derived macro rather than a config entry."
+}

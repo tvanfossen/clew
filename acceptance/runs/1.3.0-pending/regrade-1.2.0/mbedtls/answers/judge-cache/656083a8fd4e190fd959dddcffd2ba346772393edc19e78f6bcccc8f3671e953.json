@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Unless `MBEDTLS_ALLOW_PRIVATE_ACCESS` is defined, it expands to `private_##member`, so the field is renamed in the public header.\" and \"`MBEDTLS_PRIVATE(x)` becomes plain `x`\" (opt-out table), \"Defining `MBEDTLS_ALLOW_PRIVATE_ACCESS` ... switches the guard off\"\nVERDICT: HIT\nWHY: The answer states the default rename to private_<member> and that defining the opt-out macro makes it expand to the plain member name."
+}

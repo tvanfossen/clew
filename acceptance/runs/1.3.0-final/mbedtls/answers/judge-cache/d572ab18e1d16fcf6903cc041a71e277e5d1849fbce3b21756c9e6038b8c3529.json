@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "ITEMS:\ninclude/mbedtls/platform.h\nlibrary/platform.c\ncheck_config.h\nmbedtls_config.h\nscripts/config.py\ntests/scripts/components-configuration-crypto.sh\ncomponents-configuration-platform.sh\nlibrary/memory_buffer_alloc.c\nEND"
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Every query reply gets a `staleness` block when any axis fires, and it is absent when the index is current (`tools_query.py:1841`).\nVERDICT: HIT\nWHY: The answer states the staleness block rides on every query reply and is absent (empty) when the index is current."
+}

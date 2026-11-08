@@ -1,0 +1,42 @@
+{
+  "stem": "Q1_claude-haiku-5-5_index_r3",
+  "arm": "index",
+  "model": "claude-haiku-5-5",
+  "ok": true,
+  "skills": "",
+  "answered_by": "claude-haiku-5-5",
+  "seconds": 26.00397935207002,
+  "input_tokens": 14,
+  "output_tokens": 4870,
+  "cache_read_tokens": 369187,
+  "cache_creation_tokens": 33003,
+  "cost_usd": 0.01272887,
+  "result_bytes": 4007,
+  "turns": 19,
+  "tool_calls": 18,
+  "non_index_tool_calls": 4,
+  "denied_tool_calls": 0,
+  "error": "",
+  "argv": [
+    "claude",
+    "-p",
+    "Answer the question below about the repository at /home/tvanfossen/Projects/clew/acceptance/runs/1.2.0-pending/self/repo.\n\nYou have the usual shell and file tools \u2014 Read, Grep, Glob and Bash \u2014 and additionally a queryable index of this repository: mcp__clew__dossier for everything known about a named symbol, mcp__clew__search to find a name or enumerate a layer, mcp__clew__index for status. USE THE INDEX FIRST for any question about a symbol, its callers or callees, what it touches, or where something lives; fall back to reading source only where the index cannot answer.\n\nWork however you judge best. There is no required format, no word limit and no\nstructure you are expected to follow \u2014 write the answer as prose, at whatever\nlength the question deserves.\n\nQUESTION:\nWhen clew indexes a repository, what decides which files end up in the index? Walk\nthrough how that decision is made and what happens when nothing has been declared.\n",
+    "--model",
+    "claude-haiku-5-5",
+    "--output-format",
+    "json",
+    "--allowedTools",
+    "Read,Grep,Glob,Bash,mcp__clew__dossier,mcp__clew__search,mcp__clew__index",
+    "--strict-mcp-config",
+    "--mcp-config",
+    "/home/tvanfossen/Projects/clew/acceptance/runs/1.2.0-pending/self/mcp.json"
+  ],
+  "cell": {
+    "target": "tvanfossen/clew",
+    "question_id": "Q1",
+    "arm": "index",
+    "model": "claude-haiku-5-5",
+    "replicate": 3,
+    "order": 33
+  }
+}

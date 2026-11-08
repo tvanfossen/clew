@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `build_or_refresh` refuses before the lock when the process predates its source, and `force` cannot override that.\nVERDICT: HIT\nWHY: The answer says the write path refuses (not warns), does so before the lock/build, and that `force` cannot override it."
+}

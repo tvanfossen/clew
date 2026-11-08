@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `bad keys / no usable roots \u2192 _Rejected \u2192 whole-repo, with the reason logged` and \"`scope: indexing the WHOLE repository \u2014 no index_scope is declared\u2026` is logged at WARNING.\"\nVERDICT: HIT\nWHY: The answer states the whole-repo fallback is logged with a reason (invalid declaration, or none declared), so the scope used is never silently guessed."
+}

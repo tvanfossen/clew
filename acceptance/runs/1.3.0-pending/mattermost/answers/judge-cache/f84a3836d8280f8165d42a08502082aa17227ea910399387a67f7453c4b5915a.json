@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The interface at lines 23\u201338 merges the handler mix-in types so TypeScript sees all the methods.\nVERDICT: HIT\nWHY: The answer states that an interface merges the handler mix-in types into the class so TypeScript sees all the mixed-in methods, which is the item's substance."
+}

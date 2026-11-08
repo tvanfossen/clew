@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: derive_scope(repo_root)\n \u251c\u2500 load .clew.yaml (no file / no index_scope \u2192 None)\nWHY: The answer names derive_scope as the entry point of the scope decision flow and places it in `clew/scope.py`, with the surrounding helpers cited as `scope.py`.\n\nVERDICT: HIT"
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The name comes from the first argument of `function_command`, since the grammar has no `name` field.\nVERDICT: HIT\nWHY: The answer states that CMake's definition name is taken from the first argument of the command node, with no named `name` field in the grammar."
+}

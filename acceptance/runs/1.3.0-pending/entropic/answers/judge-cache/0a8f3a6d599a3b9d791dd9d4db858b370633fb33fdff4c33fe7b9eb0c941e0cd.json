@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"A frontend callback approves every call that reaches it, because `check_approval` ignores the callback's result. The deny list is the only hard block.\"\nVERDICT: HIT\nWHY: The answer says the callback approves every call and the deny list is the only hard block. That means a tool matching neither list still runs. The answer also notes that a call is denied when no callback is wired and `auto_approve` is off, so this is a lenient HIT."
+}

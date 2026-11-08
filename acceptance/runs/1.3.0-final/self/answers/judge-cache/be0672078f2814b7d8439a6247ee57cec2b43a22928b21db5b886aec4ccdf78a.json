@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never mentions a shared collapse function, or that the flat neighbour lists and the traversal chain use the same provenance logic for an edge."
+}

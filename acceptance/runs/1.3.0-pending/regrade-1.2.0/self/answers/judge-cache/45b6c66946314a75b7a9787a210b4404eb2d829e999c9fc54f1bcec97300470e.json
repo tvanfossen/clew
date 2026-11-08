@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Known ecosystem signatures (UDM, ingot) | 4, ecosystem | Accumulates | Same combination rule as tier 3.\"\nVERDICT: MISS\nWHY: The answer says tiers 3 and 4 combine the same way, but it never says the distinction between them is deliberately inert or that the load-bearing line is fact-versus-guess."
+}

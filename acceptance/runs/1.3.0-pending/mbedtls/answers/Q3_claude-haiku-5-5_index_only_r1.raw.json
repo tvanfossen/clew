@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 56838,
+  "stop_reason": "end_turn",
+  "session_id": "aee3733c-0130-45eb-853c-de2dec573ec5",
+  "total_cost_usd": 0.020304640000000002,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 61191,
+    "cache_read_input_tokens": 172514,
+    "output_tokens": 12681,
+    "output_tokens_details": {
+      "thinking_tokens": 9925
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 61191,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 11020,
+        "cache_read_input_tokens": 72185,
+        "cache_creation_input_tokens": 7574,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 7574
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 8,
+      "outputTokens": 12681,
+      "cacheReadInputTokens": 172514,
+      "cacheCreationInputTokens": 61191,
+      "webSearchRequests": 0,
+      "costUSD": 0.020304640000000002,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 9925,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 61191,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 15,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** library code never calls `calloc` or `free` directly. It calls `mbedtls_calloc(n, size)` and `mbedtls_free(p)`, and what those names resolve to depends on the build configuration.\n\n```\nlibrary code: mbedtls_calloc(n, sz)\n  \u2502\n  \u251c\u2500 MBEDTLS_PLATFORM_MEMORY off (default)\n  \u2502     \u2514\u2500 macro \u2192 calloc                                  platform.h:167\n  \u2502\n  \u251c\u2500 MBEDTLS_PLATFORM_MEMORY on, no CALLOC_MACRO\n  \u2502     \u2514\u2500 mbedtls_calloc() in platform.c:47\n  \u2502          \u2514\u2500 (*mbedtls_calloc_func)(n, sz)              static ptr, platform.c:44\n  \u2502             initial value MBEDTLS_PLATFORM_STD_CALLOC (= calloc)\n  \u2502\n  \u2514\u2500 MBEDTLS_PLATFORM_MEMORY + CALLOC_MACRO + FREE_MACRO\n        \u2514\u2500 macro \u2192 your function, direct, no runtime hook  platform.h:144\n```\n\n`mbedtls_free` follows the same pattern through `mbedtls_free_func`. This is my reading of the gate metadata the index holds, not the preprocessor text, so confirm the exact `#if` arms in `platform.h` around lines 130\u2013170 before relying on them.\n\n**How a project substitutes its allocator**\n\n1. **Compile-time macros.** Define `MBEDTLS_PLATFORM_MEMORY`, `MBEDTLS_PLATFORM_CALLOC_MACRO` and `MBEDTLS_PLATFORM_FREE_MACRO` in the project's config. The index has no definition site for the two macros, so the project supplies them. Calls then expand straight to the project's functions with no runtime indirection.\n2. **Compile-time, std-name override.** Keep `MBEDTLS_PLATFORM_MEMORY` and define `MBEDTLS_PLATFORM_STD_CALLOC` / `_STD_FREE` to the project's functions. The repo's test config does this in `tests/configs/user-config-malloc-0-null.h`: `custom_calloc` (lines 12\u201318) returns NULL for zero sizes and otherwise wraps `calloc`.\n3. **Runtime.** Call `mbedtls_platform_set_calloc_free(calloc_fn, free_fn)` (`platform.c:57-63`). It sets both pointers and returns 0. The index places it under the `MBEDTLS_PLATFORM_MEMORY` gate, so it exists only in pointer mode. The calloc and free pointers are set together, so pass a matching pair.\n\n**What the library itself does with the facility**\n\n- **Everything routes through the two names.** The callers list for `mbedtls_calloc` covers cipher context alloc (`cipher_wrap.c`), `mbedtls_md_setup` (`md.c`, via the `ALLOC` macro), bignum grow/shrink, `resize_buffer` and `ssl_setup` in `ssl_tls.c`, x509 and PKCS#7 parsing, PSA slot and key allocation, and LMS. Frees go through `mbedtls_free`, including `mbedtls_zeroize_and_free` in `common.h`.\n- **It uses the facility to install its own allocator.** `mbedtls_memory_buffer_alloc_init` (`memory_buffer_alloc.c:566-600`) takes a caller-supplied buffer, sets up an in-buffer heap that never calls `calloc`/`free`, and registers itself with `mbedtls_platform_set_calloc_free`. With `MBEDTLS_THREADING_C` it registers `buffer_alloc_calloc_mutexed` (lines 541-552), which takes the heap mutex around the allocation. The selftest `main` calls it.\n- **Two things I noticed in that init.** If `len` is too small, it returns early after the pointers are already installed, with the heap left unset, and it has no error return. The index does not show what allocations then do.\n- **A stub default.** `platform_calloc_uninit` (`platform.c:25-30`) always returns NULL, and the index shows it as the `MBEDTLS_PLATFORM_STD_CALLOC` expansion at `platform.c:32`. My inference from that gate: a build with no std allocator has every allocation failing until the project calls `set_calloc_free`. The index does not state this directly.",
+  "ttft_ms": 1180,
+  "type": "result",
+  "duration_ms": 57942,
+  "uuid": "a54dfef1-add5-46de-be10-4c93c6e03208",
+  "ttft_stream_ms": 639,
+  "time_to_request_ms": 103,
+  "first_content_frame_ms": 639,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

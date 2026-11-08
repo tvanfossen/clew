@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says grammar-less installs lose shell/CMake symbols and suggests the not-indexed report may fail to name them. It never concludes that the install degrades through a router capability gate with those types reported as not indexed."
+}

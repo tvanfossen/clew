@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: operator.handleReactions({ prepareRecordsOnly: false, skipSync: true, postsReactions: [...] }) ... prepareRecords({createRaws, transformer: transformReactionRecord, tableName: REACTION}) ... batchRecords(batchRecords, 'handleReactions')\nVERDICT: HIT\nWHY: The answer states the add event calls the operator's handleReactions, which prepares Reaction records via prepareRecords and writes them with batchRecords."
+}

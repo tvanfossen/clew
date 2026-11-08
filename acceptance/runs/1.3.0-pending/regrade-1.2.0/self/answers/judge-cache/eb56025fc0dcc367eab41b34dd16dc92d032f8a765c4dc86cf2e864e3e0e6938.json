@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`derive_scope` itself falls through to the whole repository when a declaration is rejected, with the rejection in the reason.\"\nVERDICT: HIT\nWHY: The answer puts the declared `index_scope` ahead of the default. It says an absent declaration gives the whole repository, and that a rejected declaration also falls through to the whole repository in `derive_scope`. It hedges that the CLI may refuse instead."
+}

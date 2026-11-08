@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: launders a value through an empty `asm volatile` or an XOR with a volatile zero, so the compiler cannot constant-fold or prove the condition. ... Otherwise the code uses the C fallback: `mbedtls_ct_zero` as a volatile zero, with no asm barrier\n\nVERDICT: HIT\nWHY: The answer says `mbedtls_ct_compiler_opaque()` falls back to XOR with a volatile zero when asm is unavailable, and it names `mbedtls_ct_zero` as that volatile zero."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes opted-out code seeing plain names and library/sample code vs. non-opted-out, but never states that an ordinary consumer of the public headers sees the renamed `private_` members as a contrast with MBEDTLS_ALLOW_PRIVATE_ACCESS code; the per-consumer views are not framed as the point of the two branches."
+}

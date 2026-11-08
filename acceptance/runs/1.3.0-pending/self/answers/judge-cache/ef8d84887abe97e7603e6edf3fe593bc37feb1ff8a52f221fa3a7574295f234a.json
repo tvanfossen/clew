@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer lists per-row `source` and `confidence` fields and warns about name collisions. It never says that callers are deduplicated to one row per neighbour, with the layer variants collapsed to the strongest evidence."
+}

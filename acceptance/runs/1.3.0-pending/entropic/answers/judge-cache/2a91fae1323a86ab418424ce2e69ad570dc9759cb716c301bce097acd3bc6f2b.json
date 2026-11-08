@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names these directories under `src/` as containing code that calls into llama.cpp:\n\n- `src/inference` is the main one. Files there include `llama_cpp_backend`, `llama_cpp_sampler.cpp`, `llama_cpp_tokenizer.cpp`, `grammar_registry.cpp`, `orchestrator.cpp`, `adapter_manager.cpp`, `speculative_compat.cpp` and `tool_call_markers.h`.\n- `src/facade` is the other one. `src/facade/entropic.cpp` includes `llama_cpp_backend.h` and reaches `llama_model_ptr()` and `llama_context_ptr()` for LoRA operations.\n\nThe answer also lists `src/core` and `src/config` as having no llama includes, so they don't count.\n\nITEMS:\nsrc/inference\nsrc/facade\nEND"
+}

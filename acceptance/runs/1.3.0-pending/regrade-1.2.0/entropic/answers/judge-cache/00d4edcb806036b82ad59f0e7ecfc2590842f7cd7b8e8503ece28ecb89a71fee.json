@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"If neither holds and `callbacks_.on_tool_call` is set, the call is approved anyway. `on_tool_call` returns `void` (`engine_types.h:370`), so the host cannot refuse here.\"\nVERDICT: HIT\nWHY: The answer states the callback returns void, so it cannot refuse, and that approval succeeds regardless once the callback is set."
+}

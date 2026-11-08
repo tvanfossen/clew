@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Interrupt observer | `ResponseGenerator::dispatch_batch_generate` | Copies the engine's `interrupt_flag_` into the C-ABI cancel int during a batch call.\"\nVERDICT: HIT\nWHY: The answer says an observer thread copies the engine's atomic interrupt flag into the C-ABI cancel int, which is the atomic-to-plain-int bridge at the C boundary. It does not spell out the \"because\", so this is a borderline HIT."
+}

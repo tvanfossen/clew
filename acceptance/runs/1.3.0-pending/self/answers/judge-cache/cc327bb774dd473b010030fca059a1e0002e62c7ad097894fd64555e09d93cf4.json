@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "Paths named in the answer that take part in stating, discovering, combining or recording a build option:\n\nITEMS:\n<repo>/.clew.yaml\nclew/tiers.py\ncli.py\ndeclaration.py\nbuildoptions.py\nscope.py\ntoolchain.toml\nsuppress.toml\nEND"
+}

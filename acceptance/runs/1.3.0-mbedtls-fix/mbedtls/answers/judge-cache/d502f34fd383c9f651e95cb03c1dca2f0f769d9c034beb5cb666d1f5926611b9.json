@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The facility is used in about 25 library files, but several sensitive paths use separate mechanisms.\nVERDICT: HIT\nWHY: The answer states the facility is used in about 25 library files and lists many modules consuming it, conveying broad (~20+) consumption rather than confinement."
+}

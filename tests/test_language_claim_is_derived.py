@@ -139,3 +139,75 @@ def test_the_two_plugin_manifests_do_not_disagree() -> None:
         assert (lang in plugin["description"]) == (lang in entry["description"]), (
             f"the two manifests disagree about {lang!r}"
         )
+
+
+## The generated clause opens with this, so everything before it in a description is hand-written.
+_CLAUSE_OPENS = "Harvests symbols from"
+
+
+## @brief The hand-written part of a manifest description, without the generated clause.
+## @param desc A full description.
+## @return The text before the generated clause.
+## @version 1
+def _hand_written(desc: str) -> str:
+    """@brief Strip the generated clause.
+    @return Hand-written remainder.
+    @version 1
+    """
+    return desc.split(_CLAUSE_OPENS, 1)[0]
+
+
+## @brief Every manifest description string, labelled.
+## @return (label, description) pairs, including a missing top-level marketplace description.
+## @version 1
+def _manifest_descriptions() -> list[tuple[str, str | None]]:
+    """@brief Collect the manifest descriptions.
+    @return Labelled descriptions.
+    @version 1
+    """
+    plugin = json.loads((REPO / ".claude-plugin/plugin.json").read_text("utf-8"))
+    market = json.loads((REPO / ".claude-plugin/marketplace.json").read_text("utf-8"))
+    return [
+        ("plugin.json", plugin.get("description")),
+        ("marketplace.json (top level)", market.get("description")),
+        ("marketplace.json plugins[0]", market["plugins"][0].get("description")),
+    ]
+
+
+## @brief A manifest names languages only inside its generated clause.
+## @version 1
+def test_manifests_name_languages_only_inside_the_generated_clause() -> None:
+    """LANGUAGES STATED TWICE IN ONE STRING, AND ONE COPY ALREADY STALE. Both manifests opened with
+    a hand-written lead-in — "Index a C, C++, Rust or Python repository" — and ended with the
+    generated clause. The marketplace copy omitted JavaScript and TypeScript while its own clause,
+    one sentence later, named them. The owner's ruling on the GitHub description was that
+    languages are stated in ONE place; this is that ruling made mechanical.
+
+    @brief No language name outside the generated clause.
+    @version 1
+    """
+    import re
+
+    offenders = []
+    for label, desc in _manifest_descriptions():
+        if not desc:
+            continue
+        rest = _hand_written(desc)
+        for lang in (*HARVESTED, *REGISTERED_ONLY):
+            ## Bounded so `C` does not match inside `C++` or `CLEW_HOOK_DISABLE`.
+            if re.search(rf"(?<![A-Za-z0-9+]){re.escape(lang)}(?![A-Za-z0-9+])", rest):
+                offenders.append(f"{label}: '{lang}'")
+    assert not offenders, (
+        f"a language is named outside the generated clause, so it is maintained by hand and will "
+        f"go stale: {offenders}"
+    )
+
+
+## @brief The marketplace catalog carries a top-level description.
+## @version 1
+def test_the_marketplace_has_a_top_level_description() -> None:
+    """@brief The catalog describes itself, not only its plugin.
+    @version 1
+    """
+    desc = dict(_manifest_descriptions())["marketplace.json (top level)"]
+    assert desc and len(desc.split()) >= 5, f"no usable top-level description: {desc!r}"

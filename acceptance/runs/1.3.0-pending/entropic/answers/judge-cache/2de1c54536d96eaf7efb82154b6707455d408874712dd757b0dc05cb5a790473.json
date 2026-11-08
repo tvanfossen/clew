@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Model/context lifecycle, `llama_decode`, mtmd, common chat, `common_sampler_*` ... `llama_sampler_chain`, vocab APIs ... LoRA `llama_set_adapters_lora`, `llama_memory_*`\nVERDICT: MISS\nWHY: The answer lists llama_-prefixed functions it uses, but it never states that the seam is llama.cpp's C API of free functions. It also describes the reach in terms of types and headers, and it cites `common_*` C++ APIs."
+}

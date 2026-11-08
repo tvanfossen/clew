@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Only the exact string `'false'` turns the feature off. `true`, any other string, and `undefined` all turn it on.\nVERDICT: HIT\nWHY: The answer states that a missing (undefined) setting results in archived channels being viewable and only the explicit 'false' disables them."
+}

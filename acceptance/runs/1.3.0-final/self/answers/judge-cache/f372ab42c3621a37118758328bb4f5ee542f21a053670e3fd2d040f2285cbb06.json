@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `CMakeLists.txt` (matched by whole name), `*.cmake` ... `*.sh`, `*.bash`\nVERDICT: HIT\nWHY: The answer names the shell extensions (.sh, .bash) and CMake extension (.cmake), and states CMakeLists.txt is matched by whole name."
+}

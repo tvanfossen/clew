@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `programs/ssl/ssl_client2.c:8` and `ssl_server2.c:8` | The test client and server define it before `ssl_test_lib.h`, so they can read and write plain fields.\nVERDICT: HIT\nWHY: The answer states that example programs (ssl_client2/ssl_server2 under programs/) define MBEDTLS_ALLOW_PRIVATE_ACCESS themselves to reach private fields, which is the item's substance."
+}

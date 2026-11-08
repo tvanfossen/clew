@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The not-indexed report does not name these files. `_not_indexed_scope` (`clew/cli.py:2650-2672`) treats any file with a `path` row as indexed.\nVERDICT: MISS\nWHY: The answer concludes the opposite: the files are silently left unreported, not reported as not indexed, and it names no capability gate in the router. Only the \"degrades without error\" half is present."
+}

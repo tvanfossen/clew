@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Single token, unread corpus holds a match | \"NOT DEFINITIVE\u2026 the name exists\u2026 ask dossier\"\" and \"Single token, no unread-corpus hits, file docs present | \"definitive empty result\u2026 do not retry\"\"\nVERDICT: MISS\nWHY: The answer shows definitive-for-scope and not-definitive cases, but it never states a \"definitive for a reason that is not absence\" grade (for example, definitive because the scope or something else rules out an answer). The \"NOT DEFINITIVE\u2026 name exists\" row says the name exists, so it is a non-definitive result, not a distinct third grade."
+}

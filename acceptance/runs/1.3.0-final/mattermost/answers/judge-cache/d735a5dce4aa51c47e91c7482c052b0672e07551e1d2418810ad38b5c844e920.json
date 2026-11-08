@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Eight files render `NavigationHeader`, and only one of them shows a search field: the Search screen. | `screens/home/search/search.tsx` | **Yes**, `hasSearch={true}`\nVERDICT: HIT\nWHY: The answer identifies `screens/home/search/search.tsx` as the only renderer with `hasSearch={true}`, so the search field is enabled only there."
+}

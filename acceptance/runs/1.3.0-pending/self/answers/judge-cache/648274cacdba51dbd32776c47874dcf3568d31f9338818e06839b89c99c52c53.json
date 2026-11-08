@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: nested git trees INCLUDED, not cut out\nVERDICT: HIT\nWHY: The answer explicitly says the whole-repo scope includes nested git trees rather than excluding them, and that `external.py` tags those rows afterwards."
+}

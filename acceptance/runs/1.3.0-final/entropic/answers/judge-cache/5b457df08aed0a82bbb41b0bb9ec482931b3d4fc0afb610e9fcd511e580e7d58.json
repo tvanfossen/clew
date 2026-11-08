@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The second call only runs once, and it runs with the size the first call reported, so nothing is retried.\nVERDICT: MISS\nWHY: The answer says nothing is retried, but it says a negative second-call result returns `{}` as a failure path, not that it is terminal. It never says the code declines to attempt again after a non-positive result."
+}

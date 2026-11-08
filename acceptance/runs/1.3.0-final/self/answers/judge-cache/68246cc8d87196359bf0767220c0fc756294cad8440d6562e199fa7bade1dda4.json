@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says a Doxyfile's own INPUT is deliberately ignored for scope or explains the subset-vs-whole-tree rationale; it only mentions FILE_PATTERNS being forced."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"the index compares its own build against the current source on three separate axes\" and the table/bullets naming `data`, `schema`, `code` axes\nVERDICT: HIT\nWHY: The answer states staleness is three separate axes and names them: data, schema, code."
+}

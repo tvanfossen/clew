@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Pre-commit runs `gen-bindings --check`, so the file cannot drift from the header.\nVERDICT: HIT\nWHY: The answer states a pre-commit check (`gen-bindings --check`) keeps generated bindings from drifting from the header, and the generator is `scripts/gen_bindings.py`. It never says the check re-runs the generator and diffs, but that is what a `--check` mode on a generator means."
+}

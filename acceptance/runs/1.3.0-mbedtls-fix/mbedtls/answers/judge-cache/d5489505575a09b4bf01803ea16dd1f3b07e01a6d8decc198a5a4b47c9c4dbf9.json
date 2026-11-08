@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says error.c is generated and not to edit it by hand, but it says to add the name and description to the generator's data input (.fmt files), not a /** */-documented #define in the public header. The header-define mechanism is never stated."
+}

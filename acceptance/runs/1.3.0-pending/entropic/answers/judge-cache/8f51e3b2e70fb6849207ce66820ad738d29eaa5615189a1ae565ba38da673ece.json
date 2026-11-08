@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the C API is used from one directory (src/inference/) and lists about three class pairs. It never says the dependency reaches roughly a dozen of entropic's own source files. It argues the opposite, that the dependency is contained."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: For a routed reply, the notices come from the repository that was actually read, never the derived default.\nVERDICT: HIT\nWHY: The answer explicitly states routed replies are annotated for the repository actually read, not the derived default target."
+}

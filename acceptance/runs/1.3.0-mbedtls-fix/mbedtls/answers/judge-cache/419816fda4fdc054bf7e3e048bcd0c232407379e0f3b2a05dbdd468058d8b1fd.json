@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Library code | `library/` | Never spawns threads. All four spawn sites the index found are in `programs/`.\" and \"`threading.c` provides function pointers `mbedtls_mutex_init/free/lock/unlock`, defaulting to the pthread implementations.\"\nVERDICT: HIT\nWHY: The answer says library/ never spawns threads and also that the library's threading layer supplies the mutex abstraction used by callers."
+}

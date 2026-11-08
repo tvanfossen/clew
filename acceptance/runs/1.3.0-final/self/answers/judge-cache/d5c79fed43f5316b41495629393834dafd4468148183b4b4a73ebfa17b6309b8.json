@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: YAML and JSON contribute no symbols at all.\nVERDICT: HIT\nWHY: The answer says YAML/JSON get path rows (registered in the file set) but yield no symbols, while shell and CMake get definitions, so the two groups are treated differently."
+}

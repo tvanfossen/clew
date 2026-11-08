@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `clew/mcp_server/emptiness.py` grades each empty `search` against what the index actually holds\nVERDICT: HIT\nWHY: The answer explicitly names clew/mcp_server/emptiness.py as the place where empty-search results are graded."
+}

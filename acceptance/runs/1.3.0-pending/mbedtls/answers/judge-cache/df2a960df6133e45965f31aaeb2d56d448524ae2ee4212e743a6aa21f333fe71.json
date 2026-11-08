@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Define `MBEDTLS_PLATFORM_MEMORY` plus both `MBEDTLS_PLATFORM_CALLOC_MACRO` and `MBEDTLS_PLATFORM_FREE_MACRO`... does not allow `MBEDTLS_PLATFORM_STD_CALLOC` alongside them.\nVERDICT: MISS\nWHY: The answer distinguishes compile-time macros from the runtime setter, but it never says the two routes are mutually exclusive. The only exclusion it states is between the macro pair and the STD_CALLOC macros."
+}

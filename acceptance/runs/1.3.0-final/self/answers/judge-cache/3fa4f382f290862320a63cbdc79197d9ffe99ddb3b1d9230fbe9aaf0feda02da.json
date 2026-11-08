@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`stale_code_refusal()` (`freshness.py:531`) makes write paths refuse while the code is stale.\" and \"`_data_stale` ... refuses to auto-refresh unless `matches_source` is true. The stated reason is that a server running older code would rebuild with that old pipeline logic and could drop layers while reporting health.\"\nVERDICT: MISS\nWHY: The answer gives the rebuild-with-old-logic rationale but never states that reads stay current because query tools open the database per call, so the read/write asymmetry is absent."
+}

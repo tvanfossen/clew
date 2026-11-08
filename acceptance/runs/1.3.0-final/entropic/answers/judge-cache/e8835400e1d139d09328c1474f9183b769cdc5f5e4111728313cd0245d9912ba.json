@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: This is the standard llama.cpp way to size a buffer before filling it. It is not retry: there is no loop, no backoff, and the second call runs unconditionally on the same input.\nVERDICT: HIT\nWHY: The answer identifies size-then-fill negotiation, explicitly rejects retry, notes no backoff and no loop, and says the second call is the single unconditional follow-up."
+}

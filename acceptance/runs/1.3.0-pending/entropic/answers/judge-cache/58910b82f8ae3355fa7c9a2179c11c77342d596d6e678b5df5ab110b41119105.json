@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer mentions \"the llama C API\" in passing and opaque pointers like `llama_model`, but it never identifies the seam as C-API free functions with an `llama_` prefix as opposed to C++ classes or inheritance."
+}

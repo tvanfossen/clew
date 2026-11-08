@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Deny gate (`ServerManager::execute`, server_manager.cpp:153-168).** This runs after approval and checks the deny list unconditionally. A match returns `Error: Permission denied` and the tool never runs. Because the deny check ignores `auto_approve`, deny wins over both the allow list and auto-approve.\"\nVERDICT: MISS\nWHY: The answer says the deny check in ServerManager::execute is unconditional, but it also describes a separate approval gate in ToolExecutor that can deny (\"With no callback and no match, the call is denied with 'Permission denied'\") and other pre-checks. It never concludes that deny is the only list that blocks execution or that ServerManager consults only is_denied before routing."
+}

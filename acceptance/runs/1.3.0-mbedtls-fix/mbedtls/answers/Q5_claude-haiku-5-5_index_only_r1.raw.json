@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 43366,
+  "stop_reason": "end_turn",
+  "session_id": "8aa0863d-b816-4ba8-ac4b-9e110e1de370",
+  "total_cost_usd": 0.018689390000000004,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 61577,
+    "cache_read_input_tokens": 300179,
+    "output_tokens": 6742,
+    "output_tokens_details": {
+      "thinking_tokens": 2563
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 61577,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3944,
+        "cache_read_input_tokens": 73108,
+        "cache_creation_input_tokens": 7158,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 7158
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 6742,
+      "cacheReadInputTokens": 300179,
+      "cacheCreationInputTokens": 61577,
+      "webSearchRequests": 0,
+      "costUSD": 0.018689390000000004,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2563,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 61577,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 18,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "## Short answer\n\nConstant-time behaviour is not enforced by the compiler or by a checker. It is a coding discipline. The library builds branch-free masks with inline assembly where it can, falls back to a volatile-opaque C version elsewhere, and relies on Valgrind and MemSan test builds to catch secret-dependent branches or memory access afterwards. The facility is used in the crypto and TLS paths that handle secrets, but not uniformly, and some primitives are explicitly not constant-time.\n\n## How it works at the instruction level\n\nAll primitives live in `library/constant_time_impl.h`, with a public memcmp in `include/mbedtls/constant_time.h` and `library/constant_time.c`.\n\n- **Condition type.** `mbedtls_ct_condition_t` is a full-width mask: all ones for true, all zeros for false. Every operator (`mbedtls_ct_uint_lt`, `mbedtls_ct_uint_eq`, `mbedtls_ct_bool_and`, `mbedtls_ct_if`, and so on) is pure arithmetic on that mask, so there is no branch to leak on.\n- **Inline asm on four targets.** When `MBEDTLS_CT_ASM` is defined, `mbedtls_ct_bool`, `mbedtls_ct_uint_lt` and `mbedtls_ct_if` use hand-written `asm volatile` sequences for AArch64, 32-bit ARM (Thumb-2 `s`-suffixed ops), x86-64, and 32-bit x86. The asm is a barrier as well as a computation: the compiler cannot see through it to rewrite it as a branch.\n- **Plain-C fallback.** Everywhere else, `mbedtls_ct_compiler_opaque(x)` returns `x ^ mbedtls_ct_zero`, where `mbedtls_ct_zero` is a `volatile` global set to 0 in `library/constant_time.c`. The compiler cannot prove that value, so it cannot specialise on the input. `mbedtls_ct_bool` then computes `-x | -(x>>1)`, takes the sign bit, and negates it to produce the mask. The code comments say this was checked against recent GCC, Clang and MSVC in May 2023 and was not turned into branches or conditional instructions.\n- **Volatile memcmp.** `mbedtls_ct_memcmp` reads both buffers through `volatile` pointers so the loop cannot exit early on the first difference. It reads 32 bits at a time when `MBEDTLS_EFFICIENT_UNALIGNED_VOLATILE_ACCESS` is set, then ORs the XOR differences together. It is constant-time with respect to the data but not with respect to `n`.\n\n## What happens on a compiler that cannot support it\n\nIt does not fail the build. `MBEDTLS_CT_ASM` is gated on `MBEDTLS_HAVE_ASM` plus `__GNUC__` or `__ARMCC_VERSION`. A compiler that doesn't match, such as MSVC, or a build with assembly turned off, silently takes the C fallback. The only hard `#error` I found is in `mbedtls_ct_memcmp`, and it fires when `int` is narrower than 32 bits.\n\nThe consequence is a weaker guarantee, not a broken build. The fallback depends on the optimiser not finding the mask, and the only evidence for that is a code comment dated May 2023. The index does not show a test that checks the generated code for a particular compiler.\n\n## How far it reaches\n\nCallers are in the bignum core, RSA, ciphers, AEADs, PSA, TLS, and base64. The `mbedtls_ct_` helpers appear in these places:\n\n| Area | Constant-time users (examples from the index) |\n|---|---|\n| Bignum | `mbedtls_mpi_core_lt_ct`, `mbedtls_mpi_core_check_zero_ct`, `mbedtls_mpi_core_montmul`, `mbedtls_mpi_core_gcd_modinv_odd`, `mbedtls_mpi_core_cond_assign`/`cond_swap`, `mbedtls_mpi_core_ct_uint_table_lookup`, `mbedtls_mpi_lt_mpi_ct` |\n| RSA | `mbedtls_rsa_rsaes_pkcs1_v15_decrypt` (unpadding), `mbedtls_rsa_rsaes_oaep_decrypt`, `mbedtls_rsa_rsassa_pkcs1_v15_verify`/`sign` (memcmp) |\n| Ciphers and AEAD | PKCS padding removal in `cipher.c`, `mbedtls_cipher_check_tag`, GCM and ChaCha20-Poly1305 tag checks, CCM tag compare, CMAC multiply |\n| PSA | `psa_mac_verify`, `psa_hash_verify`/`compare`, `psa_cipher_finish`, AEAD verify wrapper |\n| TLS | Finished-message checks, PSK binder and identity matching, cookie check, renegotiation info, encrypted pre-master-secret parsing, `mbedtls_ssl_decrypt_buf` |\n| Other | NIST KW unwrap, base64 encode/decode table lookups |\n\n`p256-m` under `3rdparty/` is self-contained: it has its own constant-time design and a `MUL64_IS_CONSTANT_TIME` switch for platforms with a constant-time 32\u00d732\u219264 multiply.\n\nLimits the repo states itself:\n\n- **`SECURITY.md` caveats.** It says compilers can introduce timing side channels in code meant to be constant-time. It also says the pure-software implementation uses lookup tables that are vulnerable to timing attacks. The index snippet does not show which implementation that refers to, so I would not attribute it to AES without reading the section.\n- **PSA has no equivalent.** `docs/psa-transition.md` says the PSA API has no counterpart to the `mbedtls_ct_` utilities, so PSA callers reach them only through internal code.\n- **Scope of verification.** See below.\n\n## How it is verified\n\nVerification is by test build, not by inspecting output:\n\n- **Valgrind constant-flow** (`component_release_test_valgrind_constant_flow`). Secrets are marked with `TEST_CF_*` annotations. Valgrind's memcheck reports branches or addresses that depend on a marked secret as uninitialised-value use. The component also runs the `test_suite_constant_time` suite on the asm path.\n- **MemSan constant-flow** (`component_test_memsan_constant_flow`). It builds with clang and turns off `MBEDTLS_HAVE_ASM` and AESNI, so it tests the plain-C path.\n- **Coverage is limited.** `skip_suites_without_constant_flow` drops every test suite that has no `TEST_CF_` annotation. A primitive is only checked if its suite is annotated.\n\nI could not resolve the `TEST_CF_SECRET` macro in the index, so I can't say from the index how marking is implemented. That lives in the test framework, which is outside the indexed file types.\n\n## Gaps in this answer\n\n- The index does not show the generated machine code. Whether a given compiler emits a branch is not something I could check.\n- I read the `SECURITY.md` caveats only as search snippets, not in full.\n- I didn't verify the ARM Thumb `#if` branches or the AArch64 asm operands against a real build.",
+  "ttft_ms": 2019,
+  "type": "result",
+  "duration_ms": 44298,
+  "uuid": "15001aab-3788-488b-b56c-0a5a533bc603",
+  "ttft_stream_ms": 1562,
+  "time_to_request_ms": 68,
+  "first_content_frame_ms": 1562,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

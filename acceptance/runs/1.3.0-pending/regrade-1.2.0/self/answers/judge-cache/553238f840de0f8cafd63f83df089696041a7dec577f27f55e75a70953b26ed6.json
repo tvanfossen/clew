@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**`options` argument** (also tier 1). Embedding callers, including the MCP `index` tool, pass one structured `options` mapping to `index(action='refresh')`.\" together with \"**CLI flags** (tier 1, \"explicit\").\"\nVERDICT: HIT\nWHY: The answer places both CLI flags and the structured `options` argument at tier 1, and says embedding callers use `options` where they previously couldn't state tier 1."
+}

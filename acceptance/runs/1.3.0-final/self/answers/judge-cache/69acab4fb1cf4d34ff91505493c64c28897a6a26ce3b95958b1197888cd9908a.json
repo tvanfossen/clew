@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the code reply's \"definitive\" label overstates because it lacks a `scope` block, but it never says the strong wording is earned per call by querying which corpora weren't read, rather than attached to a result shape."
+}

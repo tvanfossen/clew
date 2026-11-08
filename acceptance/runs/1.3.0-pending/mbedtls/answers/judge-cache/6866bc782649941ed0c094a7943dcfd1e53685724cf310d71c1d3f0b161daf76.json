@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"pointers start as platform.c:44-45 stubs: calloc stub returns NULL, free stub does nothing\" and \"Stub behaviour when `MEMORY` is on but nothing was installed: every allocation fails with NULL.\"\nVERDICT: HIT\nWHY: The answer states the default calloc stub returns NULL and the free stub does nothing, so allocation fails instead of falling back to libc."
+}

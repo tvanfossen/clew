@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Otherwise it XORs with `mbedtls_ct_zero`, a `volatile` zero defined in `constant_time.c`.\nVERDICT: HIT\nWHY: The answer says that without asm the opaque function XORs with `mbedtls_ct_zero`, a volatile zero, and names that global. It also says `mbedtls_ct_compiler_opaque()` is the function involved. It doesn't say \"extern\", but the global is identified."
+}

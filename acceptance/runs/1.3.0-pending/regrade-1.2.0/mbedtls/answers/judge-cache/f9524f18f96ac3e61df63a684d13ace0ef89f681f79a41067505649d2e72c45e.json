@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: In the C path it is `x ^ mbedtls_ct_zero`, where `mbedtls_ct_zero` is a `volatile` global set to 0 in `constant_time.c:29`.\nVERDICT: HIT\nWHY: The answer says that in the C path (no asm) the function `mbedtls_ct_compiler_opaque` XORs with `mbedtls_ct_zero`, a volatile global holding 0, and it names that global."
+}

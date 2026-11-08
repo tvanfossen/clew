@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: By default it expands `ctx->MBEDTLS_PRIVATE(state)` to `ctx->private_state`, so the member is renamed.\nVERDICT: HIT\nWHY: The answer states the default rename to private_<member>. It also says that defining MBEDTLS_ALLOW_PRIVATE_ACCESS makes `MBEDTLS_PRIVATE(x)` expand to plain `x`."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Retrying happens only when the user taps \"Try Again.\"\" and \"\"Try Again\" (`post.failed.retry`) calls `retryFailedPost(serverUrl, post)`.\"\nVERDICT: HIT\nWHY: The answer states retry occurs only on the user's \"Try Again\" choice and names `retryFailedPost` as the function called."
+}

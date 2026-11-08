@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Detached async workers can outlive the bridge. The worker captures `this` and the handle. `stop()` joins only the accept and client threads, not the async workers.\"\nVERDICT: HIT\nWHY: The answer marks the async ask worker as the one `.detach()`ed thread, and says it outlives the bridge and is never joined."
+}

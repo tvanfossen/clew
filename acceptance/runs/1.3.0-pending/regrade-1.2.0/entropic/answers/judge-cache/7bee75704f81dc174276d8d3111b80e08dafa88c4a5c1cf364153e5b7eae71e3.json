@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `ExternalBridge::accept_loop` ... `HealthMonitor::monitor_loop` ... `StdioTransport::stderr_reader_loop` ... `SSETransport::sse_reader_loop` ... `iface_generate_with_cancel` (`interface_factory.cpp:246`) starts a poller\nVERDICT: HIT\nWHY: The answer lists thread spawns across the external bridge, health monitor, MCP transports (stdio/SSE), and the inference path (generate/response_generator), showing creation is spread across subsystems."
+}

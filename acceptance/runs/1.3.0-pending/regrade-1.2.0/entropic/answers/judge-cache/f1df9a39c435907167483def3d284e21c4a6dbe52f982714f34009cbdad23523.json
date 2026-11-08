@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Health monitor | `src/mcp/health_monitor.cpp:92` | `stop()` sets `running_` false, notifies the CV, and joins (`:102-111`).\nVERDICT: HIT\nWHY: The answer states stop() sets running_ false (a flag, with \"Flags are std::atomic (`running_`...)\" elsewhere), notifies the condition variable, and joins the thread."
+}

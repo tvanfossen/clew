@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Patterns are strings of the form `server.tool` or `server.tool:argpattern`, matched with `fnmatch` (no `FNM_PATHNAME`, so `*` also crosses `/` and `:`). `pattern_matches` splits at the first `:`: - **No colon** (e.g. `filesystem.*`, `git.commit`): only the tool name is matched, so every call to that tool matches regardless of arguments.\nVERDICT: HIT\nWHY: The answer states fnmatch matching, a split at the first colon into tool and argument parts, and that a colon-free pattern matches on the tool name alone."
+}

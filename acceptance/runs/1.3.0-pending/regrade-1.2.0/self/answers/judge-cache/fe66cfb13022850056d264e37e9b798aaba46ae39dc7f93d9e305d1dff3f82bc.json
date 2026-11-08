@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"They are not equal: they sit in tiers\" with the table listing \"1 `explicit`\", \"2 `declared`\", \"3 `target-fact`\", \"4 `ecosystem`\", \"5 `heuristic`\"\nVERDICT: HIT\nWHY: The answer names five precedence tiers (explicit, declared, target-fact, ecosystem, heuristic) and explains they resolve in order rather than by a single override."
+}

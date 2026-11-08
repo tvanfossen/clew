@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 14743,
+  "stop_reason": "end_turn",
+  "session_id": "176f45d2-ed23-4fec-b103-788af123b98c",
+  "total_cost_usd": 0.00893173,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 29886,
+    "cache_read_input_tokens": 180673,
+    "output_tokens": 2294,
+    "output_tokens_details": {
+      "thinking_tokens": 532
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 29886,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1720,
+        "cache_read_input_tokens": 56611,
+        "cache_creation_input_tokens": 13114,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 13114
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 8,
+      "outputTokens": 2294,
+      "cacheReadInputTokens": 180673,
+      "cacheCreationInputTokens": 29886,
+      "webSearchRequests": 0,
+      "costUSD": 0.00893173,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 532,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 29886,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 5,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** clew measures staleness on three independent axes every time it answers a query, attaches any finding to the reply, and refreshes automatically only when a rebuild would actually fix it. The caller's job is to read the notice and act on the axis it names. I traced this through the index; the call graph is confirmed, but I did not run anything.\n\n**How it knows.** `DocsDbServer.staleness_notices` (`clew/mcp_server/server.py:1548`) calls `db_status(...)` for the database and `notices(status)` in `clew/mcp_server/freshness.py:575`. `notices` combines three checks, each returning a notice or `None`:\n\n| Axis | Check | Meaning |\n|---|---|---|\n| `data` | `_data_notice`: `source_changed_files > 0` in `db_status` | Indexed sources changed since the build. A refresh fixes it. |\n| `schema` | `_schema_notice`: `build_version` vs `CLEW_BUILD_VERSION` | The index and server disagree. The direction matters (see below). |\n| `code` | `_code_notice`: `code_identity()` `matches_source` | The running process loaded clew before the source tree changed. |\n\n`code_identity()` (`freshness.py:221`) reports `matches_source` as False only on positive evidence: two non-empty fingerprints that differ. An unreadable tree counts as current, so an unknown state never produces a warning.\n\n**What it tells the caller.** Staleness rides in the payload. `QueryTools._staleness` (`tools_query.py:1886`) attaches the notices to query replies, sized to the remaining budget. A current index gets no block at all; the notice list is empty, and the tests assert this. For a routed reply, the notices come from the repository that was actually read, never the derived default. Each notice is a `{axis, message}` pair, and the message names the remedy. The data message says to call `index(action='refresh')`. The schema message is direction-dependent:\n- **Index newer than server:** restart the MCP client. A rebuild re-stamps the same newer version, so `stale` cannot clear.\n- **Index older than server:** `index(action='refresh', force=True)`.\n\nThe code message says a rebuild cannot fix it, and that only a client restart loads current code.\n\n**What the caller does.** Two layers act before the caller does anything:\n1. **Query time:** `_auto_refresh` (`server.py:1242`) runs before answering. If the data axis is stale, it calls `_refresh_stale` (`server.py:1294`), which takes the per-repository build lock with a bounded wait, re-checks staleness inside the lock to deduplicate concurrent refreshes, and falls back to answering with the notice intact on any failure. It also builds an absent index in the background.\n2. **Background:** `keep_current` (`server.py:1538`) loops every interval and calls `refresh_touched`, which refreshes this session's indexes off the event loop.\n\n`_data_stale` (`server.py:1209`) gates all of this. It refreshes only when the data axis is stale **and** `matches_source` is true. The schema and code axes are never auto-refreshed, because a build from a stale server process would re-stamp the index with old pipeline logic and could drop layers. The auto-refresh path never attempts that build.\n\nFor the caller (an agent or a human), the rule is: if a reply still carries a `data` notice, the refresh failed or was skipped, and the answer may describe code that no longer exists. Call `index(action='refresh')`. If it carries a `schema` or `code` notice, a rebuild will not clear it; restart the client, or force-refresh only for the older-index schema case.\n\n**Caveats.** Four dossiers (`staleness_notices`, `notices`, `_staleness`, `check_version_staleness`) reported `anchor_mismatch: true`, so the index was built against a slightly different version of those files. Their bodies and the claims above come from the index's recorded text, not a fresh read. I did not verify `db_status`'s measurement of `source_changed_files` itself.",
+  "ttft_ms": 1603,
+  "type": "result",
+  "duration_ms": 16310,
+  "uuid": "7b5bb20c-c959-49ac-90ed-19590ee1f7d0",
+  "ttft_stream_ms": 1256,
+  "time_to_request_ms": 90,
+  "first_content_frame_ms": 1256,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

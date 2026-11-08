@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 16544,
+  "stop_reason": "end_turn",
+  "session_id": "87dd4df9-13fd-4b3a-98d4-07c970cd2c90",
+  "total_cost_usd": 0.00221982,
+  "usage": {
+    "input_tokens": 4,
+    "cache_creation_input_tokens": 1258,
+    "cache_read_input_tokens": 79732,
+    "output_tokens": 2341,
+    "output_tokens_details": {
+      "thinking_tokens": 1213
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 1258,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1985,
+        "cache_read_input_tokens": 39866,
+        "cache_creation_input_tokens": 1258,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1258
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 4,
+      "outputTokens": 2341,
+      "cacheReadInputTokens": 79732,
+      "cacheCreationInputTokens": 1258,
+      "webSearchRequests": 0,
+      "costUSD": 0.00221982,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1213,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 1258,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 3,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The reply separates the two cases mainly through its `note`, `scope` and `token_hits` fields, not through a single flag. I ran two searches against this repo to see the actual shapes.\n\n**What distinguishes \"not here\" from \"not looked\"**\n\n- **Scope is reported.** The symbols reply carries a `scope` block: 426 indexed files, the top-level directories, the indexed extensions (`.c .cpp .h .json .md .py .yaml`), and a `not_indexed` list with counts (`.rs=2`, `.toml=2`, `.sql=1`, no-extension=3, and so on). That list is the direct answer to \"did I look where it lives?\"\n- **Corpus coverage is named.** The symbols note lists what was searched (names, `@brief`, macros, types, enum values, file docs) and what was not (markdown and Kconfig prose, function bodies). It points to the corpus for each gap.\n- **Conjunction is diagnosed.** `token_hits` shows per-token counts, and the note says which token emptied the match. Here both tokens were zero, so the note tells the caller to retry with fewer tokens, not to conclude absence.\n- **Answers come from a named target.** Every reply has `target`, so you can see which repository was queried.\n\n**Confidence each answer deserves**\n\n| Reply | What it licenses |\n|---|---|\n| Symbols, zero rows | Nothing yet. The note calls it \"NOT a definitive negative\" and says to retry in `prose` or `code`. |\n| Code corpus, zero rows | Strong evidence that no function body in the indexed files contains the literal. The reply calls this \"definitive\" and says not to retry. |\n| Either, indexed extensions | Good evidence the thing is absent from those files, within the corpus searched. |\n| Either, a `not_indexed` extension or outside the index | No evidence either way. The thing may simply be in a `.rs`, `.toml` or `.sql` file, a Makefile, a CI config, or another target. |\n\n**Where the reply overstates**\n\nThe code-corpus reply's \"definitive\" label is stronger than its own evidence. It carries no `scope` block, so a caller reading that reply alone cannot tell that `.rs`, `.toml` and `.sql` files were never read. The claim holds only for indexed function bodies. The symbols reply is more honest because it does include `scope`.\n\nTwo things I did not check: whether `staleness` appears on a stale index (the tool docs say it does, and I saw none here), and whether `not_searched` appears on search replies or only on dossier. The tool documentation says it appears on dossier, and I did not see it in either search reply.\n\n**Practical rule:** treat a zero as \"not in the indexed function bodies or symbols of these extensions.\" Before concluding a thing does not exist, check `scope.not_indexed` and search the other corpora. For anything in a non-indexed file type, read the source directly.",
+  "ttft_ms": 2670,
+  "type": "result",
+  "duration_ms": 16703,
+  "uuid": "02a5b3ac-f7d3-41cf-af2a-44bd5e6d16cd",
+  "ttft_stream_ms": 984,
+  "time_to_request_ms": 80,
+  "first_content_frame_ms": 984,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `AppDataOperator` (`app_data_operator/index.ts`) inherits `BaseDataOperator`, so it shares `batchRecords`, though it does not call it itself in that file.\nVERDICT: HIT\nWHY: The answer names AppDataOperator as a BaseDataOperator subclass that shares the base write path (`batchRecords`). It doesn't say the path is for the app-level database, but the core fact is there."
+}

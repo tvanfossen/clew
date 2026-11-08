@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer lists runtime (function pointers) and compile-time (macros) routes but never states that they are mutually exclusive."
+}

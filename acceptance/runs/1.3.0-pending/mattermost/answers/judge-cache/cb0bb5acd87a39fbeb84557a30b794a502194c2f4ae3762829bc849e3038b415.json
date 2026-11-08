@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`getConfigValue` returns `undefined` when no row exists for the key. `archivedChannelsViewable(undefined)` evaluates `undefined !== 'false'`, which is `true`. Archived channels are therefore treated as viewable... The app only switches to the restrictive behaviour when the server explicitly sends the string `'false'`.\"\nVERDICT: HIT\nWHY: The answer states that a missing setting yields viewable archived channels and that only an explicit 'false' disables them."
+}

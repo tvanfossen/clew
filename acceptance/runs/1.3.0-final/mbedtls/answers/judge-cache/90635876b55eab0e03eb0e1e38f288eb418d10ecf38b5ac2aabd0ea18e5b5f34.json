@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The macros take precedence over the runtime setter, and `platform.c` drops its pointer code entirely in that case.\nVERDICT: MISS\nWHY: The answer says the pointer code is dropped on the macro path but never states that `mbedtls_platform_set_calloc_free` is neither declared nor compiled there."
+}

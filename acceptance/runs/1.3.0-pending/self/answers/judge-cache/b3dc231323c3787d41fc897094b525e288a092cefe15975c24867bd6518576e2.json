@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Nested git trees are not excluded. They are indexed, and `external.py` tags their rows so a question about the parent and a vendored library can still be told apart.\"\nVERDICT: HIT\nWHY: The answer explicitly states nested git trees are indexed and tagged rather than excluded."
+}

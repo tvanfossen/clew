@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A repo's own `index_scope:` declaration wins if it has one. Otherwise the scope is the whole repository... absent \u2192 None \u2192 fall through; present but unusable \u2192 _Rejected \u2192 whole-repo, with the reason recorded\n\nVERDICT: HIT\nWHY: The answer says a declared index_scope wins, and that absent, unusable, or no-usable-root cases all fall back to indexing the whole repo."
+}

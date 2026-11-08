@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Writes: the server refuses.** `stale_code_refusal()` runs before any build. If the process predates its source it returns a `REFUSED:` message, and `build_or_refresh` checks it ahead of the build decision. `force=True` does not get past it.\"\nVERDICT: HIT\nWHY: The answer states the write path refuses (not warns), checked ahead of the build decision, and that force=True cannot override it."
+}

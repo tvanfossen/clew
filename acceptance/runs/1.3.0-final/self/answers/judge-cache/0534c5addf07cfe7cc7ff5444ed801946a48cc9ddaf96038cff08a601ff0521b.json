@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`code`: reads are fine but writes are unsafe, so restart the client. A rebuild cannot fix it.\" and \"`data`: ... Call `index(action='refresh')`\"\nVERDICT: HIT\nWHY: The answer says the data axis is cleared by a refresh and the code axis only by a client restart, since a rebuild cannot fix it. It also says each axis reports its own clearing action. It never says outright that this is why one flag would not do, but that follows from what it states."
+}

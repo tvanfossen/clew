@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **One row per endpoint.** Two layers finding the same edge produce one row, reporting the strongest `source` and `confidence`.\nVERDICT: MISS\nWHY: The answer claims the opposite: that duplicates collapse into one row, whereas the item says call_edges stores one row per layer, so the same edge is stored twice."
+}

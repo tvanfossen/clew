@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"with the default configuration, mbedtls takes no mutexes and starts no threads.\"\nVERDICT: MISS\nWHY: The answer says the default build starts no threads, but it never says the pthread example compiles to a stub main under that condition. It lists `ssl_pthread_server.c:277` as a spawn site without noting that it is stubbed in a default build."
+}

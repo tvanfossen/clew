@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `AppDataOperator` inherits `batchRecords` from `BaseDataOperator`. Its `handleGlobal` and `handleInfo` use it against the app database.\nVERDICT: HIT\nWHY: The answer names AppDataOperator as a BaseDataOperator subclass that shares the inherited batchRecords write path for the app database."
+}

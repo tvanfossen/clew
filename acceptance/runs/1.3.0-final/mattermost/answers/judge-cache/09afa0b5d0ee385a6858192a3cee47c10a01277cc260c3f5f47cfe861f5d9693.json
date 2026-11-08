@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `class ServerDataOperator extends mix(ServerDataOperatorBase).with(...)` applies each handler as a mixin, in order (`index.ts:40-54`).\nVERDICT: HIT\nWHY: The answer explicitly states ServerDataOperator is composed via `mix(ServerDataOperatorBase).with(...)` with handlers as mixins rather than declared in the class itself."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Health monitor | `src/mcp/health_monitor.cpp:92` | `watched_mutex_` guards the watch map; `event_mutex_` guards the event queue.\nVERDICT: MISS\nWHY: The answer never describes the monitor's shutdown as an atomic flag exchange plus condition-variable wake, and it only says the monitor is \"joined on close or destruction\" in passing."
+}

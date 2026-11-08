@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Stdio and SSE reader threads | `transport_stdio.cpp:164`, `transport_sse.cpp:107` | Read child stderr and the SSE stream | Each has its own transport lock\n\nVERDICT: HIT\nWHY: The answer names a reader thread per transport, one for stdio reading child stderr and one for SSE reading the event stream."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer covers scope resolution (declaration, whole-repo, excludes) but never says that within the scope a file only gets indexed if something can read it, and it names neither the parse-built front end for types doxygen cannot read nor binary classification dropping files whose extension lies about them."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Allow list:** checked only inside `check_approval`. A match skips the approval callback. Allow does not override deny: a call that is both allowed and denied is approved, then blocked at execute time.\nVERDICT: HIT\nWHY: The answer says the allow list is consulted only inside `check_approval` (in `tool_executor.cpp`, with the deny list in `server_manager.cpp`). It says a match skips the approval step and that allow does not override deny, so it grants no execution."
+}

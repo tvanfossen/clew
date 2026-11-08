@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 22841,
+  "stop_reason": "end_turn",
+  "session_id": "9403d511-385d-471a-bfe2-6bcf9cbe0fdc",
+  "total_cost_usd": 0.01191271,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 37619,
+    "cache_read_input_tokens": 228821,
+    "output_tokens": 4199,
+    "output_tokens_details": {
+      "thinking_tokens": 2145
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 37619,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2450,
+        "cache_read_input_tokens": 47108,
+        "cache_creation_input_tokens": 6509,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 6509
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 4199,
+      "cacheReadInputTokens": 228821,
+      "cacheCreationInputTokens": 37619,
+      "webSearchRequests": 0,
+      "costUSD": 0.01191271,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2145,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 37619,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 12,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**What it does:** `MBEDTLS_PRIVATE(member)` is a rename, not an access control. In `include/mbedtls/private_access.h:15` it expands to `private_##member` by default, so a struct field declared as `MBEDTLS_PRIVATE(nr)` is actually named `private_nr` in the compiled header. Code that writes `ctx->nr` against the public header fails to compile, and code that wants the field has to use the prefixed name. The index confirms the wrapping on the AES context (`mbedtls_aes_context`, `aes.h`), and the file's own documentation calls it a \"Macro wrapper for struct's members.\"\n\n**Why:** Public headers declare full struct layouts, so without the wrapper applications could depend on internal fields. The library's own doc comment (`library/common.h`, MBEDTLS_ALLOW_PRIVATE_ACCESS) says the intent: structs are publicly visible, but their members \"are private and should not be accessed by the user.\" The rename turns accidental use into a compile error, which keeps the internal layout free to change. It is a guardrail against misuse, not a security boundary: anyone can define the opt-out macro or use the prefixed name.\n\n**Who the opt-out is for:** The switch is `MBEDTLS_ALLOW_PRIVATE_ACCESS`. `private_access.h:14-18` gates the two branches on it: if it is undefined, `MBEDTLS_PRIVATE(m)` becomes `private_##m`; if it is defined, it becomes plain `m`. The index finds three places that define it:\n\n| Site | Who it covers | What it means there |\n|---|---|---|\n| `library/common.h:132` | The library's own sources (it's the internal \"utility macros\" header) | Library code reads and writes struct fields directly. Changing a private field means updating library code too. |\n| `programs/ssl/ssl_client2.c:8` | The test/diagnostic client program | Can touch TLS internals, so it breaks if those fields are renamed or restructured. |\n| `programs/ssl/ssl_server2.c:8` | The test/diagnostic server program | Same as the client. |\n\nFor application developers, nothing changes: they get the prefixed names and can't reach fields without defining the macro themselves. The users who are exempt are the library and its bundled test programs, which are coupled to internal layout by design.\n\n**Caveats from the index:**\n- The index doesn't show whether `library/common.h:132` sits inside a further conditional, only that it's a bare `#define`. The `#ifndef` in `private_access.h` is evaluated when that header is first included, so the define only takes effect if `common.h` comes before `private_access.h` in each translation unit. I didn't verify the include order.\n- The index's `MBEDTLS_PRIVATE` \"function\" rows (e.g. `mbedtls_aes_context::MBEDTLS_PRIVATE(nr)`) are artifacts of doxygen recording each wrapped field as a function. Treat them as field declarations, not callable functions.\n- The index's caller data for `MBEDTLS_PRIVATE` is ambiguous across 336 signatures, so I didn't attribute usages to specific struct members.",
+  "ttft_ms": 1386,
+  "type": "result",
+  "duration_ms": 24267,
+  "uuid": "bcfb3f12-f5bf-4978-a6f7-4ef2cf67de47",
+  "ttft_stream_ms": 1110,
+  "time_to_request_ms": 91,
+  "first_content_frame_ms": 1110,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **`--declare FILE`** / `options` argument on `build_index` / MCP | Operator or agent who can't write to the target | Same sections as `.clew.yaml`, applied as \"tier 1\"\nVERDICT: HIT\nWHY: The answer says tier 1 is reached via `--declare` (a CLI flag) and via the `options` argument (a structured argument), for callers who can't write to the target. It also says \"**Tier 1** (flag or `--declare`/`options`)\"."
+}

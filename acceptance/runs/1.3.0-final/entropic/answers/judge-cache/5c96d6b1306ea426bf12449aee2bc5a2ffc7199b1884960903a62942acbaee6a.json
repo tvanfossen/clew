@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The two calls in `LlamaCppTokenizer` are a size-query-then-fill pattern, not retry logic.\" / \"This is deterministic: one probe, one fill. Nothing is retried after a failure.\"\nVERDICT: HIT\nWHY: The answer concludes tokenize's double call is size negotiation, not retry-on-failure, with one probe and one fill (exactly one second call)."
+}

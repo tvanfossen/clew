@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer concludes the opposite: without the grammars, files are still registered as covered and do NOT appear in the not-indexed report, so no graceful degradation via a capability gate."
+}

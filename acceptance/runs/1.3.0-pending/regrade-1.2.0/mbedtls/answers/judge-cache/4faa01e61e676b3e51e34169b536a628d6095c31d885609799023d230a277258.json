@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It then calls `mbedtls_platform_set_calloc_free` with its own `buffer_alloc_calloc` / `buffer_alloc_free`, or the `_mutexed` variants when `MBEDTLS_THREADING_C` is on.\nVERDICT: HIT\nWHY: The answer states that the init function installs the plain pair or the `_mutexed` pair depending on `MBEDTLS_THREADING_C`. It doesn't say outright that the choice is made at compile time, but \"when `MBEDTLS_THREADING_C` is on\" implies it."
+}

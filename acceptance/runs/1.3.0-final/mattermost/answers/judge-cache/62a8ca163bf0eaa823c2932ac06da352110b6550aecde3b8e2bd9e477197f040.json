@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: When `hasSearch` is true, it renders `<NavigationSearch {...searchProps} ... ref={ref} />` (lines 128\u2013136). The ref is forwarded as is\nVERDICT: HIT\nWHY: The answer says NavigationHeader forwards its ref to NavigationSearch only when `hasSearch` is true. It adds that other callers pass a ref but to their scroll view, not to a search field. It never says outright that the ref attaches to nothing when `hasSearch` is false, but the conditional rendering and the forwarding together carry the item's substance."
+}

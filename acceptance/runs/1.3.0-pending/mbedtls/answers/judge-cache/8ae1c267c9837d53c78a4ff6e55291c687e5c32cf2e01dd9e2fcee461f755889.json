@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"With no default configured, the pointers start as `platform_calloc_uninit`, which returns NULL, and `platform_free_uninit`, which does nothing (`platform.c:25-42`). Until you call the setter, every library allocation fails.\"\nVERDICT: HIT\nWHY: The answer states that the uninitialised calloc pointer returns NULL and the uninitialised free does nothing, so allocation fails until the setter is called."
+}

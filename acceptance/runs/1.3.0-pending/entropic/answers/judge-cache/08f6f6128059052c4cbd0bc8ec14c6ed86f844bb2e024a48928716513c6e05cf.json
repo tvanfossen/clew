@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `_loader.py` picks the path: $ENTROPIC_LIB, $ENTROPIC_HOME, ~/.entropic, ldconfig\nVERDICT: MISS\nWHY: It lists the sources in order, but it never says there are two directory layouts tried per root, so the item's specific mechanism is absent."
+}

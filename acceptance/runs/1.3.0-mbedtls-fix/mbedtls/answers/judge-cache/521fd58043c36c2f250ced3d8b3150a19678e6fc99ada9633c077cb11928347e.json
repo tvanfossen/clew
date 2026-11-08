@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes the macro's behavior and names include/mbedtls/private_access.h at the start, but never points to a definition line or the actual `#define` there. It also doesn't show where the macro is defined (it only cites usage sites such as library/common.h:132)."
+}

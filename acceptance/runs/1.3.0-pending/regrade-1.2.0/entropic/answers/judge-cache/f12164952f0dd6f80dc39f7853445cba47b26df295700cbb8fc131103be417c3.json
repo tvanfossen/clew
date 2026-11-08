@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It returns the token count, negated when the buffer is too small. The code flips the sign, allocates a vector of that size, and calls again to fill it.\nVERDICT: HIT\nWHY: The answer states the first call returns a negated required size (\"negative return = required size\") and that the code flips the sign to size the vector for the second call."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_PLATFORM_MEMORY` undefined (`platform.h:163-168`) | plain `calloc` / `free`\nVERDICT: MISS\nWHY: A table row says the macros expand to plain `calloc`/`free` when `MBEDTLS_PLATFORM_MEMORY` is undefined. The answer's headline and call chain say library code always goes through function pointers, so it never concludes that a default build has no indirection."
+}

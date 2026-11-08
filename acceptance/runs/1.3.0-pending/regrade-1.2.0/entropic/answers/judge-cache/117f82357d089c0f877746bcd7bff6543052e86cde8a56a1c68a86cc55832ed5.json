@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Its reach into entropic's source is confined to the `src/inference/llama_cpp_*` files, plus test mocks.\nVERDICT: MISS\nWHY: The answer says the dependency is confined to the inference layer, the opposite of concentrated but not contained, and it names no reaching files outside src/inference."
+}

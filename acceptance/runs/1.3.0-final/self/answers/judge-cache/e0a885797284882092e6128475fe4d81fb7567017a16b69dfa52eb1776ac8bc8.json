@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: CLI flag (`--shared-key-patterns`, ...) or the `options` argument for embedding callers | replaces the stated layer | ... `<repo>/.clew.yaml`, with the same sections and format as the standalone manifests\nVERDICT: MISS\nWHY: The answer mentions the `options` argument and `.clew.yaml` sections but never states that the option names embedding callers use are the same words as the declaration file's section names and the diagnostics' words."
+}

@@ -1,0 +1,12 @@
+The answer for `git_argv` (`clew/gitenv.py:89`) is a set of **caller functions**, not call sites. It has seven rows, each giving a caller's name, file, and an edge class of `call`, all resolved from the parser (`source: ast`). The row for `_detect_git_version` in `clew/guard/main.py` is an example. Nothing in a row gives a line number, the arguments passed, or whether the call runs on every path or only under some condition.
+
+The other fields change how the list should be read:
+
+- **Mixed production and test callers.** `test_the_disarmed_key_list_reaches_the_argv` sits in the same list as `run_git` and `tracked_files`. Counting callers tells you about tests as well as code.
+- **Direct callers only.** `run_git` (`clew/guard/git.py`) is a wrapper. The real set of places that run git is wider than seven, and you only see it by walking the caller chain with `depth` and `direction: back`.
+- **Empty `callees` is not "calls nothing".** It means no outgoing call resolved to an indexed function. The builtins and list operations in its body are not indexed, so the empty list says nothing about them.
+- **Threads and reachability are separate.** The reply also says `git_argv` is reached from the `clew-first-build-` pthread through `_await_first_build`, at medium confidence. That is a spawn edge, not a caller, and it does not show up in the callers list.
+- **`covering_tests` looks wrong.** The only covering test listed is `test_mqtt_dispatch_accepts_an_inline_document_not_only_a_path`, which has nothing to do with git argv. The real checks are in `tests/test_security_surface.py`, which `search` found. Treat the field as a mapping that needs checking, not as evidence of coverage.
+- **What the list cannot prove.** The docstring says every git call site must go through `git_argv`, and `test_every_git_invocation_disarms_the_inspected_trees_config` is meant to enforce that. The caller list does not prove it. Calls made through `getattr`, through indirect argv construction, or from a module the parser missed would not show as callers. The `callers_unresolved: 0` figure only covers edges the parser saw.
+
+So the answer is a resolved set of direct caller functions, with no lines, no conditions, no transitive closure, and test callers mixed in. It is useful for "who calls this", and wrong for "every place the program runs git" or "is this path always taken". Walking back with `depth ≥ 2` and checking the source of each caller gives the more accurate picture.

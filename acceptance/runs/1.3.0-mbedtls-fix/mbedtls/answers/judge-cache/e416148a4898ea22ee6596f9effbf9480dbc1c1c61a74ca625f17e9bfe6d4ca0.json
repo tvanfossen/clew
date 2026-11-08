@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Two SSL test programs. `programs/ssl/ssl_server2.c:8` and `programs/ssl/ssl_client2.c:8` define the opt-out before including `ssl_test_lib.h`. They can therefore read and write internals directly.\nVERDICT: HIT\nWHY: The answer states that example programs (ssl_server2/ssl_client2) define the opt-out themselves, coupling to internals beyond the public API."
+}

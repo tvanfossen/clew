@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `resolved = (tier1 or tier2 or tier5) \u222a tier3 \u222a tier4`\nVERDICT: MISS\nWHY: The answer's table groups routes into tiers numbered 1\u20135 and states the formula, but it doesn't name five distinct precedence tiers. Tier 1 covers three routes, and tiers 4 and 5 share one row. It also doesn't describe the tiers as a layered set with five named levels, so it reads as a different structure."
+}

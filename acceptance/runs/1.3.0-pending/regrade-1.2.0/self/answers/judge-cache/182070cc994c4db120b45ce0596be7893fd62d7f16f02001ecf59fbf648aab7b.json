@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Tier 1, stated for one build** ... **Tier 2, the repo's standing declaration** ... **Tier 3/4, facts the repo already wrote** ... **Tier 5, built-in heuristics**\"\nVERDICT: HIT\nWHY: The answer lays out a five-tier precedence ordering (Tiers 1 through 5, with 3/4 combined in one row) for layered build options, rather than a single override."
+}

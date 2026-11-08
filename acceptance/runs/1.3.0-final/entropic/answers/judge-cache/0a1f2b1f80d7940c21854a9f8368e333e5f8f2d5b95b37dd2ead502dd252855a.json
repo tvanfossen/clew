@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Always Allow/Deny\" choices are persisted to the project YAML by `PermissionPersister`, and `add_permission` adds them at runtime.\nVERDICT: MISS\nWHY: The answer says choices are persisted to \"the project YAML\" by `PermissionPersister`, but it never names config.local.yaml or says persistence appends to that file separately from `add_permission`."
+}

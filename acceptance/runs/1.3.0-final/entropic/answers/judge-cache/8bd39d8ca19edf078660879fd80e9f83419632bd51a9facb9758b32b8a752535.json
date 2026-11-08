@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Each accepted client gets its own thread, which is stored in `client_threads_` under `client_threads_mutex_`. ... `ExternalBridge` per-client `serve_client` threads (`accept_loop` line 945)\nVERDICT: HIT\nWHY: The answer states that accept_loop runs on an accept thread and spawns a separate serve_client thread for each accepted client."
+}

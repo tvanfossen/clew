@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer lists many call-site areas (bignum, RSA, AEAD, TLS, etc.) but never states that the primitives are consumed across roughly twenty modules, and it frames the facility as \"opt-in per call site.\""
+}

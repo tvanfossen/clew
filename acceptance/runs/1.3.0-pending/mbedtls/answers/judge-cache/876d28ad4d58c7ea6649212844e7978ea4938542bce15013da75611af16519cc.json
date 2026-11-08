@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Those pointers start at `MBEDTLS_PLATFORM_STD_CALLOC` / `STD_FREE`, which default to libc (`platform.h:84,87`).\nVERDICT: MISS\nWHY: The answer says the runtime pointers default to libc calloc/free, the opposite of the item's claim that uninitialised pointers fail (calloc returns NULL, free does nothing); the only nearby text is a hedge about NO_STD_FUNCTIONS stubs returning NULL, which doesn't state the mechanism."
+}

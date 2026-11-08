@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The thread also gets a `HandleLogScope` so its logs go to the owning handle's session log.\nVERDICT: MISS\nWHY: The answer mentions a HandleLogScope only for the `run_async_ask` thread. The item says every thread body installs a per-handle logging scope as its first statement, and the answer never says that."
+}

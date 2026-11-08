@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `<repo>/.clew.yaml`, or `--declare` for a repo you don't own | Tier 2\nVERDICT: MISS\nWHY: The answer names `.clew.yaml` as tier 2, but it never says that both entry points (CLI and MCP) discover it from the repo root rather than having it plumbed per section."
+}

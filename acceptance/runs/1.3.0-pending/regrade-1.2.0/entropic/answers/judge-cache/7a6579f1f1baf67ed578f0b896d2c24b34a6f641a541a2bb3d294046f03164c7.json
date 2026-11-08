@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never identifies the seam as llama.cpp's C API with llama_-prefixed free functions. It only mentions `llama.h` includes and forward-declared `llama_*` structs, and it describes a C++ wrapper class (`LlamaCppBackend`)."
+}

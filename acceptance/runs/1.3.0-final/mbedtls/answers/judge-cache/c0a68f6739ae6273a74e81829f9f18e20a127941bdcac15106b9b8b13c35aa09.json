@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_PLATFORM_MEMORY` off (the default, `mbedtls_config.h:208`)\nVERDICT: MISS\nWHY: The answer says the option is off by default and cites the config header line, but it never says it is commented out in the shipped config, and \"off by default\" falls short of that."
+}

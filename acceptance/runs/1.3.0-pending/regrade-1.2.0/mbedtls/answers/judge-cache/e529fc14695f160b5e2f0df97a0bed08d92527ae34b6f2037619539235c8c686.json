@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `#define`d to your functions at compile time. No runtime indirection, and `mbedtls_platform_set_calloc_free` is compiled out.\nVERDICT: HIT\nWHY: The answer says that on the macro path `mbedtls_platform_set_calloc_free` is compiled out, so it doesn't exist there. It doesn't say outright that the function is also not declared, but \"compiled out\" together with \"No runtime indirection\" carries the substance."
+}

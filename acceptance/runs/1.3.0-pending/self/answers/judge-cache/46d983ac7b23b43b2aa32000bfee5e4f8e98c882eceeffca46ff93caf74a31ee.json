@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says an unknown section is refused by name against the allowed set; it only mentions rejected `index_scope` keys, with no reason given about defaults being built while the declaration is reported as honoured."
+}

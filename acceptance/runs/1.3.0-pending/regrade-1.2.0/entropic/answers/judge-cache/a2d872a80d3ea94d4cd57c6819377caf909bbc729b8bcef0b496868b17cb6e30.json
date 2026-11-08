@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `do_count_tokens` | `llama_cpp_backend.cpp:825` | Returns `0` as if it were a real count.\nVERDICT: HIT\nWHY: The answer states that on tokenization failure (empty vector, no error channel) the token-counting function `do_count_tokens` returns 0 as if it were a real count, rather than signalling an error."
+}

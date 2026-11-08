@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A `code`-stale process is refused first, and `force` cannot override that.\nVERDICT: HIT\n\nWHY: The answer states that the write path refuses a code-stale process before the freshness/skip logic and that `force` cannot override it. It also says \"reads are fine but writes are unsafe\" and that \"a build through it is REFUSED\". That covers the refusal being placed ahead of the build decision."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: llama.cpp is a git submodule at `extern/llama.cpp`, pinned to commit `20a04b22` (`.gitmodules`, gitlink in `git ls-files`). It is not a FetchContent dependency like spdlog, ryml, nlohmann/json, or httplib.\nVERDICT: HIT\nWHY: The answer states llama.cpp is a git submodule at extern/llama.cpp and explicitly contrasts it with FetchContent-fetched dependencies."
+}

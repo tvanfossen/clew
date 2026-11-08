@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Single token, no hits in any searched corpus, and no unread corpus holds it... Definitive for the scope.\" and \"Single token, but an unread corpus (for example typedefs or prose) holds matching rows. | 'NOT DEFINITIVE.'\"\nVERDICT: HIT\nWHY: The answer says the definitive wording is given only after checking whether any unsearched corpus holds the name. The same empty single-token result is downgraded to \"NOT DEFINITIVE\" when one does, so the wording is earned per call and not tied to the result's shape."
+}

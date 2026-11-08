@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer lists several areas (bignum, RSA, TLS MAC, base64, NIST KW) that use the helpers but never says the primitives are used across roughly twenty modules, and it frames the reach as limited."
+}

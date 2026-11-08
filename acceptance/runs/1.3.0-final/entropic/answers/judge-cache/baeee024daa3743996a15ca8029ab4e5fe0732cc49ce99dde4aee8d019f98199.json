@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Contained in one module. Direct llama.cpp usage lives in `src/inference/`: `llama_cpp_backend.{h,cpp}`, ... plus `adapter_manager.cpp` (LoRA) and `image_preprocessor.cpp`\nVERDICT: MISS\nWHY: The answer claims the dependency is contained in src/inference and never identifies any reaching files outside it, so it doesn't conclude concentrated-but-not-contained."
+}

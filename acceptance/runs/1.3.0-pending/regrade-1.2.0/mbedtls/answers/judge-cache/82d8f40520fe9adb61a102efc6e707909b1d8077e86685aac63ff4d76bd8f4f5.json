@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"if (ret & 0xFF80) high part present ... mbedtls_high_level_strerr(ret) ... low = ret & ~0xFF80 ... mbedtls_low_level_strerr(ret) ... The two halves are joined with `\\\" : \\\"`.\"\nVERDICT: HIT\nWHY: The answer explains that a code has a high-level module part and a low-level part, and that mbedtls_strerror renders both joined with \" : \" when both are present."
+}

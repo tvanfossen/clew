@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"mbedtls_strerror(ret, buf, buflen)            library/error.c (generated)\"\nVERDICT: HIT\nWHY: The answer names mbedtls_strerror as the entry point of the runtime path and places it in library/error.c."
+}

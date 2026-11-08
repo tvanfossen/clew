@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The reply separates the two cases by describing what the search covered, not by a yes/no flag.\"\nVERDICT: MISS\nWHY: The answer describes `scope` and `not_searched` fields and grades confidence by result shape in a table. It never says the strong wording is earned per call by checking which corpora went unread."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Caller \u2192 engine, buffers the engine will free (hook `modified_json`) | Must come from `entropic_alloc()`, not `malloc`/`new` | `hooks.py` `_alloc_c_string` / trampoline\nVERDICT: HIT\nWHY: The answer states that buffers the engine frees must come from `entropic_alloc`, and it names the Python location (`hooks.py` `_alloc_c_string` / trampoline)."
+}

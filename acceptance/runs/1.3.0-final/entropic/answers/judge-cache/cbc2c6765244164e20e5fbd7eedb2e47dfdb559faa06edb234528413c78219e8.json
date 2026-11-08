@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Confined to `src/inference/` for the actual API calls. Every file that includes `llama.h`, `chat.h`, `sampling.h`, `speculative.h`, or `mtmd.h` is in that directory or the facade. ... `src/facade/entropic.cpp` includes the concrete backend header and downcasts to `LlamaCppBackend`\nVERDICT: MISS\nWHY: The answer says the dependency is mostly in src/inference and leaks upward, but it never gives a count or proportion showing a minority of the reaching files sit outside it. It also calls the dependency \"confined\" there, which cuts against \"not contained\"."
+}

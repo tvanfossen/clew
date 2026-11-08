@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_HAVE_ASM` on, GNU-compatible, ARM/AArch64/x86/x86-64 | defined | yes | Hand-written mask/select asm\nVERDICT: MISS\nWHY: The table shows MBEDTLS_CT_ASM is defined under `MBEDTLS_HAVE_ASM` and compiler conditions. The answer never says it is derived rather than set in mbedtls_config.h."
+}

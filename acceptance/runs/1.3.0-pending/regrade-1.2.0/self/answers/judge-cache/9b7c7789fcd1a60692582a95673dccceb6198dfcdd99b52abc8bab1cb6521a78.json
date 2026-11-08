@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"YAML and JSON never get symbols.\" / \"`.yaml`, `.yml`, `.json` | Yes, always | Never, by design | None\" / \"Registration is unconditional. `synth.claims()` covers `SCRIPT_EXTS` and `DATA_EXTS`, and `register_paths` runs for every scanned file\"\nVERDICT: HIT\nWHY: The answer says YAML and JSON are registered in the file set (path rows) but never get symbols, and it contrasts them with shell and CMake, which do get function rows when their grammars are present."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Every front end therefore asks which languages are compiled in ... The gate prevents that by resolving the route to no grammar.\" and \"The not-indexed report ... stamps at build time which in-scope file types have no rows.\"\nVERDICT: HIT\nWHY: The answer says that an installation lacking the grammars doesn't crash. A capability gate resolves the route to no grammar, and the missing file types are then reported as not indexed."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says to add the #define to the module header and regenerate, but it also says to add a description entry in the generator's data source (step 2) and to add a `case` to the generated switch. It never concludes that the documented #define alone is enough."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Tiers 3 and 4 never get displaced.** A stated tier cannot remove a fact someone else already wrote.\" and the table showing tiers 1\u20132 \"Replaces the stated layer\" vs tiers 3\u20134 \"Accumulates\"\nVERDICT: HIT\nWHY: The answer contrasts stated tiers that replace one another with discovered layers (3\u20134) that accumulate and survive any stated tier."
+}

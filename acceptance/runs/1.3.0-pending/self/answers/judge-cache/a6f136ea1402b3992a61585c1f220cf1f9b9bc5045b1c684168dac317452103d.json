@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Query replies carry a `staleness` block only when something is stale. A current index adds no notice, so the block stays a signal.\nVERDICT: MISS\nWHY: The answer says the block appears only when stale, but never says the annotation rides on every query reply unprompted."
+}

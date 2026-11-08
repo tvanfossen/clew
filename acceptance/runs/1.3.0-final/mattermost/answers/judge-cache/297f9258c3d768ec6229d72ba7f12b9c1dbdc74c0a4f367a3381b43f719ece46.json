@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Sent to the server as `include_deleted_channels`, so search results include archived channels only when viewable.\nVERDICT: HIT\nWHY: The Post search row states the setting is sent to the server as `include_deleted_channels`."
+}

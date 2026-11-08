@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"To make the default safe for multi-threaded use, set `MBEDTLS_THREADING_C` plus either `MBEDTLS_THREADING_PTHREAD` or `MBEDTLS_THREADING_ALT`.\"\nVERDICT: HIT\nWHY: The answer names MBEDTLS_THREADING_C as the gating macro for the mutex code and names MBEDTLS_THREADING_PTHREAD as the option that goes with it."
+}

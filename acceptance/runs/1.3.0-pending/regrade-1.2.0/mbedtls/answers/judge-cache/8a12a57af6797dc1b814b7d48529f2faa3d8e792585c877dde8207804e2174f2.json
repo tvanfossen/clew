@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the library spawns no threads but never concludes that a default build creates no threads at all or that the pthread example compiles to a stub main. It says the pthread handler is \"gated on `PTHREAD`\" and only describes the example as running one thread per connection."
+}

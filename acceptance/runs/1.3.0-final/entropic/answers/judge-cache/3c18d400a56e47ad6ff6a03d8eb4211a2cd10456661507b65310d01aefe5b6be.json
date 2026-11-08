@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It checks `$ENTROPIC_LIB`, then `$ENTROPIC_HOME` (nested and flat layouts), then `~/.entropic`, then `ctypes.util.find_library`.\nVERDICT: MISS\nWHY: The answer gives the order (env overrides, then ~/.entropic, then system library lookup) but says \"nested and flat layouts\" only for `$ENTROPIC_HOME`, not for each root. It doesn't state that two layouts are tried per root."
+}

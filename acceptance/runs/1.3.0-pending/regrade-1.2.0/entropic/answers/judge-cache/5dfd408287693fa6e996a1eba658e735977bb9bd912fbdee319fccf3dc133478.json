@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer doesn't list individual subdirectories under `src/` that contain llama.cpp-calling code. It names these:\n\n- `src/inference` is named in the build-link line (\"`src/inference/CMakeLists.txt` builds the inference OBJECT library. It links `llama`...\") and in the table (\"Only `src/inference` and `src/facade`\").\n- `src/facade` is named in the same two places.\n\nIt names `config`, `core`, `mcp`, `types` and `storage` only as directories that do not depend on llama at build time.\n\nITEMS:\nsrc/inference\nsrc/facade\nEND"
+}

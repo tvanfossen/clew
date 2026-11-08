@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Target facts and ecosystem entries accumulate under every stated tier, so no flag or declaration removes them.\" and \"you can correct our guesses; you cannot un-discover a fact.\"\nVERDICT: HIT\nWHY: The answer states that stated tiers replace one another (explicit replaces declared, lists not merged) while discovered facts accumulate under every tier and cannot be removed."
+}

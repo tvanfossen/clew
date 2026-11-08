@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `tokenize_text` | empty `vector` | Public API; callers can't tell failure from an empty string. ... `do_count_tokens` | `0` | Indistinguishable from empty input.\nVERDICT: HIT\nWHY: The answer says failure is indistinguishable from empty input and that callers continue as if the prompt were empty, with no error surfaced (the \"no caller checks\" part is implied by that)."
+}

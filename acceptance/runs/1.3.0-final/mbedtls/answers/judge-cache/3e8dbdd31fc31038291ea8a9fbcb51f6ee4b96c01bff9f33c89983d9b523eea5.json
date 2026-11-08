@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer mentions MBEDTLS_ERROR_STRERROR_DUMMY only as a gating macro and guesses at a second definition. It never says the dummy keeps mbedtls_strerror linkable while the table is compiled out, and it never says the switch is on by default."
+}

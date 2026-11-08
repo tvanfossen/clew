@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Transitive through `llama_cpp_backend.h` | `interface_factory.cpp`, `secondary_model_loader.cpp`, `inference_c_api.cpp`, `src/facade/entropic.cpp`\nVERDICT: MISS\nWHY: The answer concludes the dependency is \"contained\" (the opposite of the item), and the only files outside src/inference it names (`src/facade/entropic.cpp`, tests) are described as reaching llama only transitively."
+}

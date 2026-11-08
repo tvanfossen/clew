@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A repo's own `index_scope:` declaration wins if it is usable; otherwise the whole repository is the scope\nVERDICT: HIT\nWHY: The answer says a declared `index_scope` is preferred, and its flow diagram shows every rejection case (absent, malformed, unknown key, no existing roots) falling through to the whole-repo tier."
+}

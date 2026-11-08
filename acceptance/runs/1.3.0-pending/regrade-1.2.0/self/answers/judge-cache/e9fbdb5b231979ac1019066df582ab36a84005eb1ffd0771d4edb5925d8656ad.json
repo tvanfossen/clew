@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"On an install without them, every one of these files is registered and findable by name, and the index reports that they were not read.\" and \"The miss report is measured at build time. It records how many in-scope files of each unread type exist\"\nVERDICT: HIT\nWHY: The answer says that an install without the grammars degrades gracefully (files registered, no crash, the router falls back) and that those file types are reported as not indexed. It doesn't name the capability gate explicitly, but it says `clew/substrate.py` asks what is compiled in and that the router resolves to no grammar."
+}

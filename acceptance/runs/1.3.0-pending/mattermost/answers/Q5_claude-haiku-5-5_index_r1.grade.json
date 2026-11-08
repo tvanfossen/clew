@@ -1,0 +1,93 @@
+{
+  "cell": "Q5_claude-haiku-5-5_index_r1",
+  "arm": "index",
+  "rubric_version": "1.0.0",
+  "rubric_digest": "32294778c2753056",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.8125,
+  "unmarked_pct": 0.0,
+  "split_decisions": 1,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "explains that ServerDataOperator is composed with a mixin helper \u2014 `mix(ServerDataOperatorBase).with(...)` \u2014 rather than declaring the handlers itself",
+      "kind": "retrieval",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: It is a class built with the repo's `mix(...).with(...)` helper (`app/utils/mix.ts`). Each mixin is a function that takes a superclass and returns a subclass... The base is `ServerDataOperatorBase` | WHY: The answer states ServerDataOperator is built via `mix(...).with(...)` over `ServerDataOperatorBase`, with the handlers supplied by mixins in separate files. || QUOTE: It is a class built with the repo's `mix(...).with(...)` helper (`app/utils/mix.ts`). Each mixin is a function that takes a superclass and returns a subclass, and `with` applies them in order. The base is `ServerDataOperatorBase` | WHY: The answer says ServerDataOperator is built with `mix(...).with(...)` over `ServerDataOperatorBase`, and that the handlers live in separate mixin files rather than in the class itself.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "explains that a same-named interface extends each handler's `...Mix` type, so the class is typed with every mixed-in method",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: The same file declares a merged `interface ServerDataOperator extends ...Mix` so TypeScript sees the methods that the mixins add at runtime. | WHY: The answer states that a same-named interface extends the `...Mix` types so the class is typed with the mixed-in methods. || QUOTE: The same file declares a merged `interface ServerDataOperator extends ...Mix` so TypeScript sees the methods that the mixins add at runtime. | WHY: The answer states that a same-named interface extends the `...Mix` types so the class is typed with the mixin methods.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "every file outside the operator's own handlers directory that defines one of its handlers \u2014 app/products/agents/database/operators/handlers/index.ts",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every file outside the operator's own handlers directory that defines one of its handlers \u2014 app/products/boards/database/operators/handlers/index.ts",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every file outside the operator's own handlers directory that defines one of its handlers \u2014 app/products/playbooks/database/operators/handlers/index.ts",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every file outside the operator's own handlers directory that defines one of its handlers \u2014 precision",
+      "kind": "set_precision",
+      "weight": 2,
+      "hit": true,
+      "detail": "clean",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that every handler's writes go through `batchRecords` inherited from `BaseDataOperator`, because each mixin is constrained to extend ServerDataOperatorBase",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: Every mixin handler above, including the agents, boards, and playbooks handlers, reaches the write through the inherited `batchRecords`. | WHY: The answer says handlers reach `batchRecords` by inheritance, but it never says that each mixin is constrained to extend `ServerDataOperatorBase`, which is the reason the item requires. || QUOTE: Every mixin handler above, including the agents, boards, and playbooks handlers, reaches the write through the inherited `batchRecords`. | WHY: The answer says handlers reach the write through inherited `batchRecords` but never states that each mixin is constrained to extend ServerDataOperatorBase, which is the reason the item requires.",
+      "agreement": 0.6666666666666666,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "names AppDataOperator as the other subclass of BaseDataOperator, sharing the same write path for the app-level database",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: `AppDataOperator` (`app/database/operator/app_data_operator/index.ts`) extends `BaseDataOperator`, so the app-level database uses the same `batchRecords` and `handleRecords` code. | WHY: The answer names AppDataOperator as a BaseDataOperator subclass for the app-level database sharing the same write path. || QUOTE: `AppDataOperator` (`app/database/operator/app_data_operator/index.ts`) extends `BaseDataOperator`, so the app-level database uses the same `batchRecords` and `handleRecords` code. | WHY: The answer names AppDataOperator as extending BaseDataOperator and says the app-level database shares the same write path.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    }
+  ]
+}

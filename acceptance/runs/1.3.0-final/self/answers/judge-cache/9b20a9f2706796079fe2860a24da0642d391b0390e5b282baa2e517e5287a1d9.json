@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `.clew.yaml` at the repo root, found from `--repo-root` | Replaces the stated layer\nVERDICT: MISS\nWHY: The answer names `.clew.yaml` as the tier-2 declared source at the repo root, but it never says that both entry points (CLI and embedding) discover it rather than having it plumbed per section."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: With inline asm it is an empty `asm volatile` with `\"+r\"` on `x`.\nVERDICT: HIT\nWHY: The answer states the asm path is an empty `asm volatile` with a `\"+r\"` in/out operand on x, used as a compiler barrier hiding the value from the optimiser."
+}

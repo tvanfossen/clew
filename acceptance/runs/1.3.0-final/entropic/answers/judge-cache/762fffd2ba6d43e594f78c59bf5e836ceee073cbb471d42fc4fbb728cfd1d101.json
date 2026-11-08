@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `scripts/gen_bindings.py` (run via the `gen_bindings` task in `tasks.py`) parses the header and generates the ctypes declarations, so the Python side tracks the header rather than being hand-maintained.\nVERDICT: HIT\nWHY: The answer states the bindings are generated from the C header by scripts/gen_bindings.py rather than hand-maintained."
+}

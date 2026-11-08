@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: | Stdio stderr reader | `transport_stdio.cpp:164` | Drains child stderr | not checked | ... | SSE reader | `transport_sse.cpp:107` | Reads the SSE stream | `pending_mutex_` ...\nVERDICT: HIT\nWHY: The answer lists a stdio stderr-draining reader thread and an SSE stream reader thread, each in its own transport file."
+}

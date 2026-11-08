@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Without it, the diff would treat every other stored reaction on the post as stale, because the payload carries only the one new reaction. The handler would destroy them.\"\nVERDICT: HIT\nWHY: The answer states that skipSync prevents the single incoming reaction from being treated as the full set, which would delete all other reactions on the post."
+}

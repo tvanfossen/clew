@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never states that a tool matching neither list is not denied and runs. It describes allow-skips-prompt and deny-hard-stop, plus a caveat that the callback approves everything. It never gives the default-allow conclusion for tools in neither list."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`search_emptiness` calls `q.unsearched_corpora`... If any of the remaining kinds (typedefs, macros, variables, and so on) hold a row matching the query, the reply says 'NOT DEFINITIVE'\" and the table row: \"'definitive' (single token, no unread hits, file docs present)\".\nVERDICT: HIT\nWHY: The answer shows the strong \"definitive\" wording is granted only after a per-query check of which corpora `search` did not read, and is downgraded when unread kinds hold matching rows. It is not given for every empty result."
+}

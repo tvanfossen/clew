@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"It uses the same vocabulary as `.clew.yaml`\"\nVERDICT: HIT\nWHY: The answer states the structured `options` argument for embedding callers uses the same vocabulary as the declaration file's sections; it doesn't mention diagnostics, but the core substance of shared names across the embedding caller and the declaration file is stated."
+}

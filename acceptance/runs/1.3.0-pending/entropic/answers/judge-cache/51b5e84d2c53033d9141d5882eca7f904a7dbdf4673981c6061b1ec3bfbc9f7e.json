@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`LlamaCppBackend` makes direct llama.cpp C API calls (model load, context, batch decode, KV/state save and restore, MTP, multimodal, sampler chain, chat templates)\"\nVERDICT: HIT\nWHY: The answer names the seam as llama.cpp's C API and cites `llama_`-prefixed free functions such as `llama_tokenize`, `llama_token_to_piece` and `llama_adapter_lora_init`."
+}

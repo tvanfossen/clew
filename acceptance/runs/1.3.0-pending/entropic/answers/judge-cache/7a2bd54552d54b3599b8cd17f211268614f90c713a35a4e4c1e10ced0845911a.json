@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `_loader.find()        picks librentropic.so (ENTROPIC_LIB \u2192 ENTROPIC_HOME \u2192 ~/.entropic \u2192 ldconfig)`\nVERDICT: MISS\nWHY: The answer gives the order (env overrides, then ~/.entropic, then ldconfig) but never mentions two directory layouts tried per root, and the item requires that detail."
+}

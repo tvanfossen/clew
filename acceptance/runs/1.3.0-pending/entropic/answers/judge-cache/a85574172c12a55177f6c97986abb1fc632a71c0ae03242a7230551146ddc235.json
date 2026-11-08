@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "I'm listing the files the answer names as taking part in the decision or its recording:\n\nITEMS:\ntool_executor.cpp\nserver_manager.cpp\nconfig.h\nloader.cpp\nbash.cpp\nEND"
+}

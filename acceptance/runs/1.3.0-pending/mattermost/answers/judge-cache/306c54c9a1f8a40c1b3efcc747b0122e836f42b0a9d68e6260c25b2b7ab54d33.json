@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `app/actions/remote/channel.ts:1397` (`archiveChannel`) | Remove the current user from the channel locally, instead of stamping `delete_at`. | Stamp `delete_at = now` on the channel locally.; and `app/actions/websocket/channel.ts:463` ... \"If the current channel was archived, kick the user out with `CHANNEL_ARCHIVED`. Then remove the current user from the channel.\" | \"The channel stays in the user's list as an archived channel.\"\nVERDICT: HIT\nWHY: The answer says that when archived channels aren't viewable, the user is removed from the channel, and kicked out if it is the current channel. When they are viewable, it says the channel is kept and marked with `delete_at`, which is how it is marked deleted."
+}

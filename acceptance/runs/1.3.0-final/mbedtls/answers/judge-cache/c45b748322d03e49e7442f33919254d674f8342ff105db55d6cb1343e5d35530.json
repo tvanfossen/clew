@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer lists MBEDTLS_CT_*_ASM macros and says asm needs MBEDTLS_HAVE_ASM, __GNUC__ and an architecture, but never says MBEDTLS_CT_ASM is a derived macro rather than a configured one. The macro MBEDTLS_CT_ASM is not mentioned at all."
+}

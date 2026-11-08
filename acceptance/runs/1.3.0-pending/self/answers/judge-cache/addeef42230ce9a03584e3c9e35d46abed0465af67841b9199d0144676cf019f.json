@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A WARNING says so, so the boundary is logged rather than silent.\nVERDICT: MISS\nWHY: The answer says the whole-repo default is logged with a WARNING. It never says the fallback carries a reason naming which scope was used and why, so an unstated scope is not guessed silently."
+}

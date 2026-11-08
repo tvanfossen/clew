@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Two routes, and the compile-time one wins when both are present.\" and \"**1. Compile-time macros.** ... **2. Runtime setter.** Define only `MBEDTLS_PLATFORM_MEMORY`\"\nVERDICT: MISS\nWHY: The answer distinguishes compile-time macros from the runtime function-pointer setter, but it says the compile-time one wins when both are present. It also says the runtime setter is compiled out when the macros are used. That describes precedence, not the mutual exclusivity the item requires."
+}

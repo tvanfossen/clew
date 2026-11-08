@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Tier 1 and tier 2 each replace the layer beneath them, and the winning tier is recorded.\nVERDICT: MISS\nWHY: It says the winning tier is recorded, but never says the record is derived from the stored rows rather than stamped as a separate summary."
+}

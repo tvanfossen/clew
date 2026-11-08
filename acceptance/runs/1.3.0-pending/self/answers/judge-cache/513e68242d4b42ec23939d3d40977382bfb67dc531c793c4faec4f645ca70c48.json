@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never states that shell and CMake share one harvest partition, nor the reason about empty payload rows per file per index."
+}

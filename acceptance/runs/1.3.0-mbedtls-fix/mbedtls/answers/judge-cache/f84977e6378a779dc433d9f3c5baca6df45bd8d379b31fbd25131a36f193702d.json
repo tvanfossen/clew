@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Define only `MBEDTLS_PLATFORM_MEMORY`, then call `mbedtls_platform_set_calloc_free(my_calloc, my_free)` before any allocation. This function exists only in this mode. In macro mode it is not declared and not compiled, so calling it fails to link.\nVERDICT: HIT\nWHY: The answer states that in macro mode the function is neither declared nor compiled, rather than present and ignored."
+}

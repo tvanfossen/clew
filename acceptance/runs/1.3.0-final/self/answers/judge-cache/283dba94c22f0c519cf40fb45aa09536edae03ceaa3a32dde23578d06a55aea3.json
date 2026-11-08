@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never mentions a refusal for an unknown key inside a known section, nor a correctly-spelled derived key being refused with its reason instead of as unknown."
+}

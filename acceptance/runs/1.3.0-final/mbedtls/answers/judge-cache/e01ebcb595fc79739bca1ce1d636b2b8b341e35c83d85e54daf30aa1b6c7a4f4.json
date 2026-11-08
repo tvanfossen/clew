@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Add `#define MBEDTLS_ERR_<MODULE>_<NAME> -0xNNNN` with a Doxygen `/**< ... */` or `/** ... */` description.\" and \"Regenerate with `make -C library error.c` or the CMake `GEN_FILES` build, and commit the regenerated `library/error.c`. Do not hand-edit it.\"\nVERDICT: HIT\nWHY: The answer says to add the doc-commented #define to the module header, re-run the generator, and not hand-edit error.c."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Without `MBEDTLS_PLATFORM_MEMORY`, `include/mbedtls/platform.h` (around line 164) does `#define mbedtls_calloc calloc` and `#define mbedtls_free free`.\nVERDICT: HIT\nWHY: The answer states that by default (without MBEDTLS_PLATFORM_MEMORY) the two names are preprocessor macros expanding directly to calloc and free."
+}

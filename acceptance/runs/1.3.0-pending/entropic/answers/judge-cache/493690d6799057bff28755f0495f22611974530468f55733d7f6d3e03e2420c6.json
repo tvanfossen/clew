@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Bridge accept loop `external_bridge.cpp:796`; Health monitor `health_monitor.cpp:92`; Stdio stderr reader `transport_stdio.cpp:164`; SSE reader `transport_sse.cpp:107`; Cancel poller (C API) `inference_c_api.cpp:385`; Interrupt observer `response_generator.cpp:413`\nVERDICT: HIT\nWHY: The table lists thread spawn sites across the external bridge, the MCP transports (stdio and SSE), the health monitor and the inference path, so creation is shown as spread across subsystems."
+}

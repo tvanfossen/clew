@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_PLATFORM_MEMORY` off (shipped default, `mbedtls_config.h:208` commented out) | the libc `calloc`, by macro (`platform.h:166-167`)\nVERDICT: HIT\nWHY: The answer says the default build, with PLATFORM_MEMORY off, resolves `mbedtls_calloc` to libc `calloc` by macro. It states \"With the shipped defaults, they are the libc `calloc` and `free`\", which matches the item's substance of no indirection and a direct macro expansion."
+}

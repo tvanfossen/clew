@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The index finds no threads spawned from `library/`\" and \"That code is also gated by the threading macros, so it compiles out by default.\"\nVERDICT: HIT\nWHY: The answer says the default build runs no concurrency/spawns no threads and that the pthread example is gated by the threading macros and compiles out by default. That matches the item. It never says \"stub main\" in those words, but compiling out is the same claim."
+}

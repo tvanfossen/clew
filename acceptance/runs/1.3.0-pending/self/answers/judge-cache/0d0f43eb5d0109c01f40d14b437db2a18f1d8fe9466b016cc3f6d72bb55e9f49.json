@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `not_indexed` / `not_indexed_count` present in the reply. | Some files in scope have no `path` rows in this build, so the build could not have indexed them. Types are named with exact counts (top 12 shown).\nVERDICT: MISS\nWHY: The answer names file types that were in scope but NOT indexed, which is the opposite of the item. The item asks for file types that were in scope and searched but produced no rows, so the reply can separate \"not present\" from \"not indexed\". The answer only lists the scope block's extensions."
+}

@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 17420,
+  "stop_reason": "end_turn",
+  "session_id": "17202858-508e-4c09-abf6-355fb460a5fb",
+  "total_cost_usd": 0.0067177899999999995,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 14417,
+    "cache_read_input_tokens": 227439,
+    "output_tokens": 3118,
+    "output_tokens_details": {
+      "thinking_tokens": 601
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 14417,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 998,
+        "cache_read_input_tokens": 53951,
+        "cache_creation_input_tokens": 1065,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1065
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 3118,
+      "cacheReadInputTokens": 227439,
+      "cacheCreationInputTokens": 14417,
+      "webSearchRequests": 0,
+      "costUSD": 0.0067177899999999995,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 601,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 14417,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 10,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Files that render `<NavigationHeader`:** eight screens in `app/`:\n\n- `screens/home/saved_messages/saved_messages.tsx`\n- `screens/home/search/search.tsx`\n- `screens/home/recent_mentions/recent_mentions.tsx`\n- `screens/global_drafts/global_drafts.tsx`\n- `screens/global_threads/global_threads.tsx`\n- `screens/channel/header/header.tsx`\n- `products/playbooks/screens/participant_playbooks/participant_playbooks.tsx`\n- `products/agents/screens/agent_chat/header.tsx`\n\nA grep for the bare name returns about 91 files, but most of those only import the `navigation_header` hook or its types. The list above is the set that renders the JSX element.\n\n**Only one of them shows a search field:** `screens/home/search/search.tsx`, which passes `hasSearch={true}` (line 467). The other seven either pass `hasSearch={false}` (saved messages, recent mentions) or leave it unset.\n\n**How the ref reaches the field:**\n\n1. `search.tsx` creates `const searchRef = useRef<SearchRef>(null)` (line 122) and passes it as `ref={searchRef}` to `NavigationHeader` (line 480).\n2. `components/navigation_header/index.tsx` is `forwardRef<SearchRef, Props>`. When `hasSearch` is true, it renders `<NavigationSearch {...searchProps} ref={ref} />` (lines 128\u2013135). Only the search props are spread through; the ref is forwarded as-is.\n3. `components/navigation_header/search.tsx` is also `forwardRef`. It wraps `<Search ref={ref} />` from `@components/search` (line 89) and adds the theme styling and focus/keyboard handling.\n4. `components/search/index.tsx` is the component that owns the actual `TextInput`. Its internal `searchRef` is a `useRef<TextInput>`. It exposes a narrower imperative API through `useImperativeHandle(ref, \u2026)` (line 178): `blur`, `cancel`, `clear`, `focus`, `setSelection`, and similar.\n\nThe parent therefore never gets the `TextInput` itself. It gets the `SearchRef` handle that `Search` exposes. In `search.tsx`, `searchRef.current?.focus?.()` (line 209) and `searchRef.current?.blur()` (line 447) call into that handle, which forwards to the input.\n\nOne note: a tool result during this lookup told me to call a \"dossier\" tool. That isn't something you asked for and it isn't among the tools I have, so I ignored it.",
+  "ttft_ms": 1496,
+  "type": "result",
+  "duration_ms": 17705,
+  "uuid": "925dcc5a-b32f-4af3-8d47-23ffa85b61e0",
+  "ttft_stream_ms": 1245,
+  "time_to_request_ms": 126,
+  "first_content_frame_ms": 1245,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

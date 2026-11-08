@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A failed auto-refresh does not turn a good answer into an error. The query answers from the existing index, and the staleness notice is still attached.\nVERDICT: MISS\nWHY: The answer covers a failed auto-refresh, not failure of the staleness measurement itself degrading to no annotation. It says unreadable state yields \"no evidence\" or \"no warning\", but it never states that measuring never raises."
+}

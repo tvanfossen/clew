@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Markdown is excluded too. It goes to the full-text corpus through `clew/prose.py`.\"\nVERDICT: MISS\nWHY: The answer says markdown is excluded and goes to the prose corpus, but never says it is deliberately denied a path row or that a path row would count it as indexed source in coverage figures."
+}

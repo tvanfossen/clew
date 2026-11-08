@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **The Doxyfile's `INPUT` no longer decides scope.** This changed in gh#333. The Doxyfile is a documentation target, not a reasoning boundary. A repo that shipped a Doxyfile used to get only its published-API subset, which punished documenting itself.\nVERDICT: HIT\nWHY: The answer states that the Doxyfile's INPUT deliberately no longer decides scope and explains that shipping a Doxyfile would otherwise restrict the repo to its documented subset."
+}

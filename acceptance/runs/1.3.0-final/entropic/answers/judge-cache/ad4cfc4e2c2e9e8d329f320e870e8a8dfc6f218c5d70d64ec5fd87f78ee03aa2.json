@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Swap-and-drain for events.** `HealthMonitor::process_events` swaps the queue out under lock and invokes callbacks on the engine thread, not the monitor thread.\nVERDICT: HIT\nWHY: The answer states that events are queued under `event_mutex_`, drained via `process_events` with a swap under lock, and that callbacks run on the engine (caller) thread rather than the monitor thread."
+}

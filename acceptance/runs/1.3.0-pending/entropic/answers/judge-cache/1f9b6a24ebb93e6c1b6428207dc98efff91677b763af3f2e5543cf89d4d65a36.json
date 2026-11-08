@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"That's the root problem: the interface has no way to report an error, so the failure is silent at every layer above it.\" and \"`do_count_tokens` (`:825`) returns `0`... a C API consumer gets a count of 0 with no error code.\"\nVERDICT: HIT\nWHY: It says failure is indistinguishable from empty input (contract \"empty on failure or empty input\"), and callers (count_tokens, generate paths) have no check, though some check size<2 without distinguishing the tokenizer failure."
+}

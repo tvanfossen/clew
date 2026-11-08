@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`LlamaCppBackend::tokenize` (`src/inference/llama_cpp_backend.cpp:788`) returns `{}` when `tokenizer_` is unset, and otherwise copies the vector through.\" and \"returns `{}`\" on tokenization failure\nVERDICT: HIT\nWHY: The answer says the failed tokenization yields `{}` and that the backend wrapper also returns `{}` when no tokenizer is wired. It then says an empty vector can't be told apart from empty input, so the two cases return the same value."
+}

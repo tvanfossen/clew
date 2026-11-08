@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes the emptiness-reporting mechanism but never states the general rule \"fix the corpus, not the sentence about the corpus\" (i.e., resolve the underlying indexing gap rather than just rewording the message)."
+}

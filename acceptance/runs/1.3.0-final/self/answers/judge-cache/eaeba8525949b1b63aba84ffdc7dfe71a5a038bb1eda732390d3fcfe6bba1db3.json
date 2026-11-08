@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`scope`: the covered shape. Here that is 426 files, whole-repo, with `top_levels`, the indexed `extensions`, and `not_indexed` with counts\" and \"'Not in the repo,' high confidence: ... the file type inside `extensions`\" versus \"anything in a `not_indexed` extension ... was never looked at.\"\nVERDICT: HIT\nWHY: The answer says an empty reply lists the indexed extensions alongside the not-indexed ones. That lets a reader tell \"indexed but empty\" from \"never indexed\". It does not say the extensions listed are specifically the ones that produced no rows, which is why this is a borderline call."
+}

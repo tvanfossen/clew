@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The whole file is compiled only when `MBEDTLS_ERROR_C` or `MBEDTLS_ERROR_STRERROR_DUMMY` is set. With `MBEDTLS_ERROR_C` off, the dummy `mbedtls_strerror` just writes an empty string.\nVERDICT: MISS\nWHY: The answer names the dummy switch and its fallback behavior, but it never says the switch is enabled by default (and doesn't state that it keeps the symbol linkable)."
+}

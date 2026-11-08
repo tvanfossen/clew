@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `LlamaCppTokenizer`, which forwards to `llama_tokenize` and `llama_token_to_piece` and borrows the vocab.\nVERDICT: MISS\nWHY: The answer mentions individual llama_ functions but never identifies the seam as llama.cpp's C API of free functions rather than C++ classes. It frames the seam around the project's own C++ wrapper classes."
+}

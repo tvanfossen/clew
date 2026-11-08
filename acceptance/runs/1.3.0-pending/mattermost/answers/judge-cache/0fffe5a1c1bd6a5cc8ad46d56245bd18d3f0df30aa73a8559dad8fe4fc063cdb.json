@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Both handlers wrap everything in `try { \u2026 } catch { // Do nothing }` (`websocket/reactions.ts:34-36`). A failed write leaves no trace in the logs.\nVERDICT: HIT\nWHY: The answer states both handlers swallow errors in an empty catch, so a failed write leaves no trace."
+}

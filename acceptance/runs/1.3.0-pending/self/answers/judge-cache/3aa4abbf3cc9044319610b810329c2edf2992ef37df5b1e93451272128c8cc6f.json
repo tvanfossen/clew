@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: When clew indexes a repository, the file set comes from one decision in `clew/scope.py`, `derive_scope()`.\nVERDICT: HIT\nWHY: The answer explicitly names derive_scope() in clew/scope.py as where the file-set decision is resolved."
+}

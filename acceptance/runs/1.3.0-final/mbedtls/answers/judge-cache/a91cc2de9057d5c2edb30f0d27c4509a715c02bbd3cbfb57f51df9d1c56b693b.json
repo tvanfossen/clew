@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes many primitives in constant_time_impl.h and never concludes that mbedtls_ct_memcmp is the sole public API with the others library-internal."
+}

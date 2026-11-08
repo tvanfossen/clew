@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Public API.** Only `mbedtls_ct_memcmp` is public (`include/mbedtls/constant_time.h`). Everything else is internal.\"\nVERDICT: HIT\nWHY: The answer explicitly states that mbedtls_ct_memcmp is the only public function and the rest are internal."
+}

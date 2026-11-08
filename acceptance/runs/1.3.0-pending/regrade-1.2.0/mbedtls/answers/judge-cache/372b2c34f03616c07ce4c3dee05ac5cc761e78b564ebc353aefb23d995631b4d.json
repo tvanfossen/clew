@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says all threads are outside `library/` and describes the mutex wiring in `threading.c`. It never states the contrast that `library/` creates no threads while still supplying the mutex abstraction for threaded callers."
+}

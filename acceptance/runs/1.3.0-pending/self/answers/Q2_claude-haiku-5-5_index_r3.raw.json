@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 15967,
+  "stop_reason": "end_turn",
+  "session_id": "03545215-4cdf-4287-affa-33a71874dbae",
+  "total_cost_usd": 0.004906270000000001,
+  "usage": {
+    "input_tokens": 6,
+    "cache_creation_input_tokens": 11916,
+    "cache_read_input_tokens": 120597,
+    "output_tokens": 2633,
+    "output_tokens_details": {
+      "thinking_tokens": 1025
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 11916,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2073,
+        "cache_read_input_tokens": 41059,
+        "cache_creation_input_tokens": 10626,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 10626
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 6,
+      "outputTokens": 2633,
+      "cacheReadInputTokens": 120597,
+      "cacheCreationInputTokens": 11916,
+      "webSearchRequests": 0,
+      "costUSD": 0.004906270000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1025,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 11916,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 4,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The reply separates the two cases through its wording and through a `scope` block attached to every empty result. The confidence it grants depends on which branch fired. I checked this in `clew/mcp_server/emptiness.py`, and a zero-row `search` for a nonsense token on this repo returned the strong wording with the scope attached.\n\n**What every empty reply carries.** Each zero-row `search` includes a `scope` payload: the file count (426 here), the source tier (`whole-repo`), the top-level directories, the indexed extensions, and `not_indexed` counts for extensions the index skipped (`.rs`, `.toml`, `.csv`, and others). It also includes a `Searched:` clause that names the corpora read (names and `@brief` of functions, variables, macros, typedefs, enums, classes, config symbols and file docs) and says prose and Kconfig text were not searched. The point is that the caller can tell \"outside the scope\" from \"not in the repo\" without making another call.\n\n**How the reply grades the empty result:**\n\n| Situation | Wording | Confidence it earns |\n|---|---|---|\n| One token, no hits in any unread corpus, file docs present | \"definitive\u2026 Do not retry this query or fall back to guessing\" | Certain about the searched symbol corpora. Not certain about prose, and not certain about files outside the scope or in unindexed extensions |\n| One token, but the index holds matching rows in a corpus `search` does not read | \"NOT DEFINITIVE\u2026 holds matching rows\u2026 Ask for it by name with dossier\" | The name exists; `search` just cannot return that kind |\n| One token, but the index has no file-docs corpus | \"NOT definitive\u2026 Rebuild with index(action='refresh')\" | Nothing; the index could not have matched a conceptual query |\n| Several tokens | \"NOT definitive\u2026 Token(s) X match nothing alone\u2026 RETRY WITHOUT THEM\", or \"every token matches alone\u2026 RETRY WITH FEWER TOKENS\" | A diagnosis of what emptied the conjunction, not a claim about the repo |\n| `search(corpus='prose')`, token found in symbols | \"NOT DEFINITIVE\u2026 this repository DOES use these terms\" | The term exists; it is just not in prose |\n| `search(corpus='prose')`, no prose corpus | \"NOT definitive\u2026 Rebuild\" | Nothing |\n| `search(corpus='prose')`, token absent everywhere | \"definitive\" | Strong: the prose and symbol corpora were both read |\n\nThe module's own rule is that the strength of a sentence has to be earned per call. The unread-corpus check and the file-docs check run only after the result is already zero, so they add no cost to normal queries. The `gh#393` note in the same file records a deliberate refusal to downgrade on every absent gate layer. That would have hedged almost every reply.\n\n**The gap.** The single-token \"definitive\" verdict does not check the query against the scope. `_verdict` looks only at unread corpora and file docs. If the symbol lives in a `.rs` file (this index skips 2 of them) or outside the 426 indexed files, the reply still says \"definitive\" and relies on the caller reading the `scope` key. The module's docstring says scope misses were a real false claim and were handled for `list_files`, which has since been removed. So for `search` the scope is disclosed but not used to downgrade the verdict. I did not test that case directly; the conclusion comes from reading the code.\n\n**How much confidence each answer deserves:**\n- \"Definitive\" with `scope` showing the target's extension is indexed: good evidence that the symbol is absent from the searched symbol corpora of the indexed files. Use it to stop searching the index for that name.\n- \"Definitive\" with the target outside the indexed extensions or the file set: no evidence. Fall back to `grep` or `Read`.\n- Any \"NOT definitive\" reply: the text itself says to retry or go elsewhere. Follow it.",
+  "ttft_ms": 2513,
+  "type": "result",
+  "duration_ms": 16290,
+  "uuid": "47d27bbb-e2ef-47e0-a585-8a18364eeddf",
+  "ttft_stream_ms": 1114,
+  "time_to_request_ms": 97,
+  "first_content_frame_ms": 1114,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

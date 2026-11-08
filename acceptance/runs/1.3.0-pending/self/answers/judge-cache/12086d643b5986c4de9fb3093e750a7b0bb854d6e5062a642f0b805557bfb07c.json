@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Tier 1** (flag or `--declare`/`options`) and **tier 2** (`.clew.yaml`) **replace** the tier-5 name-pattern guesses. Only one of them wins, with explicit beating declared. - **Tiers 3 and 4** (facts from target manifests, and known-ecosystem signatures) **accumulate**. No stated value removes them.\"\nVERDICT: HIT\nWHY: The answer says the stated tiers (1, 2) replace the tier-5 guesses, while the discovered tiers 3 and 4 accumulate and survive any stated value. That is the asymmetry the item describes."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Compile time.** Define `MBEDTLS_PLATFORM_CALLOC_MACRO` and `MBEDTLS_PLATFORM_FREE_MACRO` ... **Run time.** Enable `MBEDTLS_PLATFORM_MEMORY` without the two macros, then call once at startup: `mbedtls_platform_set_calloc_free(my_calloc, my_free);`\" and \"`platform.c:20` omits all runtime machinery.\"\nVERDICT: HIT\nWHY: The answer separates the compile-time macro pair from the runtime function-pointer pair. It also shows they are exclusive: the runtime route requires the macros to be undefined, and defining them omits the runtime machinery."
+}

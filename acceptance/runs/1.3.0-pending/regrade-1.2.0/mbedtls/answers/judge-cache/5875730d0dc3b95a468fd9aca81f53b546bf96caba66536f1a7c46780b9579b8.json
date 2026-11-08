@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`mbedtls_ct_compiler_opaque` (`:85`) hides the value from the optimiser.\" (in the bullet citing `library/constant_time_impl.h` for the other helpers, and \"`constant_time_impl.h:40\u201352`\")\nVERDICT: HIT\nWHY: The answer names mbedtls_ct_compiler_opaque as the primitive hiding values from the compiler, and its line reference (`:85`) sits in the constant_time_impl.h context established by the neighbouring bullets."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"This is name-mangling, not access control: C has no access control, and the layout is identical either way. What it buys is that accidental use fails at compile time\"\nVERDICT: HIT\nWHY: The answer says the macro renames members (`private_##member`) so misuse fails at compile time, and the layout is unchanged, so the fields stay visible and sized."
+}

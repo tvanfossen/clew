@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Events go through `event_queue_` under `event_mutex_`; `process_events()` swaps the queue out and runs the callbacks on the engine thread\"\nVERDICT: HIT\nWHY: The answer states that the monitor thread queues events under a mutex and the caller (engine thread) drains them via process_events and runs the callbacks there."
+}

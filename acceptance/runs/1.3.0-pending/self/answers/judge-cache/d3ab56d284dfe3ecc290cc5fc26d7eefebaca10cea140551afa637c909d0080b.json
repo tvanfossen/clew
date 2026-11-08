@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`scope` (`file_count`, `extensions`, `not_indexed`) | Exactly which files were read. Here: 426 files, with `.rs`, `.toml`, `.sql`, `.lock`, `.csv`, `.jsonl`, `.motor` and extensionless files left out.\" and \"Term lives in an extension listed under `not_indexed`: no confidence. The reply names those files\"\n\nVERDICT: MISS\n\nWHY: The answer says the reply names the file types that were not indexed (`not_indexed`) and the extensions that were read. It never says the reply lists the in-scope file types that produced no rows. The item needs that list of in-scope types with zero hits, and the answer gives the opposite one."
+}

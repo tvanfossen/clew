@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 42932,
+  "stop_reason": "end_turn",
+  "session_id": "857ca54e-e70d-43ef-97af-2e6d2d387b54",
+  "total_cost_usd": 0.01867549,
+  "usage": {
+    "input_tokens": 24,
+    "cache_creation_input_tokens": 37749,
+    "cache_read_input_tokens": 648079,
+    "output_tokens": 9285,
+    "output_tokens_details": {
+      "thinking_tokens": 3670
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 37749,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2771,
+        "cache_read_input_tokens": 70744,
+        "cache_creation_input_tokens": 419,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 419
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 24,
+      "outputTokens": 9285,
+      "cacheReadInputTokens": 648079,
+      "cacheCreationInputTokens": 37749,
+      "webSearchRequests": 0,
+      "costUSD": 0.01867549,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 3670,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 37749,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 25,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "Several parts of entropic run on their own threads. Most are guarded by atomics, scoped mutexes and join-before-return discipline. Two spots look unsafe, and I did not run the tests or ThreadSanitizer to confirm either one.\n\n**Threads outside the caller's**\n\n| Thread | Where | Lifetime |\n|---|---|---|\n| External MCP accept loop | `src/facade/external_bridge.cpp:796` | Joined in `stop()` |\n| Per-client serve threads | `external_bridge.cpp:945` | Shut down via `shutdown(SHUT_RDWR)` and joined in `stop()` |\n| Async `entropic.ask` worker | `external_bridge.cpp:1158`, `.detach()` at `:1222` | Detached, never joined |\n| HealthMonitor loop | `src/mcp/health_monitor.cpp:92` | Joined in `stop()` |\n| Stdio stderr reader | `src/mcp/transport_stdio.cpp:164` | Joined in `close` |\n| SSE reader | `src/mcp/transport_sse.cpp:107` | Joined in `close` |\n| Cancel pollers (10 ms) | `response_generator.cpp:413`, `inference_c_api.cpp:385`, `interface_factory.cpp:246` | Joined before the call returns |\n\n**What keeps them safe**\n\n- **Atomics for flags:** `running_`, `connected_`, `interrupt_flag_`, `pause_flag_`, `observer_gen_` and the cancel flags are atomic. `interrupt()` is callable from any thread.\n- **Scoped mutexes:** `tasks_mutex_`, `client_threads_mutex_`, `subscribers_mutex_`, `watched_mutex_` and `write_mutex_` (audit logger) each guard one structure.\n- **Callbacks on the engine thread:** HealthMonitor queues events under `event_mutex_` and runs the status callback only from `process_events()`, so callers never see a callback on the monitor thread (`health_monitor.cpp:118`).\n- **Stale-callback rejection:** the phase observer compares `observer_gen_` with `attached_gen_` and drops callbacks that fire after detach (`external_bridge.cpp:1072-1127`).\n- **Ordered shutdown:** `ExternalBridge::stop()` stops accepting, shuts down client sockets to unblock reads, then joins (`external_bridge.cpp:826-851`).\n- **Per-thread log routing:** each spawned thread installs `HandleLogScope` so its logs reach the owning handle's session log (gh#59).\n- **Sentinel write ordering:** the async result and sentinel file are written under `tasks_mutex_` before the completion notification goes out (`external_bridge.cpp:1171-1183`).\n\n**Gaps**\n\n1. **Detached async worker outlives its owner.** The worker captures `this` and `handle_`. `stop()` and `~ExternalBridge` do not wait for it, and nothing counts in-flight workers. The header only says the handle must outlive the bridge. If the bridge is destroyed while a task runs, the worker's `tasks_mutex_` lock and `broadcast_notification` touch freed memory. `cancel_inflight_async_tasks` only polls for about 1 s (`external_bridge.cpp:439`) before continuing.\n\n2. **Engine state is touched unlocked during a run.** The run path deliberately skips `api_mutex` (`src/facade/entropic.cpp:1984`, gh#109). `clear_conversation()` mutates `conversation_` with no lock (`src/core/engine.cpp:3152`). `handle_clear` (`external_bridge.cpp:457-460`) calls it after the 1 s wait, so if `run_turn` is still in progress, the two race on `conversation_`. I am inferring this from the code; a test or TSan run would settle it.\n\nThe fix for the first gap is to track in-flight workers with a counter or a join list and wait for them in `stop()`. For the second, `handle_clear` should wait for the run to finish, or the engine should guard `conversation_` with a mutex.",
+  "ttft_ms": 1014,
+  "type": "result",
+  "duration_ms": 43449,
+  "uuid": "da8da8f0-7049-491d-b4de-f728cee37f79",
+  "ttft_stream_ms": 712,
+  "time_to_request_ms": 118,
+  "first_content_frame_ms": 712,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

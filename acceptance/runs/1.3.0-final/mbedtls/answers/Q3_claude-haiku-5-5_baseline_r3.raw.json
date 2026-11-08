@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 24966,
+  "stop_reason": "end_turn",
+  "session_id": "9e5a2a66-291c-44bf-a70f-1f573ed5658e",
+  "total_cost_usd": 0.0091264,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 23027,
+    "cache_read_input_tokens": 216000,
+    "output_tokens": 4720,
+    "output_tokens_details": {
+      "thinking_tokens": 1190
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 23027,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2279,
+        "cache_read_input_tokens": 56018,
+        "cache_creation_input_tokens": 1161,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1161
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 4720,
+      "cacheReadInputTokens": 216000,
+      "cacheCreationInputTokens": 23027,
+      "webSearchRequests": 0,
+      "costUSD": 0.0091264,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1190,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 23027,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 11,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** every allocation in the library goes through `mbedtls_calloc()` and `mbedtls_free()`. What those names resolve to depends on the build configuration. By default they are the C library's `calloc` and `free`. A project can swap in its own functions at compile time or at runtime.\n\n**What gets called**\n\n- **Default (`MBEDTLS_PLATFORM_MEMORY` off):** `include/mbedtls/platform.h:163-167` makes `mbedtls_calloc` a macro for `calloc` and `mbedtls_free` a macro for `free`. The library calls libc directly.\n- **Compile-time override (`MBEDTLS_PLATFORM_MEMORY` plus both `MBEDTLS_PLATFORM_CALLOC_MACRO` and `MBEDTLS_PLATFORM_FREE_MACRO`):** `platform.h:139-144` makes the two names macros for your functions. Calls are resolved at compile time, with no indirection.\n- **Runtime override (`MBEDTLS_PLATFORM_MEMORY` on, macros not defined):** `platform.h:146-162` declares real functions `mbedtls_calloc()` and `mbedtls_free()`. `library/platform.c:44-63` implements them as calls through two function pointers. `mbedtls_platform_set_calloc_free(calloc_fn, free_fn)` swaps the pointers.\n\n**Fallback when no override is set**\n\n`library/platform.c:24-42` fills in placeholders when `MBEDTLS_PLATFORM_STD_CALLOC` and `MBEDTLS_PLATFORM_STD_FREE` are not defined. The placeholder calloc returns `NULL`, so allocation fails cleanly. The placeholder free does nothing. Without a set call, a runtime-configured build therefore cannot allocate. The documented rule is in `include/mbedtls/mbedtls_config.h:165-201`.\n\n**How a project substitutes its allocator**\n\n1. **Compile-time:** enable `MBEDTLS_PLATFORM_MEMORY` in its config and define `MBEDTLS_PLATFORM_CALLOC_MACRO` and `MBEDTLS_PLATFORM_FREE_MACRO` to its functions. Both macros must be defined together. `check_config.h:558-573` enforces that.\n2. **Runtime:** enable `MBEDTLS_PLATFORM_MEMORY` without the macros. Call `mbedtls_platform_set_calloc_free()` before any library call that allocates. Alternatively, define `MBEDTLS_PLATFORM_STD_CALLOC` and `MBEDTLS_PLATFORM_STD_FREE` to set the initial values.\n\nPrecedence: the compile-time macros win. `platform.c:16-19` says so, and it compiles out the runtime setter entirely in that case.\n\n**What the library does with the facility itself**\n\n- Every library allocation goes through `mbedtls_calloc()` / `mbedtls_free()`. Examples: `library/ecp.c`, `library/rsa.c`, `library/md.c`, `library/x509_crl.c`, `library/ssl_cache.c`.\n- The library never calls `calloc`/`malloc` directly. Swapping the functions therefore changes allocation for the whole library at once.\n- The one built-in allocator is `library/memory_buffer_alloc.c`. `mbedtls_memory_buffer_alloc_init(buf, len)` (line 566) serves allocations from a caller-supplied buffer. As a side effect it calls `mbedtls_platform_set_calloc_free()` to install its own functions. That install is global, so it changes the allocator for the whole process, not just one context. With `MBEDTLS_THREADING_C` it installs mutex-wrapped versions.\n- The library does not allocate anything itself to hold a secret. Zeroing goes through `mbedtls_platform_zeroize()`, which is separate from the allocator.\n\n**Caveats**\n\n- A project must install its allocator before any library call that allocates. Otherwise the placeholder returns `NULL`.\n- The runtime pointers are global and unsynchronized. Setting them while another thread is inside the library is unsafe unless the project provides its own locking. The buffer allocator's mutex wrapper is one example of that kind of locking.\n- Mixing allocators is a bug. Memory from one `calloc` must be freed by the matching `free`. Changing the allocator while live objects exist will corrupt them.\n\nI did not run a build or the test suite. The above is from reading `platform.c`, `platform.h`, `mbedtls_config.h`, `check_config.h`, and `memory_buffer_alloc.c`.",
+  "ttft_ms": 2076,
+  "type": "result",
+  "duration_ms": 25216,
+  "uuid": "3f52c81d-7efc-4889-8aaf-a980f804ff39",
+  "ttft_stream_ms": 1581,
+  "time_to_request_ms": 128,
+  "first_content_frame_ms": 1581,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

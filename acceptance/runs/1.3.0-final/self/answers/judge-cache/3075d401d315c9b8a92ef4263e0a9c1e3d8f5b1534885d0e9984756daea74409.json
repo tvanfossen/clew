@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Symbols, zero rows | Nothing yet. The note calls it \"NOT a definitive negative\" ... Code corpus, zero rows | Strong evidence that no function body in the indexed files contains the literal. The reply calls this \"definitive\" and says not to retry.\nVERDICT: MISS\nWHY: The answer separates \"not definitive\" from \"definitive for scope\" but never identifies a third grade, definitive for a reason that is not absence."
+}

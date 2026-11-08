@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Type-level:** `interface ServerDataOperator extends \u2026Mix` (lines 23\u201338) merges the method types of 14 handler mixins into the class, so TypeScript sees every handler method on the instance.\nVERDICT: HIT\nWHY: The answer states that a same-named interface extends the Mix types, giving the class typed methods for all handlers."
+}

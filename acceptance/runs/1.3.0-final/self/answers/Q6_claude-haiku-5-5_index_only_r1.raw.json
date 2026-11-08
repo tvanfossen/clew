@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 45965,
+  "stop_reason": "end_turn",
+  "session_id": "4da33028-651d-4545-a787-a068695c6e43",
+  "total_cost_usd": 0.01414486,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 50494,
+    "cache_read_input_tokens": 164826,
+    "output_tokens": 4794,
+    "output_tokens_details": {
+      "thinking_tokens": 2470
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 50494,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3289,
+        "cache_read_input_tokens": 60064,
+        "cache_creation_input_tokens": 9108,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 9108
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 8,
+      "outputTokens": 4794,
+      "cacheReadInputTokens": 164826,
+      "cacheCreationInputTokens": 50494,
+      "webSearchRequests": 0,
+      "costUSD": 0.01414486,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2470,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 50494,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 10,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** For shell, CMake, YAML and JSON, the index holds the file's existence and, for shell and CMake, its function definitions. It holds nothing else from YAML or JSON. On an installation whose substrate lacks the bash and cmake grammars, clew does not crash. The shell and CMake files stay in the file set with no symbols, and a miss on them is reported as \"not indexed.\"\n\n**What the index holds**\n\n| File type | Rows written | Source of the rows |\n|---|---|---|\n| `.sh`, `.bash`, `.cmake`, `CMakeLists.txt` | `path` row plus `memberdef` rows for each function (and CMake macros, recorded as macros) | Parsed by `clew/synth.py` using the bash and cmake grammars via `clew/shast.py` and `clew/cmakeast.py`. Docs come from the `#` block above a definition. |\n| `.yaml`, `.yml`, `.json` | `path` row only | Registered so the file is findable by name. Never harvested. |\n\nThe stated reason for not giving YAML and JSON symbols is that their grammars expose `block_mapping_pair` and `pair`, not functions. Writing those as `memberdef` rows would put every `steps:` key into the namespace that answers `dossier(\"my_function\")`.\n\n**What it does not hold**\n\n- No symbols for YAML or JSON, so no keys, values or structure are queryable.\n- No call edges come from the shell or CMake definition harvesters. The harvest stages I could see describe C/C++, Python and Rust AST work, and the shell and CMake harvesters only emit definitions. I did not find a call-edge layer for shell or CMake.\n- A file that defines no function (a shell script with only top-level commands, or a `CMakeLists.txt` that only calls commands) gets a path row and no symbols. The index's own docs describe this as intended.\n- Shell and CMake files are only read through the parse-built front end. Doxygen reads neither, so there is no doxygen-side view of them.\n\n**What happens without the grammars**\n\n1. The bash and cmake grammars come from a fork of lang-parsing-substrate that, per `clew/substrate.py`, is not yet released upstream. The fork's wheel reports the same version (0.11.2) as the published one, so clew asks what is compiled in rather than checking a version.\n2. `_ts_language_for` calls `_grammar_available`, which checks `_OPTIONAL_KEYS = {\"bash\", \"cmake\"}`. If the key is missing, the route resolves to no grammar and returns `None`. `parse_tree` would otherwise raise `ValueError: unknown language key`, and that path is never reached.\n3. The `path` rows are still written, because `claims()` checks extensions only and not grammar availability. The files remain searchable by name.\n4. The not-indexed report, stamped at build time, names those extensions with counts, for example \"14 `.sh` files were in scope and none are in this index.\" An empty answer about a deploy script therefore says \"the file type is not indexed in this build,\" not \"the symbol does not exist.\"\n5. If the substrate cannot be imported at all, `compiled_languages()` returns an empty set and logs an ERROR. The design treats that as a degraded build, not a crash, because the gate also runs on the pre-commit path.\n6. A build from before this release stamps no report, so it reports nothing rather than claiming an empty set.\n\n**Inconsistencies in the index's own documentation**\n\n- `clew/substrate.py` says that against the published wheel \"the front ends register nothing.\" The code in `claims()` and `register_paths()` does register `path` rows for shell and CMake by extension alone. The `tests/test_script_front_end.py` docstring describes the same case as \"registered and searchable,\" which matches the code.\n- `_OPTIONAL_KEYS` lists only bash and cmake. YAML, JSON and markdown are not in it. That is consistent with YAML and JSON never being routed to a grammar, but the substrate docstring's list of five configuration languages suggests the check covers all five.\n\n**Not verified:** I did not dossier the requirements-YAML ingest path (`test_ingest_requirements_yaml_reads_the_mapping_keyed_shape`) or the `--enrich` YAML path, so I cannot say how much YAML content those paths read. Those are separate from the parse-built front end described above.",
+  "ttft_ms": 2186,
+  "type": "result",
+  "duration_ms": 47011,
+  "uuid": "99b6bac9-ea50-4041-9f82-c07fe8d731ee",
+  "ttft_stream_ms": 1583,
+  "time_to_request_ms": 69,
+  "first_content_frame_ms": 1583,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

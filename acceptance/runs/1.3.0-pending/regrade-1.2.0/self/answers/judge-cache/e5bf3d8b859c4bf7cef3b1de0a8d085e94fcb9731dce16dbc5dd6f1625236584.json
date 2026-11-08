@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`schema`, index newer than server | Server predates index | Restart the MCP client. A rebuild cannot clear it, since it re-stamps the same newer version.\" and \"`code` | Process loaded old logic | Restart the MCP client. A rebuild cannot fix it.\" and \"`data` | Sources changed since build | `index(action='refresh')`\"\nVERDICT: HIT\nWHY: The answer states that data is cleared by a refresh/rebuild while code needs a client restart that a rebuild cannot fix, which is the substance of the different-remedy-per-axis point."
+}

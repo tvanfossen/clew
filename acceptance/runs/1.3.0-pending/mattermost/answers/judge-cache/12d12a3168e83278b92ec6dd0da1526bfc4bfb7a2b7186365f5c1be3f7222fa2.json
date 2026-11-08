@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It calls `client.createPost` again with a new request. ... On failure it sets `failed` back to true, or removes the post for the same three server errors listed above.\nVERDICT: HIT\nWHY: The answer says retryFailedPost re-sends once via createPost and on failure re-marks the post failed or removes it for the same three errors. \"No loop or backoff\" is implied by the single re-call, and the answer separately says there are zero automatic retries."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Async-ask worker | `external_bridge.cpp:1158`, `.detach()` at 1222 ... \"The async-ask worker outlives its owner. The worker is detached (`external_bridge.cpp:1222`) and captures `this`.\"\nVERDICT: HIT\nWHY: The answer identifies the async-ask worker as detached and says it outlives its owner, with no wait found beyond a best-effort poll. The claim that it is the ONE detached thread is not stated outright, but the table shows no other detach."
+}

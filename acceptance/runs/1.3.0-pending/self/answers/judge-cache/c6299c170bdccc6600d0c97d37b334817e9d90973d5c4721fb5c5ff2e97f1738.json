@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes how the empty-result grading works but never states the general rule that you fix the corpus (index/search scope) rather than the sentence describing it."
+}

@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 20908,
+  "stop_reason": "end_turn",
+  "session_id": "feb992d1-a1fd-4b69-a5c1-efedc2908945",
+  "total_cost_usd": 0.008817070000000002,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 26797,
+    "cache_read_input_tokens": 160017,
+    "output_tokens": 3713,
+    "output_tokens_details": {
+      "thinking_tokens": 1397
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 26797,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2045,
+        "cache_read_input_tokens": 38838,
+        "cache_creation_input_tokens": 904,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 904
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 3713,
+      "cacheReadInputTokens": 160017,
+      "cacheCreationInputTokens": 26797,
+      "webSearchRequests": 0,
+      "costUSD": 0.008817070000000002,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1397,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 26797,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 7,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**What it does.** `MBEDTLS_PRIVATE(member)` is defined in `include/mbedtls/private_access.h:14-18`:\n\n```c\n#ifndef MBEDTLS_ALLOW_PRIVATE_ACCESS\n#define MBEDTLS_PRIVATE(member) private_##member\n#else\n#define MBEDTLS_PRIVATE(member) member\n#endif\n```\n\nBy default, the field is renamed to `private_<name>`. Code that writes `ctx->md_info` fails to compile, while `ctx->MBEDTLS_PRIVATE(md_info)` still works inside the library. It is a naming gate, not a real access control. Its purpose is to keep struct internals out of the public API. Fields in public headers like `md.h:124` can then change or be removed without breaking applications, and anyone who reaches for a field gets a compile error that points at the boundary. `docs/3.0-migration-guide.md:74` describes the escape hatch as a \"last resort\u2026 at your own risk\", and the warning in `ssl.h:5163` calls direct access to `ssl->state` deprecated and possibly broken in any release.\n\n**Who it is for.** The intended users are the library's own translation units, and the opt-out is what makes that work.\n\n- **`library/common.h:132`** defines `MBEDTLS_ALLOW_PRIVATE_ACCESS` unconditionally. Its doc comment says the library may access its structs' private members. 129 library files include `common.h`, so the whole library compiles with the real field names. Library `.c` files such as `md.c:12` and `ssl_tls.c:12` include `common.h` before the public headers, so the macro is set before `private_access.h` is first read. Ordering matters: a file that included a public header first would get the renamed fields.\n- **`programs/ssl/ssl_server2.c:8` and `programs/ssl/ssl_client2.c:8`** define it at the top of the file, before `ssl_test_lib.h`. These test and demo programs are the only ones that opt out directly. They reach into SSL context internals, which is the case the `ssl.h` warning discourages. The define applies only to that translation unit.\n\n**What this means for those places.** Code under `library/` and these two programs can read and write struct fields that external users cannot. Changing those fields is not an API break as far as the library is concerned, because they are internal. Outside those files, code that wants a field must use an accessor, or define the macro itself and accept that the access is unsupported.\n\n**What I did not verify.** `tests/suites/*.function` (e.g. `test_suite_x509write`, `test_suite_psa_crypto`) use `MBEDTLS_PRIVATE`, and I did not trace whether the generated test `.c` files pull in `common.h` or define the macro themselves. If they do not, those suites are compiled against the renamed fields and would have to use the wrapper, which is consistent with what they contain.",
+  "ttft_ms": 1416,
+  "type": "result",
+  "duration_ms": 21315,
+  "uuid": "cca9ff34-7af2-4473-8b41-4f3af4b6cae2",
+  "ttft_stream_ms": 1171,
+  "time_to_request_ms": 159,
+  "first_content_frame_ms": 1171,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

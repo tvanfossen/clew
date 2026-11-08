@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `#ifndef MBEDTLS_ALLOW_PRIVATE_ACCESS\n#define MBEDTLS_PRIVATE(member) private_##member\n#else\n#define MBEDTLS_PRIVATE(member) member\n#endif` and \"so the member is really named `private_state`\"\nVERDICT: HIT\nWHY: The answer shows the macro pastes `private_` onto the member by default and expands to the plain member name when MBEDTLS_ALLOW_PRIVATE_ACCESS is defined."
+}

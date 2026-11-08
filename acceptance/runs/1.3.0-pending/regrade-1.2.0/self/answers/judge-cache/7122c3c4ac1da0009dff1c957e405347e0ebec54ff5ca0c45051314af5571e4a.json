@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The `code` message also says reads are current but writes are not, because a stale process writing through old logic dropped whole layers in a past incident (gh#348).\" and \"Writes are refused before touching the index when the code axis fires\"\nVERDICT: HIT\nWHY: The answer states that on the code axis reads are current while writes through a stale process use old logic, with a past incident of dropped layers. It does not name the per-call database open as the reason reads stay current. The asymmetry itself is stated."
+}

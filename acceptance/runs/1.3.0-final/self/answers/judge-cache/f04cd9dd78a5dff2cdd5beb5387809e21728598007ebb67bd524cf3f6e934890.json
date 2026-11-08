@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `QueryTools._staleness` (`tools_query.py:1886`) attaches the notices to query replies, sized to the remaining budget.\nVERDICT: MISS\nWHY: The answer says notices are sized to the remaining budget but never says the wording is degraded (shortened) to fit rather than dropping the warning."
+}

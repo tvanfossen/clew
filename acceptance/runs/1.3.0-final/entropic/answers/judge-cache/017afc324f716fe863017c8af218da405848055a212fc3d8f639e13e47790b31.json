@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Polls the listen fd with a 500 ms timeout ... Each client gets its own `ClientThread`, held in `client_threads_` under `client_threads_mutex_`. ... `ExternalBridge::accept_loop` (`:945`) | per-client `serve_client`\nVERDICT: HIT\nWHY: The answer identifies `accept_loop` as a thread spawned by `start`. It also says `accept_loop` spawns a per-client `serve_client` thread for each accepted connection."
+}

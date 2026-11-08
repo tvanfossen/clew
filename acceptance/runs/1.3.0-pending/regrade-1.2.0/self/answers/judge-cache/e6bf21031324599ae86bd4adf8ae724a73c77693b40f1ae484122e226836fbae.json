@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"| 3 | Target facts: a Doxyfile's `ALIASES`/`PREDEFINED`, a generator manifest, a language or platform entry point | Accumulates |\" and \"**Tiers 3 and 4 never get displaced.** A stated tier cannot remove a fact someone else already wrote.\"\nVERDICT: HIT\nWHY: The answer says stated tiers (1\u20132) replace the stated layer while discovered tiers 3\u20134 accumulate and are never displaced by a stated tier."
+}

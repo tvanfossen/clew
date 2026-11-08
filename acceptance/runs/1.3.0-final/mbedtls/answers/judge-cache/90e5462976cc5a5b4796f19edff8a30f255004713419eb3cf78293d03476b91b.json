@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names these top-level directories as places that turn on the opt-out `MBEDTLS_ALLOW_PRIVATE_ACCESS`, which is the macro that gates `MBEDTLS_PRIVATE`:\n\n- `library/common.h:132`\n- `programs/ssl/ssl_client2.c:8`\n- `programs/ssl/ssl_server2.c:8`\n\nIt also mentions `include/mbedtls/` and `psa/` as headers that use `MBEDTLS_PRIVATE`: `bignum.h`, `ctr_drbg.h`, `psa/crypto_struct.h`, and `private_access.h`, which defines the macro.\n\nITEMS:\nlibrary\nprograms\ninclude\npsa\nEND"
+}

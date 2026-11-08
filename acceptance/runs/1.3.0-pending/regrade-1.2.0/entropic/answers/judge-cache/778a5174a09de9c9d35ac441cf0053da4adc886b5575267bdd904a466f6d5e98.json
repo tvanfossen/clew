@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The sampler, tokenizer, `orchestrator.cpp`, `adapter_manager.cpp`, `speculative_compat.cpp`, `grammar_registry.cpp`, `inference_c_api.cpp`, and `tool_call_markers.h` also include llama headers.\nVERDICT: MISS\nWHY: The answer lists several files (about 10 including backend and facade) but never conveys that the dependency spans roughly a dozen files or that it is broader than one wrapper; its framing is \"Heavy\" in the inference layer with `LlamaCppBackend` as the concrete class."
+}

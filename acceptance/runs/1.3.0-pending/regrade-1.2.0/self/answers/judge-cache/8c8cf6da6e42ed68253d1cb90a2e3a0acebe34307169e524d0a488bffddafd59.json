@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The reason is logged as a WARNING and the whole-repo tier is used with that reason attached. ... The chosen tier and its reason are logged on every derivation. The reason names the file that was read, or says that no `index_scope` was declared and that the whole repo is the scope.\nVERDICT: HIT\nWHY: The answer states that the fallback tier carries a reason saying which scope was used and why (including when nothing was declared), so the scope is never silently guessed."
+}

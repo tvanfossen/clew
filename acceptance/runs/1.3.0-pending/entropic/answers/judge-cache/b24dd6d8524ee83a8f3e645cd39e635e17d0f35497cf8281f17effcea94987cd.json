@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says `HealthMonitor::monitor_loop` is \"joined in `stop()`\", but it never describes an atomic flag exchange or a condition variable wake. The shutdown sequence it does describe belongs to `ExternalBridge`, not the monitor."
+}

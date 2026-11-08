@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names these as containing uses of MBEDTLS_PRIVATE: `library`, `include`, `programs`. `docs` is only cited as the migration guide, not as a place with uses, so it isn't listed.\n\nITEMS:\nlibrary\ninclude\nprograms\nEND"
+}

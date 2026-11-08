@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`_ts_language_for` calls `_grammar_available`, which checks `_OPTIONAL_KEYS = {\"bash\", \"cmake\"}`. If the key is missing, the route resolves to no grammar and returns `None`.\" and \"The not-indexed report, stamped at build time, names those extensions with counts, for example \"14 `.sh` files were in scope and none are in this index.\"\"\nVERDICT: HIT\nWHY: The answer says that a missing grammar degrades instead of crashing. It describes a capability gate (`_grammar_available`) checked before routing, and it says those file types are reported as not indexed."
+}

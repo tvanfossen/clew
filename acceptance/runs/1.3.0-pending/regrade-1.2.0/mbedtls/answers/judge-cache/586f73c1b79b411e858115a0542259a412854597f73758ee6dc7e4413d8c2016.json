@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A caller invokes `mbedtls_strerror(ret, buf, buflen)`, defined at `library/error.c:792`.\nVERDICT: HIT\nWHY: The answer names mbedtls_strerror as the entry point of the translation path and places it in library/error.c."
+}

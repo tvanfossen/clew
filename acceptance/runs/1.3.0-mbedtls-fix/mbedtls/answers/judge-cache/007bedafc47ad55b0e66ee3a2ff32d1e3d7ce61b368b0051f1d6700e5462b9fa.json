@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`programs/ssl/ssl_client2.c:8` | The client sample program defines the gate at the top of the file.\" and \"The two SSL programs also get it, so they can reach internals that outside applications cannot.\"\nVERDICT: HIT\nWHY: The answer identifies that example programs (ssl_client2.c, ssl_server2.c) define MBEDTLS_ALLOW_PRIVATE_ACCESS themselves, reaching internals that outside code cannot."
+}

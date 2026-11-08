@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Deny list**: consulted only in step d, after approval has already happened. A match returns an error result and the tool never runs.\" and \"The only real denial in the approval step is the headless case (no callback, not allowed). Anything not on the deny list therefore runs once a frontend is attached.\"\nVERDICT: HIT\nWHY: The answer says ServerManager::execute checks is_denied before routing, and that the allow list only affects prompting. Anything not on the deny list runs once a frontend is attached. That is the substance of the item, with the headless denial as a stated exception."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says an unknown section in the declaration is refused by name against the allowed set; it only mentions validation of bad options and a missing doxyfile path."
+}

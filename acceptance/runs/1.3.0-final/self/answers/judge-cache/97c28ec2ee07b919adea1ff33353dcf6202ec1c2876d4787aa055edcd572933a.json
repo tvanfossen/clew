@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"| 1 explicit | CLI flags, or the structured `options` argument for embedding callers (`clew/buildoptions.py`) | Replaces the stated layer |\"\nVERDICT: HIT\nWHY: The answer says tier 1 is reachable via CLI flags or the structured `options` argument for embedding callers, which covers both entry points."
+}

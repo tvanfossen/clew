@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Each row carries an edge class (`call`), a source (`ast`, resolved)... Edges come from two sources with different confidence. Many edges are `ast`/`resolved`, but others are `doxygen_sqlite`/`exact`\nVERDICT: MISS\nWHY: The answer mentions an edge class value of `call` and two edge sources (ast vs doxygen_sqlite), but never says neighbours include shared-key dataflow edges distinguished by `edge_class` that the consumer must read."
+}

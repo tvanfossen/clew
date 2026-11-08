@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The facility reaches the bignum, RSA-unpadding, TLS record-MAC, base64 and NIST-KW paths. The index shows no such helpers in ECC or AES.\nVERDICT: MISS\nWHY: The answer lists about five areas and says the facility is not found in ECC or AES, so it never conveys broad use across roughly twenty modules."
+}

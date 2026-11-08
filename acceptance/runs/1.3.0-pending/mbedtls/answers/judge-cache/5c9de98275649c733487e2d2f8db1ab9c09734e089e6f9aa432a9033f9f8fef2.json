@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Buffer allocator (`MBEDTLS_MEMORY_BUFFER_ALLOC_C`): `library/memory_buffer_alloc.c` provides a heap carved from a caller-supplied static buffer. `mbedtls_memory_buffer_alloc_init()` ... calls `mbedtls_platform_set_calloc_free()` itself\nVERDICT: MISS\nWHY: The answer says the buffer allocator calls the setter, but never states that it requires MBEDTLS_PLATFORM_MEMORY or that enabling it alone isn't enough."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names `library` and `programs` as locations that define `MBEDTLS_ALLOW_PRIVATE_ACCESS`, but it never says they contain uses of `MBEDTLS_PRIVATE`. The only place it ties to `MBEDTLS_PRIVATE` is `include/mbedtls/aes.h`, where `mbedtls_aes_context` declares a field with it. That makes `include` the one directory the answer names as containing `MBEDTLS_PRIVATE`.\n\nITEMS:\ninclude\nEND"
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"the public surface is only `mbedtls_ct_memcmp` in `include/mbedtls/constant_time.h`. Everything else is internal.\"\nVERDICT: HIT\nWHY: The answer explicitly states the public API is only mbedtls_ct_memcmp and everything else is internal."
+}

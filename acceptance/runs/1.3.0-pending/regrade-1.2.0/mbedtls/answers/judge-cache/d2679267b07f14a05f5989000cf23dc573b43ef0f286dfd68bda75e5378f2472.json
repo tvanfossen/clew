@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says nothing about `mbedtls_platform_set_calloc_free` being neither declared nor compiled on the macro path. It tells the reader to enable `MBEDTLS_PLATFORM_MEMORY` before calling it, but never says the function is absent when the macros are used."
+}

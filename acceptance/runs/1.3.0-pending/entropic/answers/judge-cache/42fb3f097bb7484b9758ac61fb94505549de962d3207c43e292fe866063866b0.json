@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"the empty result is not distinguishable from a legitimate empty input. The callers I could trace then carry on with it silently.\"\nVERDICT: HIT\nWHY: The answer says failed tokenization returns an empty result indistinguishable from legitimately empty input, and that callers proceed silently with no emptiness guard."
+}

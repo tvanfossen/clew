@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: I counted calls matching `mbedtls_ct_\\w+\\(` in `library/`: 286 occurrences across 29 files.\nVERDICT: HIT\nWHY: The answer states the facility is used across 29 files in library/, with a table of many areas, which conveys broad consumption on the order of twenty-plus modules."
+}

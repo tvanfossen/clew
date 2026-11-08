@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `LlamaCppBackend::tokenize` | Returns `{}`; also returns `{}` silently when no tokenizer is wired | `llama_cpp_backend.cpp:788-800`\nVERDICT: HIT\nWHY: The table states the backend wrapper returns `{}` on failure and the same `{}` when no tokenizer is wired, which is the item's substance."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Define `MBEDTLS_PLATFORM_MEMORY` and leave the two macros undefined. Then call `mbedtls_platform_set_calloc_free(my_calloc, my_free)`\nVERDICT: MISS\nWHY: The answer treats MBEDTLS_PLATFORM_MEMORY as an option to define, but it never says the option is commented out in the shipped mbedtls_config.h."
+}

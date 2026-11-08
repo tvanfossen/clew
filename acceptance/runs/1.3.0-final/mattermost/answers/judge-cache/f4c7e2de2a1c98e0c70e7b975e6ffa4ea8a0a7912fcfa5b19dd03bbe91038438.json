@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `archiveChannel`: \"Removes the current user from the channel locally\" when `'false'`; websocket handler: \"If the user is viewing it, kicks them out with `CHANNEL_ARCHIVED`, then removes the membership\"; viewable: \"Sets local `delete_at` so the channel stays visible as archived\" / \"Keeps the archived channel in the local DB\"\nVERDICT: HIT\nWHY: The table states that non-viewable removes the user (and kicks them out if viewing the channel), while viewable keeps the channel and sets `delete_at`, which marks it deleted."
+}

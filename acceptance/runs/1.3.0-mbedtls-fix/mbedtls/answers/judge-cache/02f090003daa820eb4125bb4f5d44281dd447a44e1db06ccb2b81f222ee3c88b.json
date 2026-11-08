@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The default target without a set call is `MBEDTLS_PLATFORM_STD_CALLOC` if you define it, and otherwise a stub that returns `NULL` (`platform.c:24-33`). The stub `free` does nothing. So forgetting the setter does not crash. Every allocation quietly fails and the library reports out-of-memory errors.\nVERDICT: HIT\nWHY: The answer states the uninitialised default calloc stub returns NULL and the default free does nothing, so allocations fail instead of falling back."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`ExternalBridge::run_async_ask` (`:1158`) | detached async-ask worker\" and \"`run_async_ask` uses a detached `std::thread` that captures `this`. The index shows no join or ownership record for it.\"\nVERDICT: HIT\nWHY: The answer identifies the async-ask worker as detached with no join or ownership record. It doesn't say it is the only detached thread, but it does say it has no join."
+}

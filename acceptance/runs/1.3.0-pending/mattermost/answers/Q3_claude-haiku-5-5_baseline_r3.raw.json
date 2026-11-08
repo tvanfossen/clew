@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 21313,
+  "stop_reason": "end_turn",
+  "session_id": "b46b9b4a-c55e-4e49-867a-cba975234bc0",
+  "total_cost_usd": 0.0071198500000000005,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 13766,
+    "cache_read_input_tokens": 226665,
+    "output_tokens": 4198,
+    "output_tokens_details": {
+      "thinking_tokens": 1371
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 13766,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1853,
+        "cache_read_input_tokens": 52088,
+        "cache_creation_input_tokens": 2277,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2277
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 4198,
+      "cacheReadInputTokens": 226665,
+      "cacheCreationInputTokens": 13766,
+      "webSearchRequests": 0,
+      "costUSD": 0.0071198500000000005,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1371,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 13766,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 11,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "Eight files render `NavigationHeader` from `@components/navigation_header`. Only one of them shows a search field: `app/screens/home/search/search.tsx`.\n\n**Files that render `NavigationHeader`**\n\n| File | Line | `hasSearch` |\n|---|---|---|\n| `app/screens/home/search/search.tsx` | 463 | `true` |\n| `app/screens/home/saved_messages/saved_messages.tsx` | 213 | `false` |\n| `app/screens/home/recent_mentions/recent_mentions.tsx` | 176 | `false` |\n| `app/screens/global_drafts/global_drafts.tsx` | 98 | not set (defaults to `false`) |\n| `app/screens/global_threads/global_threads.tsx` | 127 | not set (defaults to `false`) |\n| `app/screens/channel/header/header.tsx` | 337 | not set (defaults to `false`) |\n| `app/products/agents/screens/agent_chat/header.tsx` | 75 | not set (defaults to `false`) |\n| `app/products/playbooks/screens/participant_playbooks/participant_playbooks.tsx` | 132 | not set (defaults to `false`) |\n\nThe definition is `app/components/navigation_header/index.tsx`. `app/hooks/navigation_header.tsx` and `app/routes/(authenticated)/thread.tsx` import the lower-level `Header` from `navigation_header/header`, not `NavigationHeader`, so they are not in this list.\n\n**How the ref reaches the search field**\n\n1. `search.tsx` creates `searchRef = useRef<SearchRef>(null)` (line 122) and passes it as `ref={searchRef}` to `NavigationHeader` (line 480).\n2. `NavigationHeader` (`navigation_header/index.tsx`, line 53) is a `forwardRef<SearchRef, Props>`. When `hasSearch` is true it renders `<NavigationSearch ... ref={ref}>` (line 134).\n3. `NavigationSearch` (`navigation_header/search.tsx`, line 34) is also a `forwardRef`. It wraps the shared `Search` component and passes `ref={ref}` through (line 89), along with styling and the `hideHeader` focus behaviour.\n4. `Search` (`app/components/search/index.tsx`, line 92) is a `forwardRef` that calls `useImperativeHandle(ref, ...)` (line 178). The exposed object is not the `TextInput`. It has `focus`, `blur`, `clear`, `cancel` and `setCaretPosition`, and each one delegates to an internal `searchRef` attached to the underlying `SearchBar` input (line 222).\n\nSo `search.tsx` calls methods on the handle, such as `searchRef.current?.focus()` (line 209) and `searchRef.current?.blur()` (line 447), and those land on the native input. The ref only does anything when `hasSearch` is true. With `hasSearch` false, the search branch isn't rendered and the ref is never attached.",
+  "ttft_ms": 1968,
+  "type": "result",
+  "duration_ms": 21653,
+  "uuid": "afe0de2b-09c3-49ea-8197-e577af592ea4",
+  "ttft_stream_ms": 1725,
+  "time_to_request_ms": 154,
+  "first_content_frame_ms": 1725,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

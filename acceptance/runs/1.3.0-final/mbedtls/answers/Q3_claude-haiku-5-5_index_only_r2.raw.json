@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 32925,
+  "stop_reason": "end_turn",
+  "session_id": "783b88eb-2cfe-4f2b-8603-efc25e108964",
+  "total_cost_usd": 0.011980280000000003,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 36652,
+    "cache_read_input_tokens": 205408,
+    "output_tokens": 5190,
+    "output_tokens_details": {
+      "thinking_tokens": 2748
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 36652,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3885,
+        "cache_read_input_tokens": 66197,
+        "cache_creation_input_tokens": 8692,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 8692
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 8,
+      "outputTokens": 5190,
+      "cacheReadInputTokens": 205408,
+      "cacheCreationInputTokens": 36652,
+      "webSearchRequests": 0,
+      "costUSD": 0.011980280000000003,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2748,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 36652,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 7,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** every heap allocation in the library goes through `mbedtls_calloc()` and `mbedtls_free()`. Those two functions are thin wrappers that call through a pair of pointers, and by default the pointers lead to libc `calloc` and `free`. A project swaps the allocator either at compile time (macros) or at run time (`mbedtls_platform_set_calloc_free`). The library's own stack-based allocator uses the same hook in reverse.\n\n**The call path**\n\n```\nlibrary code (cipher_wrap.c, ecp.c, x509*.c, ssl_*.c, psa_*.c, pem.c ...)\n    \u2502  mbedtls_calloc(n, sz)   /   mbedtls_free(p)\n    \u25bc\nlibrary/platform.c:47-55   (wrappers; compiled under MBEDTLS_PLATFORM_MEMORY)\n    \u2502  (*mbedtls_calloc_func)(n, sz)   /   (*mbedtls_free_func)(p)\n    \u25bc\nstatic pointers, platform.c:44-45, initialised to MBEDTLS_PLATFORM_STD_CALLOC / _FREE\n    \u2502\n    \u25bc  default: libc calloc / free  (platform.h:84, :87)\n```\n\n- **Default build:** `MBEDTLS_PLATFORM_MEMORY` is off (`mbedtls_config.h:208`). The standard functions are `calloc` and `free` (`platform.h:84`, `:87`). `mbedtls_calloc` and `mbedtls_free` are macros that map to the libc calls, so there is no extra indirection.\n- **Callers:** `mbedtls_calloc` has many callers across the library, including the cipher context allocators in `cipher_wrap.c`, `ecp_mul_comb` and `ecp_normalize_jac_many` in `ecp.c`, `mbedtls_pem_read_buffer` in `pem.c`, the X.509 parsers, the SSL session and cache code, and the PSA slot allocators. `mbedtls_free` has similarly broad use, including `mbedtls_zeroize_and_free` in `common.h`.\n\n**How a project substitutes its allocator**\n\nTwo routes, both documented in the `MBEDTLS_PLATFORM_MEMORY` member docs (`configs/ext/tfm_mbedcrypto_config_profile_medium.h`):\n\n1. **Run time.** Enable `MBEDTLS_PLATFORM_MEMORY` and leave the `_MACRO` options undefined. The library then exposes `mbedtls_platform_set_calloc_free(calloc_fn, free_fn)` (`library/platform.c:57-63`). Call it once, before any library allocation. The function only stores the two pointers, always returns 0, and does no validation or locking. Treat it as a process-wide setting. The docs say `mbedtls_free` must accept `NULL`.\n2. **Compile time.** Enable `MBEDTLS_PLATFORM_MEMORY` and define both `MBEDTLS_PLATFORM_CALLOC_MACRO` and `MBEDTLS_PLATFORM_FREE_MACRO`. `mbedtls_calloc` and `mbedtls_free` then expand directly to your functions. The repo's own examples are `tests/configs/user-config-malloc-0-null.h`, which uses `custom_calloc`, and `component_test_platform_calloc_macro`, which sets `CALLOC_MACRO calloc`. The index does not show the exact branch that excludes the runtime pointers in this mode, so I'd verify that in `platform.c` before relying on it.\n\n**What the library does with the facility itself**\n\n- **Stack-based allocator.** `mbedtls_memory_buffer_alloc_init(buf, len)` (`library/memory_buffer_alloc.c:566-600`) carves allocations out of a caller-supplied buffer and never calls libc. It installs its own functions by calling `mbedtls_platform_set_calloc_free`. It uses the mutexed variants when `MBEDTLS_THREADING_C` is on. This is the built-in example of substitution. It needs `MBEDTLS_PLATFORM_C` and `MBEDTLS_PLATFORM_MEMORY`, and it replaces the `calloc`/`free` calls rather than adding to them.\n- **Test and benchmark code.** The benchmark program and the selftests use the same hook. `component_test_psa_crypto_without_heap` builds a configuration where the core library cannot call `calloc`/`free` while test code and the driver can.\n\n**Things to check**\n\n- The index shows the `MBEDTLS_PLATFORM_STD_CALLOC` documentation naming `mbedtls_platform_std_calloc`, but no such symbol exists in this build. The docs and the code disagree on that name.\n- Because the pointers are process-global, a project cannot use one allocator for one connection and another for a second. The docs don't offer per-context allocators.",
+  "ttft_ms": 5498,
+  "type": "result",
+  "duration_ms": 33697,
+  "uuid": "7e741e45-54fa-49b4-ad6c-f6d65a84b344",
+  "ttft_stream_ms": 5018,
+  "time_to_request_ms": 69,
+  "first_content_frame_ms": 5018,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 42919,
+  "stop_reason": "end_turn",
+  "session_id": "8e54d889-d04c-43b5-a957-9eab8b32ff88",
+  "total_cost_usd": 0.01659393,
+  "usage": {
+    "input_tokens": 18,
+    "cache_creation_input_tokens": 36632,
+    "cache_read_input_tokens": 539423,
+    "output_tokens": 7743,
+    "output_tokens_details": {
+      "thinking_tokens": 3439
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 36632,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3254,
+        "cache_read_input_tokens": 75084,
+        "cache_creation_input_tokens": 571,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 571
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 18,
+      "outputTokens": 7743,
+      "cacheReadInputTokens": 539423,
+      "cacheCreationInputTokens": 36632,
+      "webSearchRequests": 0,
+      "costUSD": 0.01659393,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 3439,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 36632,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 13,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**How it's brought in:** llama.cpp is a git submodule at `extern/llama.cpp`, pinned to commit `20a04b22` (`.gitmodules`, gitlink in `git ls-files`). It is not a FetchContent dependency like spdlog, ryml, nlohmann/json, or httplib. `extern/CMakeLists.txt` builds it statically with `add_subdirectory(llama.cpp EXCLUDE_FROM_ALL)`. It turns on `LLAMA_BUILD_COMMON` and turns off tools, examples, server, and tests. It also adds `llama.cpp/tools/mtmd` for multimodal. `ENTROPIC_HAS_CUDA` is mapped to `GGML_CUDA`.\n\n**Two things to check in this checkout:**\n- `extern/llama.cpp` is an empty directory here, and `git submodule status` shows `-` (not initialized). Configure will fail until `git submodule update --init` runs. I did not run configure, so this is from reading the files.\n- Comments disagree with the pin. `extern/CMakeLists.txt` says \"pinned at b8420\" and \"NOT built in v1.8.0\". `speculative_compat.h` cites `253ba110b`. The gitlink says `20a04b22`. The comments are stale.\n\n**How the link flows:**\n\n```\nextern/llama.cpp (static)  \u2500\u2500 llama, llama-common, mtmd\n        \u2502\nsrc/inference  (OBJECT lib)   PRIVATE: llama, mtmd\n        \u2502                     PUBLIC:  llama-common\n        \u25bc\nsrc/facade  librentropic.so   LINK_ONLY: llama, mtmd, llama-common\n                              (absorbed; consumers never link llama)\n```\n\n**How far it reaches into entropic's source:**\n\n- **Inside `src/inference/` (the expected layer):** about nine files include `llama.h`, `chat.h`, `sampling.h`, `speculative.h` or `mtmd.h`. These are `llama_cpp_backend.{h,cpp}`, `llama_cpp_sampler`, `llama_cpp_tokenizer`, `grammar_registry`, `orchestrator`, `adapter_manager`, `speculative_compat`, and `tool_call_markers.h`. `llama_cpp_backend.h` alone has about 80 llama-touching lines. Across `src/`, 25 files reference `llama_`, `ggml_`, `mtmd_` or `common_` symbols, about 722 occurrences in total.\n\n- **Beyond that layer (the leaks):**\n  - `orchestrator.cpp` does `dynamic_cast<LlamaCppBackend*>` in about ten places. It also constructs backends directly at line 82.\n  - `secondary_model_loader.cpp:47` and `inference_c_api.cpp:594` also construct `LlamaCppBackend` directly.\n  - `src/facade/entropic.cpp` includes `llama_cpp_backend.h` and calls `llama_model_ptr()` and `llama_context_ptr()` for adapter load, unload and swap (around lines 2920\u20133001). It also calls `parse_response` for the gh#87 tool-call path.\n  - `interface_factory.cpp:412` also dynamic_casts to `LlamaCppBackend`.\n\n- **Public headers:** these don't include `llama.h`. They forward-declare `struct llama_model` and `struct llama_context` (`orchestrator.h:44-45`, `speculative_compat.h:47`) and expose raw `llama_context*` / `llama_model*` in some signatures (`orchestrator.h:759, 773, 892`; `speculative_compat.h:94`). The C API's `entropic.h` has no llama types, but its state-blob format is documented as bit-for-bit llama.cpp's `llama_state_get_data` output and not portable across llama.cpp commits (`entropic.h:928\u2013945`). That is a format-level coupling consumers can see.\n\n- **Clean:** `src/core`, `src/config` and `src/mcp` have no llama types. The matches there are comments or config keys such as `ggml_logging` and `llama_log_path`.\n\n**Bottom line:** the build dependency is a pinned, statically absorbed submodule. Source-level reach stops at `src/inference/`, but the orchestrator, the facade's adapter path, and the `speculative_compat` and `orchestrator` headers reach past it. Those are the places where a llama.cpp API change would ripple into entropic's own interfaces. The architecture doc's rule that interface contracts carry no third-party headers is not fully met by the forward-declared raw pointers in `orchestrator.h` and `speculative_compat.h`.",
+  "ttft_ms": 1600,
+  "type": "result",
+  "duration_ms": 43596,
+  "uuid": "8eff183a-0e25-46c4-8794-03269f8c0bf8",
+  "ttft_stream_ms": 1412,
+  "time_to_request_ms": 86,
+  "first_content_frame_ms": 1412,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names one path as part of stating a build option: `.clew.yaml`. It also mentions a \"Doxyfile\" and \"standalone manifest\", but gives no path for either.\n\nITEMS:\n.clew.yaml\nEND"
+}

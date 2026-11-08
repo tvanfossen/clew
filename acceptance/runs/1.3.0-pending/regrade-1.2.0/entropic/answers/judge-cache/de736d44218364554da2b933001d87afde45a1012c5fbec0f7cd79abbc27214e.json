@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Exceptions must not cross into C.** Both trampolines catch everything, print a traceback, and return a neutral code (`rc = 0` for hooks).\nVERDICT: HIT\nWHY: States that hook trampolines catch all exceptions (not letting them cross into C) and return rc = 0, a neutral pass-through code."
+}

@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 14234,
+  "stop_reason": "end_turn",
+  "session_id": "59fb1766-1dcf-435c-a68b-2fc2d29958c2",
+  "total_cost_usd": 0.008466540000000002,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 27742,
+    "cache_read_input_tokens": 178484,
+    "output_tokens": 2265,
+    "output_tokens_details": {
+      "thinking_tokens": 649
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 27742,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1338,
+        "cache_read_input_tokens": 57217,
+        "cache_creation_input_tokens": 8653,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 8653
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 8,
+      "outputTokens": 2265,
+      "cacheReadInputTokens": 178484,
+      "cacheCreationInputTokens": 27742,
+      "webSearchRequests": 0,
+      "costUSD": 0.008466540000000002,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 649,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 27742,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 7,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** clew measures staleness on three separate axes. Query tools refresh a stale data index themselves before answering. The caller only has to act on the axes the tool cannot clear, and each of those needs a different action.\n\n**How it knows.** `db_status` (`clew/mcp_server/state.py`) treats an index as stale when its build stamp is older than the server's, or when its sources have drifted since the build. Mtimes are what catch source drift: a version check alone once reported a pre-edit index as current. `freshness.py` names three axes:\n\n| Axis | Meaning | Cleared by |\n|---|---|---|\n| `data` | Database is older than the source | Rebuild. Done automatically on query. |\n| `code` | The server process loaded its modules before the source changed | Restarting the client only. Writes are refused until then. |\n| `schema` | Index was stamped by a newer build than this server expects | Nothing the consumer can do. A rebuild re-stamps the same newer version. |\n\n**What the caller is told.** Query replies carry a `staleness` block only when something is stale. A current index adds no notice, so the block stays a signal. Each notice says which action clears it. The `status` tool reports `stale` and interprets it. Replies that would make a definitive \"no rows\" claim against a schema-stale index have that claim rewritten, so a caller does not conclude a lock is absent when the real cause is an unrebuilt index.\n\n**What the caller does.**\n1. **Queries need no action for `data`.** `_answering_with_refresh` wraps each sync query tool. Before answering, `_auto_refresh` rebuilds a data-stale index under a per-repo build lock, and it builds an absent index in the background. Concurrent queries share one build. A refresh that stalls past `_LOCK_WAIT_SECONDS` (120 s) or fails degrades to answering from the old index, with the notice attached.\n2. **`code` staleness:** restart the MCP client. `stale_code_refusal` makes any write path (`build_or_refresh`) refuse rather than build with old logic. `force` does not override it.\n3. **`schema` staleness:** the index is newer than the server, so the fix is to run a matching clew build. Rebuilding through the same server does not clear it.\n4. **Explicit refresh:** `index(action='refresh')` or `build_or_refresh` if you need the rebuild now rather than on the next query.\n5. **Before concluding something is absent:** check the reply's `target` and any staleness notice first. A miss on a stale index is not evidence the symbol doesn't exist.\n\nThe design rejected two alternatives: reporting staleness and leaving the fix to the agent (agents often ignored the notice), and warning loudly while still writing (the warning was already present when a build dropped a layer). The notes cite these as measured incidents, not hypotheticals.\n\n**Caveat.** This answer comes from the index's documentation and symbol bodies, not from running the tool. A few symbol lookups came back with line-anchor mismatches, so the exact line numbers may have drifted.",
+  "ttft_ms": 1801,
+  "type": "result",
+  "duration_ms": 15594,
+  "uuid": "82ead744-7bdf-4a1d-93d8-026838c4f60b",
+  "ttft_stream_ms": 1202,
+  "time_to_request_ms": 95,
+  "first_content_frame_ms": 1202,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

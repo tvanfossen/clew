@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"tiers 3 and 4 survive any stated value. The module's summary is \"you can correct our guesses; you cannot un-discover a fact.\"\"\nVERDICT: HIT\nWHY: The answer says stated tiers replace one another while facts/ecosystem tiers (3, 4) accumulate and survive any stated value, which is the asymmetry the item describes."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`schema`, index newer than server: a rebuild cannot clear this. The client must restart.\" and \"`code`: a rebuild cannot clear this. Reads are still correct because the DB is opened per call.\"\nVERDICT: HIT\nWHY: The answer states that data is cleared by a refresh/rebuild while code (and newer-schema) staleness cannot be cleared by a rebuild and needs a client restart, and it says to read the axis list rather than the boolean `stale`."
+}

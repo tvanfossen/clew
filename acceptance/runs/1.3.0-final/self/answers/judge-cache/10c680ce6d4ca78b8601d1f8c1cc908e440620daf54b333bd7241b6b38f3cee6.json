@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: An unknown section name is refused by name with `DeclarationError`.\nVERDICT: MISS\nWHY: The answer says an unknown section is refused by name, but gives no reason (that ignoring would build with defaults while claiming the declaration was honoured) and doesn't mention the allowed set."
+}

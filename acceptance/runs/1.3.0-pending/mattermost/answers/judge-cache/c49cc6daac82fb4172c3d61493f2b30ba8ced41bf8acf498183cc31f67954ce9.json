@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes ServerDataOperator as an interface extending 14 mixin bases, but never mentions the `mix(ServerDataOperatorBase).with(...)` helper pattern."
+}

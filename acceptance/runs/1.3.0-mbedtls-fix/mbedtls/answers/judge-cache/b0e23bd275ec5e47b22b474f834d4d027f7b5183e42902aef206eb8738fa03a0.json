@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Add the code to the right header, e.g. `include/mbedtls/aes.h`. Pick an unused value in the module's range and write a Doxygen comment... Regenerate: `cd library && make` ... Don't edit `error.c` by hand.\nVERDICT: HIT\nWHY: The answer says to add a documented #define to the public header, regenerate error.c via the script, and not edit error.c by hand."
+}

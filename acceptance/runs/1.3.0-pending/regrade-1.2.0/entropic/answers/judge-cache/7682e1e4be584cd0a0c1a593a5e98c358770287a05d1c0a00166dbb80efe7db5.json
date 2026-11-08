@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `python/src/entropic/_bindings.py` is generated from `entropic.h`. The index says it covers every exported symbol, and that `scripts/gen_bindings.py` produces it.\nVERDICT: HIT\nWHY: The answer says the bindings are generated from the C header `entropic.h` by `scripts/gen_bindings.py`, so they are not hand-written."
+}

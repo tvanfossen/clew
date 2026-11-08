@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Schema, index newer than server, or code stale:** restart the MCP client. A rebuild cannot clear these, because it re-stamps the same newer version or the running process still holds old logic.\"\nVERDICT: HIT\nWHY: The answer states that when the index is newer than the server (schema axis), a rebuild can't clear it because it re-stamps the same newer version."
+}

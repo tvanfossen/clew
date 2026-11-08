@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the pthread example is gated on MBEDTLS_THREADING_C and \"not built by default\", but it never says that a default build creates no threads, nor that the example compiles to a stub main. It also hedges that the \"off by default\" claim is unverified."
+}

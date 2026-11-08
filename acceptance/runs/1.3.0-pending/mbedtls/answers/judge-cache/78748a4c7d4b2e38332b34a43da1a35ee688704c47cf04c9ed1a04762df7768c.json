@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the default routes through function pointers (`mbedtls_calloc_func`) and never states that a default build has no indirection with macros expanding directly to calloc/free."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never mentions MBEDTLS_CT_ASM or says it is derived from MBEDTLS_HAVE_ASM plus compiler predefined macros. It only says that asm selection depends on MBEDTLS_HAVE_ASM and a GCC-compatible compiler."
+}

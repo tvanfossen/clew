@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The two parts are joined with `\" : \"`, giving `\"RSA - Bad input parameters to function : AES - Invalid key length\"`.\"\nVERDICT: HIT\nWHY: The answer describes the high-level (module) and low-level parts and that both are rendered joined with \" : \" when the low part is nonzero."
+}

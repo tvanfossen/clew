@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Handlers do not write directly. The path is: 1. A handler method ... calls `ServerDataOperatorBase.execute(...)` ... 3. `BaseDataOperator.batchRecords` (`app/database/operator/base_data_operator/index.ts:191`) does the actual write\nVERDICT: MISS\nWHY: The answer says all writes go through the inherited `batchRecords`, but it never gives the reason that each mixin is constrained to extend `ServerDataOperatorBase`. It also only claims this for handlers that go through `execute`."
+}

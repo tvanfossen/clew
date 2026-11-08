@@ -1,0 +1,163 @@
+{
+  "cell": "Q4_claude-haiku-5-5_index_r3",
+  "arm": "index",
+  "rubric_version": "5.0.0",
+  "rubric_digest": "d8447c7b18eafbf5",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.10344827586206896,
+  "unmarked_pct": 0.20689655172413793,
+  "split_decisions": 0,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "states that call_edges stores one row per extraction LAYER, so the same logical edge found by two detectors is stored twice",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never mentions that call_edges stores one row per extraction layer or that the same edge found by two detectors is stored twice. || QUOTE: NONE | WHY: The answer never says call_edges stores one row per extraction layer or that the same edge found by two detectors is stored twice.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that the query surface returns ONE row per neighbour rather than one per layer, collapsing the variants to the strongest evidence",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never says the query surface returns one row per neighbour collapsed to the strongest evidence across layers; it only discusses confidence, edge_class, truncation, and name collisions. || QUOTE: NONE | WHY: The answer never says the query surface returns one row per neighbour collapsed to the strongest evidence rather than one per layer; it only notes the rows are shared across name-matching identities and mixed in edge type. || QUOTE: NONE | WHY: The answer discusses truncation, name collisions and mixed edge types, but never says the surface returns one row per neighbour with layer variants collapsed to the strongest evidence.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies that which layer's provenance a collapsed row reports is decided by a RANKING held in the vocabulary module, not by SQL",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never mentions provenance ranking in the vocabulary module; it only discusses callers, edge classes, and truncation. || QUOTE: NONE | WHY: The answer never mentions a ranking in the vocabulary module deciding which layer's provenance a collapsed row reports; it only describes callers, edge_class and truncation. || QUOTE: NONE | WHY: The answer discusses dossier callers output and caveats, and never mentions a ranking in the vocabulary module deciding which layer's provenance a collapsed row reports.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the same collapse function serves BOTH the flat neighbour surface and the traversal surface, so a chain and a neighbour list cannot disagree about one edge's provenance",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never mentions a shared collapse function serving both the flat neighbour surface and the traversal surface, or consistency of edge provenance between them. || QUOTE: NONE | WHY: The answer never says that one collapse function serves both the flat neighbour surface and the traversal surface, so a chain and a neighbour list can't disagree about an edge's provenance. || QUOTE: NONE | WHY: The answer never says one collapse function serves both the flat neighbour surface and the traversal surface, so a chain and a neighbour list cannot disagree on an edge's provenance.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies that the flat surface KEEPS fuzzy-confidence edges while the traversal surface excludes them, and gives the reason \u2014 a walk expands each hop, so one fuzzy edge multiplies into a wrong subtree",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never contrasts a flat surface that keeps fuzzy-confidence edges with a traversal surface that excludes them, nor explains that a walk multiplies a fuzzy edge into a wrong subtree. || QUOTE: NONE | WHY: The answer never contrasts a flat surface that keeps fuzzy-confidence edges with a traversal surface that excludes them, nor says why walks multiply a fuzzy edge into a wrong subtree. || QUOTE: NONE | WHY: The answer never discusses flat surfaces keeping fuzzy-confidence edges versus traversal excluding them, nor the multiplication-of-wrong-subtree rationale.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that `callers`/`callees` return TWO KINDS of neighbour in one list \u2014 direct calls and shared-key dataflow \u2014 distinguished by an `edge_class` field the consumer must read",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"Mixed edge types. Rows can be direct calls, function-pointer dispatch, or writers feeding the function through shared data. Treating all of them as \"who calls this\" overstates direct invocation. The `edge_class` and `confidence` fields are there to separate them.\" | WHY: The answer states that callers mix direct calls with shared-data writers (dataflow) and that the `edge_class` field distinguishes them. || QUOTE: \"Rows can be direct calls, function-pointer dispatch, or writers feeding the function through shared data. Treating all of them as \"who calls this\" overstates direct invocation. The `edge_class` and `confidence` fields are there to separate them.\" | WHY: The answer says the callers list mixes direct calls with shared-data writers and that `edge_class` is the field that separates them. || QUOTE: \"Rows can be direct calls, function-pointer dispatch, or writers feeding the function through shared data. Treating all of them as \"who calls this\" overstates direct invocation. The `edge_class` and `confidence` fields are there to separate them.\" | WHY: The answer says the callers list mixes direct calls with shared-data writers (dataflow) and that `edge_class` is the field that separates them.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "notes that the causal polarity is INVERTED between the two halves \u2014 the \"callers\" of a reader are the functions whose writes it observes",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: `search` describes the callers relation as \"its callers plus the writers it reads from,\" so it can also include dataflow writers, not just call sites. | WHY: The answer says callers may include dataflow writers a function reads from, but it never says the polarity is inverted between the two halves, so the specific point is absent. || QUOTE: \"`search` describes the callers relation as \"its callers plus the writers it reads from,\" so it can also include dataflow writers, not just call sites.\" | WHY: The answer notes callers can include dataflow writers, but never states that the causal polarity is inverted between the two halves or that a reader's \"callers\" are the functions whose writes it observes. || QUOTE: `search` describes the callers relation as \"its callers plus the writers it reads from,\" so it can also include dataflow writers, not just call sites. | WHY: The answer notes that callers can include dataflow writers, but it never states that the causal polarity is inverted between the two halves, nor that a reader's \"callers\" are the functions whose writes it observes.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that dossier does NOT take the merged form \u2014 it asks for the call half only, because it already composes the dataflow separately and merging would report each dataflow edge twice in one payload",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never mentions that dossier takes only the call half rather than the merged callers-plus-writers form, nor the double-reporting of dataflow edges. || QUOTE: NONE | WHY: The answer never says dossier uses the call half only or that a merged form would double-report dataflow edges. || QUOTE: NONE | WHY: The answer never says dossier uses only the call half rather than a merged form, nor that merging would double-report dataflow edges.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies that the two surfaces resolve the FOCAL side differently \u2014 the flat surface selects by resolved identity while the traversal surface still matches on the bare name",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: The reply reported 8 candidate identities of 25 total named `main`. The contract says neighbour rows are shared across every identity that matches the name... I did not verify whether those actually reach `acceptance/__main__.py:main`. | WHY: The answer notes name-shared neighbour rows but never states that the flat surface selects by resolved identity while the traversal surface matches on the bare name. || QUOTE: The reply reported 8 candidate identities of 25 total named `main`. The contract says neighbour rows are shared across every identity that matches the name... I did not verify whether those actually reach `acceptance/__main__.py:main`. | WHY: The answer notes name-shared neighbour rows but never says the flat surface selects by resolved identity while the traversal surface matches on the bare name. || QUOTE: NONE | WHY: The answer notes name collisions and the `qualified=` fix but never says the flat surface selects by resolved identity while the traversal (callers) surface still matches on the bare name.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide what a neighbour list contains",
+      "kind": "set",
+      "weight": 1,
+      "hit": null,
+      "detail": "extraction matched no member \u2014 likely a key mismatch, not a wrong answer. extracted ['acceptance/__main__.py', 'scripts/hook_probe.py', 'tests/data/csample/test/test_sound.c']; members ['call_edges.py', 'dossier.py', 'symbols.py', 'traversal.py', 'vocabulary.py']",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide what a neighbour list contains",
+      "kind": "set",
+      "weight": 1,
+      "hit": null,
+      "detail": "extraction matched no member \u2014 likely a key mismatch, not a wrong answer. extracted ['acceptance/__main__.py', 'scripts/hook_probe.py', 'tests/data/csample/test/test_sound.c']; members ['call_edges.py', 'dossier.py', 'symbols.py', 'traversal.py', 'vocabulary.py']",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide what a neighbour list contains",
+      "kind": "set",
+      "weight": 1,
+      "hit": null,
+      "detail": "extraction matched no member \u2014 likely a key mismatch, not a wrong answer. extracted ['acceptance/__main__.py', 'scripts/hook_probe.py', 'tests/data/csample/test/test_sound.c']; members ['call_edges.py', 'dossier.py', 'symbols.py', 'traversal.py', 'vocabulary.py']",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide what a neighbour list contains",
+      "kind": "set",
+      "weight": 1,
+      "hit": null,
+      "detail": "extraction matched no member \u2014 likely a key mismatch, not a wrong answer. extracted ['acceptance/__main__.py', 'scripts/hook_probe.py', 'tests/data/csample/test/test_sound.c']; members ['call_edges.py', 'dossier.py', 'symbols.py', 'traversal.py', 'vocabulary.py']",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide what a neighbour list contains",
+      "kind": "set",
+      "weight": 1,
+      "hit": null,
+      "detail": "extraction matched no member \u2014 likely a key mismatch, not a wrong answer. extracted ['acceptance/__main__.py', 'scripts/hook_probe.py', 'tests/data/csample/test/test_sound.c']; members ['call_edges.py', 'dossier.py', 'symbols.py', 'traversal.py', 'vocabulary.py']",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide what a neighbour list contains",
+      "kind": "set",
+      "weight": 1,
+      "hit": null,
+      "detail": "extraction matched no member \u2014 likely a key mismatch, not a wrong answer. extracted ['acceptance/__main__.py', 'scripts/hook_probe.py', 'tests/data/csample/test/test_sound.c']; members ['call_edges.py', 'dossier.py', 'symbols.py', 'traversal.py', 'vocabulary.py']",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    }
+  ]
+}

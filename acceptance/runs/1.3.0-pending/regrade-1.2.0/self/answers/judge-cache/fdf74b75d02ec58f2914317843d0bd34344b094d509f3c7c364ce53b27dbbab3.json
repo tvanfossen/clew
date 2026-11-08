@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `--declare FILE` on the CLI, or the `options` argument to `build_index` / `index(action='refresh')` over MCP.\nVERDICT: HIT\nWHY: The answer places tier 1 explicitly reachable via both the CLI flag `--declare` and the structured `options` argument to `build_index` / MCP refresh."
+}

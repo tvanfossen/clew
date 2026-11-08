@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "ITEMS:\n.clew.yaml\n.doxygen-guard.yaml\nclew/tiers.py\ntests/test_tiers.py\ntests/test_declaration.py\nEND"
+}

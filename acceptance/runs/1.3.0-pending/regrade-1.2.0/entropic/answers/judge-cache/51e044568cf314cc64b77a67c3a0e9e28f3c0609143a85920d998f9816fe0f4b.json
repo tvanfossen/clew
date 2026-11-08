@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A real failure and legitimately empty input look the same to the caller. The error log is the only signal.\nVERDICT: HIT\nWHY: It states that failure returns `{}`, which is indistinguishable from empty input. The callers table and the \"no `tokens.empty()` guard\" line show that none of them check for it."
+}

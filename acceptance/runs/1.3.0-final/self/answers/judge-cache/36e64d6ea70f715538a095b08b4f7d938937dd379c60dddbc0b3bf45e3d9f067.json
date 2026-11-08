@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "ITEMS:\n.clew.yaml\n.doxygen-guard.yaml\nclew/tiers.py\nNONE\nEND\n\nWait \u2014 correcting that: the block must contain only the real items.\n\nITEMS:\n.clew.yaml\n.doxygen-guard.yaml\nclew/tiers.py\nEND"
+}

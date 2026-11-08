@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `programs/ssl/ssl_server2.c:8`, `programs/ssl/ssl_client2.c:8` | Each defines the macro before `ssl_test_lib.h`, so they read and write fields directly. These are test/demo programs, not shipped API.\nVERDICT: HIT\nWHY: The answer states that example programs (ssl_server2.c, ssl_client2.c) define the opt-out themselves to access fields directly, bypassing the public API."
+}

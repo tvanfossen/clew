@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Code that writes `ctx.foo` fails to compile because no such field exists. The layout is unchanged. What changes is the name\"\nVERDICT: HIT\nWHY: The answer states the opacity is enforced at compile time by renaming the member (`private_foo`) while the struct layout stays unchanged."
+}

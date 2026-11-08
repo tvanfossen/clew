@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer explains how to interpret empty search results, but never states the rule \"fix the corpus, not the sentence about the corpus\" (i.e., widen what is indexed rather than only rewording the claim about it)."
+}

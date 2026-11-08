@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `.clew.yaml` accepts the sections in `KNOWN_SECTIONS`... | MCP `index(options=\u2026)` | The `options` argument, keyed by `.clew.yaml` section names | Same as a declaration, since MCP passes no flags\n\nVERDICT: MISS\n\nWHY: The answer says MCP options are keyed by `.clew.yaml` section names, but it never says that the embedding caller's option names are the same words as the diagnostics use. It also doesn't state the three-way identity the item requires."
+}

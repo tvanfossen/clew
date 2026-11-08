@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A build through an outdated process would run old pipeline logic and re-stamp the index with it, dropping layers. `stale_code_refusal` (`freshness.py`) refuses writes in that case\nVERDICT: MISS\nWHY: The answer covers the build-through-stale-process write risk but never states that reads remain current because query tools open the database per call; the asymmetry is absent."
+}

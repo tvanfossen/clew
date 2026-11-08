@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 24054,
+  "stop_reason": "end_turn",
+  "session_id": "71bb4c23-3f50-4e37-915a-7d2c37000167",
+  "total_cost_usd": 0.01180382,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 33384,
+    "cache_read_input_tokens": 304632,
+    "output_tokens": 4159,
+    "output_tokens_details": {
+      "thinking_tokens": 1788
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 33384,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2663,
+        "cache_read_input_tokens": 64473,
+        "cache_creation_input_tokens": 7174,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 7174
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 4159,
+      "cacheReadInputTokens": 304632,
+      "cacheCreationInputTokens": 33384,
+      "webSearchRequests": 0,
+      "costUSD": 0.01180382,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1788,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 33384,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 14,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The string is built in `library/error.c`, and the switch arms that map each code to text are generated, so a contributor adds the code in a header and regenerates rather than hand-editing `error.c`.\n\n**Runtime path (answered from the index)**\n\n```\ncaller: mbedtls_strerror(ret, buf, buflen)        library/error.c:792\n  \u2502  buflen == 0 \u2192 return\n  \u2502  zero buf; ret = -ret if negative\n  \u251c\u2500 ret & 0xFF80 (high-level part, module) \u2500\u2500\u25ba mbedtls_high_level_strerr(ret)   error.c:174\n  \u2502     e.g. \"CIPHER - Bad input parameters\"       (unknown \u2192 \"UNKNOWN ERROR CODE (%04X)\")\n  \u2502     if that module is SSL fatal alert \u2192 return, skip low-level part\n  \u251c\u2500 ret & ~0xFF80 (low-level part) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u25ba mbedtls_low_level_strerr(ret)    error.c:537\n  \u2502     e.g. \"NET - Failed to open a socket\"       (unknown \u2192 \"UNKNOWN ERROR CODE (%04X)\")\n  \u2514\u2500 both present \u2192 join with \" : \" (only if \u22655 bytes remain), then append low-level text\n```\n\n- `mbedtls_strerror` returns `void`. It writes into the caller's buffer and always NUL-terminates it, truncating if needed.\n- Each switch arm is wrapped in the module's `#if defined(MBEDTLS_xxx_C)`, so a module compiled out has no translation.\n- The whole function is gated by `MBEDTLS_ERROR_C`. A second definition at `error.c:867` covers the `MBEDTLS_ERROR_STRERROR_DUMMY` case, which is used when `MBEDTLS_ERROR_C` is off.\n- The two lookup functions are marked \"Begin Auto-Generated Code\" in `error.c`.\n\n**Adding a new code**\n\n1. Define the `MBEDTLS_ERR_<MODULE>_<NAME>` macro in the module's public header under `include/mbedtls/`. The index shows these as plain `#define`s with negative values, e.g. `MBEDTLS_ERR_ENTROPY_NO_SOURCES_DEFINED` is `-0x0040` in `entropy.h:43`. It must fall in the correct band: high-level bits for the module, low bits for the sub-code.\n2. Add the description text to the generator's input. `scripts/generate_errors.pl` takes `include_dir data_dir error_file` (or no arguments) and writes `error.c`. The index cannot show where the description strings live. The data files are not indexed, so check the script source and its data directory before editing.\n3. Regenerate `library/error.c` with `scripts/generate_errors.pl` through the project's normal entry point rather than by hand. Do not edit the generated arms directly.\n4. Commit the header, the data, and the regenerated `error.c` together. `tests/scripts/check-generated-files.sh` checks that generated files are up to date, so a hand-edited or stale `error.c` should fail that check.\n5. Run the gate through pre-commit, per `AGENTS.md`. Because `error.c` changes, the `mbedtls_strerror` body changes are not affected, but if you touch any function body, bump its `@version`.\n\n**What I could not confirm from the index**\n\n- The generator's internals and the exact invocation, since `generate_errors.pl` has no indexed symbols beyond its file doc.\n- Where the description strings are stored.\n- Whether adding a brand-new module needs extra registration beyond a new `#if` block.\n\nReading `scripts/generate_errors.pl` and its data directory directly would settle those three points.",
+  "ttft_ms": 1399,
+  "type": "result",
+  "duration_ms": 25056,
+  "uuid": "3a48a63b-017b-4369-ba54-f7515832c542",
+  "ttft_stream_ms": 1072,
+  "time_to_request_ms": 68,
+  "first_content_frame_ms": 1072,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

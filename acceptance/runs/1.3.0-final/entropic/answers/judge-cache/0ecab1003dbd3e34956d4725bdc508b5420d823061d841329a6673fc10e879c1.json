@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The real problem is the one above: failure is swallowed into an empty result that the rest of the stack cannot tell apart from a legitimately empty prompt.\" and \"The callers do not check for empty\"\nVERDICT: HIT\nWHY: The answer states that a failed tokenization is indistinguishable from a legitimately empty result and that callers do not check for empty."
+}

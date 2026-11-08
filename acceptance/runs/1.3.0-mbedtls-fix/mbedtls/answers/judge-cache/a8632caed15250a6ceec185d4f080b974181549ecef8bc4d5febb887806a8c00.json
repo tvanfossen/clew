@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer only says the shipped default comes from `default_state: off` entries and tells the reader to confirm those lines. It never states that the shipped config leaves both threading macros undefined, so a default build defines neither."
+}

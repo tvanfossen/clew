@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer gives a table of confidence levels (strong, weak, none) based on corpus and scope, but never identifies three distinct reply grades: definitive for the scope, definitive for a reason other than absence, and not definitive."
+}

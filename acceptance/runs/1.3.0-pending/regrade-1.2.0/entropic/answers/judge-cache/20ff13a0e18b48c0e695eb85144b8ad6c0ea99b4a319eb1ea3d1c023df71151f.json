@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer names PermissionManager and the allow/deny lists, but it never says they come from the PermissionsConfig the ServerManager is constructed with. It only says config feeds PermissionsConfig via parse_permissions_config."
+}

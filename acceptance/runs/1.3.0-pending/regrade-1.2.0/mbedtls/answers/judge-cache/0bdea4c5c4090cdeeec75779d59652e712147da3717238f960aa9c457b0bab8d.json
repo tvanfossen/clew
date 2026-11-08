@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_ct_compiler_opaque()` is an empty `asm volatile` barrier when assembly is available.\nVERDICT: MISS\nWHY: The answer says the opaque function is an empty `asm volatile` barrier. It never says the value is an input-output register operand, and it never says that no instruction is emitted and the statement exists only as an optimisation barrier. It also says the hand-written asm primitives are what stop the compiler emitting branches. That is a different mechanism from the one the item describes."
+}

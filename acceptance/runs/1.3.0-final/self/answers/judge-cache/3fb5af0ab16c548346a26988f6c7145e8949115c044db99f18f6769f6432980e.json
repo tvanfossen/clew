@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `scope`: the covered shape. Here that is 426 files, whole-repo, with `top_levels`, the indexed `extensions`, and `not_indexed` with counts (`.rs=2`, `.toml=2`, `.csv=3`, `.sql=1`, no-extension=3, and others).\nVERDICT: MISS\nWHY: The answer describes `not_indexed` (file types excluded) and `extensions`, but the item requires the reply to name file types that were in scope yet produced no rows. The answer never states that."
+}

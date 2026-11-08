@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_ct_compiler_opaque()` is an empty `asm volatile` with a `+r` constraint, or in the C path an XOR with a `volatile` zero (`mbedtls_ct_zero`).\nVERDICT: HIT\nWHY: The answer says the C fallback XORs with a volatile zero and names the global `mbedtls_ct_zero`, though it never says \"extern\"."
+}

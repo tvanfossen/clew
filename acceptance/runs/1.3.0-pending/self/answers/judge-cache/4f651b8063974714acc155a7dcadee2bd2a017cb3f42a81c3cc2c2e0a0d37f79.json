@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes several distinct downgrade conditions (unread-corpus hits, missing file_docs, conjunction misses) and never states that there is exactly one absent-corpus downgrade or that keeping it to one avoids a blanket hedge."
+}

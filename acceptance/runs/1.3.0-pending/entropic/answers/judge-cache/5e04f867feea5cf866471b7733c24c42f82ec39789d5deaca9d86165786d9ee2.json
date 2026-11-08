@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **No callback and no allow match** means the call is denied.\nVERDICT: MISS\nWHY: The answer says a tool matching neither list is denied when there is no callback, and approved when a callback exists. It never concludes the effective posture is default-allow at the blocking gate."
+}

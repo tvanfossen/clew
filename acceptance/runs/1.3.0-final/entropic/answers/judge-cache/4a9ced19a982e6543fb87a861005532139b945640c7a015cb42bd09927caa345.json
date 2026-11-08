@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Most of the llama.cpp surface is here: `llama_cpp_backend.{h,cpp}` ... Facade (shallow). `src/facade/entropic.cpp` includes `llama_cpp_backend.h` ... Public headers (leaks at the type level). `include/entropic/inference/orchestrator.h`, `adapter_manager.h` and `speculative_compat.h` forward-declare `struct llama_model`...\nVERDICT: HIT\nWHY: The answer says the surface is mostly in src/inference but also reaches the facade and public headers outside it, so it is concentrated there but not contained."
+}

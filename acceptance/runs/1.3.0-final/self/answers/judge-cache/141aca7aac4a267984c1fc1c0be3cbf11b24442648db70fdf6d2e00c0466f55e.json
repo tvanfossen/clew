@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: CLI flag ... 1 (explicit); `.clew.yaml` ... 2 (declared); Facts ... 3 (target-fact); Known-ecosystem signatures ... 4 (ecosystem); Name-pattern guesses ... 5 (heuristic)\nVERDICT: HIT\nWHY: The answer lays out five named precedence tiers (explicit, declared, target-fact, ecosystem, heuristic) and the resolution formula across them, not a single override."
+}

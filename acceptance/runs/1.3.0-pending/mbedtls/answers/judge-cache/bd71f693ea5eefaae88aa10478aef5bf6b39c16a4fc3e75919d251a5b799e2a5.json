@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says the macro is applied at hundreds of sites in the public headers rather than library implementation; it only notes \"336 signatures\" ambiguity without that scale or location claim."
+}

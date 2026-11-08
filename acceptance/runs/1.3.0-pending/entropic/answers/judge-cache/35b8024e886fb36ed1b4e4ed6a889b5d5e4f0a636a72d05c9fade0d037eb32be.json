@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: There is no pybind11, Cython, or C extension. The Python package calls `librentropic.so` through `ctypes`.\nVERDICT: HIT\nWHY: The answer states ctypes over librentropic.so is the mechanism and explicitly rules out any compiled extension module."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"When it is off, `platform.c:32` installs `platform_calloc_uninit`, which always returns `NULL`. In that configuration every allocation fails until the integrator installs an allocator. I inferred this from the `#if` gating in the index rather than from the header text, so check `platform.c:20-40` before relying on it. I did not confirm the matching default for the free pointer.\"\nVERDICT: MISS\nWHY: The answer states that the calloc default returns NULL, but it explicitly does not confirm the free default, so it never says the uninitialised free does nothing. The item needs both halves."
+}

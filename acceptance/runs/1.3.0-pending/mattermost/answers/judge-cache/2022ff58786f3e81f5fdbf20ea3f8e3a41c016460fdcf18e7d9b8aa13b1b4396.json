@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: saves the post locally first, as a pending record with a `pending_post_id`, so it shows in the UI right away ... the local post is rewritten with `props.failed = true`, and kept.\nVERDICT: HIT\nWHY: The answer states the post is saved to the local DB before being sent, and on failure it is kept with `failed = true`."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Enabling `MBEDTLS_THREADING_C` plus `MBEDTLS_THREADING_PTHREAD` (or an ALT implementation) turns on the locks\nVERDICT: HIT\nWHY: The answer names both MBEDTLS_THREADING_C and MBEDTLS_THREADING_PTHREAD as the macros that must be enabled to turn on locking, and explains that THREADING_C is the guard on the library's locks."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `app/actions/websocket/channel.ts:463-468` (channel archived/deleted WS event) | Channel stays in the local DB as archived | If the user is viewing that channel, kick them out with `CHANNEL_ARCHIVED`; then remove the current user from the channel locally\nVERDICT: MISS\nWHY: The answer gives the not-viewable behavior (kick out if current channel, remove user), but for the viewable case it says only \"stays in the local DB as archived\", never that the channel is kept and marked deleted (delete_at set)."
+}

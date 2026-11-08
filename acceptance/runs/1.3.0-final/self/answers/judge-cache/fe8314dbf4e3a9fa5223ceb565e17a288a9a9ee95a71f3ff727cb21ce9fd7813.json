@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: There are four ways to say so, ordered by precedence, plus one piece of side input. ... | 1 | CLI flag ... | 2 | `.clew.yaml` ... | 3 | Facts someone already wrote ... | 4 | Known-ecosystem signatures ... | 5 | Name-pattern heuristics, the floor\nVERDICT: HIT\nWHY: The answer's table lays out five named precedence tiers (flag, .clew.yaml, facts, ecosystem signatures, name-pattern heuristics) rather than a single override, though its prose says \"four ways plus side input.\""
+}

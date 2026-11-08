@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the assembly path needs MBEDTLS_HAVE_ASM and GNU-compatible __GNUC__, but it never names MBEDTLS_CT_ASM or says it is derived rather than configured."
+}

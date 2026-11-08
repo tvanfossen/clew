@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: | 2 | Repo's `.clew.yaml` (repo root only) | Replaces the stated layer |\nVERDICT: HIT\nWHY: The answer places `.clew.yaml` at tier 2 and says it is read only from the repo root. It never says both entry points discover it, but the CLI and MCP refresh paths are both mentioned as handling the declaration, which is enough for the substance."
+}

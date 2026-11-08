@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 31511,
+  "stop_reason": "end_turn",
+  "session_id": "b6fa8b6d-6072-41c5-8428-1c84443518b8",
+  "total_cost_usd": 0.011488990000000001,
+  "usage": {
+    "input_tokens": 16,
+    "cache_creation_input_tokens": 25435,
+    "cache_read_input_tokens": 352139,
+    "output_tokens": 5758,
+    "output_tokens_details": {
+      "thinking_tokens": 2245
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 25435,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2704,
+        "cache_read_input_tokens": 58272,
+        "cache_creation_input_tokens": 1310,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1310
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 16,
+      "outputTokens": 5758,
+      "cacheReadInputTokens": 352139,
+      "cacheCreationInputTokens": 25435,
+      "webSearchRequests": 0,
+      "costUSD": 0.011488990000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2245,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 25435,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 12,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** a `callers` result is a list of neighbouring functions, one row per caller-callee pair, each with a provenance label and a confidence grade. It is not a list of call sites. It also mixes in edges that are not calls, and an empty list does not mean nothing calls the function.\n\nI answered from the source (`clew/query/models.py`, `clew/query/symbols.py`, `clew/query/dossier.py`, `clew/call_edges.py`). I did not run clew against this tree.\n\n## What is in the answer\n\nFor each neighbour, a `CallEdge` carries:\n\n| Field | Meaning |\n|---|---|\n| `name`, `rowid` | The other function, by name and identity. |\n| `edge_class` | `'call'` for a direct call, `'key'` for a shared-key dataflow edge with no call between the two. |\n| `source` | Which layer found it: `doxygen_sqlite`, `ast`, `ast_member`, `fnptr`, `macro_hop`, `declared_dispatch`, `binding`. |\n| `confidence` | `exact`, `resolved` or `fuzzy` (for call edges). |\n| `via_macro`, `via_macro_expansion` | Set when a macro invocation produced the hop. The expansion is doxygen's text, quoted verbatim. |\n| `implementors` | For a virtual endpoint, the known overriding bodies. An annotation, not an edge. |\n\nThe `dossier` also carries `callers_unresolved` (a count of call sites that named this function but did not resolve), `external_callees`, `macro_collision`, and `context_conflicts`. `name_ambiguity` is computed separately at the MCP layer.\n\n## What makes it wrong to read as call sites\n\n1. **One row per pair, not per site.** `UNIQUE(caller, callee, source)` collapses a caller that calls the function five times into one row. `CallEdge` has no line number, so you cannot see where in the caller the call happens.\n\n2. **Namesakes are linked.** An `ast_member` edge keeps only the unqualified tail of `obj.method()` and never checks the receiver's type. Every same-named function gets an edge from every such site. The model's own example: `Get` matches 33 functions and accumulates 162 callers, of which at most one per site is real. `confidence='fuzzy'` flags this but does not give the count. `name_ambiguity` does.\n\n3. **Empty does not mean none.** `callers: []` means \"nothing calls this\" only when `callers_unresolved` is 0. `None` means the index predates the measurement, so the absence of a count proves nothing.\n\n4. **Not every row is a caller.** `callers()` also returns `'key'` rows: functions that write a value this one reads. They do not call it, and may run on another thread. `dossier` keeps them out of `callers` and reports them under writes/reads, but the library function merges them. Check `edge_class` on every row.\n\n5. **Indirect dispatch is attributed by resolution, not by path.** `fnptr` edges resolve a call through a function pointer to the function registered in the callback layer. The list does not say which registration site or which thread.\n\n6. **Macro hops have no text in the caller.** A `macro_hop` row exists because a macro invocation expands to a call. Without `via_macro` a reader sees a `resolved` edge with no visible call.\n\n7. **Liveness is a separate question.** A caller in the list may be dead code. Reachability lives in its own field.\n\n8. **It is a snapshot.** Queries refresh a stale index first. The README says a newly added cross-file call in Python or Rust is not seen until a full rebuild, because the include-graph pass reads `#include`, which those languages lack there.\n\n## Practical reading\n\nTreat `callers` as \"these functions probably reach this one, here is how sure the index is, and here is how many sites it could not place.\" Before quoting a count or saying something is unused, check `edge_class`, `confidence`, `callers_unresolved`, and whether the name is ambiguous. For a line-level answer, go to the source.",
+  "ttft_ms": 1444,
+  "type": "result",
+  "duration_ms": 32048,
+  "uuid": "a1551a2d-cbd1-44a6-8705-7f87550c82df",
+  "ttft_stream_ms": 1148,
+  "time_to_request_ms": 185,
+  "first_content_frame_ms": 1148,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

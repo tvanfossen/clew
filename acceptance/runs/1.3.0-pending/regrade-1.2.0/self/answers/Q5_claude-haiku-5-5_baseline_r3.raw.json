@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 43337,
+  "stop_reason": "end_turn",
+  "session_id": "8dfaf23d-b3f9-49eb-bce3-217e06e05df5",
+  "total_cost_usd": 0.01441194,
+  "usage": {
+    "input_tokens": 20,
+    "cache_creation_input_tokens": 32797,
+    "cache_read_input_tokens": 506404,
+    "output_tokens": 5573,
+    "output_tokens_details": {
+      "thinking_tokens": 2291
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 32797,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2185,
+        "cache_read_input_tokens": 65722,
+        "cache_creation_input_tokens": 609,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 609
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 20,
+      "outputTokens": 5573,
+      "cacheReadInputTokens": 506404,
+      "cacheCreationInputTokens": 32797,
+      "webSearchRequests": 0,
+      "costUSD": 0.01441194,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2291,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 32797,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 11,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Ways to say so**, in order of precedence:\n\n| Route | Where | Scope |\n|---|---|---|\n| **Tier 1, stated for one build** | `--declare FILE`, or the `options` argument of `build_index()` / MCP `index(action=\"refresh\")` | This build only, but recorded in `build_meta` and replayed by later builds of that database |\n| **Tier 2, the repo's standing declaration** | `<repo>/.clew.yaml`, same section names as the flags | Every build of that repo, CLI and MCP alike |\n| **Tier 3/4, facts the repo already wrote** | Doxygen `PREDEFINED`/`ALIASES`, generator manifests, language or ecosystem signatures | Accumulate; no declaration removes them |\n| **Tier 5, built-in heuristics** | Name-pattern guesses | The floor; any stated tier displaces them |\n\nThe `.clew.yaml` sections are `index_scope` (roots/excludes), `preprocessor`, `requirements`, `thread_patterns`, `shared_key_patterns`, `locks`, `dispatch`, `mqtt_dispatch`, `data_model`, `kconfig`, `event_tags`, `entry_patterns`, `enrich`, and similar. The `guard:` section is the gate's and is ignored by the index's declaration loader.\n\nOnly six CLI arguments remain: `--output`, `--repo-root`, `--declare`, `--exclude`, `--rebuild`, `--verbose`. Everything else is a declaration. `--exclude` is the exception that is not a declaration: it is recorded into the index and replayed.\n\n**When two disagree**\n\n- **`--declare` or `options` vs `.clew.yaml`:** the stated value wins for that section. The rule is per section, not per file. Other sections in the file still apply. For `index_scope`, the stated block replaces the file's block; it does not merge with it.\n- **`index_scope` vs `--scope`:** the default `--scope` is `from-guard`, which reads `index_scope`. Passing any other `--scope` (such as `doxyfile`) while `index_scope` is stated exits 1 with an error. It does not silently override.\n- **Empty values:** for manifest options, an empty `{}` states nothing and falls through to the repo's own file. For `preprocessor`, an empty `{}` is a withdrawal, not silence. Withdrawing a recorded statement reverts it.\n- **Broken input:**\n  - A malformed `.clew.yaml` is logged as a warning and treated as absent, so the build runs on defaults.\n  - An unknown section name in `.clew.yaml` raises an error and refuses the build. Silently ignoring it would report a declaration as honoured when nothing read it.\n  - An unknown key in `--declare` or `options` exits 2.\n  - An `index_scope` that is present but unusable falls back to whole-repo, with a warning naming the rejection.\n  - A declared root that does not exist is dropped with a warning.\n\n**Caveats:** I derived this from reading `clew/cli.py`, `declaration.py`, `scope.py`, `tiers.py` and `buildoptions.py`. I did not run a build to confirm the behaviour. The `--exclude`/`index_scope.excludes` combination is inferred from a code comment rather than tested.",
+  "ttft_ms": 3528,
+  "type": "result",
+  "duration_ms": 43890,
+  "uuid": "4b81fe35-e2b2-4443-b737-e097f512d40d",
+  "ttft_stream_ms": 2884,
+  "time_to_request_ms": 159,
+  "first_content_frame_ms": 2884,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

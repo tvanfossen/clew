@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the library spawns no threads, but it never says the library supplies the mutex abstraction for threaded callers. It describes the threading layer only as something enabled when `MBEDTLS_THREADING_C` is on. The closest it gets is \"a multithreaded application must enable `MBEDTLS_THREADING_C` plus a backend\". That doesn't state the contrast the item asks for."
+}

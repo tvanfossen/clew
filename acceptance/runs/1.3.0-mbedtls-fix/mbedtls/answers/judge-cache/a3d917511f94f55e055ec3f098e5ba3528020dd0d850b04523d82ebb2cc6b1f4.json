@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Define `MBEDTLS_PLATFORM_MEMORY`, `MBEDTLS_PLATFORM_CALLOC_MACRO` and `MBEDTLS_PLATFORM_FREE_MACRO`. ... Define only `MBEDTLS_PLATFORM_MEMORY`, then call early at startup: `mbedtls_platform_set_calloc_free(my_calloc, my_free);`\nVERDICT: MISS\nWHY: The answer separates the compile-time macro pair from the runtime function-pointer setter. It never says the two are mutually exclusive. It says \"Define only MBEDTLS_PLATFORM_MEMORY\" for the runtime route, which is not an explicit exclusivity statement."
+}

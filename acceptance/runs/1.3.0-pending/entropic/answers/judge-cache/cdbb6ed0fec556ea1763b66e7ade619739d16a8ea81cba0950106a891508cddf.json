@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`entropic_alloc` and `entropic_free` are a matched pair. Both are `malloc`/`free` in the engine. Any buffer the engine will free itself, such as a hook's `modified_json`, must come from `entropic_alloc`. `hooks.py:45-55` and `hooks.py:80-83` do this.\"\nVERDICT: HIT\nWHY: The answer states that engine-freed buffers must come from entropic_alloc and points to the Python code in hooks.py that does it."
+}

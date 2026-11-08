@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Both are in `LlamaCppTokenizer::tokenize` (`src/inference/llama_cpp_tokenizer.cpp:55` and `:61`), and they are the only `llama_tokenize` calls in `src/`. The pair is llama.cpp's two-phase sizing idiom\nVERDICT: HIT\nWHY: The answer names the file, function, and line numbers of the two `llama_tokenize` calls and explains the size-then-fill mechanism."
+}

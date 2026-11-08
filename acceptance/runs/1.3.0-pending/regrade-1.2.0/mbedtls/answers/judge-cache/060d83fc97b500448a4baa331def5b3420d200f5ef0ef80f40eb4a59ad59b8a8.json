@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_memory_buffer_alloc_init(buf, len)` calls `mbedtls_platform_set_calloc_free(...)` itself, so initialising it installs the heap as the process-wide allocator.\nVERDICT: HIT\nWHY: The answer names the buffer allocator's init function calling the runtime setter to install itself, though it doesn't explicitly say it is the only in-tree user or name the MBEDTLS_MEMORY_BUFFER_ALLOC_C macro. The mechanism and location are stated."
+}

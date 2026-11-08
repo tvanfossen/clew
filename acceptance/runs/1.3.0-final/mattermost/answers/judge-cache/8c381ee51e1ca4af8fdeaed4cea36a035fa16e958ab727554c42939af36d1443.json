@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Errors are swallowed by an empty `catch` in both websocket handlers.\nVERDICT: HIT\nWHY: The answer states both handlers swallow errors via an empty catch, though it doesn't add that a failed write leaves no trace."
+}

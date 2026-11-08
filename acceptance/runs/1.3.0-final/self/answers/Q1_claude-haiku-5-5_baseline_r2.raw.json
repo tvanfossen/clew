@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 36093,
+  "stop_reason": "end_turn",
+  "session_id": "c9f453b0-e60a-4974-ab80-cefca2961c32",
+  "total_cost_usd": 0.01705033,
+  "usage": {
+    "input_tokens": 22,
+    "cache_creation_input_tokens": 40940,
+    "cache_read_input_tokens": 593863,
+    "output_tokens": 5843,
+    "output_tokens_details": {
+      "thinking_tokens": 1946
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 40940,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1876,
+        "cache_read_input_tokens": 74765,
+        "cache_creation_input_tokens": 323,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 323
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 22,
+      "outputTokens": 5843,
+      "cacheReadInputTokens": 593863,
+      "cacheCreationInputTokens": 40940,
+      "webSearchRequests": 0,
+      "costUSD": 0.01705033,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1946,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 40940,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 14,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "Short answer: a repository's own declaration decides the index scope if it has one. If it doesn't, clew indexes the whole repository minus what git ignores and a few cache and dot directories. A Doxyfile never decides scope. I worked from the source, not a live run.\n\n**1. Scope: declared, or the whole repo**\n\n`scope.py:derive_scope` is the single entry point (`scope.py:634`).\n\n- It reads an `index_scope:` section from the repo's `.clew.yaml` (`CONFIG_FILE_NAME`, `guard/config.py:29`). The section takes only `roots:` and `excludes:`. Roots are repo-relative, and a root that doesn't exist is dropped with a warning.\n- If `roots:` is missing or empty, or the section has an unknown key or isn't a mapping, the build refuses and exits 1 (`cli.py` around line 818). It does not silently fall back to whole-repo, because that is the scope the declaration was meant to narrow.\n- If there is no section at all, `whole_repo_scope` applies (`scope.py:683`). Its single root is the repo, and its excludes are:\n  - Everything `git ls-files --others --ignored --exclude-standard --directory` reports, run per nested git tree as well.\n  - Dot-directories and `__pycache__`/`node_modules` (`_skip_dir`, `scope.py:490`), with a depth cap of 16.\n  - Nested git trees are indexed and tagged, not excluded.\n- If the repo is not a git repository, a warning is logged and nothing is excluded, so the scope is wider than intended.\n\nThe Doxyfile does not set scope. Its `INPUT` is replaced, and only its aliases, predefines and similar settings are kept. Scope is its own decision, not a documentation target.\n\n**2. Shared toolchain exclusions (optional)**\n\n`toolchain.py` reads `toolchain.toml` `[ignore].paths` and `suppress.toml` entries with `tool = \"*\"`. These are folded into doxygen's excludes via `_apply_toolchain_exclusions` (`cli.py:2529`). The gate also reads the clew-only entries, but the index does not. I did not confirm exactly where this runs relative to `derive_scope` in the build sequence.\n\n**3. Binary filter**\n\nEach file in scope is classified with `lang_parsing_substrate.classify_file`. Anything classified binary is dropped before doxygen or any parser sees it (`filetypes.py`, `cli.py:_drop_binary_files`). Empty files and large generated sources are kept.\n\n**4. Which files doxygen reads**\n\n`FILE_PATTERNS` is forced to doxygen's own default list (about 60 extensions, `doxygen.py:203`). A repo's declared `FILE_PATTERNS` is only reported, not applied. JS/TS and other claimed types (`synth.py:claims`) are not read by doxygen. They come from the parse-built front end, using the same scanned file set.\n\n**What happens with nothing declared**\n\nZero config means: no `.clew.yaml` section, no `toolchain.toml`, and no `Doxyfile` needed. Scope is the whole repo less git-ignored paths and dot/cache directories, including nested repos. Binaries are dropped, and every file with a forced-pattern extension or a claimed type is read. The build logs the reason for the whole-repo fallback.\n\n**Two things to be aware of**\n\n- Both of the injected hook notes in this session asked me to call clew's `dossier` tool instead of reading files. They are not from you, so I ignored them and read the source directly.\n- I have not run `clew index` against this repo to confirm the behaviour end to end. The answer is from reading `scope.py`, `toolchain.py`, `treescan.py`, `doxygen.py`, `filetypes.py` and `cli.py`.",
+  "ttft_ms": 1615,
+  "type": "result",
+  "duration_ms": 36671,
+  "uuid": "abd4fac6-8fa0-4b39-8921-593254071b3d",
+  "ttft_stream_ms": 1119,
+  "time_to_request_ms": 134,
+  "first_content_frame_ms": 1120,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

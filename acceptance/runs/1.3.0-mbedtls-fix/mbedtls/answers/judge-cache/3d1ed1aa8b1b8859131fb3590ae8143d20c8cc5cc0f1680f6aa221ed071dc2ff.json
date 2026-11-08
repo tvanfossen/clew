@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says library code and sample programs see plain names while external consumers see renamed ones, but it never ties this to the define as a general consumer-facing split. It treats the define as an internal opt-out, with application code opting out only in a closing aside, and it never says the two branches give different consumers different views."
+}

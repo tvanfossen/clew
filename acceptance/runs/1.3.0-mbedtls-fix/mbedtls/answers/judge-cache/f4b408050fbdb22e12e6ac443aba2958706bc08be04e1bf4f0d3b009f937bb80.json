@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The mutexes and threads only exist when `MBEDTLS_THREADING_C` and `MBEDTLS_THREADING_PTHREAD` are enabled, and both default to off.\nVERDICT: HIT\nWHY: The answer explicitly names both macros as the gating macros for the threading code."
+}

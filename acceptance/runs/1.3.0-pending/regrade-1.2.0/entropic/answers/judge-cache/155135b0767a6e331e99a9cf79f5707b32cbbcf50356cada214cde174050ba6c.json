@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"the two `llama_tokenize` calls are a size-query followed by a fill, not retry logic... The second call is unconditional and never depends on the first failing.\"\nVERDICT: HIT\nWHY: The answer identifies a sizing call followed by one fill call, says it is not a retry, and notes the second call is unconditional."
+}

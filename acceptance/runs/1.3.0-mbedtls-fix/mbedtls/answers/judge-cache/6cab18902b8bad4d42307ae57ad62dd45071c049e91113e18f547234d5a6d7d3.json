@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Every struct member in the public headers is written as `MBEDTLS_PRIVATE(foo)`, so a user who writes `ctx->foo` gets a compile error.\nVERDICT: MISS\nWHY: The answer says the macro renames members so access by name fails to compile, but it never concludes that the struct layout stays visible and sized, in contrast to hiding the layout."
+}

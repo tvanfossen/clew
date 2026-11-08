@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The only real retry-style code is in `detokenize` (lines 92-104), which resizes a buffer after a too-small result.\nVERDICT: MISS\nWHY: The answer says detokenize resizes after a too-small result, but never mentions a fixed 256-byte stack buffer tried first with heap allocation only when the token doesn't fit."
+}

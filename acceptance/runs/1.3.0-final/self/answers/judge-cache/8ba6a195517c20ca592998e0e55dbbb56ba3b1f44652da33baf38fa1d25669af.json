@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A malformed `.clew.yaml` section is refused by name (fail closed).\nVERDICT: MISS\nWHY: The answer doesn't describe a second refusal for an unknown key inside a valid section, nor a correctly-spelled derived key being refused with its reason rather than as unknown."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Worker threads take a `HandleLogScope` so their logs land in the owning handle's session log.\nVERDICT: HIT\nWHY: The answer states worker threads install a per-handle logging scope so logs go to the owning handle; \"first statement\" isn't explicit, but the mechanism and its purpose are stated."
+}

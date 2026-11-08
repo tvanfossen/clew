@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `ServerManager::args_to_pattern` takes the first string value of the arguments, and returns `*` when there is none.\nVERDICT: HIT\nWHY: The answer says only the first string argument is used for matching and that it falls back to `*` when there is none. That covers the single-value point and the wildcard fallback. It does not say the other arguments are invisible, and it does not mention non-string or unparseable arguments. Both are implied by \"first string value \u2026 `*` when there is none\"."
+}

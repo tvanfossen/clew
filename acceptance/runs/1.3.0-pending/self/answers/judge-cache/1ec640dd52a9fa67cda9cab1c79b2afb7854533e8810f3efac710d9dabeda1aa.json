@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Single token, no unread-corpus hits, file docs present | \"definitive empty result\u2026 do not retry\"; \"A definitive empty answer means only that no searched corpus in this index holds the token. It does not prove the file is absent from the tree.\"\nVERDICT: MISS\nWHY: The answer describes the new graded verdicts but never says a single-token miss was previously treated as proof of absence, nor frames the old behavior as conflating \"nothing exists\" with \"I did not look there\"."
+}

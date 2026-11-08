@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Traversal (`chain_trace`) drops them. The flat list keeps them, because filtering would remove 21.3% of this repo's edges and 79.8% of a real C++ target.\"\nVERDICT: MISS\nWHY: The answer says traversal drops fuzzy edges while the flat list keeps them, but gives the reason as the amount of data that filtering would remove. It never says that a walk expands each hop, so one fuzzy edge multiplies into a wrong subtree."
+}

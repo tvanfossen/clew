@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says a fallback scope carries a recorded reason explaining which scope was used and why; it only describes the decision flow and notes the depth limit is \"recorded for provenance.\""
+}

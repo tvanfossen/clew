@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Option A: compile time.** Set `MBEDTLS_PLATFORM_MEMORY`, `MBEDTLS_PLATFORM_CALLOC_MACRO=my_calloc` and `MBEDTLS_PLATFORM_FREE_MACRO=my_free`\" / \"**Option B: runtime.** Set `MBEDTLS_PLATFORM_MEMORY` and leave both macros undefined.\" / \"No runtime hook exists in this mode.\"\nVERDICT: HIT\nWHY: The answer separates the compile-time macro pair from the runtime function-pointer setter. It says the runtime option requires leaving the macros undefined and that no runtime hook exists in macro mode, so the two are mutually exclusive."
+}

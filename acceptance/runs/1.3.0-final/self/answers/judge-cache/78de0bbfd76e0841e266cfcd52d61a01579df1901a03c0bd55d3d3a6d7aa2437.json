@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The reply does not use one sentence for every empty result. `clew/mcp_server/emptiness.py` grades each empty `search` against what the index actually holds\nVERDICT: HIT\nWHY: The answer explicitly locates the grading in clew/mcp_server/emptiness.py."
+}

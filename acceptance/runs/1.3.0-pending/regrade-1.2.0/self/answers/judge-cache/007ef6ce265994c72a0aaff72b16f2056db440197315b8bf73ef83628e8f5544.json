@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `.yaml`, `.yml`, `.json` | `path` only, no symbols | none, by design\nVERDICT: HIT\nWHY: The answer says YAML/JSON files get only a path row (registered, findable by name) with no symbols, contrasted with shell/CMake, which get symbol rows."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"There are two routes, and they can be combined:\"\nVERDICT: MISS\nWHY: The answer does distinguish compile-time macros from runtime function pointers, but it says they can be combined, which contradicts the required mutual exclusivity."
+}

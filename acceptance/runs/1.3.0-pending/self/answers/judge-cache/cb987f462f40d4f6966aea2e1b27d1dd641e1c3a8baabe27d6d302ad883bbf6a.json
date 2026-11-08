@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `resolved = (tier1 or tier2 or tier5) \u222a tier3 \u222a tier4`\nVERDICT: HIT\nWHY: The answer states that stated tiers replace one another while the discovered tiers 3 and 4 accumulate and are never removed by any stated tier, which is the asymmetry the item asks for."
+}

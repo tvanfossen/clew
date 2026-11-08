@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The default `mbedtls_config.h` has `MBEDTLS_PLATFORM_MEMORY` commented out (line 208), so a stock build calls libc directly.\nVERDICT: HIT\nWHY: The answer states the default config has MBEDTLS_PLATFORM_MEMORY commented out. It also presents the gate role throughout: the diagram branches on MEMORY on/off, and the macros are \"honoured only when MEMORY is on\"."
+}

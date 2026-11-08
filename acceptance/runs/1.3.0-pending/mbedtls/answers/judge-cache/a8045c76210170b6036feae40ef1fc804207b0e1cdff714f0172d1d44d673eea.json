@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Add the `MBEDTLS_ERR_<MODULE>_<NAME>` define with its negative value in the module's public header... Do not edit `library/error.c`. The build regenerates it.\nVERDICT: MISS\nWHY: The answer says to add the define to the public header and not edit error.c, but it never mentions the `/** */` doc-comment form of the define. It also hedges on whether the generator reads descriptions from the header (\"check `generate_errors.pl`... the index does not show it\")."
+}

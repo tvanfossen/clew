@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_PLATFORM_MEMORY` off (default) | `calloc` | Macro in `platform.h:166-167`. No wrapper function exists.\nVERDICT: HIT\nWHY: The answer states that in the default build, `mbedtls_calloc` is a macro resolving directly to `calloc`, with no wrapper function. The free half is implied by \"The same applies to free\" and by the grouped table row."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `.yaml`/`.yml`/`.json` | Yes | None, by design | ... \"YAML and JSON get no symbols by design.\" ... \"shell and CMake ... function-level rows\" (while YAML/JSON are in the path/file set with `symbol_count: 0`)\nVERDICT: HIT\nWHY: The answer states YAML/JSON are registered/indexed as files but carry no symbols, contrasted with shell/CMake, which get function-level rows."
+}

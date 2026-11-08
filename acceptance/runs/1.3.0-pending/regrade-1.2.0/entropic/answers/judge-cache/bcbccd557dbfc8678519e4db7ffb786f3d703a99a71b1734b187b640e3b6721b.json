@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Its reach is confined to the inference layer and a few facade and C++ headers, not the whole engine.\"\nVERDICT: MISS\nWHY: The answer never says how many of the 12 reaching files sit outside `src/inference`, and it calls the reach \"confined\" to that layer plus a few facade and header files. That is not the \"concentrated but not contained\" conclusion the item asks for."
+}

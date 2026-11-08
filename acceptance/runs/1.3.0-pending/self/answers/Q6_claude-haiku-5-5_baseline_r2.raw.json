@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 68732,
+  "stop_reason": "end_turn",
+  "session_id": "6d7747cf-be44-4ed3-a5c8-bd09846e2327",
+  "total_cost_usd": 0.027832489999999998,
+  "usage": {
+    "input_tokens": 34,
+    "cache_creation_input_tokens": 62930,
+    "cache_read_input_tokens": 972209,
+    "output_tokens": 11042,
+    "output_tokens_details": {
+      "thinking_tokens": 5034
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 62930,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3775,
+        "cache_read_input_tokens": 77496,
+        "cache_creation_input_tokens": 945,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 945
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 34,
+      "outputTokens": 11042,
+      "cacheReadInputTokens": 972209,
+      "cacheCreationInputTokens": 62930,
+      "webSearchRequests": 0,
+      "costUSD": 0.027832489999999998,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 5034,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 62930,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 20,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** the index holds shell and CMake function and macro definitions as symbols, and holds YAML and JSON only as file-set entries. On an install without the bash or cmake grammars, clew does not crash, but the \"not indexed\" disclosure that the docs promise does not happen. The code registers those files as if they were indexed, so the miss report stays silent.\n\n## What the index holds\n\n| File type | Rows written | Source |\n|---|---|---|\n| `.sh`, `.bash` | `memberdef` function for `name() {}` and `function name {}`. Brief comes from the `#` block directly above, with no blank line and not counting a shebang. `argsstring` is empty because shell has no parameter list. | `clew/shast.py`, via `_ScriptSymbolHarvester` in `clew/synth.py` |\n| `CMakeLists.txt`, `.cmake` | `function` \u2192 `memberdef` function with named params in `argsstring`. `macro` \u2192 `memberdef` with `kind = 'macro definition'`, so the variable-leak semantics are kept. Same `#`-block doc rule. | `clew/cmakeast.py` (`_DEFINITIONS`, `harvest_definitions`) |\n| `.yaml`, `.yml`, `.json` | One `path` row (`type=1`, `found=1`). No symbols, no doc, no body. Findable by name only. | `synth.py` `DATA_EXTS` and `register_paths()` |\n\nRows are stamped `dg_source='parse'`.\n\n## What it does not hold\n\n- **CMake targets and commands.** `add_executable`, `target_link_libraries` and similar are not rows. Only `function` and `macro` definitions are harvested, so \"what this builds\" is not queryable structure.\n- **YAML and JSON content.** Keys are deliberately not symbols, to keep `steps:` and similar out of the namespace. YAML is still parsed by config loaders for other purposes: `requirements.yaml` feeds the requirements layer, `.clew.yaml` is read as a declaration, and UDM manifests go through `datamodel.py`. None of that makes the YAML searchable as code.\n- **Anything under dot directories.** The scope walk prunes them, so `.github/workflows/*.yml` is not in the file set at all.\n- **Shell call edges.** I did not trace whether shell calls between functions produce edges. Treat that as unverified.\n\nIn this repo specifically, `git ls-files` shows no tracked `.sh`, `.cmake` or `CMakeLists.txt` files. The YAML and JSON files are the only ones in scope, and most JSON is under `acceptance/` and `clew/mcp_server/descriptions/`.\n\n## What happens without the grammars\n\nI checked the code path rather than running a degraded install. The installed venv substrate has every key, including `bash`, `cmake`, `yaml` and `json`, so I could not observe the degraded case directly.\n\n1. `register_paths()` runs in the build before the parse (`clew/cli.py:1909`). It calls `claims()`, which matches by extension only. It never asks the substrate whether it can parse the file.\n2. The `.sh`, `.cmake` and `CMakeLists.txt` files therefore get `path` rows regardless of the grammar.\n3. `_ts_language_for()` returns `None` for a missing optional grammar (`clew/harvest.py:203`), so no tree is parsed and no symbols are written. There is no exception, and `tests/test_script_front_end.py` pins that.\n4. `_not_indexed_scope()` (`clew/cli.py:2646`) reports files in the scanned set that have no `path` row. Because step 2 gave these files rows, they are never counted as missing. The report names nothing for them.\n5. `substrate.missing_languages()` is the function meant to produce that disclosure. Its only callers are tests, so nothing in production uses it.\n\nThat contradicts the docs. `docs/languages/SCRIPT_INTEGRATION.md`, the `clew/substrate.py` header, and the `synth.py` docstring all say the miss report names these types. The same contradiction applies to YAML and JSON: their `path` rows always exist, so they can never be reported as missing either.\n\n**Practical effect:** a query for a shell function on a degraded install returns nothing, and the answer does not say the file type was skipped. The only remaining signal is the emptiness grader in `clew/mcp_server/emptiness.py`, which decides by extension. Since `.sh` appears in the indexed file set, the grader is likely to treat the empty result as a definitive absence. I did not trace that end to end, so this is the likely outcome, not a confirmed one.\n\n## Suggested fix\n\nMake `register_paths()` consult `substrate.has_language()` for the shell and CMake types, so they are left out of the file set when their grammar is absent. Then the existing `_not_indexed_scope()` will name them without other changes. Decide separately whether YAML and JSON should be reported as \"not indexed\" at all, since their file-set registration is intentional. Then fix the docs to match whichever behaviour you choose, and add a test that runs the real `_not_indexed_scope()` with a stubbed substrate.",
+  "ttft_ms": 1799,
+  "type": "result",
+  "duration_ms": 69543,
+  "uuid": "1466269e-e515-43e1-a48d-49b01a788c46",
+  "ttft_stream_ms": 1314,
+  "time_to_request_ms": 132,
+  "first_content_frame_ms": 1314,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

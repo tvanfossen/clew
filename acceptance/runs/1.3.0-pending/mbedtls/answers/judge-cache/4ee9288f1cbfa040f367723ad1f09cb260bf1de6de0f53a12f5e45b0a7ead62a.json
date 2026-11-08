@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: In `include/mbedtls/private_access.h`: ```c #ifndef MBEDTLS_ALLOW_PRIVATE_ACCESS #define MBEDTLS_PRIVATE(member) private_##member #else #define MBEDTLS_PRIVATE(member) member #endif ```\nVERDICT: HIT\nWHY: The answer names include/mbedtls/private_access.h as the file holding the MBEDTLS_PRIVATE macro definition and quotes the definition."
+}

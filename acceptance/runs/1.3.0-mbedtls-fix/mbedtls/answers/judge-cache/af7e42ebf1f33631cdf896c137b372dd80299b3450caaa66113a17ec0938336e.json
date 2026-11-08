@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "Top-level directories the answer names as containing uses of `MBEDTLS_PRIVATE` (the first three also appear in its list of files that use it):\n\nITEMS:\nlibrary\nprograms\ntests\ninclude\nEND"
+}

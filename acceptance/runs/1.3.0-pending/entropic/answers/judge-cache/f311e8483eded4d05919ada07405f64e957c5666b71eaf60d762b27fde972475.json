@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `.gitmodules` maps `extern/llama.cpp` to `ggml-org/llama.cpp`. The gitlink is pinned at `20a04b22`\nVERDICT: HIT\nWHY: The answer says llama.cpp is a git submodule at extern/llama.cpp, pinned via a gitlink. It adds that \"llama.cpp is the only submodule\" while the other dependencies use FetchContent, which contrasts it with fetching by the build."
+}

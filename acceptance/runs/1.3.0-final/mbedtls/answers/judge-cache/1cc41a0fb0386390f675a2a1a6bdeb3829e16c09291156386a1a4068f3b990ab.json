@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_TEST_CONSTANT_FLOW_VALGRIND` and `MBEDTLS_TEST_CONSTANT_FLOW_MEMSAN` (`mbedtls_config.h:2109-2142`) make selected tests also check the constant-flow property. Per the header comments, this uses valgrind memcheck or clang MemorySanitizer.\nVERDICT: MISS\nWHY: The answer names the opt-in MemSan/valgrind constant-flow test options as the verification mechanism. It never says this facility is a separate testing facility that is explicitly not part of the library API."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: If there is no section at all, `whole_repo_scope` applies (`scope.py:683`).\nVERDICT: MISS\nWHY: The answer says a declared scope wins, but it says a malformed or empty declaration makes the build refuse and exit 1 instead of falling back. It says whole-repo applies only when there is no section at all. That contradicts the item's claim that every failure to find a declaration falls through to the whole repository."
+}

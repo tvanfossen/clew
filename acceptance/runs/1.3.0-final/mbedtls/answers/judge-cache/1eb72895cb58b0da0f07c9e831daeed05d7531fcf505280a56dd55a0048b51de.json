@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names `library`, `programs`, `include` and `docs` as top-level directories. Only the first two are given as places where `MBEDTLS_PRIVATE` is used; the other two are cited only as definition and documentation sources.\n\nThe answer says `MBEDTLS_PRIVATE` or `MBEDTLS_ALLOW_PRIVATE_ACCESS` is active in:\n- `library/common.h:132`\n- `programs/ssl/ssl_client2.c:8`\n- `programs/ssl/ssl_server2.c:8`\n\nIt also cites `include/mbedtls/private_access.h`, which defines the macro, plus `include/mbedtls/bignum.h`, `ctr_drbg.h` and `psa/crypto_struct.h`, where the wrapped fields are declared. It cites `docs/3.0-migration-guide.md` for the escape-hatch quote.\n\nITEMS:\nlibrary\nprograms\ninclude\nEND"
+}

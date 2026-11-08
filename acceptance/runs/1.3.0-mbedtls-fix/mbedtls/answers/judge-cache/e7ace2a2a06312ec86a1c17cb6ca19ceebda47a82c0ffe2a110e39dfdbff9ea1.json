@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Without the opt-out, `ctx->MBEDTLS_PRIVATE(state)` becomes `ctx->private_state`, so the real name `state` no longer exists. Plain `ctx->state` then fails to compile. ... The rename exists only at compile time, and the fields still exist in the binary.\nVERDICT: HIT\nWHY: The answer says the compile-time rename breaks the member name (`private_state`) and the fields still exist. That matches the item's mechanism: name-breaking rather than layout-hiding."
+}

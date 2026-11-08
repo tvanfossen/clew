@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: the index is judged stale on three independent axes. Each one is reported as a `{axis, message}` notice, and each has a different remedy. | `data` ... | `schema` ... | `code` ...\nVERDICT: HIT\nWHY: The answer says staleness is three independent axes and names them as data, schema, and code, each with a different remedy."
+}

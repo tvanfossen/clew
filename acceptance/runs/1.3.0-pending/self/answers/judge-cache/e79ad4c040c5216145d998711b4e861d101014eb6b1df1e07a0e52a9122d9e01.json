@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Not all edges are direct calls. The `callers` list includes function-pointer dispatch (`test_callers_includes_fnptr_dispatch`) and interface continuation.\nVERDICT: MISS\nWHY: The answer mentions an `edge_class` field with values like `call` and notes some non-direct edges (fnptr, interface continuation), but it never says that callers/callees mix direct calls with shared-key dataflow neighbours or that the consumer must read `edge_class` to tell them apart."
+}

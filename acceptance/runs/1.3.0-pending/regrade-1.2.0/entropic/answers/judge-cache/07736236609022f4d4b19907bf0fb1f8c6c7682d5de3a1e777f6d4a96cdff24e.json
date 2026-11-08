@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`LlamaCppTokenizer::tokenize` logs at error level and returns `{}`. Failure and empty input look the same to callers.\"\nVERDICT: MISS\nWHY: The answer says failure and empty input look the same, but it also says some callers check (speculative/MTP check size < 2), so it never concludes that no caller checks for it."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Stack-based allocator. `mbedtls_memory_buffer_alloc_init(buf, len)` (`library/memory_buffer_alloc.c:566-600`) carves allocations out of a caller-supplied buffer and never calls libc. It installs its own functions by calling `mbedtls_platform_set_calloc_free`.\"\nVERDICT: HIT\nWHY: The answer says the buffer allocator's init function installs its own functions via the runtime setter. It does not say \"only in-tree user\" outright, but it also lists test and benchmark code as users of the same hook, which weakens that part. The core mechanism and location are stated."
+}

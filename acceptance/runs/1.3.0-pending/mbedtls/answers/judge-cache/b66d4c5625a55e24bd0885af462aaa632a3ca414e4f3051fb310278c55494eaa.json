@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The index places it under the `MBEDTLS_PLATFORM_MEMORY` gate, so it exists only in pointer mode.\nVERDICT: MISS\nWHY: The answer says the function exists only in pointer mode, but never states that on the macro path it is neither declared nor compiled. It also never contrasts that with being present and ignored."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names no top-level directories as containing uses of MBEDTLS_PRIVATE. It names files, but not whole directories. Of those, `include/mbedtls/private_access.h` defines the macro and `aes.h:64` uses it. `library/common.h:132`, `programs/ssl/ssl_client2.c:8` and `programs/ssl/ssl_server2.c:8` are the three sites it lists for the opt-out define. A file path alone doesn't count as the answer naming a directory as containing uses, so I'm reporting NONE.\n\nITEMS:\nNONE\nEND"
+}

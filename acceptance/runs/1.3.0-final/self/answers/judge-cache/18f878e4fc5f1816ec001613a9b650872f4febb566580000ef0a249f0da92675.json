@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says duplicates are collapsed across layers at query time but never states that call_edges stores one row per extraction layer, so the same edge is stored twice."
+}

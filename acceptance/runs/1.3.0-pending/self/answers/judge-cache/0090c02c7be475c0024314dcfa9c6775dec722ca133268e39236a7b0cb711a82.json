@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `derive_scope` (`scope.py:639`) has two tiers, and the Doxyfile is no longer one of them (gh#333).\nVERDICT: HIT\nWHY: The answer names `derive_scope` in `clew/scope.py` as the function that resolves the scope decision, and it describes how the function makes that choice."
+}

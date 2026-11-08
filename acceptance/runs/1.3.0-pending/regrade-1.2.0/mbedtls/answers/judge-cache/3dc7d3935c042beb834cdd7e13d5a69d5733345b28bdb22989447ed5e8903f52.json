@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Without `MBEDTLS_ERROR_C` (and `MBEDTLS_ERROR_STRERROR_DUMMY`), the function is a stub that writes an empty string.\nVERDICT: MISS\nWHY: The answer names MBEDTLS_ERROR_STRERROR_DUMMY only in passing. It doesn't say the switch keeps mbedtls_strerror linkable while the table is compiled out, and it doesn't say the switch is enabled by default."
+}

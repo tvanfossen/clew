@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The `code` notice says reads are live and only writes are affected, after an earlier message gave a false all-clear (gh#348).\" Also: \"Until then, `build_or_refresh` refuses ... `_data_stale` checks `matches_source` first so auto-refresh never attempts a build that could drop layers.\"\nVERDICT: HIT\nWHY: The answer states that on the code axis reads are live while only writes/builds are affected, and that builds are refused to avoid dropping layers (old pipeline logic), though it doesn't spell out the per-call database opening."
+}

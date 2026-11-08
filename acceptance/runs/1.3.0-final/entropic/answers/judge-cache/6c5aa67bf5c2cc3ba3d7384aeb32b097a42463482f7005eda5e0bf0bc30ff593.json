@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Tool-only pattern** (`bash.execute`, `filesystem.*`): splits at the first `:` and matches only the tool name. ... Matching is in `permission_manager.cpp:101`, using `fnmatch` with no flags.\nVERDICT: HIT\nWHY: The answer states fnmatch matching, the split at the first colon into tool and argument parts, and that a tool-only pattern (no colon) matches on the tool name alone."
+}

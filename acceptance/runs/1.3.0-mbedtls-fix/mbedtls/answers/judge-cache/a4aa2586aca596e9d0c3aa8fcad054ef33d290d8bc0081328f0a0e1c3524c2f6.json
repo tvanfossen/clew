@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The setter does not check for `NULL`. Passing `NULL` is accepted, and the next allocation will crash.\nVERDICT: MISS\nWHY: The answer says the defaults are initialised to STD_CALLOC/STD_FREE and doesn't state that uninitialised pointers make calloc return NULL and free do nothing. The NULL-setter crash it describes is a different fact."
+}

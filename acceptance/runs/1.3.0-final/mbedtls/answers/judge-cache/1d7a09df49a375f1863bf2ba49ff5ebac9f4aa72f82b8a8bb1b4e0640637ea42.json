@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names `programs` as a top-level directory with MBEDTLS_PRIVATE uses. That covers `programs/ssl/ssl_context_info.c` and `programs/fuzz/fuzz_dtlsserver.c`. It also names `programs/ssl/ssl_server2.c` and `ssl_client2.c`, but only as defining the opt-out macro.\n\nIt names `library` as well. `library/common.h` and `library/ssl_misc.h` appear as the places that define or include the opt-out. It says internal library code uses the real field names. Its only direct uses of the macro in header inlines are in `include/mbedtls/ssl.h` and `include/mbedtls/psa/crypto_struct.h`, so it also names `include`.\n\nThe answer also cites `docs/3.0-migration-guide.md`, but only as a description of the intent, not as containing uses.\n\nITEMS:\nprograms\ninclude\nlibrary\nEND"
+}

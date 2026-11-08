@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The winning tier and the resolved values are stored in `build_meta`, so you can see which tier won.\nVERDICT: MISS\nWHY: The answer says the winning tier is stored in build_meta but never says the record is derived from the stored rows rather than stamped as a separate summary."
+}

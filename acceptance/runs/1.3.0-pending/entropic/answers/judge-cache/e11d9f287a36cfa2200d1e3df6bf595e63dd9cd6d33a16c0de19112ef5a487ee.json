@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Nine files include a llama.cpp header directly (`llama.h`, `common.h`, `chat.h`, `sampling.h`, `speculative.h`, `mtmd.h`)... Four more reach llama only through `llama_cpp_backend.h`\nVERDICT: HIT\nWHY: The answer states that nine files include llama.cpp headers directly and four more reach it indirectly, which comes to about thirteen files in `src/inference/`. That matches \"roughly a dozen files, not one wrapper\"."
+}

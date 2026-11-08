@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer states that library/ creates no threads, but it never says that library/ supplies the mutex abstraction (a threading layer with pthread/alt backends) for threaded callers. It only describes the locks as compiled out by default and mentions enabling the threading layer."
+}

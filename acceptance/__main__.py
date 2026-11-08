@@ -38,7 +38,7 @@ from .grader.rubric import RubricError, load
 from .identity import tool_identity
 from .modelpin import floats, require_pinned
 from .grader.score import grader_fingerprint, score_question
-from .runner import ARMS, check_revision, check_symmetry, parse_stem, plan
+from .runner import ARMS, check_revision, check_symmetry, check_tool_tree, parse_stem, plan
 
 
 ## @brief Load a rubric, refusing loudly rather than half-parsing.
@@ -162,17 +162,19 @@ def cmd_plan(args) -> int:
     return 0
 
 
+## Version 3 refuses a modified or unidentifiable clew tree before the first cell.
+##
 ## @brief Run every cell and freeze its artifacts.
 ## @param args Parsed arguments.
 ## @return Exit code.
-## @version 2
+## @version 3
 def cmd_generate(args) -> int:
     """PREFLIGHT BEFORE THE FIRST CELL, not per cell. A revision mismatch found on cell 40 has
     already spent 39 cells against the wrong tree.
 
     @brief Generate answers.
     @return Exit code.
-    @version 4
+    @version 5
     """
     rubric = _rubric(args.rubric)
     if rubric is None:
@@ -181,6 +183,7 @@ def cmd_generate(args) -> int:
         return 1
     try:
         check_symmetry()
+        check_tool_tree()
         check_revision(rubric, args.repo)
     except ValueError as exc:
         print(f"REFUSED — {exc}", file=sys.stderr)

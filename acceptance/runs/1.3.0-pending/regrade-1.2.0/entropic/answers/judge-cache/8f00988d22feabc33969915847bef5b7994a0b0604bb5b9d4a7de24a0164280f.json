@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `stop()` sets `running_` false, notifies the CV, and joins (`:102-111`).\nVERDICT: MISS\nWHY: The answer describes the flag, CV notify, and join, but never says the flag is flipped by an atomic exchange. It only says \"sets `running_` false\", and it separately says flags are `std::atomic`. The item needs the exchange mechanism, so this is not stated."
+}

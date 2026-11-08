@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer mentions `.sh`, `.bash`, `CMakeLists.txt`, and `.cmake` in a table but never says which extensions the front end routes. It also never says that CMakeLists.txt is matched by file name rather than by extension."
+}

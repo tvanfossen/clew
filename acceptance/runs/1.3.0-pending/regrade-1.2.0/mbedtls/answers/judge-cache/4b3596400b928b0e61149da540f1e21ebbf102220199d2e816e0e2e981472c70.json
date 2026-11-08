@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: With `MBEDTLS_PLATFORM_MEMORY` off (the default in `mbedtls_config.h:208`), `include/mbedtls/platform.h:167` makes `mbedtls_calloc` expand straight to `calloc`\nVERDICT: MISS\nWHY: The answer names MBEDTLS_PLATFORM_MEMORY as the switch and says it is off by default in mbedtls_config.h. But it never says the macro is commented out in the shipped header. It also hedges that \"confirm it against the shipped header\", so the commented-out claim is not clearly stated."
+}

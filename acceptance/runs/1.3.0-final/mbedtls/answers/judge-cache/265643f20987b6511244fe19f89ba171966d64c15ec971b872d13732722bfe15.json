@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`mbedtls_ct_compiler_opaque` (`:85`) stops the compiler from folding a value it could otherwise prove constant.\"\nVERDICT: HIT\nWHY: The answer names mbedtls_ct_compiler_opaque as the primitive that stops the compiler from knowing a value, and places it in constant_time_impl.h, written as `constant_time_impl.h` in the answer's opening paragraph and again at line :85."
+}

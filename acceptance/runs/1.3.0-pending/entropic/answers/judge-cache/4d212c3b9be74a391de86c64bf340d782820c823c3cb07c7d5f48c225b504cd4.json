@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never mentions detokenize or a 256-byte stack buffer versus heap fallback; it covers only tokenize's size-probe."
+}

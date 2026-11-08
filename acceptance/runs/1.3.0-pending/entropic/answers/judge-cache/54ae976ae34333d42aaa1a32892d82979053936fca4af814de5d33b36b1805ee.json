@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"all under `src/inference/` or in tests\" and \"Several headers under `include/entropic/` forward-declare `struct llama_model` or `llama_context`\" and \"`src/facade/entropic.cpp` | Only reaches the backend through `dynamic_cast<LlamaCppBackend*>` and `llama_model_ptr()`\"\nVERDICT: MISS\nWHY: The answer says direct includes are all under src/inference/ or tests, and it never concludes that a minority of reaching files sit outside src/inference. It mentions headers and the facade, but it doesn't frame the dependency as concentrated but not contained."
+}

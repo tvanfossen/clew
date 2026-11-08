@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Every query reply carries a `staleness` list of `{axis, message}` notices, but only when something is stale. A current index adds no block, by design.\nVERDICT: HIT\nWHY: The answer states that every query reply carries the staleness annotation without being asked, and that a current index adds no block, so the annotation is empty or absent on a current tool."
+}

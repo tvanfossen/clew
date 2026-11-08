@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"llama.cpp is vendored as a git submodule and linked into the inference library.\" and \"Pinned against llama.cpp submodule b8420.\"\nVERDICT: MISS\nWHY: The answer says \"submodule\" but never states the extern/llama.cpp location. It also calls it \"vendored\" and hedges on the build mechanism, and it cites a comment that llama.cpp is \"NOT built\"."
+}

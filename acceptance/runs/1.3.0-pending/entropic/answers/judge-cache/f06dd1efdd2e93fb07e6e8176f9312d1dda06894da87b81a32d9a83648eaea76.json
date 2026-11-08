@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: MCP accept loop | `src/facade/external_bridge.cpp:796` | `running_` is atomic. Client thread list is guarded by `client_threads_mutex_`. Joined in `ExternalBridge::stop()`. ... Per-client MCP serve threads | `external_bridge.cpp:945` | Each has its own fd.\nVERDICT: HIT\nWHY: The answer lists an accept-loop thread and separate per-client serve threads, with the client thread list held by the bridge. That gives the two-level structure of one accept thread plus a thread per client."
+}

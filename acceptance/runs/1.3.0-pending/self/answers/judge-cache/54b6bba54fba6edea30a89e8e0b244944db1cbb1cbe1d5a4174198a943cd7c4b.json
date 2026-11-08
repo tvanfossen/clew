@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `UNIQUE(caller, callee, source)` collapses a caller that calls the function five times into one row.\nVERDICT: MISS\nWHY: The answer says the unique key includes `source`, but it never states that the same logical edge found by two detectors is stored twice. It uses the key only to explain collapsing repeated call sites."
+}

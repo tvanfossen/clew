@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: In `include/mbedtls/private_access.h:14-18`, when `MBEDTLS_ALLOW_PRIVATE_ACCESS` is not defined, `MBEDTLS_PRIVATE(foo)` expands to `private_foo`.\nVERDICT: HIT\nWHY: The answer explicitly locates the macro's definition in include/mbedtls/private_access.h with line numbers and describes its expansion."
+}

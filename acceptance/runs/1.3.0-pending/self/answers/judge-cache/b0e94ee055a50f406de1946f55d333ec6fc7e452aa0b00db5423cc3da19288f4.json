@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"| 1 | Explicit statement: a CLI flag, or the `options` argument... | 2 | Repo's `.clew.yaml` | 3 | Facts someone else wrote... | 4 | Known-ecosystem signature | 5 | Name-pattern heuristics, the built-in floor\"\nVERDICT: HIT\nWHY: The answer lays out five named, ordered precedence tiers with their combining rules, not a single override. Its intro says \"four ways\", which is a slip, but the table has five tiers."
+}

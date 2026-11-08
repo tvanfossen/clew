@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: So a failure is indistinguishable from legitimately empty input, and the only signal is one log line from the tokenizer.\nVERDICT: HIT\nWHY: The answer states failure is indistinguishable from empty input and that generation entry points never check for it, although the speculative and MTP paths do check size() < 2, but not for a tokenization failure as such. The substance is stated."
+}

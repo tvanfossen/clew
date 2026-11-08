@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names these top-level directories as containing uses of MBEDTLS_PRIVATE:\n\n- `include/mbedtls/private_access.h` defines the macro, so `include` is named.\n- `ssl.h`, `bignum.h` and `psa/crypto_struct.h` are named as headers whose fields are declared with it. They sit under `include`, which the answer doesn't write out for them.\n- `library/common.h` defines `MBEDTLS_ALLOW_PRIVATE_ACCESS`, and `library/pk.c` is mentioned, so `library` is named.\n- `programs/ssl/ssl_client2.c` and `ssl_server2.c` define `MBEDTLS_ALLOW_PRIVATE_ACCESS`, so `programs` is named.\n- `docs/3.0-migration-guide.md` is mentioned for the `bar.MBEDTLS_PRIVATE(foo)` escape hatch, so `docs` is named.\n\nITEMS:\ninclude\nlibrary\nprograms\ndocs\nEND"
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Its docstring records four earlier cases (classes, variables, macros, typedefs/enums) where the strong wording was false, which is why the check exists.\nVERDICT: MISS\nWHY: The answer covers the graded emptiness mechanism, but it never says a single token matching nothing was previously treated as proof of absence, and it never states the \"nothing exists\" versus \"I did not look there\" confusion as the old failure."
+}

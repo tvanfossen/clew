@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: So a composite code such as `-(high | low)` comes out as `\"MODULE - high text : low text\"`. A code with only low bits gets only the low-level text.\nVERDICT: HIT\nWHY: The answer says a code splits into high-level (module) and low-level parts, and that `mbedtls_strerror` renders both joined with \" : \" when both are present."
+}

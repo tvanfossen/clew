@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: By default it expands to `private_##member`, so `ctx.nr` no longer compiles and callers must go through the API. Renaming the field makes it a visible break in the source, not a silent one. The index shows the macro only at `private_access.h:15` and `:17`, so the wrapping is a source-level mechanism, not a language access control.\nVERDICT: HIT\nWHY: The answer says the field is renamed (`private_` prefix) so `ctx.nr` fails to compile, as a source-level mechanism rather than language access control. The fields stay present, just under a different name."
+}

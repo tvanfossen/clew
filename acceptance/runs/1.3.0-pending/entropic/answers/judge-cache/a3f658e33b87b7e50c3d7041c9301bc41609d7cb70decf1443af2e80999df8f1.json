@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The second call only happens because the first one told us how big the buffer needs to be. It runs once, with no loop, no backoff, and no second attempt after a failure.\"\nVERDICT: HIT\nWHY: The answer identifies a size-query-then-fill idiom rather than retry, and says there is no loop, no backoff, and only one second call with no second attempt after a failure."
+}

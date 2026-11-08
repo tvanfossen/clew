@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says the macro is applied at many hundreds of sites, mostly in public headers. It gives only one example (`aes.h:64`) and says the index shows the macro at just two lines in `private_access.h`."
+}

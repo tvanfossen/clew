@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"By default it expands to `private_##member`, so a field such as `mbedtls_aes_context::MBEDTLS_PRIVATE(nr)` ... is declared as `private_nr`. Code that writes `ctx.nr` then fails to compile. The struct layout and the header stay the same, but the names are hidden from ordinary callers. The header is not an encapsulation boundary at runtime; it is a compile-time guard on the field names.\"\nVERDICT: HIT\nWHY: The answer says the macro renames the member to `private_nr`, so access by the old name fails at compile time. It also says the struct layout and header stay the same, which means the fields stay visible and the layout is not hidden."
+}

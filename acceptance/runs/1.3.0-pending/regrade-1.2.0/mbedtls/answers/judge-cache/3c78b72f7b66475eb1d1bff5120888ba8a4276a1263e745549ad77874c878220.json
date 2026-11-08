@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: If you define `MBEDTLS_PLATFORM_STD_CALLOC` yourself without a replacement, the library substitutes `platform_calloc_uninit`, which always returns NULL (`platform.c:24-30`).\nVERDICT: MISS\nWHY: The answer states that an uninitialised calloc returns NULL but says nothing about the uninitialised free doing nothing. It also describes the default pointers as falling back to libc, which is the opposite of the \"fail rather than fall back\" point."
+}

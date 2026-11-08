@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The pattern is split at the first `:`. The left side is fnmatch-ed against the fully-qualified tool name, for example `filesystem.*` or `git.commit`. With no `:`, the tool-name match is enough, so the pattern covers every argument set for that tool.\nVERDICT: HIT\nWHY: The answer states fnmatch matching, a split at the first colon into tool and argument parts, and that a pattern with no colon matches on the tool name alone."
+}

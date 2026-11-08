@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer covers scope resolution (declared roots, whole repo, git-ignore and dot-dir excludes) but never says a file must also be readable to reach the index. It names neither the parse-built front end claiming file types doxygen can't read nor binary classification dropping files with misleading extensions."
+}

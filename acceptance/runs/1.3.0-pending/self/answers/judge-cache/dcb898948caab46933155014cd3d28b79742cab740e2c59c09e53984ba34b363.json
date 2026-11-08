@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `schema` | Index was stamped by a *newer* build than this server expects | Nothing the caller can do; a rebuild re-stamps the same newer version\nVERDICT: HIT\nWHY: The answer states the schema axis is unresolvable when the index is newer, because a rebuild re-stamps the same newer version."
+}

@@ -1,0 +1,93 @@
+{
+  "cell": "Q2_claude-haiku-5-5_index_only_r2",
+  "arm": "index_only",
+  "rubric_version": "5.0.0",
+  "rubric_digest": "d8447c7b18eafbf5",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.0,
+  "unmarked_pct": 0.0,
+  "split_decisions": 1,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "locates the grading in clew/mcp_server/emptiness.py",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never mentions clew/mcp_server/emptiness.py or otherwise identifies where the empty-result grading is implemented. || QUOTE: NONE | WHY: The answer never mentions clew/mcp_server/emptiness.py or any file locating the emptiness grading logic. || QUOTE: NONE | WHY: The answer never mentions clew/mcp_server/emptiness.py or any file location where the emptiness grading is implemented.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the strong wording is EARNED PER CALL by querying which corpora the search did not read, rather than being attached to a result shape",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer describes the reply's note and not_indexed fields but never says the strong wording is earned per call by querying unsearched corpora rather than attached to a result shape. || QUOTE: NONE | WHY: The answer describes the empty-reply fields (`note`, `scope`, `not_indexed`) but never states that strong wording is earned per call by querying which corpora weren't read, as opposed to being tied to a result shape. || QUOTE: NONE | WHY: The answer describes the empty-reply fields and lists unsearched corpora, but never states that strong wording is earned per call by querying which corpora were not read rather than being tied to a result shape.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "explains that a single token matching nothing was previously treated as proof of absence, and that this confuses \"nothing exists\" with \"I did not look there\"",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: So an empty symbols search means \"no indexed symbol by that name.\" It does not mean \"the concept is absent,\" and it says nothing about a `.rs` or `.toml` file that was never read. | WHY: The answer explains that empty \u2260 absence and distinguishes searched from not-searched, but never states that a single non-matching token was previously treated as proof of absence (the prior behavior/fix). || QUOTE: NONE | WHY: The answer explains how to read empty replies now, but never says a single non-matching token was previously treated as proof of absence, nor describes that earlier behavior as conflating \"nothing exists\" with \"didn't look.\" || QUOTE: So an empty symbols search means \"no indexed symbol by that name.\" It does not mean \"the concept is absent,\" and it says nothing about a `.rs` or `.toml` file that was never read. | WHY: The answer explains absence-vs-not-looked in general but never says a single non-matching token was previously treated as proof of absence; the prior-behavior mechanism is missing.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the downgrades are ORDERED most-specific first, and explains why \u2014 a matching row in an unread corpus is a statement about THIS query and outranks statements about the index as a whole",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never states that the downgrades are ordered most-specific first, nor that a matching row in an unread corpus outranks statements about the index as a whole. || QUOTE: NONE | WHY: The answer never says the downgrades are ordered most-specific first, nor that a matching row in an unread corpus outranks statements about the index as a whole. || QUOTE: NONE | WHY: The answer never says the downgrades are ordered most-specific first, nor that a matching row in an unread corpus outranks index-wide statements.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "conveys that there is exactly ONE absent-corpus downgrade and that keeping it to one is deliberate, because downgrading on every absent layer turns the grading into a blanket hedge",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never says there is exactly one absent-corpus downgrade or that keeping it to one is deliberate to avoid blanket hedging. || QUOTE: NONE | WHY: The answer never says there is exactly one absent-corpus downgrade or that limiting it to one is deliberate to avoid blanket hedging.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "conveys the general rule the module leaves behind \u2014 fix the corpus, not the sentence about the corpus",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer explains how to read an empty search reply. It never states the general rule that you fix the corpus (what was searched) rather than the claim made about it. || QUOTE: NONE | WHY: The answer discusses interpreting empty search replies; it never states the general rule to fix the corpus rather than the sentence about the corpus. || QUOTE: NONE | WHY: The answer explains how to interpret empty search results and never states the rule \"fix the corpus, not the sentence about the corpus.\"",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "distinguishes all three grades an empty reply can receive: definitive for the scope, definitive for a reason that is not absence, and not definitive",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer separates \"searched and found nothing\" from \"not searched / never read,\" but it never names a grade for \"definitive for a reason that is not absence.\" It describes only definitive-for-scope versus not-definitive. || QUOTE: \"Symbols corpus, target is the right repo, no relevant extension in `not_indexed`: reasonably strong evidence that no such symbol exists... The tool itself declines to call this definitive.\" | WHY: The answer describes absence-evidence strength levels but never distinguishes a \"definitive for a reason that is not absence\" grade (e.g. definitive because the answer is structurally empty); it says nothing is definitive. || QUOTE: NONE | WHY: The answer separates \"searched and found nothing\" from \"not searched / never read,\" but it never describes a middle grade where the empty reply is definitive for a reason other than absence. It also says the tool \"declines to call this definitive,\" so it never shows a definitive-for-scope grade either.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the reply also names the file types that WERE in scope and produced no rows, so \"this repository does not contain that\" and \"that file type is not indexed here\" are distinguishable rather than the same empty answer",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: `not_indexed`: extensions the index holds but did not read (`.rs=2`, `.toml=2`, `.sql=1`, extensionless `=3`, and others). | WHY: The answer describes `not_indexed` (files the index holds but did not read), which is the reverse of the item. The item asks for file types that were in scope and produced no rows, so an empty result can be told apart from a file type that was never indexed. The answer never says the reply names in-scope file types that returned nothing. || QUOTE: `not_indexed`: extensions the index holds but did not read (`.rs=2`, `.toml=2`, `.sql=1`, extensionless `=3`, and others). | WHY: The item requires naming file types that were in scope and produced no rows. The answer instead names files that were not read (`not_indexed`), which is the opposite category, and never describes in-scope types that returned zero rows.",
+      "agreement": 0.6666666666666666,
+      "samples": 3,
+      "errors": 0
+    }
+  ]
+}

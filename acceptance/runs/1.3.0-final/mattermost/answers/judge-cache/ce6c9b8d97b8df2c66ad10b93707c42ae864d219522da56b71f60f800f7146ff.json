@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says post creation sends `noRetry: true` (`retryLimit: 0`), but it never says that requests in general retry exponentially with a limit of 3 set by the network manager."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: When built under MemorySanitizer or run under Valgrind memcheck with `MBEDTLS_TEST_CONSTANT_FLOW_MEMSAN` or `MBEDTLS_TEST_CONSTANT_FLOW_VALGRIND`, a secret-dependent branch shows up as an uninitialized-value report.\nVERDICT: MISS\nWHY: The answer describes MemSan/valgrind-based testing, but it never says the facility is off by default or that it is explicitly not part of the library API."
+}

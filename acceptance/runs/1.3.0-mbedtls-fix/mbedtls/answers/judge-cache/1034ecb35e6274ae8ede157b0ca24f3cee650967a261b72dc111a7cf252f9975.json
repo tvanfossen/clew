@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `library/common.h:132` | The internal library header. Its doc says: \"Allow library to access its structs' private members.\" Any library translation unit that includes it sees the real member names.\nVERDICT: HIT\nWHY: The answer states that the shared internal header library/common.h defines the opt-out so library translation units see real member names."
+}

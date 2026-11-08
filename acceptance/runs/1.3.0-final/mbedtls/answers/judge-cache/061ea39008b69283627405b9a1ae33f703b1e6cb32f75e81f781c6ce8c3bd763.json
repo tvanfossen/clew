@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The library does not spawn anything.\" and \"`grep` finds no `pthread_create` or `std::thread` anywhere in `library/` or `include/`.\"\nVERDICT: MISS\nWHY: The answer says the library creates no threads by default, but it never says that the pthread example compiles to a stub main under that condition."
+}

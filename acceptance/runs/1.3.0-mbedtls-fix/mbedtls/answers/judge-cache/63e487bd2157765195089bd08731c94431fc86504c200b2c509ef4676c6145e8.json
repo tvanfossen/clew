@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `programs/ssl/ssl_client2.c:8` and `programs/ssl/ssl_server2.c:8`. These sample/test programs opt out too.\nVERDICT: HIT\nWHY: The answer says the sample programs define MBEDTLS_ALLOW_PRIVATE_ACCESS themselves and reach into library internals, and it advises against copying them as application examples."
+}

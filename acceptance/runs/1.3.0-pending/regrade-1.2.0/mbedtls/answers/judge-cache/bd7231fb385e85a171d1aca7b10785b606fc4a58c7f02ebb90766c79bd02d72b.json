@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Default (`MBEDTLS_ALLOW_PRIVATE_ACCESS` not defined): `MBEDTLS_PRIVATE(x)` expands to `private_x`... Opt-out (`MBEDTLS_ALLOW_PRIVATE_ACCESS` defined): `MBEDTLS_PRIVATE(x)` expands to `x`... \"The opt-out is for the library and its own programs. Everyone else gets a deliberate, greppable escape hatch.\"\nVERDICT: HIT\nWHY: The answer explains that defining the macro gives plain member names, while ordinary consumers see `private_` names. It also says the opt-out is for the library and its own programs, and that other code sees the renamed fields."
+}

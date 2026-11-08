@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Otherwise, saves the post with `props.failed: true`, creates a thread for it if CRT is enabled, and returns `{data: true}` without an error.\"\nVERDICT: HIT\nWHY: The answer states that on a failed send, `createPost` stores the post with `failed: true` and still returns `{data: true}` with no error. That matches the item's claim that the caller sees success."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Compile time:** define `MBEDTLS_PLATFORM_CALLOC_MACRO` and `MBEDTLS_PLATFORM_FREE_MACRO` to your functions. Both must be set together... **Run time:** leave the macros undefined and call `mbedtls_platform_set_calloc_free(my_calloc, my_free)`\"\nVERDICT: HIT\nWHY: The answer separates the compile-time macro pair from the runtime function-pointer setter and says the runtime route applies only when the macros are left undefined, which makes the two mutually exclusive."
+}

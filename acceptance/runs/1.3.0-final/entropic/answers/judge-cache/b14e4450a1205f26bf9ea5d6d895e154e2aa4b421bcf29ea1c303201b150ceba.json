@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Passes if `auto_approve_tools` is set (default `false`), or if the allow list matches.\nVERDICT: MISS\nWHY: The answer treats allow-list match as one way to pass approval in check_approval, but never states that the allow list does not grant execution or only suppresses the approval step; it also does not say the allow list is consulted only from check_approval."
+}

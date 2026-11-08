@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Runs `entropic_run` detached for `entropic.ask`\" and \"**Lifetime of the detached async-ask thread.** It captures `this`, and the body I read shows no join.\"\nVERDICT: HIT\nWHY: The answer names the async-ask worker as detached and states that no join is visible, so it can outlive its caller. It does not say it is the only detached thread, but the answer's core claim is stated."
+}

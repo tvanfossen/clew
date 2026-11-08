@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says a failed tokenization returns an empty vector, which looks the same as empty input. It never says the wrapper returns that same empty value when no tokenizer is wired."
+}

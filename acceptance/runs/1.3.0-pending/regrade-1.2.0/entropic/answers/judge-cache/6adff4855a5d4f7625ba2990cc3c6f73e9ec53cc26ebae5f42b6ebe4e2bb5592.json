@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Async ask worker (`<lambda>@1158`) | `ExternalBridge::run_async_ask` | Runs `entropic_run` detached for `entropic.ask`\" and \"Lifetime of the detached async-ask thread. It captures `this`, and the body I read shows no join.\"\nVERDICT: MISS\nWHY: The answer lists the async-ask worker as detached with no join, but it doesn't identify it as the ONE detached thread. It also describes other threads as joined or reaped, which leaves the uniqueness claim unstated."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The library ships its own allocator, `library/memory_buffer_alloc.c`. It is the only in-tree user of the setter: - `mbedtls_memory_buffer_alloc_init(buf, len)` takes a caller-supplied buffer and calls `mbedtls_platform_set_calloc_free(...)` with its own `buffer_alloc_calloc` / `buffer_alloc_free`\nVERDICT: HIT\nWHY: The answer names the buffer allocator as the only in-tree setter user and says its init function installs its own calloc/free pointers."
+}

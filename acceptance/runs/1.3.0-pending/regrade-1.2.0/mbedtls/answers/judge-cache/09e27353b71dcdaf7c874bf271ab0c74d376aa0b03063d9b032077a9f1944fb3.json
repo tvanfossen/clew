@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Verification is dynamic, not static. The test harness marks secrets as undefined (`TEST_CF_SECRET`). Valgrind memcheck or MSan then reports any secret-dependent branch or memory index as an uninitialised-value use. The components are `component_release_test_valgrind_constant_flow`, `..._memsan_constant_flow`\nVERDICT: MISS\nWHY: The answer identifies Valgrind/MSan verification but never says it is off-by-default or explicitly outside the library API, which the item requires."
+}

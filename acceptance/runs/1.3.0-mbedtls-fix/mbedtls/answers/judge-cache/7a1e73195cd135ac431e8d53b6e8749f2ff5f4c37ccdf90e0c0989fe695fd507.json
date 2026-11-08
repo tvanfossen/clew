@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says the setter is absent (undeclared and uncompiled) when MBEDTLS_PLATFORM_MEMORY is off. It presents the setter as a runtime route and says nothing about its existence depending on the macro path."
+}

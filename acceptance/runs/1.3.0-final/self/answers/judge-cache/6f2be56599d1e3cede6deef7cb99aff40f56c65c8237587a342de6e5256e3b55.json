@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"binaries are classified downstream. I did not trace the toolchain or binary path in this pass, so treat those as unverified here.\"\nVERDICT: MISS\nWHY: The answer only mentions binary classification in passing as unverified and never states the item's point that files within scope reach the index only if readable. It also names neither the parse-built front end nor the extension-lies filter."
+}

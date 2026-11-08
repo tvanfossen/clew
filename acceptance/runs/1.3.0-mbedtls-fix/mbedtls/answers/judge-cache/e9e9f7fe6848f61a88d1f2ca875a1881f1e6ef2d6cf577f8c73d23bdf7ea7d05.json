@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Public surface is tiny.** `include/mbedtls/constant_time.h` exports only `mbedtls_ct_memcmp()`. ... **Internal toolkit.** `library/constant_time_impl.h` builds branch-free primitives...\nVERDICT: HIT\nWHY: The answer states the public header exports only mbedtls_ct_memcmp and that the other primitives live in internal headers."
+}

@@ -1,0 +1,153 @@
+{
+  "cell": "Q3_claude-haiku-5-5_baseline_r1",
+  "arm": "baseline",
+  "rubric_version": "5.0.0",
+  "rubric_digest": "d8447c7b18eafbf5",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.6666666666666666,
+  "unmarked_pct": 0.0,
+  "split_decisions": 0,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "states that staleness is THREE distinguishable axes rather than one flag, and names them",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: the index is judged stale on three independent axes. Each one is reported as a `{axis, message}` notice, and each has a different remedy. | `data` ... | `schema` ... | `code` ... | WHY: The answer says staleness is three independent axes and names them as data, schema, and code, each with a different remedy. || QUOTE: the index is judged stale on three independent axes. ... | `data` | ... | `schema` | ... | `code` | | WHY: The answer explicitly says staleness has three independent axes and names them as data, schema, and code, each with a different remedy. || QUOTE: the index is judged stale on three independent axes... `data`, `schema`, `code` | WHY: The answer explicitly says staleness has three independent axes, with distinct remedies, and names them as data, schema and code.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "explains that each axis is cleared by a DIFFERENT action \u2014 a rebuild for data, a client restart for code \u2014 which is why one flag would not have been enough",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: Rebuild with `force=True` if the index is older. If the index is *newer*, a rebuild cannot clear it. Restart the client. | Only restarting the MCP client | WHY: The answer tabulates different remedies per axis (rebuild for data, restart for code), but never states that this difference is why a single flag would not have sufficed. || QUOTE: Rebuild with `force=True` if the index is older. If the index is *newer*, a rebuild cannot clear it. Restart the client. ... Only restarting the MCP client | WHY: The answer tabulates the different remedies per axis (rebuild for data, restart for code) but never says this is why one flag would not have been enough, so the stated reason is missing. || QUOTE: Rebuild with `force=True` if the index is older. If the index is *newer*, a rebuild cannot clear it. Restart the client. | Only restarting the MCP client | WHY: The answer lists different remedies per axis (rebuild for data, restart for code) but never explains that this difference is why a single flag would not have been enough.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies that the schema axis can be UNRESOLVABLE \u2014 when the index is newer than the server, no rebuild clears it, because rebuilding re-stamps the same newer version",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"If the index is *newer*, a rebuild cannot clear it. Restart the client.\" | WHY: The answer explicitly states that when the index is newer than the server's version, a rebuild cannot clear the schema-axis staleness. || QUOTE: \"If the index is *newer*, a rebuild cannot clear it. Restart the client.\" | WHY: The answer states that when the index is newer than the server on the schema axis, a rebuild cannot clear it. || QUOTE: \"If the index is *newer*, a rebuild cannot clear it. Restart the client.\" | WHY: The answer states that when the index is newer than the server on the schema axis, a rebuild cannot clear it. It doesn't give the re-stamping reason, but the unresolvable-by-rebuild substance is there.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states the read/write asymmetry on the code axis: READS stay current because query tools open the database per call, while a BUILD through a stale process writes old pipeline logic",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"The `code` notice says reads are live and only writes are affected, after an earlier message gave a false all-clear (gh#348).\" Also: \"Until then, `build_or_refresh` refuses ... `_data_stale` checks `matches_source` first so auto-refresh never attempts a build that could drop layers.\" | WHY: The answer states that on the code axis reads are live while only writes/builds are affected, and that builds are refused to avoid dropping layers (old pipeline logic), though it doesn't spell out the per-call database opening. || QUOTE: \"The `code` notice says reads are live and only writes are affected\" and \"Until then, `build_or_refresh` refuses (server.py:2278, `stale_code_refusal`), `force` cannot override the refusal, and `_data_stale` checks `matches_source` first so auto-refresh never attempts a build that could drop layers.\" | WHY: The answer states that on the code axis reads remain live while writes (builds) are affected and refused, because a stale process could drop layers. || QUOTE: \"The `code` notice says reads are live and only writes are affected, after an earlier message gave a false all-clear (gh#348).\" and \"Until then, `build_or_refresh` refuses (server.py:2278, `stale_code_refusal`), `force` cannot override the refusal, and `_data_stale` checks `matches_source` first so auto-refresh never attempts a build that could drop layers.\" | WHY: The answer states that on the code axis reads are live while only writes/builds are affected, and that builds are refused to avoid dropping layers. That covers the read/write asymmetry. It never says outright that queries open the database per call.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies that the write path REFUSES rather than warning, and that the refusal is placed ahead of the build decision so a force flag cannot override it",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: Until then, `build_or_refresh` refuses (server.py:2278, `stale_code_refusal`), `force` cannot override the refusal, and `_data_stale` checks `matches_source` first so auto-refresh never attempts a build that could drop layers. | WHY: The answer states that the write path refuses, and that `force` cannot override the refusal. That is the substance of the item. It doesn't spell out the \"ahead of the build decision\" placement. || QUOTE: Until then, `build_or_refresh` refuses (server.py:2278, `stale_code_refusal`), `force` cannot override the refusal, and `_data_stale` checks `matches_source` first so auto-refresh never attempts a build that could drop layers. | WHY: The answer states the write path refuses (not warns) on code staleness and that `force` cannot override the refusal. That covers the placement ahead of the build decision. || QUOTE: Until then, `build_or_refresh` refuses (server.py:2278, `stale_code_refusal`), `force` cannot override the refusal, and `_data_stale` checks `matches_source` first so auto-refresh never attempts a build that could drop layers. | WHY: The answer states the write path refuses (not warns) and that `force` cannot override the refusal, which conveys the refusal-before-build-decision placement.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the annotation RIDES ON EVERY QUERY REPLY rather than waiting to be asked for, and that it is empty on a current tool",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: Query replies carry a `staleness` block only when it is non-empty (tools_query.py:1843). A current index adds nothing to the payload. | WHY: The answer says query replies carry the staleness block and that a current index adds nothing, so the block rides on replies and is empty when current. || QUOTE: Query replies carry a `staleness` block only when it is non-empty (tools_query.py:1843). A current index adds nothing to the payload. | WHY: The answer says query replies carry the staleness block and that it is absent/empty when the index is current, which covers the item's \"rides on every query reply\" and \"empty when current\". || QUOTE: Query replies carry a `staleness` block only when it is non-empty (tools_query.py:1843). A current index adds nothing to the payload. | WHY: The answer says that query replies carry the staleness block and that it is absent when the index is current. The replies carry it without being asked, and it is empty on a current tool.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies that measuring staleness NEVER raises \u2014 a failed measurement degrades to no annotation rather than turning a successful reply into an error",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never says that staleness measurement never raises or that a failed measurement degrades to no annotation instead of causing an error reply. || QUOTE: NONE | WHY: The answer never says that measuring staleness is non-raising or that a failed measurement degrades to no annotation instead of erroring the reply. || QUOTE: NONE | WHY: The answer never says that staleness measurement cannot raise or that a failed measurement degrades to no annotation instead of turning the reply into an error. It only says a failed rebuild leaves the stale notice on the reply.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that a routed reply is annotated for the repository it actually read, not for the server's default target",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never says a routed reply is annotated for the repository it actually read rather than the server's default target. || QUOTE: NONE | WHY: The answer never says a routed reply's staleness notice is annotated for the repository actually read rather than the server's default target.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies that the annotation is fitted to the response budget by degrading its wording rather than by dropping the warning",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never mentions fitting the annotation to a response budget by degrading its wording rather than dropping the warning. || QUOTE: NONE | WHY: The answer never mentions fitting the staleness annotation to a response budget by degrading its wording instead of dropping it. || QUOTE: NONE | WHY: The answer never mentions fitting the staleness annotation to a response budget by degrading its wording instead of dropping the warning.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "the modules a staleness warning passes through \u2014 clew/mcp_server/freshness.py",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules a staleness warning passes through \u2014 clew/mcp_server/server.py",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules a staleness warning passes through \u2014 clew/mcp_server/tools_query.py",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules a staleness warning passes through \u2014 clew/mcp_server/state.py",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules a staleness warning passes through \u2014 precision",
+      "kind": "set_precision",
+      "weight": 1,
+      "hit": true,
+      "detail": "clean",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    }
+  ]
+}

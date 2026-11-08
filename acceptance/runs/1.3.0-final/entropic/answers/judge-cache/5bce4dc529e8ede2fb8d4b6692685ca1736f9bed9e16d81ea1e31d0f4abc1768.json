@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: the \"15% layer\" over the raw C API. Owns `llama_model*`, `llama_context*`, `llama_vocab*`\nVERDICT: HIT\nWHY: The answer identifies the seam as the raw llama.cpp C API with `llama_`-prefixed functions and types (`llama_tokenize`, `llama_adapter_lora_*`, `llama_*` mocks swapped in at link time). It describes a thin wrapper over that C API rather than a class hierarchy."
+}

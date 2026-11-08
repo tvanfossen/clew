@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says the buffer allocator requires MBEDTLS_PLATFORM_MEMORY; it only says the allocator uses the runtime hook and that the setter requires MBEDTLS_PLATFORM_MEMORY."
+}

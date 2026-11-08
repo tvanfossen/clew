@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"By default it expands to `private_##member`, so `ctx.nr` no longer compiles\" and \"Defined: `MBEDTLS_PRIVATE(m)` \u2192 `m`. The real field name is visible.\"\nVERDICT: HIT\nWHY: The answer states the default expansion renames the member to private_<member> and that defining MBEDTLS_ALLOW_PRIVATE_ACCESS makes it expand to the unchanged member name."
+}

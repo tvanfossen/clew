@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: External MCP accept loop | `src/facade/external_bridge.cpp:796` ... Per-client serve threads | `external_bridge.cpp:945` | `client_threads_mutex_` for the vector\nVERDICT: HIT\nWHY: The answer lists an accept loop thread, with a per-client serve thread started after the peer UID check, and a joined client_threads vector. That shows the two-level structure."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer explains the two macro branches and who defines the opt-out, but never states that an ordinary consumer of the public headers sees `private_`-renamed members while code defining the macro sees plain names. It only says external users can't access fields."
+}

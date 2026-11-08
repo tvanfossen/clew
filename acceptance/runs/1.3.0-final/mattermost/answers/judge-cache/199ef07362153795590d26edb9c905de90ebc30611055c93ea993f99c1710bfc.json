@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"This means a single-event insert never prunes other reactions on the post. Without it, any row not in the payload would be marked for destruction, which is correct for a full post-reactions sync but wrong for one event.\"\nVERDICT: HIT\nWHY: The answer states that without skipSync, other reactions on the post not in the single-event payload would be deleted."
+}

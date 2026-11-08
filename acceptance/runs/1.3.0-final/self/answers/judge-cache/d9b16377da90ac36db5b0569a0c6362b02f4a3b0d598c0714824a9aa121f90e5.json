@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`callers()` also returns `edge_class='key'` rows: functions whose shared-key write `fn` reads. They do not call `fn` and may run on another thread. The docstring says to check `edge_class` on every row.\"\nVERDICT: HIT\nWHY: The answer states that callers returns both direct call and shared-key rows, distinguished by `edge_class`, which the reader must check."
+}

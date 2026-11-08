@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer never gives full `src/` paths for the code that calls llama.cpp. It refers to an \"inference layer\" and to `facade/entropic.cpp`, so I've listed those two directories as it names them.\n\nITEMS:\ninference\nfacade\nEND"
+}

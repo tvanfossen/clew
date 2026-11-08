@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says use is confined to src/inference plus one factory call in inference_c_api.cpp, never concluding that a minority of reaching files sit outside src/inference."
+}

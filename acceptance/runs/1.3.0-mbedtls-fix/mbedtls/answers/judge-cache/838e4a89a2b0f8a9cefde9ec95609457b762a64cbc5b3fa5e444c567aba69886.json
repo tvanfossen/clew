@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes the macro's behavior and mentions `include/mbedtls/private_access.h` as a file, but it never points to where the macro is defined (no line, no `#define`). That makes it a gesture at the item, not a location."
+}

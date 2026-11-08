@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer lists usage counts across several files but never conveys that the primitives are consumed by roughly twenty modules, and it frames the facility as not library-wide."
+}

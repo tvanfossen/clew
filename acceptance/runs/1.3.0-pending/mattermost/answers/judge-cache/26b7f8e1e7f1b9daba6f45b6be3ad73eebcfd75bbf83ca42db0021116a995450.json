@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: only `SearchScreen` passes `hasSearch={true}`, which is the only prop that makes `NavigationHeader` render `NavigationSearch`.\nVERDICT: HIT\nWHY: The answer names SearchScreen (`screens/home/search/search.tsx`) as the only caller enabling the search field via `hasSearch`, though it hedges about the other callers."
+}

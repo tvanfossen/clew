@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer says `library/common.h:132` defines `MBEDTLS_ALLOW_PRIVATE_ACCESS`. It also says `programs/ssl/ssl_server2.c:8` and `programs/ssl/ssl_client2.c:8` define it before any include.\n\nITEMS:\nlibrary/common.h\nprograms/ssl/ssl_server2.c\nprograms/ssl/ssl_client2.c\nEND"
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never states that a tool matching neither allow nor deny list is not denied and runs; it only describes the two gates and what the lists do."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`library/CMakeLists.txt:134` runs `scripts/generate_errors.pl` as a custom command. Its inputs are the public headers (`error_headers`) and `scripts/data_files/error.fmt`, and its output is `${CMAKE_CURRENT_BINARY_DIR}/error.c`.\"\nVERDICT: HIT\nWHY: The answer states error.c is generated from the public headers by generate_errors.pl with error.fmt as an input, and that it isn't hand-written."
+}

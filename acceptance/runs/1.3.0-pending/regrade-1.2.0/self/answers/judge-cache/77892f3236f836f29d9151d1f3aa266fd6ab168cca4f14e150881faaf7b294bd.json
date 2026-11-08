@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`notices()` (freshness.py:573) turns those fields into a `staleness` list of `{axis, message}`. The list is empty when the index is current, and it is attached to a query reply only when the index is stale.\"\nVERDICT: MISS\nWHY: The answer says the staleness list is empty when current, but it says the notice is attached only when the index is stale. It never says the annotation rides on every query reply. It only says the agent should \"read the `target` and `staleness` fields on each reply.\""
+}

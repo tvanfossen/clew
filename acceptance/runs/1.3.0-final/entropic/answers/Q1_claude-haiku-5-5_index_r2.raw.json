@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 30559,
+  "stop_reason": "end_turn",
+  "session_id": "3cd2a727-46b3-4bbf-afcc-62886da99ff4",
+  "total_cost_usd": 0.01126329,
+  "usage": {
+    "input_tokens": 14,
+    "cache_creation_input_tokens": 26195,
+    "cache_read_input_tokens": 335839,
+    "output_tokens": 5329,
+    "output_tokens_details": {
+      "thinking_tokens": 2327
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 26195,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2691,
+        "cache_read_input_tokens": 61830,
+        "cache_creation_input_tokens": 3580,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 3580
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 14,
+      "outputTokens": 5329,
+      "cacheReadInputTokens": 335839,
+      "cacheCreationInputTokens": 26195,
+      "webSearchRequests": 0,
+      "costUSD": 0.01126329,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2327,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 26195,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 15,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** the two calls are a size-query, not retry logic. The failure path has no retry, and it turns into an empty result that callers can't tell apart from a real empty result.\n\n## Why it calls twice\n\nBoth pairs are in `src/inference/llama_cpp_tokenizer.cpp`, the thin adapter over llama.cpp.\n\n**Tokenize (lines 55 and 61).** llama.cpp's `llama_tokenize` takes a caller-supplied output buffer. When the buffer is too small it returns the negative of the required count, so the code does:\n\n1. Call with a null buffer and size 0 to learn the token count (`n`, negated if negative).\n2. Allocate a `std::vector` of that size and call again to fill it.\n3. If the second call returns negative, log `\"Tokenization failed for text of length N\"` and return `{}`.\n\n**Detokenize (lines 93 and 99).** The same pattern with `llama_token_to_piece`. It tries a 256-byte stack buffer first. If that returns negative, it allocates the exact required size and calls again.\n\nNeither is a retry in the sense of re-attempting a failed operation. Nothing loops, nothing backs off, and the first call isn't a failure to be retried. The first call is a query for the buffer size. The header comment says \"sized retry\", which is the source of the confusion. The same two-call pattern also appears in `tests/model/test_gh87_common_chat_e2e.cpp:51`.\n\n## What the caller receives on failure\n\nFailure is signalled only by an empty vector (or an empty string for detokenize). There is no error code, exception, or status out-parameter.\n\n- `LlamaCppTokenizer::tokenize` returns `{}`.\n- `LlamaCppBackend::tokenize` (`llama_cpp_backend.cpp:788`) forwards that. It also returns `{}` when no tokenizer is wired, so the \"not wired\" and \"llama.cpp failed\" cases look the same.\n- `LlamaCppTokenizer::detokenize` returns `\"\"` on failure. Note that `llama_token_to_piece` returns non-positive for a zero-length piece as well, so \"empty\" is ambiguous there too.\n\nAn empty token vector is also a legitimate result for empty input with `add_special=false`. The caller cannot distinguish the two cases.\n\n## What the callers do with it\n\nI traced the callers through the index and source. Items marked unverified are where I did not read the downstream code.\n\n| Caller (`llama_cpp_backend.cpp`) | With empty result |\n|---|---|\n| `do_count_tokens` (826) | Returns `0`. A tokenizer failure is reported to the user as a zero-token count. |\n| `tokenize_text` (837\u2013839) | Returns an empty ID list. The interface doc says \"empty if COLD or error\", so both states look identical. |\n| `compute_prefix_token_count` (2066) | Returns `0`, meaning \"no system prefix\". This feeds `prefill_dispatch`, which can silently disable or mis-key the prompt cache. |\n| `do_complete` (3947) | Logs \"0 input tokens\", then calls `decode_loop` with an empty prompt. The code does not check for empty before doing this. |\n| `do_generate_text_only` (2561) and the other generate paths (2643, 2728, 3593, 3921) | Pass the empty sequence to `run_prefill_cached` / `run_prefill`. I did not verify how `run_prefill` handles an empty token list. This is the most important unverified point. |\n| Batch path (1911) | Stores an empty token sequence for that request. |\n| Detokenize callers (1534, 1819) | Append an empty piece. Output text silently loses that token. |\n\nSo the failure is not surfaced in the public return values. It turns into a zero count, a missing prefix, an empty prompt, or dropped text. The only trace is one `logger->error` line in `LlamaCppTokenizer::tokenize`, which logs the length and not the text. The unit tests use a mock tokenizer, and the real adapter is excluded from the CPU unit gate by design (`llama_cpp_tokenizer.cpp:6\u201310`).\n\n## Open item\n\nTo confirm the generate-path behaviour, read `run_prefill` / `try_warm_reuse` for an empty `tokens` input. If `run_prefill` does not guard against it, an empty prompt reaches llama_decode. I did not check that, so I can't say what happens there.",
+  "ttft_ms": 1449,
+  "type": "result",
+  "duration_ms": 31454,
+  "uuid": "a4ff40c3-6cae-4d24-81ea-89e3a792e267",
+  "ttft_stream_ms": 1204,
+  "time_to_request_ms": 61,
+  "first_content_frame_ms": 1204,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

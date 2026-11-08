@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `python/src/entropic/__init__.py` resolves binding names lazily (PEP 562 `__getattr__`), so `entropic install-engine` can run before the `.so` exists on disk.\nVERDICT: HIT\nWHY: The answer states that lazy resolution lets the package's install-engine subcommand run before the engine library is on disk, which is the substance of the item."
+}

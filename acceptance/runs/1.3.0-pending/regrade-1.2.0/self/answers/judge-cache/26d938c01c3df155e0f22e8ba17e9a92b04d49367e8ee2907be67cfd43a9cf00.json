@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Shell:** `argsstring` is empty because shell functions take `$1` and `$@`, not named parameters.\nVERDICT: MISS\nWHY: The answer says shell `argsstring` is empty because functions take positional params, but it never says the return is absent, so the \"no return\" half is missing."
+}

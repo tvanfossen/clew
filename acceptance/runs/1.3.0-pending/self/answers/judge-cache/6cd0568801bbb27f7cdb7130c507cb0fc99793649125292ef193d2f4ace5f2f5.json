@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer discusses fuzzy edges and fan-out but never contrasts a flat surface that keeps fuzzy edges with a traversal surface that excludes them, nor the multiplication-per-hop reason."
+}

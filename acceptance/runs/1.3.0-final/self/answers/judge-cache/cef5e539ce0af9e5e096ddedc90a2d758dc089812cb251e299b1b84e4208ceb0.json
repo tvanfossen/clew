@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer lists the `options` argument and the `.clew.yaml` section names separately, but never says the embedding caller's option names are the same words as the declaration sections and the diagnostics."
+}

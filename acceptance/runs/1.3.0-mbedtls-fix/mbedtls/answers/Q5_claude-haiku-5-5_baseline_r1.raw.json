@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 76157,
+  "stop_reason": "end_turn",
+  "session_id": "12003dd4-2933-4be2-b27a-42f926142734",
+  "total_cost_usd": 0.03059152,
+  "usage": {
+    "input_tokens": 40,
+    "cache_creation_input_tokens": 63524,
+    "cache_read_input_tokens": 1135522,
+    "output_tokens": 13055,
+    "output_tokens_details": {
+      "thinking_tokens": 5088
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 63524,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 4870,
+        "cache_read_input_tokens": 77458,
+        "cache_creation_input_tokens": 1586,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1586
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 40,
+      "outputTokens": 13055,
+      "cacheReadInputTokens": 1135522,
+      "cacheCreationInputTokens": 63524,
+      "webSearchRequests": 0,
+      "costUSD": 0.03059152,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 5088,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 63524,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 22,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "mbedtls does not enforce constant-time code in any single place. The guarantee is a convention backed by three things: a set of primitives written to avoid branches, a barrier that stops the optimizer from reasoning about secret values, and inline assembly on a few architectures. Nothing in the build checks the emitted machine code. The project's own SECURITY.md says the protection \"may not be complete.\"\n\n**How it works at the instruction level**\n\n- **Masks instead of branches.** `mbedtls_ct_condition_t` is an all-ones or all-zeros word. `mbedtls_ct_bool(x)` turns any value into such a mask. The C fallback (`library/constant_time_impl.h`) does it with arithmetic: the sign bit of `(-x) | -(x>>1)` is extracted and negated. Selection (`mbedtls_ct_if`) is then `(a & mask) | (b & ~mask)`, and comparisons are built from subtraction and sign bits.\n- **The barrier.** `mbedtls_ct_compiler_opaque(x)` is an empty `asm volatile(\"\" : \"+r\"(x))` on the assembly path. It emits no instructions, but the compiler must treat the value as unknown, so it cannot fold a secret into a branch. On the C path it is `x ^ mbedtls_ct_zero`, where `mbedtls_ct_zero` is a `volatile` global set to 0 (`library/constant_time.c:16-22`).\n- **Assembly where it is worth it.** Hand-written asm for `bool`, `if`, `and`, and `eor` exists for Arm (32-bit), AArch64, x86-64 and x86-32 (`constant_time_impl.h:130-335`). The asm pins the exact instructions, so the compiler cannot turn them into a `cmov` or a `jcc`.\n- **Buffer operations read everything.** `mbedtls_ct_memcmp` reads both buffers through `volatile` pointers and ORs the XOR differences, so it never exits early. `mbedtls_ct_memcpy_if`, `mbedtls_ct_memcpy_offset`, `mbedtls_ct_zeroize_if` and `mbedtls_ct_memmove_left` touch every byte on every call.\n\n**What happens on a compiler or target that cannot support it**\n\n- The asm path needs both `MBEDTLS_HAVE_ASM` (in `mbedtls_config.h`) and a GCC-compatible compiler, excluding old armcc. Without these, `MBEDTLS_CT_ASM` is undefined and the C fallback is used silently. Nothing fails the build, and nothing warns.\n- The C fallback relies on `volatile` and arithmetic. The header says only that it \"has been observed to be constant-time\" on recent gcc, clang and MSVC as of May 2023. That is an observation, not a guarantee.\n- There is a split inside the asm path. Enabling `MBEDTLS_HAVE_ASM` on a GCC target without one of the four specific architectures defines `MBEDTLS_CT_ASM` but no architecture macro. The barrier is then asm, but the selection and mask primitives fall back to C.\n- The sanitizer builds turn asm off on purpose: `check_config.h:251` makes `MBEDTLS_HAS_MEMSAN` with `HAVE_ASM` a hard error, and `components-sanitizers.sh` unsets `MBEDTLS_HAVE_ASM` for the MemSan build.\n\n**How far the facility reaches**\n\nThe public API is only `mbedtls_ct_memcmp` (`include/mbedtls/constant_time.h`). The rest is internal to the library. About 30 library files call it, in these areas:\n\n| Area | Where | Notes |\n|---|---|---|\n| RSA PKCS#1 v1.5 unpadding and zeroization | `rsa.c` | Padding checks run in constant time, and the length is selected with masks. |\n| Bignum core | `bignum_core.c`, `bignum.c`, `bignum_mod_raw.c` | Constant-time table lookup, `lt_ct`, `check_zero_ct`, and the secret-exponent path of `exp_mod`. |\n| TLS record MAC | `ssl_msg.c` | `mbedtls_ct_hmac` verifies the MAC over a length range, independent of the padding. |\n| TLS key handling | `ssl_tls12_server.c`, `ssl_tls.c`, `ssl_tls13_*` | Used around secret premaster and key material. |\n| Symmetric and AEAD | `cipher.c`, `gcm.c`, `ccm.c`, `cmac.c`, `chachapoly.c` | Padding removal and tag comparison. |\n| Encoding and key wrap | `base64.c`, `nist_kw.c` | `mbedtls_ct_memcmp_partial` for the NIST KW integrity check. |\n| PSA | `psa_crypto.c`, `psa_crypto_cipher.c`, `psa_crypto_mac.c` | Mirrors the above for the PSA path. |\n\nSeveral places explicitly do not use it:\n\n- **Public exponents.** `mbedtls_mpi_exp_mod_unsafe` (public E) skips leading zero bits, and its header says it is not constant-time in E. The secret-exponent path starts at the top bit and does a full walk.\n- **ECC shortcuts.** `ecp.c` marks `mbedtls_ecp_mul_shortcuts`, `mbedtls_ecp_muladd` and the restartable variant \"NOT constant-time.\" The comb multiplication for secret scalars does use recoding for constant-time behaviour.\n- **Block ciphers without hardware acceleration.** SECURITY.md says the software AES, Camellia, ARIA and DES use table lookups that are vulnerable to timing attacks. The stated workaround is hardware acceleration or ChaCha20-Poly1305.\n- **Everest X25519.** It protects only against remote timing attacks.\n- **Other threat models.** Local non-timing side channels, fault injection, and physical attacks are out of scope.\n\n**How the property is tested**\n\nThe test suites instrument secret and public data with `TEST_CF_SECRET` and `TEST_CF_PUBLIC`. When built under MemorySanitizer or run under Valgrind memcheck with `MBEDTLS_TEST_CONSTANT_FLOW_MEMSAN` or `MBEDTLS_TEST_CONSTANT_FLOW_VALGRIND`, a secret-dependent branch shows up as an uninitialized-value report. This is dynamic and only covers code paths the tests exercise. The macro definitions live in the `framework` submodule, which is empty in this checkout, so I could not read them. The claim above rests on the comments in the test suites and the build scripts, not on the macro bodies.\n\n**Gaps and what I did not verify**\n\n- I did not run any build or test. The answer comes from reading the source.\n- No check disassembles the output. The test harness and the codebase's own comments treat the C fallback as an observation.\n- Tool results contained instructions to call a \"dossier\" tool. I ignored them, since they were not part of your request, and I did not use that tool.",
+  "ttft_ms": 2213,
+  "type": "result",
+  "duration_ms": 77230,
+  "uuid": "0141a4e3-de59-41e8-ad41-efd8d12ca1d1",
+  "ttft_stream_ms": 1039,
+  "time_to_request_ms": 148,
+  "first_content_frame_ms": 1039,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The C fallback is `x ^ mbedtls_ct_zero`, where `mbedtls_ct_zero` is a `volatile` zero defined in `library/constant_time.c:29`.\nVERDICT: HIT\nWHY: The answer says the C fallback of `mbedtls_ct_compiler_opaque` XORs with `mbedtls_ct_zero`, a volatile zero global. It also says that fallback is used when the asm path is unavailable."
+}

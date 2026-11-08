@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "Files the answer names as containing the constant-time implementation itself:\n\n- `library/constant_time_internal.h` is named as the declarations.\n- `library/constant_time_impl.h` is named as the definitions.\n- `library/constant_time.c` is named as where the `volatile` global `mbedtls_ct_zero` is defined.\n\nI left out the files the answer lists as only calling the facility, such as `bignum.c`, `rsa.c` and `ssl_msg.c`. I also left out the test suites and `check_config.h`.\n\nITEMS:\nlibrary/constant_time_internal.h\nlibrary/constant_time_impl.h\nlibrary/constant_time.c\nEND"
+}

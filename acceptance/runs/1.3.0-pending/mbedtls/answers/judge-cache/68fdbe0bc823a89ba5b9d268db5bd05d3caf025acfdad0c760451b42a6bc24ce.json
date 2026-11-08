@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Add the define** with a Doxygen description, before or after, matching the convention in `error.h:98`.\" and \"**Regenerate `library/error.c`.** Run it through the build... Don't hand-edit `error.c`.\"\nVERDICT: HIT\nWHY: The answer says to add the Doxygen-documented define in the module header, regenerate error.c via the generator, and not hand-edit error.c."
+}

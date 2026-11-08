@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never concludes that the public API surface is a single function (mbedtls_ct_memcmp) with other primitives internal; it only calls the headers \"internal\" in passing and lists many mbedtls_ct_ functions."
+}

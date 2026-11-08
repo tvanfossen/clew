@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `component_release_test_valgrind_constant_flow` (`tests/scripts/components-sanitizers.sh:72`) builds with `MBEDTLS_TEST_CONSTANT_FLOW_VALGRIND`. Secret inputs are marked as uninitialised, so Memcheck reports any branch or memory access that depends on them.\nVERDICT: MISS\nWHY: The answer describes valgrind/MSan-based constant-flow testing but never says it is a separate off-by-default facility or that it is explicitly not part of the library API."
+}

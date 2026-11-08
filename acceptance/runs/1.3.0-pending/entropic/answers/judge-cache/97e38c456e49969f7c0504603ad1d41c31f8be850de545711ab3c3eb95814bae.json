@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Its reach is about seven files in `src/inference/`, plus config fields that mirror its parameters and link-time mocks in the tests.\nVERDICT: MISS\nWHY: The answer says about seven files in src/inference/ (plus config header and tests), not roughly a dozen files of entropic's own source, and it frames the reach as largely contained."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`is_explicitly_allowed` (allow list) \u2192 approved\" and \"The allow list only skips a prompt.\"\nVERDICT: MISS\nWHY: The answer says the allow list only skips a prompt, but it never says the allow list is consulted only from `ToolExecutor::check_approval` in a different file. It also shows `ServerManager` using `is_denied`, with no sole-consumer claim for the allow list."
+}

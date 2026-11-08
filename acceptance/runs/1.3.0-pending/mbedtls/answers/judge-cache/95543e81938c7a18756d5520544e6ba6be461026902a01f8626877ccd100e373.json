@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never mentions MBEDTLS_ERROR_ADD or mbedtls_error_add, nor that it captures __FILE__ and __LINE__; it only describes decoding the high and low bits."
+}

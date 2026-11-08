@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 39474,
+  "stop_reason": "end_turn",
+  "session_id": "5322acfb-6c7e-4699-b1ac-df0ee31f31d2",
+  "total_cost_usd": 0.0065686,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 11404,
+    "cache_read_input_tokens": 187880,
+    "output_tokens": 4816,
+    "output_tokens_details": {
+      "thinking_tokens": 1897
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 11404,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3165,
+        "cache_read_input_tokens": 43254,
+        "cache_creation_input_tokens": 2307,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2307
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 4816,
+      "cacheReadInputTokens": 187880,
+      "cacheCreationInputTokens": 11404,
+      "webSearchRequests": 0,
+      "costUSD": 0.0065686,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1897,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 11404,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 6,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The string comes from a generated lookup table in `library/error.c`. The table is built from `#define`s in `include/mbedtls/*.h` by `scripts/generate_errors.pl`, so the path from a return value to text is a runtime path, and adding a new string is a header-and-generator job, not a `error.c` edit.\n\n**Runtime path**\n\n```\nret (e.g. -0x0022)\n  \u2502\n  \u25bc mbedtls_strerror(ret, buf, buflen)           library/error.c\n  \u2502   memset(buf, 0); ret = -ret                 \u2192 0x0022\n  \u2502\n  \u251c\u2500 ret & 0xFF80 != 0 ?  (high-level module bits)\n  \u2502     mbedtls_high_level_strerr(ret)           switch on ret & 0xFF80\n  \u2502     \u2192 \"SSL - ...\"  or \"UNKNOWN ERROR CODE (XXXX)\"\n  \u2502     (SSL fatal-alert: return here, don't translate low bits)\n  \u2502\n  \u251c\u2500 low = ret & ~0xFF80 ; if 0 \u2192 done\n  \u2502     if high text exists, append \" : \"\n  \u2502     mbedtls_low_level_strerr(ret)           switch on ret & ~0xFF80\n  \u2502     \u2192 \"AES - Invalid input data\" or \"UNKNOWN ERROR CODE (XXXX)\"\n```\n\nA few details that matter:\n\n- **Sign is stripped first.** Callers pass negative codes; the lookup switches on positive magnitudes, and the `case` labels are `-(MBEDTLS_ERR_...)`.\n- **Two layers, one string.** A code can carry a high-level module part and a low-level part. The output is `\"<high> : <low>\"`, for example an SSL code combined with an X.509 or crypto code.\n- **Unknown codes are not silent.** An unmatched code yields `UNKNOWN ERROR CODE (%04X)` with the masked value, and an unbuilt module simply falls out of the switch.\n- **Callers** use `mbedtls_strerror(ret, buf, sizeof buf)` (declared in `include/mbedtls/error.h:165`). With `MBEDTLS_ERROR_C` off, it returns an empty string.\n\n**Generation**\n\n`library/error.c` is marked as auto-generated, between the `Begin/End Auto-Generated Code` markers in the template `scripts/data_files/error.fmt`. The Perl script:\n\n1. Globs `include/mbedtls/*.h` and regex-matches `/** \u2026 */ #define MBEDTLS_ERR_X -0xNNNN /**< \u2026 */`. Each code needs exactly one doc comment, before or after the define, not both. The regex requires the `-0x` hex form, so a define written any other way is skipped without an error. Inference from the regex, not something I ran.\n2. Takes the module name from the `MBEDTLS_ERR_<MODULE>_` prefix. Module names are checked against two hard-coded lists, `@low_level_modules` and `@high_level_modules`, and an unknown module aborts the run.\n3. Wraps each module's cases in `#if defined(MBEDTLS_<MODULE>_C)` blocks and adds the matching `#include \"mbedtls/<module>.h\"`.\n4. Emits `case -(NAME): return \"MODULE - description\";`, with the trailing period stripped and backslashes escaped.\n5. Dies on a duplicate numeric value, and fails if a header defines codes but is not included.\n\nRegeneration is wired into `library/Makefile`, `library/CMakeLists.txt` (the `GEN_FILES` option), and `tests/scripts/check-generated-files.sh`, which fails if the committed `error.c` differs from the generator's output.\n\n**To add a new error code**\n\n1. Pick an unused value in the owning module's range in `include/mbedtls/<module>.h`. The layout table at the top of `error.h` documents the allocation, and the generator does not check it. Only duplicates are caught.\n2. Add `#define MBEDTLS_ERR_<MODULE>_<NAME> -0xNNNN` with a Doxygen `/**< ... */` or `/** ... */` description. The text becomes the user-visible string, so write it as the message.\n3. If the module is new, add its name to the correct list in `scripts/generate_errors.pl` and make sure the `MBEDTLS_<MODULE>_C` guard exists.\n4. Regenerate with `make -C library error.c` or the CMake `GEN_FILES` build, and commit the regenerated `library/error.c`. Do not hand-edit it.\n5. Run `tests/scripts/check-generated-files.sh` to confirm the committed file matches the generator, and add a case to `tests/suites/test_suite_error.function` (the `error_strerror` test) for the new string.\n\nThe string the user sees is `\"<MODULE> - <your description>\"`, where `<MODULE>` is taken from the name prefix, so the name must follow `MBEDTLS_ERR_<MODULE>_`.",
+  "ttft_ms": 1512,
+  "type": "result",
+  "duration_ms": 39797,
+  "uuid": "89f22b93-524c-4a27-8706-537d79c83297",
+  "ttft_stream_ms": 1082,
+  "time_to_request_ms": 130,
+  "first_content_frame_ms": 1082,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

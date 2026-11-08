@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `vocab_ == nullptr` also returns `{}`, with no log. / `LlamaCppBackend::tokenize` (`src/inference/llama_cpp_backend.cpp:788`) returns `{}` when `tokenizer_` is unset, and otherwise copies the vector through. / An empty vector is therefore indistinguishable from legitimately empty input.\nVERDICT: HIT\nWHY: The answer says a failed tokenization returns `{}` and that the backend wrapper also returns `{}` when no tokenizer is wired (`tokenizer_` unset), so the two cases give the same empty value."
+}

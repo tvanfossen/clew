@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It tries `llama_token_to_piece` with a 256-byte stack buffer and, only when that returns negative, retries with a heap buffer of the required size.\nVERDICT: HIT\nWHY: The answer states detokenize uses a 256-byte stack buffer first and heap-allocates only on overflow. It also contrasts this with tokenize's size-then-fill pattern."
+}

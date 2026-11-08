@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Nothing the consumer can do when the index is newer than the server. A rebuild re-stamps the same newer version.\"\nVERDICT: HIT\nWHY: The answer says the schema axis can't be cleared by rebuilding when the index is newer than the server, because a rebuild re-stamps the same newer version."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says asm is used when MBEDTLS_HAVE_ASM is defined plus a GNU compiler and a listed architecture, but it never says MBEDTLS_CT_ASM is derived rather than configured. It also doesn't say the macro is not a config entry in mbedtls_config.h."
+}

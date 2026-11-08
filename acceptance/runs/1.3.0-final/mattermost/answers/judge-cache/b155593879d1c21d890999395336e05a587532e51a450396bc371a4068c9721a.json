@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Handlers do not call the database directly. The chain is: 1. A handler calls `this.handleRecords({...}, description)` or `this.execute(...)`. ... 4. `batchRecords` (`:191`) runs `this.database.write(...)`\" and \"The product handlers call `this.batchRecords` and `this.handleRecords` on the same instance.\"\nVERDICT: MISS\nWHY: The answer says writes go through BaseDataOperator.batchRecords but never ties this to mixins being constrained to extend ServerDataOperatorBase, and it also notes exceptions (direct database.write) that contradict \"every handler's writes.\""
+}

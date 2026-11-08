@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`token_hits`, which gives a per-token count. Matching is a conjunction, so one token with zero hits empties the whole query. The note names the culprit and says \"RETRY WITHOUT THEM.\"\"\nVERDICT: MISS\nWHY: The answer describes the current graded behavior for single-token misses but never says a lone non-matching token was previously treated as proof of absence, or that this conflated \"nothing exists\" with \"I did not look there.\""
+}

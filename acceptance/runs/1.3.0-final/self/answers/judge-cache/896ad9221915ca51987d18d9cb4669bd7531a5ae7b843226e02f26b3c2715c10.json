@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes the empty-result reply's contents (searched/not-searched lists, scope) but never states that the strong \"definitive\" wording is earned per call by querying which corpora were not read, as opposed to being tied to a result shape."
+}

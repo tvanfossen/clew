@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never mentions MBEDTLS_CT_ASM. It only says the asm path is selected when MBEDTLS_HAVE_ASM is defined and the compiler is GCC-compatible. It does not say that MBEDTLS_CT_ASM is a derived macro."
+}

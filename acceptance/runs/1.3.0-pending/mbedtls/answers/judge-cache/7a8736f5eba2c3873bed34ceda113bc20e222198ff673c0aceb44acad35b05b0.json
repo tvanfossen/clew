@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"In the library: no thread is created. The only spawn sites the index finds are in sample programs\" and \"`mbedtls_threading_key_slot_mutex` ... `threading.c`\" with \"Everything in `library/threading.c` sits behind those gates.\"\nVERDICT: HIT\nWHY: The answer says no thread is created in the library, and it also says library/threading.c supplies the mutex abstraction (`mbedtls_mutex_lock`, the threading mutexes) that threaded callers use when `MBEDTLS_THREADING_C` is enabled."
+}

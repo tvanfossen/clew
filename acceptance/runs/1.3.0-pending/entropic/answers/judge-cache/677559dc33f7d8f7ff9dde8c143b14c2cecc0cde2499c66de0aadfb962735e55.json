@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The first `llama_tokenize` call passes a null buffer and size 0. llama.cpp reports the required token count as a negative number, which the code flips to positive.\nVERDICT: HIT\nWHY: States the first call returns the required size as a negative number and the code flips it to positive to size the vector for the second call."
+}

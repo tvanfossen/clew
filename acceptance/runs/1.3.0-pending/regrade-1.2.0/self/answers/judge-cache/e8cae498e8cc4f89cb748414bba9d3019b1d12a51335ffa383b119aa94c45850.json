@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: nothing declared \u2192 whole_repo_scope; \"index_scope present but rejected \u2192 log WARNING, fall to whole-repo, reason says why\"\nVERDICT: MISS\nWHY: The answer says a declared scope is used and a rejected one falls to whole-repo. But it also says \"a present-but-broken index_scope is REFUSED\" and that a bad declaration is \"rejected rather than quietly widening to the whole repo\". That contradicts the item's claim that every failure falls through to the whole repository."
+}

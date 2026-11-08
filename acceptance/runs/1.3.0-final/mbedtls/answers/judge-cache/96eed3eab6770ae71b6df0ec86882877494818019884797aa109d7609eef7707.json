@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: the opt-out is for the library's own code and for its bundled programs. ... `programs/ssl/ssl_client2.c:8` | The client test program defines it at the top of the file, so the whole file can read and write internals.\nVERDICT: HIT\nWHY: The answer states that example programs (ssl_client2.c, ssl_server2.c) define MBEDTLS_ALLOW_PRIVATE_ACCESS themselves to access internals."
+}

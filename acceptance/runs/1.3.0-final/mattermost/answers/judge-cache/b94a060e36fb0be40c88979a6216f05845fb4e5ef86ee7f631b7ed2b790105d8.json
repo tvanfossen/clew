@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"database = DatabaseManager...(serverUrl)   (no operator)\" and \"queryReaction(database, emoji_name, post_id, user_id).fetch() ... if found: database.write(() => reaction[0].destroyPermanently())\" and \"It does not use `handleReactions`, `sanitizeReactions`, or any flag.\"\nVERDICT: HIT\nWHY: The answer states that the removed handler skips the operator, queries the reaction, and destroys it via a direct database.write."
+}

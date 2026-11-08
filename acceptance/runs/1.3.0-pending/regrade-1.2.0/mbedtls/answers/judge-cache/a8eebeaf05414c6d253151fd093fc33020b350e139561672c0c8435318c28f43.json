@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: With assembly it is an empty `asm volatile(\"\" : \"+r\"(x))`. Without assembly it is `x ^ mbedtls_ct_zero`, where `mbedtls_ct_zero` is a `volatile` global\nVERDICT: HIT\nWHY: The answer states the asm path is an empty `asm volatile` with `\"+r\"(x)` as an input-output operand, and says it keeps the compiler from proving values. That covers its role as an optimisation barrier, though it never says outright that no instruction is emitted."
+}

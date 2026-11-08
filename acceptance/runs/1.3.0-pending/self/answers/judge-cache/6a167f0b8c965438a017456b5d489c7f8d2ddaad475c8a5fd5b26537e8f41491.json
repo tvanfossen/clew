@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `.yaml`, `.yml`, `.json` | A `path` row, so the file is in the file set and findable by name ... | Any symbols. Their grammar nodes (`block_mapping_pair`, `pair`) are deliberately not written as `memberdef`\nVERDICT: HIT\nWHY: The answer says YAML/JSON get only a path row (in the file set) with no symbols, in contrast to shell/CMake, which get function and macro definitions."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `scope.py:derive_scope` is the single entry point (`scope.py:634`).\nVERDICT: HIT\nWHY: The answer names derive_scope in scope.py as the single entry point where scope is decided, which matches the item."
+}

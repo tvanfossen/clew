@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It also merges the `*HandlerMix` interfaces so TypeScript sees every handler method.\nVERDICT: HIT\nWHY: The answer says the class merges the `*HandlerMix` interfaces so TypeScript sees all handler methods, which is the declaration-merging mechanism the item describes."
+}

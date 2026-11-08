@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: the reason string records why (for example \"no index_scope is declared for this repo\")\nVERDICT: HIT\nWHY: The answer says the whole-repo fallback carries a reason string recording why that scope was used, which makes the choice explicit instead of guessed."
+}

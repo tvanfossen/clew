@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"a `not_indexed` list with counts (`.rs=2`, `.toml=2`, `.sql=1`, no-extension=3, and so on). That list is the direct answer to \\\"did I look where it lives?\\\"\"\nVERDICT: MISS\nWHY: The answer describes `not_indexed` (file types NOT indexed) and indexed extensions, but never states that the reply names in-scope file types that produced zero rows. That is the item's specific mechanism."
+}

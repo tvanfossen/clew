@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"clew checks its own currency on three separate axes\" and the bullets \"**`data`:**\", \"**`code`:**\", \"**`schema`:**\"\nVERDICT: HIT\nWHY: The answer explicitly states staleness has three separate axes and names them data, code, and schema."
+}

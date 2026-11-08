@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"a contributor adds a code by adding a documented define and regenerating, not by hand-editing `error.c`.\" and \"Add the define to the module's header with a doxygen comment... Regenerate with `make` in `library/` or the CMake build, or run `perl scripts/generate_errors.pl`... Don't hand-edit `library/error.c`.\"\nVERDICT: HIT\nWHY: The answer explicitly says to add a doxygen-documented #define to the module header, re-run the generator, and not hand-edit library/error.c."
+}

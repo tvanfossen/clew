@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: In `check_approval`, if `on_tool_call` is set, `approved` is set to `true` unconditionally after the callback runs. So a registered callback approves every call that reaches it\nVERDICT: HIT\nWHY: The answer states that approved is set to true unconditionally after the callback runs, so the callback cannot refuse. It doesn't mention the void return type, but the unconditional-approval mechanism is the substance of the item."
+}

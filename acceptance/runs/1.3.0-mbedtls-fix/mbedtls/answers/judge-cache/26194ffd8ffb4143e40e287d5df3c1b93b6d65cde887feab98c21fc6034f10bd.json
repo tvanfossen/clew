@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Built-in allocator. `mbedtls_memory_buffer_alloc_init(buf, len)` (`memory_buffer_alloc.c:566-576`) hands the library a caller-supplied buffer as its heap. It installs its own calloc and free through `mbedtls_platform_set_calloc_free`\nVERDICT: MISS\nWHY: The answer says the buffer allocator installs itself via the setter from its init function, but never says it is the only in-tree user of the setter, and the item requires that."
+}

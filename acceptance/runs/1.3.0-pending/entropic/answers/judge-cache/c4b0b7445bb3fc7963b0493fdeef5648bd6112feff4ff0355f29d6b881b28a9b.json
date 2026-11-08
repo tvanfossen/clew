@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A registered callback therefore approves everything not explicitly allowed.\nVERDICT: MISS\nWHY: The answer says a tool matching neither list is approved only when a callback is registered. With no callback it is denied (\"Permission denied\"), so the answer never concludes that the effective posture is default-allow."
+}

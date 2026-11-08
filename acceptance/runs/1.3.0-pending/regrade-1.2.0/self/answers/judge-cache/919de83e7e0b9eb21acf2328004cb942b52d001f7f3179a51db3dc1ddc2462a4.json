@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Nested git trees (submodules, vendored clones) are included, not cut out. They are tagged afterwards by `external.py` so answers can tell the codebases apart.\nVERDICT: HIT\nWHY: The answer says nested git trees are included in the whole-repo scope rather than excluded, and that they are tagged afterward by `external.py`."
+}

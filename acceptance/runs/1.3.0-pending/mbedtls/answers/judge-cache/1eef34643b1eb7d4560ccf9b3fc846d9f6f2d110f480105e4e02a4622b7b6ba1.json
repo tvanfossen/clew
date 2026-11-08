@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_ct_compiler_opaque()` is an empty `asm volatile` with a `+r` constraint, or in the C path an XOR with a `volatile` zero (`mbedtls_ct_zero`).\nVERDICT: HIT\nWHY: The answer states the empty `asm volatile` with a `+r` (input-output register) constraint, in a passage about keeping the compiler from reasoning about values. That covers the mechanism and the barrier purpose, though \"emits no instruction\" is only implied by \"empty\"."
+}

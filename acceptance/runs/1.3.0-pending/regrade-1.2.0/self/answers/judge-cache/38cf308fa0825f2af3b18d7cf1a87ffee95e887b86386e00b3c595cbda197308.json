@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: One row per endpoint, not per site. `DISTINCT` on the endpoint identity means a function that calls `f` three times appears once.\nVERDICT: MISS\nWHY: The answer says one row per endpoint rather than per call site, but it never says that layer variants are collapsed to the strongest evidence. It lists `source` as a per-row field and ranks the layers without describing the collapse."
+}

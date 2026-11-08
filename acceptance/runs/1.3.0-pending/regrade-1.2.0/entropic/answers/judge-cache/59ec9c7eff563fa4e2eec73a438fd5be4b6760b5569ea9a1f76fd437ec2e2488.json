@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `ExternalBridge::accept_loop` | `ExternalBridge::start` | Polls the listen socket and accepts clients ... per-client `serve_client` thread | `accept_loop` (`ct->thread`) | Serves one MCP client until disconnect\nVERDICT: HIT\nWHY: The answer states that the accept loop thread is spawned from start, and that accept_loop spawns a per-client serve_client thread per connected client, which gives the two-level structure."
+}

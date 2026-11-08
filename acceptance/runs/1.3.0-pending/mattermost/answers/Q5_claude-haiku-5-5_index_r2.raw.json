@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 25939,
+  "stop_reason": "end_turn",
+  "session_id": "21179829-f771-484d-983b-e02431e038fc",
+  "total_cost_usd": 0.0115248,
+  "usage": {
+    "input_tokens": 14,
+    "cache_creation_input_tokens": 25330,
+    "cache_read_input_tokens": 398890,
+    "output_tokens": 4937,
+    "output_tokens_details": {
+      "thinking_tokens": 1921
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 25330,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2454,
+        "cache_read_input_tokens": 70727,
+        "cache_creation_input_tokens": 836,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 836
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 14,
+      "outputTokens": 4937,
+      "cacheReadInputTokens": 398890,
+      "cacheCreationInputTokens": 25330,
+      "webSearchRequests": 0,
+      "costUSD": 0.0115248,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1921,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 25330,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 11,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "`ServerDataOperator` is a class built by mixin composition. Ten of its handler mixins sit next to it under `server_data_operator/handlers/`. Three come from product folders, and every handler's database write funnels through one method, `BaseDataOperator.batchRecords`.\n\n**How the class is built**\n\n- `app/database/operator/server_data_operator/index.ts:40` declares `class ServerDataOperator extends mix(ServerDataOperatorBase).with(...)`. The `with(...)` call applies each handler class as a mixin in order, on top of the base.\n- `mix` (`app/utils/mix.ts`) is a tiny builder that reduces the mixins over the superclass.\n- The `interface ServerDataOperator extends \u2026Mix` block (lines 23\u201338) is declaration merging. It gives the class the typed method signatures of every mixin, since the mixin classes themselves are not visible to the type checker through the class.\n- The base, `ServerDataOperatorBase` (`server_data_operator/handlers/index.ts:31`), extends `BaseDataOperator`. It owns `serverUrl` and the generic handlers: `handleRole`, `handleCustomEmojis`, `handleSystem`, `handleConfigs`, `handleReactions`, `handleFiles`, and `execute`.\n- The constructor takes `(database, serverUrl)`. `DatabaseManager` creates it at `app/database/manager/index.ts:184`.\n\n**Handlers defined elsewhere**\n\n| Handler | Defined in |\n|---|---|\n| `AgentsHandler` | `app/products/agents/database/operators/handlers/index.ts` |\n| `BoardsHandler` | `app/products/boards/database/operators/handlers/index.ts` |\n| `PlaybookHandler` | `app/products/playbooks/database/operators/handlers/index.ts` |\n\nThe other ten (`Category`, `Channel`, `CustomProfile`, `Group`, `Post`, `Properties`, `Team`, `TeamThreadsSync`, `Thread`, `User`) live in `server_data_operator/handlers/*.ts`. Only the base class is in `handlers/index.ts`.\n\n**Where a write actually happens**\n\n`batchRecords` in `app/database/operator/base_data_operator/index.ts:191` is the one place that touches the database:\n\n```ts\nawait this.database.write(async (writer) => {\n    await writer.batch(...models);\n}, description);\n```\n\nIt only runs when `models.length > 0`. It catches errors and logs them. If the error is a corruption error, it emits `DATABASE_CORRUPTION_DETECTED`. It rethrows only when `propagateError` is true, which it is not by default.\n\nHandlers reach it in one of two ways:\n\n- **Direct:** many handlers, such as `handlePosts` (`post.ts:618`) and `handleUsers`, call `this.batchRecords(...)` themselves after preparing models.\n- **Via `handleRecords`:** the generic path in `base_data_operator/index.ts:224`. It runs `processRecords` (dedupe against the DB), then `prepareRecords` (run the transformer), and it writes only when `prepareRecordsOnly` is false. That flag defaults to `true`, so a plain `handleRecords` call returns prepared models without writing. The caller must batch them later.\n- `execute` (`server_data_operator/handlers/index.ts:234`) is the same pattern: prepare, then `batchRecords`.\n\n**What else shares that write path**\n\n- `AppDataOperator` inherits `batchRecords` from `BaseDataOperator`. Its `handleGlobal` and `handleInfo` use it against the app database.\n- The websocket actions in `app/actions/websocket/*.ts` (channel, posts, users, roles, category) call `operator.batchRecords` directly on a `ServerDataOperator`.\n- Ephemeral cleanup in `app/actions/local/ephemeral_mode/cleanup.ts` (`cleanupAiThreads` at line 211, `cleanupPlaybookRuns` at line 230) calls it through a structural `{batchRecords}` type, so it does not depend on the concrete class.\n\n**Caveat:** the index reports 159 unresolved callers of `batchRecords`. The list above is from a grep of the source, which I checked against the index's resolved callers.",
+  "ttft_ms": 2019,
+  "type": "result",
+  "duration_ms": 26837,
+  "uuid": "c123e613-ad83-4a9d-bcbd-0a7485356093",
+  "ttft_stream_ms": 1869,
+  "time_to_request_ms": 82,
+  "first_content_frame_ms": 1869,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

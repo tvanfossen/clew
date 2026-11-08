@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `--declare FILE` on the CLI, or the `options` argument to `build_index` / `index(action='refresh')` over MCP. Same keys as `.clew.yaml`. `--exclude` is also tier 1.\nVERDICT: HIT\nWHY: The tier 1 row names both the CLI flag (`--declare`) and the structured `options` argument as routes to the top tier."
+}

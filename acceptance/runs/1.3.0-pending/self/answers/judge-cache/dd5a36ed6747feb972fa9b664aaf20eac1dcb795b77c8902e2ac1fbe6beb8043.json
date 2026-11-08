@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `.clew.yaml` accepts the sections in `KNOWN_SECTIONS`... | MCP `index(options=\u2026)` | The `options` argument, keyed by `.clew.yaml` section names\n\nVERDICT: MISS\nWHY: The answer says MCP options are keyed by `.clew.yaml` section names, but it never says that the names are the same words the diagnostics use. It also doesn't frame the point as one vocabulary shared by callers, the declaration file and the diagnostics."
+}

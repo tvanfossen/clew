@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The deny check in `execute` is the authoritative gate, since nothing reaches a server without passing it.\"\nVERDICT: MISS\nWHY: The answer says that `execute` checks the deny list and that this is the authoritative gate. It also says that `check_approval` can approve any call when a callback is set. It never says the deny list is the only list that blocks execution, and it presents the allow-list check as a separate gate in the approval step."
+}

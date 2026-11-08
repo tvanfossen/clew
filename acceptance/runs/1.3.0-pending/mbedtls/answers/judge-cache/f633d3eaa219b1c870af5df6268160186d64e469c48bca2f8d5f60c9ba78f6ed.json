@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Application code outside the library and these two sample programs still gets the mangled names and cannot touch the fields.\nVERDICT: HIT\nWHY: The answer contrasts code that defines the opt-out, which sees plain member names, with ordinary consumers of the public headers, who see the `private_` names."
+}

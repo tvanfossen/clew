@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The probe always runs, even when nothing fails, which makes it a two-pass sizing idiom rather than a retry. ... Nothing loops and nothing tries again.\nVERDICT: HIT\nWHY: The answer concludes it is a size probe/sizing idiom, not retry, noting the second call is the only real attempt and nothing loops; backoff and counter are not named but loop absence and exactly two calls are stated."
+}

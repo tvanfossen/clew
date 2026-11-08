@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `library/memory_buffer_alloc.c` (around line 572) is an optional built-in arena allocator, enabled by `MBEDTLS_MEMORY_BUFFER_ALLOC_C`. Its `mbedtls_memory_buffer_alloc_init()` calls `mbedtls_platform_set_calloc_free()` itself, installing its own calloc and free.\nVERDICT: HIT\nWHY: The answer names the buffer allocator and says its init function calls the runtime setter to install itself. It doesn't say outright that this is the only in-tree user, but \"The library's own use of the facility is mostly as a hook point for its optional built-in arena allocator\" points that way."
+}

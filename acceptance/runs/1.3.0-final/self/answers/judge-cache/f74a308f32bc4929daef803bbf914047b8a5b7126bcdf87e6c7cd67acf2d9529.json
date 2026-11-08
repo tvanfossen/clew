@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Code:** only a client restart helps. Data is read live per call, so the query tools are current. Only the process's logic is old. ... Writes are refused when the code axis is stale. `stale_code_refusal` returns a `REFUSED:` message, and `force` does not bypass it.\nVERDICT: HIT\nWHY: The answer states that reads are current because data is read live per call, and that writes (builds) are refused when the process's code is stale to avoid old logic. It doesn't spell out \"re-stamps with old pipeline logic\" in so many words, but the read/write asymmetry on the code axis is clearly stated."
+}

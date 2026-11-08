@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: If nothing matches and a callback is wired, the callback is invoked and the call is then marked approved. The return value of the callback is never read. The header says tools are \"approved via callback,\" but the code approves unconditionally once the callback is present. I'd treat that as a likely defect to verify, since it means the callback is a notification rather than a gate.\nVERDICT: HIT\nWHY: The answer states that the callback's return value is never read and approved is set unconditionally after it fires, so the callback cannot refuse. It does not say the callback returns void, but the substance of the item is there."
+}

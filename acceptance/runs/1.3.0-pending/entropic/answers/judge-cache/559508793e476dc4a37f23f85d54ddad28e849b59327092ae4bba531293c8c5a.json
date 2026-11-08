@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`llama_tokenize` is given a null output buffer and length 0. llama.cpp answers with the negated number of tokens needed. The code flips the sign (line 58) and allocates that many slots.\"\nVERDICT: HIT\nWHY: The answer states the first call returns the negated required token count and that the code flips the sign to size the buffer for the second call."
+}

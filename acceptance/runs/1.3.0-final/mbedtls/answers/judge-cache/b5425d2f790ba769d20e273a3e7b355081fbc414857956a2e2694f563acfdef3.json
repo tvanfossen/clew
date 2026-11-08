@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Two layers, one string.** A code can carry a high-level module part and a low-level part. The output is `\"<high> : <low>\"`, for example an SSL code combined with an X.509 or crypto code.\nVERDICT: HIT\nWHY: The answer states that a code carries a high-level module part and a low-level part, and that the output joins both with \" : \" when both are present."
+}

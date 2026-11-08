@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: One row is stored per layer per pair, but the reply collapses them to the strongest evidence per endpoint (`CallEdge` docstring).\nVERDICT: MISS\nWHY: The answer mentions collapsing per endpoint but never states that the same collapse function serves both the flat neighbour surface and the traversal surface, so the two can't disagree."
+}

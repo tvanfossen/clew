@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never contrasts how the flat surface and the traversal surface resolve the focal side. The closest it gets is a note that `_key_edge_rows` joins on `memberdef.name`, which is not a flat-versus-traversal comparison."
+}

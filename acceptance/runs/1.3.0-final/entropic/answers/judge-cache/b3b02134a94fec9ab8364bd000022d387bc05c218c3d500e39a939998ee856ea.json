@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The pre-commit `gen-bindings-check` hook fails on drift, so the header is the source of truth.\nVERDICT: HIT\nWHY: The answer names a pre-commit hook that fails on drift between the header and the generated bindings. It doesn't say the hook re-runs the generator and diffs, but a check on a generated file that detects drift is that mechanism in substance."
+}

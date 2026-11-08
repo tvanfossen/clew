@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`edge_class` | `'call'` for a direct call, `'key'` for a shared-key dataflow edge with no call between the two.\" and \"`callers()` also returns `'key'` rows: functions that write a value this one reads. They do not call it... Check `edge_class` on every row.\"\nVERDICT: HIT\nWHY: The answer states that callers mixes call and shared-key rows in one list, distinguished by `edge_class`, which the consumer must check."
+}

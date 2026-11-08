@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: websocket_manager.ts:112  client.setEventCallback \u2192 handleWebSocketEvent(serverUrl, evt)\n        \u2502\nevent.ts:44 / :163        switch(msg.event) \u2192 REACTION_ADDED\n        \u2502\nwebsocket/reactions.ts:21 handleReactionAddedToPostEvent\nVERDICT: HIT\nWHY: The answer names `handleWebSocketEvent` as the dispatcher that switches on `REACTION_ADDED` and routes to `handleReactionAddedToPostEvent`."
+}

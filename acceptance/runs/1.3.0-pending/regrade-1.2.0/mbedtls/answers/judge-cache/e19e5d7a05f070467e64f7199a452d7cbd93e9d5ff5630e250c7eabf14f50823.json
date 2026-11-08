@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It never creates threads, so it runs concurrently only when your application calls it from several threads.\nVERDICT: MISS\nWHY: The answer says the library never creates threads, but it never says the pthread example compiles to a stub main under the default build."
+}

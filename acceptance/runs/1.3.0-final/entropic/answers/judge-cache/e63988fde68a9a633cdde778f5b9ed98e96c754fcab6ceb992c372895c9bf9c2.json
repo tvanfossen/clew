@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: If neither holds and an `on_tool_call` callback is registered, the call is approved anyway. ... the code fires the callback and then sets `approved = true` (tool_executor.cpp:170-176). The header calls this \"approved via callback\", but the code never denies.\nVERDICT: HIT\nWHY: The answer states the callback is fired and `approved = true` is set unconditionally afterward, so it never denies, which is the item's substance. It doesn't say the callback returns void, but it does say the callback can't refuse."
+}

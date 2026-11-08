@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The REST call `ClientPosts.createPost` in `app/client/rest/posts.ts` (lines 43\u201348) passes `noRetry: true` to `doFetch`. So the client's own retry layer is explicitly disabled for this call.\nVERDICT: HIT\nWHY: The answer states the create-post call is never retried automatically, citing `noRetry: true`, and says \"Nothing in the indexed code schedules a second attempt.\""
+}

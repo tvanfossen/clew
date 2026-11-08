@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The library creates no threads. `pthread_create` appears only in `programs/ssl/ssl_pthread_server.c`, which is an example.\nVERDICT: MISS\nWHY: The answer says the library creates no threads and that pthread_create appears only in an example, but it never says the pthread example compiles to a stub main in a default build."
+}

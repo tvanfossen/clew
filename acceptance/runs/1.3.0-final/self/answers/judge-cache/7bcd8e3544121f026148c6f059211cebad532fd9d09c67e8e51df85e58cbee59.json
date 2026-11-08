@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Tiers 1, 2 and 5 are interchangeable \"stated\" layers, and tiers 3 and 4 always stay in.\" and \"Facts from tier 3 and 4 survive, so `main` survives any `--entry-patterns`... making both stated tiers replace only tier 5.\"\nVERDICT: HIT\nWHY: The answer states that the stated tiers replace one another while tiers 3 and 4 accumulate and survive any stated override, which is the asymmetry the item describes."
+}

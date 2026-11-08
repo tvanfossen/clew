@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Against that wheel, the router resolves the file to no grammar. The file is still registered and searchable, but it has no symbols. This is a deliberate fallback... The miss report is measured at build time. It records how many in-scope files of each unread type exist, for example '14 `.sh` files were in scope and none of them are in this index.'\"\nVERDICT: HIT\nWHY: The answer says that an install without the grammars degrades instead of failing, because the router resolves to no grammar and avoids a ValueError. It also says those file types are reported as not indexed. It names a capability check (compiled-in languages), which stands in for the gate."
+}

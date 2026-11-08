@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer mentions the public header include/mbedtls/constant_time.h and uses mbedtls_ct_memcmp as an example. It never says that mbedtls_ct_memcmp is the only public API function or that the other primitives are library-internal."
+}

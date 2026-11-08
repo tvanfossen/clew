@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"If there is no section at all, `whole_repo_scope` applies (`scope.py:683`). Its single root is the repo\" and \"a repository's own declaration decides the index scope if it has one. If it doesn't, clew indexes the whole repository\"\nVERDICT: HIT\nWHY: The answer says a declared `index_scope` decides when present and that an absent declaration falls through to whole-repo indexing, with the reason logged. It also says a malformed declaration is refused rather than falling back, but that is a different case from failing to find one."
+}

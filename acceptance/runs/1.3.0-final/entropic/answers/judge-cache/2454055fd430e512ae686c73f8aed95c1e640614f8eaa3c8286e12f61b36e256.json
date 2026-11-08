@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: llama.cpp answers with the negative of the required token count, and the code flips the sign. It then allocates that many slots and calls `llama_tokenize` again to fill them.\nVERDICT: HIT\nWHY: The answer states the first call returns the negative required count and the code flips the sign to size the buffer for the second call."
+}

@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 24529,
+  "stop_reason": "end_turn",
+  "session_id": "c2a8999c-5b41-40f2-82bf-c85526f2f15b",
+  "total_cost_usd": 0.010619539999999998,
+  "usage": {
+    "input_tokens": 18,
+    "cache_creation_input_tokens": 18510,
+    "cache_read_input_tokens": 464424,
+    "output_tokens": 4543,
+    "output_tokens_details": {
+      "thinking_tokens": 1447
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 18510,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1911,
+        "cache_read_input_tokens": 61385,
+        "cache_creation_input_tokens": 1744,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1744
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 18,
+      "outputTokens": 4543,
+      "cacheReadInputTokens": 464424,
+      "cacheCreationInputTokens": 18510,
+      "webSearchRequests": 0,
+      "costUSD": 0.010619539999999998,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1447,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 18510,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 17,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** `ServerDataOperator` is a class whose bases are 11 handler mixins in `server_data_operator/handlers/` plus 3 mixins from the agents, boards and playbooks products. Every handler's DB write funnels through `BaseDataOperator.batchRecords`, which is also used by `AppDataOperator`.\n\n**How it's built**\n\n- `ServerDataOperator` is declared at `app/database/operator/server_data_operator/index.ts:23`. Its constructor (line 55) calls `super(database)` and stores `serverUrl`. The index shows no members of its own; the mixin wiring itself is not a symbol the index holds, so I can't confirm the exact composition mechanism from here.\n- Its bases are:\n  - **Defined next to it, in `server_data_operator/handlers/`:** `CategoryHandlerMix`, `ChannelHandlerMix`, `CustomProfileHandlerMix`, `GroupHandlerMix`, `PostHandlerMix`, `PropertiesHandlerMix`, `TeamHandlerMix`, `TeamThreadsSyncHandlerMix`, `ThreadHandlerMix`, `UserHandlerMix`. Each `*Mix` has a matching concrete `*Handler` class in the same folder, e.g. `PostHandler` in `handlers/post.ts`.\n  - **Also in `handlers/index.ts`:** `ServerDataOperatorBase` (line 31), which extends `BaseDataOperator`. It holds `serverUrl`, `handleRole`, `handleCustomEmojis`, `handleSystem`, `handleConfigs`, `handleReactions`, `handleFiles` and the generic `execute`.\n  - **Defined elsewhere, in product folders:**\n    - `AgentsHandlerMix` in `app/products/agents/database/operators/handlers/index.ts`\n    - `BoardsHandlerMix` in `app/products/boards/database/operators/handlers/index.ts` (line 20; it only adds `handleBoardViews`)\n    - `PlaybookHandlerMix` in `app/products/playbooks/database/operators/handlers/index.ts`\n\n**Where the write actually happens**\n\nWhen a handler writes records, the chain is:\n\n1. A handler method such as `PostHandler.handlePosts` or `UserHandler.handlePreferences` calls `this.execute(...)` (or a helper that calls `batchRecords` directly).\n2. `ServerDataOperatorBase.execute` (`server_data_operator/handlers/index.ts:234`) calls `this.prepareRecords(...)` to build Model objects, then `this.batchRecords(models, description)`.\n3. `BaseDataOperator.batchRecords` (`base_data_operator/index.ts:191`) is the actual write. It calls `this.database.write(async (writer) => writer.batch(...models), description)`. On error it logs a warning and, if `isDatabaseCorruptionError(e)`, emits `Events.DATABASE_CORRUPTION_DETECTED` via `DeviceEventEmitter`. It rethrows only when `propagateError` is set.\n\n`prepareRecords` and `handleRecords` in the same base class do the de-duplication and preparation before this step.\n\n**What else shares it**\n\n- **`AppDataOperator`** (`app/database/operator/app_data_operator/index.ts:15`) extends `BaseDataOperator` directly. Its `handleInfo` and `handleGlobal` write through the same `batchRecords`, but against the app database, not a server database.\n- **Within the server operator,** the index lists callers of `batchRecords` spanning `PostHandler` (`_createOrUpdateScheduledPost`, `_createPostsInChannelRecord`, `_deleteScheduledPostByIds`, `_mergePostInChannelChunks`, `handlePosts`, `handleReceivedPostsInChannel*`, `handleScheduledPosts`, and others), the product handlers (`AgentsHandler`, `PlaybookHandler`), `ChannelHandler.handleChannelBookmark`, `GroupHandler`, `PropertiesHandler`, `ThreadHandler`, `TeamThreadsSyncHandler`, and `BaseDataOperator.handleRecords`. The index reports 159 unresolved callers, so this list is partial.\n- **Mock:** `app/database/manager/__mocks__/index.ts` creates a `ServerDataOperator` through the same constructor, so tests exercise the same base class.",
+  "ttft_ms": 1534,
+  "type": "result",
+  "duration_ms": 27292,
+  "uuid": "2b6726c3-dcd8-4c79-ba6f-be575712bc6c",
+  "ttft_stream_ms": 1092,
+  "time_to_request_ms": 88,
+  "first_content_frame_ms": 1093,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

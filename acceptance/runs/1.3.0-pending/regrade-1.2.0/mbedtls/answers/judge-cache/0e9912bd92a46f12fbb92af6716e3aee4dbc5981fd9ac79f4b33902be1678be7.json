@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: about 286 call occurrences across 29 library files\nVERDICT: HIT\nWHY: The answer says the `mbedtls_ct_*` primitives are called in 29 library files, backed by a table of files across TLS, RSA, cipher, bignum, base64 and PSA. That is the same order of magnitude as twenty modules and clearly not confined to one or two."
+}

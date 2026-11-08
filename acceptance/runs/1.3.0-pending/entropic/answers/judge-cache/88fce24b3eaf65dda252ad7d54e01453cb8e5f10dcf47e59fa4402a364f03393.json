@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `_loader.find()        $ENTROPIC_LIB \u2192 $ENTROPIC_HOME \u2192 ~/.entropic \u2192 ldconfig`\nVERDICT: MISS\nWHY: The answer gives the order of env overrides, then user directory, then ldconfig cache. It never says two directory layouts are tried per root, and the item requires that detail."
+}

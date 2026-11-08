@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Direct llama/ggml/common/mtmd calls are confined to about 20 files... Facade. `src/facade/entropic.cpp` only touches `LlamaCppBackend` via `dynamic_cast`... Public headers leak some names... Tests include `llama.h` and `chat.h` directly in about 8 files\nVERDICT: MISS\nWHY: The answer calls the dependency \"contained\" in src/inference, and the facade, headers and tests it lists outside it are not framed as reaching files. It never says that a minority of the reaching files sit outside src/inference."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says a containment call was removed; it only says the Doxyfile INPUT is ignored and nested git trees are included, with no statement of a removed call versus callers dropped."
+}

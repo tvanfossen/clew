@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "ITEMS:\nclew/tiers.py\nclew/buildoptions.py\nclew/declaration.py\n.clew.yaml\n.doxygen-guard.yaml\nEND"
+}

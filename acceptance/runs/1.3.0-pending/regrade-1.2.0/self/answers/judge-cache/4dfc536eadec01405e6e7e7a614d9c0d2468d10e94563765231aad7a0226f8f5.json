@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `args` is empty by design (`clew/shast.py`).\nVERDICT: MISS\n\nWHY: The answer says shell `args` is empty by design but never states that shell has no argument list or return because the language lacks them, and it says nothing about return."
+}

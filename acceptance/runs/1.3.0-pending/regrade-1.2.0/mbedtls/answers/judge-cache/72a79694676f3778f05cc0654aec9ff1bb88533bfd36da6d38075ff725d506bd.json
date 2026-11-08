@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the library never creates threads and the mutex code is compiled out, but it never mentions the pthread example compiling to a stub main under the default build."
+}

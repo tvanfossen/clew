@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `*.yaml`, `*.yml`, `*.json` | yes | never | `clew/synth.py` `DATA_EXTS`. Registered in the file set so they can be found by name, then never harvested.\nVERDICT: HIT\nWHY: The answer states YAML/JSON are registered as path rows with no function rows (no symbols), contrasted with shell/CMake which do get function rows."
+}

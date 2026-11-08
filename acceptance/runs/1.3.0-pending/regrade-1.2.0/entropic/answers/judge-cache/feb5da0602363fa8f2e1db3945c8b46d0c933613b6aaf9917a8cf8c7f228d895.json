@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes only `_bindings.py` (generated, ctypes) and `_loader.py`; it never mentions a names-only manifest that imports no ctypes, nor a deliberate two-way split."
+}

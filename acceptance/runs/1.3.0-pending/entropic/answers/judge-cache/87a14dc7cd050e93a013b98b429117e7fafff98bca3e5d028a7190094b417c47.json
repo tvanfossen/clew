@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"If not approved and an `on_tool_call` callback is wired, the callback is invoked and `approved = true` unconditionally. The callback returns `void`, so the host cannot refuse through it.\"\nVERDICT: HIT\nWHY: The answer states that the callback returns void and that approved is set to true unconditionally after it fires, so the callback cannot refuse."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It looks up the row by the composite key (`emoji_name`, `post_id`, `user_id`), not by the server id. Only the first match is destroyed. | `queryReaction(emoji_name, post_id, user_id).fetch()   (no operator)` | `if found: database.write(reaction[0].destroyPermanently())`\nVERDICT: HIT\nWHY: The answer states that the remove path skips the operator, queries the reaction, and destroys it via a direct `database.write`."
+}

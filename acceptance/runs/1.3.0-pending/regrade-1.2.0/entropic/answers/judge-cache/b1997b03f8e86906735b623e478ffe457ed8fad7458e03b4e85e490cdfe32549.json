@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer explicitly says it did not read HealthMonitor::monitor_loop and never mentions a status callback or an event queue drained on the caller's thread. It only lists `event_mutex_` as a lock name."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: These exist because the C ABI takes an `int*` cancel flag and the backend wants an atomic. Each one polls every 10 ms and is joined before the function returns:\nVERDICT: HIT\nWHY: The answer says the cancel poller threads exist because of the C ABI `int*` versus atomic mismatch. It has the direction reversed, but it does name the atomic-to-int bridge forced by the C ABI."
+}

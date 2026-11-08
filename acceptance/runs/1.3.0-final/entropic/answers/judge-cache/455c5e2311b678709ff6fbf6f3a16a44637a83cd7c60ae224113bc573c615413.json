@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Patterns come from three sources: `permissions.allow` / `deny` / `auto_approve` in config (`parse_permissions_config`), `add_permission` at runtime, and \\\"Always Allow/Deny\\\" choices saved to the project YAML by `PermissionPersister::save_permission`.\"\nVERDICT: MISS\nWHY: The answer mentions persisting choices to a project YAML via PermissionPersister, but never names config.local.yaml or states that persistence is a separate step from the in-memory add_permission call."
+}

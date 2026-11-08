@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: An unknown section name is a hard refusal, not a degradation.\nVERDICT: MISS\nWHY: The answer says an unknown section is refused (by name) but never gives the reason: that an ignored section would build with defaults while reporting the declaration was honoured."
+}

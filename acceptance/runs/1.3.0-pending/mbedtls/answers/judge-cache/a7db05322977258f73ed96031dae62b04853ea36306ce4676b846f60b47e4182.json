@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `library/error.c` is produced from `include/mbedtls/*.h` by `scripts/generate_errors.pl`, and you never edit the table directly.\nVERDICT: MISS\nWHY: The answer says error.c is generated from the headers by generate_errors.pl, but it never names scripts/data_files/error.fmt as the template, so part of the item is missing."
+}

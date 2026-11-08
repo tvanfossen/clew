@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Ecosystem signatures** (tier 4) and **name-pattern heuristics** (tier 5)\" together with tiers 1 \"explicit\", 2 \"declared\", 3 \"target-fact\"\nVERDICT: HIT\nWHY: The answer names five precedence tiers (explicit, declared, target-fact, ecosystem signatures, name-pattern heuristics) and gives a resolution formula across them."
+}

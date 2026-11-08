@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes how an empty search is graded. It never states the general rule that a wrong \"definitive\" claim should be fixed by changing what the corpus covers, not by rewording the sentence about it."
+}

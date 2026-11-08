@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Option A, compile time (no runtime pointer, no setter): ... `MBEDTLS_PLATFORM_CALLOC_MACRO` and `MBEDTLS_PLATFORM_FREE_MACRO`\" and \"Option B, runtime (only `MBEDTLS_PLATFORM_MEMORY` defined): `mbedtls_platform_set_calloc_free(my_calloc, my_free);`\" plus \"In this mode `mbedtls_platform_set_calloc_free` is not declared, so calling it is a compile error.\"\nVERDICT: HIT\nWHY: The answer separates the compile-time macro pair from the runtime setter with function pointers. It also says that defining the macros removes the runtime setter, so the two cannot be combined."
+}

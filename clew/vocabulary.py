@@ -213,6 +213,12 @@ CALL_SOURCE_MACRO_HOP = "macro_hop"
 ## tell "X calls Y here" from "X arranges for Y to be called later".
 CALL_SOURCE_BINDING = "binding"
 
+## A component RENDERED in JSX — `<Card />` uses `Card`. A tag of its own rather than `ast`, because
+## rendering is not invocation and a consumer summarising control flow must be able to tell the two
+## apart; it is served on every call edge, so an agent sees which it is. Only capitalised names and
+## member expressions are harvested: a lowercase tag is a DOM element, not a function anyone wrote.
+CALL_SOURCE_JSX = "jsx"
+
 CALL_SOURCE = Vocabulary(
     id="call_source",
     values=(
@@ -223,6 +229,7 @@ CALL_SOURCE = Vocabulary(
         CALL_SOURCE_DECLARED_DISPATCH,
         CALL_SOURCE_MACRO_HOP,
         CALL_SOURCE_BINDING,
+        CALL_SOURCE_JSX,
     ),
     means="which extraction layer produced this call edge",
     # Ranked ABOVE doxygen's own exact xrefs: the others are inferences graded by
@@ -242,11 +249,17 @@ CALL_SOURCE = Vocabulary(
     ## function is both called outright and bound somewhere, the observed call is the
     ## better description of the pair. Above `ast_member` because a binding names a
     ## bare identifier and so was never guessed from an unwrapped tail.
+    ##
+    ## `jsx` sits BELOW `ast` and ABOVE `binding`. Below `ast` because when one component both calls
+    ## and renders another, the observed call is the better description of the pair. Above `binding`
+    ## because a render runs the component now, on this path, where a binding defers it to someone
+    ## else. It names a bare identifier, so it was never guessed from an unwrapped tail either.
     rank={
-        CALL_SOURCE_DECLARED_DISPATCH: 7,
-        CALL_SOURCE_DOXYGEN_SQLITE: 6,
-        CALL_SOURCE_MACRO_HOP: 4,
-        CALL_SOURCE_AST: 3,
+        CALL_SOURCE_DECLARED_DISPATCH: 8,
+        CALL_SOURCE_DOXYGEN_SQLITE: 7,
+        CALL_SOURCE_MACRO_HOP: 5,
+        CALL_SOURCE_AST: 4,
+        CALL_SOURCE_JSX: 3,
         CALL_SOURCE_BINDING: 2,
         CALL_SOURCE_AST_MEMBER: 1,
         CALL_SOURCE_FNPTR: 0,
@@ -1251,3 +1264,11 @@ SEARCH_WEIGHT_TOKEN_IN_BRIEF = 5
 ## `_candidate_paths`, which is defined in `_loader.py`; the symbol was reachable only by
 ## searching a phrase already inside its own docstring.
 SEARCH_WEIGHT_TOKEN_IN_PATH = 2
+
+## Subtracted from a symbol or file whose file DECLARES ITSELF generated. HALF a name-token match,
+## and that size is the whole design: a generated symbol loses a TIE to a hand-written one, but
+## still wins on strictly better evidence — one more name token, or an exact name. Deprioritised,
+## never hidden. Larger than a brief or path token, so neither lets generated code win a tie back.
+## Only self-declared files: a CMake output is the project's own build product, and mbedtls Q4's
+## answer IS one.
+SEARCH_PENALTY_SELF_DECLARED_GENERATED = 25

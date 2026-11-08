@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: calls `llama_token_to_piece` with a 256-byte stack buffer. If the piece doesn't fit (negative return), it allocates the exact required size and calls again.\nVERDICT: HIT\nWHY: The answer states that detokenize tries a 256-byte stack buffer first and allocates only when it doesn't fit, and it contrasts this with tokenize, which does a size probe first."
+}

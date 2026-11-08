@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer mentions writers alongside callers on a variable, but never states that the polarity is inverted, i.e. that a reader's \"callers\" are the functions whose writes it observes."
+}

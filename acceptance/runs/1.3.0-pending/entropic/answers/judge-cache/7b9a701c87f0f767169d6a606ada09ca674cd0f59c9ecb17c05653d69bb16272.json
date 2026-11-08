@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says \"Always allow\" does not persist and that permission_persist_ is never called, but never says a decision can be persisted by appending to config.local.yaml, separately from the in-memory add_permission call."
+}

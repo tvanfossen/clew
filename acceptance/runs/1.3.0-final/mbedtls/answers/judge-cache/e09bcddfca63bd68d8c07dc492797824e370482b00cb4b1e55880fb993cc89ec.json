@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: By default, `ssl->MBEDTLS_PRIVATE(state)` becomes `ssl->private_state`, so code that touches a field directly fails to compile. The struct layout and the ABI are identical either way. The guard only changes the spelling the compiler sees.\nVERDICT: HIT\nWHY: The answer says compile-time enforcement works by renaming the member (`private_` prefix) while layout stays identical, so the fields remain visible and sized."
+}

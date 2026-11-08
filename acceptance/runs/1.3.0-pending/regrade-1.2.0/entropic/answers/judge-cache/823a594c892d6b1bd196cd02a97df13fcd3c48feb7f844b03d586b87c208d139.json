@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Mirrors the engine's `interrupt_flag_` into the C-ABI `int` cancel flag\nVERDICT: HIT\nWHY: The answer says the interrupt observer thread bridges the engine's atomic flag into a plain C-ABI `int`, and that atomics were deliberately kept off the `.so` boundary (\"The C ABI is `int*`... deliberate choice to keep atomics off the `.so` boundary\")."
+}

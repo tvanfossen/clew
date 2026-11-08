@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `library/common.h:132` | Defined for every library translation unit that includes `common.h` before the public headers... The `common.h` define means every internal file sees plain field names\nVERDICT: HIT\nWHY: The answer states that a shared header (common.h) defines the opt-out so all library translation units see plain member names."
+}

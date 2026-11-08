@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `llama.h` is included by `llama_cpp_backend.{h,cpp}`, `llama_cpp_sampler.cpp`, `llama_cpp_tokenizer.cpp`, `grammar_registry.cpp`, `orchestrator.cpp`, `speculative_compat.cpp` and `adapter_manager.cpp`.\nVERDICT: MISS\nWHY: The answer lists about seven to eight implementation files and says the dependency is \"contained\", with a \"few leaks\". It never says it reaches roughly a dozen of entropic's own files rather than one wrapper."
+}

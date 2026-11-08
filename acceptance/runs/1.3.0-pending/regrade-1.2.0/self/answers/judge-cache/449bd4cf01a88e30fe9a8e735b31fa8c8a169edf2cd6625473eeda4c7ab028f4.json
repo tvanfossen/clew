@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `data` ... Cleared by: A rebuild; `code` ... Cleared by: Restarting the MCP client only; \"A rebuild through this process will not clear it\" and \"The design rule behind all of this is that a rebuild through a stale process is never attempted\"\nVERDICT: HIT\nWHY: The answer's table and text state that the axes are cleared by different actions (rebuild for data, client restart for code), and that a rebuild through a stale process won't fix code staleness. The \"one flag would not have been enough\" implication is carried by that distinction."
+}

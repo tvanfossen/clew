@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Default build:** `MBEDTLS_PLATFORM_MEMORY` is off (`mbedtls_config.h:208`).\"\nVERDICT: HIT\nWHY: The answer says MBEDTLS_PLATFORM_MEMORY is off by default in mbedtls_config.h and that enabling it is what makes the allocator swappable. That covers both the gate and the shipped-config default, though \"off\" is not worded as \"commented out\"."
+}

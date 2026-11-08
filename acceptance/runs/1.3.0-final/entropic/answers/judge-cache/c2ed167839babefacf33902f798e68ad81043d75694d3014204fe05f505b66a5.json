@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Python does not talk to a Python-side engine object. It loads the shared library `librentropic.so` with `ctypes` and calls the C ABI in `include/entropic/entropic.h` directly.\nVERDICT: HIT\nWHY: The answer states that ctypes loads librentropic.so and calls the C ABI directly. That means no compiled extension module is involved, since there is only a Python-side ctypes binding layer."
+}

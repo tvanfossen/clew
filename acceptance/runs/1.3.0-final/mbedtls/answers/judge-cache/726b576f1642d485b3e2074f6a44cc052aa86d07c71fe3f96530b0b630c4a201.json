@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The two strings are joined with `\" : \"`. Either part can be absent.\" and \"The high-level part is `code & 0xFF80`. The low-level part is `code & ~0xFF80`.\"\nVERDICT: HIT\nWHY: The answer describes the two-layer code (high-level module part and low-level part), and says `mbedtls_strerror` joins both with \" : \" when both are present."
+}

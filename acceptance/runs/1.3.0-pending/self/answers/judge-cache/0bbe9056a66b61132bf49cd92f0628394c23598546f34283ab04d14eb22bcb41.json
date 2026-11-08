@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"a `not_indexed` list (14 entries, including `.rs`, `.toml`, `.csv`, `.sql`, `.lock`, and extensionless files)\" and \"That the name is absent from the repo. It may sit in an unindexed extension\"\nVERDICT: HIT\nWHY: The answer says the reply names extensions that were present but not indexed. It says an empty result is therefore not proof the repository lacks the thing."
+}

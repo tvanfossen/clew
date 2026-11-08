@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`mbedtls_mutex_init/lock/unlock/free` are function pointers (`include/mbedtls/threading.h:105\u2013161`), defaulting to the pthread implementation in `threading.c`.\" and \"The library itself (`library/`) has no spawn sites.\"\nVERDICT: HIT\nWHY: The answer states that library/ has no thread spawn sites and that library/ supplies the mutex abstraction (init/lock/unlock/free in threading.c) for threaded use."
+}

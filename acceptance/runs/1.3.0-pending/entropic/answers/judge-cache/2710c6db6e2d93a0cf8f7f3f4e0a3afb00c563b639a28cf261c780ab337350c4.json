@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `entropic_inference_count_tokens` (`src/inference/inference_c_api.cpp:548-560`) returns 0 on tokenizer failure. Its doc comment promises a `text_len/4` estimate \"on error,\" but that estimate is only used on the exception path.\nVERDICT: HIT\nWHY: The answer states the token-counting path returns 0 on tokenizer failure, with no error signalled to the caller."
+}

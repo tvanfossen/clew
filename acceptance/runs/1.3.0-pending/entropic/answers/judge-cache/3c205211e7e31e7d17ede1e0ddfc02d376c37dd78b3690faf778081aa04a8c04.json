@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: If nothing approved the call and `on_tool_call` is registered, the code calls it and then sets `approved = true`. ... Without a callback, unmatched calls are denied.\nVERDICT: MISS\nWHY: The answer says unmatched calls are denied when no callback is registered, and approved only via the callback path. It never concludes that the effective posture is default-allow at the blocking gate."
+}

@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 13764,
+  "stop_reason": "end_turn",
+  "session_id": "13116e54-a791-4dba-8f77-e401e348bafc",
+  "total_cost_usd": 0.01251494,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 47953,
+    "cache_read_input_tokens": 158654,
+    "output_tokens": 2674,
+    "output_tokens_details": {
+      "thinking_tokens": 933
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 47953,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1974,
+        "cache_read_input_tokens": 54720,
+        "cache_creation_input_tokens": 13473,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 13473
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 8,
+      "outputTokens": 2674,
+      "cacheReadInputTokens": 158654,
+      "cacheCreationInputTokens": 47953,
+      "webSearchRequests": 0,
+      "costUSD": 0.01251494,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 933,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 47953,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 6,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** the index can tell it is stale on three separate axes. Query replies carry a `staleness` block naming whichever axes are active. For the data axis, the server usually refreshes before answering, so the caller rarely has to act. The other two axes need the caller to restart the MCP client or force a rebuild.\n\n**How it knows (`clew/mcp_server/state.py`, `freshness.py`)**\n\n`db_status(target)` measures the database and sets `stale` when any of these is true:\n- the database file is missing,\n- its build stamp differs from `CLEW_BUILD_VERSION`,\n- or `_source_drift` finds indexed source files changed since the build (`source_changed_files`, `newest_changed_source`).\n\n`freshness.notices(status, identity)` turns that into named axes, in this order:\n\n| Axis | Detected from | Meaning | Who clears it |\n|---|---|---|---|\n| `data` | `source_changed_files > 0` | Sources changed since the build; answers may describe code that no longer exists | `index(action='refresh')` |\n| `schema` | stamped build version \u2260 expected | Index is older than the server (rebuild with `force=True` fixes it) or newer (rebuilding cannot clear it) | Rebuild for older; restart client for newer |\n| `code` | `code_identity().matches_source` is false | The running process loaded clew before the package source on disk changed | Only a client restart; a rebuild is not safe |\n\nAn empty list means current. The docstring says this is deliberate, because an always-present warning gets ignored. `staleness` is absent from the payload when nothing is stale.\n\n**What the caller gets**\n\n`DocsDbServer.staleness_notices()` (`server.py`) runs on the way out of every query reply and returns the `{axis, message}` list. `QueryTools._staleness()` attaches it to the payload and shrinks it to fit a size budget. Two rules matter:\n- A routed reply is annotated only for the repository it actually read, not for the default target.\n- The provider never raises. If measurement fails, the reply goes out without a notice rather than turning into an error.\n\nThe messages are written to stop misreading. For example, the code notice says the data is not stale and a rebuild is not safe, and the schema notice says which direction the mismatch runs.\n\n**What the server does before the caller acts**\n\nThis is the part the question was after. `_auto_refresh` (`server.py`) runs before a query is answered:\n- If `_data_stale()` is true, it calls `_refresh_stale()`. That method takes the per-repository build lock with a bounded wait, re-checks staleness inside the lock so concurrent queries produce one build, and runs `_run_build(..., skip_if_fresh=True)`.\n- `_data_stale()` returns false if the process does not match its source. That keeps an old server from running a build that could drop layers.\n- If a build fails or the lock wait times out, the query still answers from the index as it stands, and the notice rides along.\n- If the database is absent, it starts a first build in the background.\n\n**What the caller still has to do**\n\n- **Data axis:** normally nothing; the query has already refreshed it. Calling `index(action='refresh')` explicitly is still available.\n- **Schema axis, older index:** call `index(action='refresh', force=True)`.\n- **Code axis, or schema axis with a newer index:** restart the MCP client so it loads current code. Write paths refuse until then. `stale_code_refusal()` is called by `build_or_refresh` and `_first_build_refusal`, and it does not accept an override; `force` does not bypass it.\n\n**Caveats**\n\n- The `_staleness` dossier shows `anchor_mismatch: true`, so its line range may have moved since the last build. I read its docstring and not its current body, so I did not verify that exact span.\n- I did not run the tests or a live server; this is from the index's dossiers and the bodies it returned.",
+  "ttft_ms": 945,
+  "type": "result",
+  "duration_ms": 14889,
+  "uuid": "5673b09d-b229-43a4-bf6a-4b0f14f066cd",
+  "ttft_stream_ms": 649,
+  "time_to_request_ms": 68,
+  "first_content_frame_ms": 649,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

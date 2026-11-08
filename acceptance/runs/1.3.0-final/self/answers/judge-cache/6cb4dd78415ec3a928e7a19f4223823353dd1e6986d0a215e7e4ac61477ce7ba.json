@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: There are four ways to say how clew should index a repo, plus the defaults. ... | 5 | Built-in name-pattern heuristics (the floor) | ... | 4 | Known-ecosystem signatures ... | 3 | Facts the target already wrote ... | 2 | `.clew.yaml` ... | 1 | CLI flags\n\nVERDICT: HIT\n\nWHY: The answer lays out a table of five numbered precedence tiers (1\u20135) that resolve layered options, rather than describing a single override."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Per-thread log routing.** Every bridge thread installs a `HandleLogScope` with the owning handle's `log_id`, so log lines go to the right session even on background threads.\nVERDICT: HIT\nWHY: The answer states that threads install a per-handle logging scope (HandleLogScope with the owning handle's log_id) so background logs route to the owning handle. It doesn't say the scope is the first statement, and it limits the claim to \"bridge threads\". The mechanism and its purpose are both stated."
+}

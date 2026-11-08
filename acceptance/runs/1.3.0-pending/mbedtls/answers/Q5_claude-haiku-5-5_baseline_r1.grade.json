@@ -1,0 +1,133 @@
+{
+  "cell": "Q5_claude-haiku-5-5_baseline_r1",
+  "arm": "baseline",
+  "rubric_version": "3.1.0",
+  "rubric_digest": "bbf6195f605be452",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.7857142857142857,
+  "unmarked_pct": 0.0,
+  "split_decisions": 0,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "names mbedtls_ct_compiler_opaque as the primitive that stops the compiler from knowing a value, and locates it in library/constant_time_impl.h",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": false,
+      "detail": "QUOTE: `mbedtls_ct_compiler_opaque()` is an empty `asm volatile` with a `+r` constraint, or in the C path an XOR with a `volatile` zero (`mbedtls_ct_zero`). | WHY: The answer names mbedtls_ct_compiler_opaque and its mechanism. It does not locate the function in library/constant_time_impl.h. It only says the assembly is selected in constant_time_impl.h. || QUOTE: `mbedtls_ct_compiler_opaque()` is an empty `asm volatile` with a `+r` constraint, or in the C path an XOR with a `volatile` zero (`mbedtls_ct_zero`). | WHY: The answer names the primitive and its mechanism of keeping the compiler from reasoning about values, but never locates it in library/constant_time_impl.h. || QUOTE: `mbedtls_ct_compiler_opaque()` is an empty `asm volatile` with a `+r` constraint, or in the C path an XOR with a `volatile` zero (`mbedtls_ct_zero`). | WHY: The answer names mbedtls_ct_compiler_opaque and its mechanism, but it never places that function in library/constant_time_impl.h. The file is named only for asm selection and the general interface.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "explains that the asm path is an EMPTY asm volatile statement with the value as an input-output register operand \u2014 it emits no instruction and exists solely as an optimisation barrier",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: `mbedtls_ct_compiler_opaque()` is an empty `asm volatile` with a `+r` constraint, or in the C path an XOR with a `volatile` zero (`mbedtls_ct_zero`). | WHY: The answer states the asm path is an empty `asm volatile` with a `+r` (input-output register) operand, and that it keeps the compiler from reasoning about values. That is the optimisation-barrier purpose, though it never says \"no instruction emitted\". || QUOTE: `mbedtls_ct_compiler_opaque()` is an empty `asm volatile` with a `+r` constraint, or in the C path an XOR with a `volatile` zero (`mbedtls_ct_zero`). | WHY: The answer states the asm path is an empty `asm volatile` with a `+r` (input-output register) operand, and says it exists to keep the compiler from reasoning about values (an optimisation barrier). It never says outright that no instruction is emitted. || QUOTE: `mbedtls_ct_compiler_opaque()` is an empty `asm volatile` with a `+r` constraint, or in the C path an XOR with a `volatile` zero (`mbedtls_ct_zero`). | WHY: The answer states the empty `asm volatile` with a `+r` (input-output register) constraint, in a passage about keeping the compiler from reasoning about values. That covers the mechanism and the barrier purpose, though \"emits no instruction\" is only implied by \"empty\".",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that when assembly is unavailable the SAME function falls back to XOR-ing with an extern volatile global that holds zero, and identifies that global",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: `mbedtls_ct_compiler_opaque()` is an empty `asm volatile` with a `+r` constraint, or in the C path an XOR with a `volatile` zero (`mbedtls_ct_zero`). | WHY: The answer states that the C fallback XORs with a volatile zero and names the global `mbedtls_ct_zero`. || QUOTE: `mbedtls_ct_compiler_opaque()` is an empty `asm volatile` with a `+r` constraint, or in the C path an XOR with a `volatile` zero (`mbedtls_ct_zero`). | WHY: The answer says the C fallback XORs with a volatile zero and names the global `mbedtls_ct_zero`, though it never says \"extern\". || QUOTE: `mbedtls_ct_compiler_opaque()` is an empty `asm volatile` with a `+r` constraint, or in the C path an XOR with a `volatile` zero (`mbedtls_ct_zero`). | WHY: The answer states that the C fallback of the same function XORs with a volatile zero and names the global `mbedtls_ct_zero`.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that MBEDTLS_CT_ASM is DERIVED rather than configured \u2014 it is set from MBEDTLS_HAVE_ASM together with compiler predefined macros, not from an entry in mbedtls_config.h",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: `MBEDTLS_CT_ASM` is defined only when `MBEDTLS_HAVE_ASM` is set and `__GNUC__` is present, excluding old armcc. The architecture macros then pick the path | WHY: The answer says MBEDTLS_CT_ASM is set from MBEDTLS_HAVE_ASM plus compiler/architecture predefined macros (`__GNUC__`, arch macros) in constant_time_impl.h, rather than from a user config entry. || QUOTE: `MBEDTLS_CT_ASM` is defined only when `MBEDTLS_HAVE_ASM` is set and `__GNUC__` is present, excluding old armcc. The architecture macros then pick the path | WHY: The answer says MBEDTLS_CT_ASM is defined in constant_time_impl.h from MBEDTLS_HAVE_ASM plus compiler/architecture predefined macros (__GNUC__), so it is derived rather than set in the config header. || QUOTE: `MBEDTLS_CT_ASM` is defined only when `MBEDTLS_HAVE_ASM` is set and `__GNUC__` is present, excluding old armcc. The architecture macros then pick the path | WHY: The answer says MBEDTLS_CT_ASM is set from MBEDTLS_HAVE_ASM plus compiler/architecture predefined macros, in constant_time_impl.h rather than as a config entry.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that the PUBLIC API surface is a single function, mbedtls_ct_memcmp, while the rest of the primitives are library-internal",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: The public surface is `include/mbedtls/constant_time.h`, which exposes only `mbedtls_ct_memcmp`. The internal interface in `library/constant_time_internal.h` and `library/constant_time_impl.h` is the real mechanism. | WHY: The answer states the public API exposes only mbedtls_ct_memcmp while the other primitives live in library-internal headers. || QUOTE: The public surface is `include/mbedtls/constant_time.h`, which exposes only `mbedtls_ct_memcmp`. The internal interface in `library/constant_time_internal.h` and `library/constant_time_impl.h` is the real mechanism. | WHY: The answer states the public API exposes only mbedtls_ct_memcmp and that the other primitives live in library-internal headers.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "conveys that the primitives are consumed broadly across the library \u2014 on the order of twenty modules \u2014 rather than being confined to one or two",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: About 21 `.c` files reach the primitives directly, plus several headers. | WHY: The answer states roughly 21 library files consume the primitives directly, which matches \"on the order of twenty modules\". || QUOTE: About 21 `.c` files reach the primitives directly, plus several headers. | WHY: The answer explicitly states roughly 21 library .c files use the primitives, matching \"on the order of twenty modules\" and showing broad consumption. || QUOTE: \"About 21 `.c` files reach the primitives directly, plus several headers.\" | WHY: The answer explicitly states roughly 21 library files use the primitives directly, matching \"on the order of twenty modules.\"",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies that the constant-flow property is VERIFIED by a separate, off-by-default testing facility built on MemorySanitizer or valgrind, and that it is explicitly not part of the library API",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: These are enabled with `MBEDTLS_TEST_CONSTANT_FLOW_VALGRIND` or `MBEDTLS_TEST_CONSTANT_FLOW_MEMSAN`. | WHY: The answer describes the MemSan/valgrind verification but never states that the facility is off-by-default or that it is explicitly not part of the library API. || QUOTE: These are enabled with `MBEDTLS_TEST_CONSTANT_FLOW_VALGRIND` or `MBEDTLS_TEST_CONSTANT_FLOW_MEMSAN`. | WHY: The answer describes MemorySanitizer/Valgrind-based verification and the build flags, but never states that it is an off-by-default facility or that it is explicitly not part of the library API. || QUOTE: These are enabled with `MBEDTLS_TEST_CONSTANT_FLOW_VALGRIND` or `MBEDTLS_TEST_CONSTANT_FLOW_MEMSAN`. Suites without `TEST_CF_` annotations are skipped in those components. | WHY: The answer says verification uses valgrind/MemorySanitizer via test-only config macros. But it never says the facility is off by default or that it is explicitly not part of the library API.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "the source files that make up the constant-time implementation \u2014 include/mbedtls/constant_time.h",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the source files that make up the constant-time implementation \u2014 library/constant_time.c",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": false,
+      "detail": "not named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the source files that make up the constant-time implementation \u2014 library/constant_time_internal.h",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the source files that make up the constant-time implementation \u2014 library/constant_time_impl.h",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the source files that make up the constant-time implementation \u2014 precision",
+      "kind": "set_precision",
+      "weight": 2,
+      "hit": true,
+      "detail": "clean",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    }
+  ]
+}

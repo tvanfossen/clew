@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `llama_tokenize(vocab, text, len, nullptr, 0, ...)` passes no output buffer. llama.cpp answers with the negative of the required token count... It allocates `vector<int32_t>(n)` and calls `llama_tokenize` again with that buffer to fill it.\nVERDICT: HIT\nWHY: The answer names the file and describes the two-call size-query-then-fill pattern in tokenize (lines 49-71) and the two-call buffer retry in detokenize."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **`allow`** is consulted in `check_approval` through `is_explicitly_allowed`. A match skips the approval prompt. It does not override the deny list, because `execute` checks deny afterward.\nVERDICT: HIT\nWHY: The answer says the allow list is consulted in `check_approval` via `is_explicitly_allowed` and that a match skips the approval prompt. It also says deny is checked separately in `ServerManager::execute`, a different location, so allow isn't an execution grant."
+}

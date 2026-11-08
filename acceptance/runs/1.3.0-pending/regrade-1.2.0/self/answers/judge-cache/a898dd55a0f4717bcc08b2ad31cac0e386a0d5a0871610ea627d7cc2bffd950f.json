@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The not-indexed report is supposed to name the file types a build had in scope but did not index.\" and \"a `.sh` file would have a path row, count as indexed, and be left out of `not_indexed`.\"\nVERDICT: MISS\nWHY: The answer correctly describes the capability gate and the no-crash degrade. But it then argues that the missing file types likely would not be reported as not indexed, which contradicts the item's conclusion."
+}

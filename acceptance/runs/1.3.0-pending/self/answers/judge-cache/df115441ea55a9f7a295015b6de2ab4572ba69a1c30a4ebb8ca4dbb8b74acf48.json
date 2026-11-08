@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Tier 3, the whole repository.** If neither tier yields usable roots, `whole_repo_scope` (`scope.py:683`) returns the repo root as the single root.\"\nVERDICT: HIT\nWHY: The answer states that a declared scope (tiers 1 and 2) is preferred. It also states that malformed, rejected, or absent declarations all fall back to whole-repo indexing."
+}

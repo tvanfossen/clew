@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer separates several empty-result cases (definitive for scope, not definitive, no claim), but it never states a \"definitive for a reason that is not absence\" grade; the third grade is missing."
+}

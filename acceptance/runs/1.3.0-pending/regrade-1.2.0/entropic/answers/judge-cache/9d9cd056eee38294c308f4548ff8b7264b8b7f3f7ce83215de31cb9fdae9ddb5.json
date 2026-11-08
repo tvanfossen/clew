@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the second call is unconditional and logs an error and returns `{}` on failure at lines 64-67, but it never says a non-positive second-call result is terminal with no further attempt."
+}

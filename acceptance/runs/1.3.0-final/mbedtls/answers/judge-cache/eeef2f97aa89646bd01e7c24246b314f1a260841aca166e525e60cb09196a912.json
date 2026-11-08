@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `#ifndef MBEDTLS_ALLOW_PRIVATE_ACCESS\n#define MBEDTLS_PRIVATE(member) private_##member\n#else\n#define MBEDTLS_PRIVATE(member) member\n#endif`\nVERDICT: HIT\nWHY: The answer shows both definitions and explains that by default `state` becomes `private_state`, and that defining the macro opts out of the guard."
+}

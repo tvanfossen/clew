@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Buffers the engine will free must come from `entropic_alloc()`.** `entropic_alloc` is a wrapper over `malloc()`.\" and \"it encodes JSON and writes it with `entropic_alloc()` into `*modified_json`, so the engine can `free()` it. `_alloc_c_string` in the same module does this.\"\nVERDICT: HIT\nWHY: The answer states the rule that engine-freed buffers must come from entropic_alloc, and names the Python location (hooks.py trampoline / `_alloc_c_string`)."
+}

@@ -28,6 +28,7 @@ from ._common import (
     function_candidates,
     is_overloaded,
     symbol_provenance,
+    table_exists,
 )
 from .models import BodyExcerpt, SourceListing
 
@@ -246,13 +247,15 @@ def body_excerpt(
 DECLARATION_MAX_LINES = 8
 
 
+## Version 2: a declaration whose end the build recorded is read to that end, under the body cap.
+##
 ## @brief A bounded excerpt of the SOURCE LINE a symbol is declared on.
 ## @param conn Open connection to the index.
 ## @param rowid The memberdef rowid whose declaration site to read.
 ## @param repo_root Working-tree root the recorded paths are relative to.
 ## @param max_lines Cap on the lines carried back.
 ## @return BodyExcerpt covering the declaration statement, or None when it cannot be read.
-## @version 1
+## @version 2
 ## @req REQ-DDB-QUERY-001
 def declaration_excerpt(
     conn: sqlite3.Connection,
@@ -289,6 +292,9 @@ def declaration_excerpt(
     if row is None or not row[0] or not row[1]:
         return None
     file, start = row[0], int(row[1])
+    known = _recorded_end(conn, rowid)
+    if known is not None and known >= start:
+        return _known_extent(Path(repo_root).expanduser(), file, start, known)
     cap = max(1, min(max_lines, DECLARATION_MAX_LINES))
     result = _read_body(Path(repo_root).expanduser(), file, start, start + cap - 1, cap)
     if result is None or not result[0]:
@@ -304,10 +310,111 @@ def declaration_excerpt(
     )
 
 
+## @brief The recorded last line of a parse-built declaration, or None when unknown.
+## @param conn Open connection.
+## @param rowid The memberdef rowid.
+## @return The end line, or None (no table, no row: extent unknown).
+## @version 1
+## @dg_internal
+def _recorded_end(conn: sqlite3.Connection, rowid: int) -> int | None:
+    """@brief Read decl_extent. @return End line or None."""
+    from ..synth import DECL_EXTENT
+
+    if not table_exists(conn, DECL_EXTENT):
+        return None
+    row = conn.execute(
+        f"SELECT end_line FROM {DECL_EXTENT} WHERE memberdef_rowid = ?", (rowid,)
+    ).fetchone()
+    return int(row[0]) if row else None
+
+
+## @brief A declaration read over its recorded extent, capped like a body.
+## @param root Working-tree root.
+## @param file Declaring file.
+## @param start First line.
+## @param end Recorded last line.
+## @return BodyExcerpt, or None when unreadable.
+## @version 1
+## @dg_internal
+def _known_extent(root: Path, file: str, start: int, end: int) -> BodyExcerpt | None:
+    """THE END IS KNOWN, SO NOTHING IS GUESSED: a TypeScript constants object or type alias is
+    read to its recorded last line. The 8-line cap bounds a GUESSED end, and it cut mattermost's
+    `WebsocketEvents` mid-object; this reads under the ordinary body cap, and says when it stops.
+
+    @brief Read a known-extent declaration.
+    @return BodyExcerpt or None.
+    """
+    span = end - start + 1
+    cap = min(span, DEFAULT_BODY_LINES)
+    result = _read_body(root, file, start, start + cap - 1, cap)
+    if result is None or not result[0]:
+        return None
+    lines = result[0]
+    return BodyExcerpt(
+        file=file,
+        start_line=start,
+        end_line=start + len(lines) - 1,
+        total_lines=span,
+        truncated=len(lines) < span,
+        lines=tuple(lines),
+    )
+
+
+## @brief The source of a class-like declaration's head: its line through the one opening its body.
+## @param conn Open connection to the index.
+## @param rowid The compounddef rowid.
+## @param repo_root Working-tree root the recorded paths are relative to.
+## @return BodyExcerpt over the declaration head, or None when it cannot be read.
+## @version 1
+## @utility
+def compound_declaration(
+    conn: sqlite3.Connection, rowid: int, repo_root: Path | str
+) -> BodyExcerpt | None:
+    """WHAT A CLASS DOSSIER WAS MISSING. It carried members and bases, never the line that
+    declares them — and that line is the answer whenever the inheritance is not a plain name:
+    `class ServerDataOperator extends mix(ServerDataOperatorBase).with(...)` on mattermost-mobile,
+    which no index-only agent in the 1.3.0 grid ever saw. Every language states its bases there:
+    a C++ head, a Python `class X(Base):`, a Rust `struct`.
+
+    THE HEAD ENDS AT THE LINE OPENING THE BODY — the first holding `{`, or ending in `:` for
+    Python — bounded by `DECLARATION_MAX_LINES`. A heuristic, disclosed as one: `truncated` is
+    True when the bound was reached first.
+
+    @brief Read a class's declaration head.
+    @return BodyExcerpt or None.
+    @version 1
+    """
+    row = conn.execute(
+        "SELECT COALESCE(p.name,''), c.line FROM compounddef c "
+        "LEFT JOIN path p ON p.rowid = c.file_id WHERE c.rowid=?",
+        (rowid,),
+    ).fetchone()
+    if row is None or not row[0] or not row[1]:
+        return None
+    file, start = row[0], int(row[1])
+    cap = DECLARATION_MAX_LINES
+    result = _read_body(Path(repo_root).expanduser(), file, start, start + cap - 1, cap)
+    if result is None or not result[0]:
+        return None
+    lines = result[0]
+    end = next((i for i, ln in enumerate(lines) if "{" in ln or ln.rstrip().endswith(":")), None)
+    kept = lines[: end + 1] if end is not None else lines
+    return BodyExcerpt(
+        file=file,
+        start_line=start,
+        end_line=start + len(kept) - 1,
+        total_lines=len(kept),
+        truncated=end is None,
+        lines=tuple(kept),
+    )
+
+
+## Version 2: counts bracket depth, so a `;` ending a member does not end the statement.
+##
 ## @brief Cut a line window at the first statement terminator.
 ## @param lines The window read from the declaring file.
-## @return The lines up to and including the first one containing a semicolon.
-## @version 1
+## @return The lines up to and including the first `;` (or closing brace) at bracket depth zero.
+## @version 2
 ## @dg_internal
 def _to_terminator(lines: list[str]) -> list[str]:
     """Kept as its own function so the heuristic has ONE name and one place to be wrong
@@ -315,12 +422,26 @@ def _to_terminator(lines: list[str]) -> list[str]:
     ever needs to understand string literals, it changes here and the disclosure keeps
     working unaltered.
 
+    BRACKETS ARE BALANCED FIRST (1.3.0): a `;` inside an open `{`/`(`/`[` ends a member, not
+    the statement. A TypeScript type alias's members each end in `;`, so the first-`;` rule
+    showed one member of mattermost-mobile's `SearchRef`. A statement whose `{`/`[` closes at the
+    END of a line ends there too — a semicolon-free TypeScript file's — but not at a closing `)`,
+    which is where a C function-pointer declarator ends before its `= binding;` line.
+
     @brief Trim a declaration window to its first terminated statement.
     @return The trimmed window; the whole window when no terminator appears.
-    @version 1
+    @version 2
     """
+    depth = 0
+    opened = False
     for i, line in enumerate(lines):
-        if ";" in line:
+        for ch in line:
+            if ch in "{([":
+                depth, opened = depth + 1, True
+            elif ch in "})]":
+                depth -= 1
+        closed = opened and line.rstrip().endswith(("}", "]"))
+        if depth <= 0 and (";" in line or closed):
             return lines[: i + 1]
     return lines
 

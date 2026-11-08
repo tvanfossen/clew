@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_THREADING_C` is commented out in `include/mbedtls/mbedtls_config.h:3787` (`//#define MBEDTLS_THREADING_C`). Neither `MBEDTLS_THREADING_PTHREAD` nor `MBEDTLS_THREADING_ALT` is enabled either (lines 2185, 2196).\nVERDICT: HIT\nWHY: The answer says the shipped mbedtls_config.h leaves MBEDTLS_THREADING_C undefined and neither PTHREAD nor ALT enabled. It then states that the default config compiles the mutex code out."
+}

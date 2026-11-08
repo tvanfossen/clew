@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"If the index is *newer*, a rebuild cannot clear it. Restart the client.\"\nVERDICT: HIT\nWHY: The answer explicitly states that when the index is newer than the server's version, a rebuild cannot clear the schema-axis staleness."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer lists scope, not_indexed and token_hits and gives a confidence table. It never says the strong wording is earned per call by querying which corpora were unread, as opposed to being attached to a result shape."
+}

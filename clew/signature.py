@@ -200,7 +200,64 @@ from .tiers import OPTIONS_META_PREFIX
 ##       entropic (748 files, 13,068) were byte-identical across the bump. A C-heavy tree is
 ##       not evidence either way until it is measured; "expect RIOT to move" was predicted for
 ##       this release and was wrong.
-CLEW_BUILD_VERSION = 8
+## 9 (1.3.0) — two changes to rows an existing index already holds, taken as ONE bump because no
+##   release separates them; an index built before either would report itself current and answer
+##   from the old rows:
+##
+##     * `unresolved_inbound` credits a DISPATCH FAMILY — one method name across classes sharing a
+##       base — where it used to credit only a single identity. A method reached through an
+##       interface with two implementations (a real one and a test double, routine under
+##       dependency injection) read `callers_unresolved: 0` on both, a false measurement. Measured
+##       before shipping, share of inbound-less functions now carrying a count: entropic 0.8% ->
+##       5.6%, self 2.4% -> 3.2%, mbedtls 3.3% -> 3.5% — against the 87% the withdrawn
+##       credit-every-candidate rule produced.
+##     * `call_edges` holds `source='jsx'` rows: a component rendered in JSX (`<Card />`) is a use
+##       of it. Before this a component reached only through JSX had no inbound edge, so "where is
+##       it used" answered nothing and liveness read it as dead. `stage_version` moved to 9 for the
+##       same reason, since a JS/TS payload cached without these sites would otherwise be reused.
+##     * `generated_files` holds `self-declared:` rows — a file whose own banner or path says it is
+##       generated, recorded by its EXACT path (never the basename join CMake rows use), and
+##       ranked below hand-written code in search. Precision measured first: 23 flagged across
+##       ~10,000 tracked files in four repositories, zero false positives.
+##     * a React component wrapped in `forwardRef` or `memo` is a function row. Found by the
+##       mattermost-mobile real-tree check: `NavigationHeader`, rendered from eight files, had no
+##       definition, so its `jsx` sites resolved to nothing. The JS/TS definitions stage moved to
+##       `stage_version` 2 so a cached payload without these rows is not reused.
+##     * TypeScript mixin classes (`const M = (s: T) => class extends s {...}`) are classes:
+##       named for their binding, based on their declared `Constructor<X>` constraint, with their
+##       members as definitions. Found by auditing mattermost-mobile, where all 330 such members —
+##       its whole REST client and database operator — had no row.
+##     * a qualified call the class cannot answer is looked up in its declared bases, nearest first
+##       (`this.doFetch()` in a subclass of `ClientBase`), and refuses on a same-distance tie.
+##     * a name bound to a wrapper around a function literal is that function, whatever the wrapper
+##       is called (`typedMemo`, `debounce`, ...) — owner's ruling over an allowlist — and an IIFE
+##       binds the function it returns. Excluded by construction, not by name lists: callbacks
+##       CONSUMED by spec-defined calls (`.map`, `.then`, `setTimeout`), methods on local values
+##       (`x.pipe(...)`, RxJS), and destructuring patterns.
+##     * interface method and function-typed property signatures are bodiless DECLARATION rows,
+##       so a call through an interface has the interface half of its dispatch family; and a
+##       module-level object's function-valued properties are definitions of its binding.
+##     * a named closure inside a function is a definition scoped under it (`outer.inner`), and a
+##       bare call resolves lexically first — the innermost enclosing scope declaring the name —
+##       for parse-built definitions; a `use[A-Z]` hook other than `useCallback` binds a value.
+##     * a JS/TS member call reaches a non-method only through what holds it — an imported
+##       module or the owning object; any other receiver is contrary evidence. On mattermost,
+##       unresolved inbound sites 4,224 -> 2,259, built-in collisions like `latinise.map` gone.
+##     * a typed TS class member (`svc: UserService`, `constructor(private svc: UserService)`)
+##       is a variable row with its type; a call through one typed as an INTERFACE is a fuzzy edge
+##       to each implementation — bounded by the declared type, never picking the bound one.
+##     * every JS/TS file has a `__module__` function row spanning it, so a call in module-level
+##       code (HOC wiring, `export default` chains) has a caller instead of being dropped. Found
+##       by the 1.3.0 grid: `observeCanViewArchivedChannels` showed no callers on mattermost.
+##     * a class composed by a heritage call (`extends mix(Base).with(A, B)`) has every argument
+##       class as a base; mattermost's `ServerDataOperator` recorded none.
+##     * a `code_text` FTS5 table holds every function's body terms (contentless — snippets are
+##       read from the file), behind `search(corpus='code')`. An index without it says so.
+##     * the code corpus also indexes compound identifiers' parts (`retryLimit` -> `retry limit`),
+##       stems words (porter), and ranks test-scope code last; `e2e/` and `*.e2e.*` are test scope.
+##     * a call site is credited to the INNERMOST function containing it, not the first in list
+##       order, which was an accident of row order and credited a mixin's calls to its factory.
+CLEW_BUILD_VERSION = 9
 
 
 ## @brief Stamp the build version, scope, coverage and preprocessor config into build_meta.

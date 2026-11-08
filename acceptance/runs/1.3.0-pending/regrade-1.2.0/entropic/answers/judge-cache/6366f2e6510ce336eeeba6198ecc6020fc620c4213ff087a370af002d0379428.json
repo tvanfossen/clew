@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Neither is retried after a failure, and neither loops.\nVERDICT: MISS\nWHY: The answer says there is no retry and that failure yields an empty result. It never says a non-positive result from the second call specifically is terminal and returns empty."
+}

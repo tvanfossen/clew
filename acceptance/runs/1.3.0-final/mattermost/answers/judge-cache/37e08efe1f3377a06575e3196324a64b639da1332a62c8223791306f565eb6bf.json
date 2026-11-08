@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: queryReaction(database, emoji_name, post_id, user_id).fetch()   (queries/servers/reaction.ts:12)\n     \u2514\u2500 if found: database.write(() => reaction[0].destroyPermanently())\nVERDICT: HIT\nWHY: The answer states the removed handler bypasses the operator, queries the reaction, and destroys it via a direct `database.write`."
+}

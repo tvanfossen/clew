@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says the default pointers fail (calloc returns NULL, free does nothing) when uninitialised; it only says they are initialised to MBEDTLS_PLATFORM_STD_CALLOC."
+}

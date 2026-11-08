@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: If it were `false`, the one-reaction payload would look like a full snapshot and delete every other reaction on that post.\nVERDICT: HIT\nWHY: The answer explicitly states that skipSync prevents the single-reaction payload from being treated as a full snapshot, which would delete all other reactions on the post."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes the current verdict logic (definitive vs. not definitive) but never states that a single non-matching token was previously treated as proof of absence, nor that this conflated \"nothing exists\" with \"I did not look there.\""
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer filters on the `@components/navigation_header` import path but never mentions the distinct `Header` component from `navigation_header/header.tsx`, or says those renderers are excluded."
+}

@@ -18,6 +18,7 @@
     "declared_dispatch",
     "doxygen_sqlite",
     "fnptr",
+    "jsx",
     "macro_hop"
   ],
   "config_defaults.state": [

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: (platform.c:24-33; if that is undefined, platform_calloc_uninit returns NULL)\nVERDICT: MISS\nWHY: The answer mentions an uninit calloc returning NULL but is hedged as only a fallback and says nothing about the uninitialised free doing nothing, so the item's full fail-rather-than-fall-back fact isn't stated."
+}

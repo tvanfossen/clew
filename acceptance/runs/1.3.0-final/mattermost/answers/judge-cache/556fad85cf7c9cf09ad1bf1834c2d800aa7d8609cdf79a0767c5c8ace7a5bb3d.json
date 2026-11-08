@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `handleChannelDeletedEvent`) | Keeps the channel in the DB as archived | If it is the current channel, kicks the user with `CHANNEL_ARCHIVED`, then removes membership\n\nVERDICT: HIT\nWHY: Row 2 states that when archived channels are not viewable the current-channel user is kicked and membership removed, and that when viewable the channel is kept as archived. Row 1 also covers the removal."
+}

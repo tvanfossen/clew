@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer only advises checking the reply's `target` before concluding absence; it never states that a routed reply is annotated for the repository it actually read rather than the server's default target."
+}

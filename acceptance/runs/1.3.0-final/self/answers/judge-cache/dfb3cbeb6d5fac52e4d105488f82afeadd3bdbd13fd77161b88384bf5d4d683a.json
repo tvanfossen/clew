@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The tool detects staleness on three separate axes\" with the table listing `data`, `schema`, and `code` axes.\nVERDICT: HIT\nWHY: The answer explicitly states staleness has three separate axes and names them as data, schema, and code."
+}

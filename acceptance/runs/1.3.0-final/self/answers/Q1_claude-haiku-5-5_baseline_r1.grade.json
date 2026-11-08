@@ -1,0 +1,83 @@
+{
+  "cell": "Q1_claude-haiku-5-5_baseline_r1",
+  "arm": "baseline",
+  "rubric_version": "5.0.0",
+  "rubric_digest": "d8447c7b18eafbf5",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.5,
+  "unmarked_pct": 0.0,
+  "split_decisions": 0,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "names derive_scope in clew/scope.py as where the decision is resolved",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: `clew/scope.py:derive_scope` checks for a declared `index_scope:` section, in the repo's `.clew.yaml` or a `--declare` file | WHY: The answer names derive_scope in clew/scope.py as the place where the index scope decision is resolved. || QUOTE: `clew/scope.py:derive_scope` checks for a declared `index_scope:` section, in the repo's `.clew.yaml` or a `--declare` file, with `roots:` and `excludes:` keys. | WHY: The answer names derive_scope in clew/scope.py as the place where the index scope decision is resolved.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that a repository's own declared index_scope is preferred, and that every failure to find one falls through to indexing the whole repository",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: A declared `index_scope` is used only if it is usable. ... A rejected declaration is refused at the CLI with exit 1 ... It is not silently widened. ... When nothing is declared ... The fallback is `whole_repo_scope` | WHY: The answer says a usable declared scope is used and that nothing declared falls back to the whole repo. But it says a rejected declaration is refused rather than widened, which contradicts \"every failure falls through to whole-repo.\" || QUOTE: A declared `index_scope` is used only if it is usable. ... A rejected declaration is refused at the CLI with exit 1 ... It is not silently widened. ... The fallback is `whole_repo_scope` | WHY: The answer says that when nothing is declared the scope falls back to the whole repo. It also says a rejected declaration is refused, not widened. That contradicts the item's claim that every failure to find a declaration falls through to the whole repository. || QUOTE: A declared `index_scope` is used only if it is usable. ... A rejected declaration is refused at the CLI with exit 1 ... It is not silently widened. | WHY: The answer says that a rejected declaration is refused, not widened. That contradicts the item's claim that every failure to find a declaration falls through to indexing the whole repository. The answer's fallback applies only when nothing is declared, and it never says that failures fall through.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "conveys that the fallback carries a REASON explaining which scope was used and why, so an unstated scope is never silently guessed",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: Log: the reason string records which tier was used and why, so the build log says \"no index_scope is declared \u2026 the whole repository is the index scope\". | WHY: The answer states the fallback scope carries a reason string recording which tier was used and why, so the choice is explicit rather than guessed. || QUOTE: Log: the reason string records which tier was used and why, so the build log says \"no index_scope is declared \u2026 the whole repository is the index scope\". | WHY: The answer says the fallback carries a reason string recording which tier was used and why, and that a rejected declaration is refused rather than silently widened. || QUOTE: \"**Log:** the reason string records which tier was used and why, so the build log says \"no index_scope is declared \u2026 the whole repository is the index scope\".\" | WHY: The answer states the fallback scope carries a reason string recording which tier was used and why, so scope isn't silently guessed.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that a Doxyfile's own INPUT is deliberately NOT used to decide the indexed tree, and explains why \u2014 a repository that ships one would get only its documented subset while a repository that ships none gets its whole tree",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: The scope is then applied by `_fold_scope_into_args` (`cli.py:739`). It sets the INPUT to the root, sets EXCLUDE to the excludes, and sets `replace_input`, so the target Doxyfile's INPUT is discarded. | WHY: The answer says the target Doxyfile's INPUT is discarded, but it never explains why. The item requires the reason: a repo with a Doxyfile would get only its documented subset, while a repo without one would get its whole tree. || QUOTE: It sets the INPUT to the root, sets EXCLUDE to the excludes, and sets `replace_input`, so the target Doxyfile's INPUT is discarded. | WHY: The answer says the Doxyfile's INPUT is discarded, but it never explains the reason: that a repo shipping a Doxyfile would otherwise get only its documented subset while a repo without one gets its whole tree. || QUOTE: The scope is then applied by `_fold_scope_into_args` (`cli.py:739`). It sets the INPUT to the root, sets EXCLUDE to the excludes, and sets `replace_input`, so the target Doxyfile's INPUT is discarded. | WHY: The answer says the target Doxyfile's INPUT is discarded, but it never explains why. It doesn't say that using the Doxyfile's INPUT would give a repository that ships one only its documented subset, while a repository that ships none would get its whole tree.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that nested git trees are INDEXED and tagged rather than excluded from the scope",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: **Nested trees:** they are indexed, not excluded (gh#333). `external.py` tags their rows afterwards so their files can be told apart. | WHY: The answer explicitly states nested git trees are indexed rather than excluded and that their rows are tagged afterwards. || QUOTE: \"**Nested trees:** they are indexed, not excluded (gh#333). `external.py` tags their rows afterwards so their files can be told apart.\" | WHY: The answer explicitly states nested git trees are indexed rather than excluded and that their rows are tagged afterwards. || QUOTE: Nested trees: they are indexed, not excluded (gh#333). `external.py` tags their rows afterwards so their files can be told apart. | WHY: The answer explicitly says nested git trees are indexed rather than excluded and that their rows are tagged afterwards.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "conveys that the containment call was REMOVED rather than left in place with its callers dropped",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never mentions a containment call being removed; it describes scope derivation and file patterns only. || QUOTE: NONE | WHY: The answer never mentions a containment call being removed; it describes scope derivation without stating any removal versus callers dropped. || QUOTE: NONE | WHY: The answer never mentions a containment call being removed; it describes scope derivation and file-type filtering only.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the resolved scope is not the whole answer \u2014 within it, a file reaches the index only if something can read it, and names at least one of the two filters: the parse-built front end claiming the file types doxygen cannot read, or binary classification dropping files whose extension lies about them",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: **Parse-built front end (`clew/synth.py`):** it claims `.js/.mjs/.cjs/.jsx/.ts/.mts/.cts/.tsx`, `.sh/.bash/.cmake`, `CMakeLists.txt`, and `.yaml/.yml/.json`. | WHY: The answer states that scope is only the first step and that file types must be accepted by a front end. It names the parse-built front end claiming the file types doxygen cannot read (JS/TS, shell, CMake, YAML/JSON). || QUOTE: **Parse-built front end (`clew/synth.py`):** it claims `.js/.mjs/.cjs/.jsx/.ts/.mts/.cts/.tsx`, `.sh/.bash/.cmake`, `CMakeLists.txt`, and `.yaml/.yml/.json`. | WHY: The answer explicitly separates scope from file-type filtering and names the parse-built front end claiming the file types doxygen can't read (JS/TS, shell, cmake, etc.). || QUOTE: **Parse-built front end (`clew/synth.py`):** it claims `.js/.mjs/.cjs/.jsx/.ts/.mts/.cts/.tsx`, `.sh/.bash/.cmake`, `CMakeLists.txt`, and `.yaml/.yml/.json`. | WHY: The answer separates scope from per-file-type readability and names the parse-built front end claiming types doxygen can't read (JS/TS, shell, cmake, etc.).",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    }
+  ]
+}

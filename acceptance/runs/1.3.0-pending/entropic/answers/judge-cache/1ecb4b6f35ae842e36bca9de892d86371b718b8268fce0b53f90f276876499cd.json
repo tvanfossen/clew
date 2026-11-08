@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `LlamaCppBackend::tokenize` (`llama_cpp_backend.cpp:788-800`) returns `{}` when no tokenizer is wired too. The same vector means three different things.\nVERDICT: HIT\nWHY: The answer states the tokenizer returns `{}` on failure and that the backend wrapper returns the same `{}` when no tokenizer is wired."
+}

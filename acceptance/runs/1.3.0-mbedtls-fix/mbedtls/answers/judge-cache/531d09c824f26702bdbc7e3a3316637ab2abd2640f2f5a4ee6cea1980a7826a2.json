@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: In this mode `mbedtls_platform_set_calloc_free` is not declared, so calling it is a compile error.\nVERDICT: MISS\nWHY: The answer says the setter is not declared and (in the table) \"not compiled,\" but the quoted sentence only states non-declaration; it never ties \"neither declared nor compiled\" to the setter itself as one clear statement, and the table says \"The runtime setter is not compiled\" without naming it \u2014 torn, so MISS."
+}

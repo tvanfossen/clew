@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Every file that includes `llama.h`, `chat.h`, `sampling.h`, `speculative.h`, or `mtmd.h` is in that directory or the facade.\nVERDICT: MISS\nWHY: The answer lists about nine files in src/inference plus the facade and says it is confined there. It never states that the dependency reaches roughly a dozen files, and it frames it as confined rather than broad."
+}

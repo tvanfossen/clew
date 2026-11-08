@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It is a class built with the repo's `mix(...).with(...)` helper (`app/utils/mix.ts`). Each mixin is a function that takes a superclass and returns a subclass, and `with` applies them in order. The base is `ServerDataOperatorBase`\nVERDICT: HIT\nWHY: The answer says ServerDataOperator is built with `mix(...).with(...)` over `ServerDataOperatorBase`, and that the handlers live in separate mixin files rather than in the class itself."
+}

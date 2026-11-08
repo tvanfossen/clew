@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"staleness is measured per reply, and an unreadable database or failed measurement degrades to \"no annotation\" rather than an error. A query can therefore return with no warning when the check itself failed. The code is written to prefer that over turning a good answer into an error\"\nVERDICT: HIT\nWHY: The answer explicitly states that a failed staleness measurement degrades to no annotation rather than turning a good reply into an error."
+}

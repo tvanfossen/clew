@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: the first `llama_token_to_piece` call uses a fixed 256-byte stack buffer. If the piece doesn't fit, llama.cpp returns the negative required size, and the code resizes and calls again.\nVERDICT: HIT\nWHY: The answer states that detokenize tries a fixed 256-byte stack buffer first and resizes only when the piece doesn't fit. It contrasts this with tokenize, which does a sizing call with a null buffer before writing. It doesn't say \"heap\" explicitly, but \"resizes\" carries the same meaning."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Persistence: \"Always Allow/Deny\" calls `PermissionPersister::save_permission`, which adds the pattern under `permissions.allow` or `permissions.deny` in the project YAML. It is idempotent.\nVERDICT: MISS\nWHY: The answer mentions persisting to \"the project YAML\" via PermissionPersister, but never names config.local.yaml. It also never contrasts that with the in-memory add_permission call."
+}

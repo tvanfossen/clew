@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says a declared `index_scope` decides and that undeclared repos get the whole repository, but it explicitly says a rejected/unusable declaration is handled uncertainly (the CLI may refuse the build) and does not state that every failure to find one falls through to the whole repository."
+}

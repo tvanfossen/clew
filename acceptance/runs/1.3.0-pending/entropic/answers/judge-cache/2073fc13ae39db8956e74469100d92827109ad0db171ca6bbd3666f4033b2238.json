@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the deny list is checked after approval and is \"the only real veto in that configuration\" (with a callback wired), but it describes two gates with a separate allow/approval check before execute, so it does not conclude that execute consults is_denied and nothing else."
+}

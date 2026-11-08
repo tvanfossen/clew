@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes cancel pollers that bridge atomics to the caller's `int*` flag, but never says they exist because the C ABI boundary cannot carry an atomic."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Background threads table listing External MCP accept loop and per-client serve threads (`external_bridge.cpp`), MCP stdio/SSE readers (`transport_stdio.cpp`, `transport_sse.cpp`), Health monitor (`health_monitor.cpp:92`), and cancel pollers in `inference_c_api.cpp`, `interface_factory.cpp`, `response_generator.cpp`\nVERDICT: HIT\nWHY: The answer enumerates thread creation sites across the external bridge, MCP transports, health monitor, and inference-path files, showing it is spread across subsystems rather than centralised."
+}

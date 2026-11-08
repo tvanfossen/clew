@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Symbol search, one token zero | The zero token is the cause. The reply's own guidance is to retry without it.\nVERDICT: MISS\nWHY: The answer describes how replies now distinguish absence from non-search, but never says a single non-matching token was previously treated as proof of absence or that this conflated \"nothing exists\" with \"didn't look.\""
+}

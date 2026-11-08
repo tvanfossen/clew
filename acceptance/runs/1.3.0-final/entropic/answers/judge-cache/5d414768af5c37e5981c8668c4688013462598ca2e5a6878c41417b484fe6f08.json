@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Exceptions never cross into C.** The hook trampoline catches every Python exception, prints the traceback, and returns pass-through (`rc = 0`). A hook that raises is silently skipped\"\nVERDICT: HIT\nWHY: The answer states the trampoline catches all Python exceptions and returns pass-through rc=0 on failure."
+}

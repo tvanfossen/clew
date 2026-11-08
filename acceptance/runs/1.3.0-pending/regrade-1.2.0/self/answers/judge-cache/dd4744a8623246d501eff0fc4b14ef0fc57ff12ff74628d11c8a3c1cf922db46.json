@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \".yaml, .yml, .json | one `path` row only, zero symbols | `synth.py` `DATA_EXTS`\" and \"clew holds a shell or CMake definition as a function row, and holds a YAML or JSON file only as a registered path with no symbols.\"\nVERDICT: HIT\nWHY: The answer says YAML/JSON are registered as path rows with zero symbols, and contrasts this with shell/CMake, which get function rows, so the two groups are treated differently."
+}

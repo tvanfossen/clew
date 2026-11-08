@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Python never talks to C++ directly. The path is a single shared library reached through `ctypes`\" and \"`load()` returns a plain `ctypes.CDLL`.\"\nVERDICT: HIT\nWHY: The answer names ctypes.CDLL over librentropic.so as the mechanism, with pure-Python bindings and no compiled extension module."
+}

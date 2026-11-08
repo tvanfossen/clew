@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_PLATFORM_MEMORY` undefined (`platform.h:163-168`) | plain `calloc` / `free`\nVERDICT: MISS\nWHY: The answer's headline claims library code always goes through function pointers, and it only mentions plain `calloc`/`free` expansion for a non-default configuration. It never concludes that a default build has no indirection."
+}

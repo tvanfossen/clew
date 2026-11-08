@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`scope`: `source: whole-repo`, 426 indexed files, the extensions covered, and `not_indexed` with counts (for example `.rs=2`, `.sql=1`, and 14 kinds in total). Files of those types are invisible to every query.\"\nVERDICT: MISS\nWHY: The item asks for file types that were in scope yet produced no rows; the answer lists file types that were not indexed (`not_indexed`) and never says the reply names in-scope types with zero rows."
+}

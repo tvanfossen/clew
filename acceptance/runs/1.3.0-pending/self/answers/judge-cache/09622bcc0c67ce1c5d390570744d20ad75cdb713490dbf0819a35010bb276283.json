@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Facts from tiers 3 and 4 are kept under any stated tier.\nVERDICT: MISS\n\nWHY: The answer lists tiers 3 and 4 as both \"Accumulates\" but never says they combine identically, that the distinction between them is inert, or that the load-bearing line is fact versus guess."
+}

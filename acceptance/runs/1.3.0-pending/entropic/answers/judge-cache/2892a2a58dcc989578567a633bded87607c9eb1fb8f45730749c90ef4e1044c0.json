@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Deny is the last gate. It is checked in `ServerManager::execute`, after approval. `check_approval` only consults the allow list.\"\nVERDICT: MISS\nWHY: The answer says deny is checked in ServerManager::execute, but it also describes other gates (pre-tool hook, schema, MCP authorization, tier checks, approval) that can block, so it doesn't conclude that deny is the only blocking list with execute consulting only is_denied."
+}

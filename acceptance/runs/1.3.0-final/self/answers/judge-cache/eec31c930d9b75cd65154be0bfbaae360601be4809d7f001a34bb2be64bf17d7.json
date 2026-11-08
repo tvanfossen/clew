@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Only restarting the MCP client. Rebuilding does not help.\" and \"`index(action='refresh')`\" for data\nVERDICT: MISS\nWHY: The answer states which action clears each axis (refresh for data, restart for code), but it never explains that this difference is why a single flag would not have been enough."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `library/common.h:132` | the library's internal utility header | library translation units that include it see real member names\nVERDICT: HIT\nWHY: The answer states that the library's shared internal header (common.h) defines the opt-out, so every library translation unit including it sees plain member names."
+}

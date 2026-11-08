@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The argument value comes from `args_to_pattern`. It is the value of the first key in the args JSON object if that value is a string. Empty args, `{}`, an unparseable body, or a non-string first value all become `*`.\nVERDICT: HIT\nWHY: States that only one argument value (the first key's string) reaches the pattern, and non-string or unparseable args collapse to `*`; the \"only the first argument value\" scoping is also reinforced in risk #1."
+}

@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 23458,
+  "stop_reason": "end_turn",
+  "session_id": "60ec2d77-6e5a-4379-a50b-c6cee6908556",
+  "total_cost_usd": 0.012588730000000001,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 40063,
+    "cache_read_input_tokens": 196363,
+    "output_tokens": 5223,
+    "output_tokens_details": {
+      "thinking_tokens": 2359
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 40063,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3597,
+        "cache_read_input_tokens": 53128,
+        "cache_creation_input_tokens": 5501,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 5501
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 5223,
+      "cacheReadInputTokens": 196363,
+      "cacheCreationInputTokens": 40063,
+      "webSearchRequests": 0,
+      "costUSD": 0.012588730000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2359,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 40063,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 17,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** two gates decide whether a call runs. The first, in `ToolExecutor::check_approval`, decides whether the call may proceed at all. The second, in `ServerManager::execute`, applies the deny list just before routing. Deny patterns are not checked at the first gate, so a deny pattern only bites at the second.\n\n```\nmodel emits tool call\n  \u2502\n  \u25bc\nToolExecutor::check_approval            (src/mcp/tool_executor.cpp:161)\n  approved = loop.auto_approve_tools\n          || ServerManager::is_explicitly_allowed(name, args)   \u2192 PermissionManager::is_allowed\n  if !approved and on_tool_call callback set \u2192 callback fires, approved = true\n  if !approved \u2192 \"No approval callback \u2014 denying\", return false\n  \u2502\n  \u25bc  (approved)\nServerManager::execute                  (src/mcp/server_manager.cpp:153)\n  pattern = name + \":\" + args_to_pattern(args)\n  if PermissionManager::is_denied(name, pattern) \u2192 {\"result\":\"Error: Permission denied for \u2026\"}\n  \u2502\n  \u25bc\nroute_tool_call \u2192 server runs\n```\n\n**Gate 1 (`check_approval`)**\n- `auto_approve_tools` in the loop config skips the lists entirely. It does not skip the deny check in gate 2.\n- Otherwise the call must match an allow pattern through `is_allowed`, which is the explicit skip-prompt path.\n- If nothing matches and a callback is wired, the callback is invoked and the call is then marked approved. The return value of the callback is never read. The header says tools are \"approved via callback,\" but the code approves unconditionally once the callback is present. I'd treat that as a likely defect to verify, since it means the callback is a notification rather than a gate.\n- With no allow match and no callback, the call is denied (default-deny).\n\n**Gate 2 (`ServerManager::execute`)**\n- Deny is checked here, after approval. Deny wins over allow and over `auto_approve`, because an allow match alone never reaches the server.\n- The denial is returned as a normal tool result (an error string), not as an exception.\n\n**What a pattern means** (`PermissionManager::pattern_matches`, `src/mcp/permission_manager.cpp:101`)\n- The pattern is split at the first `:`. The left part is matched with `fnmatch` against the fully qualified tool name, e.g. `filesystem.*` matches all filesystem tools.\n- A pattern with no `:` matches that tool regardless of arguments. `git.commit` allows every git commit.\n- A pattern with a `:` also has its right part matched against the call's pattern string, `name:<first-arg>`. That string comes from `args_to_pattern`: the value of the first string-valued argument, or `*` if there are no args or parsing fails. So `bash.execute:python*` matches bash calls whose first argument starts with `python`.\n- `fnmatch` is called with flags 0, so `*` also crosses `/` and other separators. `filesystem.*:/etc*` is a broader pattern than it looks.\n- Matching is glob-based, so `*` can match a separator. The `:` split is literal, so a tool name containing `:` cannot be expressed.\n\n**Lists and config**\n- `PermissionsConfig` has `allow`, `deny` (glob string lists) and `auto_approve` (bool), parsed by `parse_permissions_config` (`src/config/loader.cpp:365`).\n- `PermissionManager` holds the two lists. Each list is checked in order and any single match is enough.\n- `BashServer::get_permission_pattern` produces `bash.execute:<base-cmd> *`, for example `bash.execute:git *`. That is the form the \"Always Allow/Deny\" suggestion uses. The base server default is tool-level only. The gate-2 code path uses `args_to_pattern`, not this override, so I could not confirm from the index how a bash allow such as `bash.execute:git *` lines up with the first-argument pattern built at gate 2.\n\n**Not settled by the index**\n- Where `check_approval` sits relative to the duplicate and circuit-breaker checks (`check_dup_or_approval`, `check_approval_pc`).\n- How the `PermissionManager` lists are populated from config, and how `PermissionPersister` writes \"Always\" choices back to the project YAML.\n- The `ToolExecutor` header also mentions tier allowlists and `bash_commands` restrictions. I did not trace those.",
+  "ttft_ms": 769,
+  "type": "result",
+  "duration_ms": 24781,
+  "uuid": "f646013c-0540-4965-9394-7a2884cde447",
+  "ttft_stream_ms": 571,
+  "time_to_request_ms": 84,
+  "first_content_frame_ms": 571,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

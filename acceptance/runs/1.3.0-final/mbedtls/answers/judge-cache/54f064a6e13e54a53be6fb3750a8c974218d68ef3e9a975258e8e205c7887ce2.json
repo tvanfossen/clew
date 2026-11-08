@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **High-level part:** `ret & 0xFF80` selects the module bits. ... **Low-level part:** `ret & ~0xFF80` is the code within the module. ... If both parts are present, the two strings are joined with `\" : \"`\n\nVERDICT: HIT\nWHY: The answer describes the high-level module part and low-level part, and says both strings are joined with \" : \" when both are present."
+}

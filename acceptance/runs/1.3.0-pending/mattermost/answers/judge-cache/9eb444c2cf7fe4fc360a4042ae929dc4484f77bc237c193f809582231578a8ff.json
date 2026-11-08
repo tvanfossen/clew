@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Calls `client.createPost` once.\" and \"On failure, applies the same error handling as the first attempt: removal for the three errors above, otherwise `failed: true` again.\"\nVERDICT: HIT\nWHY: The answer says retryFailedPost makes a single createPost call and on failure either removes the post for the three errors or marks it failed again."
+}

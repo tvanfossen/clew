@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `dossier` picks the focal function by identity, but the neighbours are not. Same-named file-private helpers in different modules merge into one node\nVERDICT: MISS\nWHY: The answer says dossier selects the focal function by identity but claims the neighbours (far end) are name-matched; it never says that a traversal surface matches the focal side by bare name, which is the item's mechanism."
+}

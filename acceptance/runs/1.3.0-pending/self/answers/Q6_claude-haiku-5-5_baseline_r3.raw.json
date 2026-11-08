@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 36786,
+  "stop_reason": "end_turn",
+  "session_id": "495abb72-808b-4bf4-8b94-1e086115fe78",
+  "total_cost_usd": 0.017179619999999996,
+  "usage": {
+    "input_tokens": 22,
+    "cache_creation_input_tokens": 38551,
+    "cache_read_input_tokens": 591872,
+    "output_tokens": 7097,
+    "output_tokens_details": {
+      "thinking_tokens": 3014
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 38551,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1559,
+        "cache_read_input_tokens": 70785,
+        "cache_creation_input_tokens": 1963,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1963
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 22,
+      "outputTokens": 7097,
+      "cacheReadInputTokens": 591872,
+      "cacheCreationInputTokens": 38551,
+      "webSearchRequests": 0,
+      "costUSD": 0.017179619999999996,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 3014,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 38551,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 13,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** for YAML and JSON the index holds only that the file exists. For shell and CMake it holds each function and macro definition, but not the commands inside them. On an installation without the shell/CMake grammars, the code's own comments say those files appear in the not-indexed report, but the code does not do that. I could not run it here, so that last point rests on reading the code.\n\n**What the index holds, by type** (from `clew/synth.py`, `shast.py`, `cmakeast.py`, `harvest.py`)\n\n| File type | `path` row | Symbols (`memberdef`) | Notes |\n|---|---|---|---|\n| `.yaml`, `.yml`, `.json` | Yes | None, by design | Findable by name, counted in the file set. Never harvested. |\n| `.sh`, `.bash` | Yes | One per `name() {\u2026}` or `function name {\u2026}` | Scope is dotted, e.g. `scripts.deploy.deploy`. No args, since shell passes arguments as `$1`. Brief comes from the `#` block directly above, and a blank line breaks the link. |\n| `.cmake`, `CMakeLists.txt` | Yes | One per `function()` (kind `function`) and per `macro()` (kind `macro definition`) | Function arguments are the parameter list. Macros are recorded as macros because their variables leak into the caller. |\n\n**What it does not hold**\n\n- YAML and JSON content: no keys, values, CI jobs, or workflow steps. The only YAML semantics clew reads are its own `.clew.yaml` (scope, guard, dispatch), through separate config loaders, not through the index.\n- Shell and CMake top-level commands: `set`, `export`, variable assignments, `add_executable`, `target_link_libraries`, `source` lines, and the commands in function bodies are not symbols.\n- Anything in a file no grammar parsed: the `path` row exists, but there is no body, no refid, and no call data.\n- I found no shell- or CMake-specific call-site walker (`call_edges.py`, `signature.py`, `reachability.py` don't mention bash or cmake). Whether calls *from* shell functions are recorded depends on the generic harvest, which I did not trace.\n\n**Installation without the grammars**\n\n- `substrate.py` says the gate is \"what is compiled in\". Against the published wheel, `bash` and `cmake` are absent. `harvest._ts_language_for` returns `None` for them, so no tree is parsed and no definitions are written. The test `test_the_data_files_are_in_the_file_set_with_no_symbols` covers the YAML/JSON case.\n- **The problem:** `register_paths` in `synth.py` calls `claims()`, which tests extension and file name only. It never checks `has_language`. So `.sh`, `.cmake` and `CMakeLists.txt` still get `path` rows on a grammar-less install.\n- `_not_indexed_scope` in `cli.py` decides what is \"not indexed\" by checking the `path` table. Those files are present there, so they are counted as covered. They are missing from the not-indexed report and no definitions are written. That is the silent empty answer the project's \"absence is not emptiness\" rule exists to prevent. It also contradicts the `substrate.py` docstring, which says the front ends \"register nothing\" and the miss report names these types.\n- No test covers this. `test_script_front_end.py` checks only that `_ts_language_for` returns `None` when the grammar is absent.\n\n**Suggested fix:** in `register_paths`, drop `.sh`, `.bash`, `.cmake` and `CMakeLists.txt` when `substrate.has_language(\"bash\")` or `(\"cmake\")` is false, so the miss report names them. Add a RED test that runs with those keys monkeypatched out and asserts the names appear in `not_indexed`. YAML and JSON should stay registered, since they never need a grammar.",
+  "ttft_ms": 964,
+  "type": "result",
+  "duration_ms": 37753,
+  "uuid": "fb2ed3c9-0524-457d-b39b-68ebc62cce84",
+  "ttft_stream_ms": 758,
+  "time_to_request_ms": 190,
+  "first_content_frame_ms": 758,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

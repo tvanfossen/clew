@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names these top-level directories as containing uses of MBEDTLS_PRIVATE:\n\n- `include` is where the macro is defined and where `ssl.h` references `ssl->state`.\n- `library` is where `ecdh.c`, `md.c` and `x509_crt.c` use it.\n\nThe answer also says `tests` and `framework` have no define of `MBEDTLS_ALLOW_PRIVATE_ACCESS`, and it did not check which test files write `MBEDTLS_PRIVATE(...)` explicitly. Because it names no uses in either, I've left them out. `programs` appears only as the place where the opt-out define is set, not as a place that uses the macro, so I've left it out too. `docs` is cited as a reference, not as a directory with uses.\n\nITEMS:\nlibrary\nEND"
+}

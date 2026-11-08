@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Inside those translation units `MBEDTLS_PRIVATE(m)` becomes plain `m`, so the code can write `ctx->grp.id` directly... By default it expands to `private_##m`... The other in-tree users do not get the opt-out... `ciphersuite_info->MBEDTLS_PRIVATE(flags)` ... `#else` branch is active, and that the access becomes `private_flags`\nVERDICT: HIT\nWHY: The answer states that code defining MBEDTLS_ALLOW_PRIVATE_ACCESS sees plain member names, while ordinary consumers get the `private_` renamed ones."
+}

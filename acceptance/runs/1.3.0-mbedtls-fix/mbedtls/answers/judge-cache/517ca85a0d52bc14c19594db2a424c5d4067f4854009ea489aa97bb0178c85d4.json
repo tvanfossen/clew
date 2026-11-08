@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_ct_compiler_opaque(x)` returns `x ^ mbedtls_ct_zero`, where `mbedtls_ct_zero` is a `volatile` global set to 0 in `library/constant_time.c`. The compiler cannot prove that value, so it cannot specialise on the input.\nVERDICT: MISS\nWHY: The answer names the primitive and its purpose. It places the volatile `mbedtls_ct_zero` global in constant_time.c. But it never says `mbedtls_ct_compiler_opaque` is defined in library/constant_time_impl.h. It only says generically that \"All primitives live in `library/constant_time_impl.h`\", and that is not specific enough to settle the location."
+}

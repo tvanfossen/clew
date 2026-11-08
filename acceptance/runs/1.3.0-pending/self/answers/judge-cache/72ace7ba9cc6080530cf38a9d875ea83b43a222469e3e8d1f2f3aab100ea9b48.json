@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"A build through an old process would re-stamp the index with old pipeline logic and could drop layers.\" and \"`stale_code_refusal` returns a `REFUSED:` message on the code axis.\"\nVERDICT: MISS\nWHY: The answer says builds through an old process write old logic, but never states that reads stay current because query tools open the database per call, so the read/write asymmetry is absent."
+}

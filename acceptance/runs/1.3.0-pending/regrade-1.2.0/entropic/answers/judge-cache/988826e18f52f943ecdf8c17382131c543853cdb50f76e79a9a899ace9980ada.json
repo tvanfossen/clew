@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `detokenize()` (lines 92-104) has the same shape with `llama_token_to_piece`: a 256-byte stack buffer, and an exact-size second call if the first is too small.\nVERDICT: HIT\nWHY: The answer states that detokenize uses a 256-byte stack buffer first and makes a second exact-size call only when the first is too small. It contrasts this with tokenize, which sizes first (null/0 query) and then writes."
+}

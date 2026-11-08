@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`_ts_language_for` (`clew/harvest.py:184`) returns None for `.sh` and `CMakeLists.txt` when `bash` or `cmake` is absent.\" and \"It names the in-scope file types that produced no rows, so a `dossier` miss on a deploy script reads as 'this build did not read `.sh`'\"\nVERDICT: HIT\nWHY: The answer says a missing grammar routes to nothing instead of raising, via a capability check (`has_language`), and that those file types are then reported as not indexed."
+}

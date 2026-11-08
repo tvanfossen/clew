@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \".yaml`, `.yml`, `.json` | yes | no, by design | no\" and \"`claims()` in `clew/synth.py:191` is what puts a file into the file set... A YAML file is 'findable by name' and that is all.\" and \"Why YAML and JSON get no symbols.\"\nVERDICT: HIT\nWHY: The answer says YAML/JSON are registered in the file set with a path row but produce no symbols, and it contrasts this with shell/CMake, which do get definitions."
+}

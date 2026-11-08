@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The code message says a rebuild cannot fix it, and that only a client restart loads current code.\nVERDICT: HIT\nWHY: The answer says data is fixed by refresh/rebuild, and schema/code notices need a client restart because a rebuild cannot clear them. It does not say \"why one flag would not have been enough\" in those words, but it does show that the axes need different remedies."
+}

@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 12416,
+  "stop_reason": "end_turn",
+  "session_id": "aa5fc40a-4052-4c35-8c8e-9fe0ecad5080",
+  "total_cost_usd": 0.0062127599999999995,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 14464,
+    "cache_read_input_tokens": 247546,
+    "output_tokens": 1687,
+    "output_tokens_details": {
+      "thinking_tokens": 256
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 14464,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 850,
+        "cache_read_input_tokens": 57932,
+        "cache_creation_input_tokens": 1255,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1255
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 1687,
+      "cacheReadInputTokens": 247546,
+      "cacheCreationInputTokens": 14464,
+      "webSearchRequests": 0,
+      "costUSD": 0.0062127599999999995,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 256,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 14464,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 7,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** a failed new-post send is kept locally and marked failed. It is not retried automatically: there is one network attempt, and the user has to retry by hand. Retrying re-sends the same post, not a new one.\n\n**What happens on failure**\n\n- `createPost` in `app/actions/remote/post.ts:74` writes the post to the local database first, with a `pending_post_id`, before calling the server. That is what the user sees as a pending post.\n- It then calls `client.createPost` once. `ClientPosts.createPost` in `app/client/rest/posts.ts:43` passes `noRetry: true`, which turns off the client's transport retry for this request.\n- On error, the catch block (`post.ts`, around lines 125\u2013160) logs the error and then branches on the server error ID:\n  - `DELETED_ROOT_POST_ERROR`, `TOWN_SQUARE_READ_ONLY_ERROR` or `PLUGIN_DISMISSED_POST_ERROR`: the local post is removed with `removePost`.\n  - Any other error: the post is stored with `props.failed = true` and its `id` set to the pending ID. If CRT is enabled, its thread record is created too. The post stays in the database as a failed post.\n  - A `BOR_DENIED_BY_POLICY_ERROR` also expires the render-permissions entry for the channel.\n- The function returns `{data: true}` in both cases, so the caller does not treat a failed send as an error.\n\n**How many automatic retries:** zero. I found no retry loop in the send path. The only retry-related code in the send path is `noRetry: true`. The other retry constants in the index (websocket, calls, performance metrics, ephemeral wipe) are unrelated to posts.\n\n**What retrying does:** `retryFailedPost` in `post.ts:228` runs when the user taps the failed post (its caller is `app/components/post_list/post/body/failed/index.tsx`). It:\n\n1. Clears `failed` in the props and sets a new `create_at`/`update_at` timestamp. `create_at` is set to the retry time, not the original time. The local record is updated so the UI shows it as pending again.\n2. Calls `client.createPost` with the same content, again with no automatic retry.\n3. On success, stores the server's post and updates the channel's last-post time (unless it is a CRT reply).\n4. On failure, it either removes the post (for the same three error IDs) or sets `failed: true` again.\n\n**Caveat:** the index only shows the code paths I could query. I did not confirm the exact UI wiring beyond the caller listed above.",
+  "ttft_ms": 1482,
+  "type": "result",
+  "duration_ms": 13472,
+  "uuid": "baf9b7c2-7bda-4509-a4ee-d2e59ee69a67",
+  "ttft_stream_ms": 1256,
+  "time_to_request_ms": 57,
+  "first_content_frame_ms": 1256,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

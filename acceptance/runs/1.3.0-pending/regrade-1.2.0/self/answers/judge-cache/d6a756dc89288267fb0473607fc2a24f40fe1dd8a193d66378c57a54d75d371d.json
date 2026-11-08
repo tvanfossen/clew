@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Writes are not: `stale_code_refusal` makes write paths refuse, and `force` does not override that.\nVERDICT: MISS\nWHY: The answer states that write paths refuse and that `force` doesn't override it. It never says the refusal sits ahead of the build decision, which is the placement the item requires."
+}

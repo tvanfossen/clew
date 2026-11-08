@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Errors are swallowed in the outer `try/catch` (`// Do nothing`), and `batchRecords` logs a warning and does not rethrow by default. A failed write is therefore silent to the caller.\nVERDICT: MISS\nWHY: The answer says this only for the add path and not for the remove handler, and it describes a batchRecords warning log, so the item's claim that both handlers swallow errors and leave no trace is only partly covered."
+}

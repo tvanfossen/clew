@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 65407,
+  "stop_reason": "end_turn",
+  "session_id": "cc9f5b97-9916-450b-a34b-d1dc3b648976",
+  "total_cost_usd": 0.023763640000000003,
+  "usage": {
+    "input_tokens": 40,
+    "cache_creation_input_tokens": 42310,
+    "cache_read_input_tokens": 1074164,
+    "output_tokens": 9112,
+    "output_tokens_details": {
+      "thinking_tokens": 3692
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 42310,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1858,
+        "cache_read_input_tokens": 75135,
+        "cache_creation_input_tokens": 1323,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1323
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 40,
+      "outputTokens": 9112,
+      "cacheReadInputTokens": 1074164,
+      "cacheCreationInputTokens": 42310,
+      "webSearchRequests": 0,
+      "costUSD": 0.023763640000000003,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 3692,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 42310,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 21,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** the index's scope is decided by the repo's own `index_scope:` declaration in `.clew.yaml`. If there isn't one, the scope is the whole repository minus what git ignores and a few dot/cache directories. Several later filters then drop more files: binaries, `toolchain.toml` ignores, and doxygen's forced extension list. I read this from the code and did not run a build.\n\n**The decision flow**\n\n```\nclew index <repo>\n \u2502\n \u251c\u2500 derive_scope()                        clew/scope.py:639\n \u2502    \u251c\u2500 .clew.yaml has index_scope:?\n \u2502    \u2502    yes \u2192 roots/excludes taken at face value (must be repo-relative, must exist)\n \u2502    \u2502    bad keys / no usable roots \u2192 _Rejected \u2192 whole-repo, with the reason logged\n \u2502    \u2514\u2500 no index_scope \u2192 whole_repo_scope()                 scope.py:683\n \u2502\n \u251c\u2500 build_options: extra_input = scope.roots, extra_exclude += scope.excludes\n \u2502                                                          cli.py:745\n \u251c\u2500 operator --exclude, then toolchain.toml [ignore].paths and suppress.toml\n \u2502                                                          cli.py:3112-3120\n \u251c\u2500 enumerate_tree(roots, excludes)    treescan.py:203   prunes excluded dirs during the walk\n \u251c\u2500 _drop_binary_files()               cli.py:2554, filetypes.py   classify_file \u2192 binary out\n \u2514\u2500 doxygen run with forced FILE_PATTERNS (doxygen.py:203) and EXCLUDE entries\n```\n\n**When nothing is declared (the default)**\n\n`whole_repo_scope` makes the repo root the single root, and computes the excludes as follows:\n\n1. **Git-ignored paths.** `git ls-files --others --ignored --exclude-standard --directory` at the root, and the same for every nested git tree, so a submodule's own `.gitignore` applies. If git fails, the ignore list is empty and a warning is logged. The scope then gets wider, and the code does not treat that as a silent success.\n2. **Dot and cache directories.** Any directory named `.*`, `__pycache__` or `node_modules` is excluded. Nested git trees are descended into, so their `.git` stores are pruned too.\n3. **Nested git trees are included, not cut out** (gh#333). They are indexed, and `external.py` tags their rows afterwards so two codebases can be told apart in an answer.\n4. **Depth limit of 16.** Deeper directories are taken whole and recorded in `depth_limited_paths()`, so nothing is silently dropped.\n5. **Log line.** `scope: indexing the WHOLE repository \u2014 no index_scope is declared\u2026` is logged at WARNING.\n\nFiles are then filtered further:\n\n- **Binaries** are removed by `lang_parsing_substrate.classify_file` before doxygen reads them. There is no size limit, so a large generated `.c` file is still read.\n- **Doxygen's extension set.** `FILE_PATTERNS` is forced to doxygen's own default list (`*.c`, `*.h`, `*.py`, `*.md`, and so on), so a repo's Doxyfile cannot veto files the scope admitted (gh#340).\n- **Other languages.** Rust and JS/TS files come from the same scanned tree (`_scanned_files`, cli.py:2483), so they follow the same scope.\n\n**What this means for this repo**\n\n`/\u2026/self/repo/.clew.yaml` declares no `index_scope`, so the whole-repo default applies. Its `validate.exclude` block (`tests/`, `acceptance/`, `scripts/`) governs the **gate only**. `scope.py` says the gate is not read for scope, so those directories are still indexed. `git ls-files --others --ignored` returns nothing here and there are no submodules. The excluded set is therefore just `.git`, `.github` and `.claude-plugin`.\n\n**Two things I noticed**\n\n- **Declared scope does not apply `.gitignore`.** A declared root is \"taken at its word and never walked\". The gitignore and dot-directory pruning (`_gitignored_paths`, `_pruned_dirs`) run only in `whole_repo_scope`. So under `index_scope.roots: [src]`, a `build/` or `.venv/` inside `src` would be indexed unless the owner lists it in `excludes`. The docstring around `scope.py:939` says otherwise, so that comment is stale. I did not confirm this with a build. A check would be to declare a root containing an ignored directory and see whether its files appear in the index.\n- **`_pruned_dirs` is O(whole tree).** On a repo with no declaration it walks every directory once to collect exclusions. That is a cost, not a correctness problem.",
+  "ttft_ms": 2217,
+  "type": "result",
+  "duration_ms": 66309,
+  "uuid": "027fbf4d-02e0-4c1a-9555-fe7442cddbbc",
+  "ttft_stream_ms": 1738,
+  "time_to_request_ms": 141,
+  "first_content_frame_ms": 1738,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

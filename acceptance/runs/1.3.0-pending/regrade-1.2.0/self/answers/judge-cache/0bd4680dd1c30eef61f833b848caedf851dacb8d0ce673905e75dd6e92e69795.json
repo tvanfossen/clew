@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never mentions a call_edges table or that edges are stored once per extraction layer (so duplicates across detectors exist)."
+}

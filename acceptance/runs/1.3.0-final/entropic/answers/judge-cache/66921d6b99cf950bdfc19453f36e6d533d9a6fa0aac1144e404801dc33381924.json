@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"So failure is indistinguishable from empty input. There is no error code, no exception, and the only trace is one log line.\"\nVERDICT: HIT\nWHY: The answer states that failure is indistinguishable from empty input, and its caller table shows callers don't check (e.g., \"Nothing in the path checks for emptiness\"), so the substance is present."
+}

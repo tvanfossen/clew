@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `stop()` uses `wake_cv_` to wake and join.\nVERDICT: MISS\nWHY: The answer says stop() wakes via a condition variable and joins, but never mentions an atomic flag exchange for the shutdown."
+}

@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 13758,
+  "stop_reason": "end_turn",
+  "session_id": "17569a36-5a48-4c8b-b1cf-ad881e6b0498",
+  "total_cost_usd": 0.00240064,
+  "usage": {
+    "input_tokens": 4,
+    "cache_creation_input_tokens": 1953,
+    "cache_read_input_tokens": 76264,
+    "output_tokens": 2494,
+    "output_tokens_details": {
+      "thinking_tokens": 1491
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 1953,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2217,
+        "cache_read_input_tokens": 38132,
+        "cache_creation_input_tokens": 1953,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1953
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 4,
+      "outputTokens": 2494,
+      "cacheReadInputTokens": 76264,
+      "cacheCreationInputTokens": 1953,
+      "webSearchRequests": 0,
+      "costUSD": 0.00240064,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1491,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 1953,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 2,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "For `git_argv` (clew/gitenv.py:89), the reply had seven callers, each a function name with its file and an edge class of `call`. All seven resolved through the AST, and `callers_unresolved` is 0. The reply also carried the function's signature, brief, liveness, the thread it can run on, the requirement it satisfies (REQ-DDB-CONFIG-001), one covering test, and its verbatim body.\n\nIt is a set of caller-to-callee edges, not a list of call sites. Several things make it wrong to read it as one:\n\n- **No call-site lines.** Each caller is the enclosing function, such as `run_git` or `tracked_files`. The reply gives that function's file, not the line where it calls `git_argv`. It also doesn't say whether the call is inside a loop, a branch, or behind a condition.\n- **Tests are callers too.** `test_the_disarmed_key_list_reaches_the_argv` appears alongside production code, so the list mixes product paths with test paths.\n- **Empty callees doesn't mean no calls.** `callees` is `[]` here, yet the body calls `list`, `extend` and `GIT_COMMAND_VALUED_KEYS`. Those are not indexed functions, so they sit in `external_callees`, which this reply omitted. A zero-length callee list only means nothing resolved to an indexed function.\n- **Depth 1 only.** The default answer shows immediate callers. Transitive callers need `depth` 2 with `direction` back. The neighbour list is also capped by `max_neighbors` (default 8). Seven callers is under the cap, so this list looks complete, but the reply does not state that it is.\n- **Name resolution can merge.** A bare name can match several signatures. An `ambiguous` block would say so, and the neighbour rows would then be shared across them. Without `qualified`, a same-name method elsewhere could be counted here.\n- **Indirect calls can be missing.** The edges come from static resolution. Function pointers, callbacks and dynamic dispatch are not guaranteed to appear, and `callers_unresolved` only counts edges the resolver saw and failed to bind.\n- **Reachability is not a caller edge.** The `threads` field says the function can run on `clew-first-build-`, a pthread spawned at `server.py:1440`, but with medium confidence. That is reachability, not a call from a caller, and it is reported separately.\n- **Liveness is not usage.** `liveness: live` says the function is reachable from something, not that a production path exercises it.\n\nWhat the reply does not give is execution conditions, argument values, or whether a call site is guarded. For claims about how the disarming is enforced, the callers list is weaker evidence than the requirement and the test that asserts that no call site builds its own argv. Those are the fields to cite.",
+  "ttft_ms": 2047,
+  "type": "result",
+  "duration_ms": 14083,
+  "uuid": "58decd80-2516-49ab-9ad6-2f404077c66c",
+  "ttft_stream_ms": 1078,
+  "time_to_request_ms": 102,
+  "first_content_frame_ms": 1078,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

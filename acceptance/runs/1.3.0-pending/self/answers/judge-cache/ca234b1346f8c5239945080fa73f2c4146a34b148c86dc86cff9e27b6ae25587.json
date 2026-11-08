@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Structured `options` argument (tier 1, for embedding callers). This is the MCP and API route. It uses the same vocabulary as `.clew.yaml`\"\nVERDICT: MISS\nWHY: The answer says the options argument shares vocabulary with `.clew.yaml`, but it never says the names are the same words the diagnostics use, and it adds that the declaration and the flag do not share one spelling."
+}

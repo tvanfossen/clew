@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `NavigationHeader` takes the ref as its second argument and forwards it to `NavigationSearch` only when `hasSearch` is true. Without `hasSearch`, the ref is attached to nothing.\nVERDICT: HIT\nWHY: The answer states that the ref is forwarded to NavigationSearch only when hasSearch is true, and that otherwise it is attached to nothing."
+}

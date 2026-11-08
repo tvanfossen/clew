@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_ct_compiler_opaque(x)` launders a value through an empty asm barrier (asm path) or XORs it with a `volatile` global zero (C path). That keeps the compiler from constant-folding a condition it could otherwise prove.\nVERDICT: HIT\nWHY: The answer names mbedtls_ct_compiler_opaque as the primitive that keeps the compiler from knowing a value, and it puts the primitives in library/constant_time_impl.h."
+}

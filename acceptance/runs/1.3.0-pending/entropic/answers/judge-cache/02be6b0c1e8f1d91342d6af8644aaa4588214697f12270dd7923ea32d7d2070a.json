@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Failure in `tokenize` is a `logger->error` (`:64-68`) followed by `return {}`. ... The same empty return is used for a null vocab (`:52`)... `LlamaCppBackend::tokenize` ... Returns `{}` when `tokenizer_` is null.\"\nVERDICT: HIT\nWHY: The answer states that the tokenizer wrapper returns an empty vector on failed tokenization, and that the backend's `tokenize` returns the same `{}` when no tokenizer is wired. It also says failure is \"indistinguishable from empty input.\""
+}

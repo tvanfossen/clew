@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 28906,
+  "stop_reason": "end_turn",
+  "session_id": "fe94c924-450a-42ce-9ad3-893151c8bc60",
+  "total_cost_usd": 0.010974260000000001,
+  "usage": {
+    "input_tokens": 16,
+    "cache_creation_input_tokens": 26464,
+    "cache_read_input_tokens": 347836,
+    "output_tokens": 4403,
+    "output_tokens_details": {
+      "thinking_tokens": 1675
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 26464,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2288,
+        "cache_read_input_tokens": 59290,
+        "cache_creation_input_tokens": 1344,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1344
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 16,
+      "outputTokens": 4403,
+      "cacheReadInputTokens": 347836,
+      "cacheCreationInputTokens": 26464,
+      "webSearchRequests": 0,
+      "costUSD": 0.010974260000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1675,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 26464,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 10,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The reply separates the two cases by grading the empty result, not by one fixed sentence. The grading lives in `clew/mcp_server/emptiness.py` (`search_emptiness`, `_verdict`, `_conjunction_note`), and the facts behind it come from `clew/query/symbols.py` (`unsearched_corpora`) and `clew/query/corpus.py` (`index_scope`). I read the code and did not run it.\n\n**What the reply carries**\n\n- **Scope block:** `file_count`, top-level directories, extensions, and the scope `source`, read from the index's `build_meta`. This says what the build walked, which the caller can compare against the working tree.\n- **`not_indexed` / `not_indexed_count`:** file types the build walked and produced no rows for. The build measured this against its own tree, not the query-time tree.\n- **`unsearched_corpus_hits`:** rows the query would have matched in a corpus `search` does not read (for example typedefs, macros, or file docs). It is computed by subtracting the searched kinds from the kinds the database holds, so a new kind is picked up without an edit.\n- **`token_hits`:** per-token counts for multi-token queries, so the reply can name the token that emptied the conjunction.\n\n**Which verdict you get**\n\n| Situation | Wording | Confidence entitled |\n|---|---|---|\n| Single token, no unread-corpus hits, file docs present | \"definitive empty result\u2026 do not retry\" | High, for this index's searched corpora |\n| Single token, unread corpus holds a match | \"NOT DEFINITIVE\u2026 the name exists\u2026 ask dossier\" | The name exists; search just cannot see that kind |\n| Single token, no `file_docs` table | \"NOT definitive\u2026 rebuild\" | None; the index cannot look |\n| Multi-token miss | \"NOT definitive\"; names dead tokens or says retry with fewer | Only that the conjunction is over-specified |\n| Prose query, token present in symbols | \"NOT DEFINITIVE\u2026 these terms are in the repo, not in prose\" | The repo uses the term; prose does not |\n| Index predating the metadata | `scope.not_indexed` absent | Not recorded; absence is not \"nothing missed\" |\n\n**How much each answer is worth**\n\n- A definitive empty answer means only that no searched corpus in this index holds the token. It does not prove the file is absent from the tree. That depends on the scope block and on `not_indexed`.\n- `not_indexed` covers file types the build walked and skipped. Files outside the walked scope are not listed, so the caller has to infer that from the scope `source` and the extension list.\n- The code does not check whether the index is stale. `clew/mcp_server/freshness.py` exists and I did not read it, so I cannot say whether an empty answer is also freshness-checked.\n- Undocumented files are handled: `file` rows are treated as unsearched, so a match on an undocumented file's name shows up as an unread-corpus hit rather than a definitive negative.\n\nIn short: \"definitive\" is earned per call by checking the other corpora, and it is a claim about this index, not the working tree. The scope fields are how the caller checks whether the index covered the place the thing would live.",
+  "ttft_ms": 1214,
+  "type": "result",
+  "duration_ms": 29431,
+  "uuid": "ef45a5de-655a-4562-832b-34bcad1d31fb",
+  "ttft_stream_ms": 958,
+  "time_to_request_ms": 178,
+  "first_content_frame_ms": 958,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

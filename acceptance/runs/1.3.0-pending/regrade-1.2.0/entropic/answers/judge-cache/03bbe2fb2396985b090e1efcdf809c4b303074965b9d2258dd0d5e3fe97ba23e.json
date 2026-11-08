@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `do_count_tokens` | Returns `0`. The C API `entropic_inference_count_tokens` passes that straight through; its `len/4` fallback only fires on exceptions, not on tokenization failure.\nVERDICT: HIT\nWHY: The answer states that on tokenization failure (empty vector) the token-counting function returns 0 rather than signalling an error, and the C API passes it through."
+}

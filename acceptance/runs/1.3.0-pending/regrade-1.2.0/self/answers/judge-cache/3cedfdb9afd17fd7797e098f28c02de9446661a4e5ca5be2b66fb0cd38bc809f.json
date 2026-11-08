@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Declared scope. `_declared_index_scope` ... reads the `index_scope:` section of the repo's `.clew.yaml`.\" and \"If nothing usable is declared, `whole_repo_scope` ... makes the repo root the single INPUT root.\" and \"`derive_scope` absorbs a rejected declaration into the whole-repo tier\"\nVERDICT: HIT\nWHY: The answer states a declared index_scope is tried first, and that absent, unusable or rejected declarations all fall through to indexing the whole repository."
+}

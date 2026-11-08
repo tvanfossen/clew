@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `batchRecords`, `processRecords`, `prepareRecords` and `handleRecords` all live on `BaseDataOperator`, so every server handler uses them.\nVERDICT: MISS\nWHY: The answer says every server handler uses `BaseDataOperator`'s `batchRecords`. It never says each mixin is constrained to extend `ServerDataOperatorBase`. It also names two exceptions that bypass `batchRecords`, which contradicts the item's claim that every handler's writes go through it."
+}

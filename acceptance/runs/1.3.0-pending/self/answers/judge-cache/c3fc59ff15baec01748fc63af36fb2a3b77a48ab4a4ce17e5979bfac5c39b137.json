@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Tier 4 (ecosystem signatures) also accumulates, like tier 3. `tiers.py` defines the rule as `resolved = (tier1 or tier2 or tier5) \u222a tier3 \u222a tier4`.\nVERDICT: MISS\nWHY: The answer says tiers 3 and 4 both accumulate and gives a formula that unions them. It never says the distinction between them is deliberately inert, and it never names fact-versus-guess as the load-bearing line."
+}

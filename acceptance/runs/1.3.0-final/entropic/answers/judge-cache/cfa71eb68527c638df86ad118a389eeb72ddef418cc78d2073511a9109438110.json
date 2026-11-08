@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: So the dependency is contained: llama.cpp types live in the inference .so and never reach the C ABI. The one exception is the `llama_model` forward declaration in `speculative_compat.h`.\nVERDICT: MISS\nWHY: The answer concludes the dependency is \"contained\" and never states that a minority of reaching files sit outside src/inference. It lists `src/facade/entropic.cpp` as only transitively reaching, which is the opposite of the item's conclusion."
+}

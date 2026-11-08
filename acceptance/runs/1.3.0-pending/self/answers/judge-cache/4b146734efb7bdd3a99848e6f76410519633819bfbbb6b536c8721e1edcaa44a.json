@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer concludes the opposite of the item: it says a grammar-less install does not degrade cleanly, because the miss report stays silent about the shell and CMake files and no capability gate is consulted before routing."
+}

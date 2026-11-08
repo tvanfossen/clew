@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `git.commit` | That tool name, any args (no colon means no arg check)\nVERDICT: HIT\nWHY: The answer states fnmatch matching, a colon-separated tool/arg pattern (`bash.execute:python*`), and that a pattern with no colon matches on the tool name alone, so the item's substance is covered."
+}

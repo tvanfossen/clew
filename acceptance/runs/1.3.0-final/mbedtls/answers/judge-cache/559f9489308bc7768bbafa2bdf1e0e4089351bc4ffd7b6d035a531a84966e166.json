@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"splits the code into a high-level part and a low-level part and looks up each in its own generated switch\" and \"if high text exists: append \\\" : \\\"\" followed by the low-level lookup\nVERDICT: HIT\nWHY: The answer explains the two-layer code (high-level `& 0xFF80`, low-level remainder) and that `mbedtls_strerror` renders the high-level text, appends \" : \", then the low-level text when both are present."
+}

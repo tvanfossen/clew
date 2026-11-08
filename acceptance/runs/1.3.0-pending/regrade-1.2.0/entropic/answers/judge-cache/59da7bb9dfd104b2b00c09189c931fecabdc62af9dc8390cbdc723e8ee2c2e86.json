@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Entropic has 10 thread spawn sites in its own source... table listing ExternalBridge::accept_loop, HealthMonitor::monitor_loop, StdioTransport::stderr_reader_loop, SSETransport::sse_reader_loop, and ResponseGenerator/inference cancel pollers\nVERDICT: HIT\nWHY: The answer enumerates thread spawn sites across the external bridge, MCP transports (stdio/SSE), health monitor, and inference path, showing creation is distributed rather than centralised."
+}

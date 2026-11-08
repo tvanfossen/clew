@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: app/actions/websocket/event.ts:163        switch \u2192 handleReactionAddedToPostEvent(serverUrl, msg)  (not awaited)\nVERDICT: HIT\nWHY: The answer names event.ts's switch dispatcher routing reaction_added to handleReactionAddedToPostEvent. It doesn't name `handleWebSocketEvent` itself, but it identifies the dispatcher by file, line and role, and it names the handler."
+}

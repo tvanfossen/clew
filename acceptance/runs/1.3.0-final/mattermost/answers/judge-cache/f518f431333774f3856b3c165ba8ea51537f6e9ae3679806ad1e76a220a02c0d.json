@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Without this flag, any local reaction absent from the payload would be marked for destruction.\"\nVERDICT: HIT\nWHY: The answer says skipSync makes the add path skip deletion logic, and that without it local reactions missing from the single-reaction payload would be destroyed."
+}

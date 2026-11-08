@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says `platform_calloc_uninit` always returns NULL but never says the uninitialised free does nothing. It also doesn't frame the defaults as failing rather than falling back, and it even says the pointer defaults to the standard calloc."
+}

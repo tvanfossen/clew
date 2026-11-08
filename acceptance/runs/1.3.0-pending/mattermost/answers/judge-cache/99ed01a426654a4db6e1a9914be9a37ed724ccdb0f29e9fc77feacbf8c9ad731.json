@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Inside `NavigationHeader`, the ref is forwarded as `ref={ref}` on `<NavigationSearch {...searchProps} \u2026 />`, only when `hasSearch` is set.\"\nVERDICT: HIT\nWHY: The answer states that NavigationHeader forwards its ref to NavigationSearch, and that this happens only when `hasSearch` is set. It does not say the ref is attached to nothing otherwise, but that follows from the conditional."
+}

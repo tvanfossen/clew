@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: llama.cpp's `llama_tokenize` and `llama_token_to_piece` return a negative number when the output buffer is too small, and its magnitude is the size needed. The wrapper uses that to size its buffer.\nVERDICT: HIT\nWHY: States the first call returns a negative number whose magnitude is the required size, and the wrapper uses it to size the buffer. It never says outright that the code negates the value, but that is implied by \"magnitude is the size needed.\""
+}

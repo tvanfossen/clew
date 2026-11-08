@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The user taps the failed indicator (`post.failed.button`) in `app/components/post_list/post/body/failed/index.tsx`, then \"Try Again\" (`post.failed.retry`).\nVERDICT: HIT\nWHY: The answer says retry happens only manually when the user taps \"Try Again\" on the failed post, with automatic retries at 0, and it names `retryFailedPost` as the function that does the retry."
+}

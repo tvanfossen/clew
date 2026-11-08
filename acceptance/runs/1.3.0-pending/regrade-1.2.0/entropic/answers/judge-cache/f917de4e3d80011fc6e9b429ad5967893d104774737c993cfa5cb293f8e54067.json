@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`do_count_tokens` (line 825) returns `0`. `count_tokens` and the C API `entropic_inference_count_tokens` return `0` too. A caller doing budget math sees \"zero tokens\" and thinks the prompt fits.\"\nVERDICT: HIT\nWHY: The answer states that the token-counting path returns 0 on tokenization failure, with no error signal, so callers can't tell failure from an empty prompt."
+}

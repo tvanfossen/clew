@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Valgrind constant-flow:** `components-sanitizers.sh:105\u2013152` marks secrets as undefined... **MemorySanitizer:** the MSan component turns asm off... Public API: only `mbedtls_ct_memcmp` is in `include/mbedtls/constant_time.h`. Everything else is internal.\nVERDICT: MISS\nWHY: The answer names valgrind and MSan testing, but it never says the facility is separate and off-by-default, and it never says the facility is excluded from the library API. Its \"internal\" remark is about the ct primitives, not the test facility."
+}

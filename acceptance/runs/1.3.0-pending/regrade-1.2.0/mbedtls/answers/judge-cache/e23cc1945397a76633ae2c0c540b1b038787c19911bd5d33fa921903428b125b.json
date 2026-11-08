@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the buffer allocator calls `mbedtls_platform_set_calloc_free`, which only works with `MBEDTLS_PLATFORM_MEMORY` on. It never says the buffer allocator itself requires `MBEDTLS_PLATFORM_MEMORY`, or that enabling it alone isn't enough to route the library's allocations through it."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes what each reply says and what it did or didn't search, but never states that the strong wording is earned per call by querying which corpora were not searched, as opposed to being tied to a result shape."
+}

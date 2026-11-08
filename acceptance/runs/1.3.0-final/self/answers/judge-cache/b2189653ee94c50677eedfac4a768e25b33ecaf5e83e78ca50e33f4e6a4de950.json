@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Each file in scope is classified with `lang_parsing_substrate.classify_file`. Anything classified binary is dropped before doxygen or any parser sees it; also \"JS/TS and other claimed types (`synth.py:claims`) are not read by doxygen. They come from the parse-built front end\"\nVERDICT: HIT\nWHY: The answer names both filters: binary classification dropping files and the parse-built front end claiming types doxygen doesn't read. It does not mention extensions that lie, but the item only requires naming at least one filter."
+}

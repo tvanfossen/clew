@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: auto-generated from entropic.h, \"do not edit\"\nVERDICT: MISS\nWHY: The answer says the bindings are auto-generated from the header, but it never mentions a pre-commit check that re-runs the generator and diffs to catch drift."
+}

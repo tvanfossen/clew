@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `createPost` in `app/actions/remote/post.ts:74` writes the post to the local database first, with a `pending_post_id`, before calling the server. ... Any other error: the post is stored with `props.failed = true` and its `id` set to the pending ID.\nVERDICT: HIT\nWHY: The answer states the post is written locally before sending and, on failure, is kept and marked failed = true."
+}

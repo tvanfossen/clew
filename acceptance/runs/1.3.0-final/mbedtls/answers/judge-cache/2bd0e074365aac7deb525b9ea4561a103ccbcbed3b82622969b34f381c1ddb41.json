@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: With asm it is an empty `asm volatile (\"\" : \"+r\"(x))`. Without asm it is `x ^ mbedtls_ct_zero`\nVERDICT: HIT\nWHY: The answer states that the asm path of `mbedtls_ct_compiler_opaque` is an empty `asm volatile` with `x` as a `\"+r\"` input-output operand. It says the function stops the compiler from folding a value, which is the barrier role. It doesn't say outright that no instruction is emitted, but an empty asm string implies that."
+}

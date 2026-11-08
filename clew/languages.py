@@ -103,6 +103,90 @@ def registered_phrase() -> str:
     return f"{', '.join(REGISTERED_ONLY[:-1])} and {REGISTERED_ONLY[-1]}"
 
 
+## The columns of the published support table: (capability key, column heading).
+##
+## THREE, AND EACH ONE IS MEASURED. `tests/test_language_capabilities.py` builds a two-function
+## fixture per language and asserts these cells equal what the build produced, in both directions.
+## CONCURRENCY IS DELIBERATELY ABSENT: measured, it varies by PATTERN within a language — a C++
+## named-local `std::thread` was not seen where other C++ spawn forms are — so a yes/no cell would
+## be wrong whichever way it was set. The per-language docs carry it instead.
+SUPPORT_COLUMNS: tuple[tuple[str, str], ...] = (
+    ("symbols", "Symbols"),
+    ("calls", "Call graph"),
+    ("docs", "Doc comments"),
+)
+
+_ALL = frozenset(key for key, _ in SUPPORT_COLUMNS)
+
+## What each harvested language yields. A DECLARATION, because capability is not readable off a
+## router table — but a declaration a test re-measures on every run, so it cannot drift the way
+## the old prose did. SHELL AND CMAKE ARE THE REASON THIS EXISTS: their functions are named and
+## documented, but a call between them is not graphed, and the flat "harvests symbols from ..."
+## line put them beside C as if "who calls this" worked for both.
+_DECLARED: dict[str, frozenset[str]] = {
+    "C": _ALL,
+    "C++": _ALL,
+    "Rust": _ALL,
+    "Python": _ALL,
+    "JavaScript": _ALL,
+    "TypeScript": _ALL,
+    "shell": frozenset({"symbols", "docs"}),
+    "CMake": frozenset({"symbols", "docs"}),
+}
+
+## Restricted to what the routers actually harvest, so a front end removed from a router drops
+## out of the table rather than leaving its row behind.
+CAPABILITIES: dict[str, frozenset[str]] = {
+    name: _DECLARED[name] for name in HARVESTED if name in _DECLARED
+}
+
+## Where the table's links point. ABSOLUTE, because the README is also the PyPI description and a
+## relative link 404s there — `tests/test_doc_links.py` records the README's links "had to become
+## absolute so PyPI renders them". `main`, not a tag: the docs a reader wants are the current ones.
+REPO_URL = "https://github.com/tvanfossen/clew/blob/main/"
+
+## The per-language page each table row links to, repo-relative. A test asserts every target
+## exists, so the table cannot ship a dead link.
+DOC_PAGE: dict[str, str] = {
+    "C": "docs/languages/C_INTEGRATION.md",
+    "C++": "docs/languages/CPP_INTEGRATION.md",
+    "Rust": "docs/languages/RUST_INTEGRATION.md",
+    "Python": "docs/languages/PYTHON_INTEGRATION.md",
+    "JavaScript": "docs/languages/JS_TS_INTEGRATION.md",
+    "TypeScript": "docs/languages/JS_TS_INTEGRATION.md",
+    "shell": "docs/languages/SCRIPT_INTEGRATION.md",
+    "CMake": "docs/languages/SCRIPT_INTEGRATION.md",
+}
+
+
+## @brief The language support table, as markdown.
+## @return One row per harvested language plus one for the registered-only types.
+## @version 1
+## @utility
+def support_table() -> str:
+    """GENERATED, NEVER HAND-EDITED — `scripts/sync_metadata.py` writes it between markers and its
+    `--check` hook fails a commit that lets it drift. Each language links to its integration page,
+    so the table is also the README's index into the per-language detail.
+
+    REGISTERED-ONLY TYPES GET ONE ROW, honestly labelled: they are in the file set and findable by
+    name, and contribute no symbols — `dossier` on a Perl subroutine has nothing to return.
+
+    @brief Render the support table.
+    @return Markdown table text.
+    @version 1
+    """
+    head = "| Language | " + " | ".join(title for _, title in SUPPORT_COLUMNS) + " |"
+    rule = "|---|" + "|".join(":-:" for _ in SUPPORT_COLUMNS) + "|"
+    rows = [head, rule]
+    for name, caps in CAPABILITIES.items():
+        cells = " | ".join("✓" if key in caps else "—" for key, _ in SUPPORT_COLUMNS)
+        rows.append(f"| [{name}]({REPO_URL}{DOC_PAGE[name]}) | {cells} |")
+    if REGISTERED_ONLY:
+        rest = " | ".join("—" for _ in SUPPORT_COLUMNS[1:])
+        rows.append(f"| {', '.join(REGISTERED_ONLY)} | name only | {rest} |")
+    return "\n".join(rows)
+
+
 ## Every extension and whole-name any router claims, with the table that claims it. THE
 ## COMPLETENESS CHECK READS THIS, not the probe lists — so an extension added to a router and not
 ## to a probe is DETECTED rather than silently dropped.

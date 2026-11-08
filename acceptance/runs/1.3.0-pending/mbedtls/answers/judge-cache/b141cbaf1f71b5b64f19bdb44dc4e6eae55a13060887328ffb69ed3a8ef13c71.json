@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Document it, exactly once. Give it either a `/** ... */` comment before the define or a `/*!< ... */` comment after it.\" and \"Regenerate, don't hand-edit. Run the normal build ... which calls `generate_errors.pl`. Do not edit `library/error.c` directly.\"\nVERDICT: HIT\nWHY: The answer says to add a documented #define to the module header in include/mbedtls/, regenerate with the script, and not edit library/error.c directly."
+}

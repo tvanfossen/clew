@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It is opaque in the same way: it XORs with `volatile mbedtls_ct_zero`, which the compiler cannot prove is 0.\nVERDICT: HIT\nWHY: The answer says the C fallback XORs with a volatile global `mbedtls_ct_zero` that holds zero, and it ties this to the no-asm case, so the global is named."
+}

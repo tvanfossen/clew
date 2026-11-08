@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 29271,
+  "stop_reason": "end_turn",
+  "session_id": "adf23b3a-4b73-4091-ad95-fc8f0c5eac07",
+  "total_cost_usd": 0.013440230000000001,
+  "usage": {
+    "input_tokens": 18,
+    "cache_creation_input_tokens": 30227,
+    "cache_read_input_tokens": 492553,
+    "output_tokens": 4935,
+    "output_tokens_details": {
+      "thinking_tokens": 1724
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 30227,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2007,
+        "cache_read_input_tokens": 68353,
+        "cache_creation_input_tokens": 1624,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1624
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 18,
+      "outputTokens": 4935,
+      "cacheReadInputTokens": 492553,
+      "cacheCreationInputTokens": 30227,
+      "webSearchRequests": 0,
+      "costUSD": 0.013440230000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1724,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 30227,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 20,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** the index's file set is decided by one function, `derive_scope` in `clew/scope.py`. It returns a single \"scope\" with roots and excludes. A repo's own `index_scope:` declaration wins if it is usable; otherwise the whole repository is the scope, minus what git ignores and minus dot and cache directories. The Doxyfile does not decide scope any more.\n\n**Decision flow**\n\n```\nderive_scope(repo_root, stated?)                       clew/scope.py:639\n  \u251c\u2500 _declared_index_scope(root, stated?)              clew/scope.py:991\n  \u2502    \u251c\u2500 no .clew.yaml index_scope section \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u25ba None \u2192 fall through\n  \u2502    \u251c\u2500 section present but not a mapping \u2500\u2500\u2510\n  \u2502    \u251c\u2500 unknown key inside it (e.g. exclude:) \u2500\u2500\u2524  _Rejected: logged as a\n  \u2502    \u2514\u2500 no `roots:` that exists on disk \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2518  WARNING, then fall through\n  \u2502    \u2514\u2500 usable \u2500\u2500\u25ba DerivedScope(source=declared, roots, excludes)   [tier 1]\n  \u2514\u2500 whole_repo_scope(root, rejected?)                clew/scope.py:683   [tier 2]\n       roots    = (repo root,)\n       excludes = git-ignored paths (both sides of every submodule boundary)\n                + dot-dirs and __pycache__/node_modules  (_pruned_dirs, :908)\n```\n\n**Declared tier.** Only `index_scope:` in `.clew.yaml` is a decision about the index. Its keys are `roots` and `excludes`, both repo-relative. A root that does not exist is dropped with a warning. `roots` is required, because `excludes` alone does nothing. A declared root is taken at its word and never walked, so a foreign clone under it is indexed. The gate's `files:` pattern and the Doxyfile's `INPUT` are deliberately not tiers. `clew/scope.py`'s own docstring explains why. Honouring a Doxyfile `INPUT` once indexed 1,571 header declarations and zero of 108 `.c` implementations on Mbed-TLS. The repo's Doxyfile is still read for `ALIASES` and `PREDEFINED`, but its `INPUT` is replaced.\n\n**Whole-repo tier (nothing declared).** This is the default, and the docstring says it is the default, not a last resort. Its subtractions come from three places:\n\n- **Git-ignored paths.** `_gitignored_paths` runs `git ls-files --others --ignored --exclude-standard --directory`. It runs through `gitenv.git_argv` and `git_env()`, so a target's own `.git/config` cannot execute commands. The same list is collected inside each nested git tree, because `git ls-files` stops at a submodule boundary.\n- **Nested git trees are indexed, not cut.** The walk stops at a nested tree's boundary but keeps its top-level dot-directories. `external.py` tags those rows afterwards so two codebases in one index can be told apart.\n- **Dot and cache directories.** `_skip_dir` drops every name starting with `.`, plus `__pycache__` and `node_modules`. The walk stops at depth 16 and records where it stopped.\n\n**Which files are then harvested.** Scope only decides which files are walked. Extension filtering happens later, and the two can differ. This repo's index reports 426 files, with `.c .cpp .h .json .md .py .yaml` held and `.rs`, `.toml`, `.csv` and others in scope but unindexed. `_not_indexed_scope` (`clew/cli.py:2646`) records that gap. It is what separates \"the symbol does not exist\" from \"this file type was not indexed\". Empty means nothing was missed, and the report is omitted when nothing walked the tree at all.\n\n**This repo.** Its `.clew.yaml` declares only a `guard:` section and says \"the index declares nothing here\". So `derive_scope` returns the whole-repo tier with the reason \"no index_scope is declared\". The `scope` block in query replies shows the same result.\n\n**Limits of this answer.** I read the scope and file-enumeration functions through the index. I did not read the code that passes roots and excludes into doxygen's `INPUT`/`EXCLUDE`, or the extension table that decides which harvesters run. Those are the places to check if you need the exact handoff.",
+  "ttft_ms": 1657,
+  "type": "result",
+  "duration_ms": 31780,
+  "uuid": "095af46a-21a5-4c40-b469-96834472c368",
+  "ttft_stream_ms": 1271,
+  "time_to_request_ms": 123,
+  "first_content_frame_ms": 1271,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

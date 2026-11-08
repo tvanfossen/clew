@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `LlamaCppTokenizer::tokenize()` (`src/inference/llama_cpp_tokenizer.cpp:49-71`) needs to know how many tokens the text produces before it can allocate the output vector: 1. The first call passes `nullptr` and capacity `0`... 2. The code negates that value, allocates a vector of that size, and calls again to fill it.\nVERDICT: HIT\nWHY: The answer names the file and function with line range and describes the two `llama_tokenize` calls (size query, then fill)."
+}

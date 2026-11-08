@@ -357,16 +357,17 @@ def test_a_kind_with_no_subject_refuses_by_naming_the_route(tools: QueryTools) -
     48 of 237 unanswered `dossier` subjects were file paths, and the route this list named —
     `search(corpus='prose')` — is a token conjunction over every corpus at once.
 
-    The remaining entry is kept rather than the test being deleted, because the PROPERTY is what
-    this guards: a kind `search` can emit must either follow or explain itself, and the day
-    typedefs get a subject this test should fail again.
+    AND NOW SAYS NONE: `typedef` left it in 1.3.0, as this docstring said it one day would —
+    TypeScript type aliases are typedef rows, and the refusal's claim that a search row carried
+    all the index holds was false for every one of them. The list and its refusal path stay: the
+    partition test above still demands that a kind search emits either follows or explains itself.
 
-    @brief An unfollowable kind refuses with the alternative named.
+    @brief Every kind that left the list is now a filter, not a refusal.
     @return None.
-    @version 2
+    @version 3
     """
-    with pytest.raises(ValueError, match="no dossier subject"):
-        tools.dossier("app_run", kind="typedef")
+    ## `kind='typedef'` on a function name is a filter that finds nothing, not a raise.
+    assert tools.dossier("app_run", kind="typedef")["found"] is False
     ## The one that LEFT the list, asserted here so the correction cannot be silently undone:
     ## `kind='file'` must be a filter now, which on a function name means None rather than a raise.
     assert tools.dossier("app_run", kind="file")["found"] is False
@@ -691,24 +692,28 @@ def test_a_miss_on_an_indexed_kind_says_it_is_a_kind_gap_not_an_absence(tmp_path
     kind, so it correctly stops being reported as a gap — and this test would have passed
     unchanged only by pinning the defect. What it exists to guard is the SHAPE, not the one kind
     that motivated it: a surface describing some memberdef kinds and not others always has a
-    gap, and the gap must read as a gap rather than as an absence. `typedef` is that gap today.
+    gap, and the gap must read as a gap rather than as an absence.
+
+    NOW ASSERTED ON `friend`, BECAUSE THE TYPEDEF CASE IS FIXED TOO (1.3.0): `typedef` became a
+    subject kind for the same reason `enumeration` did. `friend` is a doxygen memberdef kind no
+    subject describes — the gap this test's shape is about.
 
     @brief An unresolvable-but-indexed kind is reported as a coverage limitation.
     @return None.
-    @version 2
+    @version 3
     """
     db = tmp_path / "e.db"
     conn = sqlite3.connect(str(db))
     conn.execute("CREATE TABLE memberdef (rowid_ INTEGER, name TEXT, kind TEXT)")
     conn.executemany(
         "INSERT INTO memberdef(name, kind) VALUES(?, ?)",
-        [("MY_ALIAS", "typedef"), ("MY_ENUM", "enumeration"), ("a_fn", "function")],
+        [("MY_ALIAS", "friend"), ("MY_ENUM", "enumeration"), ("a_fn", "function")],
     )
     conn.commit()
     conn.close()
 
-    assert q.unresolved_kinds(db, "MY_ALIAS") == ("typedef",), (
-        "a typedef the index holds must be reported as an unsupported KIND"
+    assert q.unresolved_kinds(db, "MY_ALIAS") == ("friend",), (
+        "a kind the index holds and no subject describes must be reported as an unsupported KIND"
     )
     assert q.unresolved_kinds(db, "MY_ENUM") == (), (
         "an enumeration is a SUPPORTED kind since gh#6's subject landed, so reporting it as a "

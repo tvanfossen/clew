@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`LlamaCppBackend::tokenize()` returns `{}` when `tokenizer_` is unset.\" and \"On failure, `LlamaCppTokenizer::tokenize()` returns an empty vector.\"\nVERDICT: MISS\nWHY: The answer says failure yields an empty vector and that the backend returns `{}` when no tokenizer is wired. It never says these are the same value, so a caller can't tell them apart. Its \"cannot tell success from failure\" point is about empty input, not about the unwired case."
+}

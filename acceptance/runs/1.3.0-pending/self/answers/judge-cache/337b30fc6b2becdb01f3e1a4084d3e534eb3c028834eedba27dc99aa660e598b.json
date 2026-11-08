@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"| 1 | CLI flag, e.g. `--shared-key-patterns`, `--thread-patterns`, ...\" and \"The MCP server passes no flags, so the file is its only route to declared conventions.\"\nVERDICT: MISS\nWHY: The answer lists tier 1 as CLI-only and says the MCP/embedding route has only the file. It never says tier 1 is reachable through a structured options argument."
+}

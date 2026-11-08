@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `clew/substrate.py` says the front ends \"register nothing\" and the miss report names those types as not indexed... The code agrees with the second... they would be findable by name, carry no symbols, and not appear in the miss report at all.\nVERDICT: MISS\nWHY: The answer says the router refuses the route when grammars are absent, but it concludes the miss report likely won't name those files. That contradicts the item's conclusion that they are reported as not indexed, and it mentions no capability gate consulted before routing."
+}

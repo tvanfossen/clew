@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says that staleness measurement is non-raising or degrades to no annotation on failure. The nearest point, that an unreadable tree reports True so no warning fires, covers only one case and is not the stated guarantee."
+}

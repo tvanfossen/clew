@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer says the library never creates threads. It names `programs/ssl/ssl_pthread_server.c` as an example program that uses pthreads, so I'm listing it as a thread-creation site.\n\nITEMS:\nprograms/ssl/ssl_pthread_server.c\nEND"
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer covers scope resolution only and never states that files within scope must also be readable, nor names the parse-built front end for doxygen-unreadable types or binary classification of mislabeled extensions."
+}

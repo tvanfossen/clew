@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says no thread creation exists in library/ (via grep), but it never states that library/ supplies the mutex abstraction (threading.c / mbedtls_threading_set_alt) used by threaded callers as a contrast. It only describes the mutex layer as compiled out by default and mentions enabling it in passing."
+}

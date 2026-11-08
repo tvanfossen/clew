@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `check_approval` consults only the allow list... The allow list and `auto_approve_tools` only decide whether the call is approved in the first place.\nVERDICT: HIT\nWHY: The answer says the allow list only affects approval (not execution), and that it's consulted in ToolExecutor::check_approval, with the deny check in ServerManager::execute (a different file/class)."
+}

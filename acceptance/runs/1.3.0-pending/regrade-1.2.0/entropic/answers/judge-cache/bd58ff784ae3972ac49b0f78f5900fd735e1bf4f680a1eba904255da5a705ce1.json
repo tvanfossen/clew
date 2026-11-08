@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Mostly into the inference layer, with a thin leak into public headers.\" and \"**Facade:** `src/facade/entropic.cpp` and `inference_c_api.cpp` reach it through `llama_cpp_backend.h`.\"\nVERDICT: HIT\nWHY: The answer says the dependency is mostly in src/inference but also reaches src/facade files (outside inference) and public headers, so it is concentrated but not contained."
+}

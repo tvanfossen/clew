@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: So llama.cpp is consumed as a library inside `src/inference`, with a thin leak into the facade and forward-declared pointer types in three public headers.\nVERDICT: HIT\nWHY: The answer says llama.cpp is concentrated in `src/inference` but leaks outside it: `src/facade/entropic.cpp` includes `llama_cpp_backend.h`, and `tool_call_markers.h` includes `chat.h`. It names those files as a minority outside the layer, which matches \"concentrated but not contained\"."
+}

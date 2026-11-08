@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"every handler's database write funnels through one method, `BaseDataOperator.batchRecords`\" and \"The base, `ServerDataOperatorBase` ..., extends `BaseDataOperator`.\"\nVERDICT: MISS\nWHY: The answer says all writes funnel through `batchRecords` and that `ServerDataOperatorBase` extends `BaseDataOperator`. It never says each mixin is constrained to extend `ServerDataOperatorBase`, which is the mechanism the item requires."
+}

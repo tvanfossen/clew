@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Confined to `src/inference/`. ... \"the dependency is built from the submodule and absorbed statically, and its headers are confined to `src/inference/`, the facade's adapter path, and tests.\"\nVERDICT: MISS\nWHY: The answer says the headers are confined to src/inference but also notes the facade and tests reach it. It never concludes that the dependency is concentrated but not contained, and it gives no minority-of-files count."
+}

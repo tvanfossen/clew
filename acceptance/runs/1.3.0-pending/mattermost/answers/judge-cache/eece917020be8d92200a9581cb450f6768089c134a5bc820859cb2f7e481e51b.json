@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says handlers call handleRecords and batchRecords from BaseDataOperator, but it never states that each mixin is constrained to extend ServerDataOperatorBase. That constraint is the reason all writes go through the inherited batchRecords, and it is missing."
+}

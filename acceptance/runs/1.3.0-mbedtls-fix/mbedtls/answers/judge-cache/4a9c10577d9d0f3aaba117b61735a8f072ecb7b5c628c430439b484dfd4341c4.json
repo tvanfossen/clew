@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the library is single-threaded by default. It never says `ssl_pthread_server.c` compiles to a stub main without `MBEDTLS_THREADING_C`, and it lists that file as a thread spawn site instead."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `<NavigationSearch {...searchProps} ref={ref} />` ... \"With `hasSearch` false, `NavigationHeader` renders no search input, so the ref is dropped.\"\nVERDICT: HIT\nWHY: The answer shows NavigationHeader forwarding its ref to NavigationSearch and states that with `hasSearch` false no search input is rendered, so the ref is dropped (attached to nothing)."
+}

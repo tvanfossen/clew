@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The deny list is the only hard block. The allow list only suppresses the callback.\"\nVERDICT: MISS\nWHY: The answer never says that a tool matching neither list simply runs. It says the callback always approves, but it also says that with no callback wired a call is denied unless `auto_approve` is set. That makes the unlisted-tool case conditional, not default-allow."
+}

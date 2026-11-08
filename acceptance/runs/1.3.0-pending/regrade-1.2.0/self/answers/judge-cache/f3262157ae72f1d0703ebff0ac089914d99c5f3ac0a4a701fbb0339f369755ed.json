@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `options` argument for embedding callers (`clew/buildoptions.py`) | 1, explicit | Same as the flag | Lets MCP callers state values.\nVERDICT: HIT\nWHY: The table lists both a CLI flag and an `options` argument for embedding callers as tier 1, so a caller without a shell can still state the top tier."
+}

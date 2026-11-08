@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Every mutex in the tree sits behind `MBEDTLS_THREADING_C`, which ships off. ... The index was built with `MBEDTLS_THREADING_C` and `MBEDTLS_THREADING_PTHREAD` forced on by flag\nVERDICT: HIT\nWHY: The answer names both MBEDTLS_THREADING_C as the gate on locks and MBEDTLS_THREADING_PTHREAD, which it describes only as a flag the index was built with, so naming it as a gating macro is thin but present."
+}

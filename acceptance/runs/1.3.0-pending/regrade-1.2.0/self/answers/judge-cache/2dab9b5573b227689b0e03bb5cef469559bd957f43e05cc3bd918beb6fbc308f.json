@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The index knows it is stale by measuring three separate axes.\" and the table naming `data`, `code`, `schema` axes, each \"cleared by a different action\"\nVERDICT: HIT\nWHY: The answer explicitly states staleness is three separate axes and names them as data, code, and schema."
+}

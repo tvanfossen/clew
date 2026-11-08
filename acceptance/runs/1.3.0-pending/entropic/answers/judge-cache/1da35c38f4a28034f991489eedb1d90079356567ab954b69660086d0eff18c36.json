@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The failure value is an empty `std::vector<int32_t>`... `entropic_inference_count_tokens` ... Receives `0` ... Returned as a count of 0. The C API doc ... says it returns a `text_len/4` estimate on error; the code only does that on a thrown exception, which a tokenizer failure does not produce.\"\nVERDICT: HIT\nWHY: The answer states that a tokenizer failure yields an empty result, which the count API returns as 0 with no error signalled."
+}

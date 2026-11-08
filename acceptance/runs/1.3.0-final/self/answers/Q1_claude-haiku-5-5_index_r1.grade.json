@@ -1,0 +1,83 @@
+{
+  "cell": "Q1_claude-haiku-5-5_index_r1",
+  "arm": "index",
+  "rubric_version": "5.0.0",
+  "rubric_digest": "d8447c7b18eafbf5",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.75,
+  "unmarked_pct": 0.0,
+  "split_decisions": 1,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "names derive_scope in clew/scope.py as where the decision is resolved",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: derive_scope(repo_root, stated?)          clew/scope.py:639 | WHY: The answer names derive_scope in clew/scope.py as the resolver, stating \"the file set is decided by one resolver, `clew/scope.py`.\" || QUOTE: derive_scope(repo_root, stated?)          clew/scope.py:639 | WHY: The answer names derive_scope in clew/scope.py (line 639) as the resolver of the file-set decision. || QUOTE: derive_scope(repo_root, stated?)          clew/scope.py:639 | WHY: The answer names derive_scope in clew/scope.py (line 639) as the resolver of the file-set scope decision.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that a repository's own declared index_scope is preferred, and that every failure to find one falls through to indexing the whole repository",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"A repo that declares `index_scope:` in its `.clew.yaml` gets exactly those roots. A repo that declares nothing gets the whole repository\" and \"malformed? \u2192 _Rejected \u2192 whole repo, reason says why\" | WHY: The answer states a declared index_scope is used, and that nothing declared, a malformed declaration, or no surviving roots falls through to whole-repo indexing. || QUOTE: \"A repo that declares `index_scope:` in its `.clew.yaml` gets exactly those roots. A repo that declares nothing gets the whole repository\" and \"malformed? \u2192 _Rejected \u2192 whole repo, reason says why\" | WHY: The answer states that a declared index_scope is used and that nothing declared, a malformed declaration, or no surviving roots all fall back to the whole repository. || QUOTE: \"A repo that declares `index_scope:` in its `.clew.yaml` gets exactly those roots. A repo that declares nothing gets the whole repository\" and \"malformed? \u2192 _Rejected \u2192 whole repo, reason says why\" | WHY: The answer states that a declared index_scope is used, and that nothing declared, a malformed declaration, or no surviving root all fall through to the whole repository.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "conveys that the fallback carries a REASON explaining which scope was used and why, so an unstated scope is never silently guessed",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: The `reason` names the file it was read from, or the caller for a stated scope. ... malformed? \u2192 _Rejected \u2192 whole repo, reason says why ... The reason is logged at WARNING, so an unchosen boundary is never mistaken for a chosen one. | WHY: The answer says the whole-repo fallback carries a reason (logged at WARNING, and stating why on rejection) so an unchosen scope is not mistaken for a chosen one. || QUOTE: The `reason` names the file it was read from, or the caller for a stated scope. ... The reason is logged at WARNING, so an unchosen boundary is never mistaken for a chosen one. ... malformed? \u2192 _Rejected \u2192 whole repo, reason says why | WHY: The answer says the derived scope carries a reason naming the source, and that the whole-repo fallback's reason is logged at WARNING so an unchosen boundary isn't mistaken for a chosen one. That covers the item's point that an unstated scope is never silently guessed. || QUOTE: The `reason` names the file it was read from, or the caller for a stated scope. | WHY: The answer says the scope carries a reason naming its source, and that the whole-repo fallback logs its reason at WARNING and rejected declarations say why. So the choice is explained and not silently guessed.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that a Doxyfile's own INPUT is deliberately NOT used to decide the indexed tree, and explains why \u2014 a repository that ships one would get only its documented subset while a repository that ships none gets its whole tree",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: The repo's Doxyfile is still read, but only for ALIASES, PREDEFINED and similar settings. Its `INPUT` is ignored (gh#333). The reason is that a Doxyfile documents the published API, and using its INPUT as the reasoning boundary meant a repo that documented itself got a smaller index. On Mbed-TLS, honouring `INPUT = ../include` indexed headers and none of the `library/*.c` implementations. | WHY: The answer states that the Doxyfile's INPUT is ignored and explains why: honouring it gave a repo that documents itself a smaller, documented-subset index. The wording differs from the item, but the substance is covered. || QUOTE: The repo's Doxyfile is still read, but only for ALIASES, PREDEFINED and similar settings. Its `INPUT` is ignored (gh#333). The reason is that a Doxyfile documents the published API, and using its INPUT as the reasoning boundary meant a repo that documented itself got a smaller index. On Mbed-TLS, honouring `INPUT = ../include` indexed headers and none of the `library/*.c` implementations. | WHY: The answer says the Doxyfile's INPUT is deliberately ignored and explains that honouring it gives a smaller, documented-subset index (Mbed-TLS headers only). It does not explicitly contrast this with repos that ship no Doxyfile getting the whole tree, but it does cover the documented-subset reasoning. || QUOTE: The repo's Doxyfile is still read, but only for ALIASES, PREDEFINED and similar settings. Its `INPUT` is ignored (gh#333). The reason is that a Doxyfile documents the published API, and using its INPUT as the reasoning boundary meant a repo that documented itself got a smaller index. | WHY: The answer states the Doxyfile's INPUT is deliberately ignored and explains that using it would shrink the index for repos that ship a Doxyfile, which matches the item's reason (a repo with a Doxyfile gets only its documented subset).",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that nested git trees are INDEXED and tagged rather than excluded from the scope",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: The scope is the whole repository, including nested git trees. | WHY: The answer states that the default scope includes nested git trees, and that `external.py` tags those rows afterwards (\"A nested clone under it is indexed without being noticed. `external.py` tags those rows afterwards so they stay distinguishable\"). That covers both \"indexed\" and \"tagged\". || QUOTE: \"The scope is the whole repository, including nested git trees.\" and \"A declared root is taken at its word and never walked. A nested clone under it is indexed without being noticed. `external.py` tags those rows afterwards so they stay distinguishable.\" | WHY: The answer says nested git trees are included in the scope (indexed) and that `external.py` tags those rows rather than excluding them.",
+      "agreement": 0.6666666666666666,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "conveys that the containment call was REMOVED rather than left in place with its callers dropped",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never says a containment call was removed; it only notes a stale docstring about the Doxyfile fallback and that the Doxyfile INPUT tier is gone. || QUOTE: NONE | WHY: The answer never says a containment call was removed; it only notes a stale docstring about a Doxyfile fallback and that the Doxyfile INPUT tier is gone. || QUOTE: NONE | WHY: The answer never says a containment call was removed; it only notes the Doxyfile INPUT tier is gone and mentions a stale docstring, not removal of a containment call versus dropping its callers.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the resolved scope is not the whole answer \u2014 within it, a file reaches the index only if something can read it, and names at least one of the two filters: the parse-built front end claiming the file types doxygen cannot read, or binary classification dropping files whose extension lies about them",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer covers scope resolution (declared roots, whole repo, git-ignore and dot-dir excludes) but never says a file must also be readable to reach the index. It names neither the parse-built front end claiming file types doxygen can't read nor binary classification dropping files with misleading extensions. || QUOTE: NONE | WHY: The answer covers scope resolution (declared roots, whole repo, git-ignore and dot-directory excludes) but never says that files within scope also need a reader. It names neither the parse-built front end claiming file types doxygen can't read nor binary classification dropping files with misleading extensions. || QUOTE: NONE | WHY: The answer covers scope resolution (declared roots, whole-repo, git-ignore and dot-dir excludes) but never says that a file must also be readable to reach the index, and it names neither the parse-built front end nor binary classification.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    }
+  ]
+}

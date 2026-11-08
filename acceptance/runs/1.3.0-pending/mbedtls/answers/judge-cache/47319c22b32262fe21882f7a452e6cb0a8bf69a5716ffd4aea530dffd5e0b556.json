@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`mbedtls_ct_compiler_opaque()` (`constant_time_impl.h`) launders a value through an empty `asm volatile` or an XOR with a volatile zero\" and \"Otherwise the code uses the C fallback: `mbedtls_ct_zero` as a volatile zero\"\nVERDICT: HIT\nWHY: The answer says the same function falls back to XOR with a volatile zero when asm is unavailable and names the global as `mbedtls_ct_zero`."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The argument value is `args_to_pattern` (`server_manager.cpp:426`): the value of the first JSON member if it is a string, otherwise `*`. ... A deny like `filesystem.write:/etc/*` therefore checks whichever argument sorts first, not `path`.\nVERDICT: HIT\nWHY: The answer says only the first member's value reaches the pattern, other arguments are ignored, and a non-string collapses to `*`. It doesn't mention unparseable arguments, but that is a minor omission."
+}

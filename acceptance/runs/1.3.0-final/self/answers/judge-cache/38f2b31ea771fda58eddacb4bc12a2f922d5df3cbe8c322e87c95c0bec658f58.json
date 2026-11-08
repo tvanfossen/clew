@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "ITEMS:\nacceptance/__main__.py\ntests/data/csample/test/test_sound.c\nscripts/hook_probe.py\nEND"
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `$ENTROPIC_LIB \u2192 $ENTROPIC_HOME (nested, then flat) \u2192 ~/.entropic (nested, then flat) \u2192 ldconfig \"rentropic\"`\nVERDICT: HIT\nWHY: The answer gives the order of environment overrides, then the default user directory, then the system library cache (ldconfig). It also says two layouts, nested and flat, are tried for each root."
+}

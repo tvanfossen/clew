@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer covers only scope derivation (declared or whole-repo minus exclusions). It never says that files within the scope must also be readable. It names neither the parse-built front end for types doxygen can't read nor binary classification of files whose extension lies."
+}

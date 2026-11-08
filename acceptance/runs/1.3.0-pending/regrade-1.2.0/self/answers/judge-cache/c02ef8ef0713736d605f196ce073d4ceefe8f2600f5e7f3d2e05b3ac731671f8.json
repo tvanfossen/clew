@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `key` row is not a call at all. It means one function writes a key the other reads, with no call between them\nVERDICT: MISS\nWHY: The answer describes key edges as write\u2192read dataflow, but never says the \"callers\" of a reader are the functions whose writes it observes, or that the caller/callee polarity is inverted between the two halves."
+}

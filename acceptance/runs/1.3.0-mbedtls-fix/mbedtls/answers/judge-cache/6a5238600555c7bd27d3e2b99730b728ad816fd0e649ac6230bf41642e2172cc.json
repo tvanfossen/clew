@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \u251c\u2500 high = ret & 0xFF80 \u2192 mbedtls_high_level_strerr(ret) ... \u251c\u2500 low = ret & ~0xFF80; low == 0 \u2192 return \u251c\u2500 if high already written: append \" : \" and shift buf \u2514\u2500 mbedtls_low_level_strerr(ret); also \"`-0x40A0` \u2192 \"RSA - Bad input parameters to function : AES - Invalid key length\"\"\nVERDICT: HIT\nWHY: The answer shows the code split into high-level and low-level parts, with both rendered and joined by \" : \" when both are present."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "Top-level directories the answer names as containing uses of MBEDTLS_PRIVATE:\n\n- `library`: `md.c`, `ecdh.c`, `x509_crt.c`, `ssl_ciphersuites_internal.h` and `pk_internal.h`.\n- `programs`: `ssl_context_info.c`.\n- The answer also says the test suites `test_suite_psa_crypto.function` and `test_suite_x509write.function` use the spelling. It gives no directory for them, so I did not list one.\n\nITEMS:\nlibrary\nprograms\nEND"
+}

@@ -120,16 +120,17 @@ tagged tree that produced them, which is where a third party reproducing this mu
 
 | key | here | now | why it moved |
 |---|---|---|---|
-| `grader_fingerprint` | `9cc2b15baf93` | `5489758d9a50` | four moves; see below |
+| `grader_fingerprint` | `9cc2b15baf93` | `72a6c7bd363d` | five moves; see below |
 | `rubric_digest` (all targets) | as recorded per sidecar | changed | `samples_when_weight_at_least` 2 → 1 |
 
-`grader_fingerprint` has moved four times since this run, each deliberately:
+`grader_fingerprint` has moved five times since this run, each deliberately:
 
 | to | why |
 |---|---|
 | `274b0d72688b` | a verdict cache was added to `judge.ask`, so a re-grade is exact and free |
 | `0e7ad2bdb67d` | `_key` now strips a trailing `:LINE`; `score_set` refuses when extraction matched no member; the judge's own QUOTE/WHY are recorded |
 | `5489758d9a50` | a question the judge ruled NOTHING on no longer scores `0.0` |
+| `72a6c7bd363d` | each sample of a k=3 vote is cached separately; before, samples 2 and 3 replayed sample 1 |
 
 **The last one is a correction to figures in this file.** `self` Q6's three blended cells recorded
 `samples=18, errors=18`, every decision unruled, and were scored `0.0`. Across this grid 152 of

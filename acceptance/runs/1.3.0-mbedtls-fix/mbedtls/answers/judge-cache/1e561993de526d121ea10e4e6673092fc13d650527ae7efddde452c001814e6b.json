@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The library creates no threads.\" and \"Enabling `MBEDTLS_THREADING_C` plus `MBEDTLS_THREADING_PTHREAD` adds: Global mutexes: `mbedtls_threading_key_slot_mutex`... Per-object mutexes initialised in each `*_init()`\"\nVERDICT: HIT\nWHY: The answer says the library creates no threads. It also says `library/threading.c` supplies the mutex layer, either pthread-based or an ALT hook, that the library's modules use for threaded callers. It frames that layer as compiled out by default, but it still states both halves."
+}

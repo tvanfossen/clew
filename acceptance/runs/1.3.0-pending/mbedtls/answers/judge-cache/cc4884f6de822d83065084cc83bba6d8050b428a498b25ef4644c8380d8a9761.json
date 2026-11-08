@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: By default, a struct member written as `MBEDTLS_PRIVATE(state)` is declared and named `private_state`. ... `library/common.h:132` defines `MBEDTLS_ALLOW_PRIVATE_ACCESS` unconditionally ... so the library's translation units see the real member names.\nVERDICT: HIT\nWHY: The answer explains that code defining MBEDTLS_ALLOW_PRIVATE_ACCESS (the library and the ssl_*2 programs) sees real member names, while default consumers of the public headers see the `private_*` renamed ones."
+}

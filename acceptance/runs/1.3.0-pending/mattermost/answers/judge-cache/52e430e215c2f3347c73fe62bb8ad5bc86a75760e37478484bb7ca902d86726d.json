@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says handlers reach batchRecords directly or via handleRecords and that the base extends BaseDataOperator. It never says every handler's writes go through the inherited batchRecords because each mixin is constrained to extend ServerDataOperatorBase."
+}

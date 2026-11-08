@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The library itself never calls `mbedtls_platform_set_calloc_free`. The index shows exactly one caller: `mbedtls_memory_buffer_alloc_init` (`library/memory_buffer_alloc.c:566-600`). That is the bundled fixed-buffer allocator, and it is the only in-library user of the hook.\nVERDICT: HIT\nWHY: The answer names the buffer allocator's init function as the sole caller of the setter, installing its own calloc/free pointers. It doesn't cite the MBEDTLS_MEMORY_BUFFER_ALLOC_C macro, but the mechanism and location are clearly stated."
+}

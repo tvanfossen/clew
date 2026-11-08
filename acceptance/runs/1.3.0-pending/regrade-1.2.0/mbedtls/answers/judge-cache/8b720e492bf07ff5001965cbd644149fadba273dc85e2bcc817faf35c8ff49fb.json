@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Public surface: none.** `docs/psa-transition.md` lists `constant_time.h` as an \"internal support header\" with no public APIs. Its `mbedtls_ct_` names are library-internal.\nVERDICT: MISS\nWHY: The answer says the public surface is none and treats all mbedtls_ct_ names as internal. It never concludes that mbedtls_ct_memcmp is the single public function."
+}

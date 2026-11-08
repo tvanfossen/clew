@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It calls `mbedtls_platform_set_calloc_free()` to install `buffer_alloc_calloc_mutexed`/`_free_mutexed`, or the unmutexed pair if threading is off.\nVERDICT: HIT\nWHY: The answer states that the init function installs the mutexed pair or the unmutexed pair depending on threading. It doesn't name MBEDTLS_THREADING_C or say the choice is made at compile time, but it gives the mechanism and location."
+}

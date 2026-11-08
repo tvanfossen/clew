@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Python uses **ctypes** against a C ABI. There is no pybind11, cffi, or C++ crossing. The C++ engine ships as `librentropic.so`\nVERDICT: HIT\nWHY: The answer names ctypes over librentropic.so and explicitly rules out pybind11/cffi, so no compiled extension module is involved."
+}

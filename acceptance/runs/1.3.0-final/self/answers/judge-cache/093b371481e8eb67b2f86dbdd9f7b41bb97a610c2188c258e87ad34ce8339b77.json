@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "ITEMS:\nclew/synth.py\nclew/shast.py\nclew/cmakeast.py\nclew/jsast.py\ndocs/languages/SCRIPT_INTEGRATION.md\nharvest.py\ncli.py\nsubstrate.py\nEND"
+}

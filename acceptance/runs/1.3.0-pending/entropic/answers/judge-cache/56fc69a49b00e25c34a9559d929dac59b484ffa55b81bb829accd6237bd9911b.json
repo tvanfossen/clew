@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Even when the callback is set, it does not wait. The code calls it and then sets `approved = true` unconditionally. Nothing blocks on a user answer in this path.\nVERDICT: HIT\nWHY: The answer states that the callback is fired and `approved = true` is then set unconditionally, so the callback cannot refuse. The answer doesn't mention the void return type, but the unconditional approval is the core of the item."
+}

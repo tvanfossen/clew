@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_ct_compiler_opaque(x)` is an empty `asm volatile(\"\" : \"+r\"(x))` on the assembly path. It emits no instructions, but the compiler must treat the value as unknown, so it cannot fold a secret into a branch. On the C path it is `x ^ mbedtls_ct_zero`, where `mbedtls_ct_zero` is a `volatile` global set to 0 (`library/constant_time.c:16-22`).\nVERDICT: MISS\nWHY: The answer names the primitive and its role, but it places the C-path definition in `library/constant_time.c`. It never locates `mbedtls_ct_compiler_opaque` itself in `library/constant_time_impl.h`. The only mention of that header is for the mask fallback and the asm primitives."
+}

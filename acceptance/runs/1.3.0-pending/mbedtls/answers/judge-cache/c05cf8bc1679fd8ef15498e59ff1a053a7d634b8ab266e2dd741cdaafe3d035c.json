@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: define `MBEDTLS_PLATFORM_MEMORY` together with `MBEDTLS_PLATFORM_CALLOC_MACRO` and `MBEDTLS_PLATFORM_FREE_MACRO`, which route `mbedtls_calloc`/`mbedtls_free` at the preprocessor level\nVERDICT: MISS\nWHY: The answer names MBEDTLS_PLATFORM_MEMORY as a compile-time option but never says it is commented out in the shipped mbedtls_config.h."
+}

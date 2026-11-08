@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \".yaml`, `.yml`, `.json` | one `path` row only, zero symbols\" and \"YAML and JSON never reach a grammar at all\"\nVERDICT: HIT\nWHY: The answer says YAML/JSON are registered as path rows with zero symbols, and contrasts them with shell/CMake, which get function rows."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the reach is \"about seven files in `src/inference/`\" and that nothing outside exposes llama.cpp types; it never concludes that a minority of reaching files sit outside src/inference."
+}

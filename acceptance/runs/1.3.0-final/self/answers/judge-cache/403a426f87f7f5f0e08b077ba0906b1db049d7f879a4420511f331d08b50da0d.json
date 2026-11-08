@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: No parameters, since shell args are `$1`/`$@`.\nVERDICT: MISS\nWHY: The answer says shell definitions have no parameters, but it never says there's no return value or that the language lacks both, so the item is only partly stated."
+}

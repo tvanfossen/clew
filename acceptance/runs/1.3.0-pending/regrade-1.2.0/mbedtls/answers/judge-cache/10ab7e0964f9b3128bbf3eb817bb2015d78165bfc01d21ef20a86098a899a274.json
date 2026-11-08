@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer lists several modules using the primitives (rsa.c, bignum, ssl_msg.c, cipher/gcm/ccm, psa, ecp), but it never says they're consumed across roughly twenty modules or gives a count that conveys that breadth."
+}

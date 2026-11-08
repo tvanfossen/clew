@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The resolved tier for each setting is recorded in the index metadata, so you can see which source chose a value.\nVERDICT: MISS\nWHY: The answer says the resolved tier is recorded in index metadata, but it never says the record is derived from the stored rows rather than stamped as a separate summary."
+}

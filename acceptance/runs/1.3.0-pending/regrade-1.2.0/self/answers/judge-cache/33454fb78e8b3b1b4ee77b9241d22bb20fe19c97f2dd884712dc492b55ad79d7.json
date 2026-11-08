@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: An unknown key in `--declare` or `options` exits 2.\nVERDICT: MISS\nWHY: The answer mentions unknown section names and unknown keys, but never describes a correctly-spelled derived key inside a section being refused with its specific reason rather than as unknown."
+}

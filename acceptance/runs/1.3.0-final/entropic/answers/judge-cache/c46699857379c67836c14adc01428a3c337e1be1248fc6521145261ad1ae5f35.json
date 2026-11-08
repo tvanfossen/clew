@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The handle log scope is propagated, so logs route to the owning session. ... Log scope is propagated.\nVERDICT: MISS\nWHY: The answer says log scope is propagated for two threads, but it never says that every thread body installs a per-handle logging scope as its first statement."
+}

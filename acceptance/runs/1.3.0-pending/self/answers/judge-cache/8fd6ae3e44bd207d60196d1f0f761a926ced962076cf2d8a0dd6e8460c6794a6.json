@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The three axes:\" followed by a table with `data` | Sources changed since the build, `schema` | Index was stamped by a *newer* build than this server expects, `code` | The running server process loaded clew before its source changed\nVERDICT: HIT\nWHY: The answer explicitly states three independent staleness axes (data, schema, code), names them, and explains each as distinct with different remedies."
+}

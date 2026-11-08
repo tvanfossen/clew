@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Facade (shallow). `src/facade/entropic.cpp` includes `llama_cpp_backend.h` and calls `dynamic_cast<LlamaCppBackend*>`\nVERDICT: HIT\nWHY: The answer says most of the llama.cpp surface is in `src/inference/`, and it also lists reaching files outside it (the facade's `entropic.cpp`, public headers). That makes the dependency concentrated but not contained."
+}

@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 11679,
+  "stop_reason": "end_turn",
+  "session_id": "b2018f94-21ff-4bd6-b921-bb4e0fb48127",
+  "total_cost_usd": 0.01045256,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 37493,
+    "cache_read_input_tokens": 174716,
+    "output_tokens": 2412,
+    "output_tokens_details": {
+      "thinking_tokens": 438
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 37493,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1613,
+        "cache_read_input_tokens": 56409,
+        "cache_creation_input_tokens": 18600,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 18600
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 8,
+      "outputTokens": 2412,
+      "cacheReadInputTokens": 174716,
+      "cacheCreationInputTokens": 37493,
+      "webSearchRequests": 0,
+      "costUSD": 0.01045256,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 438,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 37493,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 7,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "A clew index can be stale on three independent axes, and each axis has a different cure. The tool measures them, puts the diagnosis in the reply, and the caller's job is to pick the cure that matches the axis.\n\n**How it knows**\n\n- **Data axis (sources changed).** `db_status` in `clew/mcp_server/state.py` counts indexed source files whose content has drifted since the build. `stale` is true when the index does not exist, the build stamp differs from the server's expected version, or `source_changed_files > 0`.\n- **Schema axis (build version).** `build_version` is compared with `CLEW_BUILD_VERSION`. The direction matters: an index stamped by a newer build than the server means the server is old.\n- **Code axis (running process).** `code_identity()` in `clew/mcp_server/freshness.py` compares a fingerprint taken at import (`PROCESS_SOURCE_FINGERPRINT`) with the current source tree. `source_fingerprint()` hashes relative paths and file contents, not mtimes, so a `git checkout` that restores identical bytes does not trip it. An unreadable tree returns `\"\"`, which means \"cannot tell\", never \"unchanged\". `matches_source` is false only on positive evidence of disagreement.\n\n**What it tells the caller**\n\n`notices()` in `freshness.py` builds a list of `{axis, message}` entries in the order data, schema, code. Each message names the action that clears it:\n\n| Axis | Trigger | Remedy stated |\n|---|---|---|\n| `data` | `source_changed_files > 0` | `index(action='refresh')`, with the cost attached |\n| `schema` (index older) | `build_version < expected` | `index(action='refresh', force=True)` |\n| `schema` (index newer) | `build_version > expected` | Restart the client. A rebuild cannot clear it. |\n| `code` | fingerprints disagree | Restart the client. A rebuild cannot clear it. |\n\nThe notices are attached to every query reply through `staleness_notices()` in `clew/mcp_server/server.py` and the `_staleness` method in `tools_query.py`. The block is absent when the index is current, so its presence is a signal. A payload that is already large gets a compacted notice rather than none, through three size tiers in `_staleness_within_budget`. The provider never raises, so a failed measurement cannot turn a good answer into an error. A routed reply is annotated only for the repository it actually read.\n\nA query-time check also runs before answering. `_auto_refresh` in `server.py` rebuilds a data-stale index first, and builds an absent one in the background. `_data_stale` returns false unless `matches_source` is true, so an auto-refresh never runs through an old process. `_refresh_stale` takes the per-repository build lock with a bounded wait, re-checks staleness inside the lock so concurrent queries deduplicate to one build, and degrades to answering from the stale index with its notice if the build fails or stalls.\n\n**What the caller does**\n\n1. Read `staleness` in the reply, or call `status` for the full diagnosis.\n2. For a `data` notice, call `index(action='refresh')`. Queries normally do this themselves.\n3. For a `schema` notice with an older index, call `index(action='refresh', force=True)`.\n4. For a `code` notice, or a `schema` notice where the index is newer, restart the MCP client. Rebuilding is refused in that state.\n5. Do not rebuild through a stale process. `stale_code_refusal()` returns a refusal message, and `build_or_refresh` calls it before touching an index. `force` does not override it. The reply states that nothing was written.\n\nThe code notice says the query tools are still reading live data, so data changes appear immediately. What is stale is the process's logic and module constants, and the notice is worded so that a reader does not conclude either \"my fix failed\" or \"a rebuild is safe\".\n\nCaveat: several of the dossiers returned `anchor_mismatch: true`, so some line numbers may be off by a few lines. The names and behaviour are unaffected.",
+  "ttft_ms": 1115,
+  "type": "result",
+  "duration_ms": 12968,
+  "uuid": "64b89f70-aba1-4d2e-bfeb-b2d90a9d49f2",
+  "ttft_stream_ms": 615,
+  "time_to_request_ms": 90,
+  "first_content_frame_ms": 615,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

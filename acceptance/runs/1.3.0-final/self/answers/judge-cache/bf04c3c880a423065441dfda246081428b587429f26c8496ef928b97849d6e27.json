@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Before concluding a thing does not exist, check `scope.not_indexed` and search the other corpora. For anything in a non-indexed file type, read the source directly.\nVERDICT: MISS\nWHY: The answer gives a practical rule for interpreting zero results, but it never states the general principle \"fix the corpus, not the sentence about the corpus\" (that is, fix the index coverage rather than wording the claim more carefully)."
+}

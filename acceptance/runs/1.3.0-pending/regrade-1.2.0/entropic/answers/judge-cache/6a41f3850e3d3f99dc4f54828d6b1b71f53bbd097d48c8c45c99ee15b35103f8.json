@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer says only `src/inference/` has direct llama.cpp calls. It says `src/facade/` only reaches the backend through `dynamic_cast` and doesn't include `llama.h`. It also says `src/core/` mentions llama only in comments.\n\nITEMS:\nsrc/inference/\nEND"
+}

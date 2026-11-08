@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`MBEDTLS_PRIVATE(member)` expands to `private_##member`... The field is still there under the mangled name... So this is a naming guard, not an access control... It does not change the struct layout, so the ABI is the same either way.\"\nVERDICT: HIT\nWHY: The answer says opacity comes from renaming the member at compile time (`private_` prefix) while the struct layout stays unchanged and the fields remain present."
+}

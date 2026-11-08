@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `platform_calloc_uninit` (`platform.c:25-30`) always returns NULL, and the index shows it as the `MBEDTLS_PLATFORM_STD_CALLOC` expansion at `platform.c:32`. My inference from that gate: a build with no std allocator has every allocation failing until the project calls `set_calloc_free`.\nVERDICT: MISS\nWHY: The answer says the uninitialised calloc stub returns NULL, but it never says the uninitialised free does nothing. The item needs both halves, and it also needs the point that the defaults fail instead of falling back. The answer's own diagram says the pointers' initial value is `MBEDTLS_PLATFORM_STD_CALLOC` (= calloc), which is a fallback, so it doesn't make that point."
+}

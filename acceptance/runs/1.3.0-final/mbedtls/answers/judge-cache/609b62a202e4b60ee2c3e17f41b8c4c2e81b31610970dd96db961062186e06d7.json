@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The code is split by mask. The high-level part is `ret & 0xFF80` (the module, e.g. CIPHER, DHM, SSL). The low-level part is `ret & ~0xFF80` (the specific error within it). ... If both parts exist, they are joined as `\"<high> : <low>\"` in `buf`.\nVERDICT: HIT\nWHY: The answer states that a code splits into high-level (module) and low-level parts and that strerror joins both when both are present."
+}

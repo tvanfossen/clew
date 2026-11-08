@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes what the reply lists as searched and not searched. It never says the strong \"definitive\" wording is computed per call from querying unread corpora rather than tied to a result shape."
+}

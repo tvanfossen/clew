@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The router checks for a grammar before parsing. A missing grammar routes to nothing instead of raising, so a build does not fail partway through.\" and \"Queries that come back empty then pass through the not-indexed report.\"\nVERDICT: HIT\nWHY: The answer says a missing grammar degrades (no crash), the router checks for a grammar before routing, and those file types are reported as not indexed."
+}

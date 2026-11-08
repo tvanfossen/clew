@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `HealthMonitor::monitor_loop` (`src/mcp/health_monitor.cpp:92`...), `ExternalBridge::accept_loop` (`src/facade/external_bridge.cpp:796`...), `ResponseGenerator::dispatch_batch_generate`... `SSETransport::sse_reader_loop`... `StdioTransport::stderr_reader_loop`\nVERDICT: HIT\nWHY: The answer lists spawn sites across the health monitor, external bridge, MCP transports, and inference path, showing thread creation is distributed across subsystems."
+}

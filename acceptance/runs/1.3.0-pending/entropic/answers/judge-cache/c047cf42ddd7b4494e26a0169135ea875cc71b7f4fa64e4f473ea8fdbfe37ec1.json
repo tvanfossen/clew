@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"It reaches the public `include/entropic/inference/` headers in one place, a signature that exposes `llama_model*`, so the dependency is not fully contained in the implementation layer.\"\nVERDICT: HIT\nWHY: The answer says llama.cpp calls are concentrated in a small set of `src/inference/` files but also leak outside that layer into a public header, so the dependency is not contained by the layer."
+}

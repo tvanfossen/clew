@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Buffers Python gives to C (hook `modified_json`) | Must come from `entropic_alloc()` so the engine's `free()` matches | Correct: `hooks.py:159` allocates with `entropic_alloc`, and `hook_registry.cpp` calls `free()`\nVERDICT: HIT\nWHY: The answer states that buffers passed from Python to the engine must be allocated with entropic_alloc so the engine can free them, and it shows where Python does this (hooks.py:159)."
+}

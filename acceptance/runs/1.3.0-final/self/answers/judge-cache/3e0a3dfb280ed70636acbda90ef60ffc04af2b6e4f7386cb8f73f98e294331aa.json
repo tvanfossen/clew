@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `qualified` selects among same-named functions, but it narrows only the `'call'` rows, not the `'key'` rows.\nVERDICT: MISS\nWHY: The answer says `qualified` narrows only call rows, not key rows. It never says the flat surface selects by resolved identity while the traversal surface still matches on the bare name."
+}

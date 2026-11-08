@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"If you call it from several threads, you must serialise access yourself or build with `MBEDTLS_THREADING_C` and `MBEDTLS_THREADING_PTHREAD`.\" Also: \"Everything that uses a mutex sits behind `MBEDTLS_THREADING_C`\" and \"`MBEDTLS_THREADING_PTHREAD` is also `off` by default\".\nVERDICT: HIT\nWHY: The answer names both MBEDTLS_THREADING_C and MBEDTLS_THREADING_PTHREAD as the macros that gate the threading and mutex code."
+}

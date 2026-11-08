@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Most of the reach is inside the inference layer, not the public surface: ... Direct includes: `llama_cpp_backend.{h,cpp}`, ... `adapter_manager.cpp`, `orchestrator.cpp`, ... `tool_call_markers.h`; Indirect: ... `facade/entropic.cpp`\n\nVERDICT: MISS\n\nWHY: The answer says most reach is inside the inference layer and lists a few files elsewhere (e.g. `facade/entropic.cpp`, tests). It never concludes that the dependency is concentrated but not contained, so the \"minority outside\" conclusion is not stated."
+}

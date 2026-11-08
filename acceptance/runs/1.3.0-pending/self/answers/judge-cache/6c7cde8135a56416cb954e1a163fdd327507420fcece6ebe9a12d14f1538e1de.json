@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"| \"definitive\", no unread hits, file docs present | No indexed name or `@brief` in the searched kinds matches. Strong, but limited to this build's scope...\" and \"| \"NOT definitive\", unread-corpus hits | The query has a real match in another corpus...\"\nVERDICT: MISS\nWHY: The answer separates \"definitive\" from \"NOT definitive\" (with several causes). But it never names a \"definitive for a reason that is not absence\" grade, such as an empty result that is definitive because of something other than absence. So the three-way split is missing."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `ExternalBridge::start` ... `HealthMonitor::start` (`health_monitor.cpp:92`) ... `StdioTransport::open` (`:164`) ... `SSETransport::open` (`:107`) ... `CancelFlagBridge` ctor (`inference_c_api.cpp:385`) ... `ResponseGenerator::dispatch_batch_generate`\nVERDICT: MISS\nWHY: The answer's table lists spawn sites in the bridge, health monitor, MCP transports and inference path. It never states that thread creation is spread across subsystems rather than centralised."
+}

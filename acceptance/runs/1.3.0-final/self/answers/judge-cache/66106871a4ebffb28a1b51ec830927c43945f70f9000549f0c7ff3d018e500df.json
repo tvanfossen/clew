@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Every derivation logs its reason. The log says which tier was used and why, including the rejection text when a declaration was refused.\nVERDICT: HIT\nWHY: The answer states that the scope derivation carries and logs a reason for which tier was used and why, including the rejection text. That is the substance of the item, so an unstated scope is not silently guessed."
+}

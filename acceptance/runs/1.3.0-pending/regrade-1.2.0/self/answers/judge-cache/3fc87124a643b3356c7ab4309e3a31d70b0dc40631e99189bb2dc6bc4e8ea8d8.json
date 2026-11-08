@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The Doxyfile is not consulted for `INPUT`. It still supplies `ALIASES` and `PREDEFINED`.\nVERDICT: MISS\nWHY: The answer says INPUT is not consulted but never explains the rationale (a repo shipping a Doxyfile would get only its documented subset while one without gets the whole tree); the stated reason concerns the doxygen-guard pattern instead."
+}

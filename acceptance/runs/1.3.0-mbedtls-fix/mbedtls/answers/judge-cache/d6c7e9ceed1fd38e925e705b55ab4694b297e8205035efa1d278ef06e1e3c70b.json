@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Set `MBEDTLS_PLATFORM_MEMORY` in the project's config header ... \"Treat the standard-function default as inferred from the platform header, not as verified from the shipped config.\"\nVERDICT: MISS\nWHY: The answer names MBEDTLS_PLATFORM_MEMORY as a switch but never says it is commented out in the shipped mbedtls_config.h, and it disclaims having checked the shipped config."
+}

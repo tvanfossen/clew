@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The args string comes from `args_to_pattern` (server_manager.cpp:426): it is the value of the first JSON key if that value is a string, otherwise `*`.\nVERDICT: HIT\nWHY: States only one argument value (the first key's string) reaches the pattern and non-string collapses to `*`; the second surprise notes other args are missed, covering the invisibility of the rest."
+}

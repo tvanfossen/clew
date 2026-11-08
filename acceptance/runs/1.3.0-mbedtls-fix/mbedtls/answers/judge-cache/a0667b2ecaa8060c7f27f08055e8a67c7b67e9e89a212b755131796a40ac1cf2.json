@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Every `threading.c` function and every `mbedtls_threading_*` mutex is gated by `MBEDTLS_THREADING_C` (default off, `include/mbedtls/mbedtls_config.h:3787`). The pthread backend is gated by `MBEDTLS_THREADING_PTHREAD` (default off, `mbedtls_config.h:2196`).\nVERDICT: HIT\nWHY: The answer says both threading macros are off by default in the shipped mbedtls_config.h, with line references, which means a default build defines neither."
+}

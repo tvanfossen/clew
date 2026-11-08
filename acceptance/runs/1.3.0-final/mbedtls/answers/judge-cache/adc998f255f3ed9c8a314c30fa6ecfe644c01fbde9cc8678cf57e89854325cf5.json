@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `include/mbedtls/private_access.h:15` defines it as `private_##member` when `MBEDTLS_ALLOW_PRIVATE_ACCESS` is not defined, and as plain `member` when it is.\nVERDICT: HIT\nWHY: The answer states the default rename to `private_##member` and that defining `MBEDTLS_ALLOW_PRIVATE_ACCESS` makes the macro expand to the plain member name."
+}

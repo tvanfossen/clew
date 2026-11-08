@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names three mixins defined outside `handlers/`. Their paths are:\n\nITEMS:\napp/products/agents/database/operators/handlers/index.ts\napp/products/boards/database/operators/handlers/index.ts\napp/products/playbooks/database/operators/handlers/index.ts\nEND"
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_memory_buffer_alloc_init(buf, len)` (`:566-600`) zeroes a static `heap` context, then calls `mbedtls_platform_set_calloc_free(...)` to install its own functions in place of libc.\nVERDICT: MISS\nWHY: The answer says the buffer allocator's init calls the setter, but it never says it is the only in-tree user. It also never ties it to MBEDTLS_MEMORY_BUFFER_ALLOC_C."
+}

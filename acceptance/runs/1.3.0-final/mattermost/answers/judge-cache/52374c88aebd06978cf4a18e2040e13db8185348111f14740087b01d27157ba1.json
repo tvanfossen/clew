@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Both websocket handlers wrap their work in `try { \u2026 } catch { // Do nothing }`. A failed add or remove is invisible in logs, which conflicts with the repo's logging rules.\nVERDICT: HIT\nWHY: The answer states both handlers use an empty catch that silently swallows errors, leaving failed adds/removes invisible in logs."
+}

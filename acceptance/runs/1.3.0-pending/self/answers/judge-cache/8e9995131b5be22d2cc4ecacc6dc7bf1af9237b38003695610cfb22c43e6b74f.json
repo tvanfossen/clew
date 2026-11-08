@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says `.md` gets no path row (\"none here\"), but it never says that this is deliberate or that a path row would count markdown as indexed source in coverage figures."
+}

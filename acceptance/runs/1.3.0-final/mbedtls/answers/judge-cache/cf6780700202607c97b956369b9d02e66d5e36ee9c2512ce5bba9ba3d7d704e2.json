@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_TEST_CONSTANT_FLOW_VALGRIND` and `MBEDTLS_TEST_CONSTANT_FLOW_MEMSAN` make tests mark secrets as uninitialised.\nVERDICT: MISS\nWHY: The answer describes the valgrind/MSan test facility but never says it is off by default or that it is explicitly not part of the library API, and it treats `constant_time.h` as the API."
+}

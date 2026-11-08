@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: In assembly builds it is an empty `asm volatile` that ties `x` to a register. In C builds it returns `x ^ mbedtls_ct_zero`... The compiler cannot prove the value, so it cannot fold the mask back into a branch.\nVERDICT: HIT\nWHY: The answer states the asm path is an empty `asm volatile` tying the value to a register, used solely to hide the value from the optimiser."
+}

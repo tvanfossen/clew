@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `scripts/gen_bindings.py` parses `include/entropic/entropic.h` and `types/*.h` and emits `_bindings.py` and `_bindings_manifest.py`.\nVERDICT: HIT\nWHY: The answer states that the bindings are generated, naming scripts/gen_bindings.py as parsing the C header and emitting _bindings.py."
+}

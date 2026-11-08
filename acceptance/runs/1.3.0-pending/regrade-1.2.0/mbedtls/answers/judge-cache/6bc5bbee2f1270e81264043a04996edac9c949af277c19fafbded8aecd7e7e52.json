@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Two routes, and the compile-time one wins when both are present.\nVERDICT: MISS\nWHY: The answer separates compile-time macros from the runtime setter, but it says the compile-time route wins when both are present and the runtime setter is \"compiled out\". It never says the two are mutually exclusive, and it doesn't clearly present them as a macro pair versus a function-pointer pair that can't be combined."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the library has zero threads and details the mutex wrappers in threading.c, but it never presents the contrast, i.e. that library/ supplies the mutex abstraction for threaded callers while creating no threads of its own."
+}

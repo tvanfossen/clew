@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 40988,
+  "stop_reason": "end_turn",
+  "session_id": "70ae4138-ad17-42c3-9d7a-d40ad6b51e2a",
+  "total_cost_usd": 0.0187581,
+  "usage": {
+    "input_tokens": 20,
+    "cache_creation_input_tokens": 44740,
+    "cache_read_input_tokens": 561760,
+    "output_tokens": 8381,
+    "output_tokens_details": {
+      "thinking_tokens": 3174
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 44740,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3266,
+        "cache_read_input_tokens": 76320,
+        "cache_creation_input_tokens": 1893,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1893
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 20,
+      "outputTokens": 8381,
+      "cacheReadInputTokens": 561760,
+      "cacheCreationInputTokens": 44740,
+      "webSearchRequests": 0,
+      "costUSD": 0.0187581,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 3174,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 44740,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 15,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "Python never touches C++ directly. It loads the engine's C ABI with `ctypes` from a shared library, and every crossing uses C types only. The memory rules are the C header's ownership contract, and Python has to follow them by hand.\n\n## How Python reaches the engine\n\n```\nPython code\n  \u2502  entropic._bindings  (generated ctypes shims: restype/argtypes pinned per symbol)\n  \u2502  entropic._loader    (ctypes.CDLL on librentropic.so)\n  \u25bc\nlibrentropic.so  \u2500\u2500 extern \"C\" entropic_* (include/entropic/entropic.h)\n  \u2502                 (C++ engine behind the pure-C facade; no C++ types cross)\n  \u25bc\nC++ engine (src/facade/entropic.cpp \u2192 core/backends)\n```\n\n- **No compiled extension.** There is no pybind11, nanobind, or cffi. `python/CMakeLists.txt` is a placeholder, and the wheel is pure Python.\n- **Library lookup** (`python/src/entropic/_loader.py`): `$ENTROPIC_LIB`, then `$ENTROPIC_HOME`, then `~/.entropic/...`, then `ldconfig`.\n- **Bindings are generated** from `entropic.h` by `scripts/gen_bindings.py` (`inv gen-bindings`, enforced by a pre-commit `--check`). The output `_bindings.py` is marked do-not-edit. Each `char*` or `const char*` maps to `c_char_p`, `void*` to `c_void_p`, and each callback to a `CFUNCTYPE`.\n- **Handles** are `c_void_p`. Out-params use `ctypes.byref` or `POINTER(c_char_p)`.\n- **Errors** come back as integer return codes (`EntropicError`), and `entropic_last_error(handle)` gives the message. Exceptions never cross the boundary. The Python trampolines catch exceptions and print them.\n\n## Memory rules at the boundary\n\nThese come from the header's \"Memory ownership\" block and the architecture doc (design rule 2: pure C at `.so` boundaries).\n\n1. **Engine-returned `char*` transfers ownership.** The caller frees it with `entropic_free()`, which is `free()`. `entropic_alloc()` is `malloc()`, so allocators match.\n2. **Memory the engine will free must come from `entropic_alloc()`.** `hooks.py` does this in `_alloc_c_string` and the hook trampoline for `modified_json`.\n3. **`const char*` returns are owned by the handle** and valid until the next call on that handle. Copy them immediately. The `c_char_p` restype does this.\n4. **Callback pointers are borrowed for the call only.** The token and observer trampolines copy with `string_at` before returning. `on_token` must not call back into the API, since that deadlocks.\n5. **Python callbacks must be kept alive.** A `CFUNCTYPE` object that gets garbage-collected leaves C holding a dangling function pointer. `hooks.py` (`_bound`), `streams.py` (`_observers`), and the `helpers.py` example each hold a reference per handle.\n6. **Interface headers use C types only.** No `std::string`, `std::vector`, or `json` in `interfaces/` or `types/`.\n\n## Gap: owned strings leak in the generated bindings\n\nThe bindings do not follow rule 1 for many functions. These C functions return a heap `char*` that the caller must free, but their Python bindings declare `restype = c_char_p`:\n\n- `entropic_list_mcp_servers`, `entropic_list_mcp_keys`, `entropic_serialize_mcp_keys`\n- `entropic_grammar_get`, `entropic_grammar_validate`, `entropic_grammar_list`\n- `entropic_profile_get`, `entropic_profile_list`\n- `entropic_get_identity_config`, `entropic_list_identities`\n- `entropic_adapter_info`, `entropic_adapter_list`, `entropic_validation_last_result`\n\nctypes copies the bytes into a Python object and discards the original pointer, so nothing can call `entropic_free` on it. Each call leaks the string. I confirmed this by reading `_bindings.py` and the header. I did not run it, so the leak is unmeasured.\n\nThe generator maps every `char*` to `c_char_p` regardless of ownership. The fix is to bind owning returns as `c_void_p`, then copy with `ctypes.string_at` and call `entropic_free`. This needs a change in `scripts/gen_bindings.py`, not a hand-edit of `_bindings.py`.\n\nThe `entropic_run*` out-params have the same ownership rule. The `entropic_run` binding takes `POINTER(c_char_p)`, so a Python caller who reads `.value` must still free the original pointer with `entropic_free`. Nothing in the Python package does that, and the docs example only uses the streaming call.",
+  "ttft_ms": 1086,
+  "type": "result",
+  "duration_ms": 41456,
+  "uuid": "8d9abee9-ff5f-462d-900f-2ac3835fe3d3",
+  "ttft_stream_ms": 747,
+  "time_to_request_ms": 106,
+  "first_content_frame_ms": 747,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

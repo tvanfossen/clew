@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_ct_compiler_opaque(x)` (`:85`) hides a value from the optimizer. In the asm path it is an empty `asm volatile` with `\"+r\"`; otherwise it XORs with `mbedtls_ct_zero`.\nVERDICT: HIT\nWHY: The answer says that without asm, the function XORs with `mbedtls_ct_zero`, which identifies the global. It doesn't say \"extern volatile\" explicitly, but the fallback and the global are both named."
+}

@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 29982,
+  "stop_reason": "end_turn",
+  "session_id": "d49ad69e-f817-4c09-a736-416311213ee5",
+  "total_cost_usd": 0.013799330000000002,
+  "usage": {
+    "input_tokens": 16,
+    "cache_creation_input_tokens": 31489,
+    "cache_read_input_tokens": 413543,
+    "output_tokens": 6729,
+    "output_tokens_details": {
+      "thinking_tokens": 2182
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 31489,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2736,
+        "cache_read_input_tokens": 68395,
+        "cache_creation_input_tokens": 1601,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1601
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 16,
+      "outputTokens": 6729,
+      "cacheReadInputTokens": 413543,
+      "cacheCreationInputTokens": 31489,
+      "webSearchRequests": 0,
+      "costUSD": 0.013799330000000002,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2182,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 31489,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 22,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** neither double call is retry logic. Both are the llama.cpp two-phase sizing idiom: call once with no buffer to learn the required size, then call again with a buffer of that size. Failure is not retried, and a failed tokenization returns an empty result that the callers mostly don't check.\n\n## The two double calls\n\n| Site | First call | Second call | Runs when |\n|---|---|---|---|\n| `LlamaCppTokenizer::tokenize` (`src/inference/llama_cpp_tokenizer.cpp:55`, `:61`) | `llama_tokenize(..., nullptr, 0, ...)` to get the count | `llama_tokenize(..., tokens.data(), n, ...)` to fill | Always, on every call |\n| `LlamaCppTokenizer::detokenize` (`:93`, `:99`) | `llama_token_to_piece` into a 256-byte stack buffer | Re-call with `-n` bytes | Only when the 256-byte buffer was too small |\n\nThe tokenize path is the probe. The detokenize path is a fallback that runs only when the first buffer is too small. In both, the second call is the real work. Neither is retried after a failure, and neither loops.\n\nThe tokenize code also has a small flaw. It negates a negative first return without checking whether it means \"needed size\" or a real error. A real error therefore still allocates a vector of that size, and only the second call reports the failure. The result is still empty, so the outcome is correct, but it is an unneeded allocation.\n\n## What the caller receives on failure\n\n- `LlamaCppTokenizer::tokenize` logs at error level and returns `{}`. Failure and empty input look the same to callers.\n- `LlamaCppBackend::tokenize` (`llama_cpp_backend.cpp:788`) forwards that empty vector. It returns `{}` when no tokenizer is wired too.\n- `detokenize` returns `\"\"` on failure.\n\nNo exception or error code leaves the tokenizer.\n\n## What the callers do with the empty result\n\n| Caller | What it does with empty tokens |\n|---|---|\n| `do_generate_text_only`, `do_generate_streaming_text_only`, cancellable generate (`:2561`, `:2643`, `:2728`) | Logs the count, then calls `run_prefill_cached` with the empty vector. Nothing checks for empty, so the failure is handled only by whatever prefill does with zero tokens. I did not read `try_warm_reuse` or `prefill_dispatch`, so I can't say what that yields. |\n| `do_generate_batch` (`:1911`) | Empty sequences feed the shared-prefix and viability checks. Not checked for empty. |\n| `do_complete` (`:3947`) | Passes the empty vector to `decode_loop` \u2192 `run_prefill`. Error only if prefill itself fails. |\n| Speculative (`:3593`) and MTP (`:3921`) | The only callers that check: `tokens.size() < 2` returns `ENTROPIC_ERROR_GENERATE_FAILED` with \"must have at least 2 tokens\". This surfaces the failure, but the message is misleading, since the real cause was tokenization. |\n| `compute_prefix_token_count` (`:2066`) | Returns 0, so the prefix cache length becomes 0. |\n| `do_count_tokens` \u2192 `count_tokens` (`backend.cpp:496`) | Returns 0. |\n| `entropic_inference_count_tokens` (`inference_c_api.cpp:548`) | Returns 0 to the plugin caller. Its `len/4` fallback runs only on a C++ exception, and a tokenizer failure is not an exception. |\n| `tokenize_text` (`:837`) | Returns empty to the public API. |\n| Decode loop detokenize (`:1534`, `:1819`) | Appends `\"\"`, so the token is silently dropped from the output. |\n\n## Assessment\n\n- Tokenization failure is silent throughout. The tokenizer logs once, and every caller turns the empty result into 0 tokens, an empty string, or a downstream error that does not name tokenization.\n- The one caller that reports an error (speculative/MTP) misattributes it.\n- The highest-impact gap is `entropic_inference_count_tokens`. A plugin caller gets 0 with no error signal, which can cause silent budget miscalculation.\n- A fix would make `LlamaCppTokenizer::tokenize` report failure distinctly from empty input. That needs a change to the `Tokenizer` interface, so it is an interface change. Per the repo's CLAUDE.md, that requires explicit user approval. I have not made any change.\n\nI did not run the code or check the pinned llama.cpp source for `llama_tokenize`'s exact return convention. The analysis is from reading the entropic source and its callers.",
+  "ttft_ms": 1478,
+  "type": "result",
+  "duration_ms": 38923,
+  "uuid": "adf9ae77-4ec6-4c01-b33d-9d062960f59a",
+  "ttft_stream_ms": 1225,
+  "time_to_request_ms": 634,
+  "first_content_frame_ms": 1225,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

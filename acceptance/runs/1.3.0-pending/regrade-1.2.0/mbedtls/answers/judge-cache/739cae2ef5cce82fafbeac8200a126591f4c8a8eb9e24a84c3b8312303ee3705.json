@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Add the `MBEDTLS_ERR_<MODULE>_<NAME>` define to the module's public header (for example `include/mbedtls/asn1.h`), in that module's code range. The generator picks it up from the headers. ... Do not edit `library/error.c`. It is regenerated at build time, so a hand edit is overwritten. ... Rebuild through the normal build path so the generator runs.\nVERDICT: HIT\nWHY: The answer says to add the define to the public header, not edit error.c, and let the generator re-run. It leaves the exact `/** */` comment format unconfirmed, but the core conclusion is stated."
+}

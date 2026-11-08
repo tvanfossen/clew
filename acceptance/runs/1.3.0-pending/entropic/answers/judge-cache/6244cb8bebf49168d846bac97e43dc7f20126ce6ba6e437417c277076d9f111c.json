@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**`permissions.allow`** ... A match makes `check_approval` return true without invoking the frontend callback.\"\nVERDICT: HIT\nWHY: The answer states the allow list only suppresses the approval callback, is consulted in `check_approval` (tool_executor.cpp), and that the deny list in a different file (server_manager.cpp) is the actual block."
+}

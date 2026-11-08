@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes a four-row graded verdict table with several downgrade paths (multi-token, unread kinds, missing file_docs). It never says there is exactly one absent-corpus downgrade, or that keeping it to one is deliberate to avoid a blanket hedge."
+}

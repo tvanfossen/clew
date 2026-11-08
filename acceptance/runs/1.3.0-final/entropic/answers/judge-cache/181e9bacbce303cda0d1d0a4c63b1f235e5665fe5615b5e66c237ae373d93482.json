@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Both are in `LlamaCppTokenizer::tokenize` (`src/inference/llama_cpp_tokenizer.cpp:55` and `:61`), and they are the only `llama_tokenize` calls in `src/`. The pair is llama.cpp's two-phase sizing idiom: 1. Call with a null buffer and capacity 0... 2. Allocate `n` slots and call again to fill them.\"\nVERDICT: HIT\nWHY: The answer names the file, the function, and the line numbers of the two-call pattern, and it explains the sizing-then-fill mechanism."
+}

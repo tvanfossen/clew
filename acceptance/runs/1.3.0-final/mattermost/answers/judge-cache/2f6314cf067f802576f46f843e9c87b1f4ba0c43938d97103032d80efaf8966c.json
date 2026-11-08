@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It is not retried automatically: there is one network attempt... The other retry constants in the index (websocket, calls, performance metrics, ephemeral wipe) are unrelated to posts.\nVERDICT: MISS\nWHY: The answer says posting has `noRetry: true`, but never states that requests in general retry with exponential backoff and a limit of 3 set by the network manager."
+}

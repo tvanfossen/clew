@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Rebuilding is unsafe here, not just ineffective. A stale process running an old pipeline would re-stamp the index with dropped layers. `build_or_refresh` refuses before the lock when the process predates its source, and `force` cannot override that.\nVERDICT: MISS\nWHY: The answer covers the build-side risk of a stale process writing old pipeline logic, but never says reads stay current because query tools open the database per call, so the read/write asymmetry is missing."
+}

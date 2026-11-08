@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says the seam is llama.cpp's C API with llama_-prefixed free functions. It only mentions raw llama pointers, `llama_*` types in headers, and a few mocked symbols such as `llama_adapter_lora_init`, without framing the C API as the integration boundary."
+}

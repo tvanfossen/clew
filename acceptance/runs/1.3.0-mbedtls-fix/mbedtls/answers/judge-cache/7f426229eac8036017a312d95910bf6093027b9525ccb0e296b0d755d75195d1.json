@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `caller: mbedtls_strerror(ret, buf, sizeof buf)            library/error.c:792`\nVERDICT: HIT\nWHY: The answer names mbedtls_strerror as the runtime entry point and locates it in library/error.c (line 792)."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Patterns are stored as `tool` or `tool:arg`, matched with `fnmatch` (`permission_manager.cpp:101`): **No colon** (`filesystem.*`): matches the tool name only.\"\nVERDICT: HIT\nWHY: The answer states fnmatch matching, the `tool:arg` form split into a tool part and an argument part, and that a no-colon pattern matches on the tool name alone."
+}

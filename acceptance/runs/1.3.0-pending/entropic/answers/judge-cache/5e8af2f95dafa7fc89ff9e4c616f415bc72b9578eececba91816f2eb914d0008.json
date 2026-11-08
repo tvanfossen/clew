@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The cancel pollers are the simplest case. Each one spins at 10 ms, reads an int or atomic, and sets an atomic `cancel_` flag. ... The C ABI passes only `int*`, so no `std::atomic` crosses the `.so` boundary.\nVERDICT: MISS\nWHY: The answer mentions cancel pollers and that the C ABI passes only `int*`, but never says the observer thread exists to bridge an atomic into a plain int because the ABI can't carry an atomic. It even describes the direction as reading an int and setting an atomic, which does not match the item."
+}

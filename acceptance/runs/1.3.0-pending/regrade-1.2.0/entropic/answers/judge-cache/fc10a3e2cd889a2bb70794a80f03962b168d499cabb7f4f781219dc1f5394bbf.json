@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: llama.cpp returns the negative of the required token count, so `n = -n` gives the size.\nVERDICT: HIT\nWHY: The answer states the first call returns the negative of the required count and that negating it (`n = -n`) sizes the buffer for the second call."
+}

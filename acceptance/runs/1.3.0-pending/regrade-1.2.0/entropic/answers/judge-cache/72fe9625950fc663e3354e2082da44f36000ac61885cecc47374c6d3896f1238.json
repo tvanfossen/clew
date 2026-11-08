@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**`allow`** is consulted in `check_approval` through `is_explicitly_allowed`. A match skips the approval prompt. It does not override the deny list, because `execute` checks deny afterward.\"\nVERDICT: HIT\nWHY: The answer says allow is consulted in check_approval (in ToolExecutor, separate from ServerManager::execute) and that a match skips the approval prompt rather than granting execution, since deny is still checked afterward."
+}

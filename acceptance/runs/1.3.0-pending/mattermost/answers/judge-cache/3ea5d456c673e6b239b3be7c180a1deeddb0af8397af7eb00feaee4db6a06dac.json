@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"a failed post is kept locally and marked failed, it is never retried automatically\" and \"**How many automatic retries: zero.** ... `createPost` with `noRetry: true`, and ... `retryLimit: 0`\"\nVERDICT: HIT\nWHY: The answer explicitly states that createPost is never automatically retried (zero retries, noRetry: true, retryLimit 0), so it is sent once."
+}

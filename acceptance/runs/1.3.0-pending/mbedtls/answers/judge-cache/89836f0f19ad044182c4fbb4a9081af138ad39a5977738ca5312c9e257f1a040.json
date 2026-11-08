@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer explains what happens when MBEDTLS_PLATFORM_MEMORY is defined or undefined, but it never says the option is commented out in the shipped mbedtls_config.h."
+}

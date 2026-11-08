@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The tool measures three separate kinds of staleness, tells the caller about each one in the reply\" and \"**How it knows (three axes)** - **Data:** ... - **Schema:** ... - **Code:** ...\"\nVERDICT: HIT\nWHY: The answer explicitly states three distinguishable staleness axes (data, schema, code) and names each one."
+}

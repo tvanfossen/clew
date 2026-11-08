@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The code-axis message says the query tools read the database live, so data is current for reads. A stale process must not write, though. Its build logic is old, and a build through it can silently drop layers while reporting health.\"\nVERDICT: HIT\nWHY: The answer explicitly states reads stay current because query tools read the database live, while a build through a stale process uses old logic and can silently drop layers."
+}

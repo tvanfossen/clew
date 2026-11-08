@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"falls back to a static `platform_calloc_uninit` that always returns `NULL`. So a build with no allocator fails allocations rather than linking to libc.\"\nVERDICT: MISS\nWHY: The answer covers the uninitialised calloc returning NULL, but it never says the uninitialised free does nothing, so only half of the item is stated."
+}

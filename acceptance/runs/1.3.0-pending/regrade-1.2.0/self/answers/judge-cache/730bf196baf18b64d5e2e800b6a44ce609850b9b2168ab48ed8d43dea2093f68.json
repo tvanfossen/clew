@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer discusses file types skipped by the build (`not_indexed`) and the scope's extensions, but never says the reply names in-scope file types that produced no rows to distinguish \"absent\" from \"not indexed\"."
+}

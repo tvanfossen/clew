@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `searchPosts` (`app/actions/remote/search.ts:58`) | Sends `include_deleted_channels` to the search API with the viewable value.\nVERDICT: HIT\nWHY: The answer states that searchPosts sends `include_deleted_channels` to the search API with the setting's value."
+}

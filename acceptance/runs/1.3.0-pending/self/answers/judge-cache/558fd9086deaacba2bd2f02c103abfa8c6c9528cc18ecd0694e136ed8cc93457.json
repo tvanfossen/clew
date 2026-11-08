@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer covers scope derivation and notes that doxygen's default FILE_PATTERNS fix the extension set. It never mentions the parse-built front end for file types doxygen can't read, or binary classification dropping files with misleading extensions."
+}

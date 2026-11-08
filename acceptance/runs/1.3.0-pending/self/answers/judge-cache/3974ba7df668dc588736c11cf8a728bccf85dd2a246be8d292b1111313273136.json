@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never states that call_edges stores one row per extraction layer, so the same logical edge found by two detectors appears twice. It mentions a `source` column and fan-out rows, but not duplicate storage of the same edge across layers."
+}

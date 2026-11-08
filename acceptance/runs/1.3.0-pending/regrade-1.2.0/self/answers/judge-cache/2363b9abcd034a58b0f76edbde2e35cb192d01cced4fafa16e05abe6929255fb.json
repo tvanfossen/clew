@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Edges are stored once per layer, and the row reports the strongest evidence.\nVERDICT: HIT\nWHY: The answer says edges are stored once per layer, which is the substance of the item: one row per extraction layer. The duplicate-edge consequence is implied by \"reports the strongest evidence\"."
+}

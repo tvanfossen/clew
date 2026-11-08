@@ -1,0 +1,93 @@
+{
+  "cell": "Q2_claude-haiku-5-5_baseline_r3",
+  "arm": "baseline",
+  "rubric_version": "5.0.0",
+  "rubric_digest": "d8447c7b18eafbf5",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.3333333333333333,
+  "unmarked_pct": 0.0,
+  "split_decisions": 0,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "locates the grading in clew/mcp_server/emptiness.py",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: **How the grading works** (`clew/mcp_server/emptiness.py`, `search_emptiness` / `_verdict`) | WHY: The answer explicitly names clew/mcp_server/emptiness.py as the location of the empty-search grading (search_emptiness / _verdict). || QUOTE: **How the grading works** (`clew/mcp_server/emptiness.py`, `search_emptiness` / `_verdict`) | WHY: The answer explicitly locates the grading of empty search results in clew/mcp_server/emptiness.py. || QUOTE: **How the grading works** (`clew/mcp_server/emptiness.py`, `search_emptiness` / `_verdict`) | WHY: The answer explicitly names clew/mcp_server/emptiness.py as the location of the empty-search grading logic.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the strong wording is EARNED PER CALL by querying which corpora the search did not read, rather than being attached to a result shape",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: The unread-kind check is derived by subtraction from the kinds actually in the database (`clew/query/symbols.py`, `unsearched_corpora`). It is not a hand-maintained list. | WHY: The answer says the wording is chosen per call by querying the database for kinds search doesn't read, rather than a fixed list, and it says the reply \"asks the database before it speaks\". || QUOTE: \"The unread-kind check is derived by subtraction from the kinds actually in the database (`clew/query/symbols.py`, `unsearched_corpora`). It is not a hand-maintained list.\" | WHY: The answer says \"definitive\" wording is decided per call by querying the database for kinds the search didn't read, not by a fixed list or result shape. || QUOTE: \"the reply separates the two cases by asking the database before it speaks. A bare \"definitive\" is only sent when the index shows nothing the search could have matched.\" and \"The unread-kind check is derived by subtraction from the kinds actually in the database\" | WHY: The answer says the strong wording depends on a per-call database check for rows in kinds `search` doesn't read. It also contrasts this with `_many`, which attaches the default by result shape.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "explains that a single token matching nothing was previously treated as proof of absence, and that this confuses \"nothing exists\" with \"I did not look there\"",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: Query has more than one token | \"NOT definitive\". Per-token hit counts show which token matched nothing... The conjunction emptied it, not necessarily the repo. | WHY: The answer describes the current graded design. It never says a single token matching nothing was previously treated as proof of absence, and it never frames the confusion between \"nothing exists\" and \"I did not look there.\" Its multi-token note is about conjunction, which is a different point. || QUOTE: Query has more than one token | \"NOT definitive\". Per-token hit counts show which token matched nothing... The conjunction emptied it, not necessarily the repo. | WHY: The answer describes the current graded behavior but never says a single token matching nothing was previously treated as proof of absence, or that it conflated \"nothing exists\" with \"I did not look there\". Its \"single token\" case was never framed as the former bug. || QUOTE: \"Query has more than one token | \"NOT definitive\". Per-token hit counts show which token matched nothing... The conjunction emptied it, not necessarily the repo.\" | WHY: The answer describes the current graded design but never says a single token matching nothing was previously treated as proof of absence, or frames it as confusing \"nothing exists\" with \"I did not look there.\"",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the downgrades are ORDERED most-specific first, and explains why \u2014 a matching row in an unread corpus is a statement about THIS query and outranks statements about the index as a whole",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer gives a table of ordered conditions but never states that the downgrades are ordered most-specific first, or that a matching row in an unread corpus outranks index-wide statements. || QUOTE: NONE | WHY: The answer gives a table of four conditions in a sequence but never states that the downgrades are ordered most-specific first, nor that a matching row in an unread corpus outranks index-wide statements. || QUOTE: NONE | WHY: The answer gives a table of graded conditions but never says the downgrades are ordered most-specific first, nor that a matching row in an unread corpus outranks index-wide statements.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "conveys that there is exactly ONE absent-corpus downgrade and that keeping it to one is deliberate, because downgrading on every absent layer turns the grading into a blanket hedge",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer describes a four-row graded verdict table with several downgrade paths (multi-token, unread kinds, missing file_docs). It never says there is exactly one absent-corpus downgrade, or that keeping it to one is deliberate to avoid a blanket hedge. || QUOTE: NONE | WHY: The answer describes a four-row graded verdict table with several downgrade paths and never says there is exactly one absent-corpus downgrade, nor that limiting it is deliberate to avoid blanket hedging. || QUOTE: NONE | WHY: The answer describes several graded verdict paths and never says there is exactly one absent-corpus downgrade, nor that keeping it to one is deliberate to avoid a blanket hedge.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "conveys the general rule the module leaves behind \u2014 fix the corpus, not the sentence about the corpus",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer describes how the emptiness grading works. It never states the general rule that a wrong verdict means fixing the corpus rather than the wording about the corpus. The \"derived by subtraction, not hand-maintained\" remark is related but is not that rule. || QUOTE: NONE | WHY: The answer describes how an empty search is graded. It never states the general rule that a wrong \"definitive\" claim should be fixed by changing what the corpus covers, not by rewording the sentence about it. || QUOTE: NONE | WHY: The answer describes how an empty search is graded and its limits. It never states the general rule to fix the corpus rather than the sentence about it. The nearest point, that the unread-kind check is derived rather than hand-maintained, is a different claim.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "distinguishes all three grades an empty reply can receive: definitive for the scope, definitive for a reason that is not absence, and not definitive",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer separates \"definitive\" (for the searched corpora) from several \"NOT definitive\" variants. It never describes a third grade of definitive-for-a-reason-other-than-absence, such as an empty result that is definitive because of a structural reason. || QUOTE: NONE | WHY: The answer describes \"NOT definitive\" wordings and a \"definitive\u2026 for the searched corpora\" wording. It never names a separate grade that is definitive for a reason other than absence. || QUOTE: NONE | WHY: The answer gives \"not definitive\" variants and one \"definitive\" variant, but never describes a third grade that is definitive for a reason other than absence.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the reply also names the file types that WERE in scope and produced no rows, so \"this repository does not contain that\" and \"that file type is not indexed here\" are distinguishable rather than the same empty answer",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: `not_indexed` and `not_indexed_count`, recorded at build time: extensions that were in scope but produced no rows. | WHY: The answer states the scope payload carries recorded extensions that were in scope but produced no rows, and that the key is omitted rather than `[]` so absence is not read as \"nothing missed\". That separates \"not in repo\" from \"not indexed\". || QUOTE: `not_indexed` and `not_indexed_count`, recorded at build time: extensions that were in scope but produced no rows. | WHY: The answer states that the scope payload names extensions that were in scope but produced no rows, and distinguishes this from the repo not containing the thing. || QUOTE: `not_indexed` and `not_indexed_count`, recorded at build time: extensions that were in scope but produced no rows. | WHY: The answer states the scope payload names in-scope extensions that produced no rows, and that the key is omitted rather than returned as `[]`, which distinguishes \"not indexed\" from \"absent\".",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    }
+  ]
+}

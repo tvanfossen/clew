@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Call 1 passes `nullptr` and a size of 0. llama.cpp answers with the negative of the required token count. ... The `if (n < 0) n = -n;` line is the only handling of the probe result.\nVERDICT: HIT\nWHY: The answer says the first call returns the negative of the required count and that the code negates it (`n = -n`) to size the buffer for the second call."
+}

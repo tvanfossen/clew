@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes the scope and not_searched fields and how to weigh empty results, but never says the strong wording is earned per call by querying which corpora weren't read, as opposed to being tied to a result shape."
+}

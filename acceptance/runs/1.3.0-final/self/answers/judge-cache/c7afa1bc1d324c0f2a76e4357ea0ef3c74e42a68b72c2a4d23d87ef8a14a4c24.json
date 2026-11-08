@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The index's own inventory notes that a file whose extension no grammar handles is not indexed at all, so \"in scope\" and \"indexed\" are not the same set.\nVERDICT: MISS\nWHY: The answer says in-scope is not the same as indexed, but it names neither the parse-built front end claiming file types doxygen can't read nor binary classification dropping files with misleading extensions. The \"no grammar handles the extension\" remark is a different mechanism."
+}

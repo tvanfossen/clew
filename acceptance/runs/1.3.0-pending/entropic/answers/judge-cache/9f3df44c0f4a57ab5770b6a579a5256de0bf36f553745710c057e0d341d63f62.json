@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The cancel and interrupt flags are `std::atomic`, polled every 10 ms by the observer and poller threads. The C ABI carries only `int*`, so no atomic crosses the `.so` boundary (`response_generator.cpp:379`).\nVERDICT: HIT\nWHY: The answer says the observer/poller threads poll atomic flags and that the C ABI carries only `int*`, so no atomic can cross the boundary. That is the bridging rationale."
+}

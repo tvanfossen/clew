@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The async ask is fire-and-forget. `run_async_ask` ends with `.detach()`, so nothing joins it.\"\nVERDICT: HIT\nWHY: The answer identifies the run_async_ask worker as detached with nothing joining it, and contrasts it with the other threads that are joined."
+}

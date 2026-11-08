@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"This is deterministic: one probe, one fill. Nothing is retried after a failure.\"\nVERDICT: HIT\nWHY: The answer concludes the tokenize double call is size-query-then-fill, not retry-on-failure, with exactly one probe and one fill. It does not mention backoff, delay or an attempt counter, but the core conclusion is stated."
+}

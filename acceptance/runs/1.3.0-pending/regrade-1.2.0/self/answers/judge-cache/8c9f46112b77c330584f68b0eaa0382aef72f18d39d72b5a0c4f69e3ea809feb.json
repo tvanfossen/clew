@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `memberdef` rows for `name() {\u2026}` and `function name {\u2026}`, with the `#` block above as the brief. No parameter list, since arguments arrive as `$1`.\nVERDICT: MISS\nWHY: The answer says shell has no parameter list because args arrive as `$1`, but it never says there is no return, nor that the language lacks both argument list and return."
+}

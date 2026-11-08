@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_ct_` symbols are used in about 30 library files.\nVERDICT: HIT\nWHY: The answer says the ct primitives are used across about 30 library files and lists many modules (rsa, bignum, cipher, ssl_msg, base64, psa_crypto, gcm, ccm, etc.). That conveys broad consumption instead of one or two modules."
+}

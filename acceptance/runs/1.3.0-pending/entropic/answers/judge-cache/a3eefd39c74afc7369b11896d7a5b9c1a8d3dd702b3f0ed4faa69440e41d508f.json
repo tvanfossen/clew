@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer only mentions `_loader.find()`, `$ENTROPIC_LIB` and `entropic install-engine`. It gives no resolution order (env, user directory, system cache) and no two directory layouts per root."
+}

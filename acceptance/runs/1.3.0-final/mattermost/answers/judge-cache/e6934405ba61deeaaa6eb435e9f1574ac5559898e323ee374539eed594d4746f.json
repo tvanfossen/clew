@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The user retries by tapping the failed-post control, which calls `retryFailedPost`.\nVERDICT: HIT\nWHY: The answer states that no automatic retry occurs and that the user's tap on the failed-post control triggers `retryFailedPost`, citing the `onPress` in the failed/index.tsx component. It never uses the label \"Try Again\", but the mechanism and the function name are both present."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Mutexes exist only when `MBEDTLS_THREADING_C` is enabled\" and \"**With `MBEDTLS_THREADING_C` + `MBEDTLS_THREADING_PTHREAD`**\"\nVERDICT: HIT\nWHY: The answer names both MBEDTLS_THREADING_C and MBEDTLS_THREADING_PTHREAD as the macros that gate the threading and mutex code."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It takes the first string value of the JSON args object, or `*` if there are none. For bash that is the whole `command` string, so the match is `bash.execute:<command>`.\nVERDICT: HIT\nWHY: The answer states that only the first string argument value reaches the pattern, with `*` as the fallback when there are no string values. It doesn't say outright that the other arguments are invisible to matching, but that follows from \"first string value.\" The wildcard fallback covers the non-string case. Unparseable arguments are not mentioned, but the fallback covers the same substance."
+}

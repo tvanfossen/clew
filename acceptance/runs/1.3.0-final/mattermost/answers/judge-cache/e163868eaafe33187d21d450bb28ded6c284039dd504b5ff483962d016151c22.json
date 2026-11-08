@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The setting only has an effect when the server sends it explicitly as `'false'`. Every other case, including absent, leaves archived channels viewable.\"\nVERDICT: HIT\nWHY: The answer states directly that an absent setting leaves archived channels viewable and only an explicit 'false' turns them off."
+}

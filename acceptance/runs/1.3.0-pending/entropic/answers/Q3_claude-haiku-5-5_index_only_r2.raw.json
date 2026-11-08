@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 42831,
+  "stop_reason": "end_turn",
+  "session_id": "d3f97473-86b1-4d0e-bcca-f22cc9c917c6",
+  "total_cost_usd": 0.01647212,
+  "usage": {
+    "input_tokens": 20,
+    "cache_creation_input_tokens": 37141,
+    "cache_read_input_tokens": 546192,
+    "output_tokens": 7160,
+    "output_tokens_details": {
+      "thinking_tokens": 3139
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 37141,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3353,
+        "cache_read_input_tokens": 74072,
+        "cache_creation_input_tokens": 488,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 488
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 20,
+      "outputTokens": 7160,
+      "cacheReadInputTokens": 546192,
+      "cacheCreationInputTokens": 37141,
+      "webSearchRequests": 0,
+      "costUSD": 0.01647212,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 3139,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 37141,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 30,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "## Short answer\n\nTwo layers decide whether a call runs. Approval, in `ToolExecutor`, decides whether the call is *allowed to be attempted*. The deny list, in `ServerManager::execute`, decides whether it *actually runs*. Deny is checked after approval, so a denied tool can still reach the approval prompt.\n\n## The path a call takes\n\n```\nmodel emits tool call\n \u2514\u2500 process_single_call                       (tool_executor.cpp:729)\n     1. PRE_TOOL_CALL hook          \u2192 can cancel (\"Cancelled by hook\")\n     2. check_call_preconditions   (:667)\n        a. anti-spiral hard block\n        b. schema check\n        c. MCP key authorization    (access levels, not permissions)\n        d. tier allowlist\n        e. duplicate-call detection\n        f. check_approval_pc \u2192 check_approval   \u25c4\u2500\u2500 permission lists live here\n     3. execute_tool               (:379)\n        \u2514\u2500 ServerManager::execute  (server_manager.cpp:153)\n             is_denied? \u2192 \"Error: Permission denied\" (never routed)\n             else route_tool_call \u2192 the MCP server\n```\n\n**`check_approval`** (tool_executor.cpp:161), the approval step:\n\n1. `approved = loop_config_.auto_approve_tools || server_manager_.is_explicitly_allowed(name, args)`.\n2. If not approved and an `on_tool_call` callback is wired, the callback is invoked and `approved = true` unconditionally. The callback returns `void`, so the host cannot refuse through it.\n3. If not approved and no callback is wired, the call is denied (\"No approval callback \u2014 denying\").\n4. It fires `ON_PERMISSION_CHECK` as informational.\n\n## How a pattern is matched\n\nPatterns come from `permissions.allow` and `permissions.deny` (`parse_permissions_config`, loader.cpp:365). Both lists go into `PermissionManager` (permission_manager.h).\n\n`is_allowed` and `is_denied` scan their list and succeed on the first match. Order within a list does not matter.\n\n`pattern_matches` (permission_manager.cpp:101):\n\n- Split the pattern at its first `:` into a tool part and an optional argument part.\n- The tool part is `fnmatch`ed against the fully-qualified tool name, e.g. `filesystem.read_file`.\n- With no `:`, the tool match is enough.\n- With a `:`, the full `tool:arg` string is also `fnmatch`ed. The arg string is built by `args_to_pattern`, which uses the first argument's string value, or `*` if there are no args or parsing fails.\n- `fnmatch` runs with flags 0, so `*` also matches `/` and spaces.\n\n| Pattern | Matches |\n|---|---|\n| `filesystem.*` | every filesystem tool, any args |\n| `git.commit` | that tool, any args (no `:`) |\n| `bash.execute:python*` | bash calls whose first arg starts with `python` |\n| `bash.execute:pytest *` | the form the bash server's \"Always Allow\" generates (`BashServer::get_permission_pattern`, bash.cpp:200), using the base command |\n\n## What each list does\n\n- **`allow`** \u2014 `check_approval` treats a match as approved, so the callback is skipped and the call is not prompted. It does not bypass the MCP key checks, tier allowlist, or duplicate detection, which run earlier.\n- **`deny`** \u2014 `ServerManager::execute` returns an error without routing. It is checked after approval, so a denied tool that is not allow-listed still goes to the approval callback first. The header's \"deny takes precedence\" holds in effect because execute checks deny regardless of allow.\n- **`auto_approve`** \u2014 `auto_approve_tools` skips the approval step entirely. Deny still blocks at execute.\n- **Persistence** \u2014 \"Always Allow/Deny\" choices go through `PermissionPersister::save_permission` into `config.local.yaml` (the header says config.local.yaml), under a mutex.\n- **Runtime** \u2014 `add_permission` (the `PermissionManager` API) adds patterns at runtime.\n\n## Things to check\n\n1. **The callback cannot refuse.** Once `on_tool_call` is set, `check_approval` returns true for every non-allowed call. Only the deny list can block a call in that setup. If the intent was that the host can say no, this is a defect, since `void` makes refusal impossible. I read this from the code; I did not confirm it against the consumer UI.\n2. **Prompt-then-deny.** A call matching `deny` but not `allow` gets a prompt, and a \"yes\" still ends in \"Permission denied\" at execute. Denied tools should probably be stopped before the prompt. This is also from the code only.\n3. The `:` split is on the first colon, so a tool name containing a colon would split wrongly.",
+  "ttft_ms": 9718,
+  "type": "result",
+  "duration_ms": 48891,
+  "uuid": "852350ba-2305-45fb-88a4-7003a240eae9",
+  "ttft_stream_ms": 9467,
+  "time_to_request_ms": 3535,
+  "first_content_frame_ms": 9467,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

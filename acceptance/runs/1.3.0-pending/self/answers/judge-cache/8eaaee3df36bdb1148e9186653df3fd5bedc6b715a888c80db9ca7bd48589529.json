@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The Doxyfile is no longer a tier (gh#333).\nVERDICT: MISS\nWHY: The answer says the Doxyfile is no longer a tier but never states that its INPUT is deliberately ignored or explains the subset-versus-whole-tree rationale."
+}

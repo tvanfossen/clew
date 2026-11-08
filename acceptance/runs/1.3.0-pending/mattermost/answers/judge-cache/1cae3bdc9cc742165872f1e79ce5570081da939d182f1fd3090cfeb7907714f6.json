@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never mentions `Header` from `navigation_header/header.tsx` or says to exclude it; it only notes that other grep matches were left out as imports or hook names."
+}

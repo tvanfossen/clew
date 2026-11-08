@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The library itself spawns no threads. The index's thread layer lists four spawn sites, all in `programs/`.\"\nVERDICT: MISS\nWHY: The answer says the library spawns no threads and that the thread sites are all in sample programs. It never says the pthread example compiles to a stub main in a default build, and it lists `ssl_pthread_server.c` as a real thread site."
+}

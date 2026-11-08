@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **`LlamaCppTokenizer::tokenize`** (`src/inference/llama_cpp_tokenizer.cpp:49-71`) calls `llama_tokenize` twice in a row with the same input. The first call passes a null buffer and size 0 to learn how many tokens are needed.\nVERDICT: HIT\nWHY: The answer names the file, function, and line range and describes the two-call size-probe-then-fill pattern."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer lists reach in src/inference plus facade, tests, and public header forward-declarations, but never concludes that the dependency is concentrated in the inference layer yet not contained by it (a minority of files outside)."
+}

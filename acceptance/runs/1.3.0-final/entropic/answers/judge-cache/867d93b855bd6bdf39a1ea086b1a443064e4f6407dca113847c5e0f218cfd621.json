@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never names PermissionManager nor says the allow/deny lists come from a PermissionsConfig that ServerManager is constructed with; it only mentions config keys and `server_manager.is_explicitly_allowed`."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`do_count_tokens` (`:825`) | Returns `0` | Silent. The C API `entropic_inference_count_tokens` returns `0` with no error channel\"\nVERDICT: HIT\nWHY: The answer says the token-counting path returns 0 on tokenization failure with no error channel, which is the item's substance."
+}

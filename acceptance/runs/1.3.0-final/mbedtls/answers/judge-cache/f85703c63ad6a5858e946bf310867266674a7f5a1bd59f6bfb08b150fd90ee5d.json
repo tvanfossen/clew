@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_memory_buffer_alloc_init(buf, len)` ... Calls `mbedtls_platform_set_calloc_free()` with its own wrappers: `buffer_alloc_calloc_mutexed` / `buffer_alloc_free_mutexed` when threading is on, otherwise the unlocked pair.\nVERDICT: HIT\nWHY: The answer says the buffer allocator's init installs the mutexed calloc/free pair when threading is enabled and the plain pair otherwise. It doesn't say the choice is made at compile time, but naming MBEDTLS_THREADING_C as the condition implies it."
+}

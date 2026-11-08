@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Writes are refused on a stale process. `stale_code_refusal()` must be called before any write path touches an index. It has no override, and `force` does not bypass it.\"\nVERDICT: HIT\nWHY: The answer states that the write path refuses (not warns), is called before any write path touches an index, and that `force` cannot bypass it."
+}

@@ -344,3 +344,94 @@ def test_an_untracked_covered_file_still_fails_under_ci(tmp_path: Path) -> None:
     assert gate_hygiene.main([str(tmp_path)], ci=True) == 1, (
         "an untracked file inside the hooks' scope passed the gate under CI"
     )
+
+
+## @brief An always-run hook must declare the stage it belongs to.
+## @return None.
+## @version 1
+def test_always_run_hooks_are_scoped_to_one_stage() -> None:
+    """MEASURED, NOT SUSPECTED: a commit in this repository ran pytest TWICE and took about
+    fifteen minutes. `AGENTS.md` tells a fresh checkout to install both the `pre-commit` and
+    `commit-msg` hook types, and pre-commit runs a hook with no `stages:` at EVERY installed
+    stage — so the three `always_run` hooks each executed once per stage. pytest alone is ~59s
+    unit plus ~124s integration.
+
+    THE SECOND RUN CANNOT DISCOVER ANYTHING. The working tree is identical at `pre-commit` and
+    `commit-msg`; only the message file differs, and none of these three hooks reads it. So the
+    duplicate is pure cost, and it taxed every commit of the 1.2.0 release.
+
+    ASSERTED ON `always_run` RATHER THAN BY NAME, so a fourth such hook added later is covered
+    without anyone remembering this test. The file-scoped hooks are deliberately NOT asserted:
+    at `commit-msg` they are handed one message file, match nothing, and report
+    "(no files to check)Skipped" — a real cost of approximately zero.
+
+    @brief Every always_run hook names its stage.
+    @return None.
+    @version 1
+    """
+    import yaml
+
+    config = yaml.safe_load((REPO_ROOT / ".pre-commit-config.yaml").read_text("utf-8"))
+    unscoped = [
+        hook["id"]
+        for repo in config.get("repos", [])
+        for hook in repo.get("hooks", [])
+        if hook.get("always_run") and not hook.get("stages")
+    ]
+    assert not unscoped, (
+        f"these run at EVERY installed hook type because they declare no `stages:`, so each "
+        f"executes once per stage on every commit: {unscoped}. Add `stages: [pre-commit]`."
+    )
+
+
+_HOOK = "#!/usr/bin/env bash\n# start templated\nINSTALL_PYTHON=pre-commit\n"
+
+
+##
+# @brief A linked worktree finds the hook `pre-commit install` wrote to the common directory.
+# @param tmp_path Pytest temporary directory.
+# @return None.
+# @version 1
+def test_a_linked_worktree_sees_the_installed_hook(tmp_path: Path) -> None:
+    """gh#64: in a linked worktree `.git` is a FILE, and the check built `.git/hooks/pre-commit`
+    itself — so it failed even after the remedy it printed had been run, because
+    `pre-commit install` writes to git's common hooks directory. Every commit from a worktree
+    failed `gate-hygiene`. The hooks directory is git's answer, not a path built here.
+
+    @brief The worktree's hook is found through git.
+    @return None.
+    @version 1
+    """
+    main = tmp_path / "main"
+    _repo(main)
+    subprocess.run(["git", "-C", str(main), "add", "-A"], check=True)
+    subprocess.run(
+        ["git", "-C", str(main), "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "i"],
+        check=True,
+    )
+    worktree = tmp_path / "wt"
+    subprocess.run(["git", "-C", str(main), "worktree", "add", "-q", str(worktree)], check=True)
+    hook = main / ".git" / "hooks" / "pre-commit"
+    hook.parent.mkdir(parents=True, exist_ok=True)
+    hook.write_text(_HOOK, "utf-8")
+
+    assert gate_hygiene.commit_hook_installed(worktree), "a worktree's installed hook was missed"
+
+
+##
+# @brief `core.hooksPath` is where git runs hooks from, so it is where the check looks.
+# @param tmp_path Pytest temporary directory.
+# @return None.
+# @version 1
+def test_core_hooks_path_is_respected(tmp_path: Path) -> None:
+    """@brief A hook under core.hooksPath counts.
+    @return None.
+    @version 1
+    """
+    _repo(tmp_path)
+    hooks = tmp_path / "githooks"
+    hooks.mkdir()
+    (hooks / "pre-commit").write_text(_HOOK, "utf-8")
+    subprocess.run(["git", "-C", str(tmp_path), "config", "core.hooksPath", "githooks"], check=True)
+
+    assert gate_hygiene.commit_hook_installed(tmp_path), "core.hooksPath was not followed"

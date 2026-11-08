@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `StdioTransport::stderr_reader_loop` (`transport_stdio.cpp:164`) and `SSETransport::sse_reader_loop` (`transport_sse.cpp:107`) | Drain child stderr; read SSE events | Each has its own `io_mutex_` or `pending_mutex_` for shared state. These are joined in `close()`.\nVERDICT: HIT\nWHY: The answer names the stdio stderr reader thread and the SSE event reader thread as separate per-transport threads."
+}

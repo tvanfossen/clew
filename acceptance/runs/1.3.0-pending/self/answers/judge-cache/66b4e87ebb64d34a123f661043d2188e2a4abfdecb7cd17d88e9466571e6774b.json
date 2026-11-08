@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says 'key' rows are functions writing a key `fn` reads, but never states that polarity is inverted between the call and key halves."
+}

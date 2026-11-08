@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer lists several files (llama_cpp_backend, sampler, tokenizer, orchestrator, adapter_manager, speculative_compat, image_preprocessor) but never states the dependency reaches roughly a dozen files, and it frames the reach as a layered set of adapters rather than a count."
+}

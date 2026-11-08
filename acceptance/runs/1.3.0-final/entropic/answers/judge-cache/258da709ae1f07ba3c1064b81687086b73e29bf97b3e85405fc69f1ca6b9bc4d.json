@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `StdioTransport::stderr_reader_loop` | `StdioTransport::open` | Drains a child process's stderr. | `SSETransport::sse_reader_loop` | `SSETransport::open` | Reads the SSE stream.\nVERDICT: HIT\nWHY: The answer's table names both the stdio transport's stderr reader thread and the SSE transport's event reader thread, each spawned in its own transport's open()."
+}

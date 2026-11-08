@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"in a default build the field is really named `private_state`. Plain `ssl->state` then fails to compile, and the layout is unchanged.\"\nVERDICT: HIT\nWHY: The answer says the macro mangles the member name so plain access fails at compile time, while the layout stays unchanged. It also calls the macro \"a name-mangling macro, not access control\"."
+}

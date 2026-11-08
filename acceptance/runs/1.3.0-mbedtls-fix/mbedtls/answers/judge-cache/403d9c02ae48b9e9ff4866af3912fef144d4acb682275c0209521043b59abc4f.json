@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The struct member is really named `private_member`, so `ctx->member` fails to compile in application code. ... The struct definitions remain in the public headers, so `sizeof`, stack allocation and layout are still visible.\nVERDICT: HIT\nWHY: States that compile-time enforcement works by renaming the member to `private_member`, while the struct definitions stay in the public headers with layout still visible."
+}

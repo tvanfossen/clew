@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `options` argument | embedding caller, `build_index` / `apply_options` | 1 (explicit) | The same settings as the declaration file, passed as a structured mapping.\nVERDICT: HIT\nWHY: The answer's table puts both the CLI flag and the structured `options` argument for embedding callers at tier 1 (explicit)."
+}

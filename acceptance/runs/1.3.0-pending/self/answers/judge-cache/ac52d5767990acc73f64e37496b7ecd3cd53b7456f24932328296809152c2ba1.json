@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer explicitly says it could not settle whether a language-level filter applies after doxygen, and it never names the parse-built front end or binary classification as filters on which files reach the index."
+}

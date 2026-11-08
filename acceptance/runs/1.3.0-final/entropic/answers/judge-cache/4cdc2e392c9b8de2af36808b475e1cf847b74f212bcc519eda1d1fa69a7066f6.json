@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: | `LlamaCppBackend::tokenize` | `{}` | Pass-through. Also returns `{}` when no tokenizer is wired. |\nVERDICT: HIT\nWHY: The answer says the backend wrapper returns `{}` (an empty container) on failure and also returns `{}` when no tokenizer is wired, so both returns are the same value."
+}

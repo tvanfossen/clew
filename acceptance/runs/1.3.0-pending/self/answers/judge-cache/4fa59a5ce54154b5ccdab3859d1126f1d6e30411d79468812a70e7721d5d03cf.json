@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Only `bash` and `cmake` are gated (`_OPTIONAL_KEYS` in `clew/harvest.py`)... the router returns no grammar, so no tree is parsed and no `memberdef` rows are written. Their `path` rows still exist.\nVERDICT: MISS\nWHY: The answer says the build degrades, but it claims the not-indexed report would NOT name those file types. That is the opposite of the item's conclusion that they are reported as not indexed. It also doesn't describe a capability gate the router consults before routing."
+}

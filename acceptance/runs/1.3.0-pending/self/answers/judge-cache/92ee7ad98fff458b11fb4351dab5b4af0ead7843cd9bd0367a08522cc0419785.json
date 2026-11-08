@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `_callers_of` shows the strongest confidence per (caller, callee) pair across layers, so a row may hide a weaker layer that also found the edge.\nVERDICT: HIT\nWHY: The answer states that the query surface collapses per-layer variants into one row per (caller, callee) pair showing the strongest confidence."
+}

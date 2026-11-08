@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Verification is by Valgrind, not by inspection.** `test_with_valgrind_constant_time` runs `tests/suites/*constant_time*.data` under Valgrind.\nVERDICT: MISS\nWHY: The answer mentions Valgrind-based testing, but it does not say the facility is off-by-default, separate from the library, or explicitly not part of the library API, and it never mentions MemorySanitizer."
+}

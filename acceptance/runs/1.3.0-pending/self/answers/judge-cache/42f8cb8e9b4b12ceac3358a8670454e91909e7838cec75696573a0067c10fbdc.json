@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `.yaml`, `.yml`, `.json` | `path` only | No | Present in the file set and findable by name. Their keys and values are not indexed.\nVERDICT: HIT\nWHY: The answer states YAML/JSON get path rows only with no symbols, contrasted with shell/CMake which get memberdef symbols."
+}

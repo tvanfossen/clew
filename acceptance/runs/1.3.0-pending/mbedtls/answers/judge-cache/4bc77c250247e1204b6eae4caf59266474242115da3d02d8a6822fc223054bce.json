@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says the setter is neither declared nor compiled under the macro path; it only says platform.c's dispatch is compiled out."
+}

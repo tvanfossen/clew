@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"HealthMonitor queues events under `event_mutex_` and runs the status callback only from `process_events()`, so callers never see a callback on the monitor thread (`health_monitor.cpp:118`).\"\nVERDICT: HIT\nWHY: The answer states events are queued under a mutex and the callback runs only from process_events(), not on the monitor thread."
+}

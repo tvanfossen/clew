@@ -1,0 +1,42 @@
+{
+  "stem": "Q6_claude-haiku-5-5_index_only_r2",
+  "arm": "index_only",
+  "model": "claude-haiku-5-5",
+  "ok": true,
+  "skills": "",
+  "answered_by": "claude-haiku-5-5",
+  "seconds": 30.44915658805985,
+  "input_tokens": 12,
+  "output_tokens": 5582,
+  "cache_read_tokens": 319162,
+  "cache_creation_tokens": 48498,
+  "cost_usd": 0.01568342,
+  "result_bytes": 3876,
+  "turns": 14,
+  "tool_calls": 13,
+  "non_index_tool_calls": 0,
+  "denied_tool_calls": 0,
+  "error": "",
+  "argv": [
+    "claude",
+    "-p",
+    "Answer the question below about the repository at /home/tvanfossen/Projects/clew/acceptance/runs/1.2.0-pending/self/repo.\n\nYou have ONLY a queryable index of this repository \u2014 no shell, no file reading, no search over the source. The tools are mcp__clew__dossier for everything known about a named symbol, mcp__clew__search to find a name or enumerate a layer, and mcp__clew__index for status. Answer from the index alone.\n\nWork however you judge best. There is no required format, no word limit and no\nstructure you are expected to follow \u2014 write the answer as prose, at whatever\nlength the question deserves.\n\nQUESTION:\nclew reads file types doxygen cannot parse. For a repository that automates itself with\nshell and CMake and configures itself with YAML and JSON, what does clew's index actually\nhold about those files, what does it not hold, and what happens on an installation whose\nparser lacks those grammars?\n",
+    "--model",
+    "claude-haiku-5-5",
+    "--output-format",
+    "json",
+    "--allowedTools",
+    "mcp__clew__dossier,mcp__clew__search,mcp__clew__index",
+    "--strict-mcp-config",
+    "--mcp-config",
+    "/home/tvanfossen/Projects/clew/acceptance/runs/1.2.0-pending/self/mcp.json"
+  ],
+  "cell": {
+    "target": "tvanfossen/clew",
+    "question_id": "Q6",
+    "arm": "index_only",
+    "model": "claude-haiku-5-5",
+    "replicate": 2,
+    "order": 48
+  }
+}

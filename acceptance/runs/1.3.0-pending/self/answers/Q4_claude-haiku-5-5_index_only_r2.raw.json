@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 18424,
+  "stop_reason": "end_turn",
+  "session_id": "c982dc57-1bbd-4424-947c-97d16ea2f179",
+  "total_cost_usd": 0.004655909999999999,
+  "usage": {
+    "input_tokens": 6,
+    "cache_creation_input_tokens": 9589,
+    "cache_read_input_tokens": 117551,
+    "output_tokens": 3124,
+    "output_tokens_details": {
+      "thinking_tokens": 1719
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 9589,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2587,
+        "cache_read_input_tokens": 41287,
+        "cache_creation_input_tokens": 6434,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 6434
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 6,
+      "outputTokens": 3124,
+      "cacheReadInputTokens": 117551,
+      "cacheCreationInputTokens": 9589,
+      "webSearchRequests": 0,
+      "costUSD": 0.004655909999999999,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1719,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 9589,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 5,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The answer is a list of **caller functions**, not call sites. Each row names the function that contains a call and says how the index found it. It does not give the line of the call, how many times it happens, or the arguments passed.\n\nFrom `run_harvest` (`clew/harvest.py:561`) and `_ast_harvest_calls` (`clew/call_edges.py:1140`), each caller row carries:\n\n- **name**, sometimes with a **qualified** form (`clew.call_edges._CallSiteHarvester.harvest`)\n- **file**\n- **source**: `ast` (recovered by parsing) or `doxygen_sqlite` (from doxygen's database)\n- **confidence**: `resolved` for AST rows, `exact` for doxygen rows\n- **edge_class**: here always `call`\n\nThe same reply also gives callees, `writes`/`reads`, `requirements`, `covering_tests`, the function's body, and `external_callees`.\n\nReading it as a plain list of call sites would be wrong for several reasons:\n\n1. **Test callers are mixed in.** `run_harvest` lists about twenty callers, and most are `test_*` functions in `tests/`. Production and test callers look the same in the list. `covering_tests` is empty for the same function, so \"calls\" and \"is covered by a test\" are separate facts.\n\n2. **No line numbers.** A caller row says `_harvest_one_file` is called from somewhere inside `run_harvest`, not on which line. Counting rows does not count invocations.\n\n3. **Absence is not \"never called\".** The AST walker only recognises some call shapes. The `_ast_harvest_calls` docstring records that JS/TS member calls and `new C()` were once silently dropped, and some callees are refused outright when they have no static name. A missing caller means the index did not recover that edge, not that the call doesn't exist.\n\n4. **Edge classes.** The rows here are all `call`. Callbacks, dispatch tables and shared-key links are separate modules (`callback_edges`, `dispatch_edges`, `shared_key_edges`). A function reached only through a function pointer or registration may not appear in this list. I inferred that from the module names and the `edge_class` field, not from a documented rule.\n\n5. **Name collisions.** The bare name `harvest` matches several unrelated functions. A caller row named `harvest` can be a different function from the one you asked about. Qualified names appear only on some rows. Use `qualified` or `kind` to pin the identity.\n\n6. **Staleness.** `run_harvest` came back with `anchor_mismatch: true`, meaning the file changed after the index was built. Its body and line numbers may not match the current source. The caller list may be from that older build too.\n\n7. **Truncation.** The body was cut at 40 lines. The caller list returned about twenty rows even though the default neighbour cap is eight. The reply does not flag the caller list as truncated, so I can't tell from it whether the list is complete. The reply does report `callers_unresolved: 0`, which means every caller row resolved to a known function.\n\n**Short version:** the answer tells you which functions the index believes contain a call to the target, with a provenance tag and a confidence grade. Treat it as a candidate set. Read the source of each caller to confirm the call is there, to find the line, and to check whether it runs in production or only in tests.",
+  "ttft_ms": 2290,
+  "type": "result",
+  "duration_ms": 19060,
+  "uuid": "93dd4b11-cf55-4eff-a1ae-e16c3cd40896",
+  "ttft_stream_ms": 1467,
+  "time_to_request_ms": 91,
+  "first_content_frame_ms": 1467,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

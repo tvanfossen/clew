@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Two build options run those tests under detectors: `MBEDTLS_TEST_CONSTANT_FLOW_MEMSAN` (clang MemorySanitizer) and `MBEDTLS_TEST_CONSTANT_FLOW_VALGRIND` (memcheck).\nVERDICT: MISS\nWHY: The answer names the MemSan/valgrind test options but never says the facility is off-by-default or explicitly not part of the library API."
+}

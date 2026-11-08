@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `.yaml`, `.yml`, `.json` | yes | none | registered, never harvested\nVERDICT: HIT\nWHY: The answer states YAML and JSON are in the file set but carry no symbols, in contrast to shell and CMake, which do carry symbols."
+}

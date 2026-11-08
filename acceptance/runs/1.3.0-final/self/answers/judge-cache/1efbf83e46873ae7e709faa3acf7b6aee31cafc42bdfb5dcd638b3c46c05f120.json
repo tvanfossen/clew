@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The reason string records that the whole repo was used and why, and it is logged. This matters because a declaration that exists but yields no roots must not be reported as \"none declared.\"\nVERDICT: HIT\nWHY: The answer says the whole-repo fallback carries a reason string recording that it was used and why, so an unusable declaration is not silently reported as \"none declared.\""
+}

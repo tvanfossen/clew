@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_PLATFORM_MEMORY` off (the default, `mbedtls_config.h:208`) | Macros for libc `calloc` / `free`\nVERDICT: HIT\nWHY: The answer states that by default (PLATFORM_MEMORY off) mbedtls_calloc/free are macros for libc calloc/free, i.e. no indirection."
+}

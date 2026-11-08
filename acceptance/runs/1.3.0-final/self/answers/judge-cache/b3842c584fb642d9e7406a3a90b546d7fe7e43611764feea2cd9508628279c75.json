@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"NOT DEFINITIVE \u2014 this index HOLDS matching rows that search does not read\" and \"the strong 'This IS a definitive empty result' text only if `has_file_docs` is true. Otherwise it returns 'NOT definitive'\"\nVERDICT: MISS\nWHY: The answer distinguishes \"definitive\" from \"not definitive\" (including several not-definitive reasons), but it never describes a distinct grade of \"definitive for a reason that is not absence\"; the three-grade structure is absent."
+}

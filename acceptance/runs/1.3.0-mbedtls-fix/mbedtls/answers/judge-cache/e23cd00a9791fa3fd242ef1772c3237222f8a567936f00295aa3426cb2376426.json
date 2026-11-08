@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: If `MBEDTLS_ERROR_C` is off, `mbedtls_strerror` is a dummy that writes an empty string. `MBEDTLS_ERROR_STRERROR_DUMMY` keeps the tables compiled in some configs.\nVERDICT: MISS\nWHY: It names the macro but describes it wrongly (keeps tables compiled in) and never states it keeps mbedtls_strerror linkable with the table compiled out, nor that it is enabled by default."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `.gitmodules` registers `extern/llama.cpp` (from ggml-org/llama.cpp). ... The other dependencies (spdlog, ryml, json, httplib, Catch2) use `FetchContent`, but llama.cpp does not.\nVERDICT: HIT\nWHY: The answer states llama.cpp is a git submodule at extern/llama.cpp, registered in .gitmodules and not fetched via FetchContent."
+}

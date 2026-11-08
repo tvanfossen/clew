@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It is only available in the function-pointer branch, so it must be called before any threads start and before any memory is allocated.\nVERDICT: HIT\nWHY: The answer says the setter is only available in the function-pointer branch (and the wrapper functions are compiled out on the macro path). That is the substance of the item: on the macro path the function doesn't exist."
+}

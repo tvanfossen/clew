@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`app/client/rest/posts.ts:46` sends the create request with `noRetry: true`. `app/client/rest/tracking.ts:383\u2013384` turns that into `retryPolicyConfiguration = {retryLimit: 0}`, which disables the network layer's retry policy for this request.\"\nVERDICT: HIT\nWHY: The answer explicitly states the create-post request is sent once with no automatic retries (noRetry: true, retryLimit 0)."
+}

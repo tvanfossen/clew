@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says markdown is deliberately excluded from path rows or that a path row would count it as indexed source in coverage figures; it only mentions prose chunking of .md."
+}

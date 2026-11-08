@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"For `code`, or for a `schema` index newer than the server, restart the MCP client. Rebuilding does not clear either one.\" and table: \"`data` ... Cleared by `index(action='refresh')`\" vs \"`code` ... Only restarting the MCP client. Rebuilding does not help.\"\nVERDICT: MISS\nWHY: The answer says data is cleared by a refresh and code only by a client restart, but it never says this is why one flag would not have been enough."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: An empty result is therefore indistinguishable from legitimately tokenizing an empty string. The only signal is one `error` log line.\nVERDICT: HIT\nWHY: The answer states that failure is indistinguishable from a legitimately empty result and shows that nearly every caller does no check, with only the MTP path checking, which satisfies the substance."
+}

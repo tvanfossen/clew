@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says callers/callees mix direct calls with shared-key dataflow edges or that an `edge_class` field must be read to tell them apart. It only notes that every caller had `edge_class: call`, and it distinguishes provenance and confidence by hop, which is a different thing."
+}

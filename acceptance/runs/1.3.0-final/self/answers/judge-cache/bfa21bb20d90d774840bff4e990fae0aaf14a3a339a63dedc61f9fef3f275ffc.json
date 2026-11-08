@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Each build stamps `options.<name>.tier` into `build_meta`. Only a tier-1 statement is written out in full and replayed by later builds of that database.\nVERDICT: MISS\nWHY: The answer says the tier is stamped into build_meta but never says the record is derived from stored rows rather than stamped as a separate summary; it says the opposite."
+}

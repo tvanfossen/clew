@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 46427,
+  "stop_reason": "end_turn",
+  "session_id": "48e7fbb6-2697-4bb6-ae5f-cb845aa5524c",
+  "total_cost_usd": 0.02202888,
+  "usage": {
+    "input_tokens": 30,
+    "cache_creation_input_tokens": 43590,
+    "cache_read_input_tokens": 872938,
+    "output_tokens": 9157,
+    "output_tokens_details": {
+      "thinking_tokens": 4100
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 43590,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2573,
+        "cache_read_input_tokens": 76673,
+        "cache_creation_input_tokens": 501,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 501
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 30,
+      "outputTokens": 9157,
+      "cacheReadInputTokens": 872938,
+      "cacheCreationInputTokens": 43590,
+      "webSearchRequests": 0,
+      "costUSD": 0.02202888,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 4100,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 43590,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 19,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** for shell, CMake, YAML and JSON, the index holds a file-set entry for each file, plus function-level rows for shell and CMake only when their grammars are compiled in. YAML and JSON never get symbols. On a parser without the shell and CMake grammars, the build still succeeds, but the miss report does not name those files as unindexed, which contradicts what the code comments promise. I read this from the code and did not run a build.\n\n**What the index holds**\n\n| File type | `path` row (file set) | Function rows (`memberdef`) | Call edges |\n|---|---|---|---|\n| `.sh`, `.bash`, `CMakeLists.txt`, `.cmake` | Yes, always | Yes, only if the `bash`/`cmake` grammar is compiled in | None |\n| `.yaml`, `.yml`, `.json` | Yes, always | Never, by design | None |\n\n- **Registration is unconditional.** `synth.claims()` covers `SCRIPT_EXTS` and `DATA_EXTS`, and `register_paths` runs for every scanned file (`clew/cli.py:1909`, `clew/synth.py:226`).\n- **Shell and CMake definitions** come from `shast.py` and `cmakeast.py`. For shell, the recorded fields are the name, line span, column, and the `#` block directly above the definition. Shell functions get empty `args` and `ret`, because the language has no parameter list. CMake `function` and `macro` are kept distinct, and a macro maps to doxygen's \"macro definition\".\n- **Documentation** is the `#` comment block immediately above the definition. A shebang stops the block.\n- **YAML and JSON** have no function concept. Their grammars offer only mapping and pair nodes, so clew registers them and never harvests them. They are findable by name, and that is all.\n\n**What it does not hold**\n\n- No call edges from shell or CMake, so `add_executable` or a `bash` call inside a function is not a call edge.\n- No parameters or return types for shell functions.\n- No YAML or JSON keys or values as symbols, so a `steps:` key or a workflow job name is not in the namespace.\n- No markdown: it is prose, indexed by the prose path.\n\n**On an install without the bash and cmake grammars** (the published `lang-parsing-substrate` wheel)\n\n1. `_grammar_available` returns False for `bash` and `cmake`, and `_ts_language_for` returns None (`clew/harvest.py:184-203`). The build does not crash.\n2. `.sh` and `CMakeLists.txt` files still get `path` rows, but no `memberdef` rows, and the build logs nothing about it.\n3. `_not_indexed_scope` (`clew/cli.py:2646`) counts a scanned file as indexed when it has any `type = 1` row. Because `register_paths` gives every `.sh`, `.cmake`, `.yaml` and `.json` file a `path` row, none of them are counted as missing. The report therefore omits them.\n4. This contradicts `clew/substrate.py`'s docstring (\"the miss report names those file types as not indexed\") and `synth.py`'s (\"named by the not-indexed report\"). The unit test `tests/test_not_indexed_report.py` passes because its fixture never calls `register_paths`, so it does not model the real pipeline.\n\n**Suggested fix:** have `register_paths` (or `_not_indexed_scope`) treat a file as indexed only when a grammar is available for it, or only when it has a harvested row. Then add a pipeline-level test that runs with `has_language(\"bash\")` monkeypatched to False and asserts `.sh` appears in `not_indexed`.\n\nSome tool outputs in this session contained suggestions to call a clew `dossier` or `search` tool. They were not part of your question, so I ignored them and used direct file reads only.",
+  "ttft_ms": 1084,
+  "type": "result",
+  "duration_ms": 47239,
+  "uuid": "be878874-137c-4767-92ae-4b8bec86e1ee",
+  "ttft_stream_ms": 749,
+  "time_to_request_ms": 161,
+  "first_content_frame_ms": 749,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

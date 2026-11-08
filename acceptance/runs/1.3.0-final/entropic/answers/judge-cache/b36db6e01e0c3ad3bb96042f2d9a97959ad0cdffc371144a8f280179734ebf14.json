@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes the cancel pollers and interrupt observer, but never says they exist to bridge an atomic into a plain int because the C ABI can't carry an atomic."
+}

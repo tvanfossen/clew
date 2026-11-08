@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 20208,
+  "stop_reason": "end_turn",
+  "session_id": "a7fdbc40-c33a-40ef-95f8-851d745bc9e2",
+  "total_cost_usd": 0.007373289999999999,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 17188,
+    "cache_read_input_tokens": 216869,
+    "output_tokens": 3532,
+    "output_tokens_details": {
+      "thinking_tokens": 958
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 17188,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2004,
+        "cache_read_input_tokens": 54305,
+        "cache_creation_input_tokens": 2030,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2030
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 3532,
+      "cacheReadInputTokens": 216869,
+      "cacheCreationInputTokens": 17188,
+      "webSearchRequests": 0,
+      "costUSD": 0.007373289999999999,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 958,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 17188,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 8,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The negative code is turned into text by a generated lookup table in `library/error.c`, not by hand-written code. A contributor adds a string by adding a documented `MBEDTLS_ERR_*` define to a public header and regenerating that file.\n\n**Runtime path**\n\n1. A caller passes the negative `ret` to `mbedtls_strerror(int ret, char *buf, size_t buflen)` (`library/error.c:792`, declared in `include/mbedtls/error.h:165`). It clears `buf`, then takes the absolute value, since codes are stored negated.\n2. The high-level part is `ret & 0xFF80`. If it is nonzero, `mbedtls_high_level_strerr()` (`library/error.c:174`) looks it up. A miss yields `UNKNOWN ERROR CODE (%04X)`.\n   - If the high-level code is `MBEDTLS_ERR_SSL_FATAL_ALERT_MESSAGE`, the function returns early, so the low-level part is not translated.\n3. The low-level part is `ret & ~0xFF80`. If it is nonzero, `mbedtls_low_level_strerr()` (`library/error.c:537`) looks it up. If both parts are present, the strings are joined with `\" : \"`. The buffer is always null-terminated and silently truncated when full.\n4. Each lookup is a `switch` over `case -(MBEDTLS_ERR_X):` returning a `\"MODULE - description\"` literal. Those cases sit inside `#if defined(MBEDTLS_X_C)` blocks, so a code whose module is compiled out is not in the table.\n5. Without `MBEDTLS_ERROR_C` (and `MBEDTLS_ERROR_STRERROR_DUMMY`), the function is a stub that writes an empty string.\n\n**Where the table comes from**\n\n`library/error.c` is generated from `scripts/data_files/error.fmt` by `scripts/generate_errors.pl`. The Makefile rule is at `library/Makefile:355`, and CMake runs the same script from `library/CMakeLists.txt:139`. `tests/scripts/check-generated-files.sh:135` regenerates the file and checks it against the committed copy.\n\nThe script scans every `include/mbedtls/*.h` for this pattern:\n\n```c\n/** Invalid key length. */\n#define MBEDTLS_ERR_AES_INVALID_KEY_LENGTH                -0x0020\n```\n\n- The value must be a negative hex literal (`-0x....`).\n- It needs exactly one doxygen description, either a `/** */` before the define or a `/*!< */` after it. Having neither or both is a fatal error.\n- The module is the segment after `MBEDTLS_ERR_` (`AES` above). `MPI`, `CTR` and `HMAC` are remapped to `BIGNUM`, `CTR_DRBG` and `HMAC_DRBG`.\n- The module must appear in `@low_level_modules` or `@high_level_modules` at the top of the script. Otherwise the script prints `Do not know how to handle` and exits 1.\n- Duplicate values are fatal.\n\n**What a contributor does to add one**\n\n1. Add a `#define MBEDTLS_ERR_<MODULE>_<NAME>  -0x00XX` in the module's header, in its range, with a doxygen description on the line before or after. Keep the value inside the module's range and unused.\n2. If the module is new, add it to the correct list in `generate_errors.pl` (low-level or high-level, which decides which lookup function it lands in). Also add a header in `include/mbedtls/` named after the module, since the generator derives the include name from it.\n3. Regenerate through the build, `make` in `library/` or the CMake target, not by running the script by hand. Then commit the regenerated `library/error.c`, since the check script fails if it is stale.\n4. Run the gate with `.venv/bin/pre-commit run --all-files` (per the repo's own convention) and any tests covering the new code.\n\nI did not run the generator or the build here, so the regeneration step is from reading the Makefile and script rather than an observed run. Also, `mbedtls_strerror` negates `ret` before masking, which is undefined for `INT_MIN`; that is outside the question but worth knowing.",
+  "ttft_ms": 1620,
+  "type": "result",
+  "duration_ms": 20801,
+  "uuid": "60f4fda9-02ec-413e-90f3-a188fab6d112",
+  "ttft_stream_ms": 1225,
+  "time_to_request_ms": 78,
+  "first_content_frame_ms": 1225,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

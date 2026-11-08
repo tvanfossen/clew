@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"It skips the operator entirely and destroys the matching row directly.\" and \"queryReaction(database, emoji_name, post_id, user_id).fetch() 4. if found: database.write(() => reaction[0].destroyPermanently())\"\nVERDICT: HIT\nWHY: The answer states the remove handler bypasses the operator, queries the reaction, and destroys it via a direct database.write."
+}

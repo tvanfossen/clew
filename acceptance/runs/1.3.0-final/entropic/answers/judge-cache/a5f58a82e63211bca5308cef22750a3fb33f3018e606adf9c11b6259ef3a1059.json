@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"A negative return on the second call is treated as failure: it logs an error with the text length and returns `{}`. ... The second call is not retried on the same input after a failure, and nothing loops.\"\n\nVERDICT: HIT\nWHY: The answer says a negative return from the second call logs an error and returns an empty vector, with no retry or loop, so the failure is terminal."
+}

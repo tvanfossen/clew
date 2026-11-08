@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Python gives the engine a buffer it will free (hook `modified_json`) | Must be allocated with `entropic_alloc()`, which is `malloc`. `hooks._alloc_c_string` and the trampoline do this.\nVERDICT: HIT\nWHY: The answer states that buffers the engine will free must come from `entropic_alloc` and names the Python locations (`hooks._alloc_c_string`, the trampoline)."
+}

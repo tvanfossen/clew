@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names `programs` as a top-level directory with uses of MBEDTLS_PRIVATE, and it also names `include`, `library` and `docs`.\n\n- **`programs`:** it cites `programs/ssl/ssl_context_info.c` and `programs/fuzz/fuzz_dtlsserver.c`, which use `MBEDTLS_PRIVATE`.\n- **`include`:** it cites `include/mbedtls/private_access.h`, `ssl.h:2824` and `psa/crypto_struct.h:416`. These are the header inlines that use `MBEDTLS_PRIVATE` internally.\n- **`library`:** it cites `library/common.h` and `library/ssl_misc.h`. I counted these because the answer says internal library code uses the real field names, but the files it cites are the ones that opt out.\n- **`docs`:** `docs/3.0-migration-guide.md` is cited only as a description of the intent, not as a place with uses. I did not count it.\n\nITEMS:\ninclude\nprograms\nlibrary\nEND"
+}

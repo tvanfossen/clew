@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says the query returns one row per neighbour collapsed to the strongest evidence across layers. It only notes that rows carry a `source` field, and that field implies per-layer rows exist."
+}

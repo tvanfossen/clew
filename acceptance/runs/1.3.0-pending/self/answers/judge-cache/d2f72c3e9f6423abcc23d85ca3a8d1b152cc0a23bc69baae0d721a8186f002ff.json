@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer mentions a rejected `index_scope` (unknown key, `excludes:` without `roots:`) being refused. It never describes a correctly-spelled derived key inside a section being refused with its own reason instead of as unknown."
+}

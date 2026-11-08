@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: In `check_approval`, if `on_tool_call` is set, `approved` becomes `true` unconditionally. The callback's return value is never read. So a registered callback notifies but does not gate; it cannot deny a call.\nVERDICT: HIT\nWHY: The answer states that approved is set true unconditionally with the callback's return value never read, so the callback cannot refuse; it doesn't mention the void return type, but the mechanism is covered."
+}

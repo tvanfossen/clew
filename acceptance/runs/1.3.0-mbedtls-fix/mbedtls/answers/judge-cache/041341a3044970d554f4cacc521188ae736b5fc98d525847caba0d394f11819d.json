@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Without `MBEDTLS_ALLOW_PRIVATE_ACCESS`, it expands to `private_##member`. - With the define, it expands to plain `member`.\nVERDICT: HIT\nWHY: The answer states both the default private_ renaming and the unchanged member name when the define is set."
+}

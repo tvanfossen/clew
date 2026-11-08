@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `edge_class` is `call` in every row I saw. The `callers` query in `clew/query/symbols.py` is documented as returning \"its callers plus the writers it reads from\", so other edge classes can appear. Check `edge_class` before reading a row as a call.\nVERDICT: HIT\nWHY: The answer says callers returns calls plus writers (dataflow) in one list and that the consumer must check `edge_class` to separate calls from dispatch and dataflow."
+}

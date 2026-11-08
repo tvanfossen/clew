@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"A stale process reads live data correctly but runs old logic when it writes.\" and \"A build through a stale process would drop whole pipeline layers and then report the index healthy.\"\nVERDICT: HIT\nWHY: The answer says a stale process reads current data correctly yet runs old logic on writes/builds; it omits the \"query tools open the DB per call\" reason, but the read/write asymmetry itself is stated."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `code` | The running server process loaded clew before its source changed | Restarting the MCP client only; `data` ... Rebuild (`index(action='refresh')`)\nVERDICT: HIT\nWHY: The table gives data cleared by rebuild and code cleared by client restart only, and the answer notes that a rebuild would not fix the schema axis. The answer never says outright that one flag would not have been enough, but it shows the different actions per axis."
+}

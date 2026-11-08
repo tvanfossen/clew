@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Viewable: after the server delete, the channel is kept locally with a `delete_at` timestamp. Not viewable: the current user is removed from the channel locally. ... Not viewable: if the archived channel is the current one, the user is kicked out with `Events.CHANNEL_ARCHIVED`, and the user is removed from the channel locally.\nVERDICT: HIT\nWHY: The answer states that when not viewable the user is removed from the channel (and kicked out if it is the current one), and that when viewable the channel is kept with `delete_at` set (marked deleted)."
+}

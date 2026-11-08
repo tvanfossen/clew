@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The library itself creates no threads. The only spawn sites the index finds are in `programs/`\nVERDICT: MISS\nWHY: The answer says the library creates no threads and that the mutex code compiles out. It lists the pthread example's spawn site as a real thread spawn. It never says the pthread example compiles to a stub main in a default build."
+}

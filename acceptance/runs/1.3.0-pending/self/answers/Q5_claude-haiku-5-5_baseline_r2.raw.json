@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 24562,
+  "stop_reason": "end_turn",
+  "session_id": "7101754d-53e7-463e-b424-b2abf14b9202",
+  "total_cost_usd": 0.01128806,
+  "usage": {
+    "input_tokens": 18,
+    "cache_creation_input_tokens": 24142,
+    "cache_read_input_tokens": 388186,
+    "output_tokens": 5152,
+    "output_tokens_details": {
+      "thinking_tokens": 1382
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 24142,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1790,
+        "cache_read_input_tokens": 55886,
+        "cache_creation_input_tokens": 2402,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2402
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 18,
+      "outputTokens": 5152,
+      "cacheReadInputTokens": 388186,
+      "cacheCreationInputTokens": 24142,
+      "webSearchRequests": 0,
+      "costUSD": 0.01128806,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1382,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 24142,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 15,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The ways to tell clew how to index a repository, from strongest to weakest:\n\n| Route | Where it lives | Tier | Scope |\n|---|---|---|---|\n| CLI flag (e.g. `--exclude`, `--entry-patterns`, `--extra-input`) | argv of one build | 1 (explicit) | one build, though `--exclude` is recorded into the index and replayed by later builds |\n| `--declare FILE` | a YAML document stated for this build | 1 (explicit) | one build, recorded in the index |\n| `options=` argument to `build_index()` or MCP `index(action=\"refresh\")` | same mapping as `--declare`, passed by an embedding caller | 1 (explicit) | one build |\n| `<repo>/.clew.yaml` | the target's own standing declaration | 2 (declared) | every build of that repo |\n| Target-owned files (a Doxyfile's PREDEFINED/ALIASES, a generator manifest, `toolchain.toml`, `suppress.toml`) | the repo's own tooling | 3 (target-fact) | read as facts |\n| Built-in defaults (ecosystem signatures, name heuristics) | clew | 4 and 5 | the floor |\n\nThe sections a declaration can carry include `index_scope`, `preprocessor`, `requirements`, `thread_patterns`, `shared_key_patterns`, `locks`, `dispatch`, `kconfig`, `entry_patterns`, `enrich` and `sub_indexes`. Only `preprocessor`, `kconfig`, `index_scope` and `sub_indexes` can be stated inline through `--declare` or `options=`. The `guard:` section of the same file belongs to the quality gate, and the index drops it.\n\nEnvironment variables are not index configuration. `CLEW_JOBS` sets the shared-parse worker count, `CLEW_HOOK_DISABLE` turns off the hook, and `CLEW_STATE_HOME` moves state. None of them changes what gets indexed.\n\n**When two of them disagree**, the rule is in `clew/tiers.py`: `resolved = (tier1 or tier2 or tier5) \u222a tier3 \u222a tier4`. In plain terms, you can correct clew's guesses, but you cannot un-discover a fact.\n\n- **Flag vs. declaration (same option):** the flag wins outright and replaces the declared layer. The declared value is not merged in. This is `_stated_layer` in `tiers.py` and `_declared_or_flag` in `cli.py`.\n- **`--declare` vs. `.clew.yaml` (same section):** the stated section replaces the declared section as a whole. It is not a deep merge. `_with_stated_sections` (`cli.py`) gives the reason: a merged `preprocessor` would describe a configuration neither side stated. Stating `{}` withdraws the statement, and the declaration answers again.\n- **Flag or declaration vs. target facts or heuristics:** target facts (tier 3) and ecosystem signatures (tier 4) accumulate, and no stated tier removes them. Heuristics (tier 5) are the only layer a stated value displaces. So passing `--entry-patterns` no longer silently drops `main`.\n- **Flag vs. flag (e.g. `--extra-input`):** these append rather than replace.\n- **Empty values:** an empty flag or an empty `--declare` document is treated as \"state nothing\", and the next tier down answers.\n\nEach build records which tier won for each option in `build_meta`, so a reader can tell what was actually used.\n\nI read the README, `cli.py`, `tiers.py`, `declaration.py`, `buildoptions.py` and `scope.py` directly. I did not run a build, so the precedence above is from the code and its docstrings, not from observed behaviour. I also did not trace how `toolchain.toml` and `suppress.toml` exclusions combine with `index_scope`.",
+  "ttft_ms": 947,
+  "type": "result",
+  "duration_ms": 25348,
+  "uuid": "db67e041-29be-4e30-9ab1-46c53f5e18c8",
+  "ttft_stream_ms": 656,
+  "time_to_request_ms": 220,
+  "first_content_frame_ms": 657,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

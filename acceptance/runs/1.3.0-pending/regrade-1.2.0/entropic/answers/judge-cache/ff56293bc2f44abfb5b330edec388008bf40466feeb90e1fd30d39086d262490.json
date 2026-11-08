@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The first call passes a null buffer and size 0 to get the required token count... Is it retry logic? No. The second call is unconditional, there is no loop, and nothing re-issues a call after a failure. It is a two-phase allocate-then-fill.\nVERDICT: HIT\nWHY: The answer identifies the two calls as size negotiation (size query then fill), explicitly rejects retry, and notes there is no loop and exactly two calls. It does not name backoff or an attempt counter, but the substance is covered."
+}

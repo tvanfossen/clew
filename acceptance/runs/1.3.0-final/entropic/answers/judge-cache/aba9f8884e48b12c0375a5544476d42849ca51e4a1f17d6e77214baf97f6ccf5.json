@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`auto_approve` does not bypass deny. It only skips the approval step; `ServerManager::execute` always checks the deny list.\" and \"allow list match? \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u25ba approved\" under `check_approval`\nVERDICT: MISS\nWHY: The answer places the allow-list match inside check_approval, but it never says the allow list suppresses the approval step rather than granting execution. It also never says that check_approval is the only place the list is consulted, in a different file from the deny check. The \"skips the approval step\" remark is about `auto_approve`, not the allow list."
+}

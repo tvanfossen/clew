@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Every handler's write goes through one method, `BaseDataOperator.batchRecords`, which wraps `database.write` and `writer.batch`.\nVERDICT: MISS\nWHY: The answer says writes funnel through `BaseDataOperator.batchRecords`, but it never says each mixin is constrained to extend `ServerDataOperatorBase`. It also says some writes bypass `batchRecords`, which conflicts with the item's \"every handler\" conclusion."
+}

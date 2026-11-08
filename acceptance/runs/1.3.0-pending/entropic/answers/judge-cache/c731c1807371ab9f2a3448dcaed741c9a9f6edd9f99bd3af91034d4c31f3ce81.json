@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Sizing call (line 55):** `llama_tokenize` is given a null output buffer and length 0. llama.cpp answers with the negated number of tokens needed... **Fill call (line 61):** the same arguments, now with a buffer of the right size.\"\nVERDICT: HIT\nWHY: The answer names both calls in `LlamaCppTokenizer::tokenize` in `src/inference/llama_cpp_tokenizer.cpp` (lines 55 and 61) and explains the size-query-then-fill mechanism."
+}

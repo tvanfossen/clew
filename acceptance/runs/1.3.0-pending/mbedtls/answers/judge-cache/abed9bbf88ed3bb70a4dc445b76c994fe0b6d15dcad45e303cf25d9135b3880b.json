@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_HAVE_ASM` on, GNU-compatible, ARM/AArch64/x86/x86-64 | defined | yes (table of \"Selection is decided at preprocessing time in `constant_time_impl.h:40-52`\")\nVERDICT: MISS\nWHY: The answer shows MBEDTLS_CT_ASM varying with HAVE_ASM and compiler/arch, but never states it is derived rather than set in mbedtls_config.h."
+}

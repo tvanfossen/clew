@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"By default it expands `ctx->MBEDTLS_PRIVATE(state)` to `ctx->private_state`, so the member is renamed. Code that writes `ssl->state` against the public header fails to compile. The renaming is the whole mechanism: the struct layout is unchanged, but the name a caller can type is no longer the real one.\"\nVERDICT: HIT\nWHY: The answer says compile-time enforcement works by renaming the member, with the struct layout unchanged and the fields still visible, which matches the item."
+}

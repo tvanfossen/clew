@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Default (opt-out not defined): `MBEDTLS_PRIVATE(member)` expands to `private_##member`... Opt-out defined: the same macro expands to plain `member`... Application code outside the library and these two sample programs still gets the mangled names and cannot touch the fields.\nVERDICT: HIT\nWHY: The answer explains that code defining MBEDTLS_ALLOW_PRIVATE_ACCESS (the library and two sample programs) sees plain names, while ordinary consumers of the public headers see the private_-prefixed names."
+}

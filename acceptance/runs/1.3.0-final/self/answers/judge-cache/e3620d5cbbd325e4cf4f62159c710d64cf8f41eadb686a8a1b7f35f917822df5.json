@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`DocsDbServer.staleness_notices()` (`server.py`) runs on the way out of every query reply and returns the `{axis, message}` list. `QueryTools._staleness()` attaches it to the payload\" and \"`staleness` is absent from the payload when nothing is stale.\" and \"An empty list means current.\"\nVERDICT: HIT\nWHY: The answer states the notice is attached to every query reply automatically and that it is empty or absent when the index is current."
+}

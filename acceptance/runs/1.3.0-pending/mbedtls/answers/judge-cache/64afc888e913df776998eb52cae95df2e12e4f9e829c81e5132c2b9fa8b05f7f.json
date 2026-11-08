@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never states that the buffer allocator (MBEDTLS_MEMORY_BUFFER_ALLOC_C) itself requires MBEDTLS_PLATFORM_MEMORY; it only says the allocator calls the setter."
+}

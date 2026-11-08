@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 14921,
+  "stop_reason": "end_turn",
+  "session_id": "c7b510a2-2068-447b-a30c-94533e243cef",
+  "total_cost_usd": 0.00233148,
+  "usage": {
+    "input_tokens": 4,
+    "cache_creation_input_tokens": 1311,
+    "cache_read_input_tokens": 79538,
+    "output_tokens": 2547,
+    "output_tokens_details": {
+      "thinking_tokens": 1260
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 1311,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2103,
+        "cache_read_input_tokens": 39769,
+        "cache_creation_input_tokens": 1311,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1311
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 4,
+      "outputTokens": 2547,
+      "cacheReadInputTokens": 79538,
+      "cacheCreationInputTokens": 1311,
+      "webSearchRequests": 0,
+      "costUSD": 0.00233148,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1260,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 1311,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 3,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "A zero-row reply doesn't just say \"nothing matched.\" The reply carries enough structure to tell the two cases apart, but it's up to you to read it. I ran two searches on a made-up term to see the shape. The symbol search returned `count: 0` with a `note` that says it is \"NOT an error and NOT a malformed call, and it is NOT a definitive negative either.\" It also included `token_hits` (`zzqxnonexistentsymbol=0`, `frobnicate=0`), a `scope` block, and the `target` that answered.\n\n**The signals, and what each one settles**\n\n| Field | What it tells you | Settles \"not in repo\"? |\n|---|---|---|\n| `token_hits` | Which token emptied the conjunction. Every token must appear in one searchable unit. | No. It says the term is missing from the searched units, not from the repo. |\n| `scope` (`file_count`, `extensions`, `not_indexed`) | Exactly which files were read. Here: 426 files, with `.rs`, `.toml`, `.sql`, `.lock`, `.csv`, `.jsonl`, `.motor` and extensionless files left out. | Only inside the indexed extensions. Anything in `not_indexed` is \"never looked.\" |\n| `note` \"NOT searched\" list | Markdown and Kconfig prose sit outside symbol search and need `corpus='prose'`. | No. A symbol miss says nothing about prose. |\n| `target` | Which repository answered. | Confirms you queried the repo you meant. |\n| `staleness` | Present only if the index is older than the source. | A stale index can miss recent additions. |\n| `not_searched` (dossier) | Sub-indexes of a split repo that were not read. | Only when present. |\n\nThe config corpus reports its own state. In my run `gate_state: \"populated\"` with 5 gate symbols means the layer was read, so its empty result is a real measurement. `kconfig_found: false` is reported explicitly rather than hidden, so you can see that no Kconfig was located.\n\n**How much confidence each answer deserves**\n\n- **Zero rows, every token missing, all searched extensions in scope, `staleness` absent:** reasonable confidence that no symbol name or `@brief` in the indexed code contains the term. This is not confidence that the term is absent from the repo. Symbol search matches names and briefs, not function bodies, so a term that appears only inside code will still come back empty.\n- **Term lives in an extension listed under `not_indexed`:** no confidence. The reply names those files, so use Grep on them.\n- **Term is conceptual or lives in docs or Kconfig:** no confidence from the symbol corpus. Retry with `corpus='prose'`.\n- **Any `staleness` block or any `not_searched` entry:** treat the negative as provisional until you refresh or query the missing part.\n- **A multi-token miss:** this only shows the conjunction failed. Drop the token that matched nothing and retry before concluding anything. The reply itself says so.\n\nThe practical rule is the one in the repository's own guidance: check `target` and `not_searched`, and fall back to Grep for any extension the index does not hold, before saying a thing does not exist. I did not run a Grep over the repo to confirm the made-up term is absent. That check would be the ground truth for the un-indexed extensions.",
+  "ttft_ms": 2470,
+  "type": "result",
+  "duration_ms": 15166,
+  "uuid": "53f698bc-5f78-4cfa-bf0a-1c2937843a6b",
+  "ttft_stream_ms": 1295,
+  "time_to_request_ms": 103,
+  "first_content_frame_ms": 1295,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `search` describes the callers relation as \"its callers plus the writers it reads from,\" so it can also include dataflow writers, not just call sites.\nVERDICT: MISS\nWHY: The answer notes that callers can include dataflow writers, but it never states that the causal polarity is inverted between the two halves, nor that a reader's \"callers\" are the functions whose writes it observes."
+}

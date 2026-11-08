@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says HealthMonitor::monitor_loop is a thread joined via a condvar, and mentions `event_mutex_` in `process_events`. It never says the status callback is not invoked from the monitor thread, or that events are queued for the caller to drain."
+}

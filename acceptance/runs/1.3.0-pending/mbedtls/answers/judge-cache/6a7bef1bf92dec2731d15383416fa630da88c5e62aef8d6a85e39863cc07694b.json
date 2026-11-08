@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The default config turns off every threading option: | `MBEDTLS_THREADING_C` | off (commented out) | ... | `MBEDTLS_THREADING_PTHREAD` | off (commented out)\nVERDICT: HIT\nWHY: The answer states that both MBEDTLS_THREADING_C and MBEDTLS_THREADING_PTHREAD are commented out in the shipped mbedtls_config.h, so the default build defines neither."
+}

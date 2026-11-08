@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: library/platform.c:47,52     mbedtls_calloc / mbedtls_free      (only if MBEDTLS_PLATFORM_MEMORY)\nVERDICT: MISS\nWHY: The answer never says the buffer allocator (memory_buffer_alloc) itself requires MBEDTLS_PLATFORM_MEMORY, so enabling it alone isn't enough to route allocations through it."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Direct `#include <llama.h>`, `<chat.h>`, `<sampling.h>`, `<mtmd.h>` and `<mtmd-helper.h>` appear in about 20 files, all under `src/inference/` or in tests\nVERDICT: HIT\nWHY: The answer says llama.cpp's reach spans many files (~20, plus a table of a dozen-plus entropic files across backend, orchestrator, speculative and grammar code), not a single wrapper."
+}

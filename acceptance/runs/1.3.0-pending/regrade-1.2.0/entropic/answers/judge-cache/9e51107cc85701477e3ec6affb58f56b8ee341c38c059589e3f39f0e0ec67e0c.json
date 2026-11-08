@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `ServerManager::args_to_pattern` takes the first string value of the arguments, and returns `*` when there is none.\nVERDICT: HIT\nWHY: The answer states that only the first string argument reaches the pattern match and that a call with no string argument becomes `*`. It does not say unparseable arguments also become `*`, but the core mechanism is there."
+}

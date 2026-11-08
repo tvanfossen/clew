@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Recording: the winning tier is stored in `build_meta`. Only tier-1 statements are replayed on refresh, and a withdrawn statement is not replayed from a stale row.\nVERDICT: MISS\nWHY: The answer says the winning tier is stored in `build_meta`, but it never says the record is derived from the stored rows rather than stamped as a separate summary."
+}

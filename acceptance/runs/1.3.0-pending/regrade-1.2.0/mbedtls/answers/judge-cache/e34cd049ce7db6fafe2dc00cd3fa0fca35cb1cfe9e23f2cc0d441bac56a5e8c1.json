@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Nothing in the library's runtime path changes, and the runtime setter is compiled out (`platform.c:15-22`).\"\nVERDICT: MISS\nWHY: The answer says the setter is \"compiled out\" on the macro path but never says it is also not declared, and it does not say the function does not exist. That is only part of the item."
+}

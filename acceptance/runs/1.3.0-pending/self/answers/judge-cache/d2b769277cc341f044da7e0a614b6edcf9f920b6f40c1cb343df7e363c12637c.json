@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Only one of the three is cleared by a rebuild.\" and \"Code axis: restart the client. Rebuilding is unsafe here, not just ineffective.\"\nVERDICT: HIT\nWHY: The answer says data staleness is cleared by a refresh or rebuild and code staleness by a client restart. It frames the axes as separate because each needs a different fix. It never says outright that one flag would not have been enough, but that follows from the framing."
+}

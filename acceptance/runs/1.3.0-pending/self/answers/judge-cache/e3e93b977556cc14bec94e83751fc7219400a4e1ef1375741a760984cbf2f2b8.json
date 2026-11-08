@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never states that bash and cmake share one harvest partition or gives the reason about a second partition writing empty payload rows per file per index."
+}

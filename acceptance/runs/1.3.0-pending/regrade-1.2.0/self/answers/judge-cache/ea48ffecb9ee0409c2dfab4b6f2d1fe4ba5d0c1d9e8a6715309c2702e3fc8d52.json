@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Nested git trees (submodules, vendored clones) are included, not cut out.\nVERDICT: HIT\nWHY: The answer states nested git trees are included in scope and that `clew/external.py` tags them as external, rather than excluding them."
+}

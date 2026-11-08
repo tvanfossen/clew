@@ -228,12 +228,14 @@ def resolve_rowid(conn: sqlite3.Connection, name: str, qualified: str | None = N
     return row[0] if row else None
 
 
+## Version 9: a bodiless row in its own file reports its declaration line, not `bodystart = -1`.
+##
 ## @brief All same-named function rows (definition-first) for overload disambiguation.
 ## @param conn Open connection.
 ## @param name Bare function name (`memberdef.name`).
 ## @param qualified Optional identity selector; see `matching_identity`. None keeps every same-named row.
 ## @return List of (rowid, signature, file, line_start, has_body) tuples, definition rows first then by rowid; empty when the name is unknown or no row carries that identity.
-## @version 8
+## @version 9
 ## @req REQ-DDB-QUERY-003
 ## @req REQ-DDB-QUERY-010
 def function_candidates(
@@ -261,7 +263,7 @@ def function_candidates(
     identity rule in ONE place instead of a second, SQL-shaped copy of it.
 
     @brief List same-named function rows, definition-preferring, with signatures.
-    @version 7
+    @version 8
     """
     if not table_exists(conn, "memberdef"):
         return []
@@ -272,9 +274,11 @@ def function_candidates(
     ## `bodystart` (its declaring and defining files are the same file); a declaration row reports
     ## where it is declared. A `memberdef` without the `line` column — hand-built fixtures, never
     ## doxygen's own schema — keeps the old reading rather than raising.
+    ## A BODILESS ROW IN ITS OWN FILE (1.3.0) reports its line too: a parse-built signature is
+    ## written with `bodystart = -1`, which surfaced as `line_start: -1` on every TS candidate list.
     has_line = any(column[1] == "line" for column in conn.execute("PRAGMA table_info(memberdef)"))
     line_expr = (
-        "CASE WHEN m.file_id = m.bodyfile_id THEN m.bodystart ELSE m.line END"
+        "CASE WHEN m.file_id = m.bodyfile_id AND m.bodystart > 0 THEN m.bodystart ELSE m.line END"
         if has_line
         else "m.bodystart"
     )

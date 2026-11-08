@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"On failure, it sets `props.failed = true` again, or removes the post for the same three server errors.\"\nVERDICT: HIT\nWHY: The answer states that retryFailedPost makes one new createPost call, with no loop in it (\"The index has no retry constant or loop\"). It also says that on failure the post is re-marked failed or removed for the same three errors."
+}

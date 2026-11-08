@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Tool-only pattern (`bash.execute`, `filesystem.*`): splits at the first `:` and matches only the tool name. ... using `fnmatch` with no flags.\nVERDICT: HIT\nWHY: The answer states that patterns are matched with fnmatch, split at the first colon into a tool part and an argument part, and that a pattern with no colon matches on the tool name alone."
+}

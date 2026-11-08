@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Bridge accept loop | `external_bridge.cpp:796` | `poll` + `accept` with a 500 ms timeout, checks peer uid, spawns a client thread; Per-client serve threads | `external_bridge.cpp:945` | Serves one MCP client\nVERDICT: HIT\nWHY: The answer names the accept loop thread that spawns a client thread, and separate per-client serve threads, which together give the two-level structure."
+}

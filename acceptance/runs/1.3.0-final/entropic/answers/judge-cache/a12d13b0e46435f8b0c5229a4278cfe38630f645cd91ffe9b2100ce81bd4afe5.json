@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Its reach into entropic's source is wide inside `src/inference/` and the facade\" (the table then lists about ten files that include llama headers directly, plus four more that reach them through `llama_cpp_backend.h`)\nVERDICT: HIT\nWHY: The answer names roughly a dozen of entropic's own source files that touch llama.cpp and calls the reach wide, so the dependency is not confined to one wrapper."
+}

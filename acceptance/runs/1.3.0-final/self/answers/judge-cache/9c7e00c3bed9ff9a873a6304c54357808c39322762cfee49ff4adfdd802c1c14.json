@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Conjunction is diagnosed. `token_hits` shows per-token counts, and the note says which token emptied the match. Here both tokens were zero, so the note tells the caller to retry with fewer tokens, not to conclude absence.\nVERDICT: MISS\nWHY: The answer describes the current diagnostics but never says that a single token matching nothing was previously treated as proof of absence or that this confused \"nothing exists\" with \"I did not look there.\""
+}

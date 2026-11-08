@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names three files as turning the opt-out on: `library/common.h` (line 132), `programs/ssl/ssl_client2.c` and `programs/ssl/ssl_server2.c`.\n\nITEMS:\nlibrary/common.h\nprograms/ssl/ssl_client2.c\nprograms/ssl/ssl_server2.c\nEND"
+}

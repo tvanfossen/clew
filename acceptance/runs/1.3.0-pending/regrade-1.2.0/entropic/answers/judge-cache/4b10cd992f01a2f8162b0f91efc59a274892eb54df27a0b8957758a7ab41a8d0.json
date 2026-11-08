@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The loop only enqueues. `process_events()` swaps the queue out under `event_mutex_` and runs the callbacks on the engine thread.\nVERDICT: HIT\nWHY: The answer states that the monitor loop only enqueues events, and that process_events() swaps the queue under event_mutex_ and runs the callbacks on the engine (caller) thread."
+}

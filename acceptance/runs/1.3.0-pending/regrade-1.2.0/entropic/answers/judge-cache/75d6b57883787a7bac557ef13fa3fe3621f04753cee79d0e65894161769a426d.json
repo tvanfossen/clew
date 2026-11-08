@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The tokenizer does not return an error code\" and \"Returns 0. The C API documents 0 as the answer for empty text, so a failed tokenization is indistinguishable from empty input.\"\nVERDICT: MISS\nWHY: The answer says failure is indistinguishable from empty input, but it says some callers do check: `generate_speculative_with_draft` rejects fewer than 2 tokens. That conflicts with \"no caller checks for it.\""
+}

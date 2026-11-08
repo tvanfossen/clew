@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never identifies the async-ask worker as the one detached thread with no join; it explicitly says it could not confirm any `detach()` call."
+}

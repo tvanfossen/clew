@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never identifies the seam as llama.cpp's C API (free `llama_`-prefixed functions); it only lists includes, forward-declared `llama_*` types, and one `llama_log_set` call."
+}

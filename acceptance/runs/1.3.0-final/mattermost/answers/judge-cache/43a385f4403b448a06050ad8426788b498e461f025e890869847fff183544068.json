@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"If viewable, the channel is kept locally with a `delete_at` timestamp (`setChannelDeleteAt`). If not, the current user is removed from the channel locally.\" and \"If not viewable, the app kicks the user out if it is the current channel and removes their membership. If viewable, the channel stays in the DB as archived.\"\nVERDICT: HIT\nWHY: The answer states that when not viewable the user is removed and kicked out if it's the current channel, and when viewable the channel is kept marked with delete_at."
+}

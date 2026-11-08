@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says that the buffer allocator itself requires MBEDTLS_PLATFORM_MEMORY; it presents `mbedtls_memory_buffer_alloc_init` as using the platform hook without stating that dependency."
+}

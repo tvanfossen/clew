@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `app/actions/remote/channel.ts:1397` (`archiveChannel`) | Sets local `delete_at` so the channel stays visible as archived | Removes the current user from the channel locally; `app/actions/websocket/channel.ts:463` ... Keeps the archived channel in the local DB | If the user is viewing it, kicks them out with `CHANNEL_ARCHIVED`, then removes the membership\nVERDICT: HIT\nWHY: The table states that when viewing is off the user is removed from the channel and kicked out if it's the current one. When viewable, the channel is kept and marked deleted via `delete_at`."
+}

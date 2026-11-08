@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"if !auto_ok and on_tool_call set \u2192 approved = true\" and \"With a callback registered, the only way a call is refused is the deny list.\"\nVERDICT: HIT\nWHY: The answer says an unmatched call is approved when a callback is registered, because the callback cannot deny, so only the deny list refuses. That is default-allow in effect. The no-callback denial it also mentions is a caveat and doesn't change that."
+}

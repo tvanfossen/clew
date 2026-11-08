@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"It is the only library-internal caller of the setter. Calling it therefore overrides whatever the project installed earlier.\"\nVERDICT: HIT\nWHY: The answer says `mbedtls_memory_buffer_alloc_init()` calls `mbedtls_platform_set_calloc_free()` with its own functions, and that it is the only library-internal caller of the setter."
+}

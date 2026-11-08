@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `callers` is documented as \"callers plus the writers it reads from\", so a writer can appear in the list.\nVERDICT: MISS\nWHY: The answer says writers can appear among callers, but it never says the polarity is inverted or that a reader's \"callers\" are the functions whose writes it observes."
+}

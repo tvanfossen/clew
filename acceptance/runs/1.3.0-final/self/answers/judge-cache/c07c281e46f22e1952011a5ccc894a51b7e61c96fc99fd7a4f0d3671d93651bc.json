@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The reply reported 8 candidate identities of 25 total named `main`. The contract says neighbour rows are shared across every identity that matches the name... I did not verify whether those actually reach `acceptance/__main__.py:main`.\nVERDICT: MISS\nWHY: The answer notes name-shared neighbour rows but never states that the flat surface selects by resolved identity while the traversal surface matches on the bare name."
+}

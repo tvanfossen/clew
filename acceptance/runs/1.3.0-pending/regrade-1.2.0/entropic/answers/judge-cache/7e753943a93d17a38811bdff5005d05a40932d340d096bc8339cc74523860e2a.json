@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: External bridge accept loop ... Started in `start()`. `stop()` closes the listen fd and joins it | Per-client serve threads ... tracked in `client_threads_` ... Finished ones are reaped during accept (`:956`).\nVERDICT: HIT\nWHY: The answer describes an accept-loop thread that spawns a per-client serve thread, which matches the two-level structure."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Every handler write funnels through one method, `BaseDataOperator.batchRecords`\nVERDICT: MISS\nWHY: The answer says writes funnel through `batchRecords` and shows the inheritance chain, but it never says the mixins are constrained to extend ServerDataOperatorBase, which the item requires as the reason."
+}

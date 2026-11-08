@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 29859,
+  "stop_reason": "end_turn",
+  "session_id": "df64daa8-4922-40e5-b18f-bb827a14fe38",
+  "total_cost_usd": 0.01057103,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 25425,
+    "cache_read_input_tokens": 274433,
+    "output_tokens": 5481,
+    "output_tokens_details": {
+      "thinking_tokens": 2391
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 25425,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3248,
+        "cache_read_input_tokens": 58585,
+        "cache_creation_input_tokens": 3694,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 3694
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 5481,
+      "cacheReadInputTokens": 274433,
+      "cacheCreationInputTokens": 25425,
+      "webSearchRequests": 0,
+      "costUSD": 0.01057103,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2391,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 25425,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 21,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** the call runs only if it clears two gates in order. The first is an approval step in `ToolExecutor`. The second is a deny check in `ServerManager::execute`, which runs after approval and can still block the call. The deny list is never consulted during approval.\n\n## Path of one call\n\n```\nToolExecutor::process_single_call\n  \u2514\u2500 check_call_preconditions(ctx, call)              tool_executor.cpp:667\n       1. check_anti_spiral_hard_block   (first, always)\n       2. check_schema\n       3. check_mcp_authorization\n       4. check_tier_allowed\n       5. check_duplicate\n       6. check_approval_pc \u2192 check_approval         tool_executor.cpp:161\n            a. auto_ok = loop.auto_approve_tools\n                         || ServerManager::is_explicitly_allowed(name, args)\n            b. if !auto_ok and on_tool_call callback set \u2192 notify, approved = true\n            c. fire ON_PERMISSION_CHECK (informational)\n            d. not approved \u2192 \"Permission denied\"\n  \u2514\u2500 route \u2192 ServerManager::execute                   server_manager.h:153\n       i.  pattern = name + \":\" + args_to_pattern(args)\n       ii. PermissionManager::is_denied(name, pattern)  \u2192 error JSON, call never routed\n       iii. route_tool_call \u2192 the server runs the tool\n```\n\nSteps 1\u20134 and 5 (duplicate) can reject earlier. I did not read the bodies of the anti-spiral, MCP-authorization, or tier checks, so I can't say what they decide.\n\n## What a pattern does\n\nPatterns come from `permissions.allow` and `permissions.deny` (`PermissionsConfig`, `config.h:589`), are parsed by `parse_permissions_config` (`loader.cpp:365`), and are held by `PermissionManager`.\n\n- **Form:** `tool` or `tool:argpattern`. Both halves are `fnmatch` globs with no `FNM_PATHNAME`, so `*` also matches `/` and spaces.\n- **Tool-only (no colon):** matches the tool name alone, so it covers every call to that tool.\n- **With a colon:** the tool part must match the tool name. The full pattern must then match `tool:<arg>`, where `<arg>` is what `args_to_pattern` produces.\n- **What `<arg>` is:** the value of the first string-valued argument in the JSON object. It is `*` when the args are empty, unparseable, or the first value is not a string. So `*` as the arg part matches everything.\n- **Allow list:** a match skips the prompt and passes approval.\n- **Deny list:** a match blocks the call at `execute`. It is checked after approval, so it overrides both allow entries and `auto_approve_tools`.\n- **Bash:** `BashServer::get_permission_pattern` (`bash.cpp:200`) builds `bash.execute:<base_cmd> *`, for example `bash.execute:pytest *`. The approval check, however, keys on the first argument through `args_to_pattern`. Both forms work against an allow entry of that shape because `*` matches the rest of the command.\n- **Persistence:** `save_permission` (`permission_persister.cpp:227`) writes a pattern into the project YAML under `permissions.allow` or `permissions.deny`. It is a no-op if the pattern is already present.\n\n## Issues the index surfaced\n\n1. **The approval callback cannot deny.** `on_tool_call` is `void(*)(const char*, void*)` (`engine_types.h:370`). In `check_approval`, a registered callback sets `approved = true` unconditionally. The \"no callback \u2192 deny\" branch only applies when no callback is registered. The file header and the `check_approval` brief both describe the callback as an approval gate, so the code and the docs disagree.\n2. **Two auto-approve flags.** `auto_approve_tools` on the loop config and `PermissionsConfig::auto_approve` both exist. I did not trace how they connect.\n3. **Wildcards cross shell metacharacters.** `bash.execute:pytest *` also matches `pytest x; rm -rf ~` under `fnmatch`. This follows from the glob semantics, not from a test.",
+  "ttft_ms": 3544,
+  "type": "result",
+  "duration_ms": 30803,
+  "uuid": "1940b143-2d87-4fe9-9020-09b28f6392a4",
+  "ttft_stream_ms": 3329,
+  "time_to_request_ms": 67,
+  "first_content_frame_ms": 3329,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

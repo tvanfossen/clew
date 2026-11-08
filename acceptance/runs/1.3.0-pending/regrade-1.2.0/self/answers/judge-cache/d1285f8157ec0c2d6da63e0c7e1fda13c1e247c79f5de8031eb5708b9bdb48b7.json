@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never contrasts how the flat surface and the traversal surface resolve the focal side (by identity vs. bare name). It only mentions same-name ambiguity in `callers(fn)` and notes that `chain_trace` filters fuzzy edges."
+}

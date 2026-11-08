@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names three files that define handler mixins outside `handlers/`. It writes each as a directory path ending in `index.ts`.\n\nITEMS:\napp/products/agents/database/operators/handlers/index.ts\napp/products/boards/database/operators/handlers/index.ts\napp/products/playbooks/database/operators/handlers/index.ts\nEND"
+}

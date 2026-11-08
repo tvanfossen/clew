@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The 16-bit code is split by the layout comment in `include/mbedtls/error.h:17-90`: 3 high-level module bits in `0xFF80`, and 7 low-level module bits below that. A caller can therefore get either half alone or both joined, e.g. `-0x40A0` becomes `\\\"RSA - Bad input parameters to function : AES - Invalid key length\\\"`.\"\nVERDICT: HIT\nWHY: The answer states that a code has a high-level module part and a low-level part, and that strerror joins both with \" : \" when both are present."
+}

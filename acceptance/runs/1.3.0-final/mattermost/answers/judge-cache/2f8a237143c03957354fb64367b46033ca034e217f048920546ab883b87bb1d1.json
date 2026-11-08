@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"It is not retried automatically: the send happens once, with HTTP retries disabled.\"\nVERDICT: HIT\nWHY: The answer explicitly states the create-post request is sent once with retries disabled (noRetry: true, retryLimit: 0)."
+}

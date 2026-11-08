@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`programs/ssl/ssl_client2.c:8` | Defined before the first include | That program gets plain names.\" and \"`programs/ssl/ssl_server2.c:8` | Defined before the first include\"\nVERDICT: HIT\nWHY: The answer lists example programs (ssl_client2, ssl_server2) that define MBEDTLS_ALLOW_PRIVATE_ACCESS themselves to get plain field names, which states the opt-out used by programs."
+}

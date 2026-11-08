@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The code is default-deny only when no `on_tool_call` callback is registered. With a callback, every non-allow-listed call is approved (`tool_executor.cpp:168-172`).\" The answer also says \"The callback is a notification, not a gate.\"\n\nVERDICT: HIT\nWHY: The answer contrasts the header's default-deny claim with the code. With the callback registered, a call on neither list is approved and runs, so the callback is not a gate. It states this conditionally, but the substance is there."
+}

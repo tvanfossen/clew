@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_ct_compiler_opaque` (`:85`) is `asm volatile(\"\" : \"+r\"(x))`. The empty asm forces the compiler to treat `x` as unknown, so it cannot fold a secret-derived value back into a branch.\nVERDICT: HIT\nWHY: The answer states the asm is an empty `asm volatile` with `\"+r\"(x)` as an in/out register operand and that it works as an optimizer barrier. It never says outright that no instruction is emitted, but \"empty asm\" together with \"treat x as unknown\" conveys that."
+}

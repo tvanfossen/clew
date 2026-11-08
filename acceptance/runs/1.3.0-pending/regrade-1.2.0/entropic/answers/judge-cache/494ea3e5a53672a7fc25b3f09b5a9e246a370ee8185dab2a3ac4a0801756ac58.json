@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Per-client serve thread | `external_bridge.cpp:945` | Per connection, reaped or joined in `stop()`; External bridge accept loop | `src/facade/external_bridge.cpp:796`\nVERDICT: HIT\nWHY: The answer lists the bridge's accept-loop thread and a separate per-client serve thread spawned per connection, which conveys the two-level structure."
+}

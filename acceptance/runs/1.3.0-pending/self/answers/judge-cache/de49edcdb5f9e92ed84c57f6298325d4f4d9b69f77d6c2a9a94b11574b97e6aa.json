@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"If the repo's `.clew.yaml` has an `index_scope:` block, `_declared_index_scope` (`scope.py:991`) reads it... A block with no usable roots is rejected, and the rejection reason is logged. `derive_scope` then falls back to the whole-repo tier\" and \"**Whole repository.** If nothing is declared, or the declaration is unusable, `whole_repo_scope` ... makes the repo root the single INPUT root.\"\nVERDICT: HIT\nWHY: The answer says a declared index_scope is the first tier, and that both \"nothing declared\" and \"declaration unusable\" fall back to indexing the whole repo."
+}

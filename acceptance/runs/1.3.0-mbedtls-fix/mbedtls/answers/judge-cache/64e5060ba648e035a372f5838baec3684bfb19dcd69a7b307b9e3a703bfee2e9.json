@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names these top-level directories as containing uses of `MBEDTLS_PRIVATE`:\n- `library`: it names `ecdh.c`, `md.c` and `x509_crt.c` as using it.\n- `include`: it names `include/mbedtls/private_access.h` and `include/mbedtls/ssl.h`, but only as the header that defines the macro and a header that mentions it, not as files that use it.\n\nIt says `tests/` and `framework/` had no grep hit for the define, and that it did not check which test files use the `MBEDTLS_PRIVATE(...)` form. It names `programs/ssl` only for the define `MBEDTLS_ALLOW_PRIVATE_ACCESS`, not for `MBEDTLS_PRIVATE` itself. I left `programs`, `tests` and `framework` out because it doesn't say any of them use the macro.\n\nITEMS:\nlibrary\nEND"
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Everywhere else** (applications and integrators), the default applies and direct member access is a compile error unless they define the macro themselves before including the headers.\" and \"The define is turned on in three places... `library/common.h`... `programs/ssl/ssl_client2.c`...\"\nVERDICT: HIT\nWHY: The answer states that code defining the opt-out (the library and the ssl programs) gets plain member names, while ordinary consumers of the public headers get the renamed `private_` members."
+}

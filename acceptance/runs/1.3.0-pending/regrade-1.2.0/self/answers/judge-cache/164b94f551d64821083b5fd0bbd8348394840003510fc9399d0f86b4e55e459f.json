@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes how empty replies now distinguish \"looked and found nothing\" from \"never looked,\" but never says a single unmatched token was previously treated as proof of absence."
+}

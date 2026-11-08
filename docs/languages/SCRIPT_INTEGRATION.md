@@ -30,8 +30,12 @@ every `steps:` key of every workflow file into the namespace that answers
 are. What those files need is to be **visible**: findable by name, and named by the
 not-indexed report when a query finds nothing.
 
-Markdown is not here. It is prose, and `clew/prose.py` ingests every markdown file in the
-build's scanned set into the full-text corpus, reachable through `search(corpus='prose')`.
+Markdown and reStructuredText are not here. They are prose, and `clew/prose.py` ingests every
+`.md`, `.markdown` and `.rst` file in the build's scanned set into the full-text corpus,
+reachable through `search(corpus='prose')`. An `.rst` file is split at its first three
+section levels, which reStructuredText assigns in the order a document first uses each title
+style; a section title or a `.. _label:` target is not a symbol, for the reason YAML keys are
+not.
 
 ## What becomes a symbol
 

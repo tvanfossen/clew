@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Explicit statement: a CLI flag, or the `options` argument on the MCP `index` tool, keyed by `.clew.yaml` section name\nVERDICT: HIT\nWHY: The tier 1 row names both entry points, the CLI flag and the structured `options` argument on the MCP `index` tool."
+}

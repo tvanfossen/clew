@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`callers()` also returns `edge_class='key'` rows: functions whose shared-key write `fn` reads. They do not call `fn` and may run on another thread.\"\nVERDICT: HIT\nWHY: The answer states that key-class \"callers\" of a reader are the functions whose writes it reads, which is the inverted polarity the item describes."
+}

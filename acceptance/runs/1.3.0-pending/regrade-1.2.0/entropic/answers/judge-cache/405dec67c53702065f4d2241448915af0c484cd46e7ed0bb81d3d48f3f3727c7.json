@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the llama.cpp reach is confined to src/inference/ and lists about five of entropic's source files. It never says the dependency touches roughly a dozen files, and it describes the reach as narrow, not wide."
+}

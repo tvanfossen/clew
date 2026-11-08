@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Both trampolines catch Python exceptions so they do not escape into C.\nVERDICT: MISS\nWHY: The answer says the trampolines catch Python exceptions so they don't escape into C, but it never says a failed hook is treated as a pass-through, and the item needs that behavior."
+}

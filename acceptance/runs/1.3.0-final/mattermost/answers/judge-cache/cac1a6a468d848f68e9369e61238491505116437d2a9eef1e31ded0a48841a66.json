@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says posting has retries disabled (retryLimit 0), but never states that requests in general retry with exponential backoff and a limit of 3 set by the network manager. It even says the native client's retry behavior is outside what it can see."
+}

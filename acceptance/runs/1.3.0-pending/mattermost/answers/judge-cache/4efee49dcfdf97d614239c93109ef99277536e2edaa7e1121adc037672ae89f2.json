@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "ITEMS:\napp/actions/websocket/channel.ts\napp/actions/remote/channel.ts\napp/actions/remote/search.ts\napp/screens/browse_channels/index.ts\napp/screens/browse_channels/dropdown_slideup.tsx\napp/screens/browse_channels/channel_dropdown.tsx\napp/screens/home/channel_list/categories_list/categories/header/index.ts\napp/database/models/server/category.ts\napp/screens/channel_settings/archive/index.ts\napp/screens/channel_settings/archive/archive.tsx\napp/queries/servers/system.ts\ndetox/shared/server-baseline.ts\ndetox/e2e/support/server_api/system.ts\nEND"
+}

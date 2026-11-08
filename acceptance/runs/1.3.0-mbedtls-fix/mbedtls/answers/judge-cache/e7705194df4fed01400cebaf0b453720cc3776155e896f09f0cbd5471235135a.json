@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_THREADING_C` is not enabled in `include/mbedtls/mbedtls_config.h`. ... `MBEDTLS_THREADING_PTHREAD` and `MBEDTLS_THREADING_ALT` are both commented out (lines 2185, 2196).\nVERDICT: MISS\nWHY: The item requires the two threading macros to be THREADING_C and THREADING_PTHREAD/ALT as a pair left undefined. The answer instead says THREADING_PTHREAD and THREADING_ALT are commented out, and that THREADING_C is \"not enabled\". That doesn't clearly state the shipped config leaves both of the item's macros undefined, so I'm resolving the doubt to MISS."
+}

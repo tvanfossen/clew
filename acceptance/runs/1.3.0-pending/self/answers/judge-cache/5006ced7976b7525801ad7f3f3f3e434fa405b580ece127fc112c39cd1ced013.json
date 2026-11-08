@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Every query reply carries that list as a `staleness` block, but only when stale.\nVERDICT: HIT\nWHY: The answer says every query reply carries the staleness block and that the notices list is empty when the tool is current. That matches the item's substance: the annotation rides on every reply, unprompted, and is empty on a current tool."
+}

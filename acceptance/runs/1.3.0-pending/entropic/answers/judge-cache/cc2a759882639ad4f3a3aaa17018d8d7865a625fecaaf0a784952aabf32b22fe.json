@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**1. `LlamaCppTokenizer::tokenize`** (`src/inference/llama_cpp_tokenizer.cpp:55-63`) - Call 1 passes `nullptr` and a size of 0. llama.cpp answers with the negative of the required token count... Call 2 allocates `n` slots and makes the real call.\"\nVERDICT: HIT\nWHY: The answer locates the size-probe-then-real-call pattern in llama_cpp_tokenizer.cpp, at specific line ranges, in both tokenize and detokenize."
+}

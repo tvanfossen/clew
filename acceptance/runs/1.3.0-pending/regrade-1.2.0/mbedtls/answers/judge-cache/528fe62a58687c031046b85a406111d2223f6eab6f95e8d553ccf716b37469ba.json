@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: To add a new string, you add a documented `#define` to the right header and regenerate. Don't edit `error.c` directly.\nVERDICT: HIT\nWHY: The answer states that a new string means adding a documented #define to the header and regenerating, not editing error.c directly."
+}

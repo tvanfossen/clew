@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"no section \u2192 None \u2192 fall through\" and \"whole_repo_scope clew/scope.py:683 (no declaration) roots = (repo_root,)\"\nVERDICT: HIT\nWHY: The answer says the declared `index_scope` is tier 1, and that finding no declaration falls through to indexing the whole repository. A malformed declaration is a different case, which it says refuses the build, so it does not contradict the item."
+}

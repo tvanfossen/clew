@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 26913,
+  "stop_reason": "end_turn",
+  "session_id": "38a250e9-b930-4c68-97a0-bf548b8169ec",
+  "total_cost_usd": 0.015124139999999998,
+  "usage": {
+    "input_tokens": 16,
+    "cache_creation_input_tokens": 40691,
+    "cache_read_input_tokens": 473634,
+    "output_tokens": 4496,
+    "output_tokens_details": {
+      "thinking_tokens": 1685
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 40691,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2254,
+        "cache_read_input_tokens": 79150,
+        "cache_creation_input_tokens": 1291,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1291
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 16,
+      "outputTokens": 4496,
+      "cacheReadInputTokens": 473634,
+      "cacheCreationInputTokens": 40691,
+      "webSearchRequests": 0,
+      "costUSD": 0.015124139999999998,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1685,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 40691,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 13,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "When clew indexes a repository, the decision about which files enter the index is made in one place: `derive_scope` in `clew/scope.py:639`. Everything else either feeds it a declaration or consumes its result.\n\n**The decision, in order**\n\n1. **Tier 1, a stated scope.** An MCP or API caller can pass `index_scope` directly. `_declared_index_scope` (`scope.py:991`) reads it in place of any file.\n2. **Tier 2, the repo's `.clew.yaml`.** Otherwise it reads the `index_scope:` section via `load_declaration_located` (`declaration.py:299`). Its `roots` replace the scope and `excludes` subtract from it. A root that doesn't exist on disk is dropped, and a declared root is taken at its word and never walked.\n3. **Tier 3, the whole repository.** If neither tier yields usable roots, `whole_repo_scope` (`scope.py:683`) returns the repo root as the single root.\n\nThere is no third \"read the Doxyfile\" tier any more (gh#333). A Doxyfile's `INPUT` is a documentation target, not a reasoning boundary, so `cli.py:_fold_scope_into_args` sets `replace_input`. The Doxyfile still supplies `ALIASES` and `PREDEFINED`, but not the file list.\n\n**What gets subtracted in the whole-repo tier**\n\n- Anything git ignores, from `git ls-files --others --ignored --exclude-standard --directory` (`_gitignored_paths`, `scope.py:845`). The command goes through `git_argv` and `git_env`, so a target's own `.git/config` can't run code.\n- Nested git trees are indexed, not excluded. Their own ignores are collected separately, since the parent's `ls-files` stops at the submodule boundary.\n- Dot-directories and `__pycache__`/`node_modules` (`_skip_dir`, `scope.py:490`), applied as EXCLUDE entries by `_pruned_dirs` (`scope.py:908`). The walk stops at depth 16 and reports where it stopped.\n\n**Which files doxygen actually reads**\n\nThe scope gives roots and excludes. Which extensions are parsed is a separate, forced setting. Since gh#340, `FILE_PATTERNS` is always doxygen's own default list (`doxygen.py:203`, `:270`). A declared or Doxyfile `FILE_PATTERNS` is read only for reporting. A repo can't narrow the extension set by declaring it.\n\n**When nothing is declared**\n\n- The whole repo is the root, minus git-ignored paths and dot/cache directories.\n- No error is raised. `derive_scope` logs the reason at INFO (\"no index_scope is declared for this repo \u2026 so the whole repository is the index scope\u2026\"), and that reason is stored in `IndexScope` (`clew/query/models.py`).\n- If the directory is not a git repo, or git is missing, nothing is subtracted and a warning is logged. The index is wider than the repo asked for, and the code says so.\n\n**Failure modes that look similar but are not the zero-config path**\n\n- A malformed YAML file is logged at WARNING and treated as absent, so the build falls back to whole-repo.\n- A file whose `index_scope:` is present but unusable (not a mapping, unknown key, no existing root) is a *rejection*. `derive_scope` logs it and falls back to whole-repo, with the rejection as the stated reason. The log no longer says \"nothing declared\" when something was declared (gh#5).\n- An unknown top-level section name in `.clew.yaml` raises `DeclarationError` and refuses the build, because a misspelled section would otherwise be silently ignored.\n- A stated `index_scope` combined with a non-default `--scope` exits 1 (`cli.py:780`). Only the from-guard path reads a stated scope, so anything else would silently build a different boundary.\n\n**Caveats**\n\n- The `index` tool description names `from-declaration` as the default. In the code, `from-declaration` is normalised to `from-guard` (`scope.py:451`), and the default is `from-guard` (`cli.py:348`). The two names mean the same thing.\n- I read this from the index's briefs and source bodies, plus the `cli.py` and `doxygen.py` sections directly. I did not run a build on a sample repo, so the behaviour above is what the source says it does, not a measured result.",
+  "ttft_ms": 1859,
+  "type": "result",
+  "duration_ms": 27961,
+  "uuid": "67acb016-b437-4e5b-82ca-7d15d5db1b94",
+  "ttft_stream_ms": 1176,
+  "time_to_request_ms": 75,
+  "first_content_frame_ms": 1176,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

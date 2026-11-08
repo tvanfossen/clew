@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: renaming the fields turns \"you touched a private member\" into a compile error instead of a silent ABI or behaviour dependency\nVERDICT: HIT\nWHY: The answer says enforcement is by renaming members (`private_##member`) so naming them fails to compile, which is the break-the-name mechanism. It never says outright that the struct layout stays visible, but the renaming mechanism implies it."
+}

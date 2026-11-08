@@ -56,6 +56,23 @@ from .gitenv import GIT_TIMEOUT_SECONDS, git_argv, git_env
 # cost guard, NOT a scope decision.
 _SKIP_DIR_NAMES = frozenset({"__pycache__", "node_modules"})
 
+## DIRECTORY NAMES THAT CONVENTIONALLY HOLD SOMEBODY ELSE'S CODE. Reported, never excluded: a
+## committed dependency tree is excluded by no ignore rule (`_gitignored_paths` asks git for
+## UNTRACKED files only), but a first-party tree can share one of these names, and excluding by
+## name would silently drop real source. The repository narrows its own scope with
+## `index_scope`; this list exists only so the scope reason can tell it to.
+##
+## DELIBERATELY NARROW. `lib`, `deps` and the platform directories (`ios`, `android`) are left
+## out: a React Native app keeps its OWN native source under `ios/` and `android/`, and a rule
+## that flagged them would teach every mobile developer to skip the disclosure.
+_VENDORED_DIR_NAMES = frozenset(
+    {"vendor", "vendors", "third_party", "third-party", "thirdparty", "external", "extern", "pods"}
+)
+
+## How many vendored-looking trees the scope reason names before it counts the rest. gh#37: an
+## exclude list of ~390 entries overflowed a client's reply limit, so this stays bounded.
+_VENDORED_NAMED = 5
+
 # Depth at which the walk stops descending. Deeper directories are taken
 # wholesale (and reported) rather than scanned; 16 is far below any real
 # source layout, so this is a runaway guard, not a policy.
@@ -151,7 +168,9 @@ def _under_any(path: Path, roots: set[Path]) -> bool:
 ## @param under Directory to walk (a repo root, or a previously found nested tree).
 ## @param ignored Resolved paths to filter out at every level (gitignored clones, etc.).
 ## @return Resolved paths of every nested tree found, at any depth, unsorted.
-## @version 1
+## v2: reads `.paths` off the `IgnoreSweep` `_gitignored_paths` now returns. This call site
+## needs only the paths; the asked/unaskable distinction is reported by `whole_repo_scope`.
+## @version 2
 ## @dg_internal
 def _nested_trees_recursive(under: Path, ignored: set[Path]) -> list[Path]:
     """`nested_repo_roots` ITSELF ALREADY STOPS DESCENT at the first `.git` it finds — by
@@ -177,14 +196,14 @@ def _nested_trees_recursive(under: Path, ignored: set[Path]) -> list[Path]:
 
     @brief Recursively find nested git trees at every depth under one root.
     @return Every nested tree found, unsorted, at any depth.
-    @version 1
+    @version 2
     """
     direct = sorted(
         p for p in {q.resolve() for q in nested_repo_roots(under)} if not _under_any(p, ignored)
     )
     found = list(direct)
     for tree in direct:
-        deeper_ignored = ignored | {p.resolve() for p in _gitignored_paths(tree)}
+        deeper_ignored = ignored | {p.resolve() for p in _gitignored_paths(tree).paths}
         found.extend(_nested_trees_recursive(tree, deeper_ignored))
     return found
 
@@ -215,7 +234,9 @@ def _direct_parent(tree: Path, root: Path, all_nested: list[Path]) -> Path:
 ## @brief Split a repository into first-party and per-nested-tree indexes, at any depth.
 ## @param repo_root The repository root.
 ## @return The sub-indexes, or an empty list when the repo holds no nested trees.
-## @version 5
+## v6: reads `.paths` off the `IgnoreSweep` `_gitignored_paths` now returns. This call site
+## needs only the paths; the asked/unaskable distinction is reported by `whole_repo_scope`.
+## @version 6
 ## @req REQ-DDB-INDEX-002
 def derive_sub_indexes(repo_root: Path) -> list[SubIndex]:
     """EMPTY MEANS "DO NOT SPLIT", and that is the compatibility contract. A repository with
@@ -239,7 +260,7 @@ def derive_sub_indexes(repo_root: Path) -> list[SubIndex]:
 
     @brief Derive the sub-index split from nested git trees, at any depth.
     @return The split, or [] to build the repository whole.
-    @version 5
+    @version 6
     """
     root = Path(repo_root).expanduser().resolve()
     ## THE SPLIT USES THE BUILD'S OWN RULE, and skipping this cost a real target twenty minutes.
@@ -281,9 +302,9 @@ def derive_sub_indexes(repo_root: Path) -> list[SubIndex]:
     ##
     ## Per tree rather than per repository, so this stays proportional to the number of
     ## vendored trees rather than repeating the whole-tree walk gh#24 just removed.
-    git_ignored = {p.resolve() for p in _gitignored_paths(root)}
+    git_ignored = {p.resolve() for p in _gitignored_paths(root).paths}
     for tree in nested:
-        git_ignored |= {p.resolve() for p in _gitignored_paths(tree)}
+        git_ignored |= {p.resolve() for p in _gitignored_paths(tree).paths}
 
     first = _first_party(root, children_of.get(root, []), git_ignored)
     others = []
@@ -339,7 +360,9 @@ def _first_party(root: Path, direct: list[Path], git_ignored: set[Path]) -> SubI
 ## @brief The first-party sub-index of a split repository, without walking any vendored tree.
 ## @param repo_root The repository root.
 ## @return The first-party SubIndex, equal to `derive_sub_indexes(repo_root)[0]`; None when unsplit.
-## @version 1
+## v2: reads `.paths` off the `IgnoreSweep` `_gitignored_paths` now returns. This call site
+## needs only the paths; the asked/unaskable distinction is reported by `whole_repo_scope`.
+## @version 2
 ## @req REQ-DDB-INDEX-002
 def first_party_sub_index(repo_root: Path) -> SubIndex | None:
     """gh#48's "<10 s nominally", on the repository that set the bar. `derive_sub_indexes`
@@ -356,7 +379,7 @@ def first_party_sub_index(repo_root: Path) -> SubIndex | None:
 
     @brief Derive only the first-party sub-index, cheaply.
     @return The SubIndex, or None when the repository has no nested trees.
-    @version 1
+    @version 2
     """
     root = Path(repo_root).expanduser().resolve()
     ignored = {p.resolve() for p in whole_repo_scope(root).excludes}
@@ -365,7 +388,7 @@ def first_party_sub_index(repo_root: Path) -> SubIndex | None:
     )
     if not direct:
         return None
-    return _first_party(root, direct, {p.resolve() for p in _gitignored_paths(root)})
+    return _first_party(root, direct, {p.resolve() for p in _gitignored_paths(root).paths})
 
 
 ## @brief Directories the last derivation refused to descend past.
@@ -678,7 +701,12 @@ def derive_scope(repo_root: Path, stated: dict | None = None) -> DerivedScope:
 ## @brief The whole repository as one INPUT root, less only what git ignores.
 ## @param repo_root Repo root to index in full.
 ## @return A DerivedScope rooted at the repo, nested git trees INCLUDED.
-## @version 3
+##
+## v4: the reason no longer claims ignored paths were excluded when git could not be asked —
+## it said so unconditionally, beside a WARNING stating the opposite.
+## v5: names indexed trees that look vendored, and how to narrow the scope, rather than leaving a
+## committed dependency silently indexed.
+## @version 5
 ## @req REQ-DDB-CONFIG-001
 def whole_repo_scope(repo_root: Path, rejected: str = "") -> DerivedScope:
     """THE DEFAULT TIER since gh#333, not the last resort: reached whenever a repo
@@ -699,10 +727,11 @@ def whole_repo_scope(repo_root: Path, rejected: str = "") -> DerivedScope:
 
     @brief Build the whole-repo index scope.
     @return The whole-repo scope.
-    @version 3
+    @version 5
     """
     root = Path(repo_root).expanduser().resolve()
-    ignored = _gitignored_paths(root)
+    sweep = _gitignored_paths(root)
+    ignored = list(sweep.paths)
     ## A SUBMODULE'S OWN `.gitignore` IS INVISIBLE TO THE PARENT. `git ls-files` stops
     ## at a submodule boundary, so the sweep above reports nothing inside a nested
     ## tree — and a nested tree is now INDEXED rather than excluded, which is exactly
@@ -715,8 +744,12 @@ def whole_repo_scope(repo_root: Path, rejected: str = "") -> DerivedScope:
     ## that vendors nothing, which is most of them.
     nested_trees = nested_repo_roots(root)
     for nested in nested_trees:
-        ignored.extend(_gitignored_paths(nested))
-    excludes = [*ignored, *_pruned_dirs(root, set(ignored), {p.resolve() for p in nested_trees})]
+        ignored.extend(_gitignored_paths(nested).paths)
+    vendored: list[Path] = []
+    excludes = [
+        *ignored,
+        *_pruned_dirs(root, set(ignored), {p.resolve() for p in nested_trees}, vendored),
+    ]
     return DerivedScope(
         source=SOURCE_WHOLE_REPO,
         ## PRESENT-BUT-UNUSABLE IS NOT ABSENT (gh#5). A declaration carrying an `index_scope:`
@@ -728,8 +761,9 @@ def whole_repo_scope(repo_root: Path, rejected: str = "") -> DerivedScope:
         reason=(
             (rejected if rejected else f"no {INDEX_SCOPE_SECTION} is declared for this repo")
             + f" — {_declaration_note(root)} — so the whole repository is the "
-            f"index scope, INCLUDING any nested git trees, less the paths git ignores "
-            f"and the dot/cache directories. A Doxyfile, if the repo ships one, still "
+            f"index scope, INCLUDING any nested git trees, {_ignore_clause(sweep)}"
+            f"{_vendored_clause(root, vendored)} "
+            f"A Doxyfile, if the repo ships one, still "
             f"supplies ALIASES and PREDEFINED but no longer supplies the INPUT: that is "
             f"a documentation target, not a reasoning boundary. {_declaration_advice()}"
         ),
@@ -837,12 +871,102 @@ def dependency_roots(repo_root: Path) -> list[Path]:
     return [n for n in nested_repo_roots(repo_root) if _is_dependency_of_parent(n)]
 
 
+## @brief What git said about ignored paths, and whether it could be asked at all.
+## @version 1
+@dataclass(frozen=True)
+class IgnoreSweep:
+    """TWO DIFFERENT FACTS THAT USED TO SHARE ONE EMPTY LIST. `_gitignored_paths` returned `[]`
+    both when git reported nothing ignored and when git could not be asked — a missing binary,
+    or a tree that is not a repository. The second excludes NOTHING, and the only signal was a
+    WARNING nobody reads after a build reports success.
+
+    Meanwhile `whole_repo_scope` built its reason unconditionally and said the scope was the
+    whole repository "less the paths git ignores". With an unaskable list that sentence is
+    false, so one build emitted both "nothing ignored was excluded" and a claim that it was.
+
+    `asked` IS A MEASUREMENT AND IS ALWAYS PRESENT, including when True. A caller that only
+    needs the paths reads `.paths` and is unaffected.
+
+    @brief Ignored paths plus whether git answered.
+    @version 1
+    """
+
+    paths: tuple[Path, ...]
+    asked: bool
+    ## WHY it could not be asked, for the reason string. Empty when it could.
+    detail: str = ""
+
+
+## @brief Name the indexed trees that look vendored, and how to exclude them.
+## @param root Resolved repo root.
+## @param vendored Vendored-looking trees the walk found it was about to index.
+## @return A leading-space sentence, or "" when there is nothing to report.
+## @version 1
+## @dg_internal
+def _vendored_clause(root: Path, vendored: list[Path]) -> str:
+    """ONLY THE OUTERMOST. `pkg/vendor/foo/vendor` is one vendored tree, not two, so a match
+    nested inside another match is dropped before counting — otherwise the count overstates how
+    much third-party code there is, and the count is the part a reader acts on.
+
+    BOUNDED, BUT THE TRUE COUNT SURVIVES. gh#37 is why the names are capped; a summary that
+    dropped the count would make 400 vendored trees read like 5.
+
+    @brief Disclose vendored-looking indexed trees.
+    @return Clause text.
+    @version 1
+    """
+    outer = sorted(v for v in set(vendored) if not any(o != v and o in v.parents for o in vendored))
+    if not outer:
+        return ""
+    rels = [v.relative_to(root).as_posix() for v in outer]
+    shown = ", ".join(rels[:_VENDORED_NAMED])
+    if len(rels) > _VENDORED_NAMED:
+        shown += f" and {len(rels) - _VENDORED_NAMED} more"
+    one = len(rels) == 1
+    subject = (
+        "1 tree that looks vendored IS" if one else f"{len(rels)} trees that look vendored ARE"
+    )
+    pronoun = "it is" if one else "they are"
+    return (
+        f" {subject} indexed: {shown}. A committed dependency is excluded by no ignore rule; if "
+        f"{pronoun} third-party code, declare `{INDEX_SCOPE_SECTION}` in .clew.yaml to narrow "
+        f"the scope (propose_declaration drafts one)."
+    )
+
+
+## @brief The scope reason's clause about ignored paths, true to what git actually answered.
+## @param sweep The root's ignore sweep.
+## @return One sentence.
+## @version 1
+## @dg_internal
+def _ignore_clause(sweep: IgnoreSweep) -> str:
+    """THE CLAUSE MUST NOT OUTRUN THE MEASUREMENT. It used to read "less the paths git ignores"
+    unconditionally, so a tree git could not answer for got a reason claiming an exclusion that
+    never happened — beside a WARNING saying the opposite.
+
+    @brief Describe the ignore exclusion honestly.
+    @return Clause text.
+    @version 1
+    """
+    if sweep.asked:
+        return "less the paths git ignores and the dot/cache directories."
+    return (
+        f"less ONLY the dot/cache directories: the ignore list could NOT be obtained "
+        f"({sweep.detail}), so NOTHING git would ignore was excluded and this scope is wider "
+        f"than the repository asked for."
+    )
+
+
 ## @brief Paths the repo's own git configuration ignores.
 ## @param root Resolved repo root.
-## @return Absolute paths of ignored files and wholly-ignored directories.
-## @version 3
+## @return The sweep: ignored paths, and whether git could be asked.
+##
+## v4: returns `IgnoreSweep` rather than a bare list, because `[]` conflated "nothing is
+## ignored" with "nobody could ask" and a caller was asserting the first while logging the
+## second.
+## @version 4
 ## @dg_internal
-def _gitignored_paths(root: Path) -> list[Path]:
+def _gitignored_paths(root: Path) -> IgnoreSweep:
     """`.gitignore` is the one scope declaration essentially every repo already
     writes, and it names exactly the trees the whole-repo tier must not swallow: the
     virtualenv, the build output, the tool caches, the vendored checkout.
@@ -855,8 +979,8 @@ def _gitignored_paths(root: Path) -> list[Path]:
     silently wider index is the outcome this project keeps paying for.
 
     @brief List the paths git ignores under a repo root.
-    @return Absolute ignored paths.
-    @version 3
+    @return The sweep.
+    @version 4
     """
     ## `git_argv` RATHER THAN A BARE "git": the tree being inspected can set
     ## `core.fsmonitor` in its OWN `.git/config`, which git then RUNS on this very query —
@@ -886,7 +1010,7 @@ def _gitignored_paths(root: Path) -> list[Path]:
         )
     except OSError as exc:
         logger.warning("index_scope: git is unavailable (%s) — nothing ignored was excluded", exc)
-        return []
+        return IgnoreSweep((), False, f"git is unavailable ({exc})")
     if proc.returncode != 0:
         logger.warning(
             "index_scope: %s is not a git repository (git exit %d) — nothing ignored was "
@@ -894,18 +1018,30 @@ def _gitignored_paths(root: Path) -> list[Path]:
             root,
             proc.returncode,
         )
-        return []
-    return [(root / entry).resolve() for entry in proc.stdout.split("\0") if entry]
+        return IgnoreSweep(
+            (), False, f"{root} is not a git repository (git exit {proc.returncode})"
+        )
+    found = tuple((root / entry).resolve() for entry in proc.stdout.split("\0") if entry)
+    return IgnoreSweep(found, True)
 
 
 ## @brief Dot and cache directories anywhere under a whole-repo root.
 ## @param root Resolved repo root.
 ## @param already Paths already excluded, which are neither re-reported nor walked.
 ## @param nested Nested git trees the walk stops at, from the caller's own cached walk.
+## @param vendored Optional accumulator for indexed trees whose name looks vendored.
 ## @return Absolute paths of directories the index should never be handed.
-## @version 3
+##
+## v4: also reports indexed trees whose name conventionally holds third-party code, on the walk
+## that already runs, so the scope reason can say so without paying for a second walk.
+## @version 4
 ## @dg_internal
-def _pruned_dirs(root: Path, already: set[Path], nested: set[Path]) -> list[Path]:
+def _pruned_dirs(
+    root: Path,
+    already: set[Path],
+    nested: set[Path],
+    vendored: list[Path] | None = None,
+) -> list[Path]:
     """`_skip_dir` is this module's rule for a directory no repo declares and none
     wants indexed. Under a declared root it is applied by pruning the walk that
     builds the roots; the whole-repo root is never walked for its files, so the same
@@ -913,7 +1049,7 @@ def _pruned_dirs(root: Path, already: set[Path], nested: set[Path]) -> list[Path
 
     @brief Collect the dot/cache directories a whole-repo scope must exclude.
     @return Absolute directory paths.
-    @version 2
+    @version 4
     """
     found: list[Path] = []
     for dirpath, dirnames, _ in os.walk(root, onerror=_warn_unwalkable):
@@ -947,6 +1083,12 @@ def _pruned_dirs(root: Path, already: set[Path], nested: set[Path]) -> list[Path
             dirnames[:] = []
             continue
         dirnames[:] = _descendable(here, dirnames, already, found)
+        ## ON THE WALK THAT ALREADY HAPPENS, never a second one: gh#36 measured this walk at
+        ## 24.6 s on a repository vendoring boost, and a separate probe cost +68 ms per 6,000
+        ## directories. Only children the walk is about to DESCEND are considered, so an
+        ## excluded or ignored tree is never reported as indexed.
+        if vendored is not None:
+            vendored.extend(here / n for n in dirnames if n.lower() in _VENDORED_DIR_NAMES)
     return found
 
 

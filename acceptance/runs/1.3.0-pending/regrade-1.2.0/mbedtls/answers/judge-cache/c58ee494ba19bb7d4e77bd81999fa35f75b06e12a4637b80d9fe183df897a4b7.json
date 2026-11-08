@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Nothing in the library's runtime path changes, and the runtime setter is compiled out (`platform.c:15-22`).\nVERDICT: MISS\nWHY: The answer says the setter is \"compiled out\" on the macro path, but it never says the function is not declared. The item needs \"neither declared nor compiled\", and the answer's table implies the setter exists whenever `MBEDTLS_PLATFORM_MEMORY` alone is defined."
+}

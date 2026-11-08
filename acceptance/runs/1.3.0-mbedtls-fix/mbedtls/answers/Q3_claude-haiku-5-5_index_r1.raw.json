@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 34096,
+  "stop_reason": "end_turn",
+  "session_id": "c278c183-7292-4c7a-bfe4-3c8fb0d68523",
+  "total_cost_usd": 0.0197202,
+  "usage": {
+    "input_tokens": 16,
+    "cache_creation_input_tokens": 56861,
+    "cache_read_input_tokens": 495190,
+    "output_tokens": 6789,
+    "output_tokens_details": {
+      "thinking_tokens": 3056
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 56861,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2825,
+        "cache_read_input_tokens": 76459,
+        "cache_creation_input_tokens": 653,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 653
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 16,
+      "outputTokens": 6789,
+      "cacheReadInputTokens": 495190,
+      "cacheCreationInputTokens": 56861,
+      "webSearchRequests": 0,
+      "costUSD": 0.0197202,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 3056,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 56861,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 13,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** every allocation in the library goes through `mbedtls_calloc()` / `mbedtls_free()`. What those resolve to depends on three config symbols. A project substitutes its allocator either at compile time (macros) or at runtime (a setter function).\n\n## What gets called\n\nResolution is decided in `include/mbedtls/platform.h` and `library/platform.c`:\n\n| Config | `mbedtls_calloc` / `mbedtls_free` become |\n|---|---|\n| `MBEDTLS_PLATFORM_MEMORY` off (default) | Plain `calloc` / `free` (`platform.h:163-167`). No indirection. |\n| `MBEDTLS_PLATFORM_MEMORY` on, plus both `MBEDTLS_PLATFORM_CALLOC_MACRO` and `MBEDTLS_PLATFORM_FREE_MACRO` | Those macros, expanded at compile time (`platform.h:139-145`). The runtime setter is not compiled. |\n| `MBEDTLS_PLATFORM_MEMORY` on, no macros | Real functions in `platform.c:47-55` that call through two static function pointers, `mbedtls_calloc_func` and `mbedtls_free_func` (`platform.c:44-45`). |\n\nThe pointers start at `MBEDTLS_PLATFORM_STD_CALLOC` / `_FREE`. Those default to `calloc` / `free` (`platform.h:83-88`). The `NO_STD_FUNCTIONS` guard I saw around `platform.h:57` is the only one I checked, so I have not confirmed that it is the only condition that changes this default. If the standard functions are not available, the default is the `platform_calloc_uninit` stub in `platform.c:25-30`, which always returns NULL. Until a real allocator is installed, every allocation fails.\n\n## How a project substitutes its allocator\n\nOption A, compile time (no runtime pointer, no setter):\n\n```c\n/* mbedtls_user_config.h, or any config header included by the build */\n#define MBEDTLS_PLATFORM_MEMORY\n#define MBEDTLS_PLATFORM_CALLOC_MACRO  my_calloc   /* void *(size_t, size_t) */\n#define MBEDTLS_PLATFORM_FREE_MACRO    my_free     /* void (void *)         */\n```\n\nThe two macros must be defined together. The comment at `platform.c:16-19` says the compile-time macros take precedence. In this mode `mbedtls_platform_set_calloc_free` is not declared, so calling it is a compile error.\n\nOption B, runtime (only `MBEDTLS_PLATFORM_MEMORY` defined):\n\n```c\nmbedtls_platform_set_calloc_free(my_calloc, my_free);   /* before any mbedtls call */\n```\n\nThe library never calls the setter itself. If nothing calls it, the default stub returns NULL.\n\nYour `calloc` must zero the memory it returns. The config documentation (`mbedtls_config.h:4113-4116`) requires this.\n\nOption C: keep the runtime setter, but point the default at a different function with `MBEDTLS_PLATFORM_STD_CALLOC` / `_FREE`.\n\n## What the library does with it\n\n- **Every allocation funnels through the wrappers.** The index's AST-resolved callers of `mbedtls_calloc` include the cipher, PK, ECP, X.509, PSA, bignum and SSL modules. A grep for bare `malloc(`, `calloc(` and `free(` in `library/` found none outside comments, so the substitution covers the library.\n- **The library itself is the only consumer of the setter.** `library/memory_buffer_alloc.c:566-576`: `mbedtls_memory_buffer_alloc_init(buf, len)` calls `mbedtls_platform_set_calloc_free(...)` with its own `buffer_alloc_calloc` and `buffer_alloc_free`. Using the built-in buffer allocator therefore silently replaces the global allocator. The mutex-wrapped variants are used when `MBEDTLS_THREADING_C` is on.\n- **Teardown does not restore the previous allocator.** `mbedtls_memory_buffer_alloc_free()` (`memory_buffer_alloc.c:602-608`) only destroys the mutex and zeroes the heap context. The function pointers still point at the buffer allocator's functions, which now operate on zeroed state. I have not checked whether this is intended. If the heap is torn down and the library keeps allocating, the failure will come from the buffer allocator, not from the standard allocator.",
+  "ttft_ms": 1996,
+  "type": "result",
+  "duration_ms": 34710,
+  "uuid": "3b78a6b7-cd54-4c58-8fe4-4d2e593a4793",
+  "ttft_stream_ms": 1311,
+  "time_to_request_ms": 77,
+  "first_content_frame_ms": 1311,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

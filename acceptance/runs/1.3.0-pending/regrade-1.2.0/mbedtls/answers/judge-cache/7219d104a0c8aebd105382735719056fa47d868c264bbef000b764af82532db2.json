@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `library/common.h:132` | Defined for every library translation unit that includes it. 129 of the library's files include it.\nVERDICT: HIT\nWHY: The answer states that library/common.h defines MBEDTLS_ALLOW_PRIVATE_ACCESS for library translation units, so the private macro expands to plain member names."
+}

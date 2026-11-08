@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: when `MBEDTLS_ALLOW_PRIVATE_ACCESS` is not defined, `MBEDTLS_PRIVATE(member)` expands to `private_##member`... inside the library, the fields are ordinary struct members... Every library `.c`/`.h` that includes `common.h`... sees the real member names.\nVERDICT: HIT\nWHY: The answer explains that code defining the opt-out sees real member names, while default consumers (e.g., ssl_context_info.c) see mangled `private_` names."
+}

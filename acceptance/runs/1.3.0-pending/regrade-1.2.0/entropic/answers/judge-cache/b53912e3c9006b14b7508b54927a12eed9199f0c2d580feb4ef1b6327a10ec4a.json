@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `entropic_inference_count_tokens` (`inference_c_api.cpp:548`) | Returns 0 to the plugin caller. Its `len/4` fallback runs only on a C++ exception, and a tokenizer failure is not an exception. ... `do_count_tokens` \u2192 `count_tokens` (`backend.cpp:496`) | Returns 0.\nVERDICT: HIT\nWHY: The answer states that the token-counting path returns 0 on tokenizer failure with no error signal, which is the substance of the item."
+}

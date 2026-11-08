@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_ct_compiler_opaque(x)` returns `x` through `asm volatile(\"\" : \"+r\"(x))` when assembly is available. Otherwise it returns `x ^ mbedtls_ct_zero`, where `mbedtls_ct_zero` is a `volatile` global. The stated purpose is that the compiler cannot prove the value at compile time, so it cannot fold the mask back into a branch.\nVERDICT: HIT\nWHY: The answer gives the empty `asm volatile(\"\" : \"+r\"(x))` form with an input-output register operand, and says it exists to stop the compiler from reasoning about the value. It doesn't say outright that no instruction is emitted, but the empty asm string shows that."
+}

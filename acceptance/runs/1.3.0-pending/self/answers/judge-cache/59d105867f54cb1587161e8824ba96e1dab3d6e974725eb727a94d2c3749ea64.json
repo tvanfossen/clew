@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer lists the signals a reply carries (`scope`, `not_searched`, a \"NOT searched\" note) and gives its own confidence tiers. It never says the reply's strong or definitive wording is earned per call by checking which corpora went unread, as opposed to being tied to a zero-row result shape."
+}

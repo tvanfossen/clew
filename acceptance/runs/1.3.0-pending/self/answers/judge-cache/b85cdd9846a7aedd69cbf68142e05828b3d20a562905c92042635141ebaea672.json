@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: With the published wheel the new keys are absent. The routing is capability-gated, so a `.sh` file resolves to no grammar. It is registered and searchable, with no symbols, the same outcome as YAML. No `ValueError` reaches the build. ... The not-indexed report is stamped at build time. It says, for example, that 14 `.sh` files were in scope and none are in the index.\nVERDICT: HIT\nWHY: The answer says a missing-grammar install degrades without error, routing is capability-gated, and the affected file types are reported as not indexed."
+}

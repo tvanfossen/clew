@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`data` | indexed source files changed | Index is behind the code. A refresh fixes it.\" and \"`code` | ... Only a client restart clears it.\"\nVERDICT: HIT\nWHY: The answer states that the data axis is cleared by a refresh and the code axis only by a client restart, and it notes that rebuilding can't clear schema or code staleness. It doesn't say outright that this is why one flag wouldn't be enough, but the different remedies per axis are stated."
+}

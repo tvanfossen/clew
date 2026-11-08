@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It calls `mbedtls_platform_set_calloc_free` with its own `buffer_alloc_calloc_mutexed` (or unlocked `buffer_alloc_calloc` if `MBEDTLS_THREADING_C` is off)\nVERDICT: HIT\nWHY: The answer states that `mbedtls_memory_buffer_alloc_init` installs the mutexed allocator or the plain one depending on `MBEDTLS_THREADING_C`. The compile-time nature is implied by the macro, and the pair is named only through its calloc half."
+}

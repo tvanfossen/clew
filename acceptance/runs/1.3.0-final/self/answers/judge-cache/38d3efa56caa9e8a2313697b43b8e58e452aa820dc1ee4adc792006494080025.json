@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The `code` notice says reads are live and only writes are affected\" and \"Until then, `build_or_refresh` refuses (server.py:2278, `stale_code_refusal`), `force` cannot override the refusal, and `_data_stale` checks `matches_source` first so auto-refresh never attempts a build that could drop layers.\"\nVERDICT: HIT\nWHY: The answer states that on the code axis reads remain live while writes (builds) are affected and refused, because a stale process could drop layers."
+}

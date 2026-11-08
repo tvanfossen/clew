@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_memory_buffer_alloc_init()` installs its own calloc/free at lines 570-575 (a mutex-wrapped pair when `MBEDTLS_THREADING_C` is on). That call replaces any allocator you set earlier, so order matters.\nVERDICT: MISS\nWHY: The answer mentions a mutex-wrapped pair under MBEDTLS_THREADING_C but never says a plain pair is installed otherwise, nor that the choice is made at compile time inside init."
+}

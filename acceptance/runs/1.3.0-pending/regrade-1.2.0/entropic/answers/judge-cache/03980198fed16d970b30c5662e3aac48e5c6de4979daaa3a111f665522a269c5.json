@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `StdioTransport::stderr_reader_loop` | `StdioTransport::open` | Drains child stderr | `io_mutex_` on the transport | ... `SSETransport::sse_reader_loop` | `SSETransport::open` | Reads the SSE stream | `pending_mutex_` guards pending requests\nVERDICT: HIT\nWHY: The answer lists a stderr reader thread for the stdio transport and an SSE reader thread for the SSE transport, each spawned in its transport's open()."
+}

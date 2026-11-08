@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: WS \"reaction_added\" \u2514\u2500 actions/websocket/event.ts:163   case REACTION_ADDED \u2192 handleReactionAddedToPostEvent (not awaited)\nVERDICT: HIT\nWHY: The answer identifies the dispatch in event.ts routing the REACTION_ADDED case to handleReactionAddedToPostEvent, though it doesn't name `handleWebSocketEvent` explicitly, the event.ts dispatcher location and routing mechanism are stated."
+}

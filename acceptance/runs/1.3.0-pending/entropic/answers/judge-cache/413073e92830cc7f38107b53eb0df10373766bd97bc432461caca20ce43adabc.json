@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `LlamaCppTokenizer::tokenize`, `src/inference/llama_cpp_tokenizer.cpp:55-61` | `nullptr, 0` to get the token count | Fills a vector of that size\nVERDICT: HIT\nWHY: The answer locates the two-call size-query-then-fill pattern in llama_cpp_tokenizer.cpp, in both tokenize and detokenize."
+}

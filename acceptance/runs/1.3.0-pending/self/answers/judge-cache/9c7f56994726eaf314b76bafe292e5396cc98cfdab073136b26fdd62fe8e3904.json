@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `stale_code_refusal` makes any write path (`build_or_refresh`) refuse rather than build with old logic. `force` does not override it.\nVERDICT: HIT\nWHY: The answer states that the write path refuses rather than builds and that `force` cannot override it, which is the mechanism the item asks for. It does not say the refusal sits ahead of the build decision. The \"force does not override\" claim implies that ordering, so I counted it."
+}

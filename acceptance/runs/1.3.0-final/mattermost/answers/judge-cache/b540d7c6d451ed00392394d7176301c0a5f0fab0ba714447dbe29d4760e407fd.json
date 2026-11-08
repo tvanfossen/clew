@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`archivedChannelsViewable(value?: string)` returns `value !== 'false'`\" and \"`archivedChannelsViewable(undefined)` returns `true`. So the app behaves as if the feature is on.\"\nVERDICT: HIT\nWHY: The answer states that only an explicit 'false' turns the setting off and that an omitted setting is treated as viewable."
+}

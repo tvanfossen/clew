@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `.sh`, `.bash` | `memberdef` rows for `name() {\u2026}` and `function name {\u2026}`, with the `#` block above as the brief. No parameter list, since arguments arrive as `$1`.\nVERDICT: MISS\nWHY: The answer says shell has no parameter list (arguments arrive as `$1`), but it never says there is no return, and it doesn't tie either absence to the language lacking them."
+}

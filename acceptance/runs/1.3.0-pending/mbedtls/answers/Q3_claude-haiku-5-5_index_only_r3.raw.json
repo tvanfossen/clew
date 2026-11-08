@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 31233,
+  "stop_reason": "end_turn",
+  "session_id": "8ee13f53-9ac8-44c0-8af2-b79a748625f4",
+  "total_cost_usd": 0.012509390000000002,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 35367,
+    "cache_read_input_tokens": 208369,
+    "output_tokens": 6703,
+    "output_tokens_details": {
+      "thinking_tokens": 4535
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 35367,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 5311,
+        "cache_read_input_tokens": 69619,
+        "cache_creation_input_tokens": 3888,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 3888
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 8,
+      "outputTokens": 6703,
+      "cacheReadInputTokens": 208369,
+      "cacheCreationInputTokens": 35367,
+      "webSearchRequests": 0,
+      "costUSD": 0.012509390000000002,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 4535,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 35367,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 8,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** mbedtls never calls `malloc`/`calloc` directly in its library code. Every allocation goes through `mbedtls_calloc()` / `mbedtls_free()`, which dispatch through two function pointers that a project can replace at runtime. The default pointers point at libc.\n\n**What gets called**\n\n```\nlibrary code (ecp.c, ssl_tls.c, x509_crt.c, psa_crypto.c, ...)\n  \u2514\u2500 mbedtls_calloc(n, size) \u2500\u2510\n  \u2514\u2500 mbedtls_free(p) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2524  (platform.h: macro or function, depending on config)\n                              \u25bc\n   platform.c:47  mbedtls_calloc()  \u2192 (*mbedtls_calloc_func)(n, size)\n   platform.c:52  mbedtls_free()    \u2192 (*mbedtls_free_func)(p)\n                              \u25bc\n   platform.c:44-45  static pointers, initialised to\n     MBEDTLS_PLATFORM_STD_CALLOC / MBEDTLS_PLATFORM_STD_FREE\n     (platform.h:84 \u2192 libc calloc/free by default)\n```\n\n- `mbedtls_calloc` and `mbedtls_free` are called from many modules, including `cipher_wrap.c` context allocators, `ecp.c`, `pk_wrap.c`, `ssl_tls.c`, `x509_crt.c`, `pkcs7.c`, `lms.c` and `psa_crypto*.c`. `mbedtls_zeroize_and_free` in `common.h` also goes through `mbedtls_free`.\n- `mbedtls_platform_set_calloc_free(calloc_func, free_func)` (`platform.c:57-63`) overwrites the two pointers and always returns 0. It does no NULL check and no validation.\n\n**How a project substitutes its allocator**\n\nTwo routes, both in the index:\n\n1. **Runtime (no rebuild):** call `mbedtls_platform_set_calloc_free(my_calloc, my_free)` before any mbedtls allocation. This is the path the library's own helpers use.\n2. **Compile-time:** define `MBEDTLS_PLATFORM_MEMORY` together with `MBEDTLS_PLATFORM_CALLOC_MACRO` and `MBEDTLS_PLATFORM_FREE_MACRO`, which route `mbedtls_calloc`/`mbedtls_free` at the preprocessor level (`platform.h:143-144`). The index has no shipped definition site for those two macros, so the project must supply them in its own config. The repo's `tests/configs/user-config-malloc-0-null.h` shows the pattern: it sets `MBEDTLS_PLATFORM_MEMORY` and maps `MBEDTLS_PLATFORM_STD_CALLOC` to `custom_calloc`.\n\n**What the library does with the facility**\n\n- **Default:** libc `calloc`/`free`.\n- **No standard functions:** if the project removes the standard functions and does not define the macro, `platform.c:25-32` falls back to `platform_calloc_uninit`, which always returns NULL. Every allocation then fails until the project calls `mbedtls_platform_set_calloc_free`. This is inferred from the gating, not from a test.\n- **Built-in heap:** `mbedtls_memory_buffer_alloc_init(buf, len)` (`memory_buffer_alloc.c:566-600`) carves allocations out of a caller-supplied buffer and never calls libc. It installs its own allocator by calling `mbedtls_platform_set_calloc_free`. With `MBEDTLS_THREADING_C` it installs a mutex-wrapped variant (`buffer_alloc_calloc_mutexed`, `:541-552`). The installation is process-global, so it replaces whatever allocator was set before.\n\n**Limits of this answer**\n\n- The index does not give me the exact `#if` expression for `platform.h:138-168` or `platform.c:20-64`. I know which macros gate them and what each expands to, but not the precise branch logic. Read those lines to confirm which path a given config takes.\n- I did not verify that no library file calls libc `calloc` directly. The index shows the library's `mbedtls_calloc` callers, not an exhaustive absence of raw calls.",
+  "ttft_ms": 1982,
+  "type": "result",
+  "duration_ms": 32758,
+  "uuid": "e744ec93-dfe2-4e4c-be1f-195bb577ad57",
+  "ttft_stream_ms": 1487,
+  "time_to_request_ms": 71,
+  "first_content_frame_ms": 1487,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

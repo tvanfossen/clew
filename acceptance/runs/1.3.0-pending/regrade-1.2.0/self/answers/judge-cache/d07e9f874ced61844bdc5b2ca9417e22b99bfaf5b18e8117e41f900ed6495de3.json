@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Malformed input: an unknown top-level section is refused with an error that names the allowed set. A malformed declaration that is otherwise readable degrades to defaults.\nVERDICT: MISS\nWHY: It says unknown sections are refused naming the allowed set, but never gives the reason (an ignored section would build with defaults while reporting the declaration was honoured), and it doesn't contrast refusal with ignoring."
+}

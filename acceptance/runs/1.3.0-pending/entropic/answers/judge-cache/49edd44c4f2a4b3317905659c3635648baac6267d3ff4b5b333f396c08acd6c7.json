@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: 256-byte stack buffer | Only if the first returns negative, re-calls with an exact-size heap buffer\nVERDICT: HIT\nWHY: The answer states detokenize tries a 256-byte stack buffer first and heap-allocates an exact-size buffer only on a negative return, while tokenize first calls with `nullptr, 0` to size the output."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Repo's `.clew.yaml` (repo root only) | Replaces the stated layer; \"Absent is normal. The file is read only from the repo root.\"\nVERDICT: MISS\nWHY: The answer places `.clew.yaml` at tier 2 and says it is read from the repo root. It never says that both entry points (CLI and MCP) discover it, as opposed to it being plumbed per section."
+}

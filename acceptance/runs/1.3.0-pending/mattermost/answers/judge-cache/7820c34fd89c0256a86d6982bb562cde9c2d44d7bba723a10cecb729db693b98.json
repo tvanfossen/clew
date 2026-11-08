@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The value is sent as `include_deleted_channels` in the post-search request, so search results include archived channels only when the setting is viewable.\nVERDICT: HIT\nWHY: The answer states that searchPosts sends the setting as `include_deleted_channels` in the post-search request."
+}

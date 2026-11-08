@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Shell and CMake: the router returns no grammar, so no tree is parsed and no `memberdef` rows are written. Their `path` rows still exist.\nVERDICT: MISS\nWHY: The answer says the build doesn't crash, but it claims the not-indexed report would NOT name those files. The item says they are reported as not indexed, so the answer contradicts it. It also doesn't say the router consults a capability gate before routing."
+}

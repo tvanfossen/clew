@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `_loader.py` finds `librentropic.so` in this order: `$ENTROPIC_LIB`, then `$ENTROPIC_HOME` (nested, then flat layout), then `~/.entropic`, then `ctypes.util.find_library`.\nVERDICT: MISS\nWHY: The answer gives env overrides, a default user dir, and the system lookup, but it applies the two layouts (nested, flat) only to `$ENTROPIC_HOME`, not to each root, so \"two layouts per root\" is missing."
+}

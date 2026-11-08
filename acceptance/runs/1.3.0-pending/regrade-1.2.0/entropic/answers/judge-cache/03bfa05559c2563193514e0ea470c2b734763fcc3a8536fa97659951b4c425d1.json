@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: loaded via _loader.py (search order ends in ~/.entropic/lib, then ctypes.util.find_library)\nVERDICT: MISS\nWHY: The answer mentions only that the search ends at ~/.entropic/lib then find_library; it doesn't state env overrides first or the two directory layouts per root."
+}

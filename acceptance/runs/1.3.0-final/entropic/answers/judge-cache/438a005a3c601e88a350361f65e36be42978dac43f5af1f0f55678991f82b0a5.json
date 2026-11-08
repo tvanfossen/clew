@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Async `entropic.ask` worker | `external_bridge.cpp:1158`, **detached** ... The worker captures `this` (the bridge) and `handle_`, and is started with `.detach()` at line 1222. Nothing tracks it. `stop()` does not cancel or wait for it.\nVERDICT: HIT\nWHY: The answer identifies the async ask worker as the detached thread and says it can outlive its owner with nothing tracking or joining it."
+}

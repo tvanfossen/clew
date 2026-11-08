@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: About 25 library files call `mbedtls_ct_` functions.\nVERDICT: HIT\nWHY: The answer states roughly 25 library modules use the constant-time primitives and lists them across many areas, so the use is broad, not confined to one or two."
+}

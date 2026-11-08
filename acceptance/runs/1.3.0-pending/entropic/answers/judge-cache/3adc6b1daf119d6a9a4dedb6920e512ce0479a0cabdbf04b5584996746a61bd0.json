@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Ten spawn sites in this repository run work off the caller's thread... table listing ExternalBridge::accept_loop, HealthMonitor::monitor_loop, StdioTransport::stderr_reader_loop, SSETransport::sse_reader_loop, and inference-path pollers (response_generator.cpp, interface_factory.cpp, inference_c_api.cpp)\nVERDICT: HIT\nWHY: The answer's table shows threads spawned from the external bridge, MCP transports, health monitor and inference path, so spawning is spread across subsystems. It never says outright that this is decentralised, but the spread is plain from the listing."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Stated scope from a tool call (tier 1) goes through the same construction as a written declaration, and only the reason text differs.\nVERDICT: MISS\nWHY: It only mentions \"reason text\" in passing for a tier-1 scope; it never says the fallback carries a reason stating which scope was used and why. The rejection is only logged."
+}

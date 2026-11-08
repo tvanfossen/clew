@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"CLI flags, or the `options` argument for an embedding caller\" and \"Each section mirrors the standalone manifest format for that option.\"\nVERDICT: MISS\nWHY: The answer mentions the `options` argument and `.clew.yaml` sections, but never says that the option names an embedding caller states are the same words as the declaration file's section names and the diagnostics' wording."
+}

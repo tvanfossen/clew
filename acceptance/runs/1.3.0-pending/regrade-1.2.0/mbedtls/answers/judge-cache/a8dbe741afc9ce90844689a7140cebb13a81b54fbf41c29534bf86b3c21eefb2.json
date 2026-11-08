@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says library locks exist only behind MBEDTLS_THREADING_C and that threads are all outside library/, but it never says nothing in library/ creates a thread. It also never says library/ supplies the mutex abstraction for threaded callers. It says the lock sites are compiled out by default and does not frame the contrast."
+}

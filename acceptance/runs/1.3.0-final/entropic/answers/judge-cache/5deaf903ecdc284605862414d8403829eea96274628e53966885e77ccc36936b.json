@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Each spawned lambda re-enters `HandleLogScope(log_id)`, so its logs route to the owning handle's session log.\nVERDICT: HIT\nWHY: The answer states that every spawned thread body re-enters a per-handle HandleLogScope so logs route to the owning handle."
+}

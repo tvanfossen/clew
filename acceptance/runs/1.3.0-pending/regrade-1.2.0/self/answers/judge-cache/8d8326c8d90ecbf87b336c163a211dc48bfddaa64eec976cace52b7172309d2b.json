@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: When the index is older it says to run `index(action='refresh', force=True)`. When the index is newer it says rebuilding cannot clear the flag and the client must restart. The code notice says a rebuild cannot fix it and the client must restart.\nVERDICT: MISS\nWHY: The answer gives per-axis remedies (rebuild for data/schema, restart for code), but it never says this is why a single flag would not have been enough. The item's rationale is absent."
+}

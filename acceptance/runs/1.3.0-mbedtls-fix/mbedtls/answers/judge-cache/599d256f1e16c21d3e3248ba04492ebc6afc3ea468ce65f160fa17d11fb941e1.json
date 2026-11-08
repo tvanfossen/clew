@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Gate not defined (the default for outside code): `MBEDTLS_PRIVATE(member)` expands to `private_##member`. ... Gate defined: `MBEDTLS_PRIVATE(member)` expands to `member`, and the field is reachable under its real name.\nVERDICT: HIT\nWHY: The answer states that code defining MBEDTLS_ALLOW_PRIVATE_ACCESS sees plain member names, while outside consumers see the renamed `private_` names."
+}

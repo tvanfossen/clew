@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The \"Try Again\" action in `app/components/post_list/post/body/failed/index.tsx:46-48` calls `retryFailedPost(serverUrl, post)` (`app/actions/remote/post.ts:228`). It is user-initiated, so it is the only retry path.\nVERDICT: HIT\nWHY: The answer says retry is user-initiated via \"Try Again\" (the only retry path) and names `retryFailedPost` as the function it calls."
+}

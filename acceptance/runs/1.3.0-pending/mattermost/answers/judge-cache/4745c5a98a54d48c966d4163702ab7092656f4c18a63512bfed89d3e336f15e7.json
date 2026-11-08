@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The REST call sends `noRetry: true` (`app/client/rest/posts.ts:43`), which turns off the network layer's retry behaviour for this request.\" and \"Automatic retries: 0.\"\nVERDICT: HIT\nWHY: The answer states the create-post request is sent once with no automatic retries, citing the noRetry flag."
+}

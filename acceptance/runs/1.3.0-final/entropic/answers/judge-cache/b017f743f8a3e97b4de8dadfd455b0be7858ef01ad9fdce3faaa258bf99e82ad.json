@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the dependency is confined to `src/inference/` plus the facade and lists about nine files there. It never says the dependency reaches roughly a dozen files of entropic's own source, and it gives no count."
+}

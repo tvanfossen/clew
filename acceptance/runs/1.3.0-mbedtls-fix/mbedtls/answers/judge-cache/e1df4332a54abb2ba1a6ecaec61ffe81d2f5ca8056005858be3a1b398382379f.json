@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_THREADING_C` is not enabled in `include/mbedtls/mbedtls_config.h`. ... `MBEDTLS_THREADING_PTHREAD` and `MBEDTLS_THREADING_ALT` are both commented out\nVERDICT: HIT\nWHY: The answer names both MBEDTLS_THREADING_C and MBEDTLS_THREADING_PTHREAD as the macros that gate the mutex and threading code. It says `threading.c` is wrapped in `#if defined(MBEDTLS_THREADING_C)` and the pthread backend exists only under `MBEDTLS_THREADING_PTHREAD`."
+}

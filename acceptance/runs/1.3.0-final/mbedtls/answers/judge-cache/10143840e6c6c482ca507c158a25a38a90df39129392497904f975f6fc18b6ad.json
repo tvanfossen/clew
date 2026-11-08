@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Installs its own `buffer_alloc_calloc` / `buffer_alloc_free`, or the `_mutexed` wrappers when threading is on, via `mbedtls_platform_set_calloc_free`.\nVERDICT: HIT\nWHY: The answer says the init function installs the plain pair or the `_mutexed` pair depending on whether threading (MBEDTLS_THREADING_C) is on. The mechanism and location match the item. It doesn't say outright that the choice is made at compile time, but the `#if MBEDTLS_THREADING_C` condition implies it."
+}

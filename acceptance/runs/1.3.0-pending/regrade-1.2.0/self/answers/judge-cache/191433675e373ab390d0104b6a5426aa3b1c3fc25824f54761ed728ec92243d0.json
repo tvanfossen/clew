@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A failed or stalled refresh falls back to answering from the existing index, and the staleness block still rides along.\nVERDICT: MISS\nWHY: The answer says a failed refresh falls back to the existing index, and that an unreadable tree doesn't raise a false alarm. It never says that measuring staleness never raises, or that a failed measurement degrades to no annotation instead of turning a successful reply into an error."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Add the macro to the module's public header (e.g. `include/mbedtls/cipher.h`), with a value in the existing hex scheme... Regenerate the switch cases in `library/error.c`. The two switch bodies are marked `/* Begin Auto-Generated Code. */`... Do not hand-edit that block.\nVERDICT: MISS\nWHY: The answer states the header-plus-regenerate workflow and not hand-editing, but never says the string comes from the `/** */` doc comment on the `#define`. It also says it could not determine where the generator takes the description text from, so the item's mechanism is missing."
+}

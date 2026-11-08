@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `scripts/generate_errors.pl` builds `library/error.c` from the `#define`s in `include/mbedtls/*.h`.\nVERDICT: MISS\nWHY: The answer says generate_errors.pl generates error.c from the public headers, but it never names scripts/data_files/error.fmt as the template."
+}

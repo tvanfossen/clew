@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"If neither tier yields usable roots, `whole_repo_scope` (`scope.py:683`) returns the repo root as the single root.\" and \"A malformed YAML file is logged at WARNING and treated as absent, so the build falls back to whole-repo.\" and \"`derive_scope` logs it and falls back to whole-repo\"\nVERDICT: HIT\nWHY: The answer states the declared scope is preferred and that absent, malformed, or unusable declarations all fall back to indexing the whole repository."
+}

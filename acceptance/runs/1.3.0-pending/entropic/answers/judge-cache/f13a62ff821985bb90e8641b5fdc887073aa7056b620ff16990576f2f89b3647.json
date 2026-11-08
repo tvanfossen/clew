@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `_loader.py   ctypes.CDLL(\"librentropic.so\")  \u2190 $ENTROPIC_LIB, then ~/.entropic/..., then ldconfig`\nVERDICT: MISS\nWHY: The answer gives the order (env, user dir, ldconfig), but it never says that two directory layouts are tried per root."
+}

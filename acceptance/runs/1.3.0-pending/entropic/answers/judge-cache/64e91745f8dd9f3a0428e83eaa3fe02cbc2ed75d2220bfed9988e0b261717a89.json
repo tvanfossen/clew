@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Always allow/deny\" choices are persisted by `PermissionPersister` to these lists (`src/storage/permission_persister.cpp:232`).\nVERDICT: MISS\nWHY: The answer says choices are persisted to the allow/deny lists, but never mentions config.local.yaml or the separation from the in-memory add_permission call."
+}

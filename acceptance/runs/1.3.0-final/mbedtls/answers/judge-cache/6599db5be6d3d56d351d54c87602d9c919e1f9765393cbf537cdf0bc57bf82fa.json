@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says assembly selection requires MBEDTLS_HAVE_ASM and compiler checks, but it never states that MBEDTLS_CT_ASM is a derived macro rather than a configured one."
+}

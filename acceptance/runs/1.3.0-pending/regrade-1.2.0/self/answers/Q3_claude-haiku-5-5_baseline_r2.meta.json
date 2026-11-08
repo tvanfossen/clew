@@ -1,0 +1,40 @@
+{
+  "stem": "Q3_claude-haiku-5-5_baseline_r2",
+  "arm": "baseline",
+  "model": "claude-haiku-5-5",
+  "ok": true,
+  "skills": "",
+  "answered_by": "claude-haiku-5-5",
+  "seconds": 28.128760713967495,
+  "input_tokens": 16,
+  "output_tokens": 4836,
+  "cache_read_tokens": 410874,
+  "cache_creation_tokens": 36760,
+  "cost_usd": 0.013880340000000001,
+  "result_bytes": 3646,
+  "turns": 12,
+  "tool_calls": 11,
+  "non_index_tool_calls": 11,
+  "denied_tool_calls": 0,
+  "error": "",
+  "argv": [
+    "claude",
+    "-p",
+    "Answer the question below about the repository at /home/tvanfossen/Projects/clew/acceptance/runs/1.2.0-pending/self/repo.\n\nYou have the usual shell and file tools: Read, Grep, Glob and Bash.\n\nWork however you judge best. There is no required format, no word limit and no\nstructure you are expected to follow \u2014 write the answer as prose, at whatever\nlength the question deserves.\n\nQUESTION:\nA clew index can be out of date. How does the tool know, what does it tell the caller, and\nwhat does the caller do about it?\n",
+    "--model",
+    "claude-haiku-5-5",
+    "--output-format",
+    "json",
+    "--allowedTools",
+    "Read,Grep,Glob,Bash",
+    "--strict-mcp-config"
+  ],
+  "cell": {
+    "target": "tvanfossen/clew",
+    "question_id": "Q3",
+    "arm": "baseline",
+    "model": "claude-haiku-5-5",
+    "replicate": 2,
+    "order": 23
+  }
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Any hit replaces the verdict with \"NOT DEFINITIVE \u2014 this index HOLDS matching rows that search does not read\" and names them, with `unsearched_corpus_hits` in the payload. This check outranks everything else.\nVERDICT: HIT\nWHY: The answer says the unread-corpus check outranks everything else, which gives the ordering and the reason a matching row there makes the negative false for this query."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The inheritance chain is: BaseDataOperator \u2192 ServerDataOperatorBase \u2192 ServerDataOperator (mix); \"Every handler write funnels through one method, `BaseDataOperator.batchRecords`\"\nVERDICT: MISS\nWHY: The answer says writes funnel through the inherited `batchRecords`, but it never says the mixins are constrained to extend ServerDataOperatorBase, which is the reason the item requires. It also notes that some code bypasses the operator."
+}

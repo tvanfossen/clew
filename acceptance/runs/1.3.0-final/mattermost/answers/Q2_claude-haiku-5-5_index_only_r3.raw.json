@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 31325,
+  "stop_reason": "end_turn",
+  "session_id": "4ec40720-a389-45a4-802c-2fca5e4490ae",
+  "total_cost_usd": 0.01198014,
+  "usage": {
+    "input_tokens": 16,
+    "cache_creation_input_tokens": 25620,
+    "cache_read_input_tokens": 422054,
+    "output_tokens": 5268,
+    "output_tokens_details": {
+      "thinking_tokens": 2036
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 25620,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2960,
+        "cache_read_input_tokens": 65947,
+        "cache_creation_input_tokens": 4430,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 4430
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 16,
+      "outputTokens": 5268,
+      "cacheReadInputTokens": 422054,
+      "cacheCreationInputTokens": 25620,
+      "webSearchRequests": 0,
+      "costUSD": 0.01198014,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2036,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 25620,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 16,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "## Short answer\n\nBoth events enter through the same `switch` in `handleWebSocketEvent`, but they diverge immediately after. The added path goes through the operator's `handleReactions` batch-write machinery with `skipSync: true`. The removed path skips the operator entirely: it queries the one matching row and calls `destroyPermanently()` inside `database.write`. Neither path reads or writes a flag that changes what the removed path writes, because the removed path has no flags.\n\n## Added path\n\n```\nWS frame (event = REACTION_ADDED)\n \u2514\u2500 handleWebSocketEvent(serverUrl, msg)          app/actions/websocket/event.ts:44\n     \u2514\u2500 case REACTION_ADDED\n         \u2514\u2500 handleReactionAddedToPostEvent        app/actions/websocket/reactions.ts:21\n             \u251c\u2500 DatabaseManager.getServerDatabaseAndOperator(serverUrl)\n             \u251c\u2500 reaction = JSON.parse(msg.data.reaction)\n             \u2514\u2500 operator.handleReactions({\n                  prepareRecordsOnly: false,\n                  skipSync: true,\n                  postsReactions: [{post_id, reactions:[reaction]}] })\n                 \u2514\u2500 ServerDataOperatorBase.handleReactions   handlers/index.ts:124\n                     \u251c\u2500 sanitizeReactions({database, post_id, rawReactions, skipSync})\n                     \u2502    utils/reaction.ts:22\n                     \u2502    - loads all Reaction rows for post_id\n                     \u2502    - map key \"user_id-emoji_name\"\n                     \u2502    - raw not present  \u2192 createReactions.push({raw})\n                     \u2502    - skipSync \u2192 return {createReactions, deleteReactions: []}\n                     \u251c\u2500 prepareRecords({createRaws, transformer: transformReactionRecord,\n                     \u2502                  tableName: REACTION})   base_data_operator:134\n                     \u2502    - transformer with action CREATE (transformers/reaction.ts:19)\n                     \u2502      _raw.id = raw.id from server\n                     \u2502      userId, postId, emojiName, createAt set\n                     \u2502      via prepareBaseRecord\n                     \u251c\u2500 deleteReactions branch skipped (!skipSync is false)\n                     \u251c\u2500 prepareRecordsOnly false \u2192 continue\n                     \u2514\u2500 batchRecords(batch, 'handleReactions')   base_data_operator:191\n                         \u2514\u2500 database.write(writer => writer.batch(...))  \u2192 SQLite row inserted\n```\n\nWhat lands in the database: one new `Reaction` row (server `id`, `user_id`, `post_id`, `emoji_name`, `create_at`). If the same user already has that emoji on the post locally, `sanitizeReactions` drops it and nothing is written.\n\n## Removed path\n\n```\nWS frame (event = REACTION_REMOVED)\n \u2514\u2500 handleWebSocketEvent  (same switch, case REACTION_REMOVED)\n     \u2514\u2500 handleReactionRemovedFromPostEvent          reactions.ts:39\n         \u251c\u2500 database = getServerDatabaseAndOperator(serverUrl).database\n         \u251c\u2500 msgReaction = JSON.parse(msg.data.reaction)\n         \u251c\u2500 queryReaction(database, emoji_name, post_id, user_id).fetch()\n         \u2502    queries/servers/reaction.ts:12   (matches on the three fields, not id)\n         \u2514\u2500 if found: database.write(() => reaction[0].destroyPermanently())\n```\n\nIt does not call `handleReactions`, `sanitizeReactions`, `prepareRecords`, or the transformer. There is no `skipSync` or `prepareRecordsOnly` in this path, and no flag can change what it writes. It deletes at most one row, the first match.\n\n## Flags and what they change\n\n| Flag | Where | Effect |\n|---|---|---|\n| `skipSync: true` (added path) | `sanitizeReactions` | Returns early, before computing `deleteReactions`. Only creates are produced. |\n| `skipSync` | `handleReactions` | Guards the `deleteReactions` branch, so no stale rows are destroyed. |\n| `prepareRecordsOnly: false` | `handleReactions` | Writes immediately through `batchRecords`. With `true`, it would return the prepared models without writing, so the caller could batch them into a larger transaction. |\n\nThe consequence of `skipSync: true` is that a websocket add is incremental. If the local DB holds a reaction the server has since removed, the add event will not clean it up. Only the removed event or a full sync fixes that.\n\n## Observations\n\n- **Silent failure in both handlers.** Both wrap the whole body in `try { \u2026 } catch { // Do nothing }`. A parse error or DB error is swallowed with no log. This conflicts with the repo's rule to log errors with context.\n- **Wasted read in the add path.** `sanitizeReactions` queries every reaction on the post before the `skipSync` early return, so the skip saves the delete computation but not the query.\n- **Two different database handles.** The add path uses the operator's `this.database`, and the removed path uses the `database` handle directly. Both end up in `database.write`, so the write mechanics are the same.\n\n## Gaps in this answer\n\n- I did not trace the socket-level dispatch above `handleWebSocketEvent`. The index links that function's caller only to `WebsocketManagerSingleton.createClient`, which probably wires an `onMessage` closure. I did not confirm that wiring.\n- I did not inspect `prepareBaseRecord`, which sets the record's id and `_changed` / `_status` bookkeeping. The claim that it creates a new record rests on the `CREATE` action passed in.",
+  "ttft_ms": 1510,
+  "type": "result",
+  "duration_ms": 33447,
+  "uuid": "b60076a9-986d-4855-80e4-f43cccda0a85",
+  "ttft_stream_ms": 1264,
+  "time_to_request_ms": 55,
+  "first_content_frame_ms": 1264,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

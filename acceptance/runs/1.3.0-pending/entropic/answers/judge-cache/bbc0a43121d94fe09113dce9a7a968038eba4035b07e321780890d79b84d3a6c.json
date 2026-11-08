@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"HealthMonitor queues events under `event_mutex_` and runs the status callback only from `process_events()`, so callers never see a callback on the monitor thread (`health_monitor.cpp:118`).\"\nVERDICT: HIT\nWHY: The answer states the monitor queues events under a mutex and the callback runs only from process_events(), not on the monitor thread. It doesn't say outright that process_events() is drained on the caller's thread, but the heading \"Callbacks on the engine thread\" and \"callers never see a callback on the monitor thread\" carry that."
+}

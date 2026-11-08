@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Handlers do not call the database directly. The chain is: 1. A handler calls `this.handleRecords({...}, description)` or `this.execute(...)`. ... 4. `batchRecords` (`:191`) runs `this.database.write(...)`.\" and \"Each handler is a mixin of the form `<TBase>(superclass) => class extends superclass`\"\nVERDICT: MISS\nWHY: The answer says writes flow through BaseDataOperator.batchRecords but doesn't state the constraint that each mixin is bound to extend ServerDataOperatorBase as the reason; it also notes some writes bypass this path (reactions.ts), contradicting the \"every handler\" conclusion."
+}

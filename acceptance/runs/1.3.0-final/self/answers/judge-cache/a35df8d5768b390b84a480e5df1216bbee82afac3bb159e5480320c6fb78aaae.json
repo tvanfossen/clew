@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says the root node type can't be the discriminator, and it doesn't mention shell sharing a root with JavaScript or CMake sharing one with Rust."
+}

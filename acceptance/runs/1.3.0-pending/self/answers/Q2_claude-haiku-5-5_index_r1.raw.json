@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 13298,
+  "stop_reason": "end_turn",
+  "session_id": "26eed716-0697-46b9-a027-e2d8f75eee38",
+  "total_cost_usd": 0.00630549,
+  "usage": {
+    "input_tokens": 4,
+    "cache_creation_input_tokens": 23649,
+    "cache_read_input_tokens": 57329,
+    "output_tokens": 2004,
+    "output_tokens_details": {
+      "thinking_tokens": 1002
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 23649,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1517,
+        "cache_read_input_tokens": 39769,
+        "cache_creation_input_tokens": 1440,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1440
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 4,
+      "outputTokens": 2004,
+      "cacheReadInputTokens": 57329,
+      "cacheCreationInputTokens": 23649,
+      "webSearchRequests": 0,
+      "costUSD": 0.00630549,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1002,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 23649,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 3,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The reply separates the two cases with a `scope` block and a `note`, and the note is what tells you which kind of empty you have.\n\n**What the reply says for a miss.** My probe for a nonexistent name returned `count: 0` and a note stating it \"IS a definitive empty result from the database, NOT an error.\" The note then lists what was searched (names plus `@brief` of functions, variables, macros, typedefs, enums, classes and structs, config symbols, and file docs) and what was not (markdown and Kconfig prose, which needs `corpus='prose'`). The `scope` block gives the file count (426), the top-level directories, the extensions indexed, and a `not_indexed` list with counts. In this repo that list covers `.rs`, `.toml`, `.sql`, `.csv`, `.lock`, `.motor`, `.jsonl` and extensionless files.\n\n**Confidence for each answer:**\n\n| Reply says | What it licenses | Confidence |\n|---|---|---|\n| `count: 0`, name absent from searched kinds, extension in `scope.extensions` | The indexed source has no symbol of that name or brief. | High for that corpus. It is a database lookup, not a guess. |\n| Concept lives in markdown or Kconfig prose | The symbol corpus cannot answer. Run `corpus='prose'`. | None for the symbol corpus, since the reply says it was never searched. |\n| File extension appears in `scope.not_indexed` | The file was never read. Any \"not found\" for code in those files is meaningless. | Zero. Grep or read those files directly. |\n| Target differs from the repo you mean | You queried a different index. | Check `target` first. |\n\nSo \"the repository does not contain that\" is only supported for the searched kinds and indexed extensions. \"I did not look there\" is what the `not_indexed` and prose notes report, and the reply names the place rather than leaving you to guess.\n\n**What I did not verify.** I did not run a prose query to confirm that a conceptual phrase lands there. I did not test the multi-token conjunction behaviour that the tool description promises, where the reply names the token that emptied the match. I also did not read the grading code; the account above comes from the reply text, the `scope` block and the tool description. A grep for `not_searched` in the repo returned test files, which suggests the reporting is tested, but I did not open them.",
+  "ttft_ms": 3753,
+  "type": "result",
+  "duration_ms": 13445,
+  "uuid": "a97d2968-2159-4fb3-aa84-72d37e3a03ba",
+  "ttft_stream_ms": 2538,
+  "time_to_request_ms": 97,
+  "first_content_frame_ms": 2539,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

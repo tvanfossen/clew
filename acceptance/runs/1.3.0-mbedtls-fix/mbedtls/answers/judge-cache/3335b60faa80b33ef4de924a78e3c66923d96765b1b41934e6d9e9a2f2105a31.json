@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The only place it is defined in the library is `library/common.h:132`. ... `library/common.h:132` | Library sources that include `common.h` see the real field names. In this tree 107 of the 109 `library/*.c` files include it, so the library code is the main beneficiary.\nVERDICT: HIT\nWHY: The answer states that library/common.h, a shared header included by library sources, defines the opt-out so library code sees real member names."
+}

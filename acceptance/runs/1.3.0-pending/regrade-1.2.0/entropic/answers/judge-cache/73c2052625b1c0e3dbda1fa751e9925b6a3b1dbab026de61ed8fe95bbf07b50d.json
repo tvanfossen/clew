@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer mentions `entropic install-engine` downloading `librentropic.so`, but it never says the split exists so `import entropic` succeeds before the engine is on disk."
+}

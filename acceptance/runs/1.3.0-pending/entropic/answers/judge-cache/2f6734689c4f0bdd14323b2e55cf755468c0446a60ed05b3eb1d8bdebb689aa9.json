@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `git.commit` | That tool name, any args (no colon means no arg check); also \"uses `fnmatch` with flags 0\" and \"`bash.execute:python*` | `bash.execute` whose first string arg starts with `python`\"\nVERDICT: HIT\nWHY: The answer states fnmatch matching, a colon separating the tool part from the argument part, and that a pattern with no colon matches on the tool name alone."
+}

@@ -1138,6 +1138,11 @@ def run_real_stages(db: Path, repo_root: Path) -> None:
     ## is created, which is the fact under test.
     register_paths(db, [str(p.relative_to(repo_root)) for p in repo_root.rglob("*") if p.is_file()])
     emit_definitions(db, repo_root)
+    ## THE CODE-TEXT CORPUS, run for real like every stage here: a real build emits `code_text`
+    ## and its FTS5 shadow tables, and `test_fixture_fidelity` caught the fixture without them.
+    from clew.code_text import record_code_text
+
+    record_code_text(db, repo_root)
     build_call_edges(db)
     import_ast_call_edges(db, repo_root)
     import_callback_registration_edges(db, repo_root)
@@ -1165,6 +1170,11 @@ def run_real_stages(db: Path, repo_root: Path) -> None:
     ingest_requirements_yaml(db, repo_root / "requirements.yaml", guard_cfg)
     import_req_edges(db, resolve_req_id_pattern(guard_cfg))
     import_req_test_edges(db)
+    ## REQUIREMENT MENTIONS, run for real as the CLI runs it: a real build always creates the
+    ## table, and the wire-parity test caught this fixture without it.
+    from clew.req_mentions import record_req_mentions
+
+    record_req_mentions(db, repo_root, repo_root / "requirements.yaml")
     mark_reachability(db)
     ## Runs the REAL stage with the REAL defaults, like every other stage here — the
     ## fixture-fidelity gate compares this database's table set against a live build, and

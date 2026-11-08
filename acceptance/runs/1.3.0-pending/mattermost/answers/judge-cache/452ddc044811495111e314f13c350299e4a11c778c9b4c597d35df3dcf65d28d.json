@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`handleReactionRemovedFromPostEvent` looks up the row and calls `destroyPermanently()` directly, with no operator\" and \"queryReaction(database, emoji_name, post_id, user_id).fetch() ... database.write(() => reaction[0].destroyPermanently())\"\nVERDICT: HIT\nWHY: The answer states the removed path bypasses the operator, queries the reaction, and destroys it via a direct database.write."
+}

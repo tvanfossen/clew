@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It calls `mbedtls_platform_set_calloc_free` with its own `buffer_alloc_calloc_mutexed` (or unlocked `buffer_alloc_calloc` if `MBEDTLS_THREADING_C` is off), then carves the caller's buffer into a heap.\nVERDICT: HIT\nWHY: The answer states that the init function installs the mutexed pair or the plain pair depending on MBEDTLS_THREADING_C; it doesn't say \"compile time,\" but the preprocessor macro implies it."
+}

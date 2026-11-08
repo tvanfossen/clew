@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Removes the current user from the channel instead\nVERDICT: MISS\nWHY: The answer covers the removal when not viewable (archiveChannel row, and websocket kick), but it never says the channel is kept and marked deleted when viewable, and the \"kicked out if current channel\" is tied to the websocket event, not clearly this described behavior; partially stated at best."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: By default, `ssl->MBEDTLS_PRIVATE(state)` becomes `ssl->private_state`, so code that touches a field directly fails to compile... `#define MBEDTLS_PRIVATE(member) member` ... \"Everything else (applications, other programs, downstream code) still gets `private_*` names. If they define the macro themselves, they opt out of the guard\"\nVERDICT: HIT\nWHY: The answer shows both branches and states that code defining MBEDTLS_ALLOW_PRIVATE_ACCESS (library, test programs) sees plain names while ordinary consumers see `private_*` names."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes how the emptiness module grades results and mentions derivation by subtraction, but it never states the general rule of fixing the corpus (the underlying data) rather than the wording about it."
+}

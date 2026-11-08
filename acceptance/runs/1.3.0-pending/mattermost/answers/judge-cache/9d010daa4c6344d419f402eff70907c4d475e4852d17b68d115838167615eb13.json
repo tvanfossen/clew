@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Calls `removeCurrentUserFromChannel` instead\nVERDICT: HIT\nWHY: The answer's table states that when archived channels are not viewable ('false'), the user is removed (and kicked if current, via `handleKickFromChannel`), and that when viewable the channel stays in the local DB with `delete_at` set (marked deleted)."
+}

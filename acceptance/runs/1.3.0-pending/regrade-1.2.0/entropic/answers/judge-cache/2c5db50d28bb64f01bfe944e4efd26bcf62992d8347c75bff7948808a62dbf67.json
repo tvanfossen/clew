@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: entropic/__init__.py       lazy (PEP 562) attribute lookup, so install-engine works before the .so exists\nVERDICT: HIT\nWHY: The answer states that the lazy-loading split lets `install-engine` run before the .so exists. That is the substance of the item: import succeeds without the engine on disk, so the subcommand can ship in the same package."
+}

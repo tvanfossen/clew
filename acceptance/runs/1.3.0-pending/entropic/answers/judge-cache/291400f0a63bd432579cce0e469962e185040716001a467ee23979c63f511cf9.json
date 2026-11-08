@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The return is `std::vector<int32_t>{}`. That same value also means \"vocab is null\" and \"empty input.\" The `Tokenizer::tokenize` contract says \"empty on failure or empty input,\" so the caller can't distinguish them from the return alone.\"\nVERDICT: MISS\nWHY: The answer says failure is indistinguishable from empty, but it also says that several callers do check for it (generate_mtp, generate_speculative_with_draft), which contradicts the item's claim that no caller checks."
+}

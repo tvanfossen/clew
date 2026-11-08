@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The pre-commit `gen-bindings-check` hook fails on drift, so the header is the source of truth.\nVERDICT: MISS\nWHY: The answer names a pre-commit hook that fails on drift but never says it re-runs the generator and diffs the output."
+}

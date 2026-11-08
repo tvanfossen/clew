@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Matching** (`permission_manager.cpp:101`): the pattern is split at the first `:`. The left side is fnmatched against the tool name. With no `:`, that is the whole test (tool-level). With a `:`, the full pattern is fnmatched against `tool_name:<arg-pattern>`.\"\nVERDICT: HIT\nWHY: The answer states fnmatch, a split at the first colon into a tool part and an argument part, and that a pattern with no colon matches the tool name alone."
+}

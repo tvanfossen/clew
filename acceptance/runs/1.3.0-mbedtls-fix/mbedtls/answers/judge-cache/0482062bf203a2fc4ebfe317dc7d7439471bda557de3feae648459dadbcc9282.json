@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The library itself creates no threads. The only spawn sites the index finds are in `programs/`\nVERDICT: MISS\nWHY: The answer states that the library creates no threads, but it frames the library's mutex code as compiled out in the default build. It never says that library/ supplies the mutex abstraction for threaded callers. It describes `threading.c` and per-file locks, but not as an abstraction offered to callers who create the threads."
+}

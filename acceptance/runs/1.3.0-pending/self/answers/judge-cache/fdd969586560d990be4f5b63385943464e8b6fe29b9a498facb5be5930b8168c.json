@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`count: 0` and a note stating it \"IS a definitive empty result from the database, NOT an error.\"\" and \"Concept lives in markdown or Kconfig prose | The symbol corpus cannot answer.\"\n\nVERDICT: MISS\n\nWHY: The answer separates a definitive empty from a not-searched or not-indexed one. It never describes a third grade, an empty that is definitive for a reason other than absence."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Handlers do not write directly. The path is: ... calls `ServerDataOperatorBase.execute(...)` ... `BaseDataOperator.batchRecords` ... does the actual write\nVERDICT: MISS\nWHY: The answer says handler writes go through `batchRecords` via `execute`, but it never states the reason: that each mixin is constrained to extend `ServerDataOperatorBase`. It also hedges by saying \"all server handlers that go through `execute`\"."
+}

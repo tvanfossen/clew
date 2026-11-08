@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Approved if `auto_approve_tools` is set, or the call matches the allow list (`ServerManager::is_explicitly_allowed` \u2192 `PermissionManager::is_allowed`).\" and \"Execute (`src/mcp/server_manager.cpp:153`). `is_denied()` is checked on the deny list... This runs even when approval passed via `auto_approve` or the allow list.\"\nVERDICT: MISS\nWHY: The answer says the allow list only affects approval and never overrides deny. It never says the list is consulted only from `check_approval`, and it names `is_explicitly_allowed` in `ServerManager` as a separate location, so the item's specific mechanism isn't stated."
+}

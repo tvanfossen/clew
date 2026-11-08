@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: If the repo declares an `index_scope:` with usable `roots:`, that declaration is the decision. If it declares nothing, the whole repository is the scope... A rejection is logged as a warning. `derive_scope` then falls back to the whole repository, but the CLI does not accept that.\nVERDICT: HIT\nWHY: The answer states that a declared index_scope is preferred, and that an absent or rejected declaration (not a mapping, unknown key, no existing root) falls back to whole-repository scope in `derive_scope`."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The index also shows a second `mbedtls_strerror` at `error.c:867` under `MBEDTLS_ERROR_STRERROR_DUMMY`, which I take to be the no-strings fallback, but I did not read that body.\nVERDICT: MISS\nWHY: It names the DUMMY switch only tentatively as a fallback; it never says the string table is compiled out while the function stays linkable, and it never says the switch is enabled by default."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `code`: reads are fine but writes are unsafe, so restart the client. A rebuild cannot fix it.\nVERDICT: HIT\nWHY: The answer states that on the code axis reads are fine while writes (rebuilds) are unsafe, and that a stale process can't be used to rebuild. It doesn't say that the database is opened per call or that a build would write old pipeline logic. It gives the read/write asymmetry itself, which is the substance of the item."
+}

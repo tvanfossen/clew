@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It refuses first if the process predates its source (`stale_code_refusal`, returning `REFUSED:` and `code` in the reply). It then takes the per-repo build lock and re-checks freshness inside it\nVERDICT: HIT\nWHY: The answer says the refresh write path refuses (not warns) on a stale code axis, and that this check happens first, before the build lock and freshness re-check. That matches the \"ahead of the build decision\" part. The answer never mentions a force flag, so it gives no direct evidence that force cannot override the refusal."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: If `MBEDTLS_ERROR_C` is off, `mbedtls_strerror` is a dummy that writes an empty string. `MBEDTLS_ERROR_STRERROR_DUMMY` keeps the tables compiled in some configs. Both gates are in `configs/` and `include/mbedtls/mbedtls_config.h`.\nVERDICT: MISS\nWHY: The answer only says what happens when MBEDTLS_ERROR_C is off; it never states that the shipped default config enables it, so the string table is present in a default build."
+}

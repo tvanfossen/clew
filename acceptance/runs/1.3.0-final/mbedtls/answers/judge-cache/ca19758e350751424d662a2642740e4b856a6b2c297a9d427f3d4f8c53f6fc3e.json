@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The facility is used across about 35 library files, but it is not uniform, and some code, such as `ecp.c`, does not use it directly.\nVERDICT: HIT\nWHY: The answer states the primitives are used across about 35 library files (444 occurrences), conveying broad consumption well beyond one or two modules, which is on the order of twenty or more."
+}

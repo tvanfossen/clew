@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The setting is a single boolean, and the app treats it as \"on\" unless the server explicitly sends `'false'`.\" and \"`archivedChannelsViewable = (value) => value !== 'false'`\" and \"**When the server does not send the setting.** `observeCanViewArchivedChannels` emits `true`\"\nVERDICT: HIT\nWHY: The answer states that an absent setting yields viewable (true) and only an explicit 'false' disables archived channel viewing."
+}

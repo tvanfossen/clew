@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Patterns are `tool[:argpattern]`, split at the first `:`, and both halves use `fnmatch` with no flags. ... **No colon:** the tool-name match is enough, so the pattern covers every call to that tool.\nVERDICT: HIT\nWHY: The answer states fnmatch matching, a split at the first colon into tool and argument parts, and that a pattern with no colon matches on the tool name alone."
+}

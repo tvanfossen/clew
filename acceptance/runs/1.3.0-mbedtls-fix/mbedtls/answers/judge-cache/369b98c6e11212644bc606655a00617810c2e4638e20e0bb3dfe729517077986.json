@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Without asm it returns `x ^ mbedtls_ct_zero`, where `mbedtls_ct_zero` is a global `volatile` zero, so the compiler cannot prove the value.\nVERDICT: HIT\nWHY: The answer states that without asm the same function (mbedtls_ct_compiler_opaque) XORs with the volatile global zero and names it as mbedtls_ct_zero."
+}

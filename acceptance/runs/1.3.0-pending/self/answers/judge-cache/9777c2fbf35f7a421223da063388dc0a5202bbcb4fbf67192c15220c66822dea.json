@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names `.clew.yaml` as the in-tree file where conventions are declared. It names no other file paths. `Doxyfile` appears only as a kind of fact clew reads, and the test names are not paths.\n\nITEMS:\n.clew.yaml\nEND"
+}

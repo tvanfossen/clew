@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`_DEFINITIVE`: \"This IS a definitive empty result\u2026 Do not retry\" ... `_UNREAD_CORPUS`: \"NOT DEFINITIVE\u2026 this index HOLDS matching rows that search does not read\" ... `_PROSE_ELSEWHERE`: \"NOT DEFINITIVE\u2026 this repository DOES use these terms\"\"\nVERDICT: MISS\nWHY: The answer separates definitive from not-definitive, but it never names a \"definitive for a reason that is not absence\" grade. Its only definitive grade means nothing was found in scope, so the three-way distinction is missing."
+}

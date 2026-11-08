@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Declaration vs. facts:** facts always survive. Stating `entry_patterns` displaces only the name-pattern guesses, so `main` stays reachable whatever you declare.\"\nVERDICT: HIT\nWHY: The answer says stated values replace one another while discovered facts accumulate and always survive any declaration."
+}

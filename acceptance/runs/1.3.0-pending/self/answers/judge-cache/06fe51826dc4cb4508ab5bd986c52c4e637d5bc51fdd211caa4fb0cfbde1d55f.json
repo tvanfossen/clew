@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer discusses caller lists and edge provenance (ast vs doxygen_sqlite) but never says that which layer's provenance a collapsed row reports is decided by a ranking in the vocabulary module rather than by SQL."
+}

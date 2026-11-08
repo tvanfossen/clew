@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Runtime, global:** call `mbedtls_platform_set_calloc_free(my_calloc, my_free)` ... **Compile time:** enable `MBEDTLS_PLATFORM_MEMORY` and supply `MBEDTLS_PLATFORM_CALLOC_MACRO` / `MBEDTLS_PLATFORM_FREE_MACRO` in the user config.\"\nVERDICT: MISS\nWHY: The answer names both a compile-time macro pair and a runtime function-pointer setter, but it never says they are mutually exclusive. It also muddies the distinction by saying the macro path may only change the default pointer value."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: With assembly it is an empty `asm volatile` that takes and returns `x`.\nVERDICT: HIT\nWHY: The answer says the asm path of `mbedtls_ct_compiler_opaque` is an empty `asm volatile` that takes and returns `x`, and that its purpose is to hide the value from the optimiser. That covers the item's substance, even without the words \"input-output register operand\"."
+}

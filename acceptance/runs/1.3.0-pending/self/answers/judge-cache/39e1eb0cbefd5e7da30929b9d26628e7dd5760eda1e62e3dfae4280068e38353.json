@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says one row per caller-callee pair (UNIQUE(caller, callee, source)), which is per source layer, and it lists source variants as separate rows. It never says variants are collapsed to the strongest evidence into one row per neighbour."
+}

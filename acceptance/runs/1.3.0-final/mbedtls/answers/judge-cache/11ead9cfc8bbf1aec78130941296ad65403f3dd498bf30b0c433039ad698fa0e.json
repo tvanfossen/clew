@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Public structs are declared as `int MBEDTLS_PRIVATE(foo);`, which means the field is named `private_foo` for anyone who doesn't opt out. Code that writes `ctx->foo` fails to compile, and `ctx->private_foo` is the only spelling left... The header is a rename, not an access control.\nVERDICT: HIT\nWHY: The answer says the mechanism renames the member to `private_foo` so the old name fails to compile, and that this is a rename rather than access control. That matches breaking the member name rather than hiding the layout. It doesn't say outright that the fields stay visible and sized, but that follows from \"a rename, not an access control.\""
+}

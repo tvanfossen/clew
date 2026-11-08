@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: | 1 | Explicit statement for this build: `--declare FILE`, ... | Replaces the layer below | ... | 5 | Name-pattern heuristics, such as `main` or `tests/*` | The floor; any stated tier displaces it |\nVERDICT: HIT\nWHY: The answer lays out five precedence tiers with a named source for each and the rule for combining them, instead of describing a single override."
+}

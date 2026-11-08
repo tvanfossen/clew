@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"clew detects staleness on three separate axes\" with table rows `data`, `schema`, `code`\nVERDICT: HIT\nWHY: The answer explicitly states three distinguishable staleness axes and names them data, schema, and code, each with different clearing actions."
+}

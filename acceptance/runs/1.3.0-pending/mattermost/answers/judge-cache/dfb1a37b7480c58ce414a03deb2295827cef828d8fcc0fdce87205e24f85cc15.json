@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `skipSync: true` ... \"add only, no pruning\" / \"Returns `deleteReactions: []`. Stale reactions on the post are not pruned.\"\nVERDICT: MISS\nWHY: The answer describes skipSync as preventing pruning of stale reactions, but never says that without it the single incoming reaction would be treated as the post's complete set and every other reaction on the post would be deleted."
+}

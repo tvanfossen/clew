@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_PLATFORM_MEMORY` undefined | `calloc` / `free` from libc, as plain macros. No indirection.\nVERDICT: HIT\nWHY: The answer states that without MBEDTLS_PLATFORM_MEMORY (the default), mbedtls_calloc/mbedtls_free are plain macros to calloc/free with no indirection."
+}

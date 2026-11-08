@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes a definitive empty result and a weak or no-confidence empty result. It never separates \"definitive for the scope\" from \"definitive for a reason that is not absence\" as grades. It also never names \"not definitive\" as a distinct grade."
+}

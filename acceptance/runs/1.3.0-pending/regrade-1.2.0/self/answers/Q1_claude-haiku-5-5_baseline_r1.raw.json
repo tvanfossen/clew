@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 56270,
+  "stop_reason": "end_turn",
+  "session_id": "771935dc-6d04-4ac0-8102-458d793170ef",
+  "total_cost_usd": 0.021588489999999995,
+  "usage": {
+    "input_tokens": 32,
+    "cache_creation_input_tokens": 51035,
+    "cache_read_input_tokens": 783729,
+    "output_tokens": 7082,
+    "output_tokens_details": {
+      "thinking_tokens": 2477
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 51035,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1876,
+        "cache_read_input_tokens": 66076,
+        "cache_creation_input_tokens": 498,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 498
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 32,
+      "outputTokens": 7082,
+      "cacheReadInputTokens": 783729,
+      "cacheCreationInputTokens": 51035,
+      "webSearchRequests": 0,
+      "costUSD": 0.021588489999999995,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2477,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 51035,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 19,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The index's file set is decided by one scope resolver, `derive_scope` in `clew/scope.py`, and then narrowed by a few later filters. With no declaration, the whole repository is the scope, minus what git ignores and minus dot- and cache-directories.\n\n```\nbuild (cli.py)\n  \u2502\n  \u251c\u2500 stated scope (tool call)? \u2500\u2500yes\u2500\u2500\u25ba tier 1\n  \u251c\u2500 .clew.yaml index_scope:? \u2500\u2500\u2500yes\u2500\u2500\u25ba tier 1 (roots/excludes)\n  \u2502                                      invalid \u2192 CLI refuses; internal callers fall through\n  \u2514\u2500 neither \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u25ba tier 2: whole repo, minus exclusions\n        \u2502\n        \u25bc\n  toolchain.toml [ignore].paths  \u2192 added to excludes (index tier only)\n        \u25bc\n  enumerate_tree: walk roots, prune excludes, no extension filter\n        \u25bc\n  binary files dropped \u2192 added to excludes\n        \u25bc\n  doxygen: INPUT = scope roots, FILE_PATTERNS forced to doxygen's default list\n```\n\n**1. Declared scope (tier 1).** `.clew.yaml` may carry `index_scope: {roots, excludes}` (`scope.py:612`, `_declared_index_scope`). Rules:\n- `roots:` is required. `excludes:` alone is rejected.\n- Roots that don't exist on disk are dropped.\n- Unknown keys reject the whole declaration, so a typo can't be silently ignored.\n- The CLI refuses with exit 1 on a rejected declaration (`cli.py:815`). Internal callers absorb it into the whole-repo tier with a WARNING.\n\n**2. Nothing declared (tier 2).** `whole_repo_scope` (`scope.py:683`) makes the repo root the single INPUT root. Exclusions are:\n- **Git-ignored paths.** `git ls-files --others --ignored --exclude-standard --directory`, run for the repo and for each nested git tree separately.\n- **Dot-directories and `__pycache__`/`node_modules`.** These are pruned during the walk (`_pruned_dirs`, `_skip_dir`).\n- **A depth guard.** Walks stop at 16 levels and the directory is recorded as depth-limited.\n\nNested git trees (submodules, vendored clones) are included, not excluded. `external.py` tags their rows afterward. A Doxyfile, if present, contributes ALIASES and PREDEFINED but no longer contributes INPUT (gh#333).\n\n**3. Later filters, applied in both tiers:**\n- `toolchain.toml` `[ignore].paths` globs are expanded into excludes (`cli.py:2529`). The `[clew.ignore]` section is gate-only and does not reach the index.\n- `enumerate_tree` (`treescan.py:203`) walks roots and prunes excluded subtrees. It deliberately does not filter by extension, so any change under the scope invalidates the cache.\n- Binary files are detected and dropped (`_drop_binary_files`, `filetypes.binary_files`).\n- Doxygen's `FILE_PATTERNS` is forced to a fixed list (`doxygen.py:203`). That list is the real extension gate for doxygen-processed files; a repo cannot override it.\n\n**What this means for this repo** (`acceptance/runs/1.2.0-pending/self/repo`):\n- `.clew.yaml` declares only `guard:`, so this run takes tier 2.\n- There is no `toolchain.toml`, no `suppress.toml` and no Doxyfile, so the only exclusions are `.gitignore` entries and dot/cache directories.\n- Side effect: `.github/`, `.claude-plugin/` and `.pre-commit-hooks.yaml` are dot-paths and are pruned. Whether that is intended is a question for you.\n\n**Caveat.** I traced the scope, enumeration and doxygen paths directly. I did not fully trace how non-doxygen languages (Rust, JS/TS) reach the harvester. `harvest.py` has its own extension sets and a `_parseable_file` check, but I did not confirm which files from the scope it receives. If you need that, I can trace it next.",
+  "ttft_ms": 2606,
+  "type": "result",
+  "duration_ms": 57660,
+  "uuid": "353ce366-f280-4810-8868-b56d081d7912",
+  "ttft_stream_ms": 2146,
+  "time_to_request_ms": 262,
+  "first_content_frame_ms": 2146,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

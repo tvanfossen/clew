@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says resolution is by name and `candidates` disambiguates the focal symbol but not its edges, yet it never contrasts a flat surface selecting by resolved identity with a traversal surface matching the bare name."
+}

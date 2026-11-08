@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `do_count_tokens` (`:825`) | Returns `0`. ... `InferenceBackend::count_tokens` (`backend.cpp:496`) | When loaded, returns `0` directly. ... \"A loaded model whose tokenization fails reports `0` tokens from `count_tokens`... a caller budgeting context will see a silent undercount.\"\nVERDICT: HIT\nWHY: The answer states that the count-tokens path returns 0 when tokenization fails, with no error signalled, and calls it a silent undercount."
+}

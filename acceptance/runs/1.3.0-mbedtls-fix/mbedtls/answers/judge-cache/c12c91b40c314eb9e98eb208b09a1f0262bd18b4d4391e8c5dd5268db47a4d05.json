@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Default (macro not defined):** `MBEDTLS_PRIVATE(member)` expands to `private_##member` (line 15). ... **Opt-out defined:** it expands to `member` (line 17), so the name is public again.\nVERDICT: HIT\nWHY: The answer states the default expansion to private_##member and that defining MBEDTLS_ALLOW_PRIVATE_ACCESS expands to the plain member name."
+}

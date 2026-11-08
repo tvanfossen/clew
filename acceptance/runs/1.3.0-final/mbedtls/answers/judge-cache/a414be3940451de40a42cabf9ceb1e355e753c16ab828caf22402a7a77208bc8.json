@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: #ifndef MBEDTLS_ALLOW_PRIVATE_ACCESS #define MBEDTLS_PRIVATE(member) private_##member #else #define MBEDTLS_PRIVATE(member) member #endif \u2014 plus \"External consumers get the renamed fields... The library itself needs the real names. It opts out with `#define MBEDTLS_ALLOW_PRIVATE_ACCESS`\"\nVERDICT: HIT\nWHY: The answer shows both macro branches and explains that code defining the opt-out sees real names while ordinary public-header consumers see the `private_`-prefixed names."
+}

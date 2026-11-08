@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The block is sized to fit the response budget and compacted before it is dropped.\nVERDICT: HIT\nWHY: The answer says the staleness block is compacted to fit the response budget before it would be dropped, which is degrading the wording rather than dropping the warning."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the reader's confidence in an empty result depends on fields such as `not_indexed`, `token_hits` and the note's list of what was not searched. It never says that the tool's strong \"definitive\" wording is earned per call by querying which corpora were not read, rather than attached to the empty-result shape."
+}

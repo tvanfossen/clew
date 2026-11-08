@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer concludes the opposite: without the grammars the build succeeds but the miss report does NOT list those files as unindexed. It never states the intended gate-based degrade-and-report-as-not-indexed behavior as the conclusion."
+}

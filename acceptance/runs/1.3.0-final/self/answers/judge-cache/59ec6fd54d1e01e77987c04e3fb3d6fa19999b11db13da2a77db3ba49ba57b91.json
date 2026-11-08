@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says traversal drops fuzzy edges while the flat list keeps them, and never states that one shared collapse function serves both surfaces so provenance can't disagree."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Its gate in `constant_time_impl.h` (lines ~40\u201352) requires `MBEDTLS_HAVE_ASM` plus `__GNUC__` or `__ARMCC_VERSION`.\nVERDICT: MISS\nWHY: The answer says the gate requires MBEDTLS_HAVE_ASM plus compiler macros, but it never says MBEDTLS_CT_ASM is derived rather than configured, and it doesn't say the symbol is absent from mbedtls_config.h."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"installs its own `buffer_alloc_calloc` and `buffer_alloc_free` through `mbedtls_platform_set_calloc_free()`\" and \"`mbedtls_memory_buffer_alloc_init(buf, len)` ... needs `MBEDTLS_MEMORY_BUFFER_ALLOC_C`\"\nVERDICT: MISS\nWHY: The answer says the buffer allocator uses the setter from its init function, but never says it is the only in-tree user of it."
+}

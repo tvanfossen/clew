@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Nothing is extension-filtered. `enumerate_tree` hands every file under the roots to the pipeline... Files that no grammar handles are simply not indexed; the `files` inventory counts only what the index holds.\nVERDICT: MISS\nWHY: The answer says files no grammar handles aren't indexed, but it names neither the parse-built front end claiming file types doxygen can't read nor binary classification dropping files with misleading extensions."
+}

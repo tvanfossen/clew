@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The argument in that key comes from `ServerManager::args_to_pattern`: the first string-valued argument, or `*` if the arguments are empty or unparseable.\nVERDICT: HIT\nWHY: The answer states that only the first string-valued argument reaches the pattern and that empty or unparseable arguments become `*`. It does not say the other arguments are invisible, and it doesn't mention non-string arguments collapsing to `*`. \"First string-valued argument\" does imply that the rest are ignored, so I count it as stated."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says that memory_buffer_alloc requires MBEDTLS_PLATFORM_MEMORY; it only says the allocator calls mbedtls_platform_set_calloc_free, which exists only in that mode, without stating the dependency."
+}

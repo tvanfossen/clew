@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer explains why YAML/JSON get path-only rows but never mentions markdown being deliberately denied a path row because it is prose and would inflate indexed-source coverage."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: library/error.c  (case -(MBEDTLS_ERR_X): return \"MOD - doc\";) ... scripts/generate_errors.pl  + scripts/data_files/error.fmt (template) ... That `switch` is generated, not hand-written, from the `#define`s in `include/mbedtls/*.h` by `scripts/generate_errors.pl`.\nVERDICT: HIT\nWHY: The answer states that library/error.c is generated from the public headers by generate_errors.pl using error.fmt as the template."
+}

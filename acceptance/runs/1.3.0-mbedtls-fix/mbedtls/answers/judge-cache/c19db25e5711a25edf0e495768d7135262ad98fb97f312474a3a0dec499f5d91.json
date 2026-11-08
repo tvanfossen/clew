@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The two SSL programs also get it, so they can reach internals that outside applications cannot.\nVERDICT: HIT\nWHY: The answer states that example programs (ssl_client2.c, ssl_server2.c) define the opt-out macro themselves and thereby reach internals that outside code cannot."
+}

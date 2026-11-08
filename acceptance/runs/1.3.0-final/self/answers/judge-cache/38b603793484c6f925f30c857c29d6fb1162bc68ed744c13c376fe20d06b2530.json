@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The repo's Doxyfile is still read, but only for ALIASES, PREDEFINED and similar settings. Its `INPUT` is ignored (gh#333). The reason is that a Doxyfile documents the published API, and using its INPUT as the reasoning boundary meant a repo that documented itself got a smaller index.\nVERDICT: HIT\nWHY: The answer states the Doxyfile's INPUT is deliberately ignored and explains that using it would shrink the index for repos that ship a Doxyfile, which matches the item's reason (a repo with a Doxyfile gets only its documented subset)."
+}

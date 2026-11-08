@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never mentions a shared collapse function serving both the flat neighbour surface and the traversal surface, nor the guarantee that edge provenance can't disagree between a chain and a neighbour list."
+}

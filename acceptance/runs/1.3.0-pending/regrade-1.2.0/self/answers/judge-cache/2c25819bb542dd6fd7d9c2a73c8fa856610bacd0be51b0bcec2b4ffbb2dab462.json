@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer lists several downgrade conditions in a table but never says they are ordered most-specific first, and never explains why a matching row in an unread corpus outranks index-wide statements."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Memory the engine will free must come from `entropic_alloc()`.** `hooks.py` does this in `_alloc_c_string` and the hook trampoline for `modified_json`.\"\nVERDICT: HIT\nWHY: The answer states that memory the engine will free must be allocated with entropic_alloc, and it names the Python location (hooks.py `_alloc_c_string`, the hook trampoline for `modified_json`)."
+}

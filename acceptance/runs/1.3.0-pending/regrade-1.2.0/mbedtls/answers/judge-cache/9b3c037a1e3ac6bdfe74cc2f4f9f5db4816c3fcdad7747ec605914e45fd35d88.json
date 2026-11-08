@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says that `mbedtls_platform_set_calloc_free` is neither declared nor compiled on the macro path. It says only that macros \"win over runtime setup\", which doesn't state that the function doesn't exist."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Target facts: Doxyfile, generator manifests, language/platform entry points | 3 `target-fact` | **Accumulates** | Survives every stated tier.\" and \"Declaration vs target facts or ecosystem: no conflict. Tiers 3 and 4 accumulate, so a declared `entry_patterns` replaces only the built-in guesses and leaves Doxyfile-derived facts in place. A declaration can correct a guess but cannot remove a fact.\"\nVERDICT: HIT\nWHY: The answer says stated tiers (1, 2) replace one another while discovered tiers 3 and 4 accumulate and survive any stated tier."
+}

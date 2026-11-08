@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **`edge_class`**: `call` or `key`. A `key` row is a shared-key dataflow edge with no call between the two functions, and it may run on another thread (`clew/query/models.py`, `CallEdge`).\nVERDICT: HIT\nWHY: The answer states that neighbours carry an `edge_class` of `call` or `key`, where `key` is a shared-key dataflow edge. It also says \"`key` rows are dataflow, not calls\" and that the consumer should check these fields."
+}

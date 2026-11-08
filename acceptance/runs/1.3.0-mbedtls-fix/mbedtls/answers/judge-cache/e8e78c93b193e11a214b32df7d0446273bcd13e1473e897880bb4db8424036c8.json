@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Without `MBEDTLS_ALLOW_PRIVATE_ACCESS`, it expands to `private_##member`... The result is a compile-time barrier: an application that reads `ctx->foo` gets \"no member named foo\"... It is a naming barrier, not access control. Anyone can write `ctx->private_foo`\nVERDICT: HIT\nWHY: The answer states that opacity is enforced at compile time by mangling the member name (a naming barrier), and that the fields stay accessible by their mangled names. That matches the item's mechanism and its contrast with hiding the struct layout."
+}

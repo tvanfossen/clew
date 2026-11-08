@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says the monitor's shutdown uses an atomic flag exchange plus a condition-variable wake, and it never says `HealthMonitor::stop()` joins. It covers ExternalBridge stop and an `event_mutex_` queue, but not the monitor's shutdown mechanism."
+}

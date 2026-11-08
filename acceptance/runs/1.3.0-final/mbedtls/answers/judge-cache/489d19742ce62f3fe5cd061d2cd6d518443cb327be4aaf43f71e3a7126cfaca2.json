@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_ct_compiler_opaque(x)` returns `x` through `asm volatile(\"\" : \"+r\"(x))` when assembly is available. Otherwise it returns `x ^ mbedtls_ct_zero`... The stated purpose is that the compiler cannot prove the value at compile time, so it cannot fold the mask back into a branch.\nVERDICT: HIT\nWHY: The answer names the empty `asm volatile(\"\" : \"+r\"(x))` with a read-write register operand and says it serves as an opacity barrier against compiler optimisation."
+}

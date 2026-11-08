@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The pair is llama.cpp's two-phase sizing idiom: 1. Call with a null buffer and capacity 0... Retry means re-attempting an operation after it failed. Here the second call runs unconditionally on every non-null vocab, and the first call's negative return is expected, not an error.\nVERDICT: HIT\nWHY: The answer identifies the two calls as size negotiation, not retry, noting that the second call is unconditional and the first call's negative return is expected. That implies no failure-triggered retry, and it identifies exactly one second call."
+}

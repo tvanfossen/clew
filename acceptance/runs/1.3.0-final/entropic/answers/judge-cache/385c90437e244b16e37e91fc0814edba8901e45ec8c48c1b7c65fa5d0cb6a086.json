@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The wheel is pure Python and loads `librentropic.so` at runtime. ... The `.so` is fetched by `entropic install-engine`.\nVERDICT: MISS\nWHY: The answer mentions install-engine and runtime loading, but never concludes that the split exists so `import entropic` succeeds before the engine is installed, enabling the subcommand to ship in the same package."
+}

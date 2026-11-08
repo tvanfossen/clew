@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The one built-in allocator is `library/memory_buffer_alloc.c`. `mbedtls_memory_buffer_alloc_init(buf, len)` (line 566) serves allocations from a caller-supplied buffer. As a side effect it calls `mbedtls_platform_set_calloc_free()` to install its own functions.\nVERDICT: HIT\nWHY: The answer names the buffer allocator's init function as calling the runtime setter to install its own functions. It calls this the \"one built-in allocator\" rather than the only in-tree user of the setter, but that is close enough to the item's substance."
+}

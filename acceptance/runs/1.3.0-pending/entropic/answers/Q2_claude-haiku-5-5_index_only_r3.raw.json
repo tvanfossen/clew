@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 20964,
+  "stop_reason": "end_turn",
+  "session_id": "a571bbbc-6765-4fce-a1b4-cfde1e2dd2a7",
+  "total_cost_usd": 0.008161769999999999,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 22657,
+    "cache_read_input_tokens": 174657,
+    "output_tokens": 3766,
+    "output_tokens_details": {
+      "thinking_tokens": 1383
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 22657,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2438,
+        "cache_read_input_tokens": 53956,
+        "cache_creation_input_tokens": 6110,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 6110
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 8,
+      "outputTokens": 3766,
+      "cacheReadInputTokens": 174657,
+      "cacheCreationInputTokens": 22657,
+      "webSearchRequests": 0,
+      "costUSD": 0.008161769999999999,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1383,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 22657,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 9,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** llama.cpp is a git submodule under `extern/llama.cpp`, linked into the inference library. Its types and calls stay inside `src/inference/`, with the C ABI as the outer boundary. I answered from the index only, so I could not read the CMake bodies themselves.\n\n**How it's brought in**\n\n- `extern/` holds llama.cpp as a git submodule. `extern/CMakeLists.txt` describes external dependencies as fetched at configure time via FetchContent, with header-only libraries as INTERFACE targets. Its comment says llama.cpp \"is a submodule but NOT built in v1.8.0.\" That comment is from the v1.8.0 scaffold, so it is stale.\n- `src/inference/CMakeLists.txt` is the consumer. Its doc says the inference library \"Links against llama.cpp, nlohmann/json, and spdlog,\" and that the build variant depends on the compute backend.\n- `docs/architecture-cpp.md` gives the shape: `librentropic-inference-{cuda,vulkan,cpu}.so` links `llama.cpp` and implements `IInferenceBackend`. The CUDA, Vulkan, and CPU variants are compile-time choices.\n- The pin is the submodule commit. The code comments reference a pinned build (b8420 in older notes). `RELEASE_NOTES.md` shows later bumps, and the notes say each bump requires re-checking vendor-coupled code such as `tool_call_markers`.\n- A file named `llama.h` sits at the repo root. The index holds it with no documentation and no symbols, so I can't tell whether it is the vendored header or a local shim.\n\n**How far it reaches into entropic's source**\n\n| Layer | Reach |\n|---|---|\n| `src/inference/llama_cpp_backend.{h,cpp}` | Heavy. `LlamaCppBackend` calls `llama_model_load_from_file`, `llama_init_from_model`, and the decode, sampler, and batch APIs. It holds `llama_model*`, `llama_context*`, and the MTP draft context. Its doc says it is \"Versioned\": a pinned-commit subclass overrides API-version-specific calls. |\n| `src/inference/llama_cpp_sampler.{h,cpp}` | Wraps a `llama_sampler` chain behind entropic's abstract `Sampler` / `SamplerFactory`. |\n| `src/inference/llama_cpp_tokenizer.{h,cpp}` | Forwards to `llama_tokenize` and `llama_token_to_piece` via a borrowed `llama_vocab*`. |\n| Other `src/inference/` files | Touch llama.cpp indirectly. `adapter_manager.cpp` uses LoRA APIs. `image_preprocessor.cpp` uses the stb_image copy vendored with llama.cpp. `mtp_envelope.h` and `tool_call_markers.h` depend on llama.cpp behavior. |\n| `include/entropic/types/config.h` | Mirrors llama.cpp settings as plain config fields (`n_batch`, `n_ubatch`, `flash_attn`, `cache_type_k/v`, `split_mode`, `offload_kqv`, `n_parallel`, `llama_log_path`). `build_cparams` maps these onto llama.cpp params. No llama.cpp types appear in this header. |\n| `include/entropic/inference/speculative_compat.h` | Public header. Its doc says the compatibility check lives in entropic \"not llama.cpp\", so it is meant to stay llama-free. I did not confirm its body. |\n| Interfaces and C API (`entropic.h`, `i_*.h`) | No llama.cpp symbols indexed. The design rules say exceptions and C++ ABI stay inside the `.so`, and the Python wrapper is generated from `entropic.h`. The index shows no llama symbols in `python/`. |\n| Tests | Several unit tests mock llama.cpp at link time (`adapter_manager_test.cpp`, `speculative_compat_test.cpp`, `vocab_only_smoke_test.cpp`). They define stand-ins for `llama_adapter_lora_init` and similar functions. |\n\n**Bottom line:** the dependency is a submodule that the inference `.so` links directly. Its reach is about seven files in `src/inference/`, plus config fields that mirror its parameters and link-time mocks in the tests. Nothing in the public C interface or the Python wrapper exposes llama.cpp types.\n\n**Gaps:** the index does not include CMake bodies, so the exact `target_link_libraries` and FetchContent or submodule wiring is unverified. Confirm them by reading `src/inference/CMakeLists.txt` and `extern/CMakeLists.txt`.",
+  "ttft_ms": 1558,
+  "type": "result",
+  "duration_ms": 21587,
+  "uuid": "c7ea8ee3-1892-49a7-9d96-394e54407253",
+  "ttft_stream_ms": 1380,
+  "time_to_request_ms": 82,
+  "first_content_frame_ms": 1380,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

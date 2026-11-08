@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: | 2 | The target's own `<repo>/.clew.yaml` | Every build, CLI and MCP alike | This is the standing declaration. The same section names are used at every tier. |\nVERDICT: HIT\nWHY: The answer names `.clew.yaml` as the tier-2 standing declaration at the repo root, reaching every build through both CLI and MCP, with the same section names at every tier rather than plumbed per section."
+}

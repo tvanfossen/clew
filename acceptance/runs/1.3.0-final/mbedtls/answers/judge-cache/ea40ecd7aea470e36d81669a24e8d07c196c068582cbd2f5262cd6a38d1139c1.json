@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Every lock site I checked is guarded by `MBEDTLS_THREADING_C`... Enabling it means choosing exactly one implementation... `MBEDTLS_THREADING_PTHREAD` and `MBEDTLS_THREADING_ALT` are also off\nVERDICT: MISS\nWHY: Both macros are named, but THREADING_PTHREAD is mentioned only as a disabled option, not as a gating macro alongside THREADING_C; the answer says the code is gated by THREADING_C plus \"an implementation\" without naming PTHREAD as the gate."
+}

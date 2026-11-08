@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `llama_cpp_backend.{h,cpp}` includes `<llama.h>`, `<common.h>`, `<chat.h>`, `<sampling.h>`, `<speculative.h>`, `<mtmd.h>` and `<mtmd-helper.h>`... `LlamaCppBackend` is the concrete class of the layer, with `model_`, `ctx_` and `vocab_` as raw llama pointers.\nVERDICT: MISS\nWHY: The answer never says the seam is llama.cpp's C API of free `llama_`-prefixed functions. It mentions `llama_*` pointers and a few mocked symbols, but it describes the boundary in terms of headers and includes, not the C API as the seam."
+}

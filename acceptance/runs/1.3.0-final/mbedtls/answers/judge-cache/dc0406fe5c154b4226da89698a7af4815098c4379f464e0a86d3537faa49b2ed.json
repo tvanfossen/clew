@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Compile time.** Enable `MBEDTLS_PLATFORM_MEMORY` and define both macros... No runtime setter is involved. / **Runtime.** Enable only `MBEDTLS_PLATFORM_MEMORY` and call the setter once\n\nVERDICT: MISS\n\nWHY: The answer describes both compile-time macros and runtime function pointers, but it never states that the two are mutually exclusive. It only implies that the macros take precedence when both are defined."
+}

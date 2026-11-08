@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer concludes the opposite: shell and CMake files are still registered, yield no symbols, and are silently not named in the not-indexed report. It cites no capability gate and no routing consultation, so the item's degrade-with-reporting conclusion is absent."
+}

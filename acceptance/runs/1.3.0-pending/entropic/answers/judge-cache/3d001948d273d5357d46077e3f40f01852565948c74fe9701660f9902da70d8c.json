@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"It runs once, with no loop, no backoff, and no second attempt after a failure.\" and \"llama_tokenize(fill) < 0 \u2192 LlamaCppTokenizer::tokenize logs error, returns {}\"\nVERDICT: HIT\nWHY: The answer states that a negative result from the fill (second) call logs an error and returns an empty vector, with no retry."
+}

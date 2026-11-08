@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`mbedtls_memory_buffer_alloc_init()` (line 566) zeroes the heap and then calls `mbedtls_platform_set_calloc_free()` itself, pointing it at `buffer_alloc_calloc`\" and \"The library's only own use of the facility is the optional buffer allocator, which installs itself through that same setter.\"\nVERDICT: HIT\nWHY: The answer names the buffer allocator as the library's only own user of the setter and says its init function installs it over the pointers."
+}

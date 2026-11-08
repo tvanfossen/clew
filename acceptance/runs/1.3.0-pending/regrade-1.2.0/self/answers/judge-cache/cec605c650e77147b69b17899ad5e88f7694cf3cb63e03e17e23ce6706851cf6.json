@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says a zero licenses only \"no indexed code symbol\" and lists what was not read, but it never says the strong wording is earned per call by querying which corpora were unread rather than being tied to a result shape."
+}

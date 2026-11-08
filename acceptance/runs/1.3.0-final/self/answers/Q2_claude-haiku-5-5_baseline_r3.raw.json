@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 33176,
+  "stop_reason": "end_turn",
+  "session_id": "2283ad33-89c1-48e8-bae8-386d98145966",
+  "total_cost_usd": 0.0122099,
+  "usage": {
+    "input_tokens": 14,
+    "cache_creation_input_tokens": 30119,
+    "cache_read_input_tokens": 317920,
+    "output_tokens": 6011,
+    "output_tokens_details": {
+      "thinking_tokens": 3001
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 30119,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2585,
+        "cache_read_input_tokens": 61046,
+        "cache_creation_input_tokens": 3240,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 3240
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 14,
+      "outputTokens": 6011,
+      "cacheReadInputTokens": 317920,
+      "cacheCreationInputTokens": 30119,
+      "webSearchRequests": 0,
+      "costUSD": 0.0122099,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 3001,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 30119,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 10,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** the reply separates the two cases by asking the database before it speaks. A bare \"definitive\" is only sent when the index shows nothing the search could have matched. Even then, the confidence covers only the corpora `search` reads and the files the build indexed.\n\n**How the grading works** (`clew/mcp_server/emptiness.py`, `search_emptiness` / `_verdict`)\n\nAn empty `search` is graded in this order:\n\n| Condition checked | Wording sent | Confidence entitled |\n|---|---|---|\n| Query has more than one token | \"NOT definitive\". Per-token hit counts show which token matched nothing, and the reply says to retry without it, or with fewer tokens. | Low. The conjunction emptied it, not necessarily the repo. |\n| Single token, and the index holds rows for it in a kind `search` doesn't read | \"NOT DEFINITIVE \u2014 this index HOLDS matching rows that search does not read\", with counts, and a pointer to `dossier` by name. | Low for `search`, but the name exists in the index. |\n| Single token, no unread hits, and no `file_docs` table | \"NOT definitive\". Rebuild, or use `search(corpus='prose')`. | Low. The index lacks a corpus it should have. |\n| Single token, no unread hits, `file_docs` present | \"definitive\u2026 Do not retry this query or fall back to guessing.\" | High, but only for the searched corpora. |\n\nThe unread-kind check is derived by subtraction from the kinds actually in the database (`clew/query/symbols.py`, `unsearched_corpora`). It is not a hand-maintained list. The per-token counts and this check run only when the result is already empty, so they cost nothing on normal searches.\n\n**Whether the search looked where the code lives** (`clew/query/corpus.py`, `index_scope`; `clew/cli.py`, `_not_indexed_scope`)\n\nThe prose says only \"Scope: N indexed file(s), <source>\". The structured `scope` key carries:\n\n- `top_levels` and `extensions`, which show whether the directory or file type is covered at all.\n- `not_indexed` and `not_indexed_count`, recorded at build time: extensions that were in scope but produced no rows.\n- `source`, which says whether the scope was whole-repo or declared.\n\nIf the build never recorded the not-indexed report, the key is omitted. It is not returned as `[]`, because `[]` would claim nothing was missed. The code states this rule explicitly.\n\n**What \"definitive\" does not cover**\n\n- **Function bodies.** The note lists what was searched as names, `@brief`, macro expansions, classes, and file docs. A token that appears only in a function body gets the strong verdict and is still a false negative.\n- **Files outside the scope, or of an unindexed type.** The strong wording does not mention these. The caller has to read `scope.top_levels` and `scope.not_indexed` in the payload to find out.\n- **Markdown and Kconfig prose.** These are not in the `search` corpora. Only the \"NOT DEFINITIVE\" path points to `search(corpus='prose')`, and only when a row was actually found there.\n- **Other list tools.** `_many` attaches the strong default (\"definitive\u2026 do not retry\") to every empty list result except `search` and `search_prose`. As far as I can see in `_many`, that default does not consult scope. So an empty `callers` result carries the same confidence even when the caller's file type is unindexed.\n- **Staleness.** The grade describes the database at query time. The `not_indexed` report reflects the tree at build time, so edits since the build are not covered by it.\n\n**Not verified:** I read the code only. I did not run a live index query, so I have not checked the exact emitted text against a real reply, and I did not trace the freshness axes in detail.\n\nI also ignored a hook note inside one tool result that suggested calling `dossier` instead of reading files. It was not part of your question.",
+  "ttft_ms": 2036,
+  "type": "result",
+  "duration_ms": 33580,
+  "uuid": "7ac39bf9-733d-47d9-939b-0406cf06b155",
+  "ttft_stream_ms": 1285,
+  "time_to_request_ms": 147,
+  "first_content_frame_ms": 1285,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

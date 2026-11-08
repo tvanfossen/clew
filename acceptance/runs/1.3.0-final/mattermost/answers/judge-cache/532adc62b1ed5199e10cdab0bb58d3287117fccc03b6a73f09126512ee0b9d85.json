@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Calls `setChannelDeleteAt(now)`, so the archived channel stays in the local DB | Calls `removeCurrentUserFromChannel`, so the channel is dropped locally; ... If it is the current channel, runs `handleKickFromChannel(..., CHANNEL_ARCHIVED)`; always removes the user from the channel locally\nVERDICT: HIT\nWHY: The answer states that with archived channels not viewable, the user is removed from the channel (and kicked if it is the current channel). When viewable, it sets delete_at on the channel and keeps it."
+}

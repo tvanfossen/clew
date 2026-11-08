@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `library/common.h:132` | The library's own translation units, which pull in `common.h`.\nVERDICT: HIT\nWHY: The answer states that the opt-out is defined in the shared header `library/common.h`, which covers the library's own translation units, so they see plain member names. It hedges on whether the define is guarded, but it still states the substance."
+}

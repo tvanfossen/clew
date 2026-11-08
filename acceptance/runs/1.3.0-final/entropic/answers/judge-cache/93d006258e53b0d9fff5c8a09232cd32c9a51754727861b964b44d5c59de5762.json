@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Logs are scoped to the owning handle via `HandleLogScope`.\nVERDICT: MISS\nWHY: It mentions HandleLogScope only for the run_async_ask worker, not that every thread body installs a per-handle logging scope as its first statement."
+}

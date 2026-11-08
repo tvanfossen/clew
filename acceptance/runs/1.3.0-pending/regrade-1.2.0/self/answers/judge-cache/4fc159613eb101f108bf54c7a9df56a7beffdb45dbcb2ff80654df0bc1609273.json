@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `confidence` | Strongest incoming edge kept when several layers recorded the same caller\nVERDICT: MISS\nWHY: The answer says the strongest confidence is kept when layers collapse but never says a ranking in the vocabulary module (rather than SQL) decides which layer's provenance is reported."
+}

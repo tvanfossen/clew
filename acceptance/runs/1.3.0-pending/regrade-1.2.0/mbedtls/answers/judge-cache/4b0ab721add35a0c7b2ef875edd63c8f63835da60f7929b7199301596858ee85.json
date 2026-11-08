@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "ITEMS:\nlibrary/constant_time_impl.h\nlibrary/constant_time_internal.h\nlibrary/constant_time.c\nEND"
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The POST goes through `ClientPosts.createPost` in `app/client/rest/posts.ts:46`, which passes `noRetry: true`. `buildRequestOptions` in `app/client/rest/tracking.ts:378\u2013393` turns that into `retryPolicyConfiguration = {retryLimit: 0}`. The request is sent once.\nVERDICT: HIT\nWHY: The answer states the create-post request has retries disabled (noRetry, retryLimit 0) and is sent once."
+}

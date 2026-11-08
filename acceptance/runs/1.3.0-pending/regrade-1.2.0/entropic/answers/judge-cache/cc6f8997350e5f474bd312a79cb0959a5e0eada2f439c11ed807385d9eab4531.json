@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The first call passes a null buffer with size 0. llama.cpp then returns the negative of the token count it needs. The code flips the sign to get `n`, allocates a vector of that size, and calls again to fill it. The second call is unconditional and never depends on the first failing.\"\nVERDICT: HIT\nWHY: The answer identifies the two calls as size-query then fill, not retry, and notes the second call is unconditional rather than failure-driven. It never mentions backoff, delay or an attempt counter, but the size-negotiation conclusion is stated."
+}

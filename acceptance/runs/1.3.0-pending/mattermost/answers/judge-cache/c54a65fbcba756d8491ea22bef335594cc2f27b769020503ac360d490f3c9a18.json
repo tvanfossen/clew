@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Archive a channel | `app/actions/remote/channel.ts:1397-1401` | Sets `delete_at` locally and keeps the user as a member | Removes the current user from the channel locally\" and \"If the archived channel is current, emits `CHANNEL_ARCHIVED` and kicks the user out; then removes the user from the channel\"\nVERDICT: HIT\nWHY: The answer states that when viewing archived channels is disabled, the user is removed from the channel and kicked out if it is current. When enabled, the channel is kept with `delete_at` set, which matches \"marked deleted\"."
+}

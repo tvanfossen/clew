@@ -36,13 +36,15 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from clew.languages import harvested_phrase, registered_phrase  # noqa: E402
+from clew.languages import harvested_phrase, registered_phrase, support_table  # noqa: E402
 
 REPO = Path(__file__).resolve().parent.parent
 
 ## The marker pair, in the comment syntax each file accepts. The NAME is identical across them so
 ## one grep finds every generated span.
 MARK = "clew:langs"
+## The README's support table, generated from `clew.languages.CAPABILITIES`.
+SUPPORT_MARK = "clew:support"
 
 
 ##
@@ -146,14 +148,20 @@ def main(check: bool) -> int:
     @version 1
     """
     body = clause()
+    table = "\n" + support_table() + "\n"
     changed: list[str] = []
     problems: list[str] = []
 
-    for path, (o, c) in {
-        REPO / "pyproject.toml": (f"# <{MARK}>", f"# </{MARK}>"),
-        REPO / "README.md": (f"<!-- {MARK} -->", f"<!-- /{MARK} -->"),
-    }.items():
-        did, why = replace_span(path, o, c, body, write=not check)
+    ## THE README CARRIES THE TABLE, NOT THE CLAUSE. It is the page a stranger reads first and the
+    ## PyPI description, and "which languages are FULLY supported" was the question it failed to
+    ## answer: the flat clause put shell beside C as if "who calls this" worked for both. The other
+    ## three targets cannot render a table, so they keep the clause.
+    spans = {
+        REPO / "pyproject.toml": (f"# <{MARK}>", f"# </{MARK}>", body),
+        REPO / "README.md": (f"<!-- {SUPPORT_MARK} -->", f"<!-- /{SUPPORT_MARK} -->", table),
+    }
+    for path, (o, c, text) in spans.items():
+        did, why = replace_span(path, o, c, text, write=not check)
         ## `did` IS THE CONDITION, not `why`. The first version appended on an empty `why`, so
         ## every marker file read as drifted on every run — a check that always fails teaches the
         ## reader to ignore it, which is worse than no check.

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Threads that run off the caller's thread table: ExternalBridge accept loop/per-client/async worker (`external_bridge.cpp`), HealthMonitor loop (`health_monitor.cpp:92`), SSE reader / stdio stderr reader (`transport_sse.cpp`, `transport_stdio.cpp`), Batch-generate observer (`response_generator.cpp:413`)\nVERDICT: HIT\nWHY: The answer lists spawn sites across the external bridge, MCP transports, health monitor and inference path, showing creation is distributed (it says \"10 spawn sites\" across several files), though it doesn't explicitly say \"not centralised\"."
+}

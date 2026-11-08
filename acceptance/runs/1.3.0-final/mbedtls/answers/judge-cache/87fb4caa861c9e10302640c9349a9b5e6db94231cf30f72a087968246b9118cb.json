@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Two sample programs | `programs/ssl/ssl_server2.c:8` and `ssl_client2.c:8` define it before any include | They use the real names, as in-tree test harnesses.\nVERDICT: HIT\nWHY: The answer states that example programs (ssl_server2.c, ssl_client2.c) define MBEDTLS_ALLOW_PRIVATE_ACCESS themselves to use real field names."
+}

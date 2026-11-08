@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The rule is `resolved = (tier1 or tier2 or tier5) \u222a tier3 \u222a tier4`.\nVERDICT: MISS\nWHY: The answer says tiers 3 and 4 both accumulate and share the same combination rule, but it never says the distinction between them is deliberately inert or that the load-bearing line is fact-versus-guess."
+}

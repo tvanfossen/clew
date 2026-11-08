@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Replies that would make a definitive \"no rows\" claim against a schema-stale index have that claim rewritten, so a caller does not conclude a lock is absent when the real cause is an unrebuilt index.\nVERDICT: MISS\nWHY: The answer describes claim rewriting for schema-stale \"no rows\" replies, not fitting the annotation to a response budget by degrading its wording instead of dropping the warning."
+}

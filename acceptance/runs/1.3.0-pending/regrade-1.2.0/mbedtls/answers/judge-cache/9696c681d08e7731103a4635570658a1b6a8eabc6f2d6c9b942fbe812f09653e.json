@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Default build:** `platform.h:166-167` maps `mbedtls_calloc` to `calloc` and `mbedtls_free` to `free`, so there is no indirection.\nVERDICT: HIT\nWHY: The answer states that in a default build the macros map directly to calloc/free with no indirection."
+}

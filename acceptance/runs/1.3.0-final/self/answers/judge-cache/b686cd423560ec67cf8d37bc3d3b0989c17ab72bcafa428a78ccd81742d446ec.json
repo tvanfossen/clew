@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Shell (`.sh`, `.bash`):** ... **CMake (`CMakeLists.txt`, `.cmake`):** `function()` and `macro()` definitions become symbols\nVERDICT: HIT\nWHY: The answer names the shell extensions (.sh, .bash) and the CMake extensions (.cmake) and lists CMakeLists.txt by file name."
+}

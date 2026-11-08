@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A field declared as `MBEDTLS_PRIVATE(nr)` is really named `private_nr`, so `ctx.nr` fails to compile.\nVERDICT: HIT\nWHY: The answer says opacity is enforced at compile time by renaming the member to `private_x`, so the access fails to compile. It doesn't say the struct layout is hidden, and it presents the renamed field as a normal member of the struct."
+}

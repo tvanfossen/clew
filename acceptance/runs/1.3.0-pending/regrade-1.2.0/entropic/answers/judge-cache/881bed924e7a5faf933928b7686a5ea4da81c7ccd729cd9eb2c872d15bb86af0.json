@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"It loads the shared library at runtime with `ctypes`, and every call crosses the C ABI\" and \"The binding layer is `ctypes` only, with no pybind11 or cffi.\" and \"`ctypes.CDLL(librentropic.so)`\"\nVERDICT: HIT\nWHY: The answer names ctypes loading librentropic.so as the mechanism and explicitly says there is no pybind11 or cffi, so no compiled extension module is involved."
+}

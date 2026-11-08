@@ -1,0 +1,93 @@
+{
+  "cell": "Q2_claude-haiku-5-5_baseline_r2",
+  "arm": "baseline",
+  "rubric_version": "5.0.0",
+  "rubric_digest": "d8447c7b18eafbf5",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.19047619047619047,
+  "unmarked_pct": 0.0,
+  "split_decisions": 1,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "locates the grading in clew/mcp_server/emptiness.py",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: **How the grading works** (`clew/mcp_server/emptiness.py`, `search_emptiness`) | WHY: The answer explicitly names clew/mcp_server/emptiness.py as the location of the grading logic (search_emptiness, _verdict). || QUOTE: **How the grading works** (`clew/mcp_server/emptiness.py`, `search_emptiness`) | WHY: The answer explicitly names clew/mcp_server/emptiness.py as the location of the empty-result grading. || QUOTE: `clew/mcp_server/emptiness.py`, `search_emptiness` | WHY: The answer explicitly names clew/mcp_server/emptiness.py as the location of the grading and ties it to search_emptiness.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the strong wording is EARNED PER CALL by querying which corpora the search did not read, rather than being attached to a result shape",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: `_verdict` gives it only when `q.unsearched_corpora` returns nothing, which subtracts the kinds `search` reads from the kinds the database actually holds. | WHY: The answer says the strong \"definitive\" wording is granted per call only when a query of the unread corpora (the database's kinds minus the kinds search reads) comes back with no match. The answer ties this to the empty-result grading and not to a result shape. || QUOTE: \"`_verdict` gives it only when `q.unsearched_corpora` returns nothing, which subtracts the kinds `search` reads from the kinds the database actually holds.\" | WHY: The answer says the definitive wording is granted per call by querying which corpora the search did not read (`unsearched_corpora`), rather than by result shape alone. || QUOTE: `_verdict` gives it only when `q.unsearched_corpora` returns nothing, which subtracts the kinds `search` reads from the kinds the database actually holds. | WHY: The answer says the definitive wording is granted per call only when a query of unsearched corpora finds no matching rows, not by result shape.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "explains that a single token matching nothing was previously treated as proof of absence, and that this confuses \"nothing exists\" with \"I did not look there\"",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: `_verdict` gives it only when `q.unsearched_corpora` returns nothing... Its docstring records four earlier cases (classes, variables, macros, typedefs/enums) where the strong wording was false, which is why the check exists. | WHY: The answer describes the current grading and past false \"definitive\" cases for unread corpora, but never says a single token matching nothing was previously treated as proof of absence, and it doesn't frame that as confusing \"nothing exists\" with \"I did not look there\". Its single-token discussion is about unread corpora, not the one-token-as-proof-of-absence mistake. || QUOTE: Its docstring records four earlier cases (classes, variables, macros, typedefs/enums) where the strong wording was false, which is why the check exists. | WHY: The answer covers the graded emptiness mechanism, but it never says a single token matching nothing was previously treated as proof of absence, and it never states the \"nothing exists\" versus \"I did not look there\" confusion as the old failure.",
+      "agreement": 0.6666666666666666,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the downgrades are ORDERED most-specific first, and explains why \u2014 a matching row in an unread corpus is a statement about THIS query and outranks statements about the index as a whole",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer lists the downgrade cases in a table but never says they are ordered most-specific first. It also never says a matching row in an unread corpus outranks statements about the index as a whole. || QUOTE: NONE | WHY: The answer lists several \"NOT definitive\" downgrade cases but never says they are ordered most-specific first, or that a match in an unread corpus outranks index-wide statements. || QUOTE: NONE | WHY: The answer lists the downgrade cases (unread corpus, no file-docs, multi-token) but never says they are ordered most-specific first. It also never says a matching row in an unread corpus outranks statements about the index as a whole.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "conveys that there is exactly ONE absent-corpus downgrade and that keeping it to one is deliberate, because downgrading on every absent layer turns the grading into a blanket hedge",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer describes several graded empty-result cases and never says there is exactly one absent-corpus downgrade, nor that keeping it to one is deliberate to avoid blanket hedging. || QUOTE: NONE | WHY: The answer describes several \"NOT definitive\" downgrade cases (unread corpus, no file-docs, multi-token, prose) and never says there is exactly one absent-corpus downgrade, or that keeping it to one is deliberate to avoid a blanket hedge. || QUOTE: NONE | WHY: The answer describes several \"NOT definitive\" downgrade cases (unread corpus, no file-docs, multi-token, prose) and never says there is exactly one absent-corpus downgrade or that keeping it to one is deliberate to avoid blanket hedging.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "conveys the general rule the module leaves behind \u2014 fix the corpus, not the sentence about the corpus",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer describes how empty-result grading works but never states the general rule that you fix the corpus (what's indexed) rather than the sentence about it. || QUOTE: NONE | WHY: The answer never states the general rule \"fix the corpus, not the sentence about the corpus\"; it only describes the grading mechanism and caveats. || QUOTE: NONE | WHY: The answer never states the general rule \"fix the corpus, not the sentence about the corpus\". It describes grading by unread-corpus subtraction, but does not say the remedy for a false claim is to change what is read rather than the wording.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "distinguishes all three grades an empty reply can receive: definitive for the scope, definitive for a reason that is not absence, and not definitive",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer describes only a definitive-for-scope grade and several \"NOT definitive\" variants. It never names a separate grade that is definitive for a reason other than absence, and it says \"Only one shape earns the strong 'definitive' wording.\" || QUOTE: NONE | WHY: The answer separates \"definitive, bounded by scope\" from several \"NOT DEFINITIVE\" cases. It never names a separate grade for \"definitive for a reason that is not absence\", so only two grades are shown. || QUOTE: `_UNREAD_CORPUS`: \"NOT DEFINITIVE\u2026 this index HOLDS matching rows\u2026\" with counts by kind; `_DEFINITIVE`: \"a definitive empty result\u2026 Do not retry\" | WHY: The answer distinguishes definitive-for-scope from not-definitive, but it names no separate grade for \"definitive for a reason that is not absence\". The rows it lists as non-definitive are all unread-corpus, no-file-docs, or multi-token cases, none of which is that grade.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the reply also names the file types that WERE in scope and produced no rows, so \"this repository does not contain that\" and \"that file type is not indexed here\" are distinguishable rather than the same empty answer",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: `scope` (`_scope_payload`): covered file count, source tier (whole-repo vs declared), extensions, top levels. This is what separates \"outside the indexed scope\" from \"not in the repo\". `not_indexed` and `not_indexed_count` are present only when the build recorded them. | WHY: The answer describes scope and not_indexed fields, but never says the reply names in-scope file types that produced zero rows; that specific mechanism is absent. || QUOTE: `scope` (`_scope_payload`): covered file count, source tier (whole-repo vs declared), extensions, top levels. This is what separates \"outside the indexed scope\" from \"not in the repo\". `not_indexed` and `not_indexed_count` are present only when the build recorded them. | WHY: The answer describes scope fields (extensions, not_indexed) but never states that the reply names file types that were in scope yet produced no rows. || QUOTE: `scope` (`_scope_payload`): covered file count, source tier (whole-repo vs declared), extensions, top levels. This is what separates \"outside the indexed scope\" from \"not in the repo\". `not_indexed` and `not_indexed_count` are present only when the build recorded them. | WHY: The answer describes scope fields (extensions, not_indexed) that distinguish out-of-scope from absent, but never states that the reply names the in-scope file types that produced no rows.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    }
+  ]
+}

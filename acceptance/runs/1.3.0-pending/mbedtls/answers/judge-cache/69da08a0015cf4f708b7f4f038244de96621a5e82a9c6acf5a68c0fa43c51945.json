@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The default config turns off every threading option / \"in the default configuration the library runs no threads and takes no locks\" / \"Concurrency exists only in the test and example programs\"\nVERDICT: MISS\nWHY: The answer says the library runs no threads by default, but it never says that a default build creates no threads at all, and it never says the pthread example compiles to a stub main; it describes ssl_pthread_server.c as spawning a pthread per connection."
+}

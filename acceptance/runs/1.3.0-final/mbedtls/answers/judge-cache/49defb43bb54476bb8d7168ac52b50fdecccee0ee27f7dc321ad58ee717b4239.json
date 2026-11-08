@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_ct_compiler_opaque(x)` launders a value through an empty asm barrier (asm path) or XORs it with a `volatile` global zero (C path).\nVERDICT: MISS\nWHY: The answer mentions XOR with a volatile global zero on the C path but never names the global, which the item requires."
+}

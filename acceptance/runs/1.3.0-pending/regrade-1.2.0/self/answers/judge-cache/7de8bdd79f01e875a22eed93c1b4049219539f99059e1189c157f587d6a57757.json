@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Comments in the code record that an earlier version used the strong wording without this check and was wrong four times.\"\nVERDICT: HIT\nWHY: The answer says an earlier version called a single-token empty result \"definitive\" without checking corpora `search` doesn't read. It also says an empty result means \"not in the indexed scope\", not that the repository lacks the name."
+}

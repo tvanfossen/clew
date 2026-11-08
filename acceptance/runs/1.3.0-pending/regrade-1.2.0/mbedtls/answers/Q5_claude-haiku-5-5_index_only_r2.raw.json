@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 36963,
+  "stop_reason": "end_turn",
+  "session_id": "5822ad8a-9c89-4b04-bf67-5639114a8fc3",
+  "total_cost_usd": 0.01636966,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 47791,
+    "cache_read_input_tokens": 309576,
+    "output_tokens": 7429,
+    "output_tokens_details": {
+      "thinking_tokens": 3316
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 47791,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 5155,
+        "cache_read_input_tokens": 71268,
+        "cache_creation_input_tokens": 14069,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 14069
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 7429,
+      "cacheReadInputTokens": 309576,
+      "cacheCreationInputTokens": 47791,
+      "webSearchRequests": 0,
+      "costUSD": 0.01636966,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 3316,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 47791,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 15,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "## Short answer\n\nConstant-time behaviour in mbedtls is a source-level discipline backed by two mechanisms: hand-written assembly for select architectures, and a C fallback that depends on the compiler not undoing it. Nothing in the build verifies the emitted instructions. The fallback degrades silently. The facility is internal and reaches only the code that opts into it, mostly bignum, PKCS#7 padding and MAC/tag comparison.\n\n## How it is enforced at the instruction level\n\nThe primitives live in `library/constant_time_impl.h`, and every value is a mask rather than a boolean. `mbedtls_ct_condition_t` is all-ones (`MBEDTLS_CT_TRUE`) or zero (`MBEDTLS_CT_FALSE`). Branch-free selection and comparison are then bit operations on those masks.\n\n- **Mask generation.** `mbedtls_ct_bool(x)` turns any non-zero `x` into an all-ones mask using `neg` / `or` / `asr`. There is an asm version per target, and the C version starts with `mbedtls_ct_compiler_opaque(x)`.\n- **Selection.** `mbedtls_ct_if(cond, if1, if0)` is `and` / `not` / `and` / `or` on the mask, with asm variants for AArch64, ARM Thumb, x86-64 and x86-32.\n- **Comparison.** `mbedtls_ct_uint_lt` uses the borrow trick: `sub`, `bic`, `orr`, then `asr` gives an all-ones or zero mask. `mbedtls_ct_uint_ne` is `diff = x ^ y` followed by `mbedtls_ct_bool(diff)`. `mbedtls_ct_uint_eq` is `~uint_ne`.\n- **Compiler barrier.** `mbedtls_ct_compiler_opaque` is what stops the optimiser seeing through the mask. In the asm path it is `asm volatile(\"\" : [x] \"+r\"(x))`. In the C path it is `x ^ mbedtls_ct_zero`, where `mbedtls_ct_zero` is a `volatile` global set to 0 in `constant_time.c:29`. The compiler cannot prove the value is zero, so it cannot fold the mask back into a branch.\n- **Buffers.** `mbedtls_ct_memcmp` (`constant_time.c:67`) reads both buffers through `volatile` pointers and ORs the XOR differences, with no early exit. `mbedtls_ct_memcpy_offset` (`constant_time.c:214`) copies from every offset in `[offset_min, offset_max]` and selects with `mbedtls_ct_memcpy_if`, so the access pattern does not depend on the secret offset.\n\nThe asm paths are gated by `MBEDTLS_CT_ASM` (`constant_time_impl.h:42`). That needs `MBEDTLS_HAVE_ASM`, which is on in the shipped `mbedtls_config.h:52` and off in `configs/config-symmetric-only.h`, plus `__GNUC__` or `__ARMCC_VERSION`. Within that, each architecture macro (`MBEDTLS_CT_AARCH64_ASM`, `MBEDTLS_CT_ARM_ASM`, `MBEDTLS_CT_X86_64_ASM`, `MBEDTLS_CT_X86_ASM`) also requires a word-size macro (`MBEDTLS_CT_SIZE_32` or `_64`).\n\n## What happens on a compiler that cannot support it\n\nThere is no build failure. Every primitive has a plain `#else` branch, so the library compiles everywhere. Selection is:\n\n1. If `MBEDTLS_HAVE_ASM` is off, or the compiler is neither GCC-compatible nor ARMCC, or the architecture or word size has no asm variant, the C fallback is used.\n2. The fallback is bit arithmetic plus `mbedtls_ct_compiler_opaque`. Its correctness rests on the compiler not turning those masks into branches or conditional moves.\n3. The header says so in its own words. The `mbedtls_ct_bool` comment says the C fallback \"does not get optimised into conditional instructions or branches\" by the trunk clang, gcc and MSVC v19 of **May 2023**. That is a dated observation, not a guarantee.\n\nThe only compile-time guard in this area is in `mbedtls_ct_memcmp`. It `#error`s if `int` is narrower than 32 bits, because the final `(diff & 0xffff) | (diff >> 16)` cast would otherwise lose the sign-relevant bits. That protects the result's correctness, not its timing.\n\nSo on an unsupported toolchain the code still computes correct results, but the timing property is unverified and can break with no diagnostic. The library's own `SECURITY.md` caveat says \"compilers can introduce timing side channels in code that was intended to be constant-time\", and it disclaims guarantees against local non-timing side channels.\n\nThe only dynamic check the index shows is `test_with_valgrind_constant_time` (`tests/scripts/components-configuration-crypto.sh:25`). It runs the `tests/suites/*constant_time*.data` suites under Valgrind, excluding the HMAC data file. The index does not show how Valgrind is made to detect secret-dependent behaviour, so I cannot say more about the mechanism.\n\n## How far it reaches\n\n- **Public surface: none.** `docs/psa-transition.md` lists `constant_time.h` as an \"internal support header\" with no public APIs. Its `mbedtls_ct_` names are library-internal.\n- **Bignum.** `mbedtls_mpi_core_lt_ct` (`bignum_core.c:133`) scans all limbs with no early exit. `mbedtls_mpi_core_check_zero_ct`, and the public `mbedtls_mpi_lt_mpi_ct` in `bignum.h`, are also documented as constant-time. The first is documented as constant-time with respect to the value but not the limb count.\n- **PKCS#7 padding.** `mbedtls_get_pkcs_padding` (`cipher.c:847`) runs a fixed `input_len` loop. Its comment says the number of bytes checked \"must be independent of padding_len\". It accumulates `bad` through `mbedtls_ct_bool_or` and returns the length through `mbedtls_ct_if`, so the error is not revealed by timing. This is the clearest real consumer.\n- **Documented intent elsewhere.** The PSA headers ask implementations to \"make the best effort\" for constant-time tag and MAC comparison in `psa_mac_verify_finish`, `psa_hash_verify`, `psa_aead_verify` and `psa_key_derivation_verify_bytes`. That is a best-effort obligation, not a verified one.\n- **Length leaks by design.** `mbedtls_ct_memcmp` is explicitly \"not constant-time w.r.t. n\", and `mbedtls_ct_memcpy_offset` depends on `offset_min`, `offset_max` and `len`. Lengths are public inputs for these callers.\n- **Separate story in third-party code.** `3rdparty/p256-m` has its own constant-time design. It uses Fermat inversion and a `MUL64_IS_CONSTANT_TIME` symbol for platforms with a constant-time 32\u00d732\u219264 multiply. It does not use `mbedtls_ct_*`.\n\nThe index cannot enumerate the full consumer set. It reports 26 unresolved call sites for `mbedtls_ct_memcmp`, 12 for `mbedtls_ct_uint_eq` and 25 for `mbedtls_ct_bool`. So the list above is a sample of resolved callers, not a census. To count every caller, grep `mbedtls_ct_` across `library/` directly.",
+  "ttft_ms": 1706,
+  "type": "result",
+  "duration_ms": 38570,
+  "uuid": "42e89489-cd90-4d84-a372-309b16fc4ce1",
+  "ttft_stream_ms": 1368,
+  "time_to_request_ms": 75,
+  "first_content_frame_ms": 1369,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

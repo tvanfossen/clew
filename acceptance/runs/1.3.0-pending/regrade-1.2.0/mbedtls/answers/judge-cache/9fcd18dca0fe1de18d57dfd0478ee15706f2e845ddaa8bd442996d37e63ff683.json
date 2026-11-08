@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says the setter is neither declared nor compiled when the macro path is used. It only says \"Enable MBEDTLS_PLATFORM_MEMORY but not the two macros\" before calling the setter."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says that an uninitialised calloc pointer returns NULL or an uninitialised free pointer does nothing. It only says the pointers are initialised to the libc defaults."
+}

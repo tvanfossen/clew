@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"In the library: no thread is created.\" and \"`heap.mutex` | the static heap in `memory_buffer_alloc.c`; calloc and free wrappers take it\" with \"Everything in `library/threading.c` sits behind those gates.\"\nVERDICT: HIT\nWHY: The answer says the library creates no threads, and it also says library/threading.c provides the mutexes (threading.c globals, mbedtls_mutex_lock) that threaded callers use."
+}

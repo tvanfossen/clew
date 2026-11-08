@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `scripts/data_files/error.fmt` is the template. The script fills `HEADER_INCLUDED`, `LOW_LEVEL_CODE_CHECKS` and `HIGH_LEVEL_CODE_CHECKS` into it.\nVERDICT: HIT\nWHY: The answer states that generate_errors.pl scans the public headers (include/mbedtls) and uses error.fmt as its template to produce library/error.c, and that error.c is a generated, committed file."
+}

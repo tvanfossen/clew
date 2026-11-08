@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the pointers default to libc calloc/free and explicitly declines to verify the NO_STD_FUNCTIONS stubs that return NULL, so it never says an uninitialised calloc returns NULL or an uninitialised free does nothing."
+}

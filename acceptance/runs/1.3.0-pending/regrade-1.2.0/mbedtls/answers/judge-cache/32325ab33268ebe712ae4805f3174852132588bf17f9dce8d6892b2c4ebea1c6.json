@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_ct_memcmp` shows as orphan within the library, which fits a public API function called by applications.\nVERDICT: MISS\nWHY: The answer lists mbedtls_ct_memcmp as a public API function, but it never concludes that this is the only public function or that the other primitives are library-internal."
+}

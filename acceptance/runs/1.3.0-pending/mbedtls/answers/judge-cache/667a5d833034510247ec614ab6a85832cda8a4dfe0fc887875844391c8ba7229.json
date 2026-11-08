@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `library/error.c` is generated, not hand-written. The generator is `scripts/generate_errors.pl`, and its template is `scripts/data_files/error.fmt`. The generator: - scans `include/mbedtls/*.h` for `#define MBEDTLS_ERR_\\w+ -0x...`\nVERDICT: HIT\nWHY: The answer states error.c is generated from the public headers by generate_errors.pl using error.fmt as its template."
+}

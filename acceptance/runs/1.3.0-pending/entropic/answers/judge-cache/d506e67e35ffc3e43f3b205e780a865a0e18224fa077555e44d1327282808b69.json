@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `LlamaCppBackend::tokenize` (`llama_cpp_backend.cpp:788`) | Passes it through. Returns `{}` if no tokenizer is wired.\nVERDICT: MISS\nWHY: The answer says the backend wrapper passes through the empty result and returns `{}` when no tokenizer is wired. It never says that a failed tokenization and an unwired tokenizer give the same empty value at the backend wrapper. It only says the tokenizer's failure value is the same as the \"vocab is null\" and empty-input values."
+}

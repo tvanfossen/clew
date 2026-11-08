@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"the build compares the scanned file set against `path` rows and stamps `not_indexed` (e.g. `.sh=3, .yml=1`)... This is the 'I did not look here' signal.\" and \"`not_indexed` present means specific file types had no rows in this build.\"\nVERDICT: HIT\nWHY: The answer says the reply carries `not_indexed` extension counts for scanned file types that produced no rows, which separates \"not indexed here\" from \"absent from the repository\"."
+}

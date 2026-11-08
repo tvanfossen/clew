@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `.sh`, `.bash` ... `CMakeLists.txt`, `.cmake`\nVERDICT: HIT\nWHY: The table names the shell extensions (.sh, .bash) and CMake extension (.cmake), with CMakeLists.txt listed by file name separately from the extension. The answer also says `_ts_language_for` routes \".sh and CMakeLists.txt\" to nothing when the grammar is absent."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Only one of them shows a search field:** `screens/home/search/search.tsx`, which passes `hasSearch={true}` (line 467). The other seven either pass `hasSearch={false}` (saved messages, recent mentions) or leave it unset.\nVERDICT: HIT\nWHY: The answer names search.tsx as the only renderer that enables the search field via hasSearch={true}."
+}

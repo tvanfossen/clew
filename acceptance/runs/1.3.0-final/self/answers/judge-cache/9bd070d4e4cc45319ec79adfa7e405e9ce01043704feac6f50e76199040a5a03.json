@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: One row per endpoint. Two layers finding the same edge produce one row, reporting the strongest `source` and `confidence`. The row doesn't say the other layer disagreed.\nVERDICT: MISS\nWHY: The answer says a collapsed row reports the strongest source, but never says a ranking held in the vocabulary module (rather than SQL) decides it."
+}

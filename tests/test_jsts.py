@@ -66,7 +66,11 @@ def _tree(key: str, src: bytes):
 
 def test_definitions_functions_and_classes():
     out = harvest_definitions(_tree("typescript", TS), TS)
-    functions = {(f["cls"], f["name"]): f for f in out["functions"]}
+    ## Since 1.3.0 an interface's method signature is a bodiless DECLARATION row (`decl`), so the
+    ## fixture's `Shape.area` appears; it is checked on its own below. The property this
+    ## assertion guards — anonymous callbacks are not definitions — is about definitions.
+    assert {(f["cls"], f["name"]) for f in out["functions"] if f.get("decl")} == {("Shape", "area")}
+    functions = {(f["cls"], f["name"]): f for f in out["functions"] if not f.get("decl")}
     assert set(functions) == {
         ("Formatter", "trim"),
         ("Formatter", "clean"),
@@ -97,6 +101,17 @@ def test_is_js_tree():
     assert not is_js_tree(_tree("python", b"x = 1\n"))
 
 
+def test_a_bash_script_is_not_a_js_tree():
+    """tree-sitter-bash ALSO roots at `program`, so the root alone said every shell script was
+    JavaScript. It was harmless while a bash tree yielded no JS definitions; it surfaced when every
+    JS/TS file gained a `__module__` row and shell scripts got one too. A bash-only node kind
+    (`command`, `word`, ...) in the tree settles it.
+    """
+    assert not is_js_tree(_tree("bash", b"echo hi\n"))
+    assert not is_js_tree(_tree("bash", b"X=1\nmake build | tee log\n"))
+    assert is_js_tree(_tree("typescript", b"const x = 1;\n"))
+
+
 # ─── call sites ──────────────────────────────────────────────────────────────
 
 
@@ -107,10 +122,13 @@ def test_call_sites_in_fold_shape():
     # `this.clean(s).trim()` is String's trim: no receiver can be named, so the site carries
     # none and the fold grades it fuzzy (a same-named function exists, unconfirmed), as it
     # does for every unverifiable member call in C and Python.
-    assert ("trim", 10, "ast_member", "", "") in as_set
+    ## Since 1.3.0 a non-`this` member site carries three more elements — argc (-1, unknown),
+    ## construction (0) and whether its receiver is an imported module (0 here) — so the fold
+    ## can tell `xs.map()` from `lodash.map()`. The receiver assertions are unchanged.
+    assert ("trim", 10, "ast_member", "", "", -1, 0, 0) in as_set
     assert ("normalize", 12, "ast", "", "") in as_set
     assert ("constructor", 14, "ast_member", "Formatter.constructor", "") in as_set, "new C()"
-    assert ("trim", 25, "ast_member", "", "f") in as_set, "obj.m() carries its receiver"
+    assert ("trim", 25, "ast_member", "", "f", -1, 0, 0) in as_set, "obj.m() carries its receiver"
     assert ("normalize", 25, "binding") in as_set, "a function passed by name is a binding"
 
 
@@ -193,6 +211,11 @@ def test_js_only_build_needs_no_doxygen(tmp_path, monkeypatch, caplog):
         "src.util.strings.normalize": "parse",
         "src.util.strings.run": "parse",
         "src.app.main": "parse",
+        ## Since 1.3.0: the interface's method signature, a bodiless declaration row.
+        "src.util.strings.Shape.area": "parse",
+        ## Since 1.3.0: each JS/TS file's `__module__`, the caller of code no function contains.
+        "src.util.strings.__module__": "parse",
+        "src.app.__module__": "parse",
     }
     compounds = dict(conn.execute("SELECT name, kind FROM compounddef"))
     assert compounds["src::util::strings::Formatter"] == "class"
@@ -235,7 +258,8 @@ def test_mixed_repo_gets_both_front_ends(tmp_path):
     )
     conn = _build(repo, tmp_path / "clew.db")
     sources = dict(conn.execute("SELECT name, dg_source FROM memberdef WHERE kind='function'"))
-    assert sources == {"add": "doxygen", "render": "parse", "paint": "parse"}
+    ## Since 1.3.0 the JS file also carries its `__module__` row (keyed by name here, so once).
+    assert sources == {"add": "doxygen", "render": "parse", "paint": "parse", "__module__": "parse"}
     edges = set(
         conn.execute(
             "SELECT a.name, b.name FROM call_edges e JOIN memberdef a ON a.rowid=e.caller_rowid "

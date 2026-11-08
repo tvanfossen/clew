@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The unread-kind check is derived by subtraction from the kinds actually in the database (`clew/query/symbols.py`, `unsearched_corpora`). It is not a hand-maintained list.\nVERDICT: HIT\nWHY: The answer says the wording is chosen per call by querying the database for kinds search doesn't read, rather than a fixed list, and it says the reply \"asks the database before it speaks\"."
+}

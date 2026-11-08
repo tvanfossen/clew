@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `QueryTools._staleness` in `tools_query.py` attaches it, sized to the reply's remaining budget, and annotates only the repository the reply actually read.\nVERDICT: MISS\nWHY: The answer says the notice is sized to the remaining budget but never says it is fitted by degrading its wording rather than dropping the warning."
+}

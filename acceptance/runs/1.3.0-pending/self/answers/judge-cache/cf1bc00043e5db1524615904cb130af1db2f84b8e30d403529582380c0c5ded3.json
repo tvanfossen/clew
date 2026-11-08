@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: YAML and JSON | A file-set entry only; no symbols | Find the file by name (`clew/synth.py`: \"registered and never harvested\")\nVERDICT: HIT\nWHY: The answer states YAML and JSON are registered in the file set with no symbols, contrasted with shell/CMake which get symbol rows."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"in the default configuration, the library starts no threads and takes no locks.\" and \"`grep` finds no `pthread_create` or `std::thread` anywhere in `library/` or `include/`.\"\nVERDICT: MISS\nWHY: The answer concludes that the default build creates no threads, but it never mentions a pthread example or that it compiles to a stub main."
+}

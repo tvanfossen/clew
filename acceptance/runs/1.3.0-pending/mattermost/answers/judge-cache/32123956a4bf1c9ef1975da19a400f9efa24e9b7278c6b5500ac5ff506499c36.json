@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Every handler's DB write funnels through `BaseDataOperator.batchRecords`\nVERDICT: MISS\nWHY: The answer says writes funnel through `batchRecords` but never says each mixin is constrained to extend ServerDataOperatorBase. It even says it cannot confirm the composition mechanism."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Tier 1, stated for one build** | `--declare FILE`, or the `options` argument of `build_index()` / MCP `index(action=\"refresh\")`\"\nVERDICT: HIT\nWHY: The answer states tier 1 is reachable via both the `--declare` CLI flag and the structured `options` argument of `build_index()`/MCP refresh."
+}

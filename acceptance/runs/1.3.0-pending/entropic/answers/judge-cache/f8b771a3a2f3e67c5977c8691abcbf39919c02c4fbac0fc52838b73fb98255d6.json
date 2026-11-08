@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Is it retry logic? No. Neither call is retried because of a failure. The first call always runs, and it is a size query rather than an attempt that failed. The second call is not repeated if it fails.\"\nVERDICT: HIT\nWHY: The answer identifies a size-query then fill pattern, rejects retry-on-failure, and notes only one second call that isn't repeated. It doesn't say \"no backoff\" or \"no counter\" explicitly, but the substance matches."
+}

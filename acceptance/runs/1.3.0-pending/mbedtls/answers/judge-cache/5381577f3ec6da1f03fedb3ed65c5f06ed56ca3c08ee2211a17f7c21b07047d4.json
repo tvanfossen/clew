@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the built-in buffer allocator installs itself via mbedtls_platform_set_calloc_free but never states that memory_buffer_alloc requires MBEDTLS_PLATFORM_MEMORY, so enabling the allocator alone isn't enough."
+}

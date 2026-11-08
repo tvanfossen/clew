@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Each wraps its body in `try { \u2026 } catch { // Do nothing }`. A parse error, a DB error, or a missing server database is dropped with no log.\"\nVERDICT: HIT\nWHY: The answer says both handlers swallow all errors with an empty catch and no logging, so a failed write is silently dropped."
+}

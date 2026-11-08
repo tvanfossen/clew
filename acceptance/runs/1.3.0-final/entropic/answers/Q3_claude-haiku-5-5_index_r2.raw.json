@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 37904,
+  "stop_reason": "end_turn",
+  "session_id": "4896dcac-3ed4-49b7-ad23-a3debd6c8d8a",
+  "total_cost_usd": 0.018443470000000003,
+  "usage": {
+    "input_tokens": 26,
+    "cache_creation_input_tokens": 35266,
+    "cache_read_input_tokens": 741817,
+    "output_tokens": 7939,
+    "output_tokens_details": {
+      "thinking_tokens": 3066
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 35266,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3052,
+        "cache_read_input_tokens": 73732,
+        "cache_creation_input_tokens": 710,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 710
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 26,
+      "outputTokens": 7939,
+      "cacheReadInputTokens": 741817,
+      "cacheCreationInputTokens": 35266,
+      "webSearchRequests": 0,
+      "costUSD": 0.018443470000000003,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 3066,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 35266,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 31,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** a call runs only if it clears a fixed sequence of checks in `ToolExecutor`. The allow list does not bypass the deny list, and deny patterns are enforced at execution, so they hold even under `auto_approve`. Two things surprised me, covered below.\n\n## Order of decision\n\n```\ntool call\n \u2514\u2500 ToolExecutor::process_single_call          tool_executor.cpp:729\n     1. PRE_TOOL_CALL hook                     may cancel\n     2. check_call_preconditions               :667\n          anti-spiral block \u2192 schema \u2192 MCP authorization\n          \u2192 tier allowed_tools/bash_commands \u2192 duplicate\n          \u2192 check_approval_pc                  :705\n               \u2514\u2500 check_approval               :161   \u2190 approval gate\n     3. execute_tool                           :379\n          \u2514\u2500 ServerManager::execute            server_manager.cpp:153\n               a. is_denied(tool, \"tool:arg\")  \u2190 deny gate, always runs\n               b. route_tool_call \u2192 server\n```\n\n**Approval gate (`check_approval`, tool_executor.cpp:161-188).** Approved if either:\n- `loop_config_.auto_approve_tools` is set. This comes from `permissions.auto_approve` (`build_loop_config`, entropic.cpp:1489), or\n- `ServerManager::is_explicitly_allowed` matches the allow list (server_manager.cpp:286).\n\nIf neither holds and an `on_tool_call` callback is registered, the call is approved anyway. See the surprise below. With no callback and no match, the call is denied with \"Permission denied\".\n\n**Deny gate (`ServerManager::execute`, server_manager.cpp:153-168).** This runs after approval and checks the deny list unconditionally. A match returns `Error: Permission denied` and the tool never runs. Because the deny check ignores `auto_approve`, deny wins over both the allow list and auto-approve.\n\n## What a pattern means\n\nEach call is matched as `tool_name` plus `:` plus an args string. The args string comes from `args_to_pattern` (server_manager.cpp:426): it is the value of the first JSON key if that value is a string, otherwise `*`. Matching is `fnmatch` (no `FNM_PATHNAME`), so `*` also crosses `/` and spaces.\n\n`pattern_matches` (src/mcp/permission_manager.cpp:101) works like this:\n- **No colon** (`filesystem.*`, `git.commit`): only the tool name is matched. Every call to that tool matches, whatever its args.\n- **With a colon** (`bash.execute:python*`): the tool part must match the tool name, and the whole `tool:arg` string must match the pattern.\n\nBoth the allow and deny lists use this same matcher. A deny pattern with no colon blocks the tool entirely. Allow patterns are checked in `is_allowed` and deny patterns in `is_denied`, which log \"ALLOWED\" or \"DENIED\" with the matched pattern.\n\nPatterns come from config (`permissions.allow`, `permissions.deny`, `auto_approve`, parsed at loader.cpp:365). \"Always Allow/Deny\" choices are persisted to the project YAML by `PermissionPersister`, and `add_permission` adds them at runtime. For bash, the generated pattern is `execute:{base_cmd} *` (`bash.h`).\n\n## Surprises\n\n1. **A registered `on_tool_call` callback approves every call.** In `check_approval`, if `approved` is false and `on_tool_call != nullptr`, the code fires the callback and then sets `approved = true` (tool_executor.cpp:170-176). The header calls this \"approved via callback\", but the code never denies. So a host that installs the callback as a permission prompt gets no gate. Only the deny list still applies. This may be intended as notify-only, but the header text suggests otherwise, so I'd check it before relying on the callback for gating.\n\n2. **Deny patterns with args only see the first key.** `args_to_pattern` takes the first JSON member. The repo does not use `ordered_json`, so nlohmann's default `std::map` ordering applies, which makes \"first\" the alphabetically first key, not the first argument the model wrote. I derived this from the library default and did not run it. A pattern like `bash.execute:rm *` can miss a dangerous command if the command sits in a key that sorts after another string argument.\n\nNeither point affects the allow-list path or the tier and anti-spiral checks, which run earlier.",
+  "ttft_ms": 784,
+  "type": "result",
+  "duration_ms": 39258,
+  "uuid": "6f9e603b-acb7-49d8-be75-852f40db055b",
+  "ttft_stream_ms": 613,
+  "time_to_request_ms": 58,
+  "first_content_frame_ms": 613,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

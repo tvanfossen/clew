@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"If nothing usable is declared, `whole_repo_scope` (`clew/scope.py:683`) makes the repo root the single INPUT root.\" and \"A scope that is present but unusable is rejected rather than treated as absent.\" and \"`derive_scope` absorbs a rejected declaration into the whole-repo tier\"\nVERDICT: HIT\nWHY: The answer says the declared `index_scope` is tier 1. It says a missing, unusable or rejected declaration falls through to the whole-repo scope."
+}

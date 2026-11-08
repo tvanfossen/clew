@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `library/common.h:132` | Defined for every library translation unit that includes it. 129 of the library's files include it.\nVERDICT: HIT\nWHY: The answer says library code defines the opt-out in the shared header common.h, which makes `MBEDTLS_PRIVATE(m)` expand to plain `m` in every library file that includes it."
+}

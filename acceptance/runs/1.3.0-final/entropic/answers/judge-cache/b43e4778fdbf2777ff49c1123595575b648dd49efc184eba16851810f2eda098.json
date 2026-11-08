@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never characterizes the seam as llama.cpp's C API or free functions with a llama_ prefix. It only says the code calls \"concrete llama.h / common / mtmd usage\" and that llama types are forward-declared."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `options=` argument to `build_index()` or MCP `index(action=\"refresh\")` | same mapping as `--declare`, passed by an embedding caller | 1 (explicit)\nVERDICT: HIT\nWHY: The answer lists both CLI flags/`--declare` and the `options=` argument for embedding callers as tier 1 routes."
+}

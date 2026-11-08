@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Caveat:** `index.tsx` forwards the ref only inside the `hasSearch &&` branch. Passing a ref to `NavigationHeader` without `hasSearch={true}` leaves the ref unattached.\nVERDICT: HIT\nWHY: The answer states that NavigationHeader forwards the ref to NavigationSearch only when `hasSearch` is true, and that otherwise the ref is attached to nothing."
+}

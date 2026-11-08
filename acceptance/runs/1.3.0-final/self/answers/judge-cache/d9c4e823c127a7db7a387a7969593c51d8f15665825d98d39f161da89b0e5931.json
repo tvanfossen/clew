@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: One row is stored per layer per pair, but the reply collapses them to the strongest evidence per endpoint (`CallEdge` docstring).\nVERDICT: MISS\nWHY: The answer says rows collapse to the strongest evidence but never says the choice of which layer's provenance is reported is decided by a ranking in the vocabulary module rather than SQL."
+}

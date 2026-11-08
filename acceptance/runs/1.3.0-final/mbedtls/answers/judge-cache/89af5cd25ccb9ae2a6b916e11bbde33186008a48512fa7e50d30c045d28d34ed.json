@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `private_##member`, so `ctx->MBEDTLS_PRIVATE(state)` compiles to `ctx->private_state`. Public-header struct members are wrapped this way, and the rename makes direct access fail to compile. ... which leaves the library free to change the struct layout without breaking callers.\nVERDICT: MISS\nWHY: The answer explains the rename-based compile failure, but it never says the struct layout and fields stay visible and sized. It also frames the benefit as freedom to change the layout, which doesn't contrast name-breaking with layout hiding."
+}

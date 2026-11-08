@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The grading lives in `clew/mcp_server/emptiness.py`, and I read it from the code without running a query or the tests.\nVERDICT: HIT\nWHY: The answer explicitly names `clew/mcp_server/emptiness.py` as where the empty-result grading lives."
+}

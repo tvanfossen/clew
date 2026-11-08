@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`constant_time_impl.h:42-54` defines `MBEDTLS_CT_ASM` only when `MBEDTLS_HAVE_ASM` is set and the compiler is GNU-style (`__GNUC__`, not old armcc). Per-architecture branches then select `MBEDTLS_CT_ARM_ASM`, `MBEDTLS_CT_AARCH64_ASM`, `MBEDTLS_CT_X86_64_ASM` or `MBEDTLS_CT_X86_ASM`.\"\nVERDICT: HIT\nWHY: The answer says `MBEDTLS_CT_ASM` is defined inside `constant_time_impl.h` from `MBEDTLS_HAVE_ASM` plus compiler macros such as `__GNUC__`, so it is derived rather than set in `mbedtls_config.h`. It never says outright that it is not a config entry."
+}

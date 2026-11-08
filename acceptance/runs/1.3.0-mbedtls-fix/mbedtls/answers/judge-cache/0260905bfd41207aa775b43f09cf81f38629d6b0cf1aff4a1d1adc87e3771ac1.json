@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: To get the library's own locking, define `MBEDTLS_THREADING_C` plus `MBEDTLS_THREADING_PTHREAD` (or `MBEDTLS_THREADING_ALT`).\nVERDICT: HIT\nWHY: The answer names both MBEDTLS_THREADING_C and MBEDTLS_THREADING_PTHREAD as the macros that enable the library's locking."
+}

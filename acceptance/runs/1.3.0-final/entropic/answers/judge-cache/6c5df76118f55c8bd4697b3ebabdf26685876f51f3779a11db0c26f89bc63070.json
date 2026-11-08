@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The first call passes a null buffer with size 0. llama.cpp then returns the negative of the required token count, and the code flips the sign to get `n`. The second call passes a buffer of exactly `n`... **Is it retry logic?** No. It is a two-step sized read with no retry, no loop, and no backoff.\"\nVERDICT: HIT\nWHY: The answer identifies a size probe followed by a fill, rejects retry logic, and notes there is no loop or backoff and only one second call. It doesn't mention an attempt counter or a delay by name, but the substance is there."
+}

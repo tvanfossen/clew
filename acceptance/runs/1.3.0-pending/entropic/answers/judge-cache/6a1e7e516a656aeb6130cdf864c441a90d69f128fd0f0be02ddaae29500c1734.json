@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"if !approved && on_tool_call set \u2192 approved = true   \u2190 !!\" and \"Deny is enforced only in `ServerManager::execute`, after approval.\"\nVERDICT: MISS\nWHY: The answer says unmatched calls are denied when no callback is registered (default-deny) and only auto-approved via a callback quirk. It never concludes that a tool on neither list is not denied and runs."
+}

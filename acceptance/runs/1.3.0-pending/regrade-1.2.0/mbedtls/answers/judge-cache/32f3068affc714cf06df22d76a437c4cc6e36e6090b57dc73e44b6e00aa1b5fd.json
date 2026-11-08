@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the library never creates threads, but it describes library/threading.c as compiled out by default and never states that library/ supplies the mutex abstraction for threaded callers. It treats the mutex layer only as an optional feature to enable."
+}

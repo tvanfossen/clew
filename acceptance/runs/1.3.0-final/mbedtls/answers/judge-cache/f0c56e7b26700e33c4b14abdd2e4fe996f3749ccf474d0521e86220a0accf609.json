@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Calls to `mbedtls_ct_*` appear in 29 library files.\nVERDICT: HIT\nWHY: The answer says the ct primitives are used in 29 library files across bignum, RSA, cipher, TLS, PSA and other modules, which is broad use on the order of twenty or more, not one or two."
+}

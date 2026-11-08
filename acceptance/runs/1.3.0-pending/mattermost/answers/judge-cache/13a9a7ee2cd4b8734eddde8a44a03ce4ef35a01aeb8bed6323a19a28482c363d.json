@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The user taps the failed icon, then \"Try Again\" in the bottom sheet (`app/components/post_list/post/body/failed/index.tsx:46-49`). That calls `retryFailedPost`\nVERDICT: HIT\nWHY: The answer says the retry is user-initiated via \"Try Again\" and calls `retryFailedPost`, and it also says there are no automatic retries."
+}

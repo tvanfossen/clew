@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Buffers the engine will free must come from `entropic_alloc()`.** Hook `modified_json` is the main case. ... `hooks.py` allocates through `entropic_alloc` and `memmove`s the JSON in.\"\nVERDICT: HIT\nWHY: The answer states the rule that engine-freed buffers must be allocated with entropic_alloc and names hooks.py as where the Python side does it."
+}

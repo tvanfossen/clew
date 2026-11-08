@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: They share only atomics (`done`, `observer_done`, `cancel_flag`) and are joined before the function returns. The `int` cancel flag crosses the `.so` boundary as a plain `int`, with no `std::atomic` in the ABI.\nVERDICT: HIT\nWHY: The answer says the pollers mirror an interrupt flag into the C-ABI `int*` cancel flag, and that the ABI carries a plain `int` with no `std::atomic`. That is the bridge-atomic-to-int rationale."
+}

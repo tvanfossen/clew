@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Without the opt-out it expands to `private_##member`, so a field written as `MBEDTLS_PRIVATE(flags)` in a public header is actually named `private_flags` to any translation unit that includes it. ... Inside the library, `MBEDTLS_PRIVATE(x)` expands to the real `x`.\nVERDICT: MISS\nWHY: The answer claims the rename applies to \"any translation unit\" and that header and use site expand the same way, so it never says that code defining the macro sees plain names while ordinary consumers see the renamed ones. It covers only the library's own access and a few programs."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The wait is on `wake_cv_` with a `!running_` predicate.\nVERDICT: MISS\nWHY: The answer mentions the health monitor's cv wait and an atomic `running_`, but never says shutdown is an atomic exchange plus a cv wake, and never says `stop()` joins the monitor thread."
+}

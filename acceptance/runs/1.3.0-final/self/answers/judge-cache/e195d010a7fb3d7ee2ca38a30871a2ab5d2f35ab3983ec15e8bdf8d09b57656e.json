@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The reason string records that the whole repo was used and why, and it is logged. This matters because a declaration that exists but yields no roots must not be reported as \"none declared.\"\nVERDICT: HIT\nWHY: The answer states the whole-repo fallback carries a reason string recording which scope was used and why, and that a rejected declaration must not be reported as \"none declared,\" so an unstated scope is never silently assumed."
+}

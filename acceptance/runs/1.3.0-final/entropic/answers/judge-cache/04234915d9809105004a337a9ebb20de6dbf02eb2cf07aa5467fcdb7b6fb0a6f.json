@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **`auto_approve` does not bypass deny.** It only skips the approval step; `ServerManager::execute` always checks the deny list.\nVERDICT: MISS\nWHY: The answer says auto_approve (and allow-list match in the diagram) skips approval, but it never states that the allow list grants no execution and suppresses approval. It also never says the allow list is consulted only from check_approval. It says `is_allowed` uses `args_to_pattern` without tying it to that location."
+}

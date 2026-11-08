@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Query replies carry a `staleness` block only when it is non-empty (tools_query.py:1843). A current index adds nothing to the payload.\nVERDICT: HIT\nWHY: The answer says query replies carry the staleness block and that a current index adds nothing, so the block rides on replies and is empty when current."
+}

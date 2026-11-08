@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`do_count_tokens` (`:825`) and the system-prompt count (`:2066`) | Return `0`. The count is silently wrong and no error is raised.\"\nVERDICT: HIT\nWHY: The answer states that a failed tokenization yields an empty vector, so the token-count path returns 0 with no error raised."
+}

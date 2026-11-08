@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Neither is retried after a failure, and neither loops.\nVERDICT: HIT\nWHY: The answer states failure of the second call isn't retried and the tokenizer result is empty (\"A real error therefore still allocates a vector of that size, and only the second call reports the failure. The result is still empty\"), conveying terminal empty return."
+}

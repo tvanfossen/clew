@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `scope.not_indexed` and the `NOT searched` note | Place the search never reached: this is \"did not look.\"\nVERDICT: MISS\nWHY: The answer lists the extensions never indexed (`not_indexed`), but the item asks for the file types that were in scope and produced no rows. The answer never says the reply names those."
+}

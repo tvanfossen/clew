@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says `mbedtls_platform_set_calloc_free` is neither declared nor compiled on the macro path. It only says `platform.c`'s dispatch is compiled out, and it never says the setter doesn't exist."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The pre-commit `gen-bindings --check` fails on drift.\nVERDICT: HIT\nWHY: The answer says generated bindings are guarded by a pre-commit `gen-bindings --check` that fails on drift, which is the re-run-and-diff mechanism the item asks for. The answer doesn't spell out \"re-runs the generator and diffs\", but a `--check` mode on the generator is that mechanism."
+}

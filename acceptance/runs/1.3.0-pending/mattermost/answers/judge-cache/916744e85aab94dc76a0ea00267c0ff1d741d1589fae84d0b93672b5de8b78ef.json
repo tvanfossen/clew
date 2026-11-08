@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It is never retried automatically: the send makes one attempt. ... `client.createPost` is called once. `ClientPosts.createPost` in `app/client/rest/posts.ts:43` passes `noRetry: true`, and `app/client/rest/tracking.ts:383` maps that to `retryPolicyConfiguration = {retryLimit: 0}`. So there is no transport-level retry either.\nVERDICT: HIT\nWHY: The answer states that the create-post request is never retried automatically and is sent once, citing the `noRetry: true` mechanism."
+}

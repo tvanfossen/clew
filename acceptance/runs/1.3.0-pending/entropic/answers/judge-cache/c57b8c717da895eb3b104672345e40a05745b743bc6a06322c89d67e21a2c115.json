@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer concludes the dependency is fully contained in src/inference, with only a vendored stb_image mention, and doesn't say that a minority of reaching files sit outside it."
+}

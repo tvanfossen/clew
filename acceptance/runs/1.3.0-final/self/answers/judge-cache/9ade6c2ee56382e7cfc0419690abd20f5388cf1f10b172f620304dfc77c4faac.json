@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says an unknown section is refused by name against an allowed set; it only says a malformed file is ignored and defaults apply, which is the opposite of the item."
+}

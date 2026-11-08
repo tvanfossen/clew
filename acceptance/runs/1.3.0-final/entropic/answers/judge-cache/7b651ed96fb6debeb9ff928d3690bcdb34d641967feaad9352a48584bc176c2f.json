@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Binding symbols are imported lazily, so the install step can run before the library exists.\nVERDICT: HIT\nWHY: The answer says that lazy binding imports let the install step run before the library exists, and that is the substance of the item. It mentions `entropic install-engine` shipping in the CLI."
+}

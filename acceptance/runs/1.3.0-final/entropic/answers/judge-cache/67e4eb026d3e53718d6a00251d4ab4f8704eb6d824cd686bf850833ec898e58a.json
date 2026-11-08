@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: resolution: $ENTROPIC_LIB \u2192 $ENTROPIC_HOME \u2192 ~/.entropic \u2192 ldconfig\nVERDICT: MISS\nWHY: The answer gives the env, user dir, and ldconfig order, but it never says two directory layouts are tried per root, so the item's second part is absent."
+}

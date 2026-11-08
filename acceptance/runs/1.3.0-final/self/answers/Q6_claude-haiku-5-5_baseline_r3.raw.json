@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 61227,
+  "stop_reason": "end_turn",
+  "session_id": "f453e79b-eeb4-4367-ac94-4ece2e6b1b3a",
+  "total_cost_usd": 0.02408949000000001,
+  "usage": {
+    "input_tokens": 32,
+    "cache_creation_input_tokens": 47554,
+    "cache_read_input_tokens": 964399,
+    "output_tokens": 9863,
+    "output_tokens_details": {
+      "thinking_tokens": 4348
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 47554,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1545,
+        "cache_read_input_tokens": 79547,
+        "cache_creation_input_tokens": 2200,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2200
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 32,
+      "outputTokens": 9863,
+      "cacheReadInputTokens": 964399,
+      "cacheCreationInputTokens": 47554,
+      "webSearchRequests": 0,
+      "costUSD": 0.02408949000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 4348,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 47554,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 21,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** clew's index holds *definitions* from shell and CMake, and only *registration* for YAML and JSON. It holds no call edges for any of them and no keys or values from the data files. On an installation without the shell and CMake grammars, the gap is silent, and the not-indexed report does not name it. That contradicts what the repo's own docs promise.\n\n## What the index holds\n\n| File type | `path` row (file set) | `memberdef` rows | Doc source | Notes |\n|---|---|---|---|---|\n| `.sh` `.bash` | yes | one per `name() {}` or `function name {}` | the `#` block directly above, no blank line | `argsstring` is empty, since shell has no parameter list. `dg_source='parse'`. |\n| `.cmake`, `CMakeLists.txt` | yes | one per `function()` (named params recorded) and `macro()` (kind `macro definition`) | the `#` block above | Only definitions are harvested. |\n| `.yaml` `.yml` `.json` | yes | none | none | Registered and never harvested. |\n\nThe relevant code:\n- `clew/synth.py:62-80` defines the claimed types, and `:71-80` documents the data files as registered but never harvested.\n- `clew/shast.py` and `clew/cmakeast.py` export only `harvest_definitions`. Neither exports call harvesting, which JS/TS has in `jsast.py`.\n\n**Not held:**\n- Shell and CMake call sites, so no call edges from scripts.\n- YAML and JSON keys, values, or structure. Their grammars offer `block_mapping_pair` and `pair`, which were deliberately not turned into symbols so that every `steps:` key does not pollute function lookups.\n- Anything under dot-directories. `docs/languages/SCRIPT_INTEGRATION.md` says the scope walk prunes them, so `.github/workflows/*.yml` is out of scope. I did not verify this in the scope code.\n\n## What happens when the grammars are missing\n\nOnly `bash` and `cmake` are optional. `harvest.py:145` (`_OPTIONAL_KEYS`) and `harvest.py:215-225` (`_grammar_available`) make a route to a missing grammar return `None`. The file is then not parsed and gets no symbols. Nothing raises, and nothing is logged.\n\nThree things follow:\n\n1. **The file still enters the file set.** `cli.py:1909` calls `register_synth_paths` unconditionally, and that function claims `.sh`, `.cmake` and the data types regardless of grammar availability. These files therefore look covered.\n2. **The not-indexed report does not name them.** `cli.py:2646-2684` (`_not_indexed_scope`) computes \"missing\" as scanned files with no `path` row. Shell and CMake files have path rows, so they are never listed. The same applies to YAML and JSON. `SCRIPT_INTEGRATION.md` says the data files are \"named by the not-indexed report when a query finds nothing\". That is false in the code.\n3. **The promised explanation does not exist.** `substrate.py` says a missing grammar \"degrades with an explanation\". `missing_languages()` has no production caller. Only the tests use it (`tests/test_substrate_capability.py`, `tests/test_script_front_end.py`). The only production caller of the capability check is the silent `_grammar_available`.\n\nYAML and JSON are unaffected by a missing substrate grammar, because they never needed one. Their gap is the reporting issue above.\n\nThe code's own comments say the published `lang-parsing-substrate` 0.11.2 wheel lacks `bash` and `cmake`, and the grammars sit in an unreleased fork. So on a default install, shell and CMake probably produce no `memberdef` rows today. I could not confirm this here: the repo has no `.venv`, so I did not run `compiled_languages()`.\n\n## Recommended fixes (not applied; this was a question)\n\n- Have the not-indexed report consult `substrate.has_language` for `bash` and `cmake`, and name those extensions when the grammar is absent. This is the smallest change that makes the failure visible.\n- Either make the data files a named category in the report, or stop claiming they are named there. They are visible by name, but the report cannot list them.\n- Log once at build start when an optional grammar is missing, using the count of affected files. `substrate.py` already promises that and nothing implements it.",
+  "ttft_ms": 1645,
+  "type": "result",
+  "duration_ms": 61962,
+  "uuid": "e9416a7b-b6dc-4550-973e-a867b7e67fe9",
+  "ttft_stream_ms": 1248,
+  "time_to_request_ms": 131,
+  "first_content_frame_ms": 1248,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

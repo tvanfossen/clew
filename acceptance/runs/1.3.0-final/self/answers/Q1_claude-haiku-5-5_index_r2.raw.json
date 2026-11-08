@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 22391,
+  "stop_reason": "end_turn",
+  "session_id": "fbbaa316-7bbb-4b1a-97c8-a651ffc67031",
+  "total_cost_usd": 0.01310859,
+  "usage": {
+    "input_tokens": 14,
+    "cache_creation_input_tokens": 34733,
+    "cache_read_input_tokens": 370759,
+    "output_tokens": 4906,
+    "output_tokens_details": {
+      "thinking_tokens": 1993
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 34733,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1903,
+        "cache_read_input_tokens": 71885,
+        "cache_creation_input_tokens": 2695,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2695
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 14,
+      "outputTokens": 4906,
+      "cacheReadInputTokens": 370759,
+      "cacheCreationInputTokens": 34733,
+      "webSearchRequests": 0,
+      "costUSD": 0.01310859,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1993,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 34733,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 18,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "Nothing in clew's index is chosen by file extension. The file set is decided by one scope resolution, and with no declaration that resolution is \"the whole repository, minus what git ignores and a few cache/dot directories.\"\n\n**Decision flow**\n\n```\nclew build --scope from-guard (the default)\n  \u2514\u2500 cli._apply_scope                        clew/cli.py:758\n       \u2514\u2500 scope.derive_scope(repo_root)      clew/scope.py:639\n            \u251c\u2500 _declared_index_scope         clew/scope.py:991\n            \u2502    reads .clew.yaml \u2192 index_scope:\n            \u2502    \u251c\u2500 no section \u2192 None \u2192 fall through\n            \u2502    \u251c\u2500 bad section \u2192 _Rejected \u2192 build REFUSES (exit 1)\n            \u2502    \u2514\u2500 roots/excludes \u2192 DerivedScope(source=declared)\n            \u2514\u2500 whole_repo_scope              clew/scope.py:683   (no declaration)\n                 roots    = (repo_root,)\n                 excludes = git-ignored paths\n                          + nested-repo ignores\n                          + dot dirs and __pycache__/node_modules\n       \u2514\u2500 _fold_scope_into_args \u2192 INPUT list\n  \u2514\u2500 treescan.enumerate_tree(roots, excludes)   clew/treescan.py:203\n       walks every file under roots, drops anything under an exclude\n       (no extension filter, by design)\n```\n\n**Declared case.** Tier 1 is `index_scope:` in the repo's `.clew.yaml`. It takes `roots:` (required, repo-relative, must exist on disk) and `excludes:`. The only keys accepted are `roots` and `excludes`. Any other key, or an `excludes:` with no `roots:`, is rejected by name rather than ignored. A rejected declaration makes the build exit 1 instead of quietly widening to the whole repo. A declared root is taken as written and never walked. The one exception is that nested git trees inside it are tagged later by `external.py`, not excluded.\n\n**Undeclared case.** This is the default tier since gh#333. The scope is:\n\n- **Root:** the whole repository, including nested git trees (submodules and vendored clones).\n- **Git-ignored paths:** `git ls-files --others --ignored --exclude-standard --directory`, run on the root and on each nested tree separately. A submodule's own `.gitignore` is invisible to the parent, so it is asked separately.\n- **Dot and cache directories:** any directory whose name starts with `.`, plus `__pycache__` and `node_modules`, pruned at each level. Nested trees are entered only for their own top-level dot directories.\n- **Depth cap:** the walk stops at a fixed depth (16 per the source comment) and records where it stopped.\n- **Not read:** the Doxyfile's `INPUT`, `FILE_PATTERNS` and `EXCLUDE` no longer decide scope. The doxygen-guard `files:` pattern is also not read, because it answers what must be documented, not what should be indexed. The Doxyfile still supplies `ALIASES` and `PREDEFINED`.\n\nIf the directory is not a git repository, or git is missing, no ignores are applied. The build logs a warning and the scope is wider than the repo asked for.\n\n**Other inputs.** The operator's `--exclude` and the `toolchain.toml` skips also feed the walk, and binaries are classified downstream. I did not trace the toolchain or binary path in this pass, so treat those as unverified here.\n\n**Stale documentation.** `docs/languages/C_INTEGRATION.md` (section \"The three things that decide what gets indexed\") still says the Doxyfile's `INPUT`, `EXCLUDE` and `FILE_PATTERNS` each decide scope. The code and its own precedence sentence say otherwise since gh#333. That section is out of date.",
+  "ttft_ms": 1155,
+  "type": "result",
+  "duration_ms": 23114,
+  "uuid": "b12012c9-f0ff-48d6-8f8a-10cb0112b300",
+  "ttft_stream_ms": 615,
+  "time_to_request_ms": 71,
+  "first_content_frame_ms": 615,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

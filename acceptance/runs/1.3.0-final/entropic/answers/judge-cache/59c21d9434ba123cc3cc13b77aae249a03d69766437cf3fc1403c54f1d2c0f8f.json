@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: An empty token vector is also a legitimate result for empty input with `add_special=false`. The caller cannot distinguish the two cases.\nVERDICT: MISS\nWHY: The answer does say a failed tokenization looks like a legitimately empty result, but it never concludes that no caller checks for it. It lists how callers handle the empty result and says the code doesn't check for empty in one path, but it doesn't say that none do."
+}

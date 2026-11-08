@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Every query reply carries the same `staleness` list through `answering()` (`server.py:1708`).\" and \"`staleness` list present only when something is wrong.\" and \"A current index gets none.\"\nVERDICT: HIT\nWHY: The answer says the staleness list is attached to every query reply automatically and is absent/empty when the index is current."
+}

@@ -88,6 +88,12 @@ repos:
         language: system
         pass_filenames: false
         always_run: true
+        ## ONE STAGE, BECAUSE THE TREE CANNOT CHANGE BETWEEN THEM. A hook with no
+        ## `stages:` runs at every INSTALLED hook type, and this repository installs
+        ## both `pre-commit` and `commit-msg`, so this ran twice per commit — measured
+        ## at about fifteen minutes for one commit during the 1.2.0 release, of which
+        ## half discovered nothing.
+        stages: [pre-commit]
 
   - repo: local
     hooks:
@@ -97,6 +103,12 @@ repos:
         language: system
         pass_filenames: false
         always_run: true
+        ## ONE STAGE, BECAUSE THE TREE CANNOT CHANGE BETWEEN THEM. A hook with no
+        ## `stages:` runs at every INSTALLED hook type, and this repository installs
+        ## both `pre-commit` and `commit-msg`, so this ran twice per commit — measured
+        ## at about fifteen minutes for one commit during the 1.2.0 release, of which
+        ## half discovered nothing.
+        stages: [pre-commit]
       - id: pytest
         name: pytest
         ## `cache_dir` is set once, in pyproject's `[tool.pytest.ini_options]`. It used to be
@@ -122,3 +134,9 @@ repos:
         language: system
         pass_filenames: false
         always_run: true
+        ## ONE STAGE, BECAUSE THE TREE CANNOT CHANGE BETWEEN THEM. A hook with no
+        ## `stages:` runs at every INSTALLED hook type, and this repository installs
+        ## both `pre-commit` and `commit-msg`, so this ran twice per commit — measured
+        ## at about fifteen minutes for one commit during the 1.2.0 release, of which
+        ## half discovered nothing.
+        stages: [pre-commit]

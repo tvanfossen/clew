@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The second call's return value is the actual count, and it's the only place failure is detected. ... The seam logs an error with the text length, then returns `{}`.\nVERDICT: HIT\nWHY: The answer says failure is detected only at the second call and that the code then logs an error and returns an empty vector, with no retry (\"Nothing is re-attempted after a failure\")."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer doesn't say call_edges stores one row per extraction layer. It only mentions that confidence keeps the \"strongest incoming edge kept when several layers recorded the same caller\". That describes dedup at read time, not duplicate storage."
+}

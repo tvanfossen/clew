@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"A missing grammar routes to `None` and nothing raises.\" and \"The file stays in the file set with no symbols.\" But also: \"the report would not name them\" and \"The check is a silent set lookup\" \u2014 the answer concludes the intended report names `.sh=N`, but then argues the actual behavior breaks that step.\nVERDICT: MISS\nWHY: The answer says a missing grammar degrades without raising, but it describes a silent check rather than a capability gate the router consults. It also concludes the files likely would not be reported as not indexed, which contradicts the item."
+}

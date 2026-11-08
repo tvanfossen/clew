@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_PLATFORM_MEMORY` off (default, `mbedtls_config.h:208` is commented out) | `calloc` via macro, no indirection\n\nVERDICT: HIT\nWHY: The answer states that in the default build `mbedtls_calloc` resolves to `calloc` via macro with no indirection. The matching `free` claim is given in the lead sentence, \"With the default config they are plain libc `calloc`/`free`.\""
+}

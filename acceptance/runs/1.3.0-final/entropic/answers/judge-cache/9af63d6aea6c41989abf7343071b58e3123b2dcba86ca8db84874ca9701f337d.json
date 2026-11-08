@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"the deny list is the only hard gate. The allow list and `auto_approve_tools` only decide whether the call is approved in the first place.\"; \"`ServerManager::execute` if is_denied(deny list) \u2192 \"Error: Permission denied\", never routed; else route_tool_call\"\nVERDICT: HIT\nWHY: The answer states the deny list is the only hard gate and that ServerManager::execute checks is_denied before routing the call."
+}

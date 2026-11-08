@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A missing grammar produces no error and no warning. The file is still registered, just empty of symbols... `clew/harvest.py:203` checks `_grammar_available()` only for `bash` and `cmake`... If the key is missing, the router returns `None`, the harvester gets no tree, and no `memberdef` rows are written.\nVERDICT: MISS\nWHY: The answer describes graceful degradation via a capability gate, but says files stay registered as path rows with no mention that they are reported as \"not indexed\"; it explicitly leaves the not-indexed reply unverified."
+}

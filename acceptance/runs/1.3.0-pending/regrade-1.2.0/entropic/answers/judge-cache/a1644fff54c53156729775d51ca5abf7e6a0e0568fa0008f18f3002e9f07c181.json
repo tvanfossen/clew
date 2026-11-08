@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`LlamaCppTokenizer::tokenize` (lines 49\u201371) calls `llama_tokenize` once with a null buffer and size 0. llama.cpp answers with a negative number giving the required token count... It allocates a vector of that size and calls `llama_tokenize` again to fill it.\"\nVERDICT: HIT\nWHY: The answer names the file and the `tokenize` function in it, and it describes the size-probe then fill two-call pattern."
+}

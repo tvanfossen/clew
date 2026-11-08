@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"For a code notice, the caller restarts the MCP client so the process loads the current code, then calls `index(action='refresh', force=True)`.\" and \"`data` \u2014 ... `action='refresh'` fixes it\" is not in the answer, but it says \"Data staleness is fixed automatically... rebuilds the index\" and \"For a schema notice, a rebuild does not help.\"\nVERDICT: MISS\nWHY: The answer describes differing remedies per axis (rebuild for data, restart for code), but never says this is why a single flag would not have been enough."
+}

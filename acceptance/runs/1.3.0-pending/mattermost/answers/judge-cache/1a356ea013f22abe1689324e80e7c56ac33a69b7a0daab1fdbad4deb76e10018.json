@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Triggered from the failed-post button (`app/components/post_list/post/body/failed/index.tsx`), via the \"Try Again\" item in the bottom sheet.\nVERDICT: HIT\nWHY: The answer says retry is manual via \"Try Again\" on the failed post, never automatic, and names `retryFailedPost`."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Every mutex in the tree sits behind `MBEDTLS_THREADING_C`, which ships off. ... That file is gated on `MBEDTLS_THREADING_C` (lines 24\u2013492), so it is not built by default.\nVERDICT: MISS\nWHY: The answer lists threads that exist (including signal handlers and timer procs) and never concludes that a default build creates no threads at all. It also never says the pthread example compiles to a stub main, only that it is \"not built by default\"."
+}

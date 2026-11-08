@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: If no standard function is available, they become stubs: calloc returns NULL and free does nothing.\nVERDICT: HIT\nWHY: The answer states that when the defaults are unavailable, the pointers become stubs where calloc returns NULL and free does nothing."
+}

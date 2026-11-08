@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names no top-level directories as containing uses of MBEDTLS_PRIVATE. It names `include/mbedtls/private_access.h` as the definition. It lists three definition sites of `MBEDTLS_ALLOW_PRIVATE_ACCESS`, which are `library/common.h`, `programs/ssl/ssl_client2.c` and `programs/ssl/ssl_server2.c`. Those are the gate macro, not uses of `MBEDTLS_PRIVATE`. It also says header files such as `ssl.h` and `bignum.h` mark fields with `MBEDTLS_PRIVATE`, but it gives no directory for them. It says library sources get direct field access through `common.h`, which is not a use of the macro either.\n\nITEMS:\nNONE\nEND"
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Exceptions never cross into C. Each trampoline catches `Exception`, prints the traceback, and returns a neutral code (hooks return `0`, and observers return nothing).\nVERDICT: HIT\nWHY: The answer says trampolines catch all exceptions rather than letting them reach C, and return a neutral code (0) for hooks. That is a pass-through on failure."
+}

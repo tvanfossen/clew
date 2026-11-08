@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"ctypes prototypes + CFUNCTYPE typedefs (auto-generated from entropic.h, \"do not edit\") \u25bc ctypes.CDLL-style load of librentropic.so\" and \"Python never links against C++. The path is a flat C ABI loaded at runtime\"\nVERDICT: HIT\nWHY: The answer names ctypes (CDLL, CFUNCTYPE) loading librentropic.so at runtime, with no compiled extension module involved."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE. The answer never mentions `Header` from `navigation_header/header.tsx`.\nVERDICT: HIT\nWHY: The list covers only files importing `NavigationHeader` from `@components/navigation_header`. It does not count the navigation hook or the thread route, which render the separate `Header` component. The answer never says it is excluding them, so this is a judgment call."
+}

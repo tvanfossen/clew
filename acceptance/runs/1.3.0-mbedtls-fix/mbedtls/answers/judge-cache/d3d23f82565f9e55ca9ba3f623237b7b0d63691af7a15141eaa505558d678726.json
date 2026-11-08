@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: When `MBEDTLS_THREADING_C` is enabled, it wraps both in a mutex.\nVERDICT: MISS\nWHY: The answer says init wraps both in a mutex under threading but doesn't state a mutexed vs plain pair chosen at compile time inside init; the plain-pair alternative and compile-time selection are absent."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Single token, unread corpus holds a match | \"NOT DEFINITIVE\u2026 the name exists\u2026 ask dossier\" | The name exists; search just cannot see that kind\" and \"Single token, no unread-corpus hits, file docs present | \"definitive empty result\u2026 do not retry\"\"\nVERDICT: MISS\nWHY: The answer separates definitive from not definitive, and the unread-corpus case (name exists elsewhere) is a form of \"definitive for a reason that is not absence\". It never states that third grade as a distinct category, though, and it doesn't identify the three grades the item requires."
+}

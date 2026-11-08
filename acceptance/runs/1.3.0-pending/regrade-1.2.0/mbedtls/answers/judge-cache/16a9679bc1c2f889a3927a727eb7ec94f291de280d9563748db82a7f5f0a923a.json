@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Library-internal threads | None. The index finds no spawn site in `library/`.\" and \"Lock wrapper: `mbedtls_threading_mutex_t` with `mbedtls_mutex_init/lock/unlock/free` in `include/mbedtls/threading.h`, backed by pthread functions in `library/threading.c`.\"\nVERDICT: HIT\nWHY: The answer states that library/ has no thread spawn sites and that library/threading.c supplies the mutex abstraction (wrapper and global mutexes) used by threaded callers."
+}

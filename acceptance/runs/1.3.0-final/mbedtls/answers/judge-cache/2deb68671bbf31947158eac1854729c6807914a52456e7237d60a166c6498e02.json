@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the default build has no locking and `threading.c` compiles to nothing. It never says the default build creates no threads, and it doesn't say the pthread example compiles to a stub main. It lists `ssl_pthread_server.c` as a thread spawn site without a build condition."
+}

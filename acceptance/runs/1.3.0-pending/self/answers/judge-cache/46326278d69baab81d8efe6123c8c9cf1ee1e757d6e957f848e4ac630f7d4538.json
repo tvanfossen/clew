@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `_callers_of` shows the strongest confidence per (caller, callee) pair across layers, so a row may hide a weaker layer that also found the edge.\nVERDICT: MISS\nWHY: The answer never says that the reported layer/provenance for a collapsed row is decided by a ranking in the vocabulary module rather than by SQL."
+}

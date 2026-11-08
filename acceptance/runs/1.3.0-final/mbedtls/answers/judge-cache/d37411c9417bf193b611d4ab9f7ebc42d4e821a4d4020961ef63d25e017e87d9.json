@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`ret & 0xFF80 \u2260 0 ?  (high-level part = 0x4080)\" ... \"`ret & ~0xFF80 \u2260 0 ?  (low-level part = 0x0020)\" ... \"buf = \"RSA - Bad input parameters to function : AES - Invalid key length\"\" ... \"A combined code like `-0x40A0` carries both.\"\nVERDICT: HIT\nWHY: The answer explains that a code has a high-level module part and a low-level part, and that mbedtls_strerror renders both joined with \" : \" when both are present."
+}

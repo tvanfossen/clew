@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Every derivation logs its reason.** The log says which tier was used and why, including the rejection text when a declaration was refused.\nVERDICT: MISS\nWHY: The answer says the log records the tier and why, but not that the fallback scope object carries a reason field. Logging the reason is not the same as the fallback carrying one."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"initialises a mutex if `MBEDTLS_THREADING_C` is set, and calls `mbedtls_platform_set_calloc_free()` with its own `buffer_alloc_calloc` / `buffer_alloc_free` (or the mutexed variants)\"\nVERDICT: MISS\nWHY: The answer mentions mutexed variants vaguely but never states that the choice between a mutexed and a plain pair is made at compile time inside init, nor that the plain pair is used when threading is off."
+}

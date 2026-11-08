@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 30070,
+  "stop_reason": "end_turn",
+  "session_id": "5ff9df80-892c-4729-830c-190c2b67af78",
+  "total_cost_usd": 0.01300592,
+  "usage": {
+    "input_tokens": 14,
+    "cache_creation_input_tokens": 31224,
+    "cache_read_input_tokens": 392822,
+    "output_tokens": 5663,
+    "output_tokens_details": {
+      "thinking_tokens": 2104
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 31224,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2793,
+        "cache_read_input_tokens": 76847,
+        "cache_creation_input_tokens": 753,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 753
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 14,
+      "outputTokens": 5663,
+      "cacheReadInputTokens": 392822,
+      "cacheCreationInputTokens": 31224,
+      "webSearchRequests": 0,
+      "costUSD": 0.01300592,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2104,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 31224,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 14,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** `ServerDataOperator` is a mixin composition. Ten of its thirteen handler mixins live in `server_data_operator/handlers/`, and three live in product folders. Every handler write funnels through `BaseDataOperator.batchRecords`, which is the single `database.write(...)` call. `AppDataOperator` shares that same code.\n\n**How the class is built**\n\n- `app/database/operator/server_data_operator/index.ts:40` declares `class ServerDataOperator extends mix(ServerDataOperatorBase).with(...)`, mixing in 13 handler classes. The interface at `index.ts:23` merges in the matching `*HandlerMix` types so TypeScript knows the methods exist.\n- `ServerDataOperatorBase` (`handlers/index.ts:31`) is the mix base. It extends `BaseDataOperator` (`base_data_operator/index.ts:33`) and holds the generic handlers: `handleRole`, `handleFiles`, `handleReactions`, `handleConfigs`, `handleCustomEmojis`, `handleSystem`, and `execute`.\n- Each handler is a mixin function of the form `const XHandler = <TBase extends Constructor<ServerDataOperatorBase>>(superclass) => class extends superclass {...}`.\n\n**Handlers defined elsewhere**\n\n| Handler | Defined in |\n|---|---|\n| `AgentsHandler` | `app/products/agents/database/operators/handlers/index.ts` |\n| `BoardsHandler` | `app/products/boards/database/operators/handlers/index.ts` |\n| `PlaybookHandler` | `app/products/playbooks/database/operators/handlers/index.ts` |\n\nThe other ten (Category, Channel, CustomProfile, Group, Post, Properties, Team, TeamThreadsSync, Thread, User) sit in `server_data_operator/handlers/` as sibling files. The index's `dossier` output truncated the mix list, so I read `index.ts` directly to confirm this set.\n\n**The write path**\n\nUsing `handleUsers` (`handlers/user.ts:116`) as the example:\n\n```\nhandleUsers                       user.ts:116\n  \u2514\u2500 handleRecords                base_data_operator:224\n       \u251c\u2500 processRecords          base:51   (reads existing rows, splits create/update/delete)\n       \u251c\u2500 prepareRecords          base:134  (runs transformer, builds models, NO write)\n       \u2514\u2500 batchRecords            base:191  (only if prepareRecordsOnly is false)\n            \u2514\u2500 database.write(writer => writer.batch(...models))   \u2190 the actual write\n```\n\n- `batchRecords` catches errors, logs a warning, and emits `DATABASE_CORRUPTION_DETECTED` on corruption errors. It rethrows only when `propagateError` is set.\n- `prepareRecordsOnly` defaults to `true` in `handleRecords`. `handleUsers` therefore returns prepared models without writing unless the caller passes `prepareRecordsOnly: false` or batches them later. This is easy to miss.\n\n**What else shares the write code**\n\n- **Other handlers.** Most handlers in the list above call `batchRecords` or `handleRecords` directly. `ServerDataOperatorBase.execute` (`handlers/index.ts`) is a shared wrapper for prepare-then-batch.\n- **Callers outside the operator.** `batchRecords` has about 233 non-test call sites across 67 files, mostly in `app/actions/remote/`, `app/actions/local/`, `app/actions/websocket/`, and `app/products/playbooks/actions/`. The test helper at `test/test_helper.ts:145` also uses it.\n- **`AppDataOperator`.** It extends the same `BaseDataOperator` (`app/database/operator/app_data_operator/index.ts:15`) and inherits `batchRecords`, `processRecords`, `prepareRecords`, and `handleRecords` for the global app database.\n- **Construction.** `DatabaseManager` builds the operator at `app/database/manager/index.ts:184` as `new ServerDataOperator(database, serverUrl)`.\n\n**Exceptions:** Not every write goes through `batchRecords`. `app/actions/websocket/reactions.ts:47` calls `database.write` directly.",
+  "ttft_ms": 1528,
+  "type": "result",
+  "duration_ms": 30754,
+  "uuid": "c2d65444-aa31-49da-aa70-d35783da12d8",
+  "ttft_stream_ms": 1423,
+  "time_to_request_ms": 60,
+  "first_content_frame_ms": 1423,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "Top-level directories the answer says contain uses of MBEDTLS_PRIVATE: it names `include`, via `include/mbedtls/cipher.h:724`, which reads `ctx->MBEDTLS_PRIVATE(cipher_info)`. It also names `library`, `programs` and `docs`, but only as places that define or discuss the macro, not as places that use it.\n\nITEMS:\ninclude\nEND"
+}

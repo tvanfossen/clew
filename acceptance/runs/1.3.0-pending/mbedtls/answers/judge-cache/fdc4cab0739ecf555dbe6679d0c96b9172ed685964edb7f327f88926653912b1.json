@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_error_add()` in `include/mbedtls/error.h:142` is the high+low combiner.\nVERDICT: MISS\nWHY: The answer names mbedtls_error_add as the high+low combiner but never says it captures __FILE__ and __LINE__."
+}

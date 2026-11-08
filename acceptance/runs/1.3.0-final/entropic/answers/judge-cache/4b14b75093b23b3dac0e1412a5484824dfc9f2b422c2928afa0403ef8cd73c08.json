@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Mirrors the engine's `interrupt_flag_` into the C-ABI `int` ... Changing it to `std::atomic<int>` would require a C-ABI change, which is why the code uses the `int` ... keep the `int` at the C boundary and have the observer write an atomic that the bridge copies from.\nVERDICT: HIT\nWHY: The answer says the interrupt observer mirrors the engine's atomic flag into a plain C-ABI `int`, and that the `int` is used because the C ABI can't carry an atomic."
+}

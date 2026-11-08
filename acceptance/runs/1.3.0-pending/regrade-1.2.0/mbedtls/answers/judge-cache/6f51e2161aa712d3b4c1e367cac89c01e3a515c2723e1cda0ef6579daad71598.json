@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Default (`MBEDTLS_ALLOW_PRIVATE_ACCESS` not defined):** `MBEDTLS_PRIVATE(x)` expands to `private_x`. ... **Opt-out (`MBEDTLS_ALLOW_PRIVATE_ACCESS` defined):** `MBEDTLS_PRIVATE(x)` expands to `x`, and the field has its real name.\nVERDICT: HIT\nWHY: The answer states both the default rename to private_<member> and the unchanged expansion when MBEDTLS_ALLOW_PRIVATE_ACCESS is defined."
+}

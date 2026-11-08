@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The default `mbedtls_config.h` has `MBEDTLS_PLATFORM_MEMORY` commented out (line 208), so a stock build calls libc directly.\nVERDICT: HIT\nWHY: The answer says that with MEMORY off (the default), platform.h:166-167 maps mbedtls_calloc/free to calloc/free, so a stock build calls libc directly with no indirection. It never uses the word \"macro\" for that branch, but \"\u2192 calloc / free from libc\" carries the same substance."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Index newer than server: nothing the caller can do, because a rebuild re-stamps the same newer version. Restart the client.\nVERDICT: HIT\nWHY: The answer states that a newer-than-server index on the schema axis can't be cleared by rebuilding, because a rebuild re-stamps the same newer version."
+}

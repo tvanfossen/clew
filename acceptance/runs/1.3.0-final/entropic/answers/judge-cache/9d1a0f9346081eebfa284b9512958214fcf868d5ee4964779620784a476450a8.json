@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Owned `char*` returns (e.g. `entropic_list_mcp_servers`) | Caller must free with `entropic_free()` ... Borrowed `const char*` (e.g. `entropic_version`) | Static, or valid until the next call on that handle\nVERDICT: HIT\nWHY: The memory-rules table states that an owned char* must be freed with entropic_free, and that a borrowed const char* is static or valid only until the next call on that handle."
+}

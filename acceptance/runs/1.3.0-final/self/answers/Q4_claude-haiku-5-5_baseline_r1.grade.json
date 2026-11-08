@@ -1,0 +1,163 @@
+{
+  "cell": "Q4_claude-haiku-5-5_baseline_r1",
+  "arm": "baseline",
+  "rubric_version": "5.0.0",
+  "rubric_digest": "d8447c7b18eafbf5",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.3448275862068966,
+  "unmarked_pct": 0.0,
+  "split_decisions": 0,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "states that call_edges stores one row per extraction LAYER, so the same logical edge found by two detectors is stored twice",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer says duplicates are collapsed across layers at query time but never states that call_edges stores one row per extraction layer, so the same edge is stored twice. || QUOTE: NONE | WHY: The answer says duplicates are collapsed across layers at query time but never states that call_edges stores one row per extraction layer, so the same logical edge is stored twice. || QUOTE: NONE | WHY: The answer says rows are deduplicated across layers and never states that call_edges stores one row per extraction layer, so the same edge found by two detectors is stored twice.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that the query surface returns ONE row per neighbour rather than one per layer, collapsing the variants to the strongest evidence",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"**One row per endpoint identity, not per site.** `_direct_call_edges` collapses duplicates across layers and across a function's declaration and definition rows. A caller that invokes `fn` five times appears once.\" | WHY: The answer states that rows are deduplicated per endpoint across layers, collapsing the layer variants into one row per neighbour. It does not say that the row keeps the strongest evidence. || QUOTE: \"**One row per endpoint identity, not per site.** `_direct_call_edges` collapses duplicates across layers and across a function's declaration and definition rows. A caller that invokes `fn` five times appears once.\" | WHY: The answer states that rows are collapsed per endpoint identity across layers, so duplicates from different layers merge into one row per neighbour. It does not say the surviving row is the strongest-evidence variant, but the one-row-per-neighbour collapse across layers is the substance of the item. || QUOTE: One row per endpoint identity, not per site. `_direct_call_edges` collapses duplicates across layers and across a function's declaration and definition rows. | WHY: The answer states that duplicates across layers collapse into one row per endpoint, which is the substance of the item. It does not explicitly say the surviving row is the strongest evidence.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies that which layer's provenance a collapsed row reports is decided by a RANKING held in the vocabulary module, not by SQL",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never mentions that a ranking in the vocabulary module decides which layer's provenance a collapsed row reports; it only says duplicates are collapsed. || QUOTE: NONE | WHY: The answer never mentions that provenance of a collapsed row is chosen by a ranking in the vocabulary module rather than SQL. || QUOTE: NONE | WHY: The answer never mentions a ranking in the vocabulary module deciding which layer's provenance a collapsed row reports; it only says duplicates are collapsed across layers.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the same collapse function serves BOTH the flat neighbour surface and the traversal surface, so a chain and a neighbour list cannot disagree about one edge's provenance",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer says traversal drops fuzzy edges while the flat list keeps them, and never states that one shared collapse function serves both surfaces so provenance can't disagree. || QUOTE: NONE | WHY: The answer never states that one collapse function serves both the flat neighbour surface and the traversal surface; it only says traversal drops fuzzy edges while the flat list keeps them. || QUOTE: NONE | WHY: The answer never says one collapse function serves both the flat neighbour surface and the traversal surface; it only notes that traversal drops fuzzy edges while the flat list keeps them.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies that the flat surface KEEPS fuzzy-confidence edges while the traversal surface excludes them, and gives the reason \u2014 a walk expands each hop, so one fuzzy edge multiplies into a wrong subtree",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: \"Traversal (`chain_trace`) drops them. The flat list keeps them, because filtering would remove 21.3% of this repo's edges and 79.8% of a real C++ target.\" | WHY: The answer says the flat list keeps fuzzy edges while traversal drops them, but it gives a different reason (filtering would remove too many edges). It never says that a walk expands each hop, so a single fuzzy edge multiplies into a wrong subtree. || QUOTE: \"Traversal (`chain_trace`) drops them. The flat list keeps them, because filtering would remove 21.3% of this repo's edges and 79.8% of a real C++ target.\" | WHY: The answer says traversal drops fuzzy edges while the flat list keeps them, but gives the reason as the amount of data that filtering would remove. It never says that a walk expands each hop, so one fuzzy edge multiplies into a wrong subtree. || QUOTE: \"Traversal (`chain_trace`) drops them. The flat list keeps them, because filtering would remove 21.3% of this repo's edges and 79.8% of a real C++ target.\" | WHY: The answer states that the flat list keeps fuzzy edges while traversal drops them, but gives a different reason (filtering would remove too many edges) and omits the item's reason that a walk expands each hop, so one fuzzy edge multiplies into a wrong subtree.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that `callers`/`callees` return TWO KINDS of neighbour in one list \u2014 direct calls and shared-key dataflow \u2014 distinguished by an `edge_class` field the consumer must read",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"`callers()` also returns `edge_class='key'` rows: functions whose shared-key write `fn` reads. They do not call `fn` and may run on another thread. The docstring says to check `edge_class` on every row.\" | WHY: The answer states that the list mixes direct call rows with shared-key dataflow rows, distinguished by `edge_class`, which the consumer must check. || QUOTE: \"`callers()` also returns `edge_class='key'` rows: functions whose shared-key write `fn` reads. They do not call `fn` and may run on another thread. The docstring says to check `edge_class` on every row.\" | WHY: The answer states that one list mixes direct call rows and shared-key dataflow rows, distinguished by an `edge_class` field the consumer must check. || QUOTE: \"`callers()` also returns `edge_class='key'` rows: functions whose shared-key write `fn` reads. They do not call `fn` and may run on another thread. The docstring says to check `edge_class` on every row.\" | WHY: The answer states that callers returns both direct call and shared-key rows, distinguished by `edge_class`, which the reader must check.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "notes that the causal polarity is INVERTED between the two halves \u2014 the \"callers\" of a reader are the functions whose writes it observes",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: \"`callers()` also returns `edge_class='key'` rows: functions whose shared-key write `fn` reads. They do not call `fn` and may run on another thread.\" | WHY: The answer states that key-class \"callers\" of a reader are the functions whose writes it reads, which is the inverted polarity the item describes. || QUOTE: \"`callers()` also returns `edge_class='key'` rows: functions whose shared-key write `fn` reads. They do not call `fn` and may run on another thread.\" | WHY: The answer states that for key-class rows the \"callers\" of a reader are the functions whose writes it reads, which is the inverted polarity the item describes. || QUOTE: \"`callers()` also returns `edge_class='key'` rows: functions whose shared-key write `fn` reads. They do not call `fn` and may run on another thread.\" | WHY: The answer states that for key-class rows, the \"callers\" of a reader are the functions whose writes it reads, even though they don't call it. That is the inverted-polarity substance.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that dossier does NOT take the merged form \u2014 it asks for the call half only, because it already composes the dataflow separately and merging would report each dataflow edge twice in one payload",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never mentions dossier asking for the call half only or avoiding merged-form duplication of dataflow edges. It only notes `qualified` narrows the call half. || QUOTE: NONE | WHY: The answer never says dossier requests only the call half to avoid double-reporting dataflow edges; it only mentions `qualified` narrowing the call half. || QUOTE: NONE | WHY: The answer never mentions dossier asking for only the call half of a merged form, nor that merging would double-report dataflow edges. The closest it gets is saying `qualified` narrows only the call half, which is a different point.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies that the two surfaces resolve the FOCAL side differently \u2014 the flat surface selects by resolved identity while the traversal surface still matches on the bare name",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: `callers`/`callees` resolve by name. Unrelated file-private helpers that share a name collapse into one node with merged edges, at full confidence. `qualified` narrows only the call half; the key half still unions every same-named function | WHY: The answer notes name-based resolution and a partial `qualified` gap, but never contrasts a flat surface selecting by resolved identity with a traversal surface (`chain_trace`) still matching on the bare name. || QUOTE: `callers`/`callees` resolve by name. Unrelated file-private helpers that share a name collapse into one node with merged edges, at full confidence. `qualified` narrows only the call half; the key half still unions every same-named function | WHY: The answer notes name-based resolution and a partial `qualified` gap, but never contrasts a flat surface selecting by resolved identity with a traversal surface still matching on the bare name. || QUOTE: `callers`/`callees` resolve by name. Unrelated file-private helpers that share a name collapse into one node with merged edges... `qualified` narrows only the call half; the key half still unions every same-named function | WHY: The answer notes name-based merging, but never contrasts a flat surface that selects by resolved identity with a traversal surface that still matches the bare name.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide what a neighbour list contains \u2014 clew/call_edges.py",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide what a neighbour list contains \u2014 clew/query/symbols.py",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide what a neighbour list contains \u2014 clew/query/traversal.py",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": false,
+      "detail": "not named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide what a neighbour list contains \u2014 clew/vocabulary.py",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": false,
+      "detail": "not named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide what a neighbour list contains \u2014 clew/query/dossier.py",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": false,
+      "detail": "not named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide what a neighbour list contains \u2014 precision",
+      "kind": "set_precision",
+      "weight": 1,
+      "hit": false,
+      "detail": "named 1 not in the set: ['clew/dispatch_edges.py']",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    }
+  ]
+}

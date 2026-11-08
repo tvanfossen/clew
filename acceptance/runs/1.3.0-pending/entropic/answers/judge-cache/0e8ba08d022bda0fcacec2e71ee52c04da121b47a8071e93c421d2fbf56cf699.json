@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: In `dispatch_batch_generate`, the observer thread writes `cancel_int` (a plain `int`) while the backend reads it through `&cancel_int` on the calling thread. That is a data race under the C++ memory model, even though the code is meant to keep the C ABI `int*`-only.\nVERDICT: HIT\nWHY: The answer identifies the observer thread mirroring the atomic `interrupt_flag_` into a plain `int` cancel flag, and ties it to the C ABI being `int*`-only."
+}

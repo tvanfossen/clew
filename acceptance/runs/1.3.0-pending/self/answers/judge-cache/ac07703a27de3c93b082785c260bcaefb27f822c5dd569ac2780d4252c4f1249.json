@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A refresh that stalls past `_LOCK_WAIT_SECONDS` (120 s) or fails degrades to answering from the old index, with the notice attached.\nVERDICT: MISS\nWHY: The answer covers refresh failure degrading to the old index, not that measuring staleness never raises and degrades to no annotation."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says assembly selection needs MBEDTLS_HAVE_ASM and GNUC and picks MBEDTLS_CT_*_ASM macros, but never states that MBEDTLS_CT_ASM is a derived macro rather than a mbedtls_config.h entry."
+}

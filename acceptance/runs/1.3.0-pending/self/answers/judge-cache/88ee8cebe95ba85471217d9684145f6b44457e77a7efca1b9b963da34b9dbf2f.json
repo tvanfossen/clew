@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names these files as taking part in measuring, wording, attaching or acting on staleness. It writes `state.py` and `freshness.py` as bare filenames, with no directory.\n\nITEMS:\nstate.py\nfreshness.py\nEND"
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Default: `#define MBEDTLS_PRIVATE(member) private_##member`. A field `foo` is spelled `private_foo`... With `MBEDTLS_ALLOW_PRIVATE_ACCESS` defined: `#define MBEDTLS_PRIVATE(member) member`, so the real name is used.\nVERDICT: HIT\nWHY: The answer states both the default rename to private_<member> and the unchanged member name when MBEDTLS_ALLOW_PRIVATE_ACCESS is defined."
+}

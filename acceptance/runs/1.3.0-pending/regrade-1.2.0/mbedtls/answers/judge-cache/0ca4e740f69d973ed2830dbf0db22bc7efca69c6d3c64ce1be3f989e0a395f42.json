@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The two samples get the same treatment and can reach ssl internals.\nVERDICT: HIT\nWHY: The answer says `ssl_client2.c` and `ssl_server2.c` define `MBEDTLS_ALLOW_PRIVATE_ACCESS` themselves, before any include, so they can reach ssl internals. That is the item: example programs define the opt-out themselves."
+}

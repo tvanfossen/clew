@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_ct_compiler_opaque(x)` is an empty `asm volatile(\"\" : \"+r\"(x))` on the assembly path. It emits no instructions, but the compiler must treat the value as unknown, so it cannot fold a secret into a branch.\nVERDICT: HIT\nWHY: The answer states the asm is an empty volatile statement with a \"+r\" input-output operand, that it emits no instructions, and that it acts as an optimisation barrier."
+}

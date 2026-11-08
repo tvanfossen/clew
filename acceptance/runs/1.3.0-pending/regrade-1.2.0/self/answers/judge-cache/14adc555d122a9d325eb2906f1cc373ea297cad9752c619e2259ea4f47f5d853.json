@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes the current graded verdicts, including that a single-token empty result is definitive only when no unread-corpus rows exist. It never says a single-token miss used to be treated as proof of absence, so the prior behavior is missing."
+}

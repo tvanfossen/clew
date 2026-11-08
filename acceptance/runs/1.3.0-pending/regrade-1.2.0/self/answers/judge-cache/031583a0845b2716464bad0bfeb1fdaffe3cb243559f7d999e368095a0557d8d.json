@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `CMakeLists.txt` (matched by name), `.cmake` | `memberdef` per `function()` ... `.sh`, `.bash`\n\nVERDICT: HIT\nWHY: The table names `.sh`, `.bash`, `.cmake` extensions and states CMakeLists.txt is matched by name rather than extension."
+}

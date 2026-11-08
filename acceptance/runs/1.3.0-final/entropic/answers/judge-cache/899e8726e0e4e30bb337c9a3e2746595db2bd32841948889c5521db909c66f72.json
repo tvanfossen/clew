@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `HealthMonitor::process_events` swaps the event queue out under `event_mutex_` and runs callbacks after releasing it. Callbacks therefore run on the engine thread without holding the lock.\nVERDICT: HIT\nWHY: The answer states that events are queued under `event_mutex_` and that `process_events` drains them and runs the callbacks on the engine (caller's) thread, not the monitor thread."
+}

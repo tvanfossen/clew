@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: define `MBEDTLS_PLATFORM_MEMORY` in the config, then either point... ; \"It then calls `mbedtls_platform_set_calloc_free` with its own `buffer_alloc_calloc` / `buffer_alloc_free`\" \u2014 but nothing says the buffer allocator requires MBEDTLS_PLATFORM_MEMORY.\nVERDICT: MISS\nWHY: The answer never states that the buffer allocator itself depends on MBEDTLS_PLATFORM_MEMORY, or that enabling the buffer allocator alone won't redirect the library's allocations."
+}

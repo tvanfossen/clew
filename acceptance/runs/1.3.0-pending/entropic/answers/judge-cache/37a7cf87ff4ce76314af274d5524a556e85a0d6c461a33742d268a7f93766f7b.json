@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Cancel-flag poller | `src/inference/inference_c_api.cpp:385` | Bridges `int*` cancel to `std::atomic<bool>` at 10 ms\"\nVERDICT: MISS\nWHY: The answer lists cancel bridges between `int*` and `atomic<bool>`, but it never says the thread exists because the C ABI boundary cannot carry an atomic. The \"Generator observer\" row also mirrors an atomic flag into an int without giving that reason."
+}

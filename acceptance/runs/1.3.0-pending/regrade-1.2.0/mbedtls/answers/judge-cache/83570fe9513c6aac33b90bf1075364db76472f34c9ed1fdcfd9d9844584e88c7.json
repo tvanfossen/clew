@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_memory_buffer_alloc_init(buf, len)` (`library/memory_buffer_alloc.c:566`) takes a caller buffer and carves it into blocks with magic-number headers. It then calls `mbedtls_platform_set_calloc_free` with its own `buffer_alloc_calloc` / `buffer_alloc_free`\nVERDICT: MISS\nWHY: The answer shows the buffer allocator's init calling the setter, but it never says this is the only in-tree user. It also says \"the same hook the library's own allocator uses\" and never names MBEDTLS_MEMORY_BUFFER_ALLOC_C."
+}

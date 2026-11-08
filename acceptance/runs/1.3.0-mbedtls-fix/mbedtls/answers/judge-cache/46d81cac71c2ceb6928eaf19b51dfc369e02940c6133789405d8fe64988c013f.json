@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Library code:** nothing. The index finds no threads spawned from `library/`.\" and \"`programs/ssl/ssl_pthread_server.c` spawns one pthread per connection... That code is also gated by the threading macros, so it compiles out by default.\"\nVERDICT: HIT\nWHY: The answer says the default build runs no concurrency, with no library threads. It also says the pthread example is gated by the threading macros and compiles out by default. That matches the stub-main conclusion in substance."
+}

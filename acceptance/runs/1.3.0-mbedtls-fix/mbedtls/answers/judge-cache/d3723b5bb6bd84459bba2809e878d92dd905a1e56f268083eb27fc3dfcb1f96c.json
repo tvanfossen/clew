@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_CT_ASM` is gated on `MBEDTLS_HAVE_ASM` plus `__GNUC__` or `__ARMCC_VERSION`.\nVERDICT: HIT\nWHY: The answer says CT_ASM is gated on MBEDTLS_HAVE_ASM plus compiler predefined macros, which conveys that it is derived. It never says outright that it is not set in mbedtls_config.h, but the derivation is stated."
+}

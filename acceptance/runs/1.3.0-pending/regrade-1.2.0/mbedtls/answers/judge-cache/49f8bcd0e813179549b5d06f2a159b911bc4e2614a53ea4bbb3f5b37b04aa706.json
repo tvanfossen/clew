@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`mbedtls_memory_buffer_alloc_init(buf, len)` calls `mbedtls_platform_set_calloc_free(...)` itself, so initialising it installs the heap as the process-wide allocator. When `MBEDTLS_THREADING_C` is enabled it installs mutex-wrapped variants.\"\nVERDICT: MISS\nWHY: The answer says mutex-wrapped variants are installed when MBEDTLS_THREADING_C is enabled. It never says a plain pair is installed otherwise, and it never says the choice is made at compile time inside the init function."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_TEST_CONSTANT_FLOW_VALGRIND` (memcheck, secrets marked undefined) and `MBEDTLS_TEST_CONSTANT_FLOW_MEMSAN` (clang MSan, no asm) are both **off by default**.\nVERDICT: MISS\nWHY: The answer names the off-by-default MSan/valgrind test facility, but it never says the facility is explicitly not part of the library API, so one required part is missing."
+}

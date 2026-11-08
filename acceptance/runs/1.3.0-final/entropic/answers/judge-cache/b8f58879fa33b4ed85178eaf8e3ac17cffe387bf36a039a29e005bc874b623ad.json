@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Allow patterns: a match sets `approved` and skips the prompt.\nVERDICT: MISS\n\nWHY: The answer says allow skips the prompt and describes check_approval, but it never states the ALLOW list is consulted only from check_approval in a different file, nor that it doesn't grant execution. The file location is also implied only loosely."
+}

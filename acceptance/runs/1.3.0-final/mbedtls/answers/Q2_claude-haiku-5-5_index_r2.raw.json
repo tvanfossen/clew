@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 31429,
+  "stop_reason": "end_turn",
+  "session_id": "54267e1d-d79f-4e28-8291-645fc537c568",
+  "total_cost_usd": 0.00959571,
+  "usage": {
+    "input_tokens": 14,
+    "cache_creation_input_tokens": 14060,
+    "cache_read_input_tokens": 323731,
+    "output_tokens": 7090,
+    "output_tokens_details": {
+      "thinking_tokens": 3364
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 14060,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2790,
+        "cache_read_input_tokens": 53116,
+        "cache_creation_input_tokens": 831,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 831
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 14,
+      "outputTokens": 7090,
+      "cacheReadInputTokens": 323731,
+      "cacheCreationInputTokens": 14060,
+      "webSearchRequests": 0,
+      "costUSD": 0.00959571,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 3364,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 14060,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 16,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**What it accomplishes.** `include/mbedtls/private_access.h` is the whole mechanism. Without `MBEDTLS_ALLOW_PRIVATE_ACCESS`, `MBEDTLS_PRIVATE(member)` expands to `private_##member`, so `ctx->MBEDTLS_PRIVATE(state)` becomes `ctx->private_state`. Ordinary code that writes `ctx->state` no longer compiles. The 3.0 migration guide (`docs/3.0-migration-guide.md:68-74`) describes this as the intent: direct access to undocumented fields gives a compile error, and callers should use the accessors (`mbedtls_<MODULE>_{get,set}_<FIELD>`). It is a source-level compatibility boundary, not a security one. The struct layout is unchanged, and `ctx->private_state` still compiles for anyone who types it. The benefit is that the team can reshape internals in a minor release without breaking callers who stayed on the public surface.\n\n**Who it is for.** Three groups, by where the opt-out is switched on:\n\n| Where | Opt-out | Effect on that code |\n|---|---|---|\n| Application code (default) | none | Field access is a compile error. It must use an accessor, or the last-resort `MBEDTLS_PRIVATE(foo)` form, which the guide says is at the caller's own risk. |\n| Library sources | `library/common.h:132` defines `MBEDTLS_ALLOW_PRIVATE_ACCESS` | Every library `.c` includes `common.h`, and `ssl_misc.h` includes it before `mbedtls/ssl.h` (`library/ssl_misc.h:14`). Internal code uses real field names. |\n| Two sample programs | `programs/ssl/ssl_server2.c:8` and `ssl_client2.c:8` define it before any include | They use the real names, as in-tree test harnesses. |\n\nThe opt-out is the one place the library's \"private\" fields become \"internal.\" A project that defines the macro itself gets the same access, and `ssl.h:5159-5169` labels that path deprecated and unsupported for future releases.\n\n**Code that uses the escape hatch without opting out.** These compile against the renamed `private_*` names, so they are the places a future rename would break:\n- `programs/ssl/ssl_context_info.c:553-568` reads `ciphersuite_info->MBEDTLS_PRIVATE(flags|cipher|mac)`.\n- `programs/fuzz/fuzz_dtlsserver.c:138` reads `ssl.MBEDTLS_PRIVATE(next_record_offset)`.\n\n**Header inlines.** The accessors in public headers, such as `ssl.h:2824` and `psa/crypto_struct.h:416`, use `MBEDTLS_PRIVATE` internally. Those work in both modes because the struct definition and the accessor expand the same way.\n\n**Caveat.** I did not build the test suites. That tests get the opt-out is inferred from the include chain: `test_suite_ssl.function` includes `ssl_misc.h`, which pulls in `common.h`.",
+  "ttft_ms": 795,
+  "type": "result",
+  "duration_ms": 31896,
+  "uuid": "f42d3048-322b-4390-952f-83f475b61694",
+  "ttft_stream_ms": 626,
+  "time_to_request_ms": 66,
+  "first_content_frame_ms": 626,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

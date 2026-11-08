@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The post is written to the local database first, so it shows in the timeline before the server responds. ... If `client.createPost` throws, the catch block logs the error and saves the post with `props.failed = true`, so the UI shows it as failed.\nVERDICT: HIT\nWHY: The answer states the post is saved locally before sending and, on failure, is kept with `failed = true`."
+}

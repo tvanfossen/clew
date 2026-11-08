@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the staleness block is never silently dropped and is empty when \"unmeasurable,\" but it never states that measuring staleness never raises or that a failed measurement degrades to no annotation instead of turning a successful reply into an error."
+}

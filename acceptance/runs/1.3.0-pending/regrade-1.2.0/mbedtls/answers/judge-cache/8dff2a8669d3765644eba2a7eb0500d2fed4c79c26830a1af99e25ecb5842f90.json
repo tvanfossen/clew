@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names these top-level directories as containing uses of `MBEDTLS_PRIVATE`:\n\n- `library` appears in `library/md.c`, `library/ecdh.c`, `library/x509_crt.c`, `library/ssl_ciphersuites_internal.h` and `library/pk_internal.h`.\n- `programs` appears in `programs/ssl/ssl_context_info.c`.\n- `include` is named as the place the macro is defined, in `include/mbedtls/private_access.h`. The answer doesn't say this directory uses the macro.\n- `tests` is not named as a directory. The answer only mentions the test suites `test_suite_psa_crypto.function` and `test_suite_x509write.function`, without a path. I did not list it.\n\nITEMS:\nlibrary\nprograms\nEND"
+}

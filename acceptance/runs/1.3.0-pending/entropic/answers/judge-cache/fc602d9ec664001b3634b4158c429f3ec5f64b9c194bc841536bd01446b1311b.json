@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Without a callback, unmatched calls are denied.\nVERDICT: MISS\nWHY: The answer says unmatched calls are denied when no callback is set. With a callback they are auto-approved. It never says a tool matching neither list simply runs as a default-allow posture."
+}

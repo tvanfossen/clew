@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 60247,
+  "stop_reason": "end_turn",
+  "session_id": "4c020a42-aeb8-4fa6-aa28-8570b08aac4d",
+  "total_cost_usd": 0.017218430000000003,
+  "usage": {
+    "input_tokens": 22,
+    "cache_creation_input_tokens": 31927,
+    "cache_read_input_tokens": 547583,
+    "output_tokens": 10710,
+    "output_tokens_details": {
+      "thinking_tokens": 5511
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 31927,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 5810,
+        "cache_read_input_tokens": 64945,
+        "cache_creation_input_tokens": 459,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 459
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 22,
+      "outputTokens": 10710,
+      "cacheReadInputTokens": 547583,
+      "cacheCreationInputTokens": 31927,
+      "webSearchRequests": 0,
+      "costUSD": 0.017218430000000003,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 5511,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 31927,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 22,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "Short answer: the allow list only decides whether the approval prompt is skipped. The deny list is checked later, at execution, and is the only list that can stop a call that was already approved. There is no separate \"ask\" list. A call that matches neither list goes to the host callback, and if no callback is registered it is denied.\n\n## Decision path\n\n```\nmodel emits tool call\n\u2514\u2500 ToolExecutor::check_call_preconditions          tool_executor.cpp:667\n   1. anti-spiral hard block\n   2. schema validation (check_schema)\n   3. MCP key set for identity (check_mcp_authorization, :575)\n   4. tier allowed_tools (check_tier_allowed, :198)\n   5. duplicate detection\n   6. approval (check_approval_pc \u2192 check_approval, :161)\n        auto_ok = auto_approve OR allow-list match\n        if !auto_ok and on_tool_call set  \u2192 approved = true\n        if !auto_ok and no callback        \u2192 denied \"Permission denied\"\n\u2514\u2500 process_single_call \u2192 ServerManager::execute     server_manager.cpp:153\n   7. deny-list match \u2192 \"Error: Permission denied for <tool>\"\n   8. route to in-process server or external client\n```\n\nSteps 1\u20135 run before either list is consulted, so neither list bypasses MCP keys, tier `allowed_tools`, schema checks, or duplicate detection. The lists are loaded from `permissions.allow`, `permissions.deny` and `permissions.auto_approve` (`config/loader.cpp:365`), and handed to `PermissionManager` through the `ServerManager` constructor (`server_manager.cpp:35`).\n\n## What a pattern does\n\n- **Allow pattern:** if it matches, step 6 is skipped and the call proceeds to execution. Nothing else changes. The deny list still applies at step 7.\n- **Deny pattern:** if it matches, the call returns an error result at step 7, even if auto-approve or an allow match approved it. Deny always wins.\n- **Matching** (`permission_manager.cpp:101`): the pattern is split at the first `:`. The left side is fnmatched against the tool name. With no `:`, that is the whole test (tool-level). With a `:`, the full pattern is fnmatched against `tool_name:<arg-pattern>`.\n- **Arg pattern** (`server_manager.cpp:426`): the value of the first string-valued argument, where \"first\" means alphabetically first key because nlohmann objects are sorted maps. If the first arg isn't a string or there are no args, it becomes `*`.\n\nExamples:\n\n| Pattern | Effect |\n|---|---|\n| `filesystem.*` | every filesystem tool, any args |\n| `bash.execute` | every bash call, any command (no colon) |\n| `bash.execute:git *` | bash commands starting with `git ` |\n| `filesystem.write_file:/etc/*` | writes under `/etc` |\n\n## Things to watch\n\n1. **The host callback cannot deny.** `on_tool_call` is `void(const char*, void*)` (`engine_types.h:370`), and `check_approval` sets `approved = true` after calling it. The `tool_executor.h` header says tools are \"approved via callback\", which doesn't match the code. With a callback registered, the only way a call is refused is the deny list. Confirm this against your intended design before relying on the callback as a gate.\n2. **Glob matching has no path or word boundaries.** `fnmatch` runs without `FNM_PATHNAME`, so `*` matches `/`, spaces and shell operators. An allow of `bash.execute:ls*` also allows `ls; rm -rf ~`, because only the command text is matched. Deny patterns are equally porous, so for bash, deny-by-prefix is weak.\n3. **Only the first string argument is matched.** Any other argument is invisible to both lists.\n4. **Bash's `get_permission_pattern` is dead code on the decision path.** `BashServer::get_permission_pattern` (`bash.cpp:200`) builds `bash.execute:<base> *`, but both `is_denied` and `is_explicitly_allowed` call `args_to_pattern` directly, and `ServerManager::get_permission_pattern` has no callers. Patterns match the raw command text as above.\n5. **`auto_approve: true` skips the prompt for everything not denied,** including tools with no allow entry.\n6. **Runtime \"always allow\" persistence isn't wired in `src/`.** `set_permission_persist` stores the callbacks, but I found no caller of `add_permission` or of the persister in `src/`, so patterns can only come from config.\n\nI didn't run the test suite. These findings come from reading the code.",
+  "ttft_ms": 2111,
+  "type": "result",
+  "duration_ms": 60667,
+  "uuid": "c2ac7630-4ca4-41d9-b4d8-9b566761b21d",
+  "ttft_stream_ms": 1798,
+  "time_to_request_ms": 104,
+  "first_content_frame_ms": 1798,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

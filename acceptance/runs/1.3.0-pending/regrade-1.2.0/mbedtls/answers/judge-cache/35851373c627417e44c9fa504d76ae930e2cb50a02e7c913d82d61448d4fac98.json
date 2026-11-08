@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The library itself contains no thread creation.\" / \"with the shipped defaults, the library runs no threads of its own and takes no locks.\"\nVERDICT: MISS\nWHY: The answer says the library creates no threads by default, but it never says the pthread example compiles to a stub main under a default build. It lists `handle_ssl_connection` at `ssl_pthread_server.c:277` as a sample program entry point without saying that the file is stubbed out when `MBEDTLS_THREADING_C` is off."
+}

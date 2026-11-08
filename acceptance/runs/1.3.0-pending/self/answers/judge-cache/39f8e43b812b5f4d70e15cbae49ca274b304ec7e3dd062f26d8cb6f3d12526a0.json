@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Fuzzy edges are not filtered. `callers` keeps `confidence='fuzzy'` rows. ... Traversal code filters them, but the flat list does not\" and \"Multi-hop `chain_trace` ... filters fuzzy edges because each hop expands.\"\nVERDICT: HIT\nWHY: The answer states the flat list keeps fuzzy edges while the traversal filters them, and gives the reason that each hop expands."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never mentions that `import entropic` succeeds before the engine is installed, or an install-engine subcommand; it only describes the loader and ctypes mechanism."
+}

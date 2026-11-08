@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Define the `MBEDTLS_ERR_<MODULE>_<NAME>` macro in the module's public header under `include/mbedtls/`\" and \"Regenerate `library/error.c` with `scripts/generate_errors.pl` through the project's normal entry point rather than by hand. Do not edit the generated arms directly.\"\nVERDICT: HIT\nWHY: The answer concludes that a new error code means adding the `#define` to the public header and regenerating `error.c`, not hand-editing it. It never says the string comes from the `/** */` doc comment, and it wrongly suggests a separate data file, so this is a borderline call."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The library itself creates no threads. Concurrency comes only from the caller, for example one thread per TLS connection in the example server.\nVERDICT: MISS\nWHY: The answer says the library creates no threads, but it describes the pthread example as a working per-connection server and never says it compiles to a stub main in the default build."
+}

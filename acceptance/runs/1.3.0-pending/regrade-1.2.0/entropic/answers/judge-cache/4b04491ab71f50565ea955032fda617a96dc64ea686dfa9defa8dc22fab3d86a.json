@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`LlamaCppBackend::tokenize` (`llama_cpp_backend.cpp:788`) passes the vector through. If no tokenizer is wired, it also returns `{}` silently (line 795).\"\nVERDICT: HIT\nWHY: The answer says the backend wrapper passes through the tokenizer's `{}` on failure and also returns `{}` when no tokenizer is wired. It adds that the two cases are indistinguishable to callers."
+}

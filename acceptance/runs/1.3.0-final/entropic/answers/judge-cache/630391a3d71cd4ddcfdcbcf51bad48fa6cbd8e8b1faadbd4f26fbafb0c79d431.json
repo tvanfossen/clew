@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never identifies the seam as llama.cpp's C API of free `llama_`-prefixed functions. It mentions `llama_sampler*` and `llama_vocab*` pointers and a versioned-subclass pattern, but it doesn't say the interface is a C API rather than C++ classes."
+}

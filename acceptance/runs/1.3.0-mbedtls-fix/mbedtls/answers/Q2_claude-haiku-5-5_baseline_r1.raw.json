@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 24346,
+  "stop_reason": "end_turn",
+  "session_id": "32cf5009-1d3e-4c18-a46a-9cc36940814f",
+  "total_cost_usd": 0.00916249,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 26893,
+    "cache_read_input_tokens": 159539,
+    "output_tokens": 4375,
+    "output_tokens_details": {
+      "thinking_tokens": 1890
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 26893,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2426,
+        "cache_read_input_tokens": 38955,
+        "cache_creation_input_tokens": 882,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 882
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 4375,
+      "cacheReadInputTokens": 159539,
+      "cacheCreationInputTokens": 26893,
+      "webSearchRequests": 0,
+      "costUSD": 0.00916249,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1890,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 26893,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 6,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**What it does.** `include/mbedtls/private_access.h` is a two-branch macro. Without `MBEDTLS_ALLOW_PRIVATE_ACCESS`, `MBEDTLS_PRIVATE(member)` expands to `private_##member`, so a struct declared as `ssl->MBEDTLS_PRIVATE(state)` is really `ssl->private_state`. Code that names `ssl->state` fails to compile. With the define set, it expands to `member` and the name is the bare field.\n\n**Who it is for.** It is for application code outside the library. Mbed TLS wants its struct internals to change between minor releases without breaking callers, and renaming the fields turns \"you touched a private member\" into a compile error instead of a silent ABI or behaviour dependency. The header itself says this (`include/mbedtls/ssl.h:5163`): reaching `ssl->state` is \"deprecated and could be broken in any future release.\" `docs/3.0-migration-guide.md:74` says the same thing and presents `bar.MBEDTLS_PRIVATE(foo)` as a last resort, at the user's own risk.\n\n**Where the opt-out is turned on in this tree:**\n\n1. **The library itself.** `library/common.h:132` defines `MBEDTLS_ALLOW_PRIVATE_ACCESS` unconditionally, and 107 `library/*.c` files include `common.h`. Because the define comes before the public headers, every library translation unit sees the real field names. For library code the `MBEDTLS_PRIVATE(...)` wrapper is a no-op. The three library files that use it (`ecdh.c:150`, `md.c:915`, `x509_crt.c:3306`) compile to the bare names. The library is the main \"for whom\" here, and it is not the audience the wrapper was built for.\n\n2. **Two SSL test programs.** `programs/ssl/ssl_server2.c:8` and `programs/ssl/ssl_client2.c:8` define the opt-out before including `ssl_test_lib.h`. They can therefore read and write internals directly. Those programs are the only places outside `library/` that switch it on. The define must come before the first public header include, which is why it sits at the top of each file. Consequence: these programs are coupled to the struct layout and will break when internals change. CI catches that because they are in-tree, but they are not a usable example of supported API use.\n\n3. **Not in `tests/` or `framework/`.** A grep for the define found nothing in either directory. Any test code that reaches a private field has to write the `MBEDTLS_PRIVATE(...)` form explicitly, and I did not check which test files do that. The define's placement matters too. If it is defined after a public header is already included, the struct was declared with the renamed fields and the opt-out does nothing for that translation unit.\n\n**Practical reading:** outside callers should use the public accessors. The opt-out exists for the library and for two in-tree test programs, and inside those it is a deliberate coupling to internals.",
+  "ttft_ms": 2142,
+  "type": "result",
+  "duration_ms": 24705,
+  "uuid": "5e263f6a-2e1e-4096-a64a-458cd2d13b86",
+  "ttft_stream_ms": 1753,
+  "time_to_request_ms": 137,
+  "first_content_frame_ms": 1753,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

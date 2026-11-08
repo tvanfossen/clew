@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"an interface of the same name at line 23 merges in the matching `*HandlerMix` typings\"\nVERDICT: HIT\nWHY: The answer states a same-named interface merges in the `*HandlerMix` typings alongside the mixin class, which is the declaration-merging mechanism the item describes."
+}

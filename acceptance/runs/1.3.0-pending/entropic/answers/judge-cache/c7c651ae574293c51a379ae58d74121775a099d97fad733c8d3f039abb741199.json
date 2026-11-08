@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`LlamaCppBackend` makes direct llama.cpp C API calls (model load, context, batch decode, KV/state save and restore, MTP, multimodal, sampler chain, chat templates)\" and \"Wraps `llama_tokenize` and `llama_token_to_piece`\"\nVERDICT: HIT\nWHY: The answer names the llama.cpp C API as the integration point and cites `llama_`-prefixed free functions such as `llama_tokenize` and `llama_adapter_lora_init`, not C++ class inheritance."
+}

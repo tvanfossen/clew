@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes tiers 1 through 5, but it merges two stated-by-operator rows into tier 1 and calls the groupings \"three ways\" and \"three layers.\" It never names five precedence tiers as the resolution mechanism for build options."
+}

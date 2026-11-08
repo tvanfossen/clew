@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 14220,
+  "stop_reason": "end_turn",
+  "session_id": "bf3437e8-0fd5-4581-86a8-1bce9c8b144e",
+  "total_cost_usd": 0.00640881,
+  "usage": {
+    "input_tokens": 4,
+    "cache_creation_input_tokens": 23405,
+    "cache_read_input_tokens": 57541,
+    "output_tokens": 2304,
+    "output_tokens_details": {
+      "thinking_tokens": 1104
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 23405,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1845,
+        "cache_read_input_tokens": 39866,
+        "cache_creation_input_tokens": 1214,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1214
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 4,
+      "outputTokens": 2304,
+      "cacheReadInputTokens": 57541,
+      "cacheCreationInputTokens": 23405,
+      "webSearchRequests": 0,
+      "costUSD": 0.00640881,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1104,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 23405,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 3,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** the reply separates the two cases by what it says it searched, not by a bare \"not found.\" A no-row reply is strong evidence about the indexed scope and weak evidence about anything outside it. Confidence should follow the scope, not the empty result.\n\nI ran two searches with a made-up token to see the real shape:\n\n- `search` (default symbols corpus) returned `count: 0` with a `note` saying the result is \"a definitive empty result from the database, NOT an error and NOT a malformed call,\" and listing what it searched: names, `@brief`s, macros, typedefs, enums, classes, config symbols and file docs. It also says what it did not search: markdown and Kconfig prose (point to `corpus='prose'`) and function bodies (point to `corpus='code'`).\n- `search(corpus='code')` also returned zero, with the same definitive note.\n\n**What tells \"not in the repo\" apart from \"not looked there\":**\n\n| Field | What it tells you |\n|---|---|\n| `scope` | Which files were indexed: `file_count` (426 here), `top_levels`, `extensions`, and `not_indexed` with counts for everything skipped (`.rs=2`, `.toml=2`, `.sql=1`, extensionless files=3, and so on). This is the main \"did we look there?\" signal. |\n| `note` | Names the corpora searched and the ones that were not. |\n| `target` | Which repository answered. A wrong target makes the miss meaningless. |\n| `not_searched` | Named on dossier and search replies when part of a split index was not read. It was absent here, so no sub-index was skipped. |\n| `staleness` | Present only when the index is older than the source. Absent here, so the index is current. |\n\n**Confidence each answer deserves:**\n\n- **\"Not indexed symbol with this name\"** \u2014 high, but only inside the stated scope. The reply is authoritative for the 426 indexed files and the listed corpora. A symbol named only in a file type on the `not_indexed` list, such as Rust, TOML, SQL, extensionless scripts, a Makefile or CI config, will never appear, so a miss tells you nothing there.\n- **\"No function body contains this literal\"** \u2014 high for indexed function bodies. A string in a `.md` file, a Kconfig help text or a comment outside a function is not covered by this corpus.\n- **\"Repository does not contain it\"** \u2014 low to medium. The index cannot say that. It can only say \"not among the indexed declarations.\" Confirm by grep in the place the `scope` block says is not indexed.\n- **\"Index is wrong or stale\"** \u2014 checked by `staleness`, which was absent here.\n\n**What I did not verify:** I tested only a single-token miss. The tool description says a multi-token miss names the token that emptied the result, and I did not observe that.\n\n**Practical rule:** on zero rows, read `scope.not_indexed` and the `note`'s NOT-searched list. If the thing you want could live in either, fall back to `search(corpus='prose')`, `search(corpus='code')`, or Grep over the uncovered extensions before concluding it is absent.",
+  "ttft_ms": 2627,
+  "type": "result",
+  "duration_ms": 14389,
+  "uuid": "1f74e80a-1182-4d04-a3d0-c319b51b2fa0",
+  "ttft_stream_ms": 1352,
+  "time_to_request_ms": 69,
+  "first_content_frame_ms": 1352,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

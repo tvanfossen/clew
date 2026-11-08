@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `resolved = (tier1 or tier2 or tier5) \u222a tier3 \u222a tier4` ... \"Built-in defaults ... | 4 and 5\" ... \"1 (explicit)\", \"2 (declared)\", \"3 (target-fact)\"\nVERDICT: HIT\nWHY: The answer lays out five tiers (1 explicit, 2 declared, 3 target-fact, 4 and 5 defaults/heuristics) with a combined resolution formula, not a single override."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The index found four spawn sites, all in `programs/`, and none in `library/`.\"\nVERDICT: MISS\nWHY: The answer says no threads in library/ and lists mutexes, but it frames them as compiled out under default config and never states that library/ supplies the mutex abstraction (threading.c / mbedtls_mutex_*) for threaded callers."
+}

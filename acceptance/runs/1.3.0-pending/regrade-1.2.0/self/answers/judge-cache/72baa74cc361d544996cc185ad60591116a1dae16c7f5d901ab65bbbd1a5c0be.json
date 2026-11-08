@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A repo's own `index_scope:` declaration wins if it is usable. If nothing is declared, the whole repository is the scope... If no declaration exists, or it is rejected, `whole_repo_scope` runs\nVERDICT: HIT\nWHY: The answer says a usable declared scope is preferred and that both a missing and a rejected declaration fall through to whole-repo scope, which covers the item's substance. It also flags uncertainty about the CLI path, but the library-level fallthrough is stated."
+}

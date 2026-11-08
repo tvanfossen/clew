@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says a single non-matching token was previously treated as proof of absence; it only explains how to interpret empty results now, and its closing \"absence is not emptiness\" line doesn't state that earlier behavior."
+}

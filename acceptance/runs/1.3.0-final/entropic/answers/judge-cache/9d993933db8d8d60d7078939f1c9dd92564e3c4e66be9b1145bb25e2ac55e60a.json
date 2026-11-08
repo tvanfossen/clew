@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Five checks run in order, and any one can stop the call. The permission lists are only two of them.\nVERDICT: MISS\nWHY: The answer says both allow and deny lists matter, and that the allow list can deny in headless mode. This contradicts the item's claim that the deny list is the only blocker."
+}

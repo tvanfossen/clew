@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"splits the code into a high-level part and a low-level part and looks up each in its own generated switch\" and \"if high text exists: append \" : \"\" and \"The high-level part is `code & 0xFF80` and the low-level part is `code & ~0xFF80`\"\nVERDICT: HIT\nWHY: The answer explains the two-layer code (high-level module part and low-level part via bit masks) and shows both strings being rendered and joined with \" : \" when both are present."
+}

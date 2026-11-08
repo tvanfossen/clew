@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Calloc returns NULL and free does nothing until you call `mbedtls_platform_set_calloc_free()`.\nVERDICT: HIT\nWHY: The answer states that the uninitialised default stubs return NULL for calloc and do nothing for free, rather than falling back to the C library."
+}

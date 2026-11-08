@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **No exceptions into C.** Trampolines catch everything and call `traceback.print_exc()`.\nVERDICT: MISS\nWHY: The answer says trampolines catch everything and print the traceback, but never says a failed hook is treated as a pass-through."
+}

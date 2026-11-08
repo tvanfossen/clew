@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes the current emptiness grading (unread corpora, conjunction handling) but never says a single token matching nothing was previously treated as proof of absence, conflating \"nothing exists\" with \"didn't look\"."
+}

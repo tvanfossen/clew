@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"So for tokenize I would not call it retry logic. Nothing is retried after an error: the second call is the real call.\" and \"This is a two-phase 'ask for size, then fill' pattern.\" and \"even there it means resize-and-redo, not retry-after-failure.\"\nVERDICT: HIT\nWHY: The answer concludes the double call is size negotiation (size probe then fill), not retry-on-failure, with exactly two calls and no error-driven retry."
+}

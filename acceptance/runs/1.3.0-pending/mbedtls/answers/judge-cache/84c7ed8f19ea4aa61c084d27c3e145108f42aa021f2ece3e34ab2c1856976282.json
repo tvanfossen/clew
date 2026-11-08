@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `memory_buffer_alloc.c` is a built-in consumer of the runtime hook. `mbedtls_memory_buffer_alloc_init()` installs its own calloc/free at lines 570-575 (a mutex-wrapped pair when `MBEDTLS_THREADING_C` is on).\nVERDICT: HIT\nWHY: The answer identifies the buffer allocator as a consumer of the runtime setter that installs itself from its init function. It does not say \"only\" in so many words, but it presents the allocator as the one in-tree user."
+}

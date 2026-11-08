@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The asm path is chosen by `constant_time_impl.h:40-52`. It requires all of: `MBEDTLS_HAVE_ASM` defined ... `__GNUC__` ... one of arm/thumb, aarch64, x86-64 or i386. Otherwise `MBEDTLS_CT_ASM` is undefined\"\nVERDICT: HIT\nWHY: The answer says MBEDTLS_CT_ASM is set in the header from MBEDTLS_HAVE_ASM plus compiler-defined macros (`__GNUC__` and architecture checks), and is undefined otherwise. It never calls it an mbedtls_config.h option."
+}

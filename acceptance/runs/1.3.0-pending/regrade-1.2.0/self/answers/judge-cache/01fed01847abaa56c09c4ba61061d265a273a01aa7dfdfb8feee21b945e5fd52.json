@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer only reports `edge_class: call` and says the list covers \"`edge_class: call` only\"; it never states that callers/callees mix direct calls with shared-key dataflow edges distinguished by `edge_class`."
+}

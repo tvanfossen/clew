@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The high-level part is `code & 0xFF80` and the low-level part is `code & ~0xFF80`... if high text exists: append \" : \" ... mbedtls_low_level_strerr(ret)\nVERDICT: HIT\nWHY: The answer explains the two-layer split (high-level module part and low-level part) and that strerror looks up both and joins them with \" : \" when both are present."
+}

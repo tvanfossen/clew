@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Heavy in `src/inference/`; `src/facade/entropic.cpp` \"Includes `llama_cpp_backend.h` and calls `dynamic_cast<entropic::LlamaCppBackend*>` in three places\"; public headers `orchestrator.h` and `speculative_compat.h` forward-declare llama types.\nVERDICT: HIT\nWHY: The answer shows heavy concentration in src/inference while also naming reaching files outside it (facade, public headers, tests), so the dependency is concentrated but not contained."
+}

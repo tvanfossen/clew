@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Enable only `MBEDTLS_PLATFORM_MEMORY` (which requires `MBEDTLS_PLATFORM_C`)\nVERDICT: MISS\nWHY: The answer says MBEDTLS_PLATFORM_MEMORY requires MBEDTLS_PLATFORM_C, but it never says the buffer allocator itself requires MBEDTLS_PLATFORM_MEMORY, so enabling it alone isn't enough."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the allow list is read in `check_approval` and the deny list in `execute`. It never says the allow list only suppresses the approval step and does not grant execution."
+}

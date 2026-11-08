@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `callers(fn)` (surfaced through `dossier`'s `callers` field) returns a list of `CallEdge` rows, one per neighbouring function, not one per call site.\nVERDICT: MISS\nWHY: The answer says rows are per neighbouring function, not per call site, but it never says that the layer variants are collapsed to the strongest evidence rather than returned one row per layer. It lists `source` as the layer that found each edge, which doesn't state the collapse the item requires."
+}

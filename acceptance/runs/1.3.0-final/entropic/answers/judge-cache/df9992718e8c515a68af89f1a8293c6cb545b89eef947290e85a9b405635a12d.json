@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"So failure is indistinguishable from empty input. There is no error code, no exception, and the only trace is one log line.\"\nVERDICT: HIT\nWHY: The answer states that failure is indistinguishable from empty input, and its caller table shows callers (do_count_tokens, do_complete, compute_prefix_token_count) never check for it, absorbing the empty vector as 0 or an empty prompt."
+}

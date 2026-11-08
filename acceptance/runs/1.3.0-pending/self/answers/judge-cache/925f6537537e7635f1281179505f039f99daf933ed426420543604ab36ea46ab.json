@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"they are ranked by a five-tier precedence rule.\" The table that follows lists tiers 1 to 5: CLI flag, `.clew.yaml`, facts someone else wrote, known-ecosystem signatures, and name-pattern heuristics.\nVERDICT: HIT\nWHY: The answer says resolution runs through five distinct named precedence tiers and lists each one, rather than a single override."
+}

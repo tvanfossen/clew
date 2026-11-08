@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 33175,
+  "stop_reason": "end_turn",
+  "session_id": "6a78c614-601e-435d-b51f-a548a70a394f",
+  "total_cost_usd": 0.020366930000000002,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 67957,
+    "cache_read_input_tokens": 297333,
+    "output_tokens": 7602,
+    "output_tokens_details": {
+      "thinking_tokens": 4137
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 67957,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3377,
+        "cache_read_input_tokens": 78216,
+        "cache_creation_input_tokens": 8338,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 8338
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 7602,
+      "cacheReadInputTokens": 297333,
+      "cacheCreationInputTokens": 67957,
+      "webSearchRequests": 0,
+      "costUSD": 0.020366930000000002,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 4137,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 67957,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 12,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** nothing in the build *guarantees* constant time. The library uses branch-free C and a small amount of inline assembly, and the only enforcement is a valgrind run over the constant-time test suites. On a compiler it doesn't recognise, the assembly is silently dropped and the C fallback is used, with no error. The facility reaches the bignum, RSA-unpadding, TLS record-MAC, base64 and NIST-KW paths. The index shows no such helpers in ECC or AES.\n\n## How it works at the instruction level\n\nThe core is `mbedtls_ct_condition_t`, a full-width mask (all ones or all zeros) built from a value.\n\n- **Mask generation** (`mbedtls_ct_bool`, `constant_time_impl.h:120`): for x86-64, x86-32, Arm-32 and AArch64 it uses hand-written asm that computes `neg`/`or`/`sar` so the sign bit becomes the mask. Otherwise it uses C: `(-xo) | -(xo >> 1)`, then shifts and negates.\n- **Comparisons** (`mbedtls_ct_uint_lt` at `:271`, `_eq`, `_ge`, `_gt`, `_le`, `_ne`): built on the mask, with per-architecture asm variants.\n- **Selection** (`mbedtls_ct_if`, `_uint_if`, `_size_if`, `_memcpy_if`, `_error_if`, and so on): masked AND/OR, never a `?:` or `if`.\n- **Optimiser barrier** (`mbedtls_ct_compiler_opaque`, `:85`): with asm it is `asm volatile(\"\" : [x] \"+r\"(x) :)`, which hides the value from the optimiser. Without asm it returns `x ^ mbedtls_ct_zero`, where `mbedtls_ct_zero` is a `volatile` global (`constant_time.c:29`), so the compiler must load it at runtime.\n- **Memory reads**: `mbedtls_ct_memcmp` (`constant_time.c:67`) reads through `volatile` pointers so the compiler cannot add an early exit when the buffers differ. Its doc says it is not constant-time in `n`.\n\n## What happens on an unsupported compiler\n\n```\nMBEDTLS_HAVE_ASM defined AND (__GNUC__ OR __ARMCC_VERSION)?\n   yes -> MBEDTLS_CT_ASM set -> per-arch asm where one exists\n   no  -> plain C (the MBEDTLS_CT_ASM branches are compiled out)\n```\n\n- `MBEDTLS_CT_ASM` is derived, not user-facing; the index found no user toggle for it.\n- The per-arch asm covers x86, x86-64, AArch64 and 32-bit Arm. Other architectures get the C fallback.\n- There is no build error or warning. The only protection is the comment in `constant_time_impl.h`, which says plain C \"does not get optimised into conditional instructions or branches by trunk clang, gcc, or MSVC v19\" as of May 2023. That is a dated observation, not a guarantee, and the index cannot verify it.\n\n## How it is enforced\n\n- **Dynamic check only.** `test_with_valgrind_constant_time` (`tests/scripts/components-configuration-crypto.sh:25`) runs `tests/suites/*constant_time*.data` under valgrind. It excludes the HMAC suite via `GLOBIGNORE`. The index does not show how the suites mark secrets, so I can't confirm the exact method.\n- **Vendored p256-m** has its own `CT_VALGRIND` and `CT_MEMSAN` markers (`3rdparty/p256-m/p256-m/p256-m.c:33-52`). These gate only that vendored code.\n\n## How far it reaches\n\nSymbols that use the facility, with their gates (gate defaults are from the index's config headers):\n\n| Area | Functions | Gate |\n|---|---|---|\n| Bignum | `mbedtls_mpi_core_lt_ct`, `mbedtls_mpi_core_check_zero_ct`, `mbedtls_mpi_lt_mpi_ct`, `mbedtls_mpi_safe_cond_assign`/`_swap`, `mbedtls_mpi_exp_mod_optionally_safe` (via `mbedtls_ct_mpi_sign_if`) | `MBEDTLS_BIGNUM_C` (on) |\n| RSA PKCS#1 v1.5 unpadding | `mbedtls_ct_rsaes_pkcs1_v15_unpadding` (`rsa.c:420`), used by decrypt | `MBEDTLS_RSA_C`, `MBEDTLS_PKCS1_V15` (on) |\n| TLS record MAC | `mbedtls_ct_hmac` (`ssl_msg.c:65`), built on `psa_hash_clone` | `MBEDTLS_SSL_SOME_SUITES_USE_MAC`, `MBEDTLS_USE_PSA_CRYPTO` (off by default) |\n| Base64 decode | `mbedtls_ct_base64_dec_value`, `mbedtls_ct_base64_enc_char` | `MBEDTLS_BASE64_C` (on) |\n| NIST KW unwrap | `mbedtls_ct_memcmp_partial` | `MBEDTLS_NIST_KW_C` (on) |\n| Public API | `mbedtls_ct_memcmp` in `include/mbedtls/constant_time.h` | none found |\n\n`mbedtls_ct_memcmp` shows as orphan within the library, which fits a public API function called by applications. The index found no constant-time helpers in `ecp`, ECDSA/ECDH scalar multiplication, or the AES table code, so I cannot say those paths are constant-time. Caller resolution is also incomplete (`callers_unresolved` is non-zero on several entries), so the list above is a lower bound.",
+  "ttft_ms": 1545,
+  "type": "result",
+  "duration_ms": 35005,
+  "uuid": "a420a1ee-7c31-4b9f-a7ea-76f7eddd1c1f",
+  "ttft_stream_ms": 611,
+  "time_to_request_ms": 73,
+  "first_content_frame_ms": 611,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

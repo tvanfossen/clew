@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The probe always runs, even when nothing fails, which makes it a two-pass sizing idiom rather than a retry. ... The second call is the only real attempt. If it returns a negative value, the function logs an error and returns `{}` immediately. Nothing loops and nothing tries again.\n\nVERDICT: HIT\nWHY: The answer concludes it is size probing rather than retry, with exactly one real second call and no looping or re-attempt. It doesn't explicitly mention backoff, delay or an attempt counter, but \"Nothing loops and nothing tries again\" covers the substance."
+}

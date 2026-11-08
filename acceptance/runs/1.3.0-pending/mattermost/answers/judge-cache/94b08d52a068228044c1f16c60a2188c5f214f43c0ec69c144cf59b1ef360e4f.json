@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The post is written locally before the network call, with its pending ID (`${currentUserId}:${timestamp}`) and no server ID yet, so it shows in the UI right away. ... If `client.createPost` throws, the post is kept with `props.failed = true`.\nVERDICT: HIT\nWHY: The answer states the post is saved locally before sending and on failure is kept and marked failed = true."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says MBEDTLS_CT_ASM is derived from MBEDTLS_HAVE_ASM plus compiler predefined macros rather than set in mbedtls_config.h. It says only that `MBEDTLS_CT_ASM` is \"defined\" on a GNU compiler on an unlisted arch, and that `MBEDTLS_HAVE_ASM` is a precondition for asm. It never describes the derivation or says the macro is not a config entry."
+}

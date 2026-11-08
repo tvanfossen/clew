@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 55659,
+  "stop_reason": "end_turn",
+  "session_id": "af4c0b18-82e6-43e8-b8bf-353f71d2cf52",
+  "total_cost_usd": 0.01559056,
+  "usage": {
+    "input_tokens": 22,
+    "cache_creation_input_tokens": 22879,
+    "cache_read_input_tokens": 541756,
+    "output_tokens": 11190,
+    "output_tokens_details": {
+      "thinking_tokens": 5966
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 22879,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2544,
+        "cache_read_input_tokens": 62056,
+        "cache_creation_input_tokens": 613,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 613
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 22,
+      "outputTokens": 11190,
+      "cacheReadInputTokens": 541756,
+      "cacheCreationInputTokens": 22879,
+      "webSearchRequests": 0,
+      "costUSD": 0.01559056,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 5966,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 22879,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 24,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**What it does.** `include/mbedtls/private_access.h` is 20 lines. Unless `MBEDTLS_ALLOW_PRIVATE_ACCESS` is defined, `MBEDTLS_PRIVATE(member)` expands to `private_##member`, so the struct field is renamed. The public header writes `int MBEDTLS_PRIVATE(state);` (`include/mbedtls/ssl.h:1737`), and a caller who writes `ssl->state` gets a compile error. Only the spelling `ssl->MBEDTLS_PRIVATE(state)` (or `private_state`) reaches the field.\n\nThis is a speed bump, not a security boundary. Anyone can type the mangled name. Its job is to make \"this is not API\" visible in code review and grep, and to tell users that direct access is unsupported. The header's own comment at `ssl.h:5159-5169` says direct access to `ssl->state` is deprecated and \"could be broken in any future release.\" Renaming a field does not change the struct layout, so the opt-out is a source-level switch, not an ABI change.\n\n**For whom.** There are three audiences in this tree.\n\n| Who | Setting | Effect |\n|---|---|---|\n| Application developers (default) | none | Fields are renamed. They must write `MBEDTLS_PRIVATE(x)` to reach a field, and that is documented as deprecated. |\n| The library itself | `library/common.h:132` defines it unconditionally | `MBEDTLS_PRIVATE(x)` becomes plain `x` in every library `.c` that includes `common.h`. |\n| Test harness programs | `programs/ssl/ssl_server2.c:8`, `ssl_client2.c:8` | Defined as the first line, before `ssl_test_lib.h`, so these programs read internals directly. |\n\n**Where the opt-out is turned on, and what it means there.**\n\n- **Library (`library/common.h:132`).** About 60 library sources include `common.h`, such as `ssl_tls12_server.c:8` and `x509_crt.c:20`. In those files the library reads internals as plain names; for example `ssl_tls12_server.c:4200` uses `switch (ssl->state)`. The library may rename or reshape its own fields without touching library code, but its code is then tied to the internal layout.\n- **Test harness programs.** `ssl_server2.c` and `ssl_client2.c` are the only programs that opt out, and they do it on purpose so the test driver can inspect handshake state.\n- **Ordering caveat.** The guard in `private_access.h` means the first inclusion decides the macro. The opt-out only works in a translation unit where the define comes before any public header that pulls in `private_access.h`. The two programs do this correctly. I checked `x509_crt.c` and it includes `common.h` first. I did not check every library file.\n\n**The default-access side, which is not opted out.**\n\n- `programs/ssl/ssl_context_info.c:553-568` reads `ciphersuite_info->MBEDTLS_PRIVATE(flags)` and similar fields. It defines no opt-out, so this is the correct external-code pattern: the spelling matches the renamed member.\n- `tests/suites` uses the wrapper where it needs fields (one hit each in `test_suite_psa_crypto.function` and `test_suite_x509write.function`). The tests do not opt out.\n\nIn short, the wrapper is for external code and for anyone who should see that a field is internal. The opt-out belongs to the library and to its two in-tree test programs, which are built together with the headers and can be updated in lockstep.",
+  "ttft_ms": 1509,
+  "type": "result",
+  "duration_ms": 56482,
+  "uuid": "3b89133b-cfc9-4fad-b0f5-46f69089d00e",
+  "ttft_stream_ms": 1329,
+  "time_to_request_ms": 110,
+  "first_content_frame_ms": 1329,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_PRIVATE(member)` is a rename, not an access check. ... expands to `private_##member` ... Code outside the library that writes `ssl->state` no longer compiles.\nVERDICT: HIT\nWHY: The answer says opacity is enforced at compile time by renaming members to `private_<name>`, so the old names fail to compile. The fields stay in the structs, since the macro is applied directly to the field declarations. It does not say outright that the layout stays visible and sized, but a rename rather than hiding implies it."
+}

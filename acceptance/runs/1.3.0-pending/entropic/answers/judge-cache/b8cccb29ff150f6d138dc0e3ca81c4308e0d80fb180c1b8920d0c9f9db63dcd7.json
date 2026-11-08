@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `llama_cpp_backend`, sampler, tokenizer, `orchestrator.cpp`, `adapter_manager.cpp`, `grammar_registry.cpp`, `speculative_compat.cpp`, and `inference_c_api.cpp` all call the llama C API directly.\nVERDICT: MISS\nWHY: The answer lists several files and layers, but never says the dependency reaches roughly a dozen of entropic's source files rather than one wrapper, and the count is not given or clearly implied."
+}

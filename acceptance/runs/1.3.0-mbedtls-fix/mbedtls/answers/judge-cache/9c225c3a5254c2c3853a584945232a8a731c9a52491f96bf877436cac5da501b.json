@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The asm path needs both `MBEDTLS_HAVE_ASM` (in `mbedtls_config.h`) and a GCC-compatible compiler, excluding old armcc. Without these, `MBEDTLS_CT_ASM` is undefined and the C fallback is used silently.\nVERDICT: HIT\nWHY: The answer says MBEDTLS_CT_ASM is defined only when MBEDTLS_HAVE_ASM is set and the compiler is GCC-compatible, and is otherwise undefined. That treats it as derived from those inputs, not as a config entry, even though it never names compiler predefined macros."
+}

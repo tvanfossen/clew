@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Re-call with `-n` bytes\nVERDICT: MISS\nWHY: Only the detokenize fallback mentions `-n`. For tokenize, the answer says the first call \"gets the count\" and that the code \"negates a negative first return\", but it never says the negative value is the required buffer size."
+}

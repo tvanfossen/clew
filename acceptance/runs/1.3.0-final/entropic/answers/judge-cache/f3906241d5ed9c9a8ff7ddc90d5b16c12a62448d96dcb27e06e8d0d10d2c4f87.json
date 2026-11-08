@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `find()` checks `$ENTROPIC_LIB`, then `$ENTROPIC_HOME`, then `~/.entropic/...`, then `ctypes.util.find_library(\"rentropic\")`.\nVERDICT: MISS\nWHY: The answer gives the env, user directory, then system library order, but it never mentions two directory layouts tried per root."
+}

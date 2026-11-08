@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"the first `llama_tokenize` call passes a null buffer. llama.cpp answers with the negative of the required token count. The code allocates that many slots and calls again to fill them.\"\nVERDICT: HIT\nWHY: The answer says the first call returns the negative of the required count and the code allocates that many slots for the second call. It doesn't use the word \"negates\", but allocating the count implies it, so I counted this as a hit."
+}

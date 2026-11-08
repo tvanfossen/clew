@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`mbedtls_memory_buffer_alloc_init(buf, len)` (`memory_buffer_alloc.c:566-600`) calls `mbedtls_platform_set_calloc_free()` with its own functions.\"\nVERDICT: HIT\nWHY: The answer names memory_buffer_alloc.c's init function as installing its own allocator through the runtime setter. It does not say outright that this is the only in-tree user, but \"The library ships `library/memory_buffer_alloc.c`... calls the setter\" is the substance of the item."
+}

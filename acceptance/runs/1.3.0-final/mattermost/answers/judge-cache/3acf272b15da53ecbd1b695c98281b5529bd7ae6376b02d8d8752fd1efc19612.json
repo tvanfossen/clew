@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: If the user is viewing that channel, kick them out with `CHANNEL_ARCHIVED`; then remove the current user from the channel locally\nVERDICT: HIT\nWHY: The answer's table says that when the setting is 'false', the user is removed from the channel and kicked out if it is the current channel. It also says that when viewable, the channel stays in the local DB as archived, which matches \"kept and marked deleted\"."
+}

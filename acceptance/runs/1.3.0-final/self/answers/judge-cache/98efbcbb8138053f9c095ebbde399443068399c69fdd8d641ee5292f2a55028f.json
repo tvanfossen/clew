@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes how an empty result is graded by corpus coverage, but never says that a single-token no-match was previously treated as proof of absence (the old behavior and its fix)."
+}

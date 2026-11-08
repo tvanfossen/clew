@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Python callbacks follow the same rule: the trampolines catch everything, print it, and return a neutral value (`hooks.py:85-91`, `streams.py`).\nVERDICT: HIT\nWHY: The answer states that Python callback trampolines catch all exceptions and return a neutral value instead of letting them cross into the C engine, which matches the pass-through treatment of a failed hook."
+}

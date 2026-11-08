@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: the string comes from `mbedtls_strerror()` in `library/error.c`, which splits the code into a high-level and a low-level half\nVERDICT: HIT\nWHY: The answer names mbedtls_strerror as the entry point and locates it in library/error.c (line 792)."
+}

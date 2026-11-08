@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `createPost` in `app/actions/remote/post.ts:74` saves the post locally first, with a `pending_post_id` and `props.failed` unset... If the call throws, the post is kept and re-saved with `props.failed = true`.\nVERDICT: HIT\nWHY: The answer states the post is saved locally before sending, and on failure is kept and re-saved with `props.failed = true`."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The code says that reads are still live and current, but writes would run old logic and drop layers.\nVERDICT: HIT\nWHY: The answer states that on the code axis reads stay current while writes (builds) from a stale process would run old logic. It does not give the \"database opened per call\" reason, but the read/write asymmetry itself is stated."
+}

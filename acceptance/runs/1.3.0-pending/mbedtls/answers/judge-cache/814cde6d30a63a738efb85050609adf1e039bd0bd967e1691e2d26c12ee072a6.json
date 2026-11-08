@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says to add a `#define` in the public header and rebuild so the generator regenerates `error.c`. It never says the `#define` carries a `/** */` doc comment that supplies the description text, and it explicitly says it could not verify where the text goes."
+}

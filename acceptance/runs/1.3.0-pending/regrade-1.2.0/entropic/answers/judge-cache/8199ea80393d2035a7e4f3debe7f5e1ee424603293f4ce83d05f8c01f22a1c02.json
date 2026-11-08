@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes approval as default-deny when no callback is set, and says the callback makes everything pass. It never concludes that a tool matching neither list is allowed to run at the blocking gate."
+}

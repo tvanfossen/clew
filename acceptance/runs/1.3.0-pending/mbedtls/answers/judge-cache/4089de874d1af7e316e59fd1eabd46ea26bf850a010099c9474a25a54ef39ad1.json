@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"It installs the mutex-wrapped `buffer_alloc_calloc_mutexed`/`buffer_alloc_free_mutexed` when `MBEDTLS_THREADING_C` is on, and the unwrapped pair otherwise.\"\nVERDICT: HIT\nWHY: The answer states that the init function installs the mutexed pair when MBEDTLS_THREADING_C is on and the plain pair otherwise, and it says this happens in `mbedtls_memory_buffer_alloc_init`. It never uses the words \"compile time\", but a `MBEDTLS_THREADING_C` config macro implies it."
+}

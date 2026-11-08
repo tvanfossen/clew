@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `confidence` | Strongest incoming edge kept when several layers recorded the same caller\nVERDICT: MISS\nWHY: The answer says confidence picks the strongest edge when several layers recorded the same caller, but it never says call_edges stores one row per extraction layer, so the same edge is stored twice."
+}

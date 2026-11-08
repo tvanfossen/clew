@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The arg string is built by `args_to_pattern`, which uses the first argument's string value, or `*` if there are no args or parsing fails.\nVERDICT: HIT\nWHY: The answer says only the first argument's string value reaches the pattern and that parse failure or no args collapses to `*`. It doesn't mention non-string arguments, but that is a minor gap."
+}

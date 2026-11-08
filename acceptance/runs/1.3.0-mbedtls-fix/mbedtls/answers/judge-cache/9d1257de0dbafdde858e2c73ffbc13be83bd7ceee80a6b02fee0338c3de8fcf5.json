@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A combined code such as `-0x40A0` gives `RSA - \u2026 : AES - Invalid key length`.\nVERDICT: HIT\nWHY: The answer's runtime path shows a high-level lookup and a low-level lookup, with \" : \" appended between them when both are present. Its combined-code example shows both parts rendered together."
+}

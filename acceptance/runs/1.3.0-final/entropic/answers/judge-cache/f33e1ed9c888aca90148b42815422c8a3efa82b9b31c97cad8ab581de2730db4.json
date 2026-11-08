@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names only one file path: `external_bridge.cpp:1158`, where it places the `run_async_ask` worker. I wrote the path without the line number.\n\nITEMS:\nexternal_bridge.cpp\nEND"
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer lumps tiers 3\u20135 together and gives the formula `(tier1 or tier2 or tier5) \u222a tier3 \u222a tier4`. It never says tiers 3 and 4 combine identically, or that the line between them is deliberately inert, or that the key distinction is fact versus guess."
+}

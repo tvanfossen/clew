@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`LlamaCppBackend::tokenize` (`llama_cpp_backend.cpp:788`) forwards that. It also returns `{}` when no tokenizer is wired, so the \"not wired\" and \"llama.cpp failed\" cases look the same.\"\nVERDICT: HIT\nWHY: The answer says the backend wrapper returns `{}` both when tokenization fails and when no tokenizer is wired, so the two cases are the same value."
+}

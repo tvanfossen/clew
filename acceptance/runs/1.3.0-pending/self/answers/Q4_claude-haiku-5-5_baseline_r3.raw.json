@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 29073,
+  "stop_reason": "end_turn",
+  "session_id": "c4d5f87f-6198-4c97-a9d8-95ea11d1e783",
+  "total_cost_usd": 0.014314860000000002,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 47617,
+    "cache_read_input_tokens": 239826,
+    "output_tokens": 4784,
+    "output_tokens_details": {
+      "thinking_tokens": 2290
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 47617,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2425,
+        "cache_read_input_tokens": 58297,
+        "cache_creation_input_tokens": 2265,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2265
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 4784,
+      "cacheReadInputTokens": 239826,
+      "cacheCreationInputTokens": 47617,
+      "webSearchRequests": 0,
+      "costUSD": 0.014314860000000002,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2290,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 47617,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 8,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**What the answer contains**\n\nA `callers` entry is a function-to-function edge, not a call site. The record is `call_edges(caller_rowid, callee_rowid, source, confidence)` (`clew/call_edges.py`). Each neighbour carries:\n\n- **`name`, `rowid`**: the other function.\n- **`source`**: which layer produced it. The values are `doxygen_sqlite`, `ast`, `ast_member`, `fnptr`, `macro_hop`, `declared_dispatch` and `binding`.\n- **`confidence`**: `exact` (doxygen cross-reference), `resolved` (one name match) or `fuzzy` (several candidates share the name).\n- **`edge_class`**: `call` or `key`. A `key` row is a shared-key dataflow edge with no call between the two functions, and it may run on another thread (`clew/query/models.py`, `CallEdge`).\n- **`implementors`, `macro`**: for a virtual endpoint, the known overrides are attached as an annotation. For a macro-written call, the macro and its expansion are attached.\n- **`callers_unresolved`** (in `dossier`): how many call sites named this function and did not resolve. `0` is a measured \"none were refused\". `None` means the index is too old to say.\n\nThere are no line numbers in the edge table.\n\n**What makes it wrong to read as a list of call sites**\n\n1. **Namesake fan-out.** The AST layers resolve by name. When several functions share a name, one call fans out to all of them as `fuzzy`. The repo's own `_table_exists` is defined in four modules, so an unqualified name can list callers that could never see the function. `clew/dominated_edges.py` deletes fan-out rows only when a stronger layer already named a different callee. Unanchored fuzzy rows survive.\n\n2. **A unique name is not evidence about the receiver.** `resolved` means the name matched once. For `x.f()` in C++ or Python, the receiver's type may be unknown. `clew/critical_sections.py` states this rule explicitly.\n\n3. **Empty does not mean no callers.** Unresolved sites are counted in `callers_unresolved`, but only where that field exists. Other unresolved calls are simply absent from the list.\n\n4. **Not every neighbour is a call.** `key` rows are dataflow, not calls. `fnptr` rows come from registration patterns of one shape. `macro_hop` rows exist where no call text appears in the caller body. `declared_dispatch` rows are multi-candidate on purpose, so they are the answer rather than a guess.\n\n5. **Virtual dispatch is annotated, not resolved.** A base-class call keeps its own confidence even when the real target is a derived override. The override appears only in `implementors`.\n\n6. **Staleness and coverage.** Cross-file calls added to Python or Rust are not picked up by incremental refresh and wait for a full rebuild. Code outside the indexed set, ignored paths and generated code that was never present are all invisible.\n\n**How to read it**\n\nTreat `callers` as a graded candidate set. Check `source` and `confidence`, read `callers_unresolved`, and confirm the important edges against the source body. Use it to decide where to look, not as a complete census of call sites.\n\nI did not build an index or run clew here. These points come from reading the code and its documentation. I did not verify them by querying a real index.",
+  "ttft_ms": 2928,
+  "type": "result",
+  "duration_ms": 29511,
+  "uuid": "080892e9-18ff-46dc-b123-9d6f6433a9bd",
+  "ttft_stream_ms": 2532,
+  "time_to_request_ms": 165,
+  "first_content_frame_ms": 2533,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

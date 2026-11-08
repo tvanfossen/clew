@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Ways to say so, highest precedence first ... | 1 | CLI flags ... | 2 | `.clew.yaml` ... | 3 | Facts the target already wrote ... | 4 | Known-ecosystem signatures ... | 5 | Name-pattern heuristics | The floor.\nVERDICT: HIT\nWHY: The answer lays out a five-tier precedence table (flags, .clew.yaml, target-written facts, ecosystem signatures, heuristics) rather than a single override."
+}

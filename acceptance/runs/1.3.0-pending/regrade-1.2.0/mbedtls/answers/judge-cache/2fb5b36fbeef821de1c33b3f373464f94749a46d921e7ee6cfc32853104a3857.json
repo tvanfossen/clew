@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `test_with_valgrind_constant_time` (`tests/scripts/components-configuration-crypto.sh:25`) runs `tests/suites/*constant_time*.data` under valgrind.\nVERDICT: MISS\nWHY: The answer says valgrind enforces constant-time via test suites, but it never says the facility is off-by-default or that it is explicitly not part of the library API."
+}

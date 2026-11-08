@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never mentions a winning tier being recorded with the index or derived from stored rows. It only says that stated declarations are recorded in `build_meta` and replayed, which is a different fact."
+}

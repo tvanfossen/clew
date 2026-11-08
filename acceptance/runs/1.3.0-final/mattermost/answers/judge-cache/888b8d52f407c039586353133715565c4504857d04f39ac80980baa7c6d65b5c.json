@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Only `search.tsx` (the Search screen, around line 463) passes `hasSearch={true}`.\nVERDICT: HIT\nWHY: The answer states that `app/screens/home/search/search.tsx` is the only file enabling `hasSearch`, so its search field is the only one rendered through `NavigationHeader`."
+}

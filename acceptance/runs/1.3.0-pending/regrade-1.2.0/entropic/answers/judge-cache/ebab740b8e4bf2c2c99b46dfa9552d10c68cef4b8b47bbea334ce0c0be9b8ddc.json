@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"the two `llama_tokenize` calls are a size-probe, not retry. They sit in one function, `LlamaCppTokenizer::tokenize` (`src/inference/llama_cpp_tokenizer.cpp:49-71`), at lines 55 and 61\"\nVERDICT: HIT\nWHY: The answer locates the two-call size-probe pattern in the named file, giving the function and line numbers."
+}

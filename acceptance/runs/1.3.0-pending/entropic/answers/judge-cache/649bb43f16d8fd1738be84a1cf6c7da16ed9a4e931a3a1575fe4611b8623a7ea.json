@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Drain-then-dispatch.** `HealthMonitor::process_events` swaps the event queue out under `event_mutex_`, then invokes callbacks with the lock released. The callbacks run on the engine thread, not the monitor thread (`health_monitor.cpp:118`).\nVERDICT: HIT\nWHY: The answer states that events are queued under `event_mutex_`, drained by `process_events`, and that callbacks run on the engine (caller) thread rather than the monitor thread."
+}

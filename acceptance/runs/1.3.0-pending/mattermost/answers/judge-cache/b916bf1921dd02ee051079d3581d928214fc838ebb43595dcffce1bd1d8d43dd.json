@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The product handlers import `ServerDataOperatorBase` as a type only. They are plugged in through the same `mix(...).with(...)` call, so they can use `this.batchRecords` and `this.processRecords` from the base.\nVERDICT: HIT\nWHY: The answer says every handler write funnels through `BaseDataOperator.batchRecords()`. It also says the mixins are typed against `ServerDataOperatorBase`, so they can use the inherited `this.batchRecords`. That covers the constraint and the inheritance mechanism, though it also notes some bypasses that call `database.write` directly."
+}

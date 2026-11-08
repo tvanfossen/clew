@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says a write is refused if process code is stale, but it never states that reads stay current because query tools open the database per call, nor the read/write asymmetry or the risk of a build writing old pipeline logic."
+}

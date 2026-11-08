@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Constant-time code is used in these places: RSA (`rsa.c`...), Bignum (`bignum_core.c`, `bignum.c`, `bignum_mod_raw.c`), TLS record layer (`ssl_msg.c`...), Cipher and AEAD tag checks (`cipher.c`, `gcm.c`, `ccm.c`, `chachapoly.c`, `cmac.c`, `nist_kw.c`), `base64.c`, PSA, ECC (`ecp.c`)\n\nVERDICT: MISS\n\nWHY: The answer lists many files using the primitives, but it never states a breadth or count (about twenty modules). Naming the files is not the same as conveying that the primitives are consumed library-wide."
+}

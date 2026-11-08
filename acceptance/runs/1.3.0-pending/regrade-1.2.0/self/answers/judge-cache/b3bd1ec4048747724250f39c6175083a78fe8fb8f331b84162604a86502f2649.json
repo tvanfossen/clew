@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Binary files are detected and dropped (`_drop_binary_files`, `filetypes.binary_files`).\nVERDICT: MISS\nWHY: The answer mentions dropping binary files, but it never says the extension lies about the file type. It also never names the parse-built front end that claims file types doxygen can't read, and it says it did not trace how non-doxygen languages reach the harvester."
+}

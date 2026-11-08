@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Buffers the engine will free must come from `entropic_alloc()`.** This applies to hook `modified_json` and any consumer string the engine takes ownership of.\"\nQUOTE: \"The trampoline writes the JSON result with `entropic_alloc` and `ctypes.memmove`, so the engine's `free()` releases a correctly sourced pointer.\"\nVERDICT: HIT\nWHY: The answer states the rule that engine-freed buffers must come from `entropic_alloc`. It also shows the Python side doing this in the `hooks.py` trampoline and in `_alloc_c_string`."
+}

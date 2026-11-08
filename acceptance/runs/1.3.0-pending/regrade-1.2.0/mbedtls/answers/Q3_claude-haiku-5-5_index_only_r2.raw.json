@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 31377,
+  "stop_reason": "end_turn",
+  "session_id": "6ad06896-b4a5-492c-b083-915916b44f93",
+  "total_cost_usd": 0.01498432,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 49514,
+    "cache_read_input_tokens": 184072,
+    "output_tokens": 6480,
+    "output_tokens_details": {
+      "thinking_tokens": 3994
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 49514,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 5270,
+        "cache_read_input_tokens": 69708,
+        "cache_creation_input_tokens": 17334,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 17334
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 8,
+      "outputTokens": 6480,
+      "cacheReadInputTokens": 184072,
+      "cacheCreationInputTokens": 49514,
+      "webSearchRequests": 0,
+      "costUSD": 0.01498432,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 3994,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 49514,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 9,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** library code never calls `calloc`/`free` directly. It calls `mbedtls_calloc` and `mbedtls_free`, and what those reach depends on one build switch, `MBEDTLS_PLATFORM_MEMORY`. Substitution is either compile-time (macros) or run-time (function pointers).\n\n**What a call resolves to**\n\nWith `MBEDTLS_PLATFORM_MEMORY` off (the default in `mbedtls_config.h:208`), `include/mbedtls/platform.h:167` makes `mbedtls_calloc` expand straight to `calloc`, and `:166` does the same for `mbedtls_free`. Nothing is indirected.\n\nWith it on, `platform.h:144` expands `mbedtls_calloc` to `MBEDTLS_PLATFORM_CALLOC_MACRO`, and `:143` does the same for free. The real function is then:\n\n```\nlibrary code\n  \u2192 mbedtls_calloc()            library/platform.c:47\n    \u2192 (*mbedtls_calloc_func)()  static pointer, platform.c:44\n      \u2192 default: MBEDTLS_PLATFORM_STD_CALLOC\n                 (platform.c:24-33; if that is undefined, platform_calloc_uninit returns NULL)\n```\n\n`mbedtls_free` at `platform.c:52` calls `mbedtls_free_func` the same way.\n\n**How a project substitutes its allocator**\n\n1. **Compile-time.** Enable `MBEDTLS_PLATFORM_MEMORY` and define `MBEDTLS_PLATFORM_CALLOC_MACRO` and `MBEDTLS_PLATFORM_FREE_MACRO` (for example `my_calloc`, `my_free`) in the user config. The library then calls those names directly, with no pointer hop. The repo's own test config does this with `MBEDTLS_PLATFORM_STD_CALLOC` set to `custom_calloc` (`tests/configs/user-config-malloc-0-null.h:20-21`).\n2. **Run-time.** Enable `MBEDTLS_PLATFORM_MEMORY`, then call `mbedtls_platform_set_calloc_free(my_calloc, my_free)` (`platform.c:57-63`). It just overwrites the two static pointers. This is the only route that can be changed after startup.\n\nThe index does not show user-side callers of `mbedtls_platform_set_calloc_free` (it is a public API, so the only internal caller is the built-in allocator below). I did not check the `#if` polarity of `platform_calloc_uninit` against the source; the \"returns NULL\" behaviour is what the function body says, but when it is selected is inferred from its gate.\n\n**What the library does with the facility**\n\n- **Everything allocates through the wrappers.** The index shows `mbedtls_calloc` called from the cipher wrappers (`cipher_wrap.c`), ECP and bignum (`mbedtls_mpi_grow`), PK, PEM, PKCS#7, X.509, the SSL/TLS code and PSA. Frees go through `mbedtls_free`, including `mbedtls_zeroize_and_free` (`platform_util.c`), which wipes before freeing.\n- **Built-in heap allocator.** `mbedtls_memory_buffer_alloc_init(buf, len)` (`memory_buffer_alloc.c:566`) carves allocations out of a caller-supplied buffer. It calls `mbedtls_platform_set_calloc_free` to point the hooks at its own functions. With `MBEDTLS_THREADING_C`, those are mutex-wrapped variants (`buffer_alloc_calloc_mutexed` / `buffer_alloc_free_mutexed`, lines 541-563). The free variant returns without freeing if the lock fails, on the stated reasoning that losing memory is safer than corrupting the heap.\n- **Caveat: it is process-global.** `memory_buffer_alloc_init` replaces the hooks for every context in the process, not one context.\n- **Caveat: vendored code.** `3rdparty/everest/.../kremlin/internal/target.h` defines its own `KRML_HOST_CALLOC`. I did not confirm whether that expands to `mbedtls_calloc`, so treat it as bypassing the hooks until checked.\n\n**Index caveats:** this index was built with `MBEDTLS_THREADING_C` and `MBEDTLS_THREADING_PTHREAD` passed as flags, and no config header is recorded for the target. The \"off by default\" state of `MBEDTLS_PLATFORM_MEMORY` comes from a heuristic on `mbedtls_config.h`, so confirm it against the shipped header.",
+  "ttft_ms": 2447,
+  "type": "result",
+  "duration_ms": 32333,
+  "uuid": "45097a4b-bc2e-4e81-b04f-c27e03ba0c2a",
+  "ttft_stream_ms": 1752,
+  "time_to_request_ms": 70,
+  "first_content_frame_ms": 1753,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

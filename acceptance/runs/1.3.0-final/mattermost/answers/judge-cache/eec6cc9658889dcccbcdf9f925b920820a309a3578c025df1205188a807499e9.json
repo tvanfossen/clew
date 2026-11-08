@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`NavigationHeader` ... is a `forwardRef<SearchRef, Props>`. It does not use the ref itself. When `hasSearch` is true, it renders `<NavigationSearch {...searchProps} hideHeader theme topStyle ref={ref} />`... When `hasSearch` is false, `NavigationSearch` is not mounted, so the ref stays `null`.\"\nVERDICT: HIT\nWHY: The answer states that NavigationHeader forwards its ref to NavigationSearch only when `hasSearch` is true, and that otherwise the ref stays null (attached to nothing)."
+}

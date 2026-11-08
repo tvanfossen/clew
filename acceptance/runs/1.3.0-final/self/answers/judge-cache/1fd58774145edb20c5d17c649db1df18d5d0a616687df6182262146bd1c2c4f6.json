@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The repo's Doxyfile is still read, but only for ALIASES, PREDEFINED and similar settings. Its `INPUT` is ignored (gh#333). The reason is that a Doxyfile documents the published API, and using its INPUT as the reasoning boundary meant a repo that documented itself got a smaller index. On Mbed-TLS, honouring `INPUT = ../include` indexed headers and none of the `library/*.c` implementations.\nVERDICT: HIT\nWHY: The answer states that the Doxyfile's INPUT is ignored and explains why: honouring it gave a repo that documents itself a smaller, documented-subset index. The wording differs from the item, but the substance is covered."
+}

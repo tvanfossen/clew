@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Nothing the consumer can do when the index is newer than the server. A rebuild re-stamps the same newer version.\"\nVERDICT: HIT\nWHY: The schema row states that when the index is newer than the server, no consumer action clears it because a rebuild re-stamps the same newer version."
+}

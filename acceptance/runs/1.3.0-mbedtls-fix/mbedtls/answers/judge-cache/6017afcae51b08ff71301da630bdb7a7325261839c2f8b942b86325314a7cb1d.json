@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `programs/ssl/ssl_client2.c` | 8 | The SSL client test/example program. ... \"In the two `programs/ssl` tools, which are outside the library, the rule is off. They can read and write internals directly\"\nVERDICT: HIT\nWHY: The answer states that the example programs ssl_client2.c and ssl_server2.c define MBEDTLS_ALLOW_PRIVATE_ACCESS themselves, bypassing the private-member restriction."
+}

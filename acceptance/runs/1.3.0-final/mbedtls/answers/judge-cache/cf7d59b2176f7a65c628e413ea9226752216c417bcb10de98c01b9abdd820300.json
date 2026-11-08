@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The asm branch is gated by `MBEDTLS_HAVE_ASM && __GNUC__` and excludes ARMCC5.\nVERDICT: MISS\nWHY: The answer says the asm branch is gated by MBEDTLS_HAVE_ASM and compiler macros, but it never says MBEDTLS_CT_ASM is a derived macro rather than a configured one. It doesn't mention MBEDTLS_CT_ASM at all."
+}

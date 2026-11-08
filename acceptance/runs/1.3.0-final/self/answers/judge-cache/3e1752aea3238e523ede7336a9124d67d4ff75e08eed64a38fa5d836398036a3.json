@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Which tier won** is recorded in `build_meta`. A tier-1 statement is also recorded for replay, but a declaration is re-read from the file rather than replayed from a frozen copy.\nVERDICT: MISS\nWHY: The answer says the winning tier is recorded in `build_meta`, but it never says the record is derived from the stored rows rather than stamped as a separate summary."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `extern/CMakeLists.txt` says llama.cpp is a submodule and is not built by that file. Other external dependencies are fetched at configure time with FetchContent.\nVERDICT: HIT\nWHY: The answer states llama.cpp is a git submodule at `extern/llama.cpp` and contrasts it with the other dependencies, which are fetched via FetchContent."
+}

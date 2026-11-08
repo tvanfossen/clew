@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Python never touches C++ directly. It loads the engine's C ABI with `ctypes` from a shared library\" and \"**No compiled extension.** There is no pybind11, nanobind, or cffi.\"\nVERDICT: HIT\nWHY: The answer names ctypes loading librentropic.so (via ctypes.CDLL) and explicitly states there is no compiled extension module."
+}

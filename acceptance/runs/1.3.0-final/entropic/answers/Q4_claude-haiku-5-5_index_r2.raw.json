@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 21108,
+  "stop_reason": "end_turn",
+  "session_id": "375031c9-b557-4227-a581-9fe9f7f819d6",
+  "total_cost_usd": 0.00925722,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 20605,
+    "cache_read_input_tokens": 298352,
+    "output_tokens": 4303,
+    "output_tokens_details": {
+      "thinking_tokens": 1796
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 20605,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2539,
+        "cache_read_input_tokens": 58888,
+        "cache_creation_input_tokens": 873,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 873
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 4303,
+      "cacheReadInputTokens": 298352,
+      "cacheCreationInputTokens": 20605,
+      "webSearchRequests": 0,
+      "costUSD": 0.00925722,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1796,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 20605,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 8,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "Nine spawn sites in `src/` run on a thread other than the caller's. A tenth, in a test mock, is out of scope. The index found them by matching spawn primitives, so a spawn written with a different primitive would not appear.\n\n**Threads outside the caller's**\n\n| Thread | Spawned in | What it does | How it ends |\n|---|---|---|---|\n| `ExternalBridge::accept_loop` | `ExternalBridge::start` | Polls the listen socket, rejects other UIDs via `SO_PEERCRED`, spawns a serve thread per client | `running_` flag, joined in stop (`external_bridge.cpp:833`) |\n| Per-client serve thread | `accept_loop` | Serves one MCP client | Joined on stop and reaped (`:850`, `:884`) |\n| Async-ask worker | `ExternalBridge::run_async_ask` (`:1142`) | Runs `entropic_run` for `entropic.ask` | **Detached** (`:1222`) |\n| `HealthMonitor::monitor_loop` | `HealthMonitor::start` | Periodically checks MCP servers | `running_` plus condvar, joined (`health_monitor.cpp:108`) |\n| `SSETransport::sse_reader_loop` | `SSETransport::open` | Reads the SSE stream | Joined (`transport_sse.cpp:139`) |\n| `StdioTransport::stderr_reader_loop` | `StdioTransport::open` | Drains child stderr | Joined (`transport_stdio.cpp:219`) |\n| Cancel poller | `CancelFlagBridge` (`inference_c_api.cpp:385`) | Polls an `int*` cancel flag every 10 ms | Joined in destructor |\n| Cancel poller | `iface_generate_with_cancel` (`interface_factory.cpp:246`) | Same, for the batch path | Joined before return |\n| Interrupt observer | `ResponseGenerator::dispatch_batch_generate` (`response_generator.cpp:413`) | Mirrors the engine's `interrupt_flag_` into the C-ABI `int` | Joined before return |\n\n**What keeps them safe**\n\n- **Shared state is behind named mutexes.** The async-task registry is guarded by `ExternalBridge::tasks_mutex_`, client threads by `client_threads_mutex_`, subscribers by `subscribers_mutex_`. The health monitor uses `watched_mutex_` and `wake_mutex_`. The stdio and SSE transports use `io_mutex_` and `pending_mutex_`.\n- **Terminal state is written under the lock.** In `run_async_ask`, the sentinel file is written while `tasks_mutex_` is held, before the completion notification goes out. An external monitor that reacts to the sentinel will see the same state that `entropic.ask_status` returns.\n- **Cancellation uses atomics and polling.** `running_`, `done`, and `cancel_flag` are atomics. Pollers wake every 10 ms and exit when `done` is set. Each short-lived poller is joined before its caller returns, so its by-reference captures stay valid.\n- **Logging scope crosses the boundary.** Each spawned lambda re-enters `HandleLogScope(log_id)`, so its logs route to the owning handle's session log.\n- **Lock order.** The index reports no opposite-order lock pairs. It shows `auth_mutex_`\u2192`key_mutex_` (4 sites), and `event_mutex_`\u2192`adapter_mutex_` in `HealthMonitor::process_events`. Three pairs have no verified receivers, so treat them as unconfirmed.\n\n**Gaps to check**\n\n1. **The detached async-ask thread captures `this` and `handle_`, and nothing joins it.** `ExternalBridge` has no in-flight counter. `cancel_inflight_async_tasks` (`external_bridge.cpp:434`) only signals cancellation and waits up to about 1 s (20 \u00d7 50 ms) for tasks to report cancelling. If the bridge is destroyed while a worker is still running, the worker dereferences freed memory. I did not verify what the destructor does here. This is the most important thing to check.\n2. **`dispatch_batch_generate` shares a plain `int`.** `cancel_int` is written by the observer thread and read by the backend's poller, with no atomic. That is a data race under the C++ memory model, even if it is benign on current targets. Changing it to `std::atomic<int>` would require a C-ABI change, which is why the code uses the `int` (see the comment at `response_generator.cpp:403`). A safer fix is to keep the `int` at the C boundary and have the observer write an atomic that the bridge copies from.",
+  "ttft_ms": 894,
+  "type": "result",
+  "duration_ms": 21862,
+  "uuid": "74a17b8d-c10c-4687-b6db-581382e26bf3",
+  "ttft_stream_ms": 696,
+  "time_to_request_ms": 61,
+  "first_content_frame_ms": 696,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

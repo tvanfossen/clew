@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `DocsDbServer.staleness_notices` in `clew/mcp_server/server.py` produces it and never raises.\nVERDICT: HIT\nWHY: The answer states that the staleness-notice producer never raises. That matches the item's substance: measuring staleness doesn't error a reply. The answer doesn't spell out the \"degrades to no annotation\" part, but \"never raises\" carries the core mechanism."
+}

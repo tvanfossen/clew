@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`ExternalBridge::accept_loop` | `ExternalBridge::start`\", \"`HealthMonitor::monitor_loop` | `HealthMonitor::start`\", \"`StdioTransport::stderr_reader_loop` | `StdioTransport::open`\", \"`CancelFlagBridge` poller | `inference_c_api.cpp:385`\"\nVERDICT: HIT\nWHY: The answer lists spawn sites across the external bridge, the MCP transports (stdio and SSE), the health monitor and the inference/response path. It never says \"not centralised\" in so many words, but the distribution is stated in the table."
+}

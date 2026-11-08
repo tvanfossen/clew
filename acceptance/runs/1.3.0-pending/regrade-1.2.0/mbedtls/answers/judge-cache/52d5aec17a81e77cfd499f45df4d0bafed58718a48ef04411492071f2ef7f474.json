@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says that `mbedtls_platform_set_calloc_free` is absent (undeclared and uncompiled) when the macro path is used. It describes the function only as the runtime hook, and never covers its absence on the macro path."
+}

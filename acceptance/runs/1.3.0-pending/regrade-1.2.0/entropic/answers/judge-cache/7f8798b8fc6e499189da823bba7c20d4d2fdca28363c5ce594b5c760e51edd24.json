@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `inv gen-bindings --check` runs in pre-commit and fails on drift from the header.\nVERDICT: HIT\nWHY: The answer states a pre-commit check (`gen-bindings --check`) that fails when the bindings drift from the header. A `--check` flag on a generator task implies it re-runs the generator and compares, so the substance is there."
+}

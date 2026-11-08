@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Per-thread log scope.** Each spawned thread installs a `HandleLogScope` so logs route to the owning handle.\nVERDICT: HIT\nWHY: The answer states that each spawned thread installs a HandleLogScope so logs route to the owning handle, which matches the item's substance (the \"first statement\" detail is minor)."
+}

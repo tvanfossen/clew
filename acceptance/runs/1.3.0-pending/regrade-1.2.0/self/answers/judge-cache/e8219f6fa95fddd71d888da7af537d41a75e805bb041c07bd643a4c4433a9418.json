@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `scope` gives the coverage: `file_count`, the extensions held, and `not_indexed`, which names extensions with no grammar (here `.rs`, `.toml`, `.sql`, and extensionless files). That field is how you tell \"not in the repo\" from \"not parsed.\"\nVERDICT: MISS\nWHY: The answer names the extensions that were NOT indexed (`not_indexed`), plus the extensions held in `scope`. It never says the reply names the file types that were in scope and produced no rows, which is what the item asks for."
+}

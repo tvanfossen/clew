@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`archivedChannelsViewable(value?)` returns `value !== 'false'` (`system.ts:304`). So `undefined`, `'true'`, or any other string means viewable.\"\nVERDICT: HIT\nWHY: The answer states that a missing setting (undefined) means archived channels are viewable, and that only an explicit 'false' turns them off."
+}

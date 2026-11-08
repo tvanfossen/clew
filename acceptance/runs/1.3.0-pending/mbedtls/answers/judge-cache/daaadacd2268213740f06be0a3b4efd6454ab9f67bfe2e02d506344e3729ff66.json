@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "ITEMS:\ninclude/mbedtls/*.h\nscripts/generate_errors.pl\nscripts/data_files/error.fmt\nlibrary/Makefile\nlibrary/CMakeLists.txt\nmake_generated_files.bat\nEND"
+}

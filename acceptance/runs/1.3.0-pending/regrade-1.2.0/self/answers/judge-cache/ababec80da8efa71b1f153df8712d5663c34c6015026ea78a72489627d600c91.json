@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: | 1 | Explicit: a CLI flag, or the `options` argument for an embedding caller | Replaces the stated layer | ... | 5 | Heuristics: built-in name-pattern guesses | Replaced by any stated tier |\nVERDICT: HIT\nWHY: The answer lays out a five-tier precedence table (explicit, declared, target facts, ecosystem signatures, heuristics) rather than a single override."
+}

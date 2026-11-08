@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: With `MBEDTLS_THREADING_C` it registers `buffer_alloc_calloc_mutexed` (lines 541-552), which takes the heap mutex around the allocation.\nVERDICT: MISS\nWHY: The answer mentions the mutexed variant under THREADING_C but omits the plain pair otherwise and the compile-time selection inside init (it only names the calloc variant, not a pair)."
+}

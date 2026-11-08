@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Swap-then-run. `HealthMonitor::process_events` swaps the queue out under `event_mutex_`, then runs callbacks outside the lock, on the engine thread.\nVERDICT: HIT\nWHY: The answer says events are queued under `event_mutex_` and that `process_events` runs the callbacks on the engine thread, not on the monitor thread. That covers the queue, the mutex and the caller-side drain."
+}

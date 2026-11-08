@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Dynamic check only.** `test_with_valgrind_constant_time` (`tests/scripts/components-configuration-crypto.sh:25`) runs `tests/suites/*constant_time*.data` under valgrind.\nVERDICT: MISS\nWHY: The answer names a valgrind test run, but it doesn't say the facility is off by default or that it is explicitly not part of the library API. It also lists `mbedtls_ct_memcmp` as public API."
+}

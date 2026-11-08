@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Each pattern has the form `tool` or `tool:argpattern`, and both halves use `fnmatch` with no flags\nVERDICT: HIT\nWHY: The answer states the pattern form `tool` or `tool:argpattern`, that fnmatch is used, and that a pattern with no colon matches the tool name only (`filesystem.*` row). It never says the split happens at the *first* colon."
+}

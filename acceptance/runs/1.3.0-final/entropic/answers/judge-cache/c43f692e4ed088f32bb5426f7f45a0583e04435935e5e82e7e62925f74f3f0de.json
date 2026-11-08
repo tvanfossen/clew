@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: With no callback and no allow match, the call is denied.\nVERDICT: MISS\nWHY: The answer says an unmatched call is denied when no callback is set, and approved only because a registered callback auto-approves. It never concludes that a tool matching neither list simply runs."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never states that MBEDTLS_ERROR_C is enabled in the shipped config; it only mentions per-module gates and a dummy strerror variant."
+}

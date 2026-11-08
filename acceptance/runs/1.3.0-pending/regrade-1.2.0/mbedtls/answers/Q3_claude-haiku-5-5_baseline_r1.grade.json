@@ -1,0 +1,143 @@
+{
+  "cell": "Q3_claude-haiku-5-5_baseline_r1",
+  "arm": "baseline",
+  "rubric_version": "3.1.0",
+  "rubric_digest": "bbf6195f605be452",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.6896551724137931,
+  "unmarked_pct": 0.0,
+  "split_decisions": 0,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "states that MBEDTLS_PLATFORM_MEMORY is the gate, and that it is commented out in the shipped mbedtls_config.h",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer says MBEDTLS_PLATFORM_MEMORY is required for the runtime/function-pointer path, but never states it is commented out in the shipped mbedtls_config.h. || QUOTE: Define `MBEDTLS_PLATFORM_MEMORY` and leave the two macros undefined. Then call `mbedtls_platform_set_calloc_free(my_calloc, my_free)` | WHY: The answer treats MBEDTLS_PLATFORM_MEMORY as an option to define, but it never says the option is commented out in the shipped mbedtls_config.h. || QUOTE: `MBEDTLS_PLATFORM_MEMORY` not defined | Macros for libc `calloc` / `free`; \"Define `MBEDTLS_PLATFORM_MEMORY` and leave the two macros undefined.\" | WHY: The answer treats MBEDTLS_PLATFORM_MEMORY as the gating option but never says it is commented out in the shipped mbedtls_config.h.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that in a DEFAULT build there is no indirection at all \u2014 mbedtls_calloc and mbedtls_free are preprocessor macros expanding directly to calloc and free",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: `MBEDTLS_PLATFORM_MEMORY` not defined | Macros for libc `calloc` / `free` (`platform.h:166-167`) | WHY: The table says that with `MBEDTLS_PLATFORM_MEMORY` undefined, which is the default, `mbedtls_calloc` and `mbedtls_free` are macros for libc `calloc` and `free`. That means no indirection in a default build. || QUOTE: `MBEDTLS_PLATFORM_MEMORY` not defined | Macros for libc `calloc` / `free` (`platform.h:166-167`) | WHY: The answer states that without MBEDTLS_PLATFORM_MEMORY (the default), mbedtls_calloc/mbedtls_free are macros for libc calloc/free, meaning there is no indirection. || QUOTE: `MBEDTLS_PLATFORM_MEMORY` not defined | Macros for libc `calloc` / `free` (`platform.h:166-167`) | WHY: The answer states that without MBEDTLS_PLATFORM_MEMORY (the default), mbedtls_calloc/mbedtls_free are macros for libc calloc/free, meaning no indirection.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "distinguishes the two ways to substitute an allocator \u2014 a COMPILE-time pair of macros versus a RUNTIME pair of function pointers \u2014 and states that they are mutually exclusive",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"**Compile time.** Define `MBEDTLS_PLATFORM_MEMORY`, `MBEDTLS_PLATFORM_CALLOC_MACRO` and `MBEDTLS_PLATFORM_FREE_MACRO` together... When both are present, `platform.c` drops the runtime setter entirely, so calling it fails to link.\" | WHY: The answer separates the compile-time macro pair from the runtime function-pointer pair and says they are mutually exclusive. When the macros are defined, the runtime setter is dropped and calling it fails to link. || QUOTE: \"**Compile time.** Define `MBEDTLS_PLATFORM_MEMORY`, `MBEDTLS_PLATFORM_CALLOC_MACRO` and `MBEDTLS_PLATFORM_FREE_MACRO` together. The macros must be set as a pair. When both are present, `platform.c` drops the runtime setter entirely, so calling it fails to link.\" | WHY: The answer separates the compile-time macro pair from the runtime function-pointer pair set through `mbedtls_platform_set_calloc_free`. It also says the macro configuration removes the runtime setter, which makes the two mutually exclusive. || QUOTE: Define `MBEDTLS_PLATFORM_MEMORY`, `MBEDTLS_PLATFORM_CALLOC_MACRO` and `MBEDTLS_PLATFORM_FREE_MACRO` together. The macros must be set as a pair. When both are present, `platform.c` drops the runtime setter entirely, so calling it fails to link. | WHY: The answer separates the compile-time macro pair from the runtime function-pointer pair set through the setter. It also says the macro configuration removes the runtime setter, so the two cannot be combined.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that on the macro path mbedtls_platform_set_calloc_free does not exist at all \u2014 it is neither declared nor compiled, rather than being present and ignored",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: When both are present, `platform.c` drops the runtime setter entirely, so calling it fails to link. | WHY: The answer says the setter is dropped from platform.c and \"declared only in this configuration\" (the runtime-setter config), which is close. But it never says outright that on the macro path the function is neither declared nor compiled. It only implies this, so the item isn't stated. || QUOTE: When both are present, `platform.c` drops the runtime setter entirely, so calling it fails to link. | WHY: The answer says that on the macro path `platform.c` drops the setter and calling it fails to link. It never says the function is not declared in `platform.h`. It says only that the setter is \"declared only in this configuration\" for the runtime case, which does not state that the function doesn't exist on the macro path. || QUOTE: When both are present, `platform.c` drops the runtime setter entirely, so calling it fails to link. | WHY: The answer says the setter is dropped from platform.c and fails to link, but also says it is \"declared only in this configuration\". That comes close to the item without stating that it is neither declared nor compiled on the macro path, so the whole fact is not clearly stated.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies that the pointers' defaults FAIL rather than fall back \u2014 an uninitialised calloc returns NULL and an uninitialised free does nothing",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: If no standard function is available, they become stubs: calloc returns NULL and free does nothing. | WHY: The answer states that when the defaults are unavailable, the pointers become stubs where calloc returns NULL and free does nothing. || QUOTE: If no standard function is available, they become stubs: calloc returns NULL and free does nothing. | WHY: The answer states that when no standard function is available, the default pointers become stubs where calloc returns NULL and free does nothing. || QUOTE: If no standard function is available, they become stubs: calloc returns NULL and free does nothing. | WHY: The answer states that in the no-standard-function case the default stubs make calloc return NULL and free do nothing.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies the buffer allocator (MBEDTLS_MEMORY_BUFFER_ALLOC_C) as the only in-tree user of the runtime setter, installing itself over the pointers from its init function",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: \"It installs its own `buffer_alloc_calloc` / `buffer_alloc_free` through the same `mbedtls_platform_set_calloc_free()` setter.\" | WHY: The answer says the buffer allocator uses the setter from its init function, but it never says it is the only in-tree user of that setter. || QUOTE: \"`mbedtls_memory_buffer_alloc_init(buf, len)` (`library/memory_buffer_alloc.c:566-576`) makes a fixed-size heap from a caller buffer. It installs its own `buffer_alloc_calloc` / `buffer_alloc_free` through the same `mbedtls_platform_set_calloc_free()` setter.\" | WHY: The answer says the buffer allocator installs itself via the setter from its init function, but never says it is the only in-tree user of the setter, which the item requires. || QUOTE: \"`mbedtls_memory_buffer_alloc_init(buf, len)` (`library/memory_buffer_alloc.c:566-576`) makes a fixed-size heap from a caller buffer. It installs its own `buffer_alloc_calloc` / `buffer_alloc_free` through the same `mbedtls_platform_set_calloc_free()` setter.\" | WHY: The answer says the buffer allocator's init installs itself via the setter. It never says it is the only in-tree user of that setter.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the buffer allocator installs a MUTEXED pair when MBEDTLS_THREADING_C is on and a plain pair otherwise, chosen at compile time inside its init function",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: With `MBEDTLS_THREADING_C` it uses mutex-wrapped variants. | WHY: The answer mentions mutex-wrapped variants under THREADING_C but doesn't say the choice is a compile-time one made inside the init function, with a plain pair otherwise. || QUOTE: With `MBEDTLS_THREADING_C` it uses mutex-wrapped variants. | WHY: The answer says mutex-wrapped variants are used with MBEDTLS_THREADING_C, but it never states a plain pair otherwise or that the choice is made at compile time inside the init function. || QUOTE: With `MBEDTLS_THREADING_C` it uses mutex-wrapped variants. | WHY: The answer mentions mutex-wrapped variants under `MBEDTLS_THREADING_C`. It never says a plain pair is installed otherwise, and it never says the choice is made at compile time inside the init function.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the buffer allocator itself requires MBEDTLS_PLATFORM_MEMORY, so enabling it alone is not enough to route the library's allocations through it",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: It also requires `MBEDTLS_PLATFORM_MEMORY`, per the config doc. | WHY: The answer states that the buffer allocator (MBEDTLS_MEMORY_BUFFER_ALLOC_C) requires MBEDTLS_PLATFORM_MEMORY, which is the item's substance. The phrase \"enabling it alone is not enough\" is implied by the requirement. || QUOTE: It also requires `MBEDTLS_PLATFORM_MEMORY`, per the config doc. | WHY: The answer explicitly states the buffer allocator requires MBEDTLS_PLATFORM_MEMORY, which is the substance of the item. || QUOTE: It also requires `MBEDTLS_PLATFORM_MEMORY`, per the config doc. | WHY: The answer explicitly states the buffer allocator (MBEDTLS_MEMORY_BUFFER_ALLOC_C) requires MBEDTLS_PLATFORM_MEMORY, which is the substance of the item.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "the files that participate in choosing what mbedtls_calloc resolves to \u2014 include/mbedtls/platform.h",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the files that participate in choosing what mbedtls_calloc resolves to \u2014 library/platform.c",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the files that participate in choosing what mbedtls_calloc resolves to \u2014 library/memory_buffer_alloc.c",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the files that participate in choosing what mbedtls_calloc resolves to \u2014 include/mbedtls/mbedtls_config.h",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the files that participate in choosing what mbedtls_calloc resolves to \u2014 precision",
+      "kind": "set_precision",
+      "weight": 2,
+      "hit": true,
+      "detail": "clean",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    }
+  ]
+}

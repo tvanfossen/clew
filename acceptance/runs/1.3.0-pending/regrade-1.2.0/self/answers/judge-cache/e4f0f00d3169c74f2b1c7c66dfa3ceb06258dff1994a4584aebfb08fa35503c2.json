@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The code notice says a rebuild cannot fix it and the client must restart.\" and \"When the index is older it says to run `index(action='refresh', force=True)`.\"\nVERDICT: HIT\nWHY: The answer says data/schema staleness is cleared by a rebuild and code staleness by a client restart, and that the axes are listed separately because the fix differs. It never says one flag would not have been enough, but it does say \"`stale` alone does not say which fix applies.\""
+}

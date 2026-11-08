@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `detokenize` ... \"256-byte stack buffer | Only if the first returns negative, re-calls with an exact-size heap buffer\" and tokenize \"`nullptr, 0` to get the token count | Fills a vector of that size\"\nVERDICT: HIT\nWHY: The answer's table states that detokenize tries a 256-byte stack buffer first and heap-allocates an exact size only on a negative return, while tokenize always queries the size first."
+}

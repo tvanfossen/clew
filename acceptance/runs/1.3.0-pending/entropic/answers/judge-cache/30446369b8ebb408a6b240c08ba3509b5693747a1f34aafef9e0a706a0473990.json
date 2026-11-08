@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `LlamaCppTokenizer::tokenize()` logs an error and returns `{}`. The same empty vector is returned when `vocab_` is null. `LlamaCppBackend::tokenize()` (`llama_cpp_backend.cpp:788`) passes that through, and also returns `{}` when no tokenizer is wired.\nVERDICT: HIT\nWHY: The answer states that the backend's wrapper returns `{}` for a failed tokenization (passed through from the tokenizer) and also returns `{}` when no tokenizer is wired. It also says callers can't tell the two apart."
+}

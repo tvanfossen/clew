@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Bare pattern, e.g. `filesystem.*`**: `fnmatch`s against the fully-qualified tool name only. Matches every call to that tool, whatever its arguments. **Pattern with a colon, e.g. `bash.execute:python*`**: the part before the first colon must match the tool name. The full pattern must also match the string `tool:args`\nVERDICT: HIT\nWHY: The answer states fnmatch matching, splitting at the first colon into tool and argument parts, and that a colon-less pattern matches on the tool name alone."
+}

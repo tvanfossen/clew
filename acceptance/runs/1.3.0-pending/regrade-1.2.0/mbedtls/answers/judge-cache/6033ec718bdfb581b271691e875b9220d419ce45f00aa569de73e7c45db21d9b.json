@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: With assembly it is `asm volatile(\"\" : [x] \"+r\" (x))`. Without it, it is `x ^ mbedtls_ct_zero`... This stops the compiler from folding a known constant into a branch.\nVERDICT: HIT\nWHY: The answer shows the empty asm volatile string with a \"+r\" input-output operand and says it hides the value from the optimiser. That covers the empty statement and its purpose as an optimisation barrier. It never says outright that no instruction is emitted, but an empty asm string implies it."
+}

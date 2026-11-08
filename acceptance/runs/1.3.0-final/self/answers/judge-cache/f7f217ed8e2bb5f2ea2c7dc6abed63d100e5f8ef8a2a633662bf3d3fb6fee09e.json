@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The scope is the whole repository, including nested git trees.\nVERDICT: HIT\nWHY: The answer states that the default scope includes nested git trees, and that `external.py` tags those rows afterwards (\"A nested clone under it is indexed without being noticed. `external.py` tags those rows afterwards so they stay distinguishable\"). That covers both \"indexed\" and \"tagged\"."
+}

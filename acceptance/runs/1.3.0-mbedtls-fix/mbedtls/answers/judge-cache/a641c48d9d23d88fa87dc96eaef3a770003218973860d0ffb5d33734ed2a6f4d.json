@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: In C it is `x ^ mbedtls_ct_zero`, where `mbedtls_ct_zero` is a `volatile` global set to 0 (`constant_time.c:29`).\nVERDICT: HIT\nWHY: The answer states that the opaque barrier falls back to XOR with the volatile global `mbedtls_ct_zero` (set to 0) when assembly is unavailable, and it names that global. The table row \"MSVC, IAR, armcc5, or `MBEDTLS_HAVE_ASM` unset\" confirms the condition. The answer doesn't say \"extern\", but the item's substance is there."
+}

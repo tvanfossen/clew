@@ -14,6 +14,8 @@ that to actually open files).
 
 from __future__ import annotations
 
+from collections import deque
+from dataclasses import dataclass
 import os
 import signal
 import fnmatch
@@ -22,11 +24,10 @@ import sqlite3
 import contextlib
 import subprocess
 import threading
-import sys
 from pathlib import Path, PurePosixPath
 
 from ._common import active_console, clean_subprocess_env, logger, make_progress
-from .errors import DoxygenUnavailableError
+from .errors import DoxygenFailedError, DoxygenUnavailableError
 
 _DOXYFILE_FORCED_FLAGS = (
     "\nGENERATE_SQLITE3 = YES\n"
@@ -1036,15 +1037,52 @@ def _write_doxyfile_stdin(proc: subprocess.Popen, content: str) -> None:
         pass
 
 
-## @brief Drive a progress bar from doxygen's stdout.
+## The lines of doxygen's output kept for a failure report. A crash prints its cause LAST, so the
+## tail is where it lives; bounded so a run of a hundred thousand lines buffers twelve.
+_DOXYGEN_TAIL_LINES = 12
+
+
+## @brief What one doxygen run said, kept for the progress bar and for a failure report.
 ## @version 1
-## @return Tuple of (total warning/error count, up to the first 3 warning lines).
+@dataclass(frozen=True)
+class DoxygenOutput:
+    """`tail` AND `parsed_files` EXIST FOR THE FAILURE PATH. Before them, every line classified
+    `other` was dropped as it streamed past — and a crash is always `other`: `terminate called
+    after throwing`, `Segmentation fault`, an assertion. The one line saying what happened was
+    the one line guaranteed not to survive, and the report was "Doxygen exited with code 134".
+
+    @brief Doxygen's output, summarised.
+    @version 1
+    """
+
+    warn_count: int
+    first_warnings: tuple[str, ...]
+    ## Counted from `Parsing file` lines only. The binary prints a `Preprocessing` line AND a
+    ## `Parsing file` line per file, so counting both reports double the input size — which is
+    ## the number a reader uses to decide whether the scope was too wide.
+    parsed_files: int
+    tail: tuple[str, ...]
+
+
+## @brief Drive a progress bar from doxygen's stdout.
+## @return The run's output summary: warnings, parsed-file count and the last lines.
+##
+## v2: also keeps a bounded tail and a parsed-file count, because a crash's own message was
+## classified `other` and discarded, leaving a failure report with nothing in it.
+## @version 2
 ## @dg_internal
-def _consume_doxygen_output(proc: subprocess.Popen) -> tuple[int, list[str]]:
-    """Drive a progress bar from doxygen's stdout. Return (warn_count, first_warnings)."""
+def _consume_doxygen_output(proc: subprocess.Popen) -> DoxygenOutput:
+    """Drive a progress bar from doxygen's stdout, and keep what a failure report needs.
+
+    @brief Consume doxygen's output.
+    @return Output summary.
+    @version 2
+    """
     warn_count = 0
     file_count = 0
+    parsed = 0
     first_warnings: list[str] = []
+    tail: deque[str] = deque(maxlen=_DOXYGEN_TAIL_LINES)
     assert proc.stdout is not None
     with make_progress(known_total=False) as progress:
         task = progress.add_task("doxygen", total=None)
@@ -1052,6 +1090,9 @@ def _consume_doxygen_output(proc: subprocess.Popen) -> tuple[int, list[str]]:
             line = raw.rstrip()
             if not line:
                 continue
+            tail.append(line)
+            if line.startswith("Parsing file "):
+                parsed += 1
             kind = _classify_doxygen_line(line)
             if kind == "warning":
                 warn_count += 1
@@ -1065,7 +1106,7 @@ def _consume_doxygen_output(proc: subprocess.Popen) -> tuple[int, list[str]]:
                     task,
                     description=f"doxygen: {line[:30].lower()}",
                 )
-    return warn_count, first_warnings
+    return DoxygenOutput(warn_count, tuple(first_warnings), parsed, tuple(tail))
 
 
 ## @brief Print first warnings + count of any suppressed.
@@ -1270,7 +1311,13 @@ def doxygen_supports_sqlite3(binary: str = "doxygen") -> bool | None:
 
 
 ## @brief Run doxygen with GENERATE_SQLITE3 and return the database path.
-## @version 13
+## v14: a non-zero exit reports doxygen's own last output and the parsed-file count. It
+## logged only "Doxygen exited with code N" — the crash text was classified `other` and
+## discarded upstream, and the file count was computed and thrown away.
+## v15: raises `DoxygenFailedError` instead of `sys.exit(1)` on a crash, a timeout or a missing
+## database. It subclasses SystemExit, so every caller sees the old propagation; only the
+## build's doxygen stage catches it by name and degrades to a stamped partial index.
+## @version 15
 ## @req REQ-DDB-INDEX-001
 def run_doxygen(
     doxyfile: Path,
@@ -1308,7 +1355,7 @@ def run_doxygen(
 
     @brief Run doxygen and return path to generated sqlite3 database.
     @raises DoxygenUnavailableError When the doxygen binary is not on PATH.
-    @version 13
+    @version 15
     """
     if shutil.which("doxygen") is None:
         raise DoxygenUnavailableError(
@@ -1400,7 +1447,7 @@ def run_doxygen(
     watchdog.daemon = True
     watchdog.start()
     try:
-        warn_count, first_warnings = _consume_doxygen_output(proc)
+        out = _consume_doxygen_output(proc)
         rc = proc.wait()
     except BaseException:
         ## `BaseException`, NOT `Exception`, and that choice is the whole point. Every way this
@@ -1422,11 +1469,31 @@ def run_doxygen(
             "swaps on success.",
             _DOXYGEN_TIMEOUT,
         )
-        sys.exit(1)
-    _surface_doxygen_warnings(warn_count, first_warnings)
+        raise DoxygenFailedError(
+            f"doxygen did not finish within {_DOXYGEN_TIMEOUT} s and was killed"
+        )
+    _surface_doxygen_warnings(out.warn_count, list(out.first_warnings))
     if rc != 0:
-        logger.error("Doxygen exited with code %d", rc)
-        sys.exit(1)
+        ## WHAT DOXYGEN SAID, NOT ONLY THAT IT STOPPED. A crash prints its cause last, so the tail
+        ## carries it; the parsed-file count says how far it got, which is what points a reader at
+        ## an over-wide scope rather than at a doxygen bug. Hedged as "most often" because a
+        ## malformed source or a hostile Doxyfile can do the same.
+        logger.error(
+            "doxygen exited with status %d after parsing %d file(s). Its last output:\n%s\n"
+            "The index was NOT updated; the previous one is untouched, because the build stages "
+            "into a temp file and only swaps on success. A crash this far into a run is most "
+            "often an over-wide scope — check the index scope reason, or declare index_scope "
+            "in .clew.yaml to narrow it.",
+            rc,
+            out.parsed_files,
+            "\n".join(f"  {line}" for line in out.tail) or "  (doxygen printed nothing)",
+        )
+        ## The LAST line is the reason recorded in build_meta: it is where a crash names itself,
+        ## and one line is what a stamp can hold.
+        last = out.tail[-1].strip() if out.tail else "doxygen printed nothing"
+        raise DoxygenFailedError(
+            f"doxygen exited with status {rc} after parsing {out.parsed_files} file(s): {last}"
+        )
 
     ## AFTER THE RUN, NOT BEFORE. Removing these first would delete output the run is about to
     ## regenerate if a forced flag ever changes back, and would do it before knowing the run
@@ -1451,9 +1518,11 @@ def run_doxygen(
                 "Ubuntu 22.04's doxygen 1.9.1 lacks it. Install a build that has it, then "
                 "confirm with: doxygen -g - | grep GENERATE_SQLITE3"
             )
-        else:
-            logger.error("Expected database not found: %s", db_path)
-        sys.exit(1)
+            raise DoxygenFailedError(
+                "doxygen was built without sqlite3 support and wrote no database"
+            )
+        logger.error("Expected database not found: %s", db_path)
+        raise DoxygenFailedError(f"doxygen exited 0 but wrote no database at {db_path}")
     return db_path
 
 

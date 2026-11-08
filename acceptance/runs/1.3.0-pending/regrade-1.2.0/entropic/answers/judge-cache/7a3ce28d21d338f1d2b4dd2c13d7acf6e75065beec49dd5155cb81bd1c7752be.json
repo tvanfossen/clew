@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Persistence: `save_permission` (`permission_persister.cpp:227`) writes a pattern into the project YAML under `permissions.allow` or `permissions.deny`.\nVERDICT: MISS\nWHY: The answer describes persisting a pattern to project YAML, but it never names config.local.yaml. It also never contrasts that write with an in-memory add_permission call, so the specific mechanism the item requires is absent."
+}

@@ -1,0 +1,93 @@
+{
+  "cell": "Q2_claude-haiku-5-5_index_r2",
+  "arm": "index",
+  "rubric_version": "5.0.0",
+  "rubric_digest": "d8447c7b18eafbf5",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.0,
+  "unmarked_pct": 0.0,
+  "split_decisions": 0,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "locates the grading in clew/mcp_server/emptiness.py",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never mentions clew/mcp_server/emptiness.py or locates the grading code in any file.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the strong wording is EARNED PER CALL by querying which corpora the search did not read, rather than being attached to a result shape",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer describes the signals a reader should check (`note`, `scope`, `not_searched`, `staleness`). It never says the tool's strong \"definitive\" wording is earned per call by checking which corpora went unread, as opposed to being tied to a result shape. The only wording it quotes is the hedged \"NOT a definitive negative\" note. || QUOTE: NONE | WHY: The answer lists the signals a reply carries (`scope`, `not_searched`, a \"NOT searched\" note) and gives its own confidence tiers. It never says the reply's strong or definitive wording is earned per call by checking which corpora went unread, as opposed to being tied to a zero-row result shape. || QUOTE: NONE | WHY: The answer lists signals that scope a negative but never states that strong wording is earned per call by querying unread corpora rather than attached to a result shape.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "explains that a single token matching nothing was previously treated as proof of absence, and that this confuses \"nothing exists\" with \"I did not look there\"",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: \"A multi-token miss: this only shows the conjunction failed. Drop the token that matched nothing and retry before concluding anything.\" | WHY: The answer describes how to read zero-row replies, but it never says that a single non-matching token was previously treated as proof of absence, nor that this conflated \"nothing exists\" with \"I did not look there.\" || QUOTE: \"`token_hits` | Which token emptied the conjunction. Every token must appear in one searchable unit. | No. It says the term is missing from the searched units, not from the repo.\" and \"A multi-token miss: this only shows the conjunction failed. Drop the token that matched nothing and retry before concluding anything.\" | WHY: The answer explains that a zero-row result isn't proof of absence in the repo, but it never says that a single token matching nothing was previously treated as proof of absence (the old behavior) or that this conflated \"nothing exists\" with \"I did not look there\" as a fix to a prior flaw. || QUOTE: \"`token_hits` | Which token emptied the conjunction. Every token must appear in one searchable unit. | No. It says the term is missing from the searched units, not from the repo.\" and \"A multi-token miss: this only shows the conjunction failed. Drop the token that matched nothing and retry before concluding anything.\" | WHY: The answer discusses zero-result signals and not-looked-there scope, but it never says that a single token matching nothing was previously treated as proof of absence. It describes the current behavior, not the earlier flaw that conflated \"nothing exists\" with \"I did not look there.\"",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the downgrades are ORDERED most-specific first, and explains why \u2014 a matching row in an unread corpus is a statement about THIS query and outranks statements about the index as a whole",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never states that the downgrades are ordered most-specific first, nor that a matching row in an unread corpus outranks index-wide statements; it only lists signals and confidence levels. || QUOTE: NONE | WHY: The answer never states that the downgrades are ordered most-specific first, nor that a matching row in an unread corpus outranks index-wide statements.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "conveys that there is exactly ONE absent-corpus downgrade and that keeping it to one is deliberate, because downgrading on every absent layer turns the grading into a blanket hedge",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never says there is exactly one absent-corpus downgrade or that limiting it is deliberate to avoid blanket hedging. || QUOTE: NONE | WHY: The answer describes many separate signals and caveats for absent layers but never says there is exactly one absent-corpus downgrade or that keeping it to one is deliberate to avoid blanket hedging. || QUOTE: NONE | WHY: The answer never mentions a single absent-corpus downgrade or that limiting it to one is deliberate to avoid blanket hedging.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "conveys the general rule the module leaves behind \u2014 fix the corpus, not the sentence about the corpus",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never states the general rule \"fix the corpus, not the sentence about the corpus\" (i.e., correct the underlying data or index rather than the wording of claims about it); it only explains how to read zero-row replies. || QUOTE: NONE | WHY: The answer discusses how to interpret zero-row search replies, but never states a general rule like \"fix the corpus, not the sentence about the corpus.\" || QUOTE: NONE | WHY: The answer never states the general rule \"fix the corpus, not the sentence about the corpus\"; it only describes how to interpret zero-row replies and when to fall back to other corpora.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "distinguishes all three grades an empty reply can receive: definitive for the scope, definitive for a reason that is not absence, and not definitive",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer discusses non-definitive negatives and scope limits but never states the three-grade scheme (definitive for scope, definitive for a non-absence reason, not definitive). || QUOTE: NONE | WHY: The answer discusses scope, staleness and not-searched caveats, but never states the three grades an empty reply can receive (definitive for the scope, definitive for a non-absence reason, not definitive). || QUOTE: NONE | WHY: The answer separates \"not definitive\" from \"reasonable confidence within scope\". It never names a third grade, an empty reply that is definitive for a reason other than absence, such as the layer never having run.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the reply also names the file types that WERE in scope and produced no rows, so \"this repository does not contain that\" and \"that file type is not indexed here\" are distinguishable rather than the same empty answer",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: \"`scope` (`file_count`, `extensions`, `not_indexed`) | Exactly which files were read. Here: 426 files, with `.rs`, `.toml`, `.sql`, `.lock`, `.csv`, `.jsonl`, `.motor` and extensionless files left out.\" and \"Term lives in an extension listed under `not_indexed`: no confidence. The reply names those files, so use Grep on them.\" | WHY: The answer names `not_indexed` file types, which are the ones left out. The item asks for the file types that were in scope and produced no rows, and the answer doesn't say the reply lists those. || QUOTE: \"`scope` (`file_count`, `extensions`, `not_indexed`) | Exactly which files were read. Here: 426 files, with `.rs`, `.toml`, `.sql`, `.lock`, `.csv`, `.jsonl`, `.motor` and extensionless files left out.\" and \"Term lives in an extension listed under `not_indexed`: no confidence. The reply names those files\" | WHY: The answer says the reply names the file types that were not indexed (`not_indexed`) and the extensions that were read. It never says the reply lists the in-scope file types that produced no rows. The item needs that list of in-scope types with zero hits, and the answer gives the opposite one. || QUOTE: \"`scope` (`file_count`, `extensions`, `not_indexed`) | Exactly which files were read. Here: 426 files, with `.rs`, `.toml`, `.sql`, `.lock`, `.csv`, `.jsonl`, `.motor` and extensionless files left out.\" and \"Term lives in an extension listed under `not_indexed`: no confidence. The reply names those files, so use Grep on them.\" | WHY: The answer names file types that were NOT indexed (`not_indexed`), not file types that were in scope and produced no rows. It gives the distinction between \"not in repo\" and \"not indexed\", but the item asks for the reply to list in-scope extensions that returned zero rows. The answer mentions `extensions` in scope but never says the reply lists in-scope types with zero rows.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    }
+  ]
+}

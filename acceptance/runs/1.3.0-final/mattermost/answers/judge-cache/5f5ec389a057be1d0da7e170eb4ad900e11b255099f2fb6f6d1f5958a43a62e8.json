@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: websocket_manager.ts:112  client.setEventCallback \u2192 handleWebSocketEvent(serverUrl, evt) \u2514\u2500 actions/websocket/event.ts:163  case WebsocketEvents.REACTION_ADDED \u2514\u2500 actions/websocket/reactions.ts:21  handleReactionAddedToPostEvent\nVERDICT: HIT\nWHY: The answer names `handleWebSocketEvent` dispatching the REACTION_ADDED case to `handleReactionAddedToPostEvent`."
+}

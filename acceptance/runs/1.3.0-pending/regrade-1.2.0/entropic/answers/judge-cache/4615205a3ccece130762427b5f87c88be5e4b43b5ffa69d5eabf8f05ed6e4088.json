@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`LlamaCppTokenizer::tokenize` returns `{}`. The only signal is one `logger->error` line (line 65). A `vocab_ == nullptr` check also returns `{}` silently.\"\nVERDICT: HIT\nWHY: The answer says the tokenizer wrapper returns an empty vector `{}` both on a failed `llama_tokenize` and when the vocab is null, so the failure value is the same as the not-wired value."
+}

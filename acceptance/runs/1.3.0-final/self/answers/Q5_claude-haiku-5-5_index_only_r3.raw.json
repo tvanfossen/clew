@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 15053,
+  "stop_reason": "end_turn",
+  "session_id": "9c55ef96-c49e-46b6-8f21-07f66585546a",
+  "total_cost_usd": 0.0064354600000000005,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 17005,
+    "cache_read_input_tokens": 167216,
+    "output_tokens": 2723,
+    "output_tokens_details": {
+      "thinking_tokens": 744
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 17005,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1564,
+        "cache_read_input_tokens": 48507,
+        "cache_creation_input_tokens": 6726,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 6726
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 8,
+      "outputTokens": 2723,
+      "cacheReadInputTokens": 167216,
+      "cacheCreationInputTokens": 17005,
+      "webSearchRequests": 0,
+      "costUSD": 0.0064354600000000005,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 744,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 17005,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 10,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**The ways to say so, strongest first:**\n\n| Way | Where | Tier | Notes |\n|---|---|---|---|\n| CLI flag (`--shared-key-patterns`, `--entry-patterns`, `--doxyfile`, \u2026) | command line | 1 (explicit) | One-off override. Not reachable from the MCP server before this was fixed. |\n| `options` argument | embedding caller, `build_index` / `apply_options` | 1 (explicit) | The same settings as the declaration file, passed as a structured mapping. Validated as a whole before any value is applied, so a bad entry changes nothing. |\n| `.clew.yaml` in the repo root | repo | 2 (declared) | The standing statement for the repo. Both CLI and MCP read it, because both already know the repo root. |\n| Facts the repo already wrote (a Doxyfile's ALIASES/PREDEFINED, a generator manifest, a language or platform entry point) | repo | 3 (target-fact) | Read automatically. |\n| Known-ecosystem signatures (UDM, ingot) | automatic | 4 (ecosystem) | Read automatically. |\n| Name-pattern guesses | automatic | 5 (heuristic) | The floor. Explicitly provisional. |\n\nTwo related points:\n- `.clew.yaml` has one section per setting, with the same format as the standalone manifest. A repo can move an existing manifest's contents in unchanged.\n- The `guard:` section belongs to the doxygen-guard gate, not the index. The index ignores it. The old `.doxygen-guard.yaml` is no longer read at all.\n- Build mechanics such as `--scope`, `--index-cache` and `--rebuild` are per-run choices and have no declaration form.\n\n**When two disagree:**\n\nThe resolution rule is `resolved = (tier1 or tier2 or tier5) \u222a tier3 \u222a tier4`.\n\n- **A CLI flag or `options` value beats the declaration.** It replaces the declaration's values, not adds to them. The file is the standing statement and the flag is a deliberate one-off override.\n- **The declaration beats the guesses.** It replaces tier 5 only.\n- **Facts (tier 3) and ecosystem signatures (tier 4) are never displaced.** They accumulate beneath any stated value. So passing `--entry-patterns` does not drop `main`. The stated tier can only correct guesses; it cannot un-discover a fact.\n- **An empty explicit list is a withdrawal, not a statement.** `[]` falls through to the declaration, then to the guesses. That lets an operator undo a recorded flag without deleting the database.\n- **The winning tier is recorded** in `build_meta`. Only tier-1 statements are recorded for replay.\n- **For scope**, the declaration beats the guard config, which beats the Doxyfile's INPUT. A Doxyfile's INPUT, EXCLUDE and FILE_PATTERNS are replaced by a declared scope.\n\n**Failure modes:**\n- A malformed `.clew.yaml` is ignored and built-in defaults apply. The refusal message names the file and says it was ignored.\n- A `.clew.yaml` with only comments is treated as stating nothing, and the message says so.\n- A declared `doxyfile:` must exist. A missing one is refused rather than silently falling back to whole-repo indexing.\n- `propose_declaration` drafts a commented `.clew.yaml` to review and never overwrites an existing one without force.\n\nOne caveat: the index flagged `resolve_layered` with an anchor mismatch, so its line numbers may be stale. The rules above come from the module documentation and the precedence tests, not from a live read of the code.",
+  "ttft_ms": 1883,
+  "type": "result",
+  "duration_ms": 15575,
+  "uuid": "6b747832-ffad-49d8-bebd-cb62883eb924",
+  "ttft_stream_ms": 1180,
+  "time_to_request_ms": 76,
+  "first_content_frame_ms": 1180,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

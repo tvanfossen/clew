@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `programs/ssl/ssl_client2.c:8` | test/demo client | direct member access compiles; `programs/ssl/ssl_server2.c:8` | test/demo server\nVERDICT: HIT\nWHY: The answer identifies that the example programs (ssl_client2.c, ssl_server2.c) define MBEDTLS_ALLOW_PRIVATE_ACCESS themselves to read and write struct internals directly, which is the deliberate opt-out the item describes."
+}

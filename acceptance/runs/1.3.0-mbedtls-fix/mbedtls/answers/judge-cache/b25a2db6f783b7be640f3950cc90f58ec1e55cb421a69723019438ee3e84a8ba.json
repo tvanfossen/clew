@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: when `MBEDTLS_ALLOW_PRIVATE_ACCESS` is not defined, `MBEDTLS_PRIVATE(foo)` expands to `private_foo`. When it is defined, it expands to `foo`. ... Anyone who defines the macro before including the headers gets the real names back.\nVERDICT: HIT\nWHY: The answer states that definers of the macro see plain names, while default consumers of the public headers see `private_`-prefixed names and get compile errors."
+}

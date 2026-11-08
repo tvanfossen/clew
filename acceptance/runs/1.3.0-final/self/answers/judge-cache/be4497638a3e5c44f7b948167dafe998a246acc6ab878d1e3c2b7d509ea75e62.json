@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A multi-token query can come back empty even when each token occurs in the repository, because matching requires every token to appear in one searchable unit. In this case `not_searched=3` and `empty=204` both matched, but no single symbol carried both.\nVERDICT: MISS\nWHY: The answer never says that a single-token miss was previously treated as proof of absence; it discusses multi-token conjunction misses and coverage but not that earlier-behavior mistake."
+}

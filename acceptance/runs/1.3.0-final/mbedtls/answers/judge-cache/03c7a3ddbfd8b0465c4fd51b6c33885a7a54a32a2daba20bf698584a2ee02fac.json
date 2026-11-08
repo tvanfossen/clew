@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes a compile-time macro pair (MBEDTLS_PLATFORM_CALLOC_MACRO/FREE_MACRO) and a runtime setter. It says the setter is \"only available in the function-pointer branch\", but it never states that the two mechanisms are mutually exclusive as a configuration choice."
+}

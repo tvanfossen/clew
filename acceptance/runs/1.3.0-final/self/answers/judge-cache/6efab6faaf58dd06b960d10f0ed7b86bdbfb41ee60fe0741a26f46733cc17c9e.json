@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **The far endpoint is matched by name.** `dossier` picks the focal function by identity, but the neighbours are not. Same-named file-private helpers in different modules merge into one node...\n\nVERDICT: MISS\n\nWHY: The answer contrasts the focal function (picked by identity) with neighbours matched by name. The item is about two surfaces (flat vs traversal) resolving the focal side differently, and the answer never says that. It does say traversals like `chain_trace` filter fuzzy edges, but that is a different distinction."
+}

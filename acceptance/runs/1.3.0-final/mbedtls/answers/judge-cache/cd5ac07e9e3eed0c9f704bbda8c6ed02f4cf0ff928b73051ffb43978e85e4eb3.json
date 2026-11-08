@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer lists caller areas (bignum, RSA, ciphers, SSL, PSA) but never says they're consumed across roughly twenty modules, and it explicitly disclaims being exhaustive."
+}

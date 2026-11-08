@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The winning tier is stamped into `build_meta` and reported by status. Flag beats declaration beats guess.\nVERDICT: MISS\nWHY: It says the winning tier is stamped into build_meta, but never says the record is derived from stored rows rather than a separate summary; it actually implies a stamp."
+}

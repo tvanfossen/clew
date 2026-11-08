@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: PermissionManager (`permission_manager.cpp:101`, `pattern_matches`) splits each entry on the first `:`: ... `git.commit` | That exact tool, any args (no colon, so args are ignored). ... Matching uses `fnmatch` with no `FNM_PATHNAME`\n\nVERDICT: HIT\n\nWHY: The answer states that patterns are matched with fnmatch, split on the first colon into a tool part and an argument part, and that a pattern with no colon matches on the tool name alone, ignoring args."
+}

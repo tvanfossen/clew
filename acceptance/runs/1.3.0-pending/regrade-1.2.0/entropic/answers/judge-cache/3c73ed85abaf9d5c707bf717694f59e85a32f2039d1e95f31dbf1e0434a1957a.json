@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Polls the listen socket every 500 ms, checks peer uid, and spawns one serve thread per client.\nVERDICT: HIT\nWHY: The answer states the accept loop in ExternalBridge spawns one serve thread per client, and the table lists the per-client serve thread separately. That is the two-level structure."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says that staleness measurement cannot raise or that a failed measurement degrades to no annotation instead of turning the reply into an error. It only says a failed rebuild leaves the stale notice on the reply."
+}

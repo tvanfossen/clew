@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The whole-repo default logs at WARNING with its reason, so an unchosen boundary is never mistaken for a chosen one.\nVERDICT: HIT\nWHY: The answer says the whole-repo fallback records and logs its reason, so an unchosen scope is never mistaken for a chosen one. This conveys the item's substance."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the pointers are initialised to `MBEDTLS_PLATFORM_STD_CALLOC`/`STD_FREE` and that it can't confirm what those resolve to. It never says an uninitialised or unset calloc returns NULL and free does nothing."
+}

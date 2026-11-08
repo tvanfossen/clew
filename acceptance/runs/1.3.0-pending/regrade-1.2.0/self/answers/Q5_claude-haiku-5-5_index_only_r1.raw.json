@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 15186,
+  "stop_reason": "end_turn",
+  "session_id": "20d8d321-0d8e-40df-9bf1-5f5f96ac429c",
+  "total_cost_usd": 0.011104000000000001,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 42063,
+    "cache_read_input_tokens": 148710,
+    "output_tokens": 2407,
+    "output_tokens_details": {
+      "thinking_tokens": 740
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 42063,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1452,
+        "cache_read_input_tokens": 50391,
+        "cache_creation_input_tokens": 10265,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 10265
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 8,
+      "outputTokens": 2407,
+      "cacheReadInputTokens": 148710,
+      "cacheCreationInputTokens": 42063,
+      "webSearchRequests": 0,
+      "costUSD": 0.011104000000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 740,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 42063,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 8,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "Clew has four ways to say what a repository should index, plus a fifth source of facts it reads without being told. When they disagree, the stated ones win, and the rule is a tier ordering rather than \"last one wins.\"\n\n**The ways to say so**\n\n| Tier | Source | What it does |\n|---|---|---|\n| 1 (explicit) | CLI flags, or the `options` argument for an embedding caller | Replaces the stated layer for that option. Not recorded for replay unless it is a tier-1 statement. |\n| 2 (declared) | `.clew.yaml` in the repo root | Replaces the stated layer. Each section mirrors the standalone manifest format for that option. |\n| 3 (target-fact) | Facts the repo already wrote, such as a Doxyfile's `ALIASES`/`PREDEFINED`, a generator manifest, or a language entry point | Accumulates. |\n| 4 (ecosystem) | Known-ecosystem signatures | Accumulates. |\n| 5 (heuristic) | Name-pattern guesses, the built-in floor | Replaced by any stated tier. |\n\n- **Scope** (what gets indexed) has only two tiers: a declared `index_scope:` in `.clew.yaml`, or the whole repository minus what git ignores. The Doxyfile is no longer a scope tier (gh#333). Its `INPUT`, `EXCLUDE*` and `FILE_PATTERNS` are replaced, but it is still read for `ALIASES` and `PREDEFINED`. Only a declaration is a decision about the index.\n- **Doxyfile location** can be stated as a `doxyfile:` section, because a repo's documentation target sits outside the `Doxyfile`-in-root/`docs/`/`doc/` convention. The path must exist when stated, or the build would silently fall through to whole-repo synthesis.\n- **Build mechanics** (`--scope`, `--index-cache`, `--rebuild`) are per-run facts. They are not declarations.\n\n**When two disagree**\n\n- **Flag vs. declaration:** the flag wins. The file is the standing statement and the flag is a deliberate one-off override.\n- **Declaration vs. heuristic:** the declaration wins and the guesses are discarded.\n- **Facts (tiers 3\u20134) are never displaced.** A stated tier only replaces the guesses underneath. So `main` survives even when someone passes `--entry-patterns`, which previously dropped it silently. Tiers 3 and 4 combine identically; the label is cosmetic.\n- **Empty means withdrawn, not stated.** `[]` or `{}` falls through to the next tier rather than overriding it. This lets an operator undo a recorded flag without deleting the database.\n- **Malformed input:** an unknown top-level section is refused with an error that names the allowed set. A malformed declaration that is otherwise readable degrades to defaults.\n\nThe winning tier is recorded in `build_meta`, so the result can be read back, and only tier-1 statements are replayed on later builds.\n\nCaveat: the index flagged the tier resolver and the document resolver as built from an older revision of `clew/tiers.py`, so their line numbers may be slightly off. The behaviour described above comes from their docstrings and tests, which the index does hold.",
+  "ttft_ms": 2053,
+  "type": "result",
+  "duration_ms": 15785,
+  "uuid": "f751bfcc-f399-4f50-83e8-519bed35b4ca",
+  "ttft_stream_ms": 1409,
+  "time_to_request_ms": 86,
+  "first_content_frame_ms": 1409,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

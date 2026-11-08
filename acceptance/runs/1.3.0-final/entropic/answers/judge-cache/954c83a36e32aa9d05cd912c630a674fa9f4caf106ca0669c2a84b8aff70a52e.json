@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Plain-int cancel flag. In `dispatch_batch_generate` (`response_generator.cpp:413`), the observer thread writes a non-atomic `int cancel_int` that the backend poller reads through `int*`... The fix is `std::atomic<int>` or an atomic-backed bridge, which means checking whether the C ABI contract allows it.\nVERDICT: MISS\nWHY: The answer says the observer mirrors the atomic interrupt flag into a C int, but it frames this as a data-race bug. It never says the thread exists because the C ABI cannot carry an atomic, and it even suggests an atomic might fix it."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer lists three places that define `MBEDTLS_ALLOW_PRIVATE_ACCESS`: `library/common.h:132`, `programs/ssl/ssl_server2.c:8` and `programs/ssl/ssl_client2.c:8`. It only mentions `tests/suites/test_suite_x509write.function` as a file that uses the wrapper without the opt-out, and `include/mbedtls/private_access.h` only tests the macro.\n\nITEMS:\nlibrary/common.h\nprograms/ssl/ssl_server2.c\nprograms/ssl/ssl_client2.c\nEND"
+}

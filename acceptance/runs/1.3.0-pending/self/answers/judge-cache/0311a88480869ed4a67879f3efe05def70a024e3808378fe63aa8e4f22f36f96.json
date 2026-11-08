@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"IS a definitive empty result from the database, NOT an error.\" / \"Concept lives in markdown or Kconfig prose | The symbol corpus cannot answer\" / \"File extension appears in `scope.not_indexed` | The file was never read.\"\nVERDICT: MISS\nWHY: The answer distinguishes definitive-for-scope from not-covered cases, but it never describes a third grade of definitive empty for a reason other than absence, and it does not name \"not definitive\" as a grade the reply assigns."
+}

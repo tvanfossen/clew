@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 20669,
+  "stop_reason": "end_turn",
+  "session_id": "8f640315-f6f0-4941-ac37-43451a2a61df",
+  "total_cost_usd": 0.010366960000000001,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 27307,
+    "cache_read_input_tokens": 253406,
+    "output_tokens": 4741,
+    "output_tokens_details": {
+      "thinking_tokens": 1354
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 27307,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2190,
+        "cache_read_input_tokens": 57793,
+        "cache_creation_input_tokens": 15730,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 15730
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 4741,
+      "cacheReadInputTokens": 253406,
+      "cacheCreationInputTokens": 27307,
+      "webSearchRequests": 0,
+      "costUSD": 0.010366960000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1354,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 27307,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 15,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The app treats `ExperimentalViewArchivedChannels` as a single gate for whether archived channels are visible. Only an explicit `\"false\"` turns that gate off. If the server omits the key, the app behaves as if archived channels are enabled.\n\n**Where the value is read**\n\nThe helper is in `app/queries/servers/system.ts:297-315`. `archivedChannelsViewable(value)` returns `value !== 'false'`. Two wrappers use it:\n- `canViewArchivedChannels(database)` reads the value once, for action code.\n- `observeCanViewArchivedChannels(database)` is the reactive version for UI, with `distinctUntilChanged`.\n\n**Every place the behaviour depends on it**\n\n*Realtime and actions*\n1. **`handleChannelDeletedEvent`** (`app/actions/websocket/channel.ts:463`). When a channel is archived and the setting is off, the app kicks the user out if that channel is open, then removes the user from the channel. When the setting is on, it only records `delete_at`.\n2. **`archiveChannel`** (`app/actions/remote/channel.ts:1397`). With the setting on, it stamps `delete_at` locally and keeps the channel. With it off, it calls `removeCurrentUserFromChannel` (not awaited) instead.\n3. **`searchPosts`** (`app/actions/remote/search.ts:62-73`). It passes `include_deleted_channels` to the search request set to the same boolean.\n\n*UI*\n4. **Browse Channels** (`app/screens/browse_channels/index.ts:21,49`). The flag reaches `browse_channels.tsx:75,190-195`, which shows the channel dropdown when archived or shared channels are enabled. `dropdown_slideup.tsx:74` shows the archived-channels option only when the flag is true, and `channel_dropdown.tsx:67` does the same. The comment at `browse_channels.tsx:121-126` relies on archived channels being visible.\n5. **Sidebar category header** (`app/screens/home/channel_list/categories_list/categories/header/index.ts:15-22`). `CategoryModel.observeHasChannels` (`app/database/models/server/category.ts:107-118`) counts archived channels as present when the flag is on, but ignores them when it is off. The current channel always counts.\n6. **Archive screen** (`app/screens/channel_settings/archive/archive.tsx:109,121,125`, `index.ts:21-24`). The archive confirmation shows one of two messages depending on the flag. The code also calls `close(!canViewArchivedChannels)`, but I did not trace what that argument controls.\n\n*Tests and tooling (not app behaviour)*\n- `detox/shared/server-baseline.ts:80` marks the key `absentIsBaseline: true`.\n- `detox/e2e/support/server_api/system.ts:139-144` treats an absent value as enabled when polling client config. It keeps polling on failed fetches.\n- `browse_channels.e2e.ts:180-185` fails the run if the key is explicitly `false`.\n- Unit tests in `app/queries/servers/system.test.ts:692-717` cover absent, `\"true\"` and `\"false\"`.\n\n**When the server does not send the setting**\n\n`getConfigValue` and `observeConfigValue` return `undefined`, and `archivedChannelsViewable(undefined)` returns `true`. So every path above behaves as if archived channels are on. Concretely, archived channels stay in the local DB and appear in Browse Channels, the archive flow stamps `delete_at` instead of leaving the channel, search includes deleted channels, and the sidebar counts archived channels.\n\nThe code comment at `system.ts:297-303` gives the reason. Servers newer than v10.11 stopped sending the key, and the feature is always on there. Older servers (down to v5.26.2) still send it and may set it to `false`. A TODO says the helpers and their callers can be removed once support for servers at or below v10.11 is dropped.\n\nI did not check the server side, so the v10.11 cutoff is taken from the code comment.",
+  "ttft_ms": 844,
+  "type": "result",
+  "duration_ms": 21015,
+  "uuid": "639d96f7-c27e-4f04-a65f-260d79e5c540",
+  "ttft_stream_ms": 658,
+  "time_to_request_ms": 83,
+  "first_content_frame_ms": 658,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

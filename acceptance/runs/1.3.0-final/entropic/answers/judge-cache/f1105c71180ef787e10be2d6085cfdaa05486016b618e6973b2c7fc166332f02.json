@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `ExternalBridge::accept_loop` (`external_bridge.cpp:796`) | Accepts MCP socket clients ... `ExternalBridge` per-client `serve_client` threads (`external_bridge.cpp:945`) | One thread per connected client\n\nVERDICT: HIT\nWHY: The answer names the accept_loop thread that accepts clients and a separate per-client serve_client thread for each connected client, which covers the two-level structure."
+}

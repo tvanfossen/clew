@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: do_count_tokens (`:825`) and the system-token count (`:2066`) | Return 0. Silent.\nVERDICT: HIT\nWHY: The answer states that tokenization failure yields an empty vector, which the token-counting callers turn into a silent 0 instead of an error. It also says \"no error code reaches them.\""
+}

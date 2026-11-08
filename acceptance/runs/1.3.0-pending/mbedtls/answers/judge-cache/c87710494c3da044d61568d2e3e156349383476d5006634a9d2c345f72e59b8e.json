@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"dynamic tests under Valgrind and MemorySanitizer\"; \"The gate is `MBEDTLS_TEST_CONSTANT_FLOW_VALGRIND` (`mbedtls_config.h:2126`). A MemorySanitizer variant also exists\"\nVERDICT: MISS\nWHY: The answer names Valgrind/MemSan-based testing behind a config gate, but it never says the facility is separate from the library API or explicitly not part of it, and it doesn't clearly describe the off-by-default status."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `searchPosts` (`app/actions/remote/search.ts:58`) | Sends `include_deleted_channels: viewArchivedChannels` to the server search, so archived-channel results are only requested when viewable.\nVERDICT: HIT\nWHY: The answer states that searchPosts sends `include_deleted_channels` to the server search, tied to the setting."
+}

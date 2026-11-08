@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: If the standard functions are not available, the default is the `platform_calloc_uninit` stub in `platform.c:25-30`, which always returns NULL. Until a real allocator is installed, every allocation fails.\nVERDICT: MISS\nWHY: The answer covers the calloc stub returning NULL but says nothing about the uninitialised free doing nothing."
+}

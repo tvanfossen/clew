@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"llama.cpp comes in as a git submodule at `extern/llama.cpp`\"\nVERDICT: HIT\nWHY: The answer explicitly states llama.cpp is a git submodule at extern/llama.cpp, and also says \"llama.cpp is a submodule\" in extern/CMakeLists.txt."
+}

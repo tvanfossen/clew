@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Calls `removeCurrentUserFromChannel` instead, dropping the channel locally; If it is the current channel, kicks the user with `CHANNEL_ARCHIVED`, then removes membership; Keeps the channel in the DB as archived\nVERDICT: HIT\nWHY: The table states the non-viewable case removes the user (and kicks if current channel) and the viewable case keeps the channel as archived. The item's \"marked deleted\" is matched by the answer's \"sets a local `delete_at`\" and \"keeps the channel in the DB as archived\"."
+}

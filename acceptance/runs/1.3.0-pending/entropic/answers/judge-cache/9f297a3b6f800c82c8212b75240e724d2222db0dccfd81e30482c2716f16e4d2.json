@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `LlamaCppBackend::do_count_tokens` returns `tokens.size()`, so a failed tokenization becomes a count of **0**.\nVERDICT: HIT\nWHY: The answer states that the token-counting path returns 0 on failed tokenization instead of signalling an error, and that the C API returns a silent 0."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Opacity barrier.** `mbedtls_ct_compiler_opaque()` (`constant_time_impl.h`) launders a value through an empty `asm volatile` or an XOR with a volatile zero, so the compiler cannot constant-fold or prove the condition.\"\nVERDICT: HIT\nWHY: The answer names mbedtls_ct_compiler_opaque as the barrier that stops the compiler from knowing the value, and places it in constant_time_impl.h."
+}

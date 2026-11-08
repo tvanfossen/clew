@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says several checks can block a call, including the allow-list approval step in `check_approval`. It doesn't conclude that the deny list is the only blocker."
+}

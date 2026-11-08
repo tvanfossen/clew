@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **`AppDataOperator`** (`app/database/operator/app_data_operator/index.ts:15`) extends `BaseDataOperator`, so it shares `batchRecords` and `handleRecords` for the app-level database.\nVERDICT: HIT\nWHY: The answer names AppDataOperator as extending BaseDataOperator, sharing batchRecords/handleRecords for the app-level database."
+}

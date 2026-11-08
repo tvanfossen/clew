@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `#define MBEDTLS_PRIVATE(member)  private_##member   /* default: member is renamed */` ... \"so a user who writes `ctx->foo` gets a compile error\"\nVERDICT: HIT\nWHY: The answer says the macro renames members (private_##member) so access by name fails at compile time. That is breaking the member name, not hiding the layout. It never says the layout is hidden."
+}

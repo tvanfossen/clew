@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says no thread creation was found in library/, but it never says library/ supplies the mutex abstraction (threading.c / mbedtls_threading_mutex_t) for threaded callers; it only says the mutex layer is compiled out by default."
+}

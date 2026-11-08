@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Empty is also a valid result for empty text with `add_special=false`, so callers cannot tell success from failure.\"\nVERDICT: MISS\nWHY: The answer says failure is indistinguishable from empty, but it then lists callers that handle the empty result in various ways (one rejects it with an error code), and it never says that no caller checks for failure."
+}

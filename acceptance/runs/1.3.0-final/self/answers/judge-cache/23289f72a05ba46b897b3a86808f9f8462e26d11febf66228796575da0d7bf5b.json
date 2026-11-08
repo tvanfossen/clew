@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: On an install without the bash and CMake grammars, the shell and CMake files lose their function rows as designed, but the index also fails to report them as unindexed.\nVERDICT: MISS\nWHY: The answer concludes the opposite of the item: the not-indexed report is silent and the router's capability gate does not cause these types to be reported as not indexed."
+}

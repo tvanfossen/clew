@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Mirrors the engine's interrupt flag into the C-ABI cancel int for one batch call\" and \"The batch observer writes `cancel_int` (a plain `int`, captured by reference) while the backend reads it through `int*`.\"\nVERDICT: HIT\nWHY: The answer describes the observer thread as mirroring the engine's atomic interrupt flag into a plain C-ABI int, which is the bridging purpose the item names. It never says outright that the C ABI cannot carry an atomic, but the mechanism and the reason are both there."
+}

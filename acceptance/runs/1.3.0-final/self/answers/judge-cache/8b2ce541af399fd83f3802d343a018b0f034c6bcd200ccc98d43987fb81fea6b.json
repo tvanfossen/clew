@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Root: the whole repository, including nested git trees (submodules and vendored clones).\" and \"The one exception is that nested git trees inside it are tagged later by `external.py`, not excluded.\"\nVERDICT: HIT\nWHY: The answer says nested git trees are included in the scope and are tagged by external.py rather than excluded."
+}

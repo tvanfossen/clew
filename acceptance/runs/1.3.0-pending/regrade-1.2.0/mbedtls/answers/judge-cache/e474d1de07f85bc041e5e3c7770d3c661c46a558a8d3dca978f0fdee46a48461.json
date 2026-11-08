@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Only translation units that define `MBEDTLS_ALLOW_PRIVATE_ACCESS` before the first include of `private_access.h` see the real names.\nVERDICT: HIT\nWHY: The answer shows both branches of the macro and says that code defining the opt-out sees the real (plain) names, while the default external consumer sees `private_`-prefixed names."
+}

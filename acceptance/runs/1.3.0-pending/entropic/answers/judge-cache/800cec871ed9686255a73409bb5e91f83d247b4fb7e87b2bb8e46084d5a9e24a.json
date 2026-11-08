@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The failure value is an empty `std::vector<int32_t>`. That is also the correct result for empty input with `add_special=false`, so callers cannot tell the two apart.\"\nVERDICT: HIT\nWHY: It states that a failed tokenization is indistinguishable from a legitimately empty result, and its caller table shows the callers don't check for it. The generate and complete paths proceed silently with no error set."
+}

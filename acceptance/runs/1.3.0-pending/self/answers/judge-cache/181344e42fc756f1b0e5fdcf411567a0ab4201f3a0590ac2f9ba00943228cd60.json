@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `CMakeLists.txt`, `.cmake` | `function` \u2192 `memberdef` function with named params in `argsstring`.\nVERDICT: HIT\nWHY: The answer names `.sh`, `.bash` for shell and `.cmake` plus `CMakeLists.txt` (matched by file name, listed separately from the extensions) for CMake."
+}

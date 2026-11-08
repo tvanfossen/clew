@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: With a callback wired, the default is effectively allow-with-notification.\nVERDICT: HIT\nWHY: The answer says that with a callback set, the approval gate approves everything and only the deny list blocks, so a tool on neither list runs. It also notes the default-deny claim holds only in headless mode."
+}

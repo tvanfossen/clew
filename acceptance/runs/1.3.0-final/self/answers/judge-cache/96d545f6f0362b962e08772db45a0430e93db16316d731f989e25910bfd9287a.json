@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Replay: only a tier-1 statement is recorded for replay.\nVERDICT: MISS\nWHY: The answer says only tier-1 statements are recorded for replay; it never says the winning tier is recorded with the index or that the record is derived from the stored rows rather than stamped as a separate summary."
+}

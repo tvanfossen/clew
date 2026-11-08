@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The user taps the failed icon, then \"Try Again\" (`post.failed.retry`) in the bottom sheet. `retryFailedPost` then:\nVERDICT: HIT\nWHY: The answer says retry is manual, via the \"Try Again\" option on the failed post, and names `retryFailedPost`. It also says the post is never retried automatically."
+}

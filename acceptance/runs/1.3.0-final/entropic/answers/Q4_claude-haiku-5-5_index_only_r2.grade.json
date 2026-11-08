@@ -1,0 +1,173 @@
+{
+  "cell": "Q4_claude-haiku-5-5_index_only_r2",
+  "arm": "index_only",
+  "rubric_version": "3.1.1",
+  "rubric_digest": "705c131e354e5c22",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.7037037037037037,
+  "unmarked_pct": 0.0,
+  "split_decisions": 1,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "identifies that thread creation is spread across several subsystems \u2014 the external bridge, the MCP transports, the health monitor and the inference path \u2014 rather than being centralised",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: ExternalBridge::accept_loop ... HealthMonitor::monitor_loop ... StdioTransport::stderr_reader_loop ... SSETransport::sse_reader_loop ... ResponseGenerator::dispatch_batch_generate observer ... iface_generate_with_cancel poller | WHY: The table lists thread spawns across the external bridge, health monitor, MCP transports (stdio/SSE) and inference path, showing they are spread across subsystems; the answer doesn't state \"decentralised\" in so many words, but the substance is present. || QUOTE: `ExternalBridge::accept_loop` | `ExternalBridge::start` ... `HealthMonitor::monitor_loop` | `HealthMonitor::start` ... `StdioTransport::stderr_reader_loop` ... `SSETransport::sse_reader_loop` ... `ResponseGenerator::dispatch_batch_generate` observer | WHY: The answer lists thread spawn sites across the external bridge, the MCP transports (stdio and SSE), the health monitor and the inference path (batch generate, cancel pollers). That shows thread creation is spread across subsystems, though it never says outright that it isn't centralised. || QUOTE: `ExternalBridge::accept_loop` | `ExternalBridge::start` ... `HealthMonitor::monitor_loop` | `HealthMonitor::start` ... `StdioTransport::stderr_reader_loop` | `StdioTransport::open` | `SSETransport::sse_reader_loop` | `SSETransport::open` ... `ResponseGenerator::dispatch_batch_generate` observer | WHY: The table lists thread spawn sites across the external bridge, the MCP transports (stdio and SSE), the health monitor and the inference path. It shows creation spread across subsystems, though it never says so in as many words.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "describes the external bridge's two-level thread structure: one accept thread that spawns a further thread per connected client",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: `ExternalBridge::accept_loop` | `ExternalBridge::start` | Polls the listen socket every 500 ms, checks peer uid, and spawns one thread per client. | Per-client `serve_client` thread | `accept_loop` | Serves one external MCP client. | WHY: The answer states that the accept loop thread (started in `start`) spawns one `serve_client` thread per client, which is the two-level structure. || QUOTE: `ExternalBridge::accept_loop` | `ExternalBridge::start` | Polls the listen socket every 500 ms, checks peer uid, and spawns one thread per client. | Per-client `serve_client` thread | `accept_loop` | Serves one external MCP client. | WHY: The answer states that the accept loop thread (started in start) spawns one serve_client thread per client, which is the two-level structure. || QUOTE: `ExternalBridge::accept_loop` | `ExternalBridge::start` | Polls the listen socket every 500 ms, checks peer uid, and spawns one thread per client. | Per-client `serve_client` thread | `accept_loop` | Serves one external MCP client. | WHY: The answer states that the bridge's accept_loop thread spawns a per-client serve_client thread, which matches the two-level structure.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies the async-ask worker as the ONE detached thread, and that it therefore outlives its caller's scope with no join",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: **The async-ask worker is detached.** `run_async_ask` starts a `std::thread` with no stored handle and captures `this`. `ExternalBridge::stop` drains only the client threads and never waits for it. | WHY: The answer identifies the async-ask worker as detached, with no stored handle and no join. It also notes the lifetime risk of outliving the bridge. || QUOTE: **The async-ask worker is detached.** `run_async_ask` starts a `std::thread` with no stored handle and captures `this`. `ExternalBridge::stop` drains only the client threads and never waits for it. | WHY: The answer identifies the async-ask worker as detached, with no stored handle and no join, so it outlives its caller's scope. || QUOTE: **The async-ask worker is detached.** `run_async_ask` starts a `std::thread` with no stored handle and captures `this`. `ExternalBridge::stop` drains only the client threads and never waits for it. | WHY: The answer identifies the async-ask worker as detached, with no stored handle and no join, so it outlives its caller. It does not claim it is the only detached thread, but the item's substance is stated.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "explains that the health monitor does NOT invoke its status callback from the monitor thread \u2014 it queues events under a mutex and the caller drains them on its own thread",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"`HealthMonitor::process_events` swaps the event queue out under `event_mutex_`, then invokes the status callback after releasing the lock. The index's own doc comment says it runs on the engine thread.\" | WHY: The answer says the monitor loop queues health events, process_events drains the queue under a mutex and invokes the callback on the engine (caller) thread rather than the monitor thread. || QUOTE: \"`HealthMonitor::process_events` swaps the event queue out under `event_mutex_`, then invokes the status callback after releasing the lock. The index's own doc comment says it runs on the engine thread.\" | WHY: The answer says events are queued, drained under event_mutex_ by process_events on the engine thread, with the callback invoked there rather than from the monitor thread. || QUOTE: `HealthMonitor::process_events` swaps the event queue out under `event_mutex_`, then invokes the status callback after releasing the lock. The index's own doc comment says it runs on the engine thread. | WHY: The answer states that the monitor thread queues events, that the callback is invoked from `process_events` on the engine thread, and that the queue is guarded by `event_mutex_`.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies that the monitor's shutdown is an atomic flag exchange plus a condition variable wake, and that stop() joins rather than detaching or abandoning the thread",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: `HealthMonitor::stop` sets `running_` to false, notifies the condition variable, then joins. | WHY: The answer states stop() sets the running_ atomic to false, notifies the condition variable, and joins the thread. \"Atomic flag exchange\" is covered by the flag set, and the join is explicit. || QUOTE: `HealthMonitor::stop` sets `running_` to false, notifies the condition variable, then joins. | WHY: The answer states stop() sets the running_ atomic flag false, notifies the condition variable, and joins the thread. The \"atomic exchange\" wording is only loosely matched, but the flag-set, CV wake and join substance is there. || QUOTE: `HealthMonitor::stop` sets `running_` to false, notifies the condition variable, then joins. | WHY: The answer states that stop() sets the running_ atomic flag, notifies the condition variable, and joins the thread. That covers the flag exchange, the condition variable wake, and the join. The answer never says the flag change is an exchange operation, but the substance is there.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies the cancellation observer thread as existing to bridge an atomic into a plain int, because the C ABI boundary cannot carry an atomic",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: The cancel int is kept as an `int*` so no `std::atomic` crosses the `.so` boundary. | WHY: The answer says the observer mirrors the interrupt flag into the C-ABI cancel int, and that the int is kept as a plain `int*` so no atomic crosses the `.so` boundary. That covers bridging an atomic to a plain int because of the ABI boundary. || QUOTE: The cancel int is kept as an `int*` so no `std::atomic` crosses the `.so` boundary. | WHY: The answer says the observer thread mirrors the interrupt flag (atomic) into a C-ABI cancel int, and that the int is kept plain because no `std::atomic` can cross the `.so` boundary. That is the bridging rationale the item asks for. || QUOTE: The cancel int is kept as an `int*` so no `std::atomic` crosses the `.so` boundary. | WHY: The answer says observer/poller threads mirror an atomic interrupt flag into the C-ABI cancel int, and that the int is kept plain so no atomic crosses the `.so` boundary. That is the bridge-because-the-ABI-can't-carry-an-atomic rationale.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "notes that every thread body installs a per-handle logging scope as its first statement, so background work logs against the handle that owns it",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: Spawned threads create a `HandleLogScope` with the owning handle's `log_id` (gh#59), so their logs land in the right session. | WHY: The answer says spawned threads create a per-handle log scope, but it doesn't say every thread body installs it as its first statement, so the specific mechanism is missing. || QUOTE: Spawned threads create a `HandleLogScope` with the owning handle's `log_id` (gh#59), so their logs land in the right session. | WHY: The answer says spawned threads create a per-handle log scope, but it never says that every thread body does so as its first statement, so the specific \"first statement\" mechanism is absent.",
+      "agreement": 0.6666666666666666,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies that each MCP transport runs its own reader thread \u2014 a stderr forwarder for the stdio transport and an event reader for the SSE transport",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: `StdioTransport::stderr_reader_loop` | `StdioTransport::open` | Drains a child process's stderr. | `SSETransport::sse_reader_loop` | `SSETransport::open` | Reads the SSE stream. | WHY: The answer lists a stderr reader thread spawned in StdioTransport::open and an SSE stream reader thread spawned in SSETransport::open, one per transport. || QUOTE: `StdioTransport::stderr_reader_loop` | `StdioTransport::open` | Drains a child process's stderr. | `SSETransport::sse_reader_loop` | `SSETransport::open` | Reads the SSE stream. | WHY: The answer's table names the stdio transport's stderr reader thread and the SSE transport's event reader thread, each spawned in its own transport's open. || QUOTE: `StdioTransport::stderr_reader_loop` | `StdioTransport::open` | Drains a child process's stderr. | `SSETransport::sse_reader_loop` | `SSETransport::open` | Reads the SSE stream. | WHY: The answer's table names both the stdio transport's stderr reader thread and the SSE transport's event reader thread, each spawned in its own transport's open().",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "every first-party source file that creates a thread \u2014 src/facade/external_bridge.cpp",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every first-party source file that creates a thread \u2014 src/mcp/health_monitor.cpp",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": false,
+      "detail": "not named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every first-party source file that creates a thread \u2014 src/mcp/transport_stdio.cpp",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": false,
+      "detail": "not named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every first-party source file that creates a thread \u2014 src/mcp/transport_sse.cpp",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": false,
+      "detail": "not named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every first-party source file that creates a thread \u2014 src/core/response_generator.cpp",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": false,
+      "detail": "not named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every first-party source file that creates a thread \u2014 src/inference/inference_c_api.cpp",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": false,
+      "detail": "not named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every first-party source file that creates a thread \u2014 src/inference/interface_factory.cpp",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": false,
+      "detail": "not named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every first-party source file that creates a thread \u2014 precision",
+      "kind": "set_precision",
+      "weight": 1,
+      "hit": true,
+      "detail": "clean",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never mentions flat surface vs traversal surface or fuzzy-confidence edges being kept versus excluded, nor the multiplying-subtree reasoning."
+}

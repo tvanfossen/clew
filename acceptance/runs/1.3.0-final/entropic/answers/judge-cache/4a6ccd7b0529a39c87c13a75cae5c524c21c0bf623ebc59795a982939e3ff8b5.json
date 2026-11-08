@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"This is a sizing query followed by a fill, not retry logic... Nothing re-attempts after a failure.\"\nVERDICT: HIT\nWHY: The answer concludes size negotiation rather than retry, explains the two-call mechanism (null buffer, negated count, then fill), and states that nothing re-attempts after a failure."
+}

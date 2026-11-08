@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_ct_compiler_opaque()` wraps values in an empty `asm volatile(\"\" : [x] \"+r\"(x))` on GNU-asm targets. The compiler cannot prove a condition's value, so it cannot turn a mask into a branch.\nVERDICT: HIT\nWHY: The answer states an empty asm volatile with the value as a \"+r\" input-output operand, used to stop the optimiser from reasoning about the value (barrier purpose)."
+}

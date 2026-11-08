@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `not_indexed` and `not_indexed_count`, recorded at build time: extensions that were in scope but produced no rows.\nVERDICT: HIT\nWHY: The answer states the scope payload carries recorded extensions that were in scope but produced no rows, and that the key is omitted rather than `[]` so absence is not read as \"nothing missed\". That separates \"not in repo\" from \"not indexed\"."
+}

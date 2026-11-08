@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `ServerManager::args_to_pattern` takes the first string value of the arguments, and returns `*` when there is none.\nVERDICT: HIT\nWHY: The answer says only the first string argument is used for matching and that the pattern falls back to `*` when no string argument exists. That covers both parts of the item: a single argument reaches the pattern, and a missing or non-string value becomes a wildcard. It doesn't say outright that the other arguments are invisible, or mention unparseable arguments. That follows from \"first string value\" being the only thing compared."
+}

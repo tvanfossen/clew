@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The index was built with `MBEDTLS_THREADING_C` and `MBEDTLS_THREADING_PTHREAD` stated as flags, so its lock and spawn results describe a threaded build, not the default.\nVERDICT: HIT\nWHY: The answer names both MBEDTLS_THREADING_C and MBEDTLS_THREADING_PTHREAD, and it describes the first as gating the mutex code. The \"Threaded build (`MBEDTLS_THREADING_C` + `PTHREAD`)\" heading pairs them as the enabling configuration."
+}

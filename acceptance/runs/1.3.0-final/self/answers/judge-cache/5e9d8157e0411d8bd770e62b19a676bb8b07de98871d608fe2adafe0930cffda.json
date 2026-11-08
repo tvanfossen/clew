@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says that files in scope must also be readable by the parse-built front end or survive binary classification. It only mentions that `enumerate_tree` is \"deliberately not extension-filtered\" and leaves both filters unnamed."
+}

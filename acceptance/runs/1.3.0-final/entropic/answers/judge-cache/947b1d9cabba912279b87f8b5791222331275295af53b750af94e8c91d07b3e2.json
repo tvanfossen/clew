@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `extern/` is a git submodule... llama.cpp is a git submodule at `extern/llama.cpp`\nVERDICT: HIT\nWHY: The answer explicitly states llama.cpp is a git submodule at `extern/llama.cpp`, which is the item's mechanism and location."
+}

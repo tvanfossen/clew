@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The only other place with a second call is `LlamaCppTokenizer::detokenize()` (lines 93 and 99), which uses a small stack buffer and retries with the exact size when the first call reports it was too small.\nVERDICT: HIT\nWHY: The answer states that detokenize uses a small stack buffer first and retries with an exact size only when too small, and contrasts it with tokenize's always-sized-first pattern. It never gives the 256-byte figure or says \"heap\" explicitly, but the mechanism is there."
+}

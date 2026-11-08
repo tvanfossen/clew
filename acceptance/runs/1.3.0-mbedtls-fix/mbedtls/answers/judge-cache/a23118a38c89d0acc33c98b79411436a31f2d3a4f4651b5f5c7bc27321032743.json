@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: renaming the fields turns \"you touched a private member\" into a compile error instead of a silent ABI or behaviour dependency\nVERDICT: HIT\nWHY: The answer says opacity is enforced at compile time by renaming the member (`private_##member`), so the code fails to compile. It never says the struct layout is hidden, and the mechanism it describes is the name-breaking one the item requires."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`do_count_tokens` \u2192 `count_tokens` | 825-828, `backend.cpp:496` | Returns 0 when the backend is loaded. Callers get a count of zero with no error.\" and \"Returns 0 on a tokenizer failure.\"\nVERDICT: HIT\nWHY: The answer states that the token-counting path returns 0 on tokenizer failure with no error signalled."
+}

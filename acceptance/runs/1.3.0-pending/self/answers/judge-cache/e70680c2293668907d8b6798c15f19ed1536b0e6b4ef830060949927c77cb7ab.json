@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"If the grammars are absent, `compiled_languages()` returns the empty set. It logs an error, and the front ends register nothing for those types. The router checks for a grammar before parsing. A missing grammar routes to nothing instead of raising, so a build does not fail partway through. Queries that come back empty then pass through the not-indexed report.\"\nVERDICT: HIT\nWHY: The answer says that missing grammars degrade instead of failing, with the router checking for a grammar before parsing, and that those file types are then reported as not indexed."
+}

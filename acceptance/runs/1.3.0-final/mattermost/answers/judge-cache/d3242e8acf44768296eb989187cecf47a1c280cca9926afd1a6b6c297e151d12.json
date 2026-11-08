@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `app/screens/home/search/search.tsx`, with `hasSearch={true}`\nVERDICT: HIT\nWHY: The answer states that the Home Search screen is the only one among the NavigationHeader renderers that turns search on, and it names the file path."
+}

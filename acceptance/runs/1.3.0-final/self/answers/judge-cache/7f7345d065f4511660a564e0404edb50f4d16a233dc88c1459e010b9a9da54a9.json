@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`derive_scope` falls through to `whole_repo_scope`, which is the default tier, not a last resort.\" and \"yes, but unusable \u2192 rejected (unknown key, not a mapping, no roots) \u2192 logged as a WARNING, falls to whole-repo tier\"\nVERDICT: HIT\nWHY: The answer says a declared index_scope is used when usable, and that missing, rejected or rootless declarations all fall through to the whole-repo scope."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `inv gen-bindings --check` runs in pre-commit to catch drift.\nVERDICT: HIT\nWHY: The answer says a pre-commit check (`gen-bindings --check`) catches drift between the headers and the generated bindings. It doesn't spell out \"re-run and diff\", but `--check` on a generator names that mechanism closely enough."
+}

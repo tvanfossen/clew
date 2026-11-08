@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes a scope block listing the covered extensions and directories, and a `not_indexed` report. It never says the reply names file types that were in scope but returned zero rows."
+}

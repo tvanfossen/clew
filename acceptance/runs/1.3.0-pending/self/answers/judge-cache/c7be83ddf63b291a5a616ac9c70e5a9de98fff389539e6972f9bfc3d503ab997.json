@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The module's own rule is that the strength of a sentence has to be earned per call. The unread-corpus check and the file-docs check run only after the result is already zero\"\nVERDICT: HIT\nWHY: The answer states that the strong wording is earned per call by checking unread corpora after a zero result, rather than being tied to a result shape."
+}

@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 15669,
+  "stop_reason": "end_turn",
+  "session_id": "dc9adbdb-4262-47b7-9add-1c5f4b7b1ef2",
+  "total_cost_usd": 0.00254278,
+  "usage": {
+    "input_tokens": 4,
+    "cache_creation_input_tokens": 1929,
+    "cache_read_input_tokens": 76458,
+    "output_tokens": 2784,
+    "output_tokens_details": {
+      "thinking_tokens": 1712
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 1929,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2530,
+        "cache_read_input_tokens": 38229,
+        "cache_creation_input_tokens": 1929,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1929
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 4,
+      "outputTokens": 2784,
+      "cacheReadInputTokens": 76458,
+      "cacheCreationInputTokens": 1929,
+      "webSearchRequests": 0,
+      "costUSD": 0.00254278,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1712,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 1929,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 2,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The reply for `git_argv` (`clew/gitenv.py:89`) is a set of graph edges, not a list of call sites. Here is what it contains and where it misleads.\n\n**What's in it**\n\n- **`callers`**: seven functions that call `git_argv`, each with a file, `edge_class: call`, and `confidence: resolved`. Examples are `run_git` in `clew/guard/git.py`, `tracked_files` in `clew/propose/notindexed.py`, and `test_the_disarmed_key_list_reaches_the_argv`.\n- **`callees`**: empty. The body calls `list`, `extend` and reads `GIT_COMMAND_VALUED_KEYS`, none of which are indexed functions.\n- **`threads`**: `clew-first-build-`, with `member_count: 72`, reached via `_await_first_build`. This says the function is reachable from that thread. It is not a call edge.\n- **`requirements`** and **`covering_tests`**: `REQ-DDB-CONFIG-001` and one test.\n- **`liveness`**, `body`, `anchor_mismatch`, and `writes`/`reads`/`overrides`, which are empty here.\n\n**What would make a call-site reading wrong**\n\n1. **No lines or arguments.** Each caller is a function, not a call site. The reply doesn't say which line calls `git_argv`, how often, under what condition, or with what arguments. A caller can call it in a loop, on an error path, or only in tests.\n2. **Only one hop.** This is depth 1. Transitive callers, such as whoever calls `run_git`, need `depth \u2265 2` with `direction: back`.\n3. **\"Resolved\" covers only what the parser saw.** Calls through function pointers, dispatch tables, string-named lookups or subprocess-driven paths won't appear as callers. The reply reports `callers_unresolved: 0`, which counts only the edges the index attempted to resolve.\n4. **Empty callees don't mean no calls.** The `external_callees` field, which the reply documents as holding calls it couldn't resolve, is absent here. Absent is not the same as empty, and this reply doesn't tell me whether the calls it can't resolve were recorded.\n5. **Threads and coverage aren't call edges.** `threads` says where the function can run. `covering_tests` is attached through the shared requirement, so `test_mqtt_dispatch_accepts_an_inline_document_not_only_a_path` appears as covering `git_argv` even though its name suggests it doesn't exercise git argv. Reading \"covered by\" as \"calls\" would be wrong.\n6. **Name-based identity.** Callers are listed by name. If two functions share a name, the reply carries an `ambiguous` block, and the neighbour rows are then shared across candidates. This reply has no such block, so the seven names resolved to one identity each.\n\nSo the reply is reliable for \"these seven functions have a resolved static call edge to `git_argv`\". It is not a complete or line-accurate list of invocation sites, and it does not establish that any of those paths runs.",
+  "ttft_ms": 2295,
+  "type": "result",
+  "duration_ms": 15905,
+  "uuid": "bbdc3d9b-0488-4467-ad6a-b9f941b224ba",
+  "ttft_stream_ms": 1195,
+  "time_to_request_ms": 70,
+  "first_content_frame_ms": 1195,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

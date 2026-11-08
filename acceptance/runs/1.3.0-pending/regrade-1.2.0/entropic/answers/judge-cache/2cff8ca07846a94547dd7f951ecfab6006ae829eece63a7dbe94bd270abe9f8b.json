@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **No Python exception escapes into C.** The trampoline catches everything, prints the traceback, and returns pass-through (rc 0). ... A hook that raises behaves as if it returned None.\nVERDICT: HIT\nWHY: The answer states that the hook trampoline catches all Python exceptions and returns pass-through (rc 0), so a failing hook is treated as returning None."
+}

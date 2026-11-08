@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Even with `THREADING_C` on, you still need a backend: `MBEDTLS_THREADING_PTHREAD` (`mbedtls_config.h:3783-2196`) or `MBEDTLS_THREADING_ALT`.\"\nVERDICT: HIT\nWHY: The answer names MBEDTLS_THREADING_C as the guard for the mutex code, and it names MBEDTLS_THREADING_PTHREAD as a backend that must also be enabled."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**schema:** the index was stamped by a newer build than this process expects. A rebuild re-stamps the same newer version, so it cannot clear this.\"\nVERDICT: HIT\nWHY: The answer explicitly states the schema axis arises when the index is newer and that rebuilding re-stamps the same newer version, so it can't be cleared."
+}

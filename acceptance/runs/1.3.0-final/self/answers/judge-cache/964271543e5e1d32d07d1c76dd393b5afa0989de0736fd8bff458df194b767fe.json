@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: One row per endpoint. Two layers finding the same edge produce one row, reporting the strongest `source` and `confidence`.\nVERDICT: MISS\nWHY: The answer never states that one collapse function serves both the flat neighbour list and the traversal surface; it says only that traversals filter fuzzy edges while flat lists don't."
+}

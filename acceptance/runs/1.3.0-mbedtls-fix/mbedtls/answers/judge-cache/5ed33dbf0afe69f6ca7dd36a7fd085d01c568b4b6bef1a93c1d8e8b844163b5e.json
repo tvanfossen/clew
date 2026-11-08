@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Default (`MBEDTLS_PLATFORM_MEMORY` off): `include/mbedtls/platform.h:167` defines `mbedtls_calloc` as a plain macro for `calloc`... The two macro symbols have no definition site in the index, which means the shipped default is off.\nVERDICT: MISS\nWHY: The answer says the default is off and that MBEDTLS_PLATFORM_MEMORY toggles the path. It never says the shipped mbedtls_config.h has it commented out, and it admits it could not confirm the shipped config."
+}

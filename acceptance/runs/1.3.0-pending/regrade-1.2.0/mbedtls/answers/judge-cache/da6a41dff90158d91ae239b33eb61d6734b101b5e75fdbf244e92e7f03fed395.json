@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says \"Public surface: none\" and calls the `mbedtls_ct_` names library-internal. It never concludes that `mbedtls_ct_memcmp` is the single public function."
+}

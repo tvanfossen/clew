@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `callers`/`callees` resolve by name. Unrelated file-private helpers that share a name collapse into one node with merged edges... `qualified` narrows only the call half; the key half still unions every same-named function\nVERDICT: MISS\nWHY: The answer notes name-based merging, but never contrasts a flat surface that selects by resolved identity with a traversal surface that still matches the bare name."
+}

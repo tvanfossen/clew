@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Log scope is propagated into each spawned thread (`HandleLogScope`).\nVERDICT: MISS\nWHY: The answer says a log scope is propagated into spawned threads, but it never says that each thread body installs it as its first statement or that background work logs against the owning handle."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `UNIQUE(caller, callee, source)` collapses a caller that calls the function five times into one row.\nVERDICT: MISS\nWHY: The answer says one row per caller-callee-source pair (so multiple layers can yield multiple rows) and never says variants across layers are collapsed to the strongest evidence."
+}

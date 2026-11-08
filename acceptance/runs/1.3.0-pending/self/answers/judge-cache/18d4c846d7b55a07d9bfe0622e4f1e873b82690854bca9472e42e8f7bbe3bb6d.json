@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Each row carries an edge class (`call`), a source (`ast`, resolved), and a file.\nVERDICT: MISS\nWHY: The answer mentions an edge class field, but only as `call`. It never says that callers/callees mix direct calls with shared-key dataflow edges, or that consumers must read `edge_class` to tell them apart."
+}

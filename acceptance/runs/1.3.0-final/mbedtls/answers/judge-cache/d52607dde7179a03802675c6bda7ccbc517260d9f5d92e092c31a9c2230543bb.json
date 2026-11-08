@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_PRIVATE(member)` is a rename, not an access check... expands to `private_##member`... Code outside the library that writes `ssl->state` no longer compiles.\nVERDICT: HIT\nWHY: The answer states opacity is enforced at compile time by renaming the member (`private_##member`), not by an access check. It doesn't say the layout is hidden, and it calls the structs public."
+}

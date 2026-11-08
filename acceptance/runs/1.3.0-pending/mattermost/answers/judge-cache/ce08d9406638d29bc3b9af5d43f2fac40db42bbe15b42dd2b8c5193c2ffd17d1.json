@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **`AppDataOperator`** extends the same `BaseDataOperator`, so `batchRecords`, `processRecords`, `prepareRecords` and `handleRecords` are shared with the app-level database.\nVERDICT: HIT\nWHY: The answer names AppDataOperator as another subclass of BaseDataOperator sharing the write path for the app-level database."
+}

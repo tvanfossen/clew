@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Events are queued under `event_mutex_` and callbacks run on the engine thread in `process_events()` (`:118-129`).\nVERDICT: HIT\nWHY: The answer states the health monitor queues events under a mutex and callbacks run on the engine (caller) thread via process_events(), not the monitor thread."
+}

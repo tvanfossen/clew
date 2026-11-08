@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The codes are composed by `MBEDTLS_ERROR_ADD(high, low)` (`include/mbedtls/error.h:113`), which calls `mbedtls_error_add()`. That function returns `high + low` and, under `MBEDTLS_TEST_HOOKS`, also calls a test hook.\nVERDICT: MISS\nWHY: The answer names MBEDTLS_ERROR_ADD/mbedtls_error_add as the combiner but never says it captures __FILE__ and __LINE__."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The combination rule is `resolved = (tier1 or tier2 or tier5) union tier3 union tier4`. In the index's words: \"you can correct our guesses; you cannot un-discover a fact.\" ... \"Facts and ecosystem entries always accumulate. Tiers 3 and 4 survive every stated tier.\"\nVERDICT: HIT\nWHY: The answer states that stated tiers replace one another (tier 1 and tier 2 each replace the layer beneath) while discovered tiers 3 and 4 accumulate and survive every stated tier."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Accept loop | `external_bridge.cpp:796` | Polls the listen fd, accepts clients ... Per-client serve thread | `external_bridge.cpp:945` | Serves one MCP client | Pushed into `client_threads_`\nVERDICT: HIT\nWHY: The answer identifies an accept-loop thread and a per-client serve thread spawned after each accepted connection (uid checked \"before a thread is spawned\"), which conveys the two-level structure."
+}

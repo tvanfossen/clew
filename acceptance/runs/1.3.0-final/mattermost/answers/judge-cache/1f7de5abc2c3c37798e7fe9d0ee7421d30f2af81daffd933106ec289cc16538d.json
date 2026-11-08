@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The remove path does not use the operator at all. It queries the matching row and calls `destroyPermanently()` directly inside a `database.write`.\"\nVERDICT: HIT\nWHY: The answer states the removal handler bypasses the operator, queries the reaction, and destroys it directly within `database.write`."
+}

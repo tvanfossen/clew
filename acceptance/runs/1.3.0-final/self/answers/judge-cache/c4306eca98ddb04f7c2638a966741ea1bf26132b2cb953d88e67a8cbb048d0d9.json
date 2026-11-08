@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: If the declaration is usable, its roots and excludes become the scope. If it is present but rejected, `derive_scope` logs a WARNING and falls through to the whole-repo tier... If nothing is declared, `whole_repo_scope(root)` takes over.\n\nVERDICT: HIT\n\nWHY: The answer says a declared `index_scope` is used when usable. A rejected declaration, or no declaration, falls through to the whole-repo tier. This matches the item's \"declared preferred, failures fall through to whole repo\" substance."
+}

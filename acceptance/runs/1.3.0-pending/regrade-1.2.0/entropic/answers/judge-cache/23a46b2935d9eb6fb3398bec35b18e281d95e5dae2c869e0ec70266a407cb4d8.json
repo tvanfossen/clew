@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Returns 0. The C API documents 0 as the answer for empty text, so a failed tokenization is indistinguishable from empty input.\"\nVERDICT: HIT\nWHY: The answer states failed tokenization is indistinguishable from empty input, and that callers largely don't check (do_complete and do_generate_text_only have no check, with only the speculative path explicitly handling it)."
+}

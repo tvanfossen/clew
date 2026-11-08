@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: When `on_tool_call` is set, `check_approval` sets `approved = true` after calling it. The return value is never read. The header says tools \"must be explicitly allowed or approved via callback\", but in the code the callback only notifies.\nVERDICT: HIT\nWHY: The answer states the callback can never deny, because approved is set to true after it is called and its return is ignored. It doesn't say the return type is void, but the mechanism matches."
+}

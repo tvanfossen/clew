@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says default routes through function pointers (platform.c static pointers to libc), which contradicts the item's claim that a default build has no indirection and the names are macros expanding to calloc/free."
+}

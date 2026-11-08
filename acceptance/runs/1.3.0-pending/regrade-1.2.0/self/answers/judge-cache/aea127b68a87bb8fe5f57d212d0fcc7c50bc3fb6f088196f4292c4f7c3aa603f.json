@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"a repo's own `index_scope:` declaration is the only thing that decides the scope. If nothing is declared, clew indexes the whole repository\"\nVERDICT: MISS\nWHY: The answer does not say that every failure to find one falls through to whole-repo; it describes rejected declarations as still falling to whole-repo but frames the declared scope as the sole decider, and says nothing of other failure modes such as unreadable files."
+}

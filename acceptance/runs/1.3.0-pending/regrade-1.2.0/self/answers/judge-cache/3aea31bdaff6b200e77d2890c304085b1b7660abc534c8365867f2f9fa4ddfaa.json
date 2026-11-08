@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `.yaml`, `.yml`, `.json` | A `path` row only. The file is in the file set and findable by name | Any symbols.\nVERDICT: HIT\nWHY: The answer states YAML/JSON are registered as files (path row) with no symbols, and contrasts this with shell/CMake, which get definitions when grammars exist."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says `.clew.yaml` sections map one-to-one onto the CLI options. It never says the option names an embedding caller states are the same words as the section names and the diagnostics."
+}

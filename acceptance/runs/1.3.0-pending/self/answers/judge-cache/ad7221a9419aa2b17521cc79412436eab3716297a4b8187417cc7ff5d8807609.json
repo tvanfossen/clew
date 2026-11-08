@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**`.clew.yaml` at the repo root (tier 2, \\\"declared\\\").** This is the standing, in-tree statement of conventions.\"\nVERDICT: MISS\nWHY: The answer identifies `.clew.yaml` as the tier-2 standing declaration at the repo root. It never says that both entry points (CLI and MCP) discover it from the root instead of it being plumbed per section."
+}

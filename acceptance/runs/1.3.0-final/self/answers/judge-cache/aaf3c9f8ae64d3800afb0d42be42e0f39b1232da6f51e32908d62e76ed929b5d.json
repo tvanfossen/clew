@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Its single root is the repository itself, and nested git trees are included.\nVERDICT: MISS\nWHY: The answer says nested git trees are included, but never states they are tagged (e.g., labeled as nested/vendored) instead of excluded, so the specific tagging mechanism is absent."
+}

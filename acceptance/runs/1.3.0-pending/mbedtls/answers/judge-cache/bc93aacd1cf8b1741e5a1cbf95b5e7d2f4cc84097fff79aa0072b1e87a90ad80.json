@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer lists several usage sites (bignum, RSA, TLS MAC, base64, PSA, p256-m) but never conveys that the primitives are consumed across roughly twenty modules; it even says its caller search was capped and is not a census."
+}

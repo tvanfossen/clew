@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: 1. Split the pattern at the first `:`. 2. Left side: `fnmatch` against the tool name, e.g. `filesystem.*`. 3. Right side, if present: `fnmatch` against `tool:<argvalue>`. ... `git.commit` | that tool only, any args (no colon)\nVERDICT: HIT\nWHY: The answer states fnmatch matching, a split at the first colon into tool and argument parts, and that a colon-less pattern matches the tool name only."
+}

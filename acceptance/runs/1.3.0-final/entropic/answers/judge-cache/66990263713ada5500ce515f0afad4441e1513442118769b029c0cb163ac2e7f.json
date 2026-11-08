@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: When the buffer is too small it returns the negative of the required count, so the code does: 1. Call with a null buffer and size 0 to learn the token count (`n`, negated if negative). 2. Allocate a `std::vector` of that size and call again to fill it.\nVERDICT: HIT\nWHY: The answer states the first call returns the negative of the required count, and that the code negates it to size the buffer for the second call."
+}

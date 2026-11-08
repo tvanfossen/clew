@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Deny (`ServerManager::execute`).** Runs after approval, so a deny pattern blocks a call even when it was approved.\" and \"`ServerManager::execute(name, args)` ... PermissionManager::is_denied(deny list) \u2500\u2500match\u2500\u2500\u25ba \"Permission denied\" result \u2514\u2500 route_tool_call\"\nVERDICT: MISS\nWHY: The answer says deny is checked in ServerManager::execute before routing, but frames approval (allow list/auto_approve/callback) as a separate gate that can also block (\"otherwise Permission denied, call never runs\"), so it does not conclude that the deny list is the only blocker."
+}

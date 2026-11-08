@@ -226,13 +226,15 @@ def _key(value: str) -> str:
     return _LINE_SUFFIX.sub("", bare).rsplit("/", 1)[-1].lower()
 
 
+## Version 2 passes each sample's index, so the cache no longer collapses extraction to one call.
+##
 ## @brief Score one set mark: a decision per member, plus one for precision.
 ## @param mark The set mark.
 ## @param answer Anonymised answer.
 ## @param model Dated judge model id.
 ## @param samples Independent extraction calls to vote over.
 ## @return List of decisions.
-## @version 1
+## @version 2
 def score_set(mark: Mark, answer: str, model: str, samples: int = 3) -> list[Decision]:
     """PRECISION IS A DECISION, NOT A MODIFIER. Once grading is known to be mechanical the
     optimal strategy for recall alone is to name everything, so an answer that pads its list
@@ -260,8 +262,8 @@ def score_set(mark: Mark, answer: str, model: str, samples: int = 3) -> list[Dec
     ## a reader looking for a string that appears nowhere in the answer.
     written: dict[str, str] = {}
     ok = 0
-    for _ in range(max(1, samples)):
-        reply = ask(prompt, model)
+    for sample in range(max(1, samples)):
+        reply = ask(prompt, model, sample=sample)
         items = None if reply.error else read_items(reply.text)
         if items is None:
             continue

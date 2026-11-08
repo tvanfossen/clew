@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"A clew index can be stale on three independent axes, and each axis has a different cure.\" Also names them: \"Data axis (sources changed)\", \"Schema axis (build version)\", \"Code axis (running process)\".\nVERDICT: HIT\nWHY: The answer states staleness is three distinct axes (data, schema, code) with different remedies."
+}

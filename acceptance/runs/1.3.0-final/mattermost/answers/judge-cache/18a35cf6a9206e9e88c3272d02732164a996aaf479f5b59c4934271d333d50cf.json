@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"It rebuilds the API payload from the stored model with `toApi()` and calls `client.createPost` again. Unlike the first attempt, this call does not set `noRetry`, so the network layer's default retry policy applies. I did not verify that default.\"\nVERDICT: MISS\nWHY: The answer says a retry attempt is made and that on failure the post is marked failed again, but it never concludes there is exactly one attempt with no loop or backoff. It instead suggests the network layer's default retry policy may apply, which contradicts the item."
+}

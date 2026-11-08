@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`MBEDTLS_THREADING_C` is commented out in `include/mbedtls/mbedtls_config.h:3787`.\" and \"`MBEDTLS_THREADING_PTHREAD` (`mbedtls_config.h:3783-2196`) or `MBEDTLS_THREADING_ALT`. Both are off by default.\"\nVERDICT: HIT\nWHY: The answer says THREADING_C is commented out in the shipped config, and that the backends PTHREAD and ALT are both off by default. That covers the claim that a default build defines neither threading macro, whichever pair the item means."
+}

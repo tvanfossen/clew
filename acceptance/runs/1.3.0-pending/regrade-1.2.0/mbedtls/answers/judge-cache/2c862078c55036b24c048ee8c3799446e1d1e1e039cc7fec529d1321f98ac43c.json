@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_PLATFORM_MEMORY` not defined | Macros for libc `calloc` / `free` (`platform.h:166-167`)\nVERDICT: HIT\nWHY: The answer states that without MBEDTLS_PLATFORM_MEMORY (the default), mbedtls_calloc/mbedtls_free are macros for libc calloc/free, meaning there is no indirection."
+}

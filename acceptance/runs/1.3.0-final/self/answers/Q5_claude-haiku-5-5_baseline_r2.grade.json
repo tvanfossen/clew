@@ -1,0 +1,143 @@
+{
+  "cell": "Q5_claude-haiku-5-5_baseline_r2",
+  "arm": "baseline",
+  "rubric_version": "5.0.0",
+  "rubric_digest": "d8447c7b18eafbf5",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.3333333333333333,
+  "unmarked_pct": 0.0,
+  "split_decisions": 0,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "identifies that layered build options resolve through FIVE named precedence tiers, rather than a single override",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": false,
+      "detail": "QUOTE: The rule is the five-tier one in `clew/tiers.py`: \"you can correct our guesses; you cannot un-discover a fact.\" | WHY: The answer mentions a \"five-tier\" rule but never names five precedence tiers. It lists only about four places, and its resolution rules cover just explicit, declared and heuristic, with target facts accumulating. || QUOTE: The rule is the five-tier one in `clew/tiers.py`: \"you can correct our guesses; you cannot un-discover a fact.\" | WHY: The answer mentions a \"five-tier\" rule but lists only four places, never names five precedence tiers, and describes the mechanism as explicit > declared > heuristic with accumulating facts. || QUOTE: The rule is the five-tier one in `clew/tiers.py`: \"you can correct our guesses; you cannot un-discover a fact.\" | WHY: The answer mentions a \"five-tier\" rule but never names the five tiers; it lists four places and describes explicit/declared/heuristic, so it doesn't identify the five named precedence tiers.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that the rule is ASYMMETRIC \u2014 the stated tiers REPLACE one another while the discovered layers ACCUMULATE and survive whatever anyone states",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"Target facts and ecosystem entries accumulate under every stated tier, so no flag or declaration removes them.\" and \"you can correct our guesses; you cannot un-discover a fact.\" | WHY: The answer states that stated tiers replace one another (explicit replaces declared, lists not merged) while discovered facts accumulate under every tier and cannot be removed. || QUOTE: \"Target facts and ecosystem entries accumulate under every stated tier, so no flag or declaration removes them.\" and \"explicit replaces declared, and declared replaces heuristic. The lists are not merged.\" and \"you can correct our guesses; you cannot un-discover a fact.\" | WHY: The answer states that stated tiers replace one another while discovered target facts accumulate and survive any stated tier.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that tiers 3 and 4 combine IDENTICALLY, so the distinction between them is deliberately inert, and that the load-bearing line is fact-versus-guess",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never says tiers 3 and 4 combine identically or that the distinction between them is inert. It also does not name fact-versus-guess as the load-bearing line. It only quotes the \"correct our guesses; cannot un-discover a fact\" rule, without tying it to this point. || QUOTE: NONE | WHY: The answer describes tiers and replace/accumulate rules but never says tiers 3 and 4 combine identically or that the fact-versus-guess line is what matters. || QUOTE: NONE | WHY: The answer never says tiers 3 and 4 combine identically or that the fact-versus-guess line is what matters; it only mentions that target facts accumulate and heuristics are a floor.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies `.clew.yaml` as the repository's own standing declaration \u2014 tier 2, discovered from the repo root by BOTH entry points rather than plumbed per section",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: \"| 2. Declared | `.clew.yaml` at the repo root (`index_scope:`, `sub_indexes:`, ... plus a `guard:` section for the gate) | The repo's standing statement. `clew/declaration.py`, `clew/buildoptions.py`. |\" | WHY: The answer names `.clew.yaml` at the repo root as the repo's standing declaration (tier 2), but it never says both entry points discover it from the repo root rather than having it plumbed per section. || QUOTE: \"| 2. Declared | `.clew.yaml` at the repo root (`index_scope:`, `sub_indexes:`, ... plus a `guard:` section for the gate) | The repo's standing statement. `clew/declaration.py`, `clew/buildoptions.py`. |\" | WHY: The answer names `.clew.yaml` at the repo root as the repo's standing declaration at tier 2. It never says that both entry points discover it rather than plumbing it per section, so that half of the item is missing. || QUOTE: \"| 2. Declared | `.clew.yaml` at the repo root (`index_scope:`, `sub_indexes:`, ... plus a `guard:` section for the gate) | The repo's standing statement. `clew/declaration.py`, `clew/buildoptions.py`. |\" | WHY: The answer names `.clew.yaml` at the repo root as tier 2 and the repo's standing statement. It never says that both entry points discover it from the repo root rather than having it plumbed per section.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that tier 1 is reachable from BOTH entry points \u2014 a CLI flag and a structured options argument \u2014 so an embedding caller with no shell can still state the top tier",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: CLI flags (`--scope`, `--extra-input`, `--extra-exclude`, `--doxyfile`, `--shared-key-patterns`, \u2026) or the `options` argument for embedding callers and MCP | WHY: The tier 1 row states it is reachable via CLI flags or the `options` argument for embedding callers, which covers both entry points. || QUOTE: CLI flags (`--scope`, `--extra-input`, `--extra-exclude`, `--doxyfile`, `--shared-key-patterns`, \u2026) or the `options` argument for embedding callers and MCP | WHY: The tier 1 row names both the CLI flags and the `options` argument for embedding callers as ways to state the explicit top tier. || QUOTE: CLI flags (`--scope`, `--extra-input`, `--extra-exclude`, `--doxyfile`, `--shared-key-patterns`, \u2026) or the `options` argument for embedding callers and MCP | WHY: The tier 1 row states it is reachable via CLI flags or the `options` argument for embedding callers, covering both entry points.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "notes that the option names an embedding caller states are the SAME WORDS as the declaration file's section names, and the same words the diagnostics use",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer lists the `options` argument for embedding callers and the `.clew.yaml` sections separately but never states that the option names are the same words as the section names and the diagnostics. || QUOTE: NONE | WHY: The answer lists the `options` argument and the `.clew.yaml` section names separately, but never says the embedding caller's option names are the same words as the declaration sections and the diagnostics. || QUOTE: NONE | WHY: The answer lists the `options` argument and the `.clew.yaml` section names separately but never states that the option names an embedding caller uses are the same words as the declaration file's sections and the diagnostics.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies that an unknown SECTION is refused by name against the allowed set rather than ignored, and gives the reason \u2014 an ignored section builds with defaults while reporting the declaration was honoured",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: A malformed `.clew.yaml` section is refused by name (fail closed). | WHY: The answer says a malformed section is refused by name, but it doesn't say an unknown section is refused against the allowed set. It also gives no reason about an ignored section building with defaults while reporting the declaration was honoured. || QUOTE: A malformed `.clew.yaml` section is refused by name (fail closed). | WHY: The answer says a malformed section is refused by name, but it never says an unknown section is refused against the allowed set. It also doesn't give the reason that an ignored section would build with defaults while claiming the declaration was honoured. || QUOTE: A malformed `.clew.yaml` section is refused by name (fail closed). | WHY: The answer says a malformed section is refused by name, but it never says an unknown section is refused against the allowed set. It also doesn't give the reason that an ignored section would build with defaults while reporting the declaration was honoured.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies a SECOND refusal one level down \u2014 an unknown key INSIDE a well-named section \u2014 and that a correctly-spelled derived key is refused with its reason rather than as unknown",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: A malformed `.clew.yaml` section is refused by name (fail closed). | WHY: The answer doesn't describe a second refusal for an unknown key inside a valid section, nor a correctly-spelled derived key being refused with its reason rather than as unknown. || QUOTE: A malformed `.clew.yaml` section is refused by name (fail closed). | WHY: The answer never describes an unknown key inside a valid section, nor a correctly-spelled derived key refused with its reason rather than as unknown. || QUOTE: A malformed `.clew.yaml` section is refused by name (fail closed). | WHY: The answer never describes a second, nested refusal for an unknown key inside a valid section, nor a correctly-spelled derived key being refused with its reason rather than as unknown.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the winning tier is RECORDED with the index, and that the record is derived from the stored rows rather than stamped as a separate summary",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: the winning tier for each option is recorded in `build_meta` (`options.<name>.tier`), and the scope reason is logged, so you can see which tier won after the fact. | WHY: The answer says the tier is recorded in build_meta but never says the record is derived from stored rows rather than stamped as a separate summary. || QUOTE: the winning tier for each option is recorded in `build_meta` (`options.<name>.tier`), and the scope reason is logged, so you can see which tier won after the fact. | WHY: The answer says the winning tier is recorded in build_meta, but never states that the record is derived from the stored rows rather than stamped as a separate summary. || QUOTE: the winning tier for each option is recorded in `build_meta` (`options.<name>.tier`), and the scope reason is logged, so you can see which tier won after the fact. | WHY: The answer says the winning tier is recorded in build_meta, but it never says the record is derived from the stored rows rather than stamped as a separate summary.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide a build option's value \u2014 clew/tiers.py",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide a build option's value \u2014 clew/declaration.py",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide a build option's value \u2014 clew/buildoptions.py",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide a build option's value \u2014 precision",
+      "kind": "set_precision",
+      "weight": 1,
+      "hit": false,
+      "detail": "named 7 not in the set: ['.clew.yaml', 'clew/scope.py', 'clew/toolchain.py', 'cli.py', 'pyproject.toml', 'suppress.toml', 'toolchain.toml']",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    }
+  ]
+}

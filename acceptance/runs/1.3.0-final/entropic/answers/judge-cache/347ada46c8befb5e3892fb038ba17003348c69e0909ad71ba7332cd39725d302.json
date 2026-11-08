@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`ServerManager::execute` always checks the deny list.\" and \"With a callback wired, the only thing that stops a call is the deny list.\"\nVERDICT: HIT\nWHY: The answer says ServerManager::execute consults the deny list, and that it is the only thing that stops a call once a callback is wired. That matches the item's substance, though the answer also lists other preconditions (schema, tier, etc.) that can block."
+}

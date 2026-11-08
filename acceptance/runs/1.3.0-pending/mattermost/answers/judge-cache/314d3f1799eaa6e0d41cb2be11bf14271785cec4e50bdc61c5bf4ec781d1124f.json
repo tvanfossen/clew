@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names these files as having behaviour that depends on the setting, either directly or through a helper derived from it. Listed as written, with the `app/screens/browse_channels/` ones joined to their directory:\n\nITEMS:\napp/queries/servers/system.ts\napp/actions/remote/search.ts\napp/actions/remote/channel.ts\napp/actions/websocket/channel.ts\napp/screens/browse_channels/index.ts\napp/screens/browse_channels/browse_channels.tsx\ndropdown_slideup.tsx\nchannel_dropdown.tsx\napp/screens/channel_settings/archive/index.ts\narchive.tsx\napp/screens/home/channel_list/categories_list/categories/header/index.ts\napp/database/models/server/category.ts\nEND"
+}

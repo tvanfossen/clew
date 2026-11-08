@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"A match only skips the approval prompt. It does not bypass the deny check.\"\nVERDICT: HIT\nWHY: The answer says an allow match only skips the approval prompt and doesn't grant execution. Its flow diagram puts the allow list in `ToolExecutor::check_approval` (`tool_executor.cpp`), separate from the deny check in `server_manager.cpp`."
+}

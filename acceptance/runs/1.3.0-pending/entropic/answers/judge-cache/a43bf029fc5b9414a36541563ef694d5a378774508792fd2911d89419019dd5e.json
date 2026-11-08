@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Note that call 2 in the tokenizer can only fail if something other than the size is wrong. The sized call normally succeeds, so the `actual < 0` branch is defensive.\nVERDICT: MISS\nWHY: The answer says that `actual < 0` is defensive and that failure returns `{}`, but it never says a negative result from the second call is terminal rather than retried."
+}

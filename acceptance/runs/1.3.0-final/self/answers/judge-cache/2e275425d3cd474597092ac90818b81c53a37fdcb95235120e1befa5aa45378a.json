@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"| 2. Declared | `.clew.yaml` at the repo root (`index_scope:`, `sub_indexes:`, ... plus a `guard:` section for the gate) | The repo's standing statement. `clew/declaration.py`, `clew/buildoptions.py`. |\"\nVERDICT: MISS\nWHY: The answer names `.clew.yaml` at the repo root as the repo's standing declaration (tier 2), but it never says both entry points discover it from the repo root rather than having it plumbed per section."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the file is gated on MBEDTLS_ERROR_C but never states it is enabled in the shipped mbedtls_config.h or present in a default build."
+}

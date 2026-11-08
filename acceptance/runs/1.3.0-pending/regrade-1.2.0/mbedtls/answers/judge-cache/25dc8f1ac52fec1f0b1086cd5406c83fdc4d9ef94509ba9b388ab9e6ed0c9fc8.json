@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `library/memory_buffer_alloc.c` provides a heap over a caller-supplied static buffer. `mbedtls_memory_buffer_alloc_init()` (`:566-576`) calls `mbedtls_platform_set_calloc_free` itself\nVERDICT: HIT\nWHY: The answer identifies the buffer allocator calling the runtime setter from its init function. It doesn't say \"only in-tree user\", but it does say the allocator installs itself, which covers the core mechanism."
+}

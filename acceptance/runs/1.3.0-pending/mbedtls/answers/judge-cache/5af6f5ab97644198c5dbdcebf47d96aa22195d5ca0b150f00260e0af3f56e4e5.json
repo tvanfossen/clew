@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Concurrency comes only from the sample programs, and the mutexes are not compiled in.\" and \"Gated on `THREADING_C` and `THREADING_PTHREAD`, both default off. Only exists when those are enabled.\"\n\nVERDICT: MISS\n\nWHY: The answer says the library creates no threads and the mutexes are off by default. But it never says the pthread example compiles to a stub main in a default build, and it lists the pthread server as a spawn site that exists only when enabled."
+}

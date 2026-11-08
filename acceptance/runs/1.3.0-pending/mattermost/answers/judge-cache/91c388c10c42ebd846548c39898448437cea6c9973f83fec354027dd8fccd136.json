@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"It calls `operator.handleReactions({ prepareRecordsOnly: false, skipSync: true, postsReactions: [...] })`\" and \"For `createReactions`, `prepareRecords` calls `transformReactionRecord` with `CREATE`... Because `prepareRecordsOnly` is false, `batchRecords` runs `writer.batch(...)`\"\nVERDICT: HIT\nWHY: The answer states that the added reaction goes through the operator's `handleReactions`, which prepares Reaction records and writes them with `batchRecords`."
+}

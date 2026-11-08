@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 17389,
+  "stop_reason": "end_turn",
+  "session_id": "4d7a71ca-32b6-4298-ace2-3660d97da7ca",
+  "total_cost_usd": 0.0073016,
+  "usage": {
+    "input_tokens": 6,
+    "cache_creation_input_tokens": 24630,
+    "cache_read_input_tokens": 100900,
+    "output_tokens": 2732,
+    "output_tokens_details": {
+      "thinking_tokens": 1353
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 24630,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2333,
+        "cache_read_input_tokens": 40817,
+        "cache_creation_input_tokens": 4053,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 4053
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 6,
+      "outputTokens": 2732,
+      "cacheReadInputTokens": 100900,
+      "cacheCreationInputTokens": 24630,
+      "webSearchRequests": 0,
+      "costUSD": 0.0073016,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1353,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 24630,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 3,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The answer is a list of **name-level edges with provenance**, not a verified list of call sites. Here is `_ast_harvest_calls` (`clew/call_edges.py:1140`) as an example.\n\n**What the answer contains**\n\n- **Callers**, each with `name`, `file`, `edge_class` (`call`), `source` and `confidence`. Here the sources are `ast` (tree-sitter) and `doxygen_sqlite`, and confidence is `resolved` or `exact`.\n- **Callees**, same shape, which is what this function calls and where that call was resolved.\n- **`external_callees`**, calls the index could not map to an indexed function. Here it is `harvest_js_calls` at line 1173, listed with its call lines. That field is how unresolved calls stay visible instead of disappearing.\n- **Counts**: `callers_unresolved: 0`, `context_undecidable: 0`, `gates_unplaceable: 0`. These are measurements, so zero means the index checked and found none.\n- **Verbatim body**, which is repository text, not instructions.\n\n**Why it is not a plain list of call sites**\n\n1. **It matches names.** The harvester records the callee identifier from syntax (`call_expression`, `field_expression`, etc.). A bare name can match several functions. The `qualified` field and the `ambiguous` block exist for this. Without them, a same-named function in another namespace gets attributed to the wrong target. The code keeps qualifiers (#75) so `Ns::Class::method()` can be told apart from other `method`s.\n\n2. **Callers mix production and tests.** Thirteen of the fourteen callers listed here are tests. A caller list shows what references the function, not what runs in production. Filter by file before reading it as \"who uses this\".\n\n3. **Some calls are not edges at all.**\n   - Callbacks and function pointers come from a separate layer (`callback_edges.py`), so passing a function as an argument is not a call here.\n   - The harvester only records a call when the callee has a static name. The test `test_callee_without_a_static_name_is_still_refused` shows that such calls are dropped by design.\n   - Constructing an unindexed template resolves to nothing (`test_constructing_an_unindexed_template_still_resolves_to_nothing`).\n   - Virtual dispatch shows the static name at the call site, not the override that actually runs. The `overrides` and `overridden_by` fields are the place to look for that; both are empty for this function.\n\n4. **Coverage depends on the language path.** C, C++ and Rust use this walker. Python and JS/TS are dispatched to `pyast` and `jsast`. A missing or partial harvester gives an absent or short list. The docstring warns that the JS member-call path was once silently dropped. Zero edges could mean \"none\" or \"not harvested\".\n\n5. **The `source` tag matters.** `ast` and `doxygen_sqlite` edges come from different extractors, and `confidence` marks how sure the resolution is. Read `exact` and `resolved` as different levels of certainty, not as the same fact.\n\n6. **The result is cached.** The harvest is rowid-free and keyed to the file's content sha, then re-resolved on each build. Stale caches are reported through `staleness`, so check that field before trusting a list from an older build.\n\n**Bottom line:** read the callers as \"these references resolved to this name, from these sources, at these confidence levels, with these gaps listed\", not as \"these are every call site\". The unresolved fields and counts are part of the answer, and an empty list only means something when the layer that would have produced it ran.",
+  "ttft_ms": 2191,
+  "type": "result",
+  "duration_ms": 17812,
+  "uuid": "ea89adca-6837-4c44-85e8-084c6d9db042",
+  "ttft_stream_ms": 1222,
+  "time_to_request_ms": 69,
+  "first_content_frame_ms": 1223,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

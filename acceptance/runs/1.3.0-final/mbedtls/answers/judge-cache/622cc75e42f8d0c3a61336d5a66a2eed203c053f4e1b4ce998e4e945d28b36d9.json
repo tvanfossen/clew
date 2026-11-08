@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: #ifndef MBEDTLS_ALLOW_PRIVATE_ACCESS #define MBEDTLS_PRIVATE(member) private_##member #else #define MBEDTLS_PRIVATE(member) member #endif ... \"the field is named `private_foo` for anyone who doesn't opt out\" and \"`library/common.h`... the library sees real member names everywhere... external users don't get it by including the public headers.\"\nVERDICT: HIT\nWHY: The answer explains that opt-in code sees plain member names while ordinary public-header consumers see the `private_`-renamed ones."
+}

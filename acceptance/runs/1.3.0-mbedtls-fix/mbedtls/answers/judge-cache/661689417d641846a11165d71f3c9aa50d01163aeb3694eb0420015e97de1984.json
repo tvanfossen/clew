@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer discusses MBEDTLS_PLATFORM_MEMORY gating mbedtls_calloc but never states that memory_buffer_alloc requires MBEDTLS_PLATFORM_MEMORY to route allocations through it."
+}

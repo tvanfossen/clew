@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **`not_indexed` / `not_indexed_count`:** file types the build walked and produced no rows for. The build measured this against its own tree, not the query-time tree.\nVERDICT: HIT\nWHY: The answer says the reply carries `not_indexed` naming file types that were in scope (walked) but produced no rows, which separates \"not indexed\" from \"absent\". The answer also says a definitive empty answer \"does not prove the file is absent from the tree\" and that this depends on `not_indexed`."
+}

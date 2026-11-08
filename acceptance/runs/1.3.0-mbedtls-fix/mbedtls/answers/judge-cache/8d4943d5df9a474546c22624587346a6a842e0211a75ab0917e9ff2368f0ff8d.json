@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `#define MBEDTLS_PRIVATE(member)  private_##member   /* default: member is renamed */` and `#define MBEDTLS_PRIVATE(member)  member             /* when MBEDTLS_ALLOW_PRIVATE_ACCESS is defined */`\nVERDICT: HIT\nWHY: The answer shows both branches: the plain member name when MBEDTLS_ALLOW_PRIVATE_ACCESS is defined and the renamed `private_` member by default. It ties the opt-out to library and in-tree code, and the default to application code."
+}

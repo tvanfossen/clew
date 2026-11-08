@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Only 14 occurrences remain in `library/`, mostly in internal headers such as `ssl_ciphersuites_internal.h` (8).\nVERDICT: MISS\nWHY: The answer says the macro is rare in the library (14 occurrences) and used in public headers, but it never gives a scale of many hundreds of sites or says they are overwhelmingly in public headers."
+}

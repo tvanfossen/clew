@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Patterns are matched by `PermissionManager::pattern_matches` using `fnmatch`, with no `FNM_PATHNAME`... `filesystem.*` ... No colon, so args are ignored. `bash.execute:python*` | Tool part `bash.execute` must match, and the first argument value must match `python*`.\nVERDICT: HIT\nWHY: The answer states fnmatch matching, the tool:argument colon split (tool part vs argument part), and that a colon-less pattern matches on the tool name alone with args ignored."
+}

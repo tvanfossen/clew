@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"An empty token vector is also a legitimate result for empty input with `add_special=false`. The caller cannot distinguish the two cases.\"\nVERDICT: HIT\nWHY: The answer states that failure returns `{}`, which is indistinguishable from a legitimately empty result. It also traces the callers and shows none of them check for failure."
+}

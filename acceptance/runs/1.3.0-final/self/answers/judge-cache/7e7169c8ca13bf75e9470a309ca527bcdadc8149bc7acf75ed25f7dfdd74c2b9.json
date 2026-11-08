@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`stale_code_refusal()` is called by `build_or_refresh` and `_first_build_refusal`, and it does not accept an override; `force` does not bypass it.\" and \"Write paths refuse until then.\"\nVERDICT: HIT\nWHY: The answer says write paths refuse rather than warn and that `force` cannot bypass the refusal. That is the substance of the item. It never says outright that the refusal sits ahead of the build decision, but \"does not accept an override; `force` does not bypass it\" conveys the placement effect."
+}

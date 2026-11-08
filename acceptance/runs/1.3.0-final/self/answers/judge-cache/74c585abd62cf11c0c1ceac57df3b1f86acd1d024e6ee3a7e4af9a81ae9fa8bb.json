@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `key` rows are shared-key dataflow with no call between the endpoints; they may be asynchronous and cross threads.\nVERDICT: MISS\nWHY: The answer mentions key rows as non-call dataflow but never says the callers/callees polarity is inverted, i.e. that a reader's \"callers\" are the functions whose writes it observes."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Both lists use the same matcher, `pattern_matches`. It splits the pattern on the first `:`: Left side (or the whole pattern if there's no colon) is `fnmatch`ed against the fully-qualified tool name... No colon means the tool matches with any arguments.\"\nVERDICT: HIT\nWHY: The answer states fnmatch matching, a split at the first colon into tool and argument parts, and that a colon-less pattern matches on the tool name alone, with any arguments."
+}

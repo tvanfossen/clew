@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the default build expands to plain `calloc`/`free`, but it also draws the call path through function pointers and admits the default is only inferred; it never concludes there is no indirection."
+}

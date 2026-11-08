@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: the health monitor runs its user callbacks on the engine thread via `process_events`, not on the monitor thread.\nVERDICT: MISS\nWHY: The answer says callbacks run on the engine thread via `process_events`, but it never states the mechanism the item requires: that the monitor queues events under a mutex and the caller drains them."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **`programs/ssl/ssl_server2.c:8` and `programs/ssl/ssl_client2.c:8`** define it at the top of the file, before `ssl_test_lib.h`. These test and demo programs are the only ones that opt out directly. They reach into SSL context internals, which is the case the `ssl.h` warning discourages.\nVERDICT: HIT\nWHY: The answer states that example programs (ssl_server2/ssl_client2) define MBEDTLS_ALLOW_PRIVATE_ACCESS themselves to reach into SSL internals past the public API."
+}

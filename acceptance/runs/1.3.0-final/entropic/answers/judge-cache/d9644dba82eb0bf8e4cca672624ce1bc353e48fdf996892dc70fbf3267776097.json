@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**The callback doesn't deny.** `on_tool_call` returns `void`, so when it is wired, `check_approval` sets `approved = true` after notifying it.\"\nVERDICT: HIT\nWHY: The answer states the callback returns void and that approved is set to true after it fires, so it cannot refuse."
+}

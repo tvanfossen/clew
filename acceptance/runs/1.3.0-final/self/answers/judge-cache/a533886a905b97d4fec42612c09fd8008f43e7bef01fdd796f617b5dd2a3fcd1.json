@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `.clew.yaml` in the repo root | repo | 2 (declared) | The standing statement for the repo. Both CLI and MCP read it, because both already know the repo root.\nVERDICT: HIT\nWHY: The answer identifies `.clew.yaml` as the repo's standing declaration at tier 2, read by both CLI and MCP entry points via the repo root."
+}

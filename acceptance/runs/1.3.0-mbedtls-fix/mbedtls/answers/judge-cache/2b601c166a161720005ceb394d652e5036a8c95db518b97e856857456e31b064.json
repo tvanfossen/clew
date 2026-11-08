@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Without the opt-out, `ctx->MBEDTLS_PRIVATE(state)` becomes `ctx->private_state`, so the real name `state` no longer exists. Plain `ctx->state` then fails to compile. ... It is not a security boundary. The rename exists only at compile time, and the fields still exist in the binary.\nVERDICT: HIT\nWHY: The answer says the macro renames members (private_##member) so plain access fails to compile, and that this is a compile-time rename and not a security boundary. It says the point is to keep struct layout out of the stable API. It never says outright that the layout is visible and sized, but a rename-only mechanism implies it."
+}

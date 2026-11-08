@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"the resolved set is `(tier1 or tier2 or tier5) \u222a tier3 \u222a tier4`. Tiers 1, 2 and 5 are interchangeable \"stated\" layers, and tiers 3 and 4 always stay in.\"\nVERDICT: HIT\nWHY: The answer states that the stated tiers replace one another while tiers 3 and 4 accumulate and always survive, e.g. \"main survives any --entry-patterns\"."
+}

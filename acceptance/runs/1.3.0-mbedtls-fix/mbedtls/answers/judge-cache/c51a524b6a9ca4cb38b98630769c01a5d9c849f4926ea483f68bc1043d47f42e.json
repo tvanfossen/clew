@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Opaque barrier.** `mbedtls_ct_compiler_opaque` (`impl.h:85`) is `asm volatile(\"\" : \"+r\"(x))` under assembly. In C it is `x ^ mbedtls_ct_zero`, where `mbedtls_ct_zero` is a `volatile` global set to 0 (`constant_time.c:29`). The compiler cannot prove a value, so it cannot fold a branch on it.\nVERDICT: HIT\nWHY: The answer names mbedtls_ct_compiler_opaque as the barrier that stops the compiler from knowing a value and places it in the constant_time_impl.h header (`impl.h:85`, with `impl.h` used as shorthand for that file elsewhere)."
+}

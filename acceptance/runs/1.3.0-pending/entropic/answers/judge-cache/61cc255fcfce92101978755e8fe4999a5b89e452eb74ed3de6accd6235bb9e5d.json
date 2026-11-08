@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: External MCP bridge | `ExternalBridge::start` \u2192 `accept_loop` ... Health | `HealthMonitor::start` \u2192 `monitor_loop` ... MCP stdio | `StdioTransport::open` \u2192 `stderr_reader_loop` ... MCP SSE | `SSETransport::open` \u2192 `sse_reader_loop` ... Inference cancel | `iface_generate_with_cancel` poller\nVERDICT: HIT\nWHY: The table lists spawn sites across the external bridge, MCP transports, health monitor and inference/cancel paths, showing creation is spread across subsystems. The answer never says outright that creation is decentralised, but the table makes the point."
+}

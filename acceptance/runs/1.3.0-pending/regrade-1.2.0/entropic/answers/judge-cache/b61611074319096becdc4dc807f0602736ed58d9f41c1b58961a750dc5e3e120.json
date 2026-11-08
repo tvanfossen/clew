@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says deny is enforced in ServerManager::execute, but it never concludes that deny is the only list that blocks execution. It describes other blocking checks (schema, tier, MCP auth, and a refusal when there's no callback and no allow match), which contradicts the item."
+}

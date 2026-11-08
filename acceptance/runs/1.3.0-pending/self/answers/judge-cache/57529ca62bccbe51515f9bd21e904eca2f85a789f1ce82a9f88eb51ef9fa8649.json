@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The whole-repo default logs at WARNING with its reason, so an unchosen boundary is never mistaken for a chosen one. ... \"The reason is recorded and logged at WARNING.\" ... \"A block with no usable roots is rejected, and the rejection reason is logged.\"\nVERDICT: HIT\nWHY: The answer states the fallback to whole-repo scope carries a recorded/logged reason, so an unchosen boundary is never mistaken for a chosen one."
+}

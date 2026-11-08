@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`staleness_notices()` in `server.py` attaches it to every query reply.\" and \"The list is empty when the index is current\"\nVERDICT: HIT\nWHY: The answer states the staleness notices are attached to every query reply and that the list is empty when the index is current."
+}

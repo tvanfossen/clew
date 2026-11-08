@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer is about index scope resolution and never mentions a containment call being removed; it only notes the Doxyfile tier was removed, which is a different fact."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It calls `client.createPost` again. This is a fresh POST... On failure, the same branch rules apply again: server-error cases remove the post, and anything else marks it failed again.\nVERDICT: HIT\nWHY: The answer states retry makes a single new createPost call (no loop; automatic retries zero via retryLimit 0) and on failure removes the post for the server-error cases or marks it failed again."
+}

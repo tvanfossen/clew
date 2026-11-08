@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Each pattern is split at the first `:`. | `bash.execute` | tool name, fnmatch against `bash.execute` | none | every call to that tool | ... Matching uses `fnmatch` with flags 0\nVERDICT: HIT\nWHY: The answer states fnmatch matching, splitting at the first colon into tool and argument parts, and that a pattern without a colon matches on the tool name alone (the table row with no right-of-colon part)."
+}

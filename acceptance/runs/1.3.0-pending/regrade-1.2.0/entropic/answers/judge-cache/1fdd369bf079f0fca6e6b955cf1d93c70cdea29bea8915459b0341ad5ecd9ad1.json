@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It is `*` when the args are empty, unparseable, or the first value is not a string.\nVERDICT: HIT\nWHY: The answer says only the first string-valued argument reaches the pattern, and that unparseable or non-string args collapse to `*`. That covers the rest of the arguments being invisible to matching, even though it doesn't say so in those words."
+}

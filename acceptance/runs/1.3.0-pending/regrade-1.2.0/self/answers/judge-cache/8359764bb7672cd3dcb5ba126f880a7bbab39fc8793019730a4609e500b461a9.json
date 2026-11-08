@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Clew has four ways to say how a repository should be indexed, and they resolve in a fixed order.\nVERDICT: HIT\nWHY: Although the prose says \"four ways\", the table lists five named tiers (Explicit, Declared, Target facts, Ecosystem, Heuristic) with precedence resolution, which shows the five-tier layered mechanism."
+}

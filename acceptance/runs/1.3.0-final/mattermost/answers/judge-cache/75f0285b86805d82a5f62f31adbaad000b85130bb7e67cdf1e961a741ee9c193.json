@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says batchRecords lives in BaseDataOperator and handlers flow through it, but it never states that each mixin is constrained to extend ServerDataOperatorBase. It even admits the Mix locations were unconfirmed."
+}

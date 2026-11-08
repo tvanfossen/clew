@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer lists reach in src/inference, src/facade/entropic.cpp, public headers and tests, but never concludes that the dependency is concentrated in inference yet not contained by it, and gives no minority-versus-majority count of reaching files."
+}

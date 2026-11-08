@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"archived channels are viewable unless the value is exactly `'false'`.\" and \"`archivedChannelsViewable = (value?: string) => value !== 'false'` ... returns `true` for `undefined`... absence means on. Only an explicit `'false'` ... turns the feature off.\"\nVERDICT: HIT\nWHY: The answer states that an absent setting means archived channels are viewable and only an explicit 'false' disables them."
+}

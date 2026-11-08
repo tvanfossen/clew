@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the pointers default to libc calloc/free and never states that uninitialised defaults fail (calloc returns NULL, free does nothing); the `platform_calloc_uninit` stub is mentioned only vaguely and not tied to that behavior."
+}

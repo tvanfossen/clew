@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It is triggered only from the failed-post bottom sheet, where the user taps \"Try Again\" (`post.failed.retry`, `app/components/post_list/post/body/failed/index.tsx:38-65`).\nVERDICT: HIT\nWHY: The answer says retry happens only when the user taps \"Try Again\" on the failed post, and names `retryFailedPost`."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Unknown section name: the load refuses with `DeclarationError` and lists the allowed sections.\nVERDICT: MISS\nWHY: The answer covers only the unknown-section refusal; it never mentions a second refusal for an unknown key inside a valid section, or a correctly-spelled derived key being refused with its reason."
+}

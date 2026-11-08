@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: If not viewable, the user is kicked out when viewing that channel and removed from it. If viewable, the channel is only marked deleted.\nVERDICT: HIT\nWHY: The answer's handleChannelDeletedEvent row states that when archived channels aren't viewable the user is kicked out of the current channel and removed, and when viewable the channel is only marked deleted."
+}

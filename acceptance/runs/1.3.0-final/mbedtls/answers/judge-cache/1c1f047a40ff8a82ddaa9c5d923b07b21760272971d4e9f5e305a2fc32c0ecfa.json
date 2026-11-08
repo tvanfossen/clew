@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the library has no threads of its own in the default config and that the pthread example is gated off by default (\"does not build under the defaults either\"). It never says the example compiles to a stub main. It also hedges on thread creation, so it does not conclude that a default build creates no threads at all."
+}

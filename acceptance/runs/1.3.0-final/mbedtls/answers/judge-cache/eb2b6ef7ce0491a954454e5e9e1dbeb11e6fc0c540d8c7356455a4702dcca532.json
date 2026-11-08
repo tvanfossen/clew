@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The buffer allocator adds a mutex when `MBEDTLS_THREADING_C` is on, and its free path checks block magic values.\nVERDICT: MISS\nWHY: The answer says a mutex is added under MBEDTLS_THREADING_C but never says a mutexed vs plain pair of calloc/free is installed, nor that the choice is made at compile time inside the init function."
+}

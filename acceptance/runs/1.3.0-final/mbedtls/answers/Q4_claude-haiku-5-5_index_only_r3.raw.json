@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 19665,
+  "stop_reason": "end_turn",
+  "session_id": "ce33c5d6-e6df-471b-94a4-d57bff8ad6d4",
+  "total_cost_usd": 0.009077060000000001,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 24071,
+    "cache_read_input_tokens": 279366,
+    "output_tokens": 2936,
+    "output_tokens_details": {
+      "thinking_tokens": 1010
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 24071,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1564,
+        "cache_read_input_tokens": 61124,
+        "cache_creation_input_tokens": 1189,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1189
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 2936,
+      "cacheReadInputTokens": 279366,
+      "cacheCreationInputTokens": 24071,
+      "webSearchRequests": 0,
+      "costUSD": 0.009077060000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1010,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 24071,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 10,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** `mbedtls_strerror()` in `library/error.c` splits the code into a module part and a low-level part, and each part is looked up in a generated `switch`. To add a new string, you add the `MBEDTLS_ERR_*` macro in the module's header, then regenerate the switch cases in `error.c` with `scripts/generate_errors.pl`. I did not confirm how that script is invoked or where it gets the description text, so check it before relying on the steps below.\n\n**The path from a negative return to a string**\n\n1. A caller gets `ret` (for example `-0x6100`) and passes it with a buffer to `mbedtls_strerror(int ret, char *buf, size_t buflen)` (`library/error.c:792`, declared in `include/mbedtls/error.h:165`).\n2. It returns early if `buflen == 0`, zeroes the buffer, and takes the absolute value of `ret`.\n3. **High-level part:** `ret & 0xFF80` selects the module bits. `mbedtls_high_level_strerr()` (`library/error.c:174`) switches on that value and returns a string such as `\"CIPHER - Bad input parameters\"`. Each case is wrapped in its module's `#if defined(MBEDTLS_xxx_C)`, so modules compiled out of the build have no entries. If no case matches, the buffer gets `UNKNOWN ERROR CODE (XXXX)`.\n4. If the module was SSL's fatal-alert code, it returns here and does not translate the low part.\n5. **Low-level part:** `ret & ~0xFF80` is the code within the module. `mbedtls_low_level_strerr()` (`library/error.c:537`) switches on it the same way, with the same per-module guards, e.g. `\"AES - Invalid key length\"`.\n6. If both parts are present, the two strings are joined with `\" : \"`, and the function keeps going while the buffer has room.\n\nThe string is truncated to fit `buflen` and is always null-terminated. A typical caller is `programs/test/benchmark.c`'s `PRINT_ERROR`, which calls `mbedtls_strerror(ret, tmp, sizeof(tmp))`.\n\n**What a contributor does to add one**\n\n1. Add the macro to the module's public header (e.g. `include/mbedtls/cipher.h`), with a value in the existing hex scheme. Header values look like `-0x6080` for CIPHER, so the high bits must match that module's range.\n2. Regenerate the switch cases in `library/error.c`. The two switch bodies are marked `/* Begin Auto-Generated Code. */`, and the index holds `scripts/generate_errors.pl`. Do not hand-edit that block. Run the generator the way the repo's pre-commit/tasks setup expects.\n3. The new entry needs the same `#if defined(MBEDTLS_<MODULE>_C)` guard as its neighbours, or it breaks builds that disable that module.\n4. Add a test per the repo's rule that tests are specifications: a case where the new code is returned and its text is checked. I did not find a covering test for `mbedtls_strerror` in the index.\n\n**What I could not settle from the index**\n\n- The index lists a second `mbedtls_strerror` definition at `library/error.c:867`, most likely the `MBEDTLS_ERROR_STRERROR_DUMMY` variant. I did not read it.\n- Where the generator takes the description text from (the header comment or a table in the script) is not visible through the index. The script has no indexed symbols.",
+  "ttft_ms": 1955,
+  "type": "result",
+  "duration_ms": 20514,
+  "uuid": "6ec832a4-bb99-447e-94ab-85a3bb4b686a",
+  "ttft_stream_ms": 1609,
+  "time_to_request_ms": 73,
+  "first_content_frame_ms": 1609,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

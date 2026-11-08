@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says llama.cpp's reach \"stops at src/inference/ and the tests\" and public headers show no llama types, but the item says a minority of reaching files sit outside src/inference. The answer describes containment, and its table lists orchestrator.cpp and adapter_manager.cpp without placing them outside src/inference."
+}

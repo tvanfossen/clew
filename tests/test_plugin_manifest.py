@@ -65,9 +65,31 @@ def test_plugin_version_matches_the_package_version() -> None:
     )
 
 
+## @brief The `uvx` argument vector that launches one of this package's console scripts.
+## @param script A declared console script.
+## @return ["--from", "<dist>==<version>", script], from pyproject.
+## @version 1
+def _pinned_launch(script: str) -> list[str]:
+    """ONE DEFINITION OF THE PIN, read from pyproject: the distribution name and the version the
+    manifest must launch. A manifest pinned to any other version installs a different clew from
+    the one this tree describes.
+
+    @brief The pinned uvx arguments.
+    @return Argument list.
+    @version 1
+    """
+    project = _pyproject()["project"]
+    return ["--from", f"{project['name']}=={project['version']}", script]
+
+
+## Version 2 (1.3.0, owner's ruling on the directory route): the server is launched through a
+## PINNED `uvx`, so installing the plugin installs the exact release it was published with. The
+## bare `clew-mcp` this asserted before assumed a `pip install` the plugin could not perform, and
+## the plugin directory expects a plugin to bring what it runs.
+##
 ## @brief The manifest actually registers this package's MCP server.
 ## @return None.
-## @version 1
+## @version 2
 def test_plugin_manifest_registers_the_mcp_server_by_its_console_script() -> None:
     """THE DEFECT THIS FILE EXISTS FOR: the manifest declared no `mcpServers` at all, so
     installing the plugin gave a user everything except the server that is the entire point.
@@ -77,22 +99,32 @@ def test_plugin_manifest_registers_the_mcp_server_by_its_console_script() -> Non
     The schema permits either a path string or an inline object; this asserts on whichever
     shape is present rather than mandating one.
 
-    @brief The manifest registers the server, under a real console-script name.
+    THE PIN IS THIS TREE'S VERSION, read from pyproject, so a release bump that forgets the
+    manifest fails here rather than shipping a plugin that installs the previous release.
+
+    @brief The manifest registers the server, pinned, under a real console-script name.
     @return None.
-    @version 1
+    @version 2
     """
     servers = _manifest().get("mcpServers")
     assert servers, "a plugin manifest with no mcpServers registers nothing and installs nothing"
-    if isinstance(servers, str):
-        assert (MANIFEST.parent / servers).exists(), "mcpServers names a file that does not exist"
-        return
+    assert isinstance(servers, dict), "the object form is required to carry the pinned launch"
 
     scripts = set(_pyproject()["project"]["scripts"])
-    commands = {entry.get("command") for entry in servers.values()}
-    assert commands <= scripts, (
-        f"the manifest launches {sorted(commands)}, which this package does not install; "
-        f"declared console scripts are {sorted(scripts)}"
-    )
+    for name, entry in servers.items():
+        assert entry.get("command") == "uvx", (
+            f"server {name!r} runs {entry.get('command')!r}; a plugin must launch the package it "
+            f"needs, through a pinned uvx, rather than assume a pip install already happened"
+        )
+        args = entry.get("args", [])
+        assert args[-1:] and args[-1] in scripts, (
+            f"server {name!r} launches {args[-1:]}, not a console script this package declares "
+            f"({sorted(scripts)})"
+        )
+        assert args == _pinned_launch(args[-1]), (
+            f"server {name!r} passes {args}; expected {_pinned_launch(args[-1])}, pinned to this "
+            f"tree's own version"
+        )
 
 
 ## @brief No module may import `tomllib` bare — the package floor is older than that stdlib.
@@ -295,9 +327,13 @@ def test_the_manifest_exempts_the_server_from_tool_search_deferral() -> None:
         )
 
 
+## Version 2 (1.3.0): launched through the same pinned `uvx` as the server. Measured on the
+## owner's machine against clew-trace 1.2.0: a warm `uvx` launch of the hook took 62-65 ms against
+## 16 ms bare, and the first launch, which installs, 2.2 s.
+##
 ## @brief The shipped hook must be the packaged console script, never a shell command line.
 ## @return None.
-## @version 1
+## @version 2
 def test_the_plugin_hook_is_a_packaged_console_script() -> None:
     """A HOOK IS AN INVISIBLE EXECUTABLE ON A CONSUMER'S MACHINE, so what the plugin asks to run
     matters as much as what that program does. A shell command line in the manifest would put an
@@ -309,9 +345,9 @@ def test_the_plugin_hook_is_a_packaged_console_script() -> None:
     here instead of failing silently for whoever installs the plugin next — the same discipline
     the mcpServers check above uses.
 
-    @brief The hook command is a declared console script.
+    @brief The hook command is a declared console script, launched pinned.
     @return None.
-    @version 1
+    @version 2
     """
     hooks_path = REPO_ROOT / "hooks" / "hooks.json"
     assert hooks_path.is_file(), "the plugin ships no hooks/hooks.json"
@@ -340,7 +376,13 @@ def test_the_plugin_hook_is_a_packaged_console_script() -> None:
                 f"{command!r} contains {metachar!r} — no shell metacharacter may reach a "
                 f"consumer's machine from this manifest"
             )
-        program, *args = command.split()
+        launcher, *rest = command.split()
+        assert launcher == "uvx", f"{command!r} is not launched through the pinned uvx"
+        program, args = rest[2], rest[3:]
+        assert rest[:3] == _pinned_launch(program), (
+            f"{command!r} does not pin this tree's own release; expected it to begin "
+            f"`uvx {' '.join(_pinned_launch(program))}`"
+        )
         assert program in scripts, (
             f"the hook runs {program!r}, which this package does not install; declared console "
             f"scripts are {sorted(scripts)}"

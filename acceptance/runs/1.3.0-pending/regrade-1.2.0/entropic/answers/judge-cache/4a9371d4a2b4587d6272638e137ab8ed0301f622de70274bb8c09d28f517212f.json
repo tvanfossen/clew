@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"ii. PermissionManager::is_denied(name, pattern) \u2192 error JSON, call never routed; iii. route_tool_call \u2192 the server runs the tool\"\nVERDICT: HIT\nWHY: The answer shows `ServerManager::execute` checking only `is_denied` before routing. It also says an allow match only skips the prompt, so the deny list is the only list that blocks at execute."
+}

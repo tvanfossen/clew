@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Monitor-thread events go into a queue under `event_mutex_`, and the callbacks run on the engine thread via `process_events()` (`health_monitor.cpp:118`).\"\nVERDICT: HIT\nWHY: The answer states that health monitor events are queued under a mutex and callbacks are run on the caller's/engine thread through process_events(), rather than from the monitor thread."
+}

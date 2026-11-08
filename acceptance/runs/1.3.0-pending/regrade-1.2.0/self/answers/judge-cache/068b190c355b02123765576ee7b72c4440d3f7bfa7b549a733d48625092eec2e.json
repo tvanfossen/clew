@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the reply reports which corpora were and weren't searched, and that confidence depends on those fields. It never says the strong \"definitive\" wording is earned per call by checking whether an unsearched corpus holds a match, as opposed to being tied to the empty-result shape."
+}

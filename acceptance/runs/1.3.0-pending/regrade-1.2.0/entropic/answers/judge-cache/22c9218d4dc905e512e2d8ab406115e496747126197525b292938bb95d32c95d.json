@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `detokenize` at lines 93 and 99 uses the same probe-then-fill pattern with `llama_token_to_piece`.\nVERDICT: MISS\nWHY: The answer says detokenize uses the same probe-then-fill pattern as tokenize, which contradicts the item's stack-buffer-first, heap-only-if-needed contrast."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`_drop_binary_files` non-text files removed (cli.py:1745, filetypes.py)\" and \"The in-scope set is also passed on as `scanned_files`, which lets the JS/TS front end register files doxygen will not read (cli.py:1747).\"\nVERDICT: HIT\nWHY: The answer says scope is not the whole story and names both filters: binary-file dropping and a front end that registers file types doxygen won't read. Its description of binary dropping doesn't mention extensions that lie about the file type, but the item only requires naming one of the two filters."
+}

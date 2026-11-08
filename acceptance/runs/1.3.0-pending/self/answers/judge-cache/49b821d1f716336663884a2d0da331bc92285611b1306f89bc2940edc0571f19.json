@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes how the empty-result verdicts are graded. It never states the general rule of fixing the corpus rather than the sentence about the corpus."
+}

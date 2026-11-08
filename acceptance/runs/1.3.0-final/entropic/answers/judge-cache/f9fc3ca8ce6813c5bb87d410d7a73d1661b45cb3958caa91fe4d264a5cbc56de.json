@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Returns **0** to the C API user. The \"count\" looks like a valid answer.\"\nVERDICT: HIT\nWHY: The answer states that on tokenization failure the empty vector makes `do_count_tokens` / `entropic_inference_count_tokens` return 0 as if valid, with no error signalled."
+}

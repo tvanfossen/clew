@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`handleReactionRemovedFromPostEvent` ... queryReaction(database, emoji_name, post_id, user_id).fetch() 4. if found: database.write(() => reaction[0].destroyPermanently())\" and \"It does not use `handleReactions`, `sanitizeReactions`, the transformer or `batchRecords`.\"\nVERDICT: HIT\nWHY: The answer says the remove handler skips the operator, queries the reaction, and destroys it with a direct `database.write`."
+}

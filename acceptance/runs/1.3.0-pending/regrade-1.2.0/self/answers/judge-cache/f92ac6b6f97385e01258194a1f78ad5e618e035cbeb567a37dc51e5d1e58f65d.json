@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Tier 3/4, facts the repo already wrote** | Doxygen `PREDEFINED`/`ALIASES`, generator manifests, language or ecosystem signatures | Accumulate; no declaration removes them\n\nVERDICT: MISS\nWHY: The answer groups tiers 3/4 together but never states that they combine identically, that the distinction between them is inert, or that the fact-versus-guess line is the load-bearing one."
+}

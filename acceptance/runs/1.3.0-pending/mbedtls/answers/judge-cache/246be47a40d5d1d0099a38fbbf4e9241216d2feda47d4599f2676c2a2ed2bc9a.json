@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer explains the rename mechanism and who defines the macro, but never states that a consumer of the public headers sees `private_`-prefixed names while code defining the macro sees plain names. Instead it says the library uses `MBEDTLS_PRIVATE(...)` and gets real field names."
+}

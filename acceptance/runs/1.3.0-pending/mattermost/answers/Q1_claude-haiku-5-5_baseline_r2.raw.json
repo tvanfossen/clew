@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 20610,
+  "stop_reason": "end_turn",
+  "session_id": "4a28e459-660b-46a7-b445-8565158751c0",
+  "total_cost_usd": 0.00441331,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 6627,
+    "cache_read_input_tokens": 213091,
+    "output_tokens": 1912,
+    "output_tokens_details": {
+      "thinking_tokens": 384
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 6627,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 918,
+        "cache_read_input_tokens": 46454,
+        "cache_creation_input_tokens": 768,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 768
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 1912,
+      "cacheReadInputTokens": 213091,
+      "cacheCreationInputTokens": 6627,
+      "webSearchRequests": 0,
+      "costUSD": 0.00441331,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 384,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 6627,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 5,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** a failed post is kept locally and marked failed, it is never retried automatically, and retrying it is a manual user action that re-sends the same post under the same pending ID.\n\n**What happens on failure** (`app/actions/remote/post.ts`, `createPost`, around lines 150\u2013225):\n\n- The post is written to the local database first, so it shows in the timeline before the server responds.\n- If `client.createPost` throws, the catch block logs the error and saves the post with `props.failed = true`, so the UI shows it as failed.\n- Two server errors are exceptions: `DELETED_ROOT_POST_ERROR`, `TOWN_SQUARE_READ_ONLY_ERROR` and `PLUGIN_DISMISSED_POST_ERROR` cause the post to be removed instead of kept as failed.\n- If the error is `BOR_DENIED_BY_POLICY_ERROR`, the cached render-permission entry for the channel is also expired.\n\n**How many automatic retries: zero.** The client has a default of 3 exponential-backoff retries (`app/managers/network_manager.ts`, lines 68\u201371). But `app/client/rest/posts.ts` (line 46) sends `createPost` with `noRetry: true`, and `app/client/rest/tracking.ts` (lines 383\u2013384) turns that into `retryPolicyConfiguration: {retryLimit: 0}`. The `noRetry` flag is there so a request that reached the server is not sent twice and duplicated. The code does not state that reason, so treat it as the likely intent.\n\n**What retrying does** (`retryFailedPost`, `app/actions/remote/post.ts`, around lines 228\u2013305):\n\n- It is called only from the failed-post component (`app/components/post_list/post/body/failed/index.tsx`, line 48), so it runs when the user taps the failed indicator.\n- It clears `failed`, sets new create and update timestamps, and writes that to the DB so the post shows as pending again.\n- It calls `client.createPost` again with a new request. Its `id` is empty and the server assigns a new one. The local record is then replaced with the server's post on success.\n- On failure it sets `failed` back to true, or removes the post for the same three server errors listed above.",
+  "ttft_ms": 3204,
+  "type": "result",
+  "duration_ms": 21042,
+  "uuid": "8d212ed2-36af-4c09-a7ec-2b7c92778139",
+  "ttft_stream_ms": 1687,
+  "time_to_request_ms": 148,
+  "first_content_frame_ms": 1687,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

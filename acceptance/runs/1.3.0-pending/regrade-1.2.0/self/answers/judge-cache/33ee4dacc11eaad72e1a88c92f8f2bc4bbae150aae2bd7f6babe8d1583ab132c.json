@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Code axis:** clew cannot fix it from inside the session. Restart the MCP client so it loads current code, then run `index(action='refresh', force=True)`.\" and \"**Data axis:** clew handles it automatically... `_refresh_stale`\" and \"An index stamped newer than the server can never be cleared by a rebuild\"\nVERDICT: MISS\nWHY: The answer lists different remedies per axis (auto-refresh/rebuild for data, client restart for code) but never says that this difference is why a single flag would not have been enough."
+}

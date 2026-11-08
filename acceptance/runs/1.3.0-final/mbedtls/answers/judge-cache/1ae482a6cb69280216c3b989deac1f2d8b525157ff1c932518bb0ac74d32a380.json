@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_THREADING_C` defaults to off (`include/mbedtls/mbedtls_config.h:3787`). - `MBEDTLS_THREADING_PTHREAD` defaults to off (`include/mbedtls/mbedtls_config.h:2196`).\nVERDICT: HIT\nWHY: The answer names both macros as the gates for threading/mutex code, stating that the mutexes exist only when `MBEDTLS_THREADING_C` is enabled and that the pthread spawn site is gated by `MBEDTLS_THREADING_PTHREAD`."
+}

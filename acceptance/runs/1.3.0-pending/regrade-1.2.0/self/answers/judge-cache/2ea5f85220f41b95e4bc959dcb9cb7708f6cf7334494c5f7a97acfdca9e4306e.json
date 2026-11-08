@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Callers are per function, not per site. ... Several sites in one function collapse into one entry.\"\nVERDICT: MISS\nWHY: The answer says multiple call sites in one function collapse into one caller entry, but it never says the surface returns one row per neighbour instead of one per layer or edge variant, collapsed to the strongest evidence."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer lists areas using the primitives but never states a module count or conveys \"on the order of twenty modules\"; it even says the list may not be exhaustive."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`include/mbedtls/mbedtls_config.h:3787` has `//#define MBEDTLS_THREADING_C` commented out. `MBEDTLS_THREADING_PTHREAD` (line 2196) and `MBEDTLS_THREADING_ALT` (line 2185) are also off.\" and \"Every lock site is guarded by `#if defined(MBEDTLS_THREADING_C)`\" and \"links `-lpthread` only when `THREADING_C` and `THREADING_PTHREAD` are both enabled.\"\nVERDICT: HIT\nWHY: The answer names MBEDTLS_THREADING_C as the guard for lock sites and says pthread linking requires both THREADING_C and THREADING_PTHREAD, identifying both as gating macros."
+}

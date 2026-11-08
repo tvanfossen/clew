@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: About 30 library files call it, in these areas:\nVERDICT: HIT\nWHY: The answer states the primitives are used across about 30 library files in many areas, conveying broad consumption rather than confinement to one or two modules."
+}

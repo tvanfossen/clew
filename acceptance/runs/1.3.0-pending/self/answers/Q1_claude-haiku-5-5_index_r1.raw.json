@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 21063,
+  "stop_reason": "end_turn",
+  "session_id": "eed8bd09-555d-4885-b5f2-f53a1619c518",
+  "total_cost_usd": 0.013779590000000001,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 48804,
+    "cache_read_input_tokens": 214579,
+    "output_tokens": 3744,
+    "output_tokens_details": {
+      "thinking_tokens": 1793
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 48804,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2598,
+        "cache_read_input_tokens": 59886,
+        "cache_creation_input_tokens": 9044,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 9044
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 3744,
+      "cacheReadInputTokens": 214579,
+      "cacheCreationInputTokens": 48804,
+      "webSearchRequests": 0,
+      "costUSD": 0.013779590000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1793,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 48804,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 8,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "When clew indexes a repository, the file set comes from one decision in `clew/scope.py`, `derive_scope()`. It returns one of two scopes: the repo's own declared `index_scope:`, or the whole repository minus a set of subtractions. The Doxyfile is no longer a tier (gh#333).\n\n**The decision**\n\n```\nderive_scope(repo_root)\n \u251c\u2500 load_declaration_located(root)        reads <repo>/.clew.yaml only\n \u2502    \u251c\u2500 file absent / unreadable         \u2192 treated as absent (warning if malformed)\n \u2502    \u2514\u2500 unknown top-level section        \u2192 DeclarationError (refused, not ignored)\n \u251c\u2500 _declared_index_scope()\n \u2502    \u251c\u2500 no index_scope: key             \u2192 None \u2192 fall through\n \u2502    \u251c\u2500 present but unusable             \u2192 _Rejected(reason) \u2192 WARNING, whole repo\n \u2502    \u2502     (not a mapping, unknown key, no roots that survive)\n \u2502    \u2514\u2500 usable                           \u2192 DerivedScope(SOURCE_DECLARED, roots, excludes)\n \u2514\u2500 whole_repo_scope(root)                \u2192 DerivedScope(SOURCE_WHOLE_REPO, roots=(root,), excludes=\u2026)\n```\n\n**Declared scope.** `roots:` and `excludes:` are repo-relative. `_existing_paths()` resolves each entry, then checks it stays inside the repo, then checks it exists. Absolute and `../` entries are refused (security audit H5). Missing roots are dropped with a warning. Declared roots are taken at their word and never walked, so a vendored clone inside a declared root is indexed without being noticed. The reason string names the file it was read from.\n\n**Nothing declared (the zero-config path).** This is `whole_repo_scope()`, which is the default tier. Its single root is the repository itself. Its excludes are:\n\n1. **Git-ignored paths.** `_gitignored_paths()` runs `git ls-files --others --ignored --exclude-standard --directory` through `git_argv`/`git_env`, so a target's own `.git/config` cannot run commands. It also collects each nested submodule's own ignores, because the parent's `ls-files` stops at the submodule boundary.\n2. **Dot-directories and caches.** `_pruned_dirs()` walks the tree and excludes any directory where `_skip_dir()` matches: names starting with `.`, plus `__pycache__` and `node_modules`. It stops at nested git trees and keeps only their top-level dot-directories. The walk has a depth limit of 16, and anything below it is recorded rather than silently dropped.\n\nNested git trees are not excluded. They are indexed, and `external.py` tags their rows so a question about the parent and a vendored library can still be told apart.\n\n**Edge cases in the zero-config path**\n\n- If the repo is not a git repository, `_gitignored_paths()` returns nothing and logs a warning. Only the dot/cache pruning then applies, so the index is wider than the repo's own `.gitignore` would suggest.\n- The reason string always says why the whole-repo tier was chosen: either \"no `index_scope:` is declared\" or the specific rejection message.\n\n**A stale comment to fix.** The docstring of `_declared_index_scope()` still says that returning `None` \"drops the resolution to the Doxyfile's own INPUT\". That contradicts `derive_scope()` and `whole_repo_scope()`, which both say the Doxyfile no longer supplies INPUT. The code is correct; the comment is not.\n\nI did not re-verify `load_declaration_located()` against the file on disk. The index marked its line anchors as out of date, so I relied on its body text. Nothing in the repo was edited.",
+  "ttft_ms": 1647,
+  "type": "result",
+  "duration_ms": 22137,
+  "uuid": "b8c0f6a0-0747-489a-bba5-6a9ffa3b27e7",
+  "ttft_stream_ms": 1200,
+  "time_to_request_ms": 69,
+  "first_content_frame_ms": 1200,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

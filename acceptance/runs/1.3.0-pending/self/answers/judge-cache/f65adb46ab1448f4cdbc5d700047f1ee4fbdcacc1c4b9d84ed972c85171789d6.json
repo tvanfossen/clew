@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the Doxyfile is no longer a tier and flags a stale comment about INPUT, but never explains the rationale that a repo shipping a Doxyfile would get only its documented subset while one without gets its whole tree."
+}

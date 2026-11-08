@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Define `MBEDTLS_PLATFORM_MEMORY`, `MBEDTLS_PLATFORM_CALLOC_MACRO` and `MBEDTLS_PLATFORM_FREE_MACRO` in the project's config.\nVERDICT: MISS\nWHY: The answer treats MBEDTLS_PLATFORM_MEMORY as the gate (off by default) but never says it is commented out in the shipped mbedtls_config.h."
+}

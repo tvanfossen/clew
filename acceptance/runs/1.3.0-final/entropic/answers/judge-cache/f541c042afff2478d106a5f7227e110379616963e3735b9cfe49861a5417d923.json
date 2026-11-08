@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer lists spawn sites across subsystems in a table but never states that thread creation is spread out rather than centralised. It also omits the MCP transports as a general category and does not draw that conclusion."
+}

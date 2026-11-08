@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names two file paths as part of the call-edge machinery. Both appear as locations of functions it uses as examples: `callers` and `_empty_callers_note`. The answer doesn't place either file in the storing, collapsing, filtering or reply-shaping of call edges, so this list errs toward including what it names.\n\nITEMS:\nclew/query/symbols.py\nclew/mcp_server/tools_query.py\nEND"
+}

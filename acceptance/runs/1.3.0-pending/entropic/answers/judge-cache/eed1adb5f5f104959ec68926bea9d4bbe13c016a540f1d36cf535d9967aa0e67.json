@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Mirrors `interrupt_flag_` into the cancel `int` for one call; \"Bridges a C `int*` cancel flag to an atomic\"; \"the code is meant to keep the C ABI `int*`-only\"\nVERDICT: HIT\nWHY: The answer says the observer thread mirrors the atomic interrupt flag into a plain int and ties this to keeping the C ABI int*-only, which is the bridging purpose."
+}

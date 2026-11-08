@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Confined to `src/inference/`... \"Net: the dependency is built from the submodule and absorbed statically, and its headers are confined to `src/inference/`, the facade's adapter path, and tests.\"\nVERDICT: HIT\nWHY: The answer says it is concentrated in src/inference but also reaches outside it (src/facade/entropic.cpp includes the backend and casts to it, plus tests). That matches \"concentrated but not contained\"."
+}

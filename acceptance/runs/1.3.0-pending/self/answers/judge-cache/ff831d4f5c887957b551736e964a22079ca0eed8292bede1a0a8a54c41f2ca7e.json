@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says fuzzy edges appear in the flat `callers` list and discusses fan-out. It never contrasts this with a traversal surface that excludes fuzzy edges, and it never says a walk multiplies one fuzzy edge into a wrong subtree."
+}

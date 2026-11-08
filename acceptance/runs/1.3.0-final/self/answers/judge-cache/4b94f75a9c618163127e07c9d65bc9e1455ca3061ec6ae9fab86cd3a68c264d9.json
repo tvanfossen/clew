@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"bad keys / no usable roots \u2192 _Rejected \u2192 whole-repo, with the reason logged\"\nVERDICT: HIT\nWHY: The answer says a declared index_scope is used if present and that invalid or unusable declarations fall back to the whole repo. Its statement that no declaration also gives whole-repo scope covers the other failure to find one."
+}

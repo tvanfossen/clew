@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Compile-time macros. Enable `MBEDTLS_PLATFORM_MEMORY` and define both `MBEDTLS_PLATFORM_CALLOC_MACRO` and `MBEDTLS_PLATFORM_FREE_MACRO`... The runtime setter is not compiled in at all in this mode, so calling it fails to link.\" and \"(no runtime pointers, and platform.c:20-64 is compiled out)\"\nVERDICT: HIT\nWHY: The answer distinguishes the compile-time macro pair from the runtime function-pointer setter. It says the macros compile out the runtime pointers and setter, so the two are mutually exclusive."
+}

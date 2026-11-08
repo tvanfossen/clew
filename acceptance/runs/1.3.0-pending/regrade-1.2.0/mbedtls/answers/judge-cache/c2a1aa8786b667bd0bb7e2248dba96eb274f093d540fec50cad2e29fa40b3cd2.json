@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: With assembly it is an empty `asm volatile(\"\" : \"+r\"(x))`.\nVERDICT: HIT\nWHY: The answer states that `mbedtls_ct_compiler_opaque` is an empty asm volatile with x as a \"+r\" input-output operand, and says its purpose is to keep the compiler from proving values, which is the optimisation-barrier role."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"the two calls are in one function, not two places, and it is a size-then-fill pattern rather than retry logic. ... (`src/inference/llama_cpp_tokenizer.cpp:55` and `:61`, in `LlamaCppTokenizer::tokenize`)\"\nVERDICT: HIT\nWHY: The answer names the file, lines, and function, and describes the size-then-fill two-call llama_tokenize mechanism."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"A clew index can be stale in three distinct ways, and the tool reports each one separately with the action that clears it.\" followed by \"Data axis (index older than source)\", \"Schema axis (index newer than server)\", \"Code axis (server process older than its source)\"\nVERDICT: HIT\nWHY: The answer explicitly states staleness has three distinguishable axes and names them as data, schema, and code."
+}

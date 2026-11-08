@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Async-ask thread (`run_async_ask`) | `external_bridge.cpp:1158` | Detached thread that runs `entropic_run`... and \"Detached async-ask thread is not joined by `stop()`. `run_async_ask` captures `this` and `handle_` in a detached `std::thread`. It is not in `client_threads_`, so `stop()` does not wait for it.\"\nVERDICT: HIT\nWHY: The answer identifies the async-ask worker as a detached thread that is not joined, so it outlives its caller. It doesn't say it is the only detached thread, but it identifies the thread and the lack of a join."
+}

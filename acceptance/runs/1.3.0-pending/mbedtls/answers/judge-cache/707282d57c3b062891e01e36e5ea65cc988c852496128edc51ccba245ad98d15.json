@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Without assembly it is `x ^ mbedtls_ct_zero`, where `mbedtls_ct_zero` is a global `volatile` zero, so the compiler must load it at run time.\nVERDICT: HIT\nWHY: The answer says that without assembly the function (`mbedtls_ct_compiler_opaque`) XORs with `mbedtls_ct_zero`, a global volatile zero, and it names that global."
+}

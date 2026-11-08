@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Single token, no hits in any searched corpus, and no unread corpus holds it... 'Definitive for the scope.'\" and \"'NOT DEFINITIVE.'\" rows\nVERDICT: MISS\nWHY: The answer distinguishes definitive-for-scope from not-definitive. It never names a third grade, a reply that is definitive for a reason other than absence."
+}

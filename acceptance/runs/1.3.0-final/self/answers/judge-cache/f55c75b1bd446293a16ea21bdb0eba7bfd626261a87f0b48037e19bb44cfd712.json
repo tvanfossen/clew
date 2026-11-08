@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Refresh with `force=True` if the index is older. If the index is *newer* than the server, a rebuild cannot clear it, so the caller must restart the MCP client.\" and \"For `schema` with an older index, refresh with `force=True`. ... or for a `schema` index newer than the server, restart the MCP client. Rebuilding does not clear either one.\"\nVERDICT: HIT\nWHY: The answer states that a schema-axis mismatch where the index is newer than the server cannot be cleared by rebuilding."
+}

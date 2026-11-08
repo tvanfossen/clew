@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: So the library has zero threads of its own, and the sample servers are the only places a second thread appears.\nVERDICT: MISS\nWHY: The answer says the library has no threads of its own but locates a pthread spawn in a sample program gated by an off macro. It never says the pthread example compiles to a stub main under a default build."
+}

@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 21631,
+  "stop_reason": "end_turn",
+  "session_id": "9826da7a-74c4-483f-9202-457ff808d6c9",
+  "total_cost_usd": 0.00635465,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 12245,
+    "cache_read_input_tokens": 190765,
+    "output_tokens": 3994,
+    "output_tokens_details": {
+      "thinking_tokens": 1161
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 12245,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2204,
+        "cache_read_input_tokens": 44739,
+        "cache_creation_input_tokens": 1666,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1666
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 3994,
+      "cacheReadInputTokens": 190765,
+      "cacheCreationInputTokens": 12245,
+      "webSearchRequests": 0,
+      "costUSD": 0.00635465,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1161,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 12245,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 6,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The path from a negative return code to a string runs through `mbedtls_strerror()` in `library/error.c`. That file is generated, and the generator is what a contributor edits.\n\n**Runtime path**\n\n```\ncaller: ret = mbedtls_xxx(...)            # e.g. -0x0020\n  \u2514\u2500 mbedtls_strerror(ret, buf, buflen)   library/error.c\n       \u251c\u2500 buflen==0 \u2192 return; zero buf; ret = -ret \u2192 0x0020\n       \u251c\u2500 high = ret & 0xFF80              (module-class bits)\n       \u2502    \u2514\u2500 mbedtls_high_level_strerr(ret) \u2192 \"SSL - ...\" etc.\n       \u2502       (switch on case -(MBEDTLS_ERR_X) over the high-level modules)\n       \u2502    \u2514\u2500 if SSL fatal alert: return early (don't decode the low part)\n       \u251c\u2500 low = ret & ~0xFF80\n       \u2502    \u2514\u2500 if low == 0: return\n       \u2502    \u2514\u2500 append \" : \" if high text exists\n       \u2502    \u2514\u2500 mbedtls_low_level_strerr(ret) \u2192 \"AES - Invalid key length\"\n       \u2514\u2500 NULL from either lookup \u2192 \"UNKNOWN ERROR CODE (%04X)\"\n```\n\nThe masks come from the bit layout documented in `include/mbedtls/error.h`: a sign bit, three high-level module bits, five module-specific bits, and seven low-level bits. So one code can carry two strings. For example, `MBEDTLS_ERR_SSL_FATAL_ALERT_MESSAGE` (`-0x7780`) yields only its high-level text, and a code combining an SSL error with a low-level error yields `\"SSL - \u2026 : AES - \u2026\"`.\n\nEach lookup is a `switch` whose cases are `case -(MBEDTLS_ERR_NAME):` followed by `return \"MODULE - description\";`. The `MODULE` prefix comes from the macro name, and the description comes from the Doxygen comment next to the `#define`.\n\n**How the table is generated**\n\n`library/error.c` is checked in, but it is produced by `scripts/generate_errors.pl` from two inputs:\n\n1. `include/mbedtls/*.h` \u2014 the generator scans every header with a regex for `#define MBEDTLS_ERR_xxx -0xNNNN` and its doc comment.\n2. `scripts/data_files/error.fmt` \u2014 the template with `HEADER_INCLUDED`, `LOW_LEVEL_CODE_CHECKS`, and `HIGH_LEVEL_CODE_CHECKS` placeholders.\n\nRegeneration is wired in: `library/Makefile` (rule for `error.c`, triggered by header changes), `library/CMakeLists.txt`, and `scripts/make_generated_files.bat`. `tests/scripts/check-generated-files.sh` runs the generator and fails if the committed `library/error.c` differs.\n\n**What a contributor has to do to add one**\n\n1. **Define the code in the right module header** (e.g. `include/mbedtls/aes.h`) as `#define MBEDTLS_ERR_<MODULE>_<NAME> -0xNNNN`. The value must fit the layout and not collide. The generator dies on a duplicate value.\n2. **Attach exactly one doc comment**, either before (`/** ... */`) or after (`/*!< ... */`) the define. Neither or both is a hard generator error. The text becomes the human-readable description, so write it as a short phrase without a trailing period. Don't use `\\name` in the before-comment; the generator discards that comment.\n3. **Use a module the generator knows.** The prefix must be in `@low_level_modules` or `@high_level_modules` in `scripts/generate_errors.pl`, or it exits with \"Do not know how to handle\". A brand-new module also needs its `#include` and `#if` guard mapping in the script, and the header must be listed in the script's include handling. Otherwise it aborts with \"has not been included\".\n4. **Regenerate and commit `library/error.c`** via `.venv/bin/pre-commit`/the make target, not by hand. Hand-editing it fails `check-generated-files.sh`.\n5. **Add a case to `tests/suites/test_suite_error.data`** (`error_strerror:-0x....:\"MODULE - text\"`) so the string is pinned. I'm inferring this from the existing entries; the test suite itself is what checks the output.\n\nCaveat: I read the generator and runtime code but did not build or run the generator or the test suite in this checkout, so the exact failure behaviour above is from reading the Perl, not from a run.",
+  "ttft_ms": 1889,
+  "type": "result",
+  "duration_ms": 22021,
+  "uuid": "5a082447-3270-4c29-aee1-c9d9da9c7efd",
+  "ttft_stream_ms": 1114,
+  "time_to_request_ms": 170,
+  "first_content_frame_ms": 1115,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

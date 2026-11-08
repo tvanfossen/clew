@@ -1,0 +1,63 @@
+{
+  "cell": "Q2_claude-haiku-5-5_baseline_r1",
+  "arm": "baseline",
+  "rubric_version": "1.0.0",
+  "rubric_digest": "32294778c2753056",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.9,
+  "unmarked_pct": 0.0,
+  "split_decisions": 1,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "names the websocket event dispatcher that routes `reaction_added` to its handler (`handleWebSocketEvent` \u2192 `handleReactionAddedToPostEvent`)",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": false,
+      "detail": "QUOTE: event.ts:163-165   switch on WebsocketEvents.REACTION_ADDED | WHY: The answer names the switch in `app/actions/websocket/event.ts` and the handler `handleReactionAddedToPostEvent`. It never names `handleWebSocketEvent` as the dispatcher function, so the required name is missing. || QUOTE: event.ts:163-165   switch on WebsocketEvents.REACTION_ADDED \u2192 reactions.ts:21  handleReactionAddedToPostEvent(serverUrl, msg) | WHY: The answer names the switch in `app/actions/websocket/event.ts` and the handler, but it never names the dispatcher function `handleWebSocketEvent`.",
+      "agreement": 0.6666666666666666,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the added reaction is stored through the database operator's `handleReactions`, which prepares Reaction records and writes them with `batchRecords`",
+      "kind": "retrieval",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: Add goes through `handleReactions`, `sanitizeReactions`, `transformReactionRecord`, and `batchRecords`. | WHY: The answer states the reaction add is stored via the operator's `handleReactions`, which prepares records via `transformReactionRecord` and writes them with `batchRecords`. || QUOTE: Add goes through `handleReactions`, `sanitizeReactions`, `transformReactionRecord`, and `batchRecords`. | WHY: The answer states that the add path goes through the operator's `handleReactions`, which prepares records via `transformReactionRecord` and writes them with `this.batchRecords`. || QUOTE: operator.handleReactions({ ... }) ... \"transformReactionRecord (CREATE) ... prepareBaseRecord \u2192 prepareCreate model\" ... \"this.batchRecords \u2192 database.write(writer.batch(...))\" | WHY: The answer says the added reaction goes through operator `handleReactions`, which prepares Reaction records (`transformReactionRecord`/`prepareCreate`) and writes them via `batchRecords`.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that a removed reaction does NOT go through the operator: its handler queries the reaction and destroys it with a direct `database.write`",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: queryReaction(database, emoji_name, post_id, user_id).fetch()   [queries/servers/reaction.ts] \u2514\u2500 if found: database.write(() => reaction[0].destroyPermanently()) | WHY: The answer states that the removed path queries the reaction and destroys it with a direct database.write, never going through the operator's handleReactions. || QUOTE: `queryReaction(database, emoji_name, post_id, user_id).fetch()` ... `if found: database.write(() => reaction[0].destroyPermanently())` and \"This path never calls `handleReactions`, `sanitizeReactions`, or `batchRecords`.\" | WHY: The answer states that removal bypasses the operator, queries the reaction, and destroys it with a direct `database.write`.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "explains that `skipSync: true` stops the single incoming reaction being treated as the post's complete set \u2014 without it every other reaction on the post would be deleted",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: `skipSync: true` (add event) | `reactions.ts:28` | `sanitizeReactions` returns `deleteReactions: []`. Without it, every other stored reaction on that post that is missing from the one-item payload would be treated as stale and destroyed. | WHY: The answer states that without skipSync, all other reactions on the post missing from the single-item payload would be treated as stale and destroyed. || QUOTE: `skipSync: true` (add event) | `reactions.ts:28` | `sanitizeReactions` returns `deleteReactions: []`. Without it, every other stored reaction on that post that is missing from the one-item payload would be treated as stale and destroyed. | WHY: The answer states that without skipSync, all other stored reactions missing from the single-item payload would be treated as stale and deleted.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "notes that both handlers swallow any error silently (empty catch), so a failed write leaves no trace",
+      "kind": "conclusion",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: Errors are swallowed by the empty `catch` in `reactions.ts`. | WHY: The answer states that errors are swallowed by an empty catch in reactions.ts, which covers both handlers since they live in the same file, so a failed write leaves no trace. || QUOTE: Errors are swallowed by the empty `catch` in `reactions.ts`. | WHY: The answer states that errors are swallowed by an empty catch in reactions.ts, which covers both handlers since they live in that file. It doesn't spell out \"failed write leaves no trace\", but the swallowed-error mechanism is stated. || QUOTE: Errors are swallowed by the empty `catch` in `reactions.ts`. | WHY: The answer states that errors are swallowed by an empty catch in reactions.ts, which is the substance of the item. It names no separate trace-less outcome for each handler, but it does state the silent-swallow mechanism and where it is.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    }
+  ]
+}

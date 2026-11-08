@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The notices ride in the payload of every query reply, as a `staleness` block. It is absent when current.\"\nVERDICT: HIT\nWHY: The answer says the staleness notices ride on every query reply and that the block is absent (and the notice list empty) when the index is current."
+}

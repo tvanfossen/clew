@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"File types that were in scope but not indexed are recorded at build time. `cli._not_indexed_scope` ... compares the scanned files against the `path` rows and stores `ext=count` entries ... The query side reads that record\"\nVERDICT: HIT\nWHY: The answer says the empty-reply scope payload carries a `not_indexed` record of file extensions that were scanned but produced no rows. That lets \"absent from the repo\" be told apart from \"file type not indexed\"."
+}

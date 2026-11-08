@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the health monitor thread runs `monitor_loop` and names `event_mutex_`, but it never says that status callbacks are queued under a mutex and drained by the caller's thread."
+}

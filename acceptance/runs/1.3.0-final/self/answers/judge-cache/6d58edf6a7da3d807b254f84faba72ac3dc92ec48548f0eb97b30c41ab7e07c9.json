@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"A repo that declares `index_scope:` in its `.clew.yaml` gets exactly those roots. A repo that declares nothing gets the whole repository\" and \"malformed? \u2192 _Rejected \u2192 whole repo, reason says why\"\nVERDICT: HIT\nWHY: The answer states that a declared index_scope is used and that nothing declared, a malformed declaration, or no surviving roots all fall back to the whole repository."
+}

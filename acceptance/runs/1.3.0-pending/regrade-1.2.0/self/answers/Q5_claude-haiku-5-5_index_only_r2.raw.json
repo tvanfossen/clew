@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 19591,
+  "stop_reason": "end_turn",
+  "session_id": "e9b759df-a446-4887-9229-a83129ecfa57",
+  "total_cost_usd": 0.00759563,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 21601,
+    "cache_read_input_tokens": 165663,
+    "output_tokens": 3236,
+    "output_tokens_details": {
+      "thinking_tokens": 1688
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 21601,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2316,
+        "cache_read_input_tokens": 49161,
+        "cache_creation_input_tokens": 9959,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 9959
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 8,
+      "outputTokens": 3236,
+      "cacheReadInputTokens": 165663,
+      "cacheCreationInputTokens": 21601,
+      "webSearchRequests": 0,
+      "costUSD": 0.00759563,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1688,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 21601,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 6,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "Clew has four ways to say how a repository should be indexed, and they resolve in a fixed order. The governing rule is in `clew/tiers.py`, and the index describes it as \"you can correct our guesses; you cannot un-discover a fact.\"\n\n**The ways to say so**\n\n| Tier | Source | How it is set | Combines by |\n|---|---|---|---|\n| 1 | Explicit | CLI flag, or the structured `options` argument for an embedding caller or MCP (`clew/buildoptions.py`) | Replaces the stated layer |\n| 2 | Declared | `.clew.yaml` at the repo root, one section per option (`clew/declaration.py`) | Replaces the stated layer |\n| 3 | Target facts | Things the repo already wrote: a Doxyfile's ALIASES/PREDEFINED, a generator manifest, a language or platform entry point | Accumulates |\n| 4 | Ecosystem | A known-ecosystem signature, such as UDM or ingot | Accumulates |\n| 5 | Heuristic | Name-pattern matching, the provisional floor | Replaced by any stated tier |\n\n- **Options argument** (tier 1) is the one an MCP caller can reach. Before it existed, MCP got only built-in defaults, because the flags were CLI-only. Its keys are the `.clew.yaml` section names, and the index says all 14 declaration sections are statable this way.\n- **`.clew.yaml`** also carries a `guard:` section for the doxygen gate. The old `.doxygen-guard.yaml` is a hard break and is no longer read.\n- **Per-run mechanics** such as `--scope`, `--index-cache` and `--rebuild` are deliberately not declarations.\n\n**When two disagree**\n\n- **Flag vs. declaration:** the flag wins outright for that option. It replaces the declared list rather than merging with it. The index describes the file as the repo's standing statement and the flag as a deliberate one-off override.\n- **Declaration vs. heuristic:** the declaration replaces the guesses. Facts and ecosystem entries (tiers 3 and 4) are never displaced by any stated tier, so `main` survives a user-stated entry-pattern list.\n- **Empty values are withdrawals, not statements.** An empty explicit list `[]` falls through to the declaration, and then to the guesses. An empty `{}` for a manifest option states nothing and falls back to the declaration.\n- **Pattern matching:** a declared shared-key pattern beats a built-in default. This was once inverted, and a test now pins it.\n- **Catalog and Kconfig discovery:** CLI flag, then declaration, then convention.\n- **Invalid options:** the whole options mapping is validated before anything is applied, so one bad entry refuses the entire mapping instead of building a half-applied policy.\n- **Recording:** each build stamps the winning tier into `build_meta`. Only a tier-1 statement is replayed on the next refresh. A record where the tier and the statement disagree resolves to \"nothing to replay\".\n\nOne caveat: the index flagged a line-anchor mismatch on `resolve_layered` and `_stated_layer`, so the source I read for those may be a little out of step with the index build. The rule they implement matches the module documentation and the tests.",
+  "ttft_ms": 2380,
+  "type": "result",
+  "duration_ms": 20651,
+  "uuid": "a0a83aae-a74b-4b9f-84e7-5cba2a4c7f84",
+  "ttft_stream_ms": 1781,
+  "time_to_request_ms": 74,
+  "first_content_frame_ms": 1781,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**`AppDataOperator`** extends `BaseDataOperator`, so it inherits the same `batchRecords` for the global app database. This is the only other confirmed consumer of the base class.\"\nVERDICT: HIT\nWHY: The answer names AppDataOperator as extending BaseDataOperator and sharing the inherited batchRecords write path for the app-level (global) database."
+}

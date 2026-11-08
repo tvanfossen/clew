@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: With assembly it is an empty `asm volatile` that takes and returns `x`.\nVERDICT: HIT\nWHY: The answer states the asm path of `mbedtls_ct_compiler_opaque` is an empty `asm volatile` taking and returning x, and that it hides the value from the optimiser."
+}

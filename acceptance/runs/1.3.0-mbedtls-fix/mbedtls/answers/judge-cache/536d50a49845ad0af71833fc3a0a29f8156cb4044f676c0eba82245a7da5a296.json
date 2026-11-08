@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `library/common.h:132` | Every library `.c` file. 107 of the 109 `library/*.c` files include `common.h`, and it is the first Mbed TLS header they pull in, so the internal code sees real member names.\nVERDICT: HIT\nWHY: The answer states that the opt-out define is turned on in the shared header `library/common.h`, so every library translation unit sees the real member names."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The schema and code axes are never auto-refreshed, because a build from a stale server process would re-stamp the index with old pipeline logic and could drop layers.\"\nVERDICT: MISS\nWHY: The answer states that a build from a stale process writes old logic, but never states that reads stay current because query tools open the database per call, so the read/write asymmetry is missing."
+}

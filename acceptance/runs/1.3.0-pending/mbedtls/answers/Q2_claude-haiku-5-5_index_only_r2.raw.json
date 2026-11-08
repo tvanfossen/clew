@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 16876,
+  "stop_reason": "end_turn",
+  "session_id": "ce473951-7320-4320-b81f-3aeae063d6d3",
+  "total_cost_usd": 0.00491923,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 9030,
+    "cache_read_input_tokens": 159643,
+    "output_tokens": 3032,
+    "output_tokens_details": {
+      "thinking_tokens": 1330
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 9030,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1872,
+        "cache_read_input_tokens": 43998,
+        "cache_creation_input_tokens": 3208,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 3208
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 8,
+      "outputTokens": 3032,
+      "cacheReadInputTokens": 159643,
+      "cacheCreationInputTokens": 9030,
+      "webSearchRequests": 0,
+      "costUSD": 0.00491923,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1330,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 9030,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 9,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**What it accomplishes:** `include/mbedtls/private_access.h` defines `MBEDTLS_PRIVATE(member)`, which wraps struct member names in the public headers (for example `mbedtls_aes_context::MBEDTLS_PRIVATE(nr)` in `aes.h:64`). By default it expands to `private_##member`, so `ctx.nr` no longer compiles and callers must go through the API. Renaming the field makes it a visible break in the source, not a silent one. The index shows the macro only at `private_access.h:15` and `:17`, so the wrapping is a source-level mechanism, not a language access control.\n\n**The gate:** The expansion is controlled by `MBEDTLS_ALLOW_PRIVATE_ACCESS`:\n\n- Not defined (default): `MBEDTLS_PRIVATE(m)` \u2192 `private_m`. Outside code cannot reach the field.\n- Defined: `MBEDTLS_PRIVATE(m)` \u2192 `m`. The real field name is visible.\n\n**Who turns the opt-out on.** The index finds three definition sites:\n\n| Site | Who it is for |\n|---|---|\n| `library/common.h:132` | The library itself. Internal sources that include it see the real field names. |\n| `programs/ssl/ssl_client2.c:8` | The `ssl_client2` example/test program. |\n| `programs/ssl/ssl_server2.c:8` | The `ssl_server2` example/test program. |\n\nFor the two programs, the `#define` sits at the top of the file, before the headers are included. They compile against mbedtls internals, so a field rename or restructure will break them, but external applications will not be affected. For the library, the define makes internal code and any internal helpers (the index shows `mbedtls_cipher_get_iv_size` and `mbedtls_pk_get_type` referencing `MBEDTLS_PRIVATE`) work against the real fields.\n\nFor ordinary applications the rule is simple: don't define it. Touching `ctx.field` gets a compile error, and the fix is to use the public accessor, or to accept the internal dependency knowingly.\n\n**Caveats from the index:**\n- `MBEDTLS_ALLOW_PRIVATE_ACCESS` is an \"undeclared\" config symbol: there is no Kconfig entry and no config header recorded for this target. It is a plain preprocessor opt-in, not a managed build option.\n- The index doesn't show the conditional enclosing `library/common.h:132`, so I can't confirm whether the library defines it unconditionally.\n- I couldn't verify include order from the index. If a library source includes a public header before `common.h`, the macro would expand to `private_` there. Check that directly in the source.",
+  "ttft_ms": 1517,
+  "type": "result",
+  "duration_ms": 18167,
+  "uuid": "867e0047-7e15-4101-bfdd-0ac647fc7997",
+  "ttft_stream_ms": 1218,
+  "time_to_request_ms": 93,
+  "first_content_frame_ms": 1218,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

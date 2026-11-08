@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `_bindings.py` is generated and pre-commit checked for drift (`inv gen-bindings --check`).\nVERDICT: HIT\nWHY: The answer says the generated bindings are pre-commit checked for drift via `gen-bindings --check`, which names the pre-commit drift check. It doesn't spell out \"re-runs the generator and diffs\", but the generator-plus-`--check` pairing implies it."
+}

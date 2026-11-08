@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"the resolved set is `(tier1 or tier2 or tier5) \u222a tier3 \u222a tier4`. The module docstring summarises it as \"you can correct our guesses; you cannot un-discover a fact.\"\"\nVERDICT: HIT\nWHY: The answer says stated tiers replace one another (tier1 or tier2 or tier5) while discovered tiers 3 and 4 accumulate and survive any statement (\"a stated `--entry-patterns` cannot drop `main`\")."
+}

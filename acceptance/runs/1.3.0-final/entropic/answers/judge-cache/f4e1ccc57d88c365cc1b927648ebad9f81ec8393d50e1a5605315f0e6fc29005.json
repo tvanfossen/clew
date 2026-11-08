@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"That empty vector is the same value as a legitimately empty input, so callers cannot tell the two apart.\"\nVERDICT: HIT\nWHY: The answer states that failure returns an empty vector indistinguishable from legitimately empty input. It also shows the callers don't check: count_tokens returns 0 and the generate paths have no emptiness check."
+}

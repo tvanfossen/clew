@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Direct llama.cpp usage lives in `src/inference/`: `llama_cpp_backend.{h,cpp}`, `llama_cpp_sampler.{h,cpp}`, `llama_cpp_tokenizer.{h,cpp}`, plus `adapter_manager.cpp` (LoRA) and `image_preprocessor.cpp`\nVERDICT: MISS\nWHY: The answer says llama.cpp is contained in one module, listing about 8 files. It does not convey a dependency reaching roughly a dozen source files, and it frames the dependency as contained, which is the opposite emphasis."
+}

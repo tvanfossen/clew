@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Otherwise the call must match an allow pattern through `is_allowed`, which is the explicit skip-prompt path.\nVERDICT: MISS\nWHY: The answer shows the allow list consulted in check_approval and that it skips the prompt. It never says the allow list does not grant execution, and it never says check_approval is the only place the list is consulted, in a different file from the deny check."
+}

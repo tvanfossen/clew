@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 26226,
+  "stop_reason": "end_turn",
+  "session_id": "3a2bd764-8a9b-400e-9452-23f30479706f",
+  "total_cost_usd": 0.006907740000000001,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 9727,
+    "cache_read_input_tokens": 257364,
+    "output_tokens": 4775,
+    "output_tokens_details": {
+      "thinking_tokens": 1752
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 9727,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2008,
+        "cache_read_input_tokens": 47592,
+        "cache_creation_input_tokens": 2043,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2043
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 4775,
+      "cacheReadInputTokens": 257364,
+      "cacheCreationInputTokens": 9727,
+      "webSearchRequests": 0,
+      "costUSD": 0.006907740000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1752,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 9727,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 13,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**What it does.** `MBEDTLS_PRIVATE(member)` is a token-pasting macro in `include/mbedtls/private_access.h`. By default it expands `ctx->MBEDTLS_PRIVATE(state)` to `ctx->private_state`, so the member is renamed. Code that writes `ssl->state` against the public header fails to compile. The renaming is the whole mechanism: the struct layout is unchanged, but the name a caller can type is no longer the real one.\n\n**What it accomplishes.** It turns \"members are private\" from a comment into a compile-time error for outside code. Mbed TLS structs are defined in public headers, so without this, any application could reach into `mbedtls_ssl_context` and depend on fields the project reserves the right to reshuffle or rename between releases. The `ssl.h` doc comment says this directly: direct access to `ssl->state` is \"deprecated and could be broken in any future release\" (`include/mbedtls/ssl.h:5159-5169`).\n\n**For whom.** Mainly external consumers, who get the renamed names by default. Internal code is the exception, and the exception is turned on by a single define:\n\n- `library/common.h:132` defines `MBEDTLS_ALLOW_PRIVATE_ACCESS` unconditionally. Library translation units that include `common.h` get `MBEDTLS_PRIVATE(x)` expanding to plain `x`. I checked this in `library/ssl_tls12_server.c`, which includes `common.h` at line 8 before any Mbed TLS header.\n- `programs/ssl/ssl_server2.c:8` and `programs/ssl/ssl_client2.c:8` define it themselves, before including `ssl_test_lib.h`. These are test and sample programs, not library code, and they reach into context internals directly.\n\n**What that means for those places.**\n\n- Inside the library, the wrapper is a no-op. Code like `info->MBEDTLS_PRIVATE(key_exchange)` in `library/ssl_ciphersuites_internal.h` or `ctx->MBEDTLS_PRIVATE(md_info)` in `library/md.c:915` compiles to the plain field access. The internal code is coupled to struct layout, and a rename breaks it at compile time, not silently.\n- The ordering is load-bearing. The macro is only the no-op if `common.h` (or the define) comes first in the translation unit. A library header that uses `MBEDTLS_PRIVATE(x)` and is included from a TU that skipped `common.h` would expand to `private_x` and fail to build. I checked the TUs I read, not every one of the library's 129 files that include `common.h`.\n- In the two sample programs, the define means `ssl_server2.c` and `ssl_client2.c` see the true names everywhere in the file. Those programs are tied to the internal layout of the version they ship with, and nothing in the build flags them when the layout changes.\n\n**Net.** The wrapper is the public-API boundary for applications. The library and its sample/test programs are the intended \"for whom\" of the opt-out, and it is a file-level define, not a per-field permission. Application code that defines `MBEDTLS_ALLOW_PRIVATE_ACCESS` has opted out of the stability promise, which the header comments say is not guaranteed.",
+  "ttft_ms": 1536,
+  "type": "result",
+  "duration_ms": 26676,
+  "uuid": "20857ad5-697d-4607-be25-4302ee1f6e5f",
+  "ttft_stream_ms": 1412,
+  "time_to_request_ms": 73,
+  "first_content_frame_ms": 1413,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

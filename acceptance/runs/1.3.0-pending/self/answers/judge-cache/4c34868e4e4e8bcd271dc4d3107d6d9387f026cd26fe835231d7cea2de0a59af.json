@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Binary detection runs before parsing. Non-text files are skipped, but there is no size limit, so a large generated `.c` is still read.\nVERDICT: MISS\nWHY: The answer mentions binary detection and doxygen's extension patterns, but it doesn't say the resolved scope is only part of the answer. It also doesn't name the parse-built front end claiming file types doxygen can't read, or binary classification catching files whose extension lies about them."
+}

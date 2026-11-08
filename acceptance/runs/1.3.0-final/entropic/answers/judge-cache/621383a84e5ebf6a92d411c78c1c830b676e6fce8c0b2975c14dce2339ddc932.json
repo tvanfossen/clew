@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: With a callback registered, every call not on the allow list still runs. The callback only gets notified.\nVERDICT: HIT\nWHY: The answer states that unlisted calls run, since the callback can't deny, and deny applies only to listed tools. That is effectively default-allow at the gate when a callback is registered. It also notes that a headless engine denies calls that aren't allow-listed, but the item's substance is still present."
+}

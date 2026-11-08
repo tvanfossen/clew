@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"If `hasSearch` is false, `NavigationHeader` never attaches its `ref` to anything, so the ref stays `null`.\" and \"When `hasSearch` is true, it passes that `ref` straight through to `<NavigationSearch ... ref={ref}>`\"\nVERDICT: HIT\nWHY: The answer states that NavigationHeader forwards its ref to NavigationSearch only when `hasSearch` is true, and that otherwise the ref is attached to nothing."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer explains the rename-by-default and the library/programs opting out, but never says that an ordinary consumer of the public headers sees the renamed `private_` names while code defining the macro sees plain names; it only implies this about \"external users\"."
+}

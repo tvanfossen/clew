@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"With `MBEDTLS_THREADING_C` it installs `buffer_alloc_calloc_mutexed` / `buffer_alloc_free_mutexed`, which lock the heap mutex around `buffer_alloc_calloc`. Without it, it installs the unlocked versions.\"\nVERDICT: HIT\nWHY: The answer says the init function installs the mutexed pair under MBEDTLS_THREADING_C and the plain pair otherwise. It describes the choice as a configuration conditional, which is compile-time, though it never uses that word."
+}

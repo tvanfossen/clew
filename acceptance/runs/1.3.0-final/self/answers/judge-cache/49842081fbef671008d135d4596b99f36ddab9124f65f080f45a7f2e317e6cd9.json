@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `matches_source` is False only when both fingerprints are non-empty and differ, so an unreadable tree does not produce a warning.\nVERDICT: MISS\nWHY: The answer covers unreadable-tree handling for the code axis only. It never says that measuring staleness never raises, or that a failed measurement degrades to no annotation instead of turning a successful reply into an error."
+}

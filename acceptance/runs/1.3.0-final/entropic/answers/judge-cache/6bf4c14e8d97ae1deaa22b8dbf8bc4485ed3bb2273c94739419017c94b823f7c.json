@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: This is a sizing query followed by a fill, not retry logic. ... the first `llama_tokenize` call passes a null buffer with capacity 0. ... The second call allocates a vector of that size and fills it. ... Nothing re-attempts after a failure.\nVERDICT: HIT\nWHY: The answer concludes it is size negotiation (sizing query then fill), not retry, with exactly one second call and no re-attempts after failure. It never mentions backoff, delay or an attempt counter by name, but \"Nothing re-attempts after a failure\" covers the substance."
+}

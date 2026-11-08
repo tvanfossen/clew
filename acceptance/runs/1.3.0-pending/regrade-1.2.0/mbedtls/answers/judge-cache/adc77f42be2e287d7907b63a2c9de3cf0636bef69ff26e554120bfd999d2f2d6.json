@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the facility reaches only code that opts in, mostly bignum, PKCS#7 and MAC comparison, and calls its list a sample; it never conveys use across about twenty modules."
+}

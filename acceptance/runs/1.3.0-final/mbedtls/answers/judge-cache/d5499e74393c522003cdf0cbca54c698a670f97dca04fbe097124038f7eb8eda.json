@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes Valgrind/MemSan-based constant-flow testing and says it applies only \"in builds that define the test macro\". It never says the facility is off by default or that it is explicitly not part of the library API."
+}

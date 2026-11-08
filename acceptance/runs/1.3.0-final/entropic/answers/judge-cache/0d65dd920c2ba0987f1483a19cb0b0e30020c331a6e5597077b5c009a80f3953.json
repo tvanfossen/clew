@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `stop()` uses `wake_cv_` to wake and join.\nVERDICT: MISS\nWHY: The answer says the health monitor's stop() uses a condition variable to wake and join, but it never mentions an atomic flag exchange, so only part of the item is stated."
+}

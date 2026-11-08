@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Adding a string means adding a define with a doc comment, regenerating `error.c`, and adding a test row. ... **Regenerate** `library/error.c` with the normal build ... Do not hand-edit it.\nVERDICT: HIT\nWHY: The answer says to add the documented #define to the module header, regenerate error.c, and not hand-edit it."
+}

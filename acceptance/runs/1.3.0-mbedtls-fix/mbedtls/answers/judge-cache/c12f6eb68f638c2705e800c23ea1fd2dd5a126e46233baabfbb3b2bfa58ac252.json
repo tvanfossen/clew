@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Valgrind constant-flow: `components-sanitizers.sh:105\u2013152` marks secrets as undefined... MemorySanitizer: the MSan component turns asm off.\nVERDICT: MISS\nWHY: The answer names valgrind and MSan as test components, but it never says the facility is off-by-default or explicitly not part of the library API, and it says the primitives themselves are internal. It also says \"I read only the component comments\" for `TEST_CF_SECRET`."
+}

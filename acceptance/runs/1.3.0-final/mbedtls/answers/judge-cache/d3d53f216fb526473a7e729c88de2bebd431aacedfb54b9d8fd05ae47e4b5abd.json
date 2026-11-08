@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "ITEMS:\ninclude/mbedtls/platform.h\nlibrary/platform.c\nmbedtls_config.h\nmemory_buffer_alloc.c\nEND"
+}

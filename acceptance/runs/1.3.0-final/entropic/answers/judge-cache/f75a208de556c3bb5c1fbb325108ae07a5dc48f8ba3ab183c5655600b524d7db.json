@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`do_count_tokens` (826) | Returns `0`. A tokenizer failure is reported to the user as a zero-token count.\"\nVERDICT: HIT\nWHY: The answer states that the token-counting path (`do_count_tokens`) returns 0 on tokenizer failure, with no error signalled."
+}

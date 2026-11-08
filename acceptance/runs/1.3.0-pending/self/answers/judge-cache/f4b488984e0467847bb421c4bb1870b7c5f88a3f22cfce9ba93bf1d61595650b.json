@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`notices()` returns an empty list when the index is current, so a current index carries no staleness text at all. When it is not, each query reply gets a `staleness` block.\"\nVERDICT: HIT\nWHY: The answer says every query reply gets the staleness block when stale, and that nothing is attached (empty) when the index is current."
+}

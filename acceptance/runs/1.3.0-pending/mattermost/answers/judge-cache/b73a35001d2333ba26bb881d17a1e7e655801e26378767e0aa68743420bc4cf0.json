@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The function returns `{data: true}` even on failure, so the caller does not treat a failed send as an error.\nVERDICT: HIT\nWHY: The answer states that createPost returns `{data: true}` on failure, and it separately says the failure is stored on the post with `props.failed = true`."
+}

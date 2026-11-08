@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the library creates no threads, but it never says library/ supplies the mutex abstraction for threaded callers. It claims the library has no mutexes by default and only describes the threading layer as compiled out."
+}

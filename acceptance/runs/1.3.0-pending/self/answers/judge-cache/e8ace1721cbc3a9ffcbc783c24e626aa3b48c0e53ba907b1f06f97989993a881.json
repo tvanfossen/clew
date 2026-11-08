@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says an unread corpus holding matches makes the reply \"NOT DEFINITIVE\" for single-token queries. It never says the strong wording is earned per call by querying unsearched corpora, as opposed to being tied to a result shape. It also says the strong wording was \"deliberately not extended to absent layers.\""
+}

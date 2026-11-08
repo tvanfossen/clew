@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer concludes the opposite: shell/CMake files without grammars are silently registered with zero symbols and not reported as not-indexed, and it names no capability gate in the router."
+}

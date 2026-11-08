@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the health monitor thread uses a condvar and mutexes, but it never says the status callback is not invoked from the monitor thread. It also never says events are queued under a mutex and drained by the caller."
+}

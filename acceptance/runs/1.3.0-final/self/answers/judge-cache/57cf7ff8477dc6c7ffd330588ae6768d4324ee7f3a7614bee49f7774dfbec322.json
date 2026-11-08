@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A failed refresh never raises: the query answers from the stale index and the notice still rides along.\nVERDICT: MISS\nWHY: The answer says a failed refresh doesn't raise, but not that measuring staleness itself never raises and degrades to no annotation. The only related point is that an unreadable db fails closed to \"no drift\", which doesn't state the full item."
+}

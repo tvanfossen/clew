@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says the query surface collapses per-layer variants into one row per neighbour with the strongest evidence. It only lists the fields on caller rows (source, confidence) and treats the list as a candidate set."
+}

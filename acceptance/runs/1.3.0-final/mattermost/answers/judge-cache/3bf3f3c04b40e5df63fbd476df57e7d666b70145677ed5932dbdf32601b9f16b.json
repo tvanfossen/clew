@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `archiveChannel`) | After the server delete, sets a local `delete_at`, so the channel stays visible as archived | Calls `removeCurrentUserFromChannel` instead, dropping the channel locally |; `handleChannelDeletedEvent`) | Keeps the channel in the DB as archived | If it is the current channel, kicks the user with `CHANNEL_ARCHIVED`, then removes membership\nVERDICT: HIT\nWHY: The table states that for `handleChannelDeletedEvent`, when archived channels are not viewable the user is removed and kicked out if it is the current channel. When viewable, the channel is kept as archived. The `archiveChannel` row also covers the not-viewable removal and the viewable local `delete_at` marking."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Python `_trampoline` catches all exceptions and returns 0, so nothing propagates into C.\nVERDICT: HIT\nWHY: The answer states the trampoline catches all exceptions and returns 0 so nothing propagates into C, which matches the swallow-and-pass-through behavior."
+}

@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 19820,
+  "stop_reason": "end_turn",
+  "session_id": "75ff7f0a-a129-4411-acd4-a23f7e72868c",
+  "total_cost_usd": 0.01551848,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 52478,
+    "cache_read_input_tokens": 285668,
+    "output_tokens": 4330,
+    "output_tokens_details": {
+      "thinking_tokens": 1611
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 52478,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2081,
+        "cache_read_input_tokens": 62688,
+        "cache_creation_input_tokens": 7350,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 7350
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 4330,
+      "cacheReadInputTokens": 285668,
+      "cacheCreationInputTokens": 52478,
+      "webSearchRequests": 0,
+      "costUSD": 0.01551848,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1611,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 52478,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 9,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**The class composition**\n\n`ServerDataOperator` is declared in `app/database/operator/server_data_operator/index.ts`. It is a class built with the repo's `mix(...).with(...)` helper (`app/utils/mix.ts`). Each mixin is a function that takes a superclass and returns a subclass, and `with` applies them in order. The base is `ServerDataOperatorBase`, and the constructor sets `serverUrl` after calling `super(database)`. The same file declares a merged `interface ServerDataOperator extends ...Mix` so TypeScript sees the methods that the mixins add at runtime.\n\nThe base and 11 handlers live in the same folder, `server_data_operator/handlers/`:\n\n- `index.ts` (`ServerDataOperatorBase`): roles, custom emojis, system, configs, reactions, files, and the generic `execute`.\n- `category`, `channel`, `custom_profile`, `group`, `post`, `properties`, `team`, `team_threads_sync`, `thread`, `user`.\n\nThree handler sets are defined elsewhere, in product folders:\n\n| Handler | Defined in |\n|---|---|\n| `AgentsHandler` / `AgentsHandlerMix` | `app/products/agents/database/operators/handlers/index.ts` |\n| `BoardsHandler` / `BoardsHandlerMix` | `app/products/boards/database/operators/handlers/index.ts` |\n| `PlaybookHandler` / `PlaybookHandlerMix` | `app/products/playbooks/database/operators/handlers/index.ts` |\n\n**Where the database write happens**\n\nHandlers never call WatermelonDB's `write` themselves for ordinary upserts. The chain is:\n\n1. A handler calls `handleRecords`, `processRecords`, `prepareRecords`, or `execute`. These are defined in `BaseDataOperator` (`app/database/operator/base_data_operator/index.ts`), and `ServerDataOperatorBase` extends it.\n2. `processRecords` queries existing rows and splits the input into create, update, and delete lists.\n3. `prepareRecords` runs each transformer to build unsaved WatermelonDB models. Deletes become `prepareDestroyPermanently()`. Nothing is written yet.\n4. `batchRecords` (`base_data_operator/index.ts:191`) performs the write: `this.database.write(async (writer) => writer.batch(...models))`. It also logs failures and emits `DATABASE_CORRUPTION_DETECTED` on corruption errors. It only rethrows when `propagateError` is true.\n\n`handleRecords` only calls `batchRecords` when `prepareRecordsOnly` is false. It defaults to `true`, so callers have to opt in to a write. `handleFiles`, `handleReactions`, and `execute` follow the same pattern.\n\n**What else shares that write path**\n\n- `AppDataOperator` (`app/database/operator/app_data_operator/index.ts`) extends `BaseDataOperator`, so the app-level database uses the same `batchRecords` and `handleRecords` code.\n- Every mixin handler above, including the agents, boards, and playbooks handlers, reaches the write through the inherited `batchRecords`.\n- Outside the operator tree, ephemeral-mode cleanup (`app/actions/local/ephemeral_mode/cleanup.ts`) calls `batchRecords` directly.\n- Some code bypasses `batchRecords` and opens its own `database.write`. Examples are the delete branches in `handlers/post.ts:516` and `handlers/thread.ts:74`, and many actions and queries under `app/actions/` and `app/queries/`. These skip the error handling and corruption detection in `batchRecords`.",
+  "ttft_ms": 811,
+  "type": "result",
+  "duration_ms": 20595,
+  "uuid": "3338e150-0672-42e8-ae9a-6bd53fe3b9a9",
+  "ttft_stream_ms": 667,
+  "time_to_request_ms": 89,
+  "first_content_frame_ms": 667,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

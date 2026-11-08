@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer discusses the hook trampoline's argument types and allocation but never says it catches all Python exceptions and treats a failed hook as a pass-through."
+}

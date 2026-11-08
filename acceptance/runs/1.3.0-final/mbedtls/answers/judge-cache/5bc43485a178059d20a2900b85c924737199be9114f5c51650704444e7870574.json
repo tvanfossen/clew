@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Option A, compile time. Define both macros in your user config... Option B, runtime. Define only `MBEDTLS_PLATFORM_MEMORY`, then call `mbedtls_platform_set_calloc_free(my_calloc, my_free)`... The macros take precedence over the runtime setter, and `platform.c` drops its pointer code entirely in that case.\"\nVERDICT: HIT\nWHY: It distinguishes the compile-time macro pair from the runtime function-pointer pair, and says the macros drop the pointer code entirely, so the two are exclusive in effect. The word \"exclusive\" never appears, though."
+}

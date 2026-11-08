@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_PLATFORM_MEMORY` off (default) | `calloc` / `free`, as macros\n\nVERDICT: MISS\n\nWHY: The answer says that MBEDTLS_PLATFORM_MEMORY selects the allocator, and that it is off by default. It never says the option is commented out in the shipped mbedtls_config.h."
+}

@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 15277,
+  "stop_reason": "end_turn",
+  "session_id": "09e18d08-2981-4636-b05d-b0d4a5168009",
+  "total_cost_usd": 0.011040640000000001,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 38588,
+    "cache_read_input_tokens": 192724,
+    "output_tokens": 2790,
+    "output_tokens_details": {
+      "thinking_tokens": 748
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 38588,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1571,
+        "cache_read_input_tokens": 70272,
+        "cache_creation_input_tokens": 6452,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 6452
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 8,
+      "outputTokens": 2790,
+      "cacheReadInputTokens": 192724,
+      "cacheCreationInputTokens": 38588,
+      "webSearchRequests": 0,
+      "costUSD": 0.011040640000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 748,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 38588,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 9,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** the file set is decided by the index scope, which is resolved once per build into a list of roots plus excludes. If the repo declares an `index_scope:` with usable `roots:`, that declaration is the decision. If it declares nothing, the whole repository is the scope, minus what git ignores and minus dot and cache directories.\n\n**Resolution order** (`clew/scope.py`, `derive_scope` at line 639)\n\n```\nderive_scope(repo_root, stated?)\n \u251c\u2500 _declared_index_scope(...)            index_scope: in .clew.yaml (or a caller-stated scope)\n \u2502    \u251c\u2500 section absent                 \u2192 None \u2192 fall through\n \u2502    \u251c\u2500 present but not a mapping      \u2192 rejected\n \u2502    \u251c\u2500 unknown key (only roots/excludes allowed) \u2192 rejected\n \u2502    \u251c\u2500 no existing root               \u2192 rejected\n \u2502    \u2514\u2500 usable                         \u2192 DerivedScope(source=declared, roots, excludes)\n \u2514\u2500 whole_repo_scope(root)              the default tier\n```\n\nA rejection is logged as a warning. `derive_scope` then falls back to the whole repository, but the CLI does not accept that. `_apply_scope` (`clew/cli.py:758`) calls `declared_scope_rejection` first and exits with an error, so a broken declaration fails the build rather than silently widening it.\n\n**What the declaration says**\n\n- `roots:` is required and is repo-relative. Roots that don't exist on disk are dropped. A declared root is taken at its word and never walked.\n- `excludes:` alone does nothing. Excludes outside the repo are dropped.\n- The only keys accepted are `roots` and `excludes`.\n\n**What happens when nothing is declared**\n\n`whole_repo_scope` (`clew/scope.py:683`) returns one root, the repository itself, and excludes two things:\n\n1. Everything `git ls-files --others --ignored --exclude-standard` reports for the top-level tree and for each nested git tree. `_gitignored_paths` runs git through `git_argv`/`git_env`, so a target's own `.git/config` cannot run commands.\n2. Dot-directories and `__pycache__`/`node_modules` (`_skip_dir`, `_SKIP_DIR_NAMES`), pruned by `_pruned_dirs`.\n\nNested git trees are included, not excluded. `external.py` tags their rows afterwards so codebases can still be told apart in answers. The doxygen-guard `files:` pattern is not read; it answers what must be documented, not what should be indexed.\n\n**The Doxyfile is no longer a tier** (gh#333). A Doxyfile's `INPUT` is a documentation target, not a reasoning boundary. Repos with a Doxyfile used to get the narrower published-API subset, and repos without one got everything. Now both get the whole repository. The Doxyfile still supplies ALIASES and PREDEFINED.\n\n**Build path:** `_apply_scope` folds the chosen scope's roots and excludes into the build arguments (`_fold_scope_into_args`), with `replace_input` set. `--extra-input` and `--extra-exclude` are appended on top. The one escape hatch is `--scope doxyfile`, an explicit operator opt-out that folds nothing. Scope provenance (source, reason, roots, excludes, and the in-scope file count) is stamped into the build metadata, repo-relative only.\n\n**Caveat:** `_declared_index_scope`'s docstring still says a missing declaration \"drops to the Doxyfile's own INPUT\". The code in `derive_scope` and `whole_repo_scope` says otherwise, and gh#333 is the change that removed that path. I read this from the index's docstrings and bodies, not by running it, so the code is the authority if they disagree.",
+  "ttft_ms": 1854,
+  "type": "result",
+  "duration_ms": 17436,
+  "uuid": "a383f432-b66a-4038-9fae-43456f814650",
+  "ttft_stream_ms": 1408,
+  "time_to_request_ms": 129,
+  "first_content_frame_ms": 1408,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

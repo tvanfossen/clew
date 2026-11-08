@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 42547,
+  "stop_reason": "end_turn",
+  "session_id": "398fb32b-7e33-4769-962e-dab97e111485",
+  "total_cost_usd": 0.018119800000000002,
+  "usage": {
+    "input_tokens": 18,
+    "cache_creation_input_tokens": 49935,
+    "cache_read_input_tokens": 413850,
+    "output_tokens": 7985,
+    "output_tokens_details": {
+      "thinking_tokens": 3448
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 49935,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2586,
+        "cache_read_input_tokens": 63873,
+        "cache_creation_input_tokens": 1574,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1574
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 18,
+      "outputTokens": 7985,
+      "cacheReadInputTokens": 413850,
+      "cacheCreationInputTokens": 49935,
+      "webSearchRequests": 0,
+      "costUSD": 0.018119800000000002,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 3448,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 49935,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 20,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "## Short answer\n\nIn this codebase, the permission config does not decide much on its own. A frontend callback approves every call that reaches it, because `check_approval` ignores the callback's result. The deny list is the only hard block. The allow list only suppresses the callback. Separately, the matcher is weaker than the header comments suggest.\n\n## The path a tool call takes\n\n```\nmodel emits tool call\n  \u2502\n  \u25bc\nToolExecutor::check_call_preconditions          tool_executor.cpp:667\n  1. anti-spiral hard block\n  2. schema validation (check_schema)\n  3. MCP key check (check_mcp_authorization)    only if identity has a key set\n  4. tier allowed_tools (check_tier_allowed)\n  5. duplicate-call check\n  6. check_approval_pc \u2192 check_approval         tool_executor.cpp:161\n        auto_ok = auto_approve_tools || is_explicitly_allowed(allow list)\n        if !auto_ok and on_tool_call set \u2192 call callback, approved = true\n        else \u2192 approved = auto_ok (false \u2192 \"Permission denied\")\n  \u2502\n  \u25bc\nServerManager::execute                          server_manager.cpp:153\n  if is_denied(deny list) \u2192 \"Error: Permission denied\", tool NOT run\n  \u2502\n  \u25bc\nroute_tool_call \u2192 in-process server or external MCP client\n```\n\nEach layer runs in order, and the first rejection stops the call.\n\n## What each list does\n\n**`permissions.allow`** (`PermissionManager::is_allowed`, `permission_manager.cpp:59`)\n- A match makes `check_approval` return true without invoking the frontend callback.\n- With no callback wired, it is the only per-pattern way to run a call. Otherwise a call is denied unless `auto_approve` is set.\n- It does not bypass the deny list. Deny is checked later, in `execute`.\n\n**`permissions.deny`** (`PermissionManager::is_denied`, `permission_manager.cpp:38`)\n- Any single match blocks the call at `ServerManager::execute`, after approval has already run.\n- Because it runs after approval, a frontend can be prompted for a call that is then denied.\n- `auto_approve: true` does not override it.\n\n**`permissions.auto_approve`** (`config.h:592`, `tool_executor.cpp:163`)\n- Skips the callback and approves everything that passes the earlier preconditions.\n\n## Pattern syntax\n\nSource: `pattern_matches`, `permission_manager.cpp:101`.\n\n- The text before the first `:` is matched against the tool name with `fnmatch`. Example: `filesystem.*` matches all filesystem tools.\n- With no `:`, a match on the tool name is enough.\n- With a `:`, the full pattern is then matched against `tool:<argument>`. The argument comes from `args_to_pattern` (`server_manager.cpp:426`): the value of the first JSON key, only if it is a string. Otherwise it is `*`.\n- `fnmatch` is called with flags 0, so `*` also matches `/` and spaces.\n\nExample: `bash.execute:pytest *` is evaluated against the whole command string. It matches `pytest -x` and also `pytest; rm -rf ~`, because no shell parsing happens. That is a bypass for any allow rule with a trailing `*`.\n\n## Things that differ from the docs\n\n1. **The callback cannot deny.** The signature is `void (*on_tool_call)(const char*, void*)` (`engine_types.h:370`). `check_approval` sets `approved = true` after calling it. A frontend can only observe the request, not refuse it. Denial has to come from the deny list or the earlier preconditions.\n2. **The bash base-command pattern is never used by the gate.** `BashServer::get_permission_pattern` builds `bash.execute:<base> *` (`bash.cpp:213`), but `ServerManager::get_permission_pattern` has no callers in `src/`. The gate uses `args_to_pattern`, which matches the full command.\n3. **`PermissionPersister::save_permission` has no call site in `src/`.** Nothing in the library writes \"always allow\" patterns back to config.\n4. **The MCP key layer is separate.** `MCPAuthorizationManager` only enforces for identities that have a registered key set. Unregistered identities pass (`mcp_authorization.cpp:94`).\n\nI did not run the test suite. These conclusions come from reading the code paths above.",
+  "ttft_ms": 1582,
+  "type": "result",
+  "duration_ms": 43091,
+  "uuid": "b706fa5b-311d-4248-bba6-1cbf4621be77",
+  "ttft_stream_ms": 1140,
+  "time_to_request_ms": 138,
+  "first_content_frame_ms": 1141,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

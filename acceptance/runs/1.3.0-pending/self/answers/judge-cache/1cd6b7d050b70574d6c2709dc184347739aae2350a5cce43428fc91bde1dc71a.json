@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"If the index is newer, the server is old and a rebuild cannot clear it.\"\nVERDICT: HIT\nWHY: The answer's schema row says that when the index is newer than the server, a rebuild cannot clear the mismatch. It does not give the re-stamping reason, but it does state the unresolvable-by-rebuild substance."
+}

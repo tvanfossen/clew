@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Add the define to the module's header, for example `include/mbedtls/aes.h`... Regenerate with `make` in `library/` or the CMake build, not by hand. ... Hand edits to `error.c` will be overwritten on the next build.\nVERDICT: HIT\nWHY: The answer says to add the Doxygen-documented define to the module's public header, regenerate, and not hand-edit error.c."
+}

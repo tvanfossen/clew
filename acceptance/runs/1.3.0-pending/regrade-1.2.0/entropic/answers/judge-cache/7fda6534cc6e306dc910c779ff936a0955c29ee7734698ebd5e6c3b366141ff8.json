@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The code does the opposite: with any `on_tool_call` callback set, unlisted tools run unless a deny pattern matches.\"\nVERDICT: HIT\nWHY: The answer explicitly concludes that tools matching neither list run (default-allow), contradicting the documented default-deny."
+}

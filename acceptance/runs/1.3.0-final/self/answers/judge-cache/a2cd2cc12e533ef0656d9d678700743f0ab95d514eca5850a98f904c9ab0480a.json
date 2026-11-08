@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: | `data` | ... | `schema` | ... | `code` | ... and \"clew detects staleness on three separate axes\"\nVERDICT: HIT\nWHY: The answer states staleness is three separate axes and names them: data, schema, and code."
+}

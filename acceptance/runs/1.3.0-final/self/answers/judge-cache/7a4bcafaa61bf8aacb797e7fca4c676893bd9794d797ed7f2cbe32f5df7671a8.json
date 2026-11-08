@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`not_indexed` with counts for everything skipped (`.rs=2`, `.toml=2`, `.sql=1`, extensionless files=3, and so on)\"\nVERDICT: MISS\nWHY: The answer names file types that were NOT indexed (out of scope), but the item requires naming file types that were in scope and produced no rows, which the answer never states."
+}

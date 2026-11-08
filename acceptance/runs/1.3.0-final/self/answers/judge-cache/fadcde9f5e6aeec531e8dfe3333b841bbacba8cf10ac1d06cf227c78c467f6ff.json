@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Accumulating options (tiers 3 and 4):** nothing is replaced. A Doxyfile's `PREDEFINED` and a declared `preprocessor.predefined` union together. A disagreement here only changes labels, not the resolved set.\nVERDICT: MISS\nWHY: The answer separates single-valued (replace) from accumulating options, but it doesn't say the stated tiers replace one another while the discovered layers accumulate and survive whatever anyone states. It also assigns \"Accumulates\" to the stated-ish tier 4 and says tier 2 \"Replaces tiers 5 and 4-stated values\", which muddles the stated-versus-discovered split."
+}

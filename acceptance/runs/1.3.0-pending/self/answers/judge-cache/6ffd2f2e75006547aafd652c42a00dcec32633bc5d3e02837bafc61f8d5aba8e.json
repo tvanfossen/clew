@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: 1 | CLI flag, e.g. `--shared-key-patterns`, `--thread-patterns`, `--mqtt-dispatch`, `--data-model`, `--entry-patterns` | Replaces the stated layer\nVERDICT: MISS\nWHY: The answer names CLI flags as tier 1 but never says tier 1 is also reachable via a structured options argument; it even says the MCP server passes no flags."
+}

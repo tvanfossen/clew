@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Once `on_tool_call` is set, `check_approval` returns true for every non-allowed call. Only the deny list can block a call in that setup.\"\nVERDICT: HIT\nWHY: The answer says a call outside the allow list is still approved and that only the deny list blocks, so a call matching neither list runs. It qualifies this to the case where the callback is wired."
+}

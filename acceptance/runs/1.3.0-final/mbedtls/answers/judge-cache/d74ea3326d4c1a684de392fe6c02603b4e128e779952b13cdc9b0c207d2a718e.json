@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`mbedtls_ct_zero` becomes `volatile mbedtls_ct_uint_t = 0` (`constant_time.c:23-27`), and the opaque barrier becomes `x ^ mbedtls_ct_zero`.\"\nVERDICT: HIT\nWHY: The answer says that without asm the opaque barrier (`mbedtls_ct_compiler_opaque`) becomes `x ^ mbedtls_ct_zero`. It names `mbedtls_ct_zero` as the volatile global set to 0. It does not use the word \"extern\", but the global is defined in a separate file."
+}

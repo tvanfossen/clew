@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: On a parser without the shell and CMake grammars, the build still succeeds, but the miss report does not name those files as unindexed, which contradicts what the code comments promise.\nVERDICT: MISS\nWHY: The answer says the build doesn't fail, but it says those file types are NOT reported as not indexed. The item says the opposite, that they are reported as not indexed, and the answer treats that as a bug. It also never mentions a router consulting a capability gate."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `programs/ssl/ssl_server2.c:8`, `programs/ssl/ssl_client2.c:8` | Defined at the top of the file, before any include | These diagnostic/test programs read internal SSL state directly.\nVERDICT: HIT\nWHY: The answer states that example programs (ssl_server2.c, ssl_client2.c) define the opt-out macro themselves at the top of the file to read internal state directly."
+}

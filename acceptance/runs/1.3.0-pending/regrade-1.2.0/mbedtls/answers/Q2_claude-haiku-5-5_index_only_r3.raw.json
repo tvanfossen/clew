@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 18976,
+  "stop_reason": "end_turn",
+  "session_id": "8e900e61-862c-40b5-880c-2d83d05b98f4",
+  "total_cost_usd": 0.00495275,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 7624,
+    "cache_read_input_tokens": 198895,
+    "output_tokens": 2876,
+    "output_tokens_details": {
+      "thinking_tokens": 1536
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 7624,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2030,
+        "cache_read_input_tokens": 43386,
+        "cache_creation_input_tokens": 1802,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1802
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 2876,
+      "cacheReadInputTokens": 198895,
+      "cacheCreationInputTokens": 7624,
+      "webSearchRequests": 0,
+      "costUSD": 0.00495275,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1536,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 7624,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 6,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**What it does:** `MBEDTLS_PRIVATE(member)` wraps a struct field name in `include/mbedtls/private_access.h:15`. By default it expands to `private_##member`, so a field such as `mbedtls_aes_context::MBEDTLS_PRIVATE(nr)` (`include/mbedtls/aes.h:64`) is declared as `private_nr`. Code that writes `ctx.nr` then fails to compile. The struct layout and the header stay the same, but the names are hidden from ordinary callers. The header is not an encapsulation boundary at runtime; it is a compile-time guard on the field names.\n\n**Who it's for:** application code that includes the public mbedtls headers. The guard tells those users that the fields are internal and may change, and it stops them from depending on them by accident.\n\n**Where the opt-out is turned on:**\n\n- `private_access.h:14-18` gates the macro on `MBEDTLS_ALLOW_PRIVATE_ACCESS`. If the symbol is not defined, `MBEDTLS_PRIVATE` renames the member. If it is defined, the macro expands to the bare member name.\n- `library/common.h:132` contains `#define MBEDTLS_ALLOW_PRIVATE_ACCESS`. Library translation units that include `common.h` therefore get the real field names. Inside the library, the wrapper does nothing.\n- `programs/ssl/ssl_client2.c:8` and `programs/ssl/ssl_server2.c:8` also define it. These are the sample programs, which read struct internals directly.\n\n**What this means for those places:** the library and the two sample SSL programs can touch fields by name, and the compiler will not catch that. The guard only constrains outside users. Any external code that defines `MBEDTLS_ALLOW_PRIVATE_ACCESS` before including the headers gets the same access, so it is a deliberate escape hatch, not a security boundary.\n\n**Caveats about this index:**\n\n- `programs/ssl/*.c` is not indexed. I know about their `#define` lines only from the macro's gating records, so I did not see their surrounding code.\n- I could see the `library/common.h:132` define but not whether it sits inside any `#if`. The index lists no gate on it, so I am treating it as unconditional. Check that line if the distinction matters.",
+  "ttft_ms": 1872,
+  "type": "result",
+  "duration_ms": 20100,
+  "uuid": "3b3c6f24-d2ef-447a-a695-7e1b59c09546",
+  "ttft_stream_ms": 1527,
+  "time_to_request_ms": 80,
+  "first_content_frame_ms": 1527,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

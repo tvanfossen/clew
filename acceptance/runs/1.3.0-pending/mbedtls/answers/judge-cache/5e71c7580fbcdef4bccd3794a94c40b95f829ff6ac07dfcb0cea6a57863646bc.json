@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_ct_compiler_opaque` (`impl.h:85-93`) is an empty asm with a `+r` constraint when asm is available. Otherwise it XORs with a `volatile` zero... That stops the compiler from proving a value at compile time and folding a branch away.\n\nVERDICT: HIT\nWHY: The answer states the asm path is an empty asm with a `+r` (input-output register) constraint, and that it stops the optimiser from reasoning about the value, which is the barrier purpose."
+}

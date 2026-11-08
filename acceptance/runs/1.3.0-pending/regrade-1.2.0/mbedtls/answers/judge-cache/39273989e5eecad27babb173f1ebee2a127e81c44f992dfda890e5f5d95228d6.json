@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Unless `MBEDTLS_ALLOW_PRIVATE_ACCESS` is defined, it expands to `private_##member`... `library/common.h:132` | Every library `.c` that includes `common.h` | `MBEDTLS_PRIVATE(x)` becomes plain `x`... Anywhere else, including `ssl_context_info.c`, you must write `MBEDTLS_PRIVATE(...)` or the build fails.\nVERDICT: HIT\nWHY: The answer states that code defining the opt-out macro sees plain member names while ordinary consumers see the `private_`-renamed members."
+}

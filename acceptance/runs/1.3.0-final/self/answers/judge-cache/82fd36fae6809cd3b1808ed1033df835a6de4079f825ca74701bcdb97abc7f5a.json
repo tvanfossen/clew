@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"NOT DEFINITIVE \u2014 this index HOLDS matching rows that search does not read\" and \"the strong 'This IS a definitive empty result' text only if `has_file_docs` is true. Otherwise it returns 'NOT definitive'\"\nVERDICT: MISS\nWHY: The answer separates \"definitive\" from \"not definitive\" (including a table of both), but it never describes a distinct middle grade of \"definitive for a reason that is not absence\". It also says outright that the definitive wording ignores `not_indexed`, so the scope-limited grade is missing too."
+}

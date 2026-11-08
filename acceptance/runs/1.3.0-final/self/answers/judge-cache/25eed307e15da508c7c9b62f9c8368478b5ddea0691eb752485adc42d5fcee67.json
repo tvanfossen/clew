@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"It resolves one **index scope** before the build starts. That scope is either a declaration in the repo's own `index_scope:` section, or the whole repository minus what git ignores.\"\nVERDICT: HIT\nWHY: The answer states that a declared `index_scope` is used first. It also says an unusable declaration (unknown key, not a mapping, no roots) is \"logged as a WARNING, falls to whole-repo tier\", and that `derive_scope` \"falls through to `whole_repo_scope`\" when nothing is declared."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`stale_code_refusal()` returns a refusal message, and `build_or_refresh` calls it before touching an index. `force` does not override it. The reply states that nothing was written.\"\nVERDICT: HIT\nWHY: The answer says the write path refuses (not warns), the check runs before the index is touched, and `force` cannot override it."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `args_to_pattern` (`server_manager.cpp:426`) does not look at all arguments. It takes the value of the first key in the parsed JSON object, and only if that value is a string. Otherwise it uses `*`.\n\nVERDICT: HIT\nWHY: The answer states that only one argument (the first key's value) reaches the pattern, and that a non-string value becomes `*`. The \"Because only one argument is checked\u2026\" caveat covers the invisibility of the other arguments. It doesn't mention unparseable arguments, but the non-string wildcard collapse is stated."
+}

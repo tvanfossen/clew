@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It splits the code on the 0xFF80 mask. The high-level bits (module, e.g. SSL, X.509, PK) go to `mbedtls_high_level_strerr()`. The low-level bits (e.g. AES, BIGNUM, ASN.1) go to `mbedtls_low_level_strerr()`... If both halves are present, the output is `high : low`.\nVERDICT: HIT\nWHY: The answer states a code has high-level module and low-level parts and that strerror joins both as \"high : low\" when both are present."
+}

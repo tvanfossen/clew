@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "Only the answer's table identifies where the opt-out is defined (the macro is `MBEDTLS_ALLOW_PRIVATE_ACCESS`). It names these files as defining it:\n\n- `library/common.h` (line 132)\n- `programs/ssl/ssl_server2.c` (line 8)\n- `ssl_client2.c` (line 8). The answer gives this one only as the short name `ssl_client2.c`. The `programs/ssl/` prefix is implied by the \"Two sample programs\" row.\n\nI left out `ssl_misc.h` and the test suite, because the answer only says they include `common.h`. I left out `ssl.h` because the answer only mentions the macro there.\n\nITEMS:\nlibrary/common.h\nprograms/ssl/ssl_server2.c\nssl_client2.c\nEND"
+}

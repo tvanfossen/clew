@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Both macros must be defined together, or neither. The macros take precedence over the runtime setter, and `platform.c` drops its pointer code entirely in that case.\"\nVERDICT: HIT\nWHY: The answer separates compile-time macros from runtime function pointers. It says the macros override the runtime setter and remove the pointer code, which makes the two mechanisms mutually exclusive."
+}

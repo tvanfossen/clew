@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Combined codes.** A single return can carry both parts, for example an SSL code plus a low-level cause. The output is `\"HIGH : LOW\"`.\"\nVERDICT: HIT\nWHY: The answer explains the high-level (module, bits 7\u201315) and low-level (low 7 bits) layers and says mbedtls_strerror joins both with \" : \" when both are present."
+}

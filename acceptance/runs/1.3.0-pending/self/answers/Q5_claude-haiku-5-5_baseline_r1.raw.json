@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 41788,
+  "stop_reason": "end_turn",
+  "session_id": "44d597ae-cec9-4c3c-99a3-857aaee62a6b",
+  "total_cost_usd": 0.018535319999999997,
+  "usage": {
+    "input_tokens": 26,
+    "cache_creation_input_tokens": 48793,
+    "cache_read_input_tokens": 573312,
+    "output_tokens": 6082,
+    "output_tokens_details": {
+      "thinking_tokens": 2112
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 48793,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2115,
+        "cache_read_input_tokens": 62097,
+        "cache_creation_input_tokens": 2206,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2206
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 26,
+      "outputTokens": 6082,
+      "cacheReadInputTokens": 573312,
+      "cacheCreationInputTokens": 48793,
+      "webSearchRequests": 0,
+      "costUSD": 0.018535319999999997,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2112,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 48793,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 13,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The ways to say so, and how conflicts resolve, depend on what kind of setting it is. Clew has no single config file or precedence chain. Each option family has its own rule, and they are mostly consistent with one principle: a stated value can correct a guess, but cannot remove a fact.\n\n## The ways to say it\n\n| Channel | Who uses it | Reaches | Persists? |\n|---|---|---|---|\n| **`.clew.yaml`** at the repo root | Repo owner, checked in | All declared conventions (`entry_patterns`, `preprocessor`, `kconfig`, `locks`, `dispatch`, `index_scope`, `guard:`, and so on) | Yes, in the repo |\n| **`--declare FILE`** / `options` argument on `build_index` / MCP | Operator or agent who can't write to the target | Same sections as `.clew.yaml`, applied as \"tier 1\" | Recorded in the index and replayed by later builds |\n| **Individual flags**: `--output`, `--repo-root`, `--exclude`, `--rebuild`, `--verbose` | CLI user | Index shape (`--exclude`), build endpoints, and run mechanics only | `--exclude` is recorded and replayed; the others are per-run |\n| **`toolchain.toml` / `suppress.toml`** at the root | Repo owner shared across tools | `[ignore].paths` and `tool = \"*\"` suppressions as exclusions; `tool = \"clew\"` entries only affect the gate | Read fresh every build, not replayed |\n| **Environment variables** | Machine owner | `CLEW_JOBS` (worker count, capped at 8), `CLEW_STATE_HOME`, `CLAUDE_CONFIG_DIR` | Not in the index; a property of the host, not the repo |\n\nPer the code comments, `--declare` and `.clew.yaml` are two routes to the same vocabulary, so the choice is about reachability, not capability.\n\n## What happens when they disagree\n\n**Layered options (entry patterns, predefined, and the like).** `tiers.py` defines five tiers and resolves them as `(tier1 or tier2 or tier5) \u222a tier3 \u222a tier4`:\n\n- **Tier 1** (flag or `--declare`/`options`) and **tier 2** (`.clew.yaml`) **replace** the tier-5 name-pattern guesses. Only one of them wins, with explicit beating declared.\n- **Tiers 3 and 4** (facts from target manifests, and known-ecosystem signatures) **accumulate**. No stated value removes them. For example, `main` and `app_main` survive any `--entry-patterns` you pass.\n- Each resolution records which tier won, so the index can report it.\n\n**Path options (`requirements`, `doxyfile`, and similar).** A stated value wins over the declared one. `_apply_declared_paths` checks `is not None`, so `requirements: \"\"` withdraws the catalog rather than falling through to the declaration.\n\n**Whole sections from `--declare` vs `.clew.yaml`.** The stated section **replaces** the file's section wholesale. There is no deep merge, so `{}` withdraws the statement and the file answers again.\n\n**Exclusions.** These do not conflict. `--exclude`, `toolchain.toml` `[ignore].paths`, and `tool = \"*\"` suppressions are all unioned into one exclusion list.\n\n**Replay across builds.** This is the subtle one. A tier-1 value recorded by an earlier build is replayed on a plain refresh, and it beats the current `.clew.yaml` for that option. Passing a flag or `--declare` overrides the recorded value. `--exclude` with no values withdraws a recorded exclusion, and manifest/section statements can be withdrawn with an empty value. Toolchain exclusions are deliberately not replayed, so editing `toolchain.toml` takes effect immediately.\n\n## Caveat I found\n\nThe docstring for `resolve_layered` says an empty explicit list is a withdrawal, but `_stated_layer` tests truthiness (`if explicit:`). So `--entry-patterns` with no values does **not** suppress `.clew.yaml`'s list; the declared list is inherited. Only the `is not None` path options behave as the docstrings describe. If you rely on withdrawal, check the specific option.\n\nSources: `clew/tiers.py` (tier table and `resolve_layered`), `clew/buildoptions.py` (tier-1 options and validation), `clew/cli.py` (`_build_argparser` ~L420, `_apply_declared_paths` ~L1360, `_with_stated_sections` ~L1307, `_entry_patterns` ~L1231, the replay block ~L3080\u20133135, `_apply_toolchain_exclusions` ~L2518), `clew/toolchain.py`.",
+  "ttft_ms": 2078,
+  "type": "result",
+  "duration_ms": 42834,
+  "uuid": "d48cb09c-a930-49f6-bc87-509811e60885",
+  "ttft_stream_ms": 1561,
+  "time_to_request_ms": 224,
+  "first_content_frame_ms": 1561,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

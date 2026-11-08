@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Call with a null buffer and capacity 0. llama.cpp returns the negative of the required token count, so `if (n < 0) n = -n;` turns that into a size.\"\nVERDICT: HIT\nWHY: The answer states the first call returns a negative required count and that the code negates it (`n = -n`) to size the buffer for the second call."
+}

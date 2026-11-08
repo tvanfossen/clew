@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `python/src/entropic/_bindings.py` is generated from `entropic.h` by `scripts/gen_bindings.py` (`tasks.py gen_bindings`) and is marked \"do not edit\".\nVERDICT: HIT\nWHY: The answer explicitly states the bindings are generated from the C header by scripts/gen_bindings.py and are not hand-edited."
+}

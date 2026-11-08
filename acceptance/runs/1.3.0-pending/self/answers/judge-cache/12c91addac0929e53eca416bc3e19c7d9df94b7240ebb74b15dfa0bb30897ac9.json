@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: I checked this in `clew/mcp_server/emptiness.py`, and a zero-row `search` for a nonsense token on this repo returned the strong wording with the scope attached.\nVERDICT: HIT\nWHY: The answer explicitly names `clew/mcp_server/emptiness.py` as the module that does the grading of empty results, and it also refers to `_verdict` there."
+}

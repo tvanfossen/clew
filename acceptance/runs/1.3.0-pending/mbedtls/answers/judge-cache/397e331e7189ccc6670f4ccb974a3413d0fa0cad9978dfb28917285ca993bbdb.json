@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: By default, a struct member written as `MBEDTLS_PRIVATE(state)` is declared and named `private_state`. Code that reaches into `ssl->state` directly stops compiling, so the field is effectively private.\nVERDICT: HIT\nWHY: The answer says opacity comes from renaming the member to `private_*`, which makes direct access fail to compile. The answer never says the layout is hidden, and the fields are still declared, so the compile-time name-breaking mechanism is stated."
+}

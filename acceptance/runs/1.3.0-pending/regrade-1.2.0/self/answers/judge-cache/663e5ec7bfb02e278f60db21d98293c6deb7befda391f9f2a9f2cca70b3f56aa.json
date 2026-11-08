@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"No crash. The router checks capability before parsing. Without the check, a missing grammar would raise `ValueError: unknown language key` mid-build.\" and \"the empty-answer report says which file types were not read\"\nVERDICT: HIT\nWHY: The answer says that missing grammars degrade instead of failing, that the router checks capability before parsing, and that the build reports which in-scope file types were not indexed."
+}

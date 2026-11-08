@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Callbacks are queued and run on the engine thread via `process_events()` (`server_manager.cpp:710`). ... The health monitor queues events and the engine thread drains them.\nVERDICT: HIT\nWHY: The answer states the health monitor queues events under `event_mutex_` and the engine thread drains them via `process_events()`. That means the callback does not run on the monitor thread."
+}

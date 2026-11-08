@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `AppDataOperator` also derives from `BaseDataOperator`, so it shares `batchRecords` and `handleRecords`. The only difference is which `database` instance it writes to: the global app database for `AppDataOperator`, and the per-server database for `ServerDataOperator`.\nVERDICT: HIT\nWHY: The answer names AppDataOperator as another BaseDataOperator subclass sharing batchRecords/handleRecords write path, writing to the app-level database."
+}

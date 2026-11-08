@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 38568,
+  "stop_reason": "end_turn",
+  "session_id": "1e668cd5-8f84-4750-b93d-3c76deaaaabd",
+  "total_cost_usd": 0.01125438,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 30066,
+    "cache_read_input_tokens": 283398,
+    "output_tokens": 4812,
+    "output_tokens_details": {
+      "thinking_tokens": 2874
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 30066,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2260,
+        "cache_read_input_tokens": 61957,
+        "cache_creation_input_tokens": 5671,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 5671
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 4812,
+      "cacheReadInputTokens": 283398,
+      "cacheCreationInputTokens": 30066,
+      "webSearchRequests": 0,
+      "costUSD": 0.01125438,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2874,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 30066,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 8,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** the deny list is the only hard gate. The allow list and `auto_approve_tools` only decide whether the call is approved in the first place. A registered `on_tool_call` callback approves everything that is not denied, which contradicts the header's \"default-deny\" description.\n\n**Decision path for one call**\n\n```\ntool call\n  \u2502\n  \u251c\u2500 check_tier_allowed        locked tier's allowed_tools (not inspected in detail)\n  \u251c\u2500 check_duplicate           repeated-call guard\n  \u251c\u2500 check_approval            ToolExecutor::check_approval\n  \u2502    approved = loop.auto_approve_tools\n  \u2502               OR server_manager.is_explicitly_allowed(allow list)\n  \u2502    if !approved and on_tool_call set \u2192 approved = true   \u2190 callback is notify-only\n  \u2502    if still !approved \u2192 \"Permission denied\"\n  \u2502\n  \u2514\u2500 ServerManager::execute\n       if is_denied(deny list) \u2192 \"Error: Permission denied\", never routed\n       else route_tool_call \u2192 server runs the tool\n```\n\nTwo details matter here:\n- `check_approval` consults only the allow list. The deny list is checked later, in `ServerManager::execute`. So deny wins over allow, `auto_approve_tools`, and the callback, because execute runs regardless of how approval was granted.\n- The callback's return value is never read. Registering `on_tool_call` makes every non-denied call run.\n\n**What a pattern means**\n\nPatterns are strings of the form `server.tool` or `server.tool:argpattern`, matched with `fnmatch` (no `FNM_PATHNAME`, so `*` also crosses `/` and `:`). `pattern_matches` splits at the first `:`:\n- **No colon** (e.g. `filesystem.*`, `git.commit`): only the tool name is matched, so every call to that tool matches regardless of arguments.\n- **With colon** (e.g. `bash.execute:python*`): the tool part must match, and the call's own pattern `tool:<arg>` must match the full pattern. `<arg>` is built by `args_to_pattern`, which takes the value of the first JSON member of the arguments, or `*` if the args are empty, not an object, or the first value is not a string.\n\nPatterns come from three sources: `permissions.allow` / `deny` / `auto_approve` in config (`parse_permissions_config`), `add_permission` at runtime, and \"Always Allow/Deny\" choices saved to the project YAML by `PermissionPersister::save_permission`. For bash, the saved pattern is `bash.execute:<base_cmd> *`, built by `BashServer::get_permission_pattern`.\n\n**Weaknesses I found from the index (not run)**\n1. **Callback approves everything.** The header says tools are \"approved via callback\", but the code treats the callback as notification. A consumer that registers `on_tool_call` only to observe calls is silently granting approval.\n2. **Argument matching is positional, not semantic.** Matching uses the first JSON member, and nlohmann objects iterate in key order. If a tool's first alphabetical key is not the command, deny patterns like `bash.execute:rm*` test the wrong value. I did not verify the bash argument schema, so this is inferred.\n3. **Non-string first argument becomes `*`.** A deny such as `tool:rm*` does not match `*`, so the call gets through. An allow like `tool:*` would match it.\n\nVerify items 2 and 3 with a test before relying on them.",
+  "ttft_ms": 1541,
+  "type": "result",
+  "duration_ms": 40121,
+  "uuid": "720471c8-ad88-4ac0-b37a-ecc8ee9840e2",
+  "ttft_stream_ms": 1195,
+  "time_to_request_ms": 61,
+  "first_content_frame_ms": 1195,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

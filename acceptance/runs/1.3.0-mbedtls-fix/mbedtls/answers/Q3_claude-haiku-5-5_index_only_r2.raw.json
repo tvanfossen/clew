@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 28169,
+  "stop_reason": "end_turn",
+  "session_id": "2a2cb016-2442-4029-96b8-a35c971b31c7",
+  "total_cost_usd": 0.014282190000000002,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 44795,
+    "cache_read_input_tokens": 314449,
+    "output_tokens": 4355,
+    "output_tokens_details": {
+      "thinking_tokens": 1793
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 44795,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1795,
+        "cache_read_input_tokens": 77704,
+        "cache_creation_input_tokens": 5349,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 5349
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 4355,
+      "cacheReadInputTokens": 314449,
+      "cacheCreationInputTokens": 44795,
+      "webSearchRequests": 0,
+      "costUSD": 0.014282190000000002,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1793,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 44795,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 9,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** library code never calls `calloc`/`free` directly. It calls `mbedtls_calloc` and `mbedtls_free`, which are thin wrappers that forward through two global function pointers. Those pointers default to the C standard functions and can be replaced at runtime or at build time.\n\n**The call chain**\n\n```\nlibrary code (cipher_wrap.c, bignum.c, ssl_tls.c, psa_crypto.c, ...)\n  -> mbedtls_calloc(n, size)           library/platform.c:47\n       -> (*mbedtls_calloc_func)(n, size)\n  -> mbedtls_free(ptr)                 library/platform.c:52\n       -> (*mbedtls_free_func)(ptr)\n```\n\n- `mbedtls_calloc_func` is a `static` function pointer at `library/platform.c:44`, initialised to `MBEDTLS_PLATFORM_STD_CALLOC`. That macro expands to `calloc` when the standard functions are enabled.\n- `platform_calloc_uninit` (`platform.c:25`) is the fallback that always returns NULL. It is selected when `MBEDTLS_PLATFORM_STD_CALLOC` is not defined.\n- The index shows about 40 library call sites of `mbedtls_calloc`, including the context allocators in `cipher_wrap.c`, `bignum.c`, `pkwrite.c` and `ssl_tls.c`. The only direct `calloc` in `library/` is the default in `platform.c`.\n\n**Build-time selection**\n\nThe public header `include/mbedtls/platform.h` picks the names by configuration:\n\n| Configuration | `mbedtls_calloc` / `mbedtls_free` expand to |\n|---|---|\n| `MBEDTLS_PLATFORM_MEMORY` undefined (`platform.h:163-168`) | plain `calloc` / `free` |\n| `MBEDTLS_PLATFORM_MEMORY` defined (`platform.h:138-163`) | `MBEDTLS_PLATFORM_CALLOC_MACRO` / `MBEDTLS_PLATFORM_FREE_MACRO` (`platform.h:143-144`) |\n\nThe index shows that `MBEDTLS_PLATFORM_CALLOC_MACRO` and `MBEDTLS_PLATFORM_FREE_MACRO` have no definition site in the repository. That is expected: a project supplies them itself.\n\n**How a project substitutes its allocator**\n\nThere are two routes, and they can be combined:\n\n1. **Compile-time macros.** Set `MBEDTLS_PLATFORM_MEMORY` in the project's config header (`MBEDTLS_PLATFORM_CALLOC_MACRO` and `MBEDTLS_PLATFORM_FREE_MACRO` are the substitutes). The `tests/configs/user-config-malloc-0-null.h` fixture is an example of this route. With `MBEDTLS_PLATFORM_MEMORY` set, `platform.c:20-64` compiles without the standard fallback.\n2. **Runtime function pointers.** Call `mbedtls_platform_set_calloc_free(my_calloc, my_free)` (`platform.c:57-63`). It stores the two pointers and returns 0. The mbedtls allocator then routes through them for the rest of the process.\n\n**What the library does with the facility itself**\n\n`mbedtls_memory_buffer_alloc_init(buf, len)` (`library/memory_buffer_alloc.c:566-600`) is the library's own user of this mechanism. It:\n\n- sets up a heap over a caller-supplied buffer, with a mutex when `MBEDTLS_THREADING_C` is on;\n- calls `mbedtls_platform_set_calloc_free(buffer_alloc_calloc_mutexed, buffer_alloc_free_mutexed)` (or the non-mutexed pair), so every later `mbedtls_calloc` and `mbedtls_free` allocates from that buffer and never reaches libc.\n\nSo the same hook serves both purposes: a project's own allocator, or the built-in static-buffer allocator.\n\n**Caveats**\n\n- The pointers are plain globals. Swapping them while other threads are inside mbedtls is unsafe. The index's notes on `mbedtls_memory_buffer_alloc_init` say only that the allocator functions are thread-safe when `MBEDTLS_THREADING_C` is defined.\n- The index's `MBEDTLS_PLATFORM_STD_CALLOC` config default reads \"off\" with origin \"heuristic\". Treat the standard-function default as inferred from the platform header, not as verified from the shipped config.\n- I did not read the preprocessor blocks in `platform.h` line by line. The mapping above comes from the index's macro expansions and gate records.",
+  "ttft_ms": 2779,
+  "type": "result",
+  "duration_ms": 29778,
+  "uuid": "63913a49-2ad0-46dd-a832-940e6f428005",
+  "ttft_stream_ms": 2131,
+  "time_to_request_ms": 70,
+  "first_content_frame_ms": 2131,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

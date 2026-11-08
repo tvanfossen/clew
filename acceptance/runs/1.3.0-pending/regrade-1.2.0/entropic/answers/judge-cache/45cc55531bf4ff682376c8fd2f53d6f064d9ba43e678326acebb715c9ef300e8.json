@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Deny** entries are checked in `ServerManager::execute`, after approval has already passed.\" and \"`ServerManager::execute` does a final deny check before routing\"\nVERDICT: MISS\nWHY: The answer places the deny check in ServerManager::execute but claims many other gates (hooks, schema, MCP authorization, tier allowlist, approval) also precede execution, and never concludes that the deny list is the only list that blocks execution."
+}

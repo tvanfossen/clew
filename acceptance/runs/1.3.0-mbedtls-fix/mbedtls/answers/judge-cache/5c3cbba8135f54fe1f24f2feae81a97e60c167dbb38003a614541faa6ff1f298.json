@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `#define MBEDTLS_PRIVATE(member)  private_##member   /* default: member is renamed */` and `#define MBEDTLS_PRIVATE(member)  member             /* when MBEDTLS_ALLOW_PRIVATE_ACCESS is defined */`; \"Inside the library (`library/*.c`)... Those accesses only compile because the opt-out is on there.\"\nVERDICT: HIT\nWHY: The answer states that the macro renames members by default and uses plain names when MBEDTLS_ALLOW_PRIVATE_ACCESS is defined, and that library code with the opt-out sees real names while ordinary applications cannot access fields by name."
+}

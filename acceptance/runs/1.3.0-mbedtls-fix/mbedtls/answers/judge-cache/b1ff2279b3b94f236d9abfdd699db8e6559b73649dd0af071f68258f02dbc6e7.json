@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"If `MBEDTLS_PLATFORM_NO_STD_FUNCTIONS` is set, they become stubs instead: calloc returns NULL and free does nothing (`platform.c:25-42`).\"\nVERDICT: HIT\nWHY: The answer says that without the std functions the pointer defaults are stubs. The calloc stub returns NULL and the free stub does nothing."
+}

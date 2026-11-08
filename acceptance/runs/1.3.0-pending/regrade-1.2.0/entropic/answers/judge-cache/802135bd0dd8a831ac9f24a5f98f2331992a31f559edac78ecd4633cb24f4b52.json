@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`LlamaCppTokenizer::tokenize` logs at error level and returns `{}`. Failure and empty input look the same to callers.\" and \"Tokenization failure is silent throughout... the callers mostly don't check\"\nVERDICT: HIT\nWHY: The answer states failure is indistinguishable from empty input and that callers mostly don't check, with only the speculative/MTP paths checking (and only on size < 2)."
+}

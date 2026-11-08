@@ -1,0 +1,40 @@
+{
+  "stem": "Q1_claude-haiku-5-5_baseline_r3",
+  "arm": "baseline",
+  "model": "claude-haiku-5-5",
+  "ok": true,
+  "skills": "",
+  "answered_by": "claude-haiku-5-5",
+  "seconds": 19.548219645017525,
+  "input_tokens": 10,
+  "output_tokens": 3189,
+  "cache_read_tokens": 227347,
+  "cache_creation_tokens": 13526,
+  "cost_usd": 0.006574170000000001,
+  "result_bytes": 2580,
+  "turns": 8,
+  "tool_calls": 7,
+  "non_index_tool_calls": 7,
+  "denied_tool_calls": 0,
+  "error": "",
+  "argv": [
+    "claude",
+    "-p",
+    "Answer the question below about the repository at /home/tvanfossen/Projects/clew/acceptance/runs/1.3.0-final/mattermost/repo.\n\nYou have the usual shell and file tools: Read, Grep, Glob and Bash.\n\nWork however you judge best. There is no required format, no word limit and no\nstructure you are expected to follow \u2014 write the answer as prose, at whatever\nlength the question deserves.\n\nQUESTION:\nIn mattermost-mobile, when sending a new post to the server fails, what happens to that\npost, how many times is the send retried automatically, and what does retrying it do?\n",
+    "--model",
+    "claude-haiku-5-5",
+    "--output-format",
+    "json",
+    "--allowedTools",
+    "Read,Grep,Glob,Bash",
+    "--strict-mcp-config"
+  ],
+  "cell": {
+    "target": "mattermost/mattermost-mobile",
+    "question_id": "Q1",
+    "arm": "baseline",
+    "model": "claude-haiku-5-5",
+    "replicate": 3,
+    "order": 34
+  }
+}

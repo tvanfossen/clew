@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `db_status` in `clew/mcp_server/state.py:1140` computes three axes: ... | `data` | ... | `schema` | ... | `code` | ...\nVERDICT: HIT\nWHY: The answer explicitly states three axes (data, schema, code), names them, and tells the caller to read the `staleness` list rather than the single boolean `stale`."
+}

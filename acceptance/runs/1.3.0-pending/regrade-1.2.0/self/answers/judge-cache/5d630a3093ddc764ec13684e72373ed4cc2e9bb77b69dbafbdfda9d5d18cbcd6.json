@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: | `data` | ... | `schema` | ... | `code` | The running process's `PROCESS_SOURCE_FINGERPRINT` (taken at import) differs from the fingerprint of the source tree now.\nVERDICT: HIT\nWHY: The answer opens with \"three separate axes\" and names data, schema, and code, each with its own detection and remedy."
+}

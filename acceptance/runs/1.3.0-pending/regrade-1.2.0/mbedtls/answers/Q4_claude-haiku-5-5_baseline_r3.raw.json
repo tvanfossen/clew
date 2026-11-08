@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 24618,
+  "stop_reason": "end_turn",
+  "session_id": "cf8551e8-a9c1-4157-b322-fccc3a1ed86e",
+  "total_cost_usd": 0.0066671000000000005,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 13052,
+    "cache_read_input_tokens": 190320,
+    "output_tokens": 4305,
+    "output_tokens_details": {
+      "thinking_tokens": 1960
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 13052,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2193,
+        "cache_read_input_tokens": 45541,
+        "cache_creation_input_tokens": 1059,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1059
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 4305,
+      "cacheReadInputTokens": 190320,
+      "cacheCreationInputTokens": 13052,
+      "webSearchRequests": 0,
+      "costUSD": 0.0066671000000000005,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1960,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 13052,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 6,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The short answer: `error.c` contains two generated lookup tables, and a new error string comes from a `#define` in the module's header, not from editing `error.c`.\n\n**Runtime path**\n\n```\nret (e.g. -0x2880)\n  \u2502\nmbedtls_strerror(ret, buf, buflen)        library/error.c:792\n  \u251c\u2500 ret = -ret                           sign removed\n  \u251c\u2500 high = ret & 0xFF80                  module/category bits\n  \u2502    \u2514\u2500 mbedtls_high_level_strerr()     error.c:174  switch \u2192 \"X509 - ...\"\n  \u2502       (if SSL fatal alert: stop here, skip low-level)\n  \u251c\u2500 low  = ret & ~0xFF80                 module-specific bits\n  \u2502    \u2514\u2500 mbedtls_low_level_strerr()      error.c:537  switch \u2192 \"AES - ...\"\n  \u2514\u2500 join with \" : \", or \"UNKNOWN ERROR CODE (XXXX)\" when no case matches\n```\n\nThe `switch` cases inside those two functions are generated. They sit between the `Begin/End Auto-Generated Code` markers at `error.c:186\u2013528` (high) and `error.c:549\u2013783` (low). When `MBEDTLS_ERROR_C` is off, a dummy `mbedtls_strerror` at `error.c:867` just writes an empty string.\n\n**How the tables are generated**\n\n`scripts/generate_errors.pl` runs from `library/Makefile:355\u2013360`, and `error.c` depends on every `include/mbedtls/*.h`, so a header edit triggers regeneration on the next build. The script:\n\n- scans `include/mbedtls/*.h` for `#define MBEDTLS_ERR_<X> -0x....`\n- takes the description from a `/** ... */` comment before the define or a `/*!< ... */` after it, and dies if there is neither or both\n- builds the string as `\"<MODULE> - <description>\"`, with the module taken from the name prefix\n- dies on a duplicate code\n- dies with \"Do not know how to handle\" if the module is not in its `@low_level_modules` or `@high_level_modules` lists\n\n**What a contributor does to add one**\n\n1. Add the define to the module's header in `include/mbedtls/<module>.h`, with a negative hex value in an unused slot and a doc comment. Check the module's range in the layout table at the top of `include/mbedtls/error.h`, lines 17\u201380, and update it. That table is documentation; I did not find the generator reading it.\n2. If the module is new, add it to the right list in `scripts/generate_errors.pl`. Low-level modules get the 0x0001\u20130x007F space and high-level ones the 0xXX80 space.\n3. Regenerate with the library build (`make` in `library/`, or the CMake target). Do not hand-edit `error.c`.\n4. Commit the regenerated `library/error.c`. `tests/scripts/check-generated-files.sh:135` regenerates it and fails CI on a diff.\n5. Add a case to `tests/suites/test_suite_error.data` (it calls `error_strerror` in `test_suite_error.function`), and check `ChangeLog.d/00README.md` for the changelog entry format. I did not read that README.\n\nI did not build or run anything, so the regeneration step and the tests are unverified here.",
+  "ttft_ms": 2438,
+  "type": "result",
+  "duration_ms": 25000,
+  "uuid": "bcb3d211-7a7b-4728-b013-1ae584facd9e",
+  "ttft_stream_ms": 1403,
+  "time_to_request_ms": 141,
+  "first_content_frame_ms": 1404,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

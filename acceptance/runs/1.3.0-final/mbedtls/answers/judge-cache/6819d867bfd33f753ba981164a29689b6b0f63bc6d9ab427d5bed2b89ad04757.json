@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A consumer who writes `ctx.reseed_counter` gets a compile error because the field is actually called `private_reseed_counter`.\nVERDICT: HIT\nWHY: The answer states that the macro renames the member (`private_##member`) so access by the original name fails at compile time. It never says the struct layout is still visible, but the renaming mechanism is the substance of the item."
+}

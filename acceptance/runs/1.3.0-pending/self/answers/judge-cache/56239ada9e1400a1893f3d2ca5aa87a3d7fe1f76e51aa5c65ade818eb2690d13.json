@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A Doxyfile's `INPUT` is no longer a tier either (gh#333). The repo's Doxyfile still supplies aliases and predefines, but its `INPUT` is replaced, because it is a documentation target, not a reasoning boundary.\nVERDICT: MISS\nWHY: The answer says Doxyfile INPUT is not used and gives a reason (\"documentation target, not a reasoning boundary\"), but it never states the specific rationale that a repo shipping a Doxyfile would get only its documented subset while one without gets the whole tree."
+}

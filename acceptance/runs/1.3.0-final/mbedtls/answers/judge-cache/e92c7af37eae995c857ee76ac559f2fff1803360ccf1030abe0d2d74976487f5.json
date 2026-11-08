@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`MBEDTLS_PRIVATE` is a name-mangling macro... `#ifndef MBEDTLS_ALLOW_PRIVATE_ACCESS #define MBEDTLS_PRIVATE(member) private_##member #else #define MBEDTLS_PRIVATE(member) member` ... in a default build the field is really named `private_state`... `library/common.h:132` defines `MBEDTLS_ALLOW_PRIVATE_ACCESS` unconditionally, so every library `.c` ... sees plain field names\"\nVERDICT: HIT\nWHY: The answer shows both expansions and explains that code defining the opt-out (the library, the sample programs) sees plain names while external consumers get `private_`-prefixed names."
+}

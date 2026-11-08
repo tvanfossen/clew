@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: In the asm path it is an empty `asm volatile` with `\"+r\"`; otherwise it XORs with `mbedtls_ct_zero`.\nVERDICT: HIT\nWHY: The answer states the asm path is an empty asm volatile with a \"+r\" input-output operand, and describes the function as hiding a value from the optimizer (the barrier role)."
+}

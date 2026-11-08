@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \".yaml`/`.yml`/`.json` | Yes | None, by design\" and \"The index does contain them as indexed files with `symbol_count: 0`.\" alongside shell/CMake having function-level rows.\nVERDICT: HIT\nWHY: The answer states YAML/JSON are in the file set with no symbols, contrasting them with shell/CMake, which do get symbol rows."
+}

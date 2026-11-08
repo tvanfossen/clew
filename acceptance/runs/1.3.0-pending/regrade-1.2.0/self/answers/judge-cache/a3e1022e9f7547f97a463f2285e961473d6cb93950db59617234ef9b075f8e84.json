@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The winning tier is recorded in `build_meta`. Only a tier-1 statement is recorded for replay, so a later rebuild reproduces it.\nVERDICT: MISS\nWHY: The answer says the winning tier is recorded in build_meta but never says the record is derived from stored rows rather than stamped as a separate summary."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never mentions MBEDTLS_CT_ASM. It describes the asm path as requiring MBEDTLS_HAVE_ASM, `__GNUC__` and a recognised architecture, but it never says a derived macro is set from those rather than configured in mbedtls_config.h."
+}

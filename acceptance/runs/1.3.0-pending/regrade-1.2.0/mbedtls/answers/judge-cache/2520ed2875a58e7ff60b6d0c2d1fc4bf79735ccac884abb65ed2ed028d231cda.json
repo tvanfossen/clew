@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Asm is used only when all of these hold: `MBEDTLS_HAVE_ASM` is defined, the compiler is GNU-compatible (`__GNUC__`, which includes clang), it is not armcc5, and the target is one of the four listed architectures. ... `MBEDTLS_CT_ASM` is defined, so the opaque barrier is asm\n\nVERDICT: MISS\n\nWHY: The answer describes the conditions for asm use and mentions `MBEDTLS_CT_ASM` being defined, but never says it is a derived macro rather than a configured one. It does not contrast it with an `mbedtls_config.h` entry."
+}

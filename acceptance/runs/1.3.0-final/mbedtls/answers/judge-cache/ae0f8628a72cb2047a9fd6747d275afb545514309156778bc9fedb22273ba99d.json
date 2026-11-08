@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: the opt-out is for the library's own code and for its bundled programs.\nVERDICT: HIT\nWHY: The answer states that the example programs (`ssl_client2.c`, `ssl_server2.c`) define `MBEDTLS_ALLOW_PRIVATE_ACCESS` themselves, so they read internals. It does not stress that this goes past the public API those programs otherwise demonstrate, but it does name the mechanism and the location."
+}

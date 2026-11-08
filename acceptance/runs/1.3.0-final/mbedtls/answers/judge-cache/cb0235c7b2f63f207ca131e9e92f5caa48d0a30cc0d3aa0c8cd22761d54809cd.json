@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Its configured macros are `MBEDTLS_THREADING_C` and `MBEDTLS_THREADING_PTHREAD`, set by flag for this build\nVERDICT: HIT\nWHY: The answer names both MBEDTLS_THREADING_C and MBEDTLS_THREADING_PTHREAD as the macros that gate the lock and thread layers, and it says every mutex sits behind `#if defined(MBEDTLS_THREADING_C)`."
+}

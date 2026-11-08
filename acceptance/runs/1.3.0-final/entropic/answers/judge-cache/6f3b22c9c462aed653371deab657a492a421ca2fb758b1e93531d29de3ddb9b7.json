@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer mentions `_bindings.py` generated from the header but says nothing about a names-only manifest that imports no ctypes, or a deliberate two-part split of the generated surface."
+}

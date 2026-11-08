@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the dependency is confined to src/inference/ and the C ABI boundary, with config fields and test mocks as indirect touches. It never says that a minority of the reaching files sit outside src/inference."
+}

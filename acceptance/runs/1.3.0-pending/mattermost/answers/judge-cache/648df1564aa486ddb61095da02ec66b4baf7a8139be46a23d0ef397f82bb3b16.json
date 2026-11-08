@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Each handler has an empty `catch`. The add path's `batchRecords` logs a warning and does not rethrow... A failed write is therefore only visible in logs.\nVERDICT: HIT\nWHY: The answer states both handlers have an empty catch (swallowing errors silently), so a failed write goes unreported at the handler level."
+}

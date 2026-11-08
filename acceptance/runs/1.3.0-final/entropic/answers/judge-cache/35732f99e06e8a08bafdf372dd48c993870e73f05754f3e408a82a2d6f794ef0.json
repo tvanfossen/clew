@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Log routing.** `HandleLogScope` is propagated into each spawned thread so logs land in the owning handle's session log.\nVERDICT: HIT\nWHY: The answer states a per-handle logging scope is propagated into each spawned thread so logs go to the owning handle, matching the item's substance, though it doesn't say \"first statement\"."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `stale_code_refusal` (`freshness.py`) refuses writes in that case, and `force=True` does not bypass the refusal.\nVERDICT: HIT\nWHY: The answer states the write path refuses (not warns) and that force=True can't override it. It doesn't say the refusal sits ahead of the build decision, but the force-proof refusal carries the item's substance."
+}

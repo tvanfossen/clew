@@ -1,0 +1,163 @@
+{
+  "cell": "Q2_claude-haiku-5-5_index_r2",
+  "arm": "index",
+  "rubric_version": "3.1.0",
+  "rubric_digest": "bbf6195f605be452",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.8484848484848485,
+  "unmarked_pct": 0.0,
+  "split_decisions": 0,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "locates the macro's definition in include/mbedtls/private_access.h",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: `include/mbedtls/private_access.h` is the whole mechanism. Without `MBEDTLS_ALLOW_PRIVATE_ACCESS`, `MBEDTLS_PRIVATE(member)` expands to `private_##member` | WHY: The answer names include/mbedtls/private_access.h as where the MBEDTLS_PRIVATE macro mechanism is defined and describes its expansion. || QUOTE: `include/mbedtls/private_access.h` is the whole mechanism. Without `MBEDTLS_ALLOW_PRIVATE_ACCESS`, `MBEDTLS_PRIVATE(member)` expands to `private_##member` | WHY: The answer names include/mbedtls/private_access.h as where the MBEDTLS_PRIVATE macro mechanism lives and describes its expansion.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that by default the macro RENAMES the member to private_<member>, and that defining MBEDTLS_ALLOW_PRIVATE_ACCESS makes it expand to the member name unchanged",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: Without `MBEDTLS_ALLOW_PRIVATE_ACCESS`, `MBEDTLS_PRIVATE(member)` expands to `private_##member`, so `ctx->MBEDTLS_PRIVATE(state)` becomes `ctx->private_state`. | WHY: The answer states the default rename to private_<member>, but never says that defining the macro makes MBEDTLS_PRIVATE expand to the member name unchanged. It only says the opt-out gives \"real field names\" or \"the same access\", which doesn't state the expansion. || QUOTE: Without `MBEDTLS_ALLOW_PRIVATE_ACCESS`, `MBEDTLS_PRIVATE(member)` expands to `private_##member`, so `ctx->MBEDTLS_PRIVATE(state)` becomes `ctx->private_state`. | WHY: The answer states the default rename to private_<member>, but never says that defining MBEDTLS_ALLOW_PRIVATE_ACCESS makes the macro expand to the bare member name. It only says that defining it gives \"the same access\" and that the library uses \"real field names\", which is not the explicit expansion the item requires. || QUOTE: Without `MBEDTLS_ALLOW_PRIVATE_ACCESS`, `MBEDTLS_PRIVATE(member)` expands to `private_##member`, so `ctx->MBEDTLS_PRIVATE(state)` becomes `ctx->private_state`. | WHY: The answer gives the default rename to private_<member>, but never says that defining MBEDTLS_ALLOW_PRIVATE_ACCESS makes the macro expand to the unchanged member name. It only says the library and sample programs get \"real names\" or \"real field names\" with the opt-out, which is not that statement about the macro's expansion.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "explains that the two branches give different consumers different views \u2014 code that defines MBEDTLS_ALLOW_PRIVATE_ACCESS sees plain member names while an ordinary consumer of the public headers sees the renamed ones",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: Without `MBEDTLS_ALLOW_PRIVATE_ACCESS`, `MBEDTLS_PRIVATE(member)` expands to `private_##member`... Library sources | `library/common.h:132` defines `MBEDTLS_ALLOW_PRIVATE_ACCESS` ... Internal code uses real field names. | WHY: The answer says that ordinary code sees `private_`-renamed members, and that code defining the macro (the library sources and sample programs) uses the real names. || QUOTE: Without `MBEDTLS_ALLOW_PRIVATE_ACCESS`, `MBEDTLS_PRIVATE(member)` expands to `private_##member`, so `ctx->MBEDTLS_PRIVATE(state)` becomes `ctx->private_state`. Ordinary code that writes `ctx->state` no longer compiles. ... Library sources | `library/common.h:132` defines `MBEDTLS_ALLOW_PRIVATE_ACCESS` | ... Internal code uses real field names. | WHY: The answer contrasts the renamed `private_*` view for ordinary consumers with the plain member names seen by code that defines the opt-out macro. || QUOTE: Without `MBEDTLS_ALLOW_PRIVATE_ACCESS`, `MBEDTLS_PRIVATE(member)` expands to `private_##member`, so `ctx->MBEDTLS_PRIVATE(state)` becomes `ctx->private_state`. Ordinary code that writes `ctx->state` no longer compiles. ... Library sources | `library/common.h:132` defines `MBEDTLS_ALLOW_PRIVATE_ACCESS` ... Internal code uses real field names. | WHY: The answer explains that code defining the macro sees real field names while ordinary public-header consumers see the renamed `private_` names.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that this enforces API opacity at COMPILE time by breaking the member name, rather than by hiding the struct layout \u2014 the fields remain visible and sized",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"It is a source-level compatibility boundary, not a security one. The struct layout is unchanged, and `ctx->private_state` still compiles for anyone who types it.\" | WHY: The answer says that renaming the member to `private_*` causes the compile error and that the struct layout is unchanged, so the fields stay visible. || QUOTE: \"It is a source-level compatibility boundary, not a security one. The struct layout is unchanged, and `ctx->private_state` still compiles for anyone who types it.\" | WHY: The answer says `MBEDTLS_PRIVATE` renames the member to `private_<name>`, which causes a compile error for code that uses the old name. It also says the struct layout is unchanged and the renamed fields remain accessible. || QUOTE: \"It is a source-level compatibility boundary, not a security one. The struct layout is unchanged, and `ctx->private_state` still compiles for anyone who types it.\" | WHY: The answer explains that `MBEDTLS_PRIVATE` renames members to `private_##member`, so ordinary access fails to compile. It also says the struct layout is unchanged and the fields are still accessible.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "conveys that the macro is applied at a scale of many hundreds of sites, overwhelmingly in the public headers rather than in library implementation",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never states that MBEDTLS_PRIVATE is applied at many hundreds of sites, mostly in public headers; it cites only a few individual locations. || QUOTE: NONE | WHY: The answer never conveys that `MBEDTLS_PRIVATE` is applied at hundreds of sites, mostly in public headers; it only cites a few individual locations. || QUOTE: NONE | WHY: The answer never says the macro is applied at a scale of many hundreds of sites, mostly in public headers; it only cites a handful of individual locations.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that library-internal code turns the opt-out ON in a shared header, so every library translation unit sees plain member names",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: Library sources | `library/common.h:132` defines `MBEDTLS_ALLOW_PRIVATE_ACCESS` | Every library `.c` includes `common.h`, and `ssl_misc.h` includes it before `mbedtls/ssl.h`... Internal code uses real field names. | WHY: The answer states that the shared header common.h defines the opt-out, which every library .c includes, so internal code uses real member names. || QUOTE: Library sources | `library/common.h:132` defines `MBEDTLS_ALLOW_PRIVATE_ACCESS` | Every library `.c` includes `common.h`, and `ssl_misc.h` includes it before `mbedtls/ssl.h`... Internal code uses real field names. | WHY: The answer states that the shared header common.h defines the opt-out, that every library .c includes it, and that internal code therefore uses real field names. || QUOTE: Library sources | `library/common.h:132` defines `MBEDTLS_ALLOW_PRIVATE_ACCESS` | Every library `.c` includes `common.h`, and `ssl_misc.h` includes it before `mbedtls/ssl.h`... Internal code uses real field names. | WHY: The answer states that the shared header common.h defines the opt-out, so every library .c file sees the real (plain) member names.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies that some example programs ALSO define the opt-out for themselves, deliberately reaching past the public API they otherwise demonstrate",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: Two sample programs | `programs/ssl/ssl_server2.c:8` and `ssl_client2.c:8` define it before any include | They use the real names, as in-tree test harnesses. | WHY: The answer states that example programs (ssl_server2.c, ssl_client2.c) define MBEDTLS_ALLOW_PRIVATE_ACCESS themselves to use real field names. || QUOTE: | Two sample programs | `programs/ssl/ssl_server2.c:8` and `ssl_client2.c:8` define it before any include | They use the real names, as in-tree test harnesses. | | WHY: The answer states that example programs (ssl_server2.c, ssl_client2.c) define MBEDTLS_ALLOW_PRIVATE_ACCESS themselves to use real field names. || QUOTE: | Two sample programs | `programs/ssl/ssl_server2.c:8` and `ssl_client2.c:8` define it before any include | They use the real names, as in-tree test harnesses. | | WHY: The answer states that example programs (ssl_server2.c, ssl_client2.c) define MBEDTLS_ALLOW_PRIVATE_ACCESS themselves to use the real field names.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "every file that turns the private-access opt-out on \u2014 library/common.h",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every file that turns the private-access opt-out on \u2014 programs/ssl/ssl_client2.c",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every file that turns the private-access opt-out on \u2014 programs/ssl/ssl_server2.c",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every file that turns the private-access opt-out on \u2014 precision",
+      "kind": "set_precision",
+      "weight": 2,
+      "hit": true,
+      "detail": "clean",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the top-level directories where MBEDTLS_PRIVATE is used \u2014 include",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the top-level directories where MBEDTLS_PRIVATE is used \u2014 library",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the top-level directories where MBEDTLS_PRIVATE is used \u2014 programs",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the top-level directories where MBEDTLS_PRIVATE is used \u2014 precision",
+      "kind": "set_precision",
+      "weight": 2,
+      "hit": true,
+      "detail": "clean",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    }
+  ]
+}

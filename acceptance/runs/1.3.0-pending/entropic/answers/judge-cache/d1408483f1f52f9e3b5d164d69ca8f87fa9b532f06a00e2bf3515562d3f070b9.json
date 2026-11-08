@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer lists HealthMonitor::start \u2192 monitor_loop as a background thread but never mentions a status callback, event queueing under a mutex, or the caller draining events on its own thread."
+}

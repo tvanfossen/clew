@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: derive_scope(repo_root)\n \u251c\u2500 load .clew.yaml (no file / no index_scope \u2192 None)\nVERDICT: HIT\n\nWHY: The answer names `derive_scope` as the entry of the decision flow, and it cites `clew/scope.py` as the module for `_declared_index_scope` and `whole_repo_scope`. That puts the resolution in `derive_scope` in `scope.py`."
+}

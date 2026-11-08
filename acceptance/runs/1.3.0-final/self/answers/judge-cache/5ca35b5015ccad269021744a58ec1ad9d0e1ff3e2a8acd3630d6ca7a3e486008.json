@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes how empty results are graded and how unindexed files are stamped. It never states the general rule that you fix the corpus (what gets indexed or searched) rather than reword the claim about it."
+}

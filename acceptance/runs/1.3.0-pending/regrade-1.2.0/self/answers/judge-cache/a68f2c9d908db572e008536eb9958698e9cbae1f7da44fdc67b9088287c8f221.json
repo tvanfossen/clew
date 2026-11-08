@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Its docstring records four earlier cases (classes, variables, macros, typedefs/enums) where the strong wording was false, which is why the check exists.\"\nVERDICT: HIT\nWHY: The answer says single-token empty results used to get the definitive \"do not retry\" wording even when unread corpora held matches. It frames the fix as separating \"not in the index\" from \"did not look there\"."
+}

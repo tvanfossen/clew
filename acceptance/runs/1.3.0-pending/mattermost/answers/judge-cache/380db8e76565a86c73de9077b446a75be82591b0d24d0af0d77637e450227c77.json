@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `archivedChannelsViewable(value)` is `value !== 'false'` (`app/queries/servers/system.ts:304`). Only the exact string `'false'` turns the feature off. `true`, any other string, and `undefined` all turn it on.\nVERDICT: HIT\nWHY: The answer states that only 'false' disables the feature and that a missing (undefined) setting results in archived channels being viewable."
+}

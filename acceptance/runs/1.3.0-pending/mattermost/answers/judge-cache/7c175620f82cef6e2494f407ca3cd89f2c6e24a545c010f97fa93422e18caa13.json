@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `Sends `include_deleted_channels: true` to the server`\nVERDICT: HIT\nWHY: The table row for `searchPosts` in `app/actions/remote/search.ts` says the setting is sent to the server as `include_deleted_channels`."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The list covers `edge_class: call` only.\nVERDICT: MISS\nWHY: The answer says every caller has `edge_class: call` and that the list covers calls only; it never says the lists mix direct calls with shared-key dataflow edges that the consumer must tell apart through `edge_class`."
+}

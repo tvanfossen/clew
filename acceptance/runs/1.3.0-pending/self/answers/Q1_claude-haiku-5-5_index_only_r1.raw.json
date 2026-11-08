@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 24542,
+  "stop_reason": "end_turn",
+  "session_id": "eb9a9e72-12c5-489b-a464-2435e4308c8a",
+  "total_cost_usd": 0.015216070000000002,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 55110,
+    "cache_read_input_tokens": 220457,
+    "output_tokens": 3977,
+    "output_tokens_details": {
+      "thinking_tokens": 1217
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 55110,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1993,
+        "cache_read_input_tokens": 63102,
+        "cache_creation_input_tokens": 10572,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 10572
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 3977,
+      "cacheReadInputTokens": 220457,
+      "cacheCreationInputTokens": 55110,
+      "webSearchRequests": 0,
+      "costUSD": 0.015216070000000002,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1217,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 55110,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 19,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "Clew decides the file set in `clew/scope.py`, through two tiers: a repo's own declaration, or the whole repository. The index answers this from its docstrings and tests, not from a run of a build, so the behaviour below is what the code is documented to do.\n\n**Decision flow**\n\n```\nbuild starts\n  \u2502\n  \u25bc\nderive_scope(repo_root)                       clew/scope.py:639\n  \u2502\n  \u251c\u2500 _declared_index_scope(root)              clew/scope.py:991\n  \u2502    reads .clew.yaml \u2192 index_scope: section\n  \u2502    \u251c\u2500 no index_scope section      \u2192 None  (fall through)\n  \u2502    \u251c\u2500 present but unusable        \u2192 _Rejected (see below)\n  \u2502    \u2514\u2500 usable                      \u2192 DerivedScope(source=declared,\n  \u2502                                       roots, excludes)\n  \u2502\n  \u2514\u2500 no declaration \u2192 whole_repo_scope(root)  clew/scope.py:683\n       roots = (repo_root,)\n       excludes = git-ignored paths\n                + nested trees' own ignores\n                + dot and cache dirs\n  \u2502\n  \u25bc\nenumerate_tree(roots, excludes)               clew/treescan.py:203\n  walks roots, pruning excluded subtrees during the walk\n  no extension filter\n```\n\n**How a repo declares scope.** The only tier that is a decision about the index is `index_scope:` in the repo's `.clew.yaml`, with `roots:` and `excludes:`. Roots are repo-relative and taken at their word, never walked. A root that does not exist is dropped with a warning. Unknown keys inside `index_scope` are refused by name. `roots` is required: `excludes` alone does nothing. The `guard:` section and the doxygen-guard `files:` pattern do not supply index roots. A Doxyfile's `INPUT` is no longer a tier either (gh#333). The repo's Doxyfile still supplies aliases and predefines, but its `INPUT` is replaced, because it is a documentation target, not a reasoning boundary.\n\n**What happens when nothing is declared.** The whole repository becomes the single root, less:\n\n- what git ignores, collected with `git ls-files --ignored --exclude-standard`, through `git_argv`/`git_env` so the target's own git config cannot run commands;\n- the same for each nested git tree, since a submodule's `.gitignore` is invisible to the parent;\n- dot-directories and `__pycache__`/`node_modules` at any level, with the walk stopping at a nested tree's top level and at a depth of 16.\n\nNested clones and submodules are indexed, not excluded. `external.py` tags their rows afterwards so answers can still tell the codebases apart. The gate's `files:` pattern is not read here, because it answers what must be documented, not what should be indexed.\n\n**Edge cases.**\n\n- A `.clew.yaml` with `index_scope:` present but unusable (non-mapping, unknown keys, no existing roots) is `_Rejected`. The library-level `derive_scope` falls back to the whole repo and logs the rejection. The CLI refuses the build instead of silently widening it (`test_cli_apply_scope_refuses_a_rejected_declaration`).\n- A malformed or unreadable `.clew.yaml` is logged at WARNING and treated as absent. An unknown top-level section raises `DeclarationError`, so a misspelling is never silently ignored.\n- Stated scope from a tool call (tier 1) goes through the same construction as a written declaration, and only the reason text differs.\n\n**Two points that surprise people.**\n\n- Nothing is extension-filtered. `enumerate_tree` hands every file under the roots to the pipeline, so hashing and invalidation see any change. Files that no grammar handles are simply not indexed; the `files` inventory counts only what the index holds.\n- A declared root is never walked, so a foreign clone inside it is indexed without being noticed. The design accepts that and relies on tagging.\n\nOne caveat: the index flagged the docstring of `load_declaration_located` (`clew/declaration.py:299`) as possibly out of date relative to its body. The behaviour described above comes from the other scope functions and their tests, which are current.",
+  "ttft_ms": 4232,
+  "type": "result",
+  "duration_ms": 25949,
+  "uuid": "dfcee064-f2f2-4597-bf7b-f3f214b3aa9f",
+  "ttft_stream_ms": 3625,
+  "time_to_request_ms": 134,
+  "first_content_frame_ms": 3626,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

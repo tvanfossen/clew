@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the buffer allocator installs its own calloc/free through the runtime hook. It never says `MBEDTLS_MEMORY_BUFFER_ALLOC_C` requires `MBEDTLS_PLATFORM_MEMORY`, or that enabling the allocator alone isn't enough to route allocations through it."
+}

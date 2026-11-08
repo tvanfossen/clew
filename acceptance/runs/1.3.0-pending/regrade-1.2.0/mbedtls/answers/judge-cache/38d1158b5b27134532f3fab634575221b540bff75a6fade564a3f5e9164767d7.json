@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"MBEDTLS_PLATFORM_MEMORY off (shipped default) \u2192 calloc()   [direct libc]\" and \"`MBEDTLS_PLATFORM_MEMORY` is off in `include/mbedtls/mbedtls_config.h:208`. The dispatch function `mbedtls_calloc` in `platform.c` is compiled only under that gate, so the macro goes straight to libc. Free is the same with `mbedtls_free` \u2192 `free()`.\"\nVERDICT: HIT\nWHY: The answer states that in the default build `mbedtls_calloc` is a macro going straight to `calloc()` and `mbedtls_free` goes to `free()`, with no indirection."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Facts and ecosystem (3 and 4). These accumulate and survive every stated tier, so a `--entry-patterns` flag cannot drop `main`.\" and \"Stated vs. guesses (1 or 2 vs. 5). The stated value replaces the guesses entirely.\"\nVERDICT: HIT\nWHY: The answer says the stated tiers replace one another, while the discovered layers (3 and 4) accumulate and survive every stated tier. That is the asymmetry the item asks for."
+}

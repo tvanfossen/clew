@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: With a callback and no allow match, the call is approved, and the callback is only a notification.\nVERDICT: MISS\nWHY: The answer says that with a callback registered, a call off the allow list is approved. It also says that with no callback and no allow match, the call is denied. The item needs the conclusion that a tool matching neither list runs by default. The answer does not say that, and it treats the deny list as the authoritative gate."
+}

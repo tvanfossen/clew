@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`MBEDTLS_PRIVATE(member)` is a rename, not an access control... expands to `private_##member`... the real name `state` is invisible to it.\"\nVERDICT: HIT\nWHY: The answer states that opacity comes from compile-time name mangling (`private_##member`) rather than from hiding or access control. The item also asks for the point that the fields stay visible and sized. The answer implies this by calling the macro a rename and noting that \"nothing stops a determined caller\", so I judged the mechanism covered."
+}

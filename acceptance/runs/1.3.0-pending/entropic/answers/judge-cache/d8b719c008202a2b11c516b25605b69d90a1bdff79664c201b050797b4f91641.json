@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "ITEMS:\nsrc/inference\nsrc/facade\nsrc/core\nsrc/config\nsrc/mcp\nEND\n\nWait \u2014 correcting: the answer says core, config and mcp are clean, so they should not be listed.\n\nITEMS:\nsrc/inference\nsrc/facade\nEND"
+}

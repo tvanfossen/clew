@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: | CLI flag | `--entry-patterns`, `--scope`, `--extra-input`, `--requirements`, `--dispatch`, etc. | Tier 1 | and | MCP `index(options=\u2026)` | The `options` argument, keyed by `.clew.yaml` section names | Same as a declaration, since MCP passes no flags |\nVERDICT: MISS\nWHY: The answer places the MCP options argument at declaration level (tier 2), not tier 1, so it denies that tier 1 is reachable from a structured options argument."
+}

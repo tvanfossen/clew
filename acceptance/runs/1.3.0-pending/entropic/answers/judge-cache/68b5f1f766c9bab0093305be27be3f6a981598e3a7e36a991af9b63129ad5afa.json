@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The second call is not repeated if it fails. ... `LlamaCppTokenizer::tokenize()` logs an error and returns `{}`.\nVERDICT: HIT\nWHY: The answer states the second call isn't retried on failure and that tokenize() returns empty `{}` on failure, matching the terminal-empty behavior."
+}

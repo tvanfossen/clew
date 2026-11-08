@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Short answer:** llama.cpp is a git submodule at `extern/llama.cpp`, built into the inference library and not into the top-level engine.\"\nVERDICT: HIT\nWHY: The answer explicitly states llama.cpp is a git submodule at extern/llama.cpp, and contrasts it with other deps fetched via FetchContent."
+}

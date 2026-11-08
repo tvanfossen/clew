@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Cross-thread cancellation goes through the atomic, not the raw `int*`.\nVERDICT: MISS\nWHY: The answer lists cancel pollers and mentions atomics versus a raw `int*`, but never says the observer thread exists to bridge an atomic into a plain int because the C ABI can't carry an atomic."
+}

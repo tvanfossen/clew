@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"YAML and JSON are never parsed, so they carry no symbols on any install.\" and \"It holds **function-level rows only for shell and CMake**\"\nVERDICT: HIT\nWHY: The answer states YAML/JSON get path rows but no symbols, while shell/CMake get function rows, so the two groups are treated differently."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: the default expansion is `private_##member`, so `ctx->MBEDTLS_PRIVATE(alg)` becomes `ctx->private_alg`\nVERDICT: HIT\nWHY: The answer states the default rename to `private_<member>`. It also says that inside code defining `MBEDTLS_ALLOW_PRIVATE_ACCESS`, \"`MBEDTLS_PRIVATE(x)` is just `x`\", which is the unchanged-member expansion."
+}

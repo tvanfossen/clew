@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never concludes that a tool matching neither list runs by default; its flow shows \"otherwise \u2192 Permission denied\" at the approval layer, and it says nothing about default-allow at the blocking gate."
+}

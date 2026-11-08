@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`_data_stale()` returns false if the process does not match its source. That keeps an old server from running a build that could drop layers.\"\nVERDICT: MISS\nWHY: The answer covers the write side, since an old process must not build and could drop layers. It never says reads stay current because query tools open the database per call. The closest it gets is that the code notice says \"the data is not stale\", which only gestures at that half."
+}

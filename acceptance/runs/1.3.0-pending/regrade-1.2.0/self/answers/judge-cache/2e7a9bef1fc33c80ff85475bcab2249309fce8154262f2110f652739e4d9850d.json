@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A Doxyfile, if present, contributes ALIASES and PREDEFINED but no longer contributes INPUT (gh#333).\nVERDICT: MISS\nWHY: The answer says a Doxyfile no longer contributes INPUT, but it never says this is deliberate or explains the reason (a repo with a Doxyfile would get only its documented subset, while one without gets its whole tree)."
+}

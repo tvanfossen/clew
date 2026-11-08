@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says an unknown section is refused by name against the allowed set. It only says `apply_options` rejects the whole mapping if one entry is bad, which is not the same claim."
+}

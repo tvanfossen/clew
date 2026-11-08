@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never describes the monitor's shutdown as an atomic flag exchange plus condition variable wake, and never says the monitor's stop() joins the thread. It only notes ExternalBridge::stop() joins its threads, which is a different component."
+}

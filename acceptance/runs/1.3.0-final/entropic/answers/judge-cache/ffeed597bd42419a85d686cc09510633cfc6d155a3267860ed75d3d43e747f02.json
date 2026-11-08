@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says that the seam is llama.cpp's C API of llama_-prefixed free functions. It only mentions mocking `llama_*` C functions in tests and a `llama_model` forward declaration, not the C-API seam."
+}

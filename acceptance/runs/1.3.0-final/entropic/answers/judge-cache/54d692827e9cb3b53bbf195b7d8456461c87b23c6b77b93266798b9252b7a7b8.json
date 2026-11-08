@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `.gitmodules` maps `extern/llama.cpp` to `ggml-org/llama.cpp`... llama.cpp is the only one that is a submodule and built as a subdirectory.\nVERDICT: HIT\nWHY: The answer states llama.cpp is a git submodule at extern/llama.cpp, contrasting it with the other dependencies that are fetched via FetchContent."
+}

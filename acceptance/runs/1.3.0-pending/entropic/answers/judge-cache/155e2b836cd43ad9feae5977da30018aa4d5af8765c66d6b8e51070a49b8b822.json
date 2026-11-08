@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: External MCP accept loop | `src/facade/external_bridge.cpp:796` | Joined in `stop()` | Per-client serve threads | `external_bridge.cpp:945` | Shut down via `shutdown(SHUT_RDWR)` and joined in `stop()`\nVERDICT: HIT\nWHY: The answer lists an accept-loop thread and separate per-client serve threads in the external bridge, and its stop() description (stops accepting, shuts down client sockets, then joins) covers the two-level structure, though it doesn't say outright that the accept thread spawns the client threads."
+}

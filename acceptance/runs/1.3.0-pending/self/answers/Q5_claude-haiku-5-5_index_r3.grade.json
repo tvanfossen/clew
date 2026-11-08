@@ -1,0 +1,143 @@
+{
+  "cell": "Q5_claude-haiku-5-5_index_r3",
+  "arm": "index",
+  "rubric_version": "5.0.0",
+  "rubric_digest": "d8447c7b18eafbf5",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.37037037037037035,
+  "unmarked_pct": 0.0,
+  "split_decisions": 3,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "identifies that layered build options resolve through FIVE named precedence tiers, rather than a single override",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer describes five tiers in its table, but they are the tiers for indexing conventions, not for layered build options. It also introduces them as \"four ways\" and never names them as five named precedence tiers resolving build options. || QUOTE: NONE | WHY: The answer describes five tiers, but they are a table of conventions sources (explicit statement, .clew.yaml, facts, ecosystem signature, heuristics), not five named precedence tiers for layered build options; it also opens by calling them \"four ways\", which contradicts the five-tier framing.",
+      "agreement": 0.6666666666666666,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that the rule is ASYMMETRIC \u2014 the stated tiers REPLACE one another while the discovered layers ACCUMULATE and survive whatever anyone states",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"the resolved set is `(tier1 or tier2 or tier5) \u222a tier3 \u222a tier4`. The module docstring summarises it as \"you can correct our guesses; you cannot un-discover a fact.\"\" | WHY: The answer says stated tiers replace one another (tier1 or tier2 or tier5) while discovered tiers 3 and 4 accumulate and survive any stated value. || QUOTE: \"the resolved set is `(tier1 or tier2 or tier5) \u222a tier3 \u222a tier4`. The module docstring summarises it as \\\"you can correct our guesses; you cannot un-discover a fact.\\\"\" | WHY: The answer says stated tiers replace each other (tier1 or tier2 or tier5) while discovered tiers 3 and 4 accumulate and survive any stated value. || QUOTE: \"the resolved set is `(tier1 or tier2 or tier5) \u222a tier3 \u222a tier4`. The module docstring summarises it as \"you can correct our guesses; you cannot un-discover a fact.\"\" | WHY: The answer says stated tiers replace one another (tier1 or tier2 or tier5) while discovered tiers 3 and 4 accumulate and survive any statement (\"a stated `--entry-patterns` cannot drop `main`\").",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that tiers 3 and 4 combine IDENTICALLY, so the distinction between them is deliberately inert, and that the load-bearing line is fact-versus-guess",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: Tiers 3 and 4 behave identically; the distinction is only the label. | WHY: The answer says tiers 3 and 4 behave identically and the distinction is only a label. It never says the load-bearing line is fact versus guess. The quoted \"you cannot un-discover a fact\" line doesn't name that line. || QUOTE: Tiers 3 and 4 behave identically; the distinction is only the label. | WHY: The answer says tiers 3 and 4 behave identically but never states that the load-bearing line is fact-versus-guess. It only says \"you can correct our guesses; you cannot un-discover a fact\", which is a gesture at that line and is not framed as the load-bearing distinction. || QUOTE: Tiers 3 and 4 behave identically; the distinction is only the label. | WHY: The answer says tiers 3 and 4 behave identically, but it never says the distinction is deliberately inert or that the load-bearing line is fact versus guess; the \"you cannot un-discover a fact\" quote comes close but isn't tied to that point.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies `.clew.yaml` as the repository's own standing declaration \u2014 tier 2, discovered from the repo root by BOTH entry points rather than plumbed per section",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: Repo's `.clew.yaml` (repo root only) | Replaces the stated layer; \"Absent is normal. The file is read only from the repo root.\" | WHY: The answer says `.clew.yaml` is tier 2 and read from the repo root, but it never says both entry points (CLI and MCP) discover it, so the \"discovered by both entry points rather than plumbed per section\" part is missing. || QUOTE: Repo's `.clew.yaml` (repo root only) | Replaces the stated layer; \"Absent is normal. The file is read only from the repo root.\" | WHY: The answer places `.clew.yaml` at tier 2 and says it is read from the repo root. It never says that both entry points (CLI and MCP) discover it, as opposed to it being plumbed per section.",
+      "agreement": 0.6666666666666666,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that tier 1 is reachable from BOTH entry points \u2014 a CLI flag and a structured options argument \u2014 so an embedding caller with no shell can still state the top tier",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: Explicit statement: a CLI flag, or the `options` argument on the MCP `index` tool, keyed by `.clew.yaml` section name | WHY: The answer places tier 1 at both a CLI flag and the MCP `index` tool's `options` argument, which is the structured-options entry point. || QUOTE: Explicit statement: a CLI flag, or the `options` argument on the MCP `index` tool, keyed by `.clew.yaml` section name | WHY: Tier 1 is explicitly stated as reachable via either a CLI flag or the structured `options` argument on the MCP `index` tool. || QUOTE: Explicit statement: a CLI flag, or the `options` argument on the MCP `index` tool, keyed by `.clew.yaml` section name | WHY: The tier 1 row names both entry points, the CLI flag and the structured `options` argument on the MCP `index` tool.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "notes that the option names an embedding caller states are the SAME WORDS as the declaration file's section names, and the same words the diagnostics use",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer mentions the `options` argument keyed by `.clew.yaml` section name, but it never says the embedding caller's option names are the same words as the declaration's section names and the diagnostics' wording. || QUOTE: Explicit statement: a CLI flag, or the `options` argument on the MCP `index` tool, keyed by `.clew.yaml` section name | WHY: The answer says the MCP options argument is keyed by section name, but it never says the embedding caller's option names are the same words the diagnostics use, so half of the item is missing.",
+      "agreement": 0.6666666666666666,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies that an unknown SECTION is refused by name against the allowed set rather than ignored, and gives the reason \u2014 an ignored section builds with defaults while reporting the declaration was honoured",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: An unknown top-level section is refused (`DeclarationError`), because a misspelled section would otherwise be ignored while the build reports it was honoured. | WHY: The answer states that an unknown section is refused (DeclarationError) and gives the reason that ignoring it would let the build report the declaration as honoured. It does not say the refusal names the section or lists the allowed set, but it does give the refuse-instead-of-ignore mechanism and the reason. || QUOTE: An unknown top-level section is refused (`DeclarationError`), because a misspelled section would otherwise be ignored while the build reports it was honoured. | WHY: The answer states that an unknown section is refused (DeclarationError) rather than ignored, and gives the reason: ignoring it would let the build report the declaration was honoured. It doesn't say \"by name against the allowed set\" in those words, but the refusal and the reason are both there. || QUOTE: An unknown top-level section is refused (`DeclarationError`), because a misspelled section would otherwise be ignored while the build reports it was honoured. | WHY: The answer states that unknown sections are refused, and that otherwise they'd be ignored while the build reports the declaration was honoured. It doesn't say the refusal names the section against the allowed set, but the refuse-versus-ignore mechanism and the reason are both there.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies a SECOND refusal one level down \u2014 an unknown key INSIDE a well-named section \u2014 and that a correctly-spelled derived key is refused with its reason rather than as unknown",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer covers only unknown top-level sections being refused. It never mentions a second refusal for an unknown key inside a valid section, or a correctly-spelled derived key being refused with its reason. || QUOTE: NONE | WHY: The answer covers only unknown top-level sections being refused and says nothing about an unknown key inside a valid section, or a correctly-spelled derived key refused with its reason. || QUOTE: NONE | WHY: The answer mentions only unknown top-level sections being refused. It never describes a refusal for an unknown key inside a well-named section, or a correctly-spelled derived key that is refused with its reason.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the winning tier is RECORDED with the index, and that the record is derived from the stored rows rather than stamped as a separate summary",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: Stated vs. recorded: only a tier-1 statement is written to the database for replay. A declaration is re-read on each build rather than frozen | WHY: The answer discusses recording tier-1 statements for replay, but never says the winning tier is recorded with the index or that the record is derived from stored rows rather than stamped separately. || QUOTE: NONE | WHY: The answer never says a winning tier is recorded with the index or that such a record is derived from stored rows. It says only that tier-1 statements are written to the database for replay. || QUOTE: Stated vs. recorded: only a tier-1 statement is written to the database for replay. | WHY: The answer says tier-1 statements are recorded for replay, but never says the winning tier is recorded with the index or that the record is derived from stored rows rather than stamped as a separate summary.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide a build option's value \u2014 clew/tiers.py",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide a build option's value \u2014 clew/declaration.py",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": false,
+      "detail": "not named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide a build option's value \u2014 clew/buildoptions.py",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": false,
+      "detail": "not named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide a build option's value \u2014 precision",
+      "kind": "set_precision",
+      "weight": 1,
+      "hit": false,
+      "detail": "named 4 not in the set: ['.clew.yaml', 'clew/cli.py', 'clew/guardconfig.py', 'clew/scope.py']",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    }
+  ]
+}

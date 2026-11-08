@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Whether an unlisted call runs depends on whether an `on_tool_call` callback is registered. ... \"Default-deny holds only when no callback is registered.\"\nVERDICT: MISS\nWHY: The answer says the unlisted call's outcome depends on a callback being registered, and that the deny list is the only blocker once dispatch is reached. It never concludes that the effective posture is default-allow, so the item is not stated."
+}

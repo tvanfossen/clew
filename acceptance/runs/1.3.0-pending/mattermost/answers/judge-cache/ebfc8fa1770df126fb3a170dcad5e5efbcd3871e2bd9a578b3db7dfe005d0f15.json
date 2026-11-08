@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says `noRetry: true` disables the client's retry layer for posting, but it never states that requests generally retry with exponential backoff and a limit of 3 set by the network manager. It also says it did not confirm that layer's behaviour."
+}

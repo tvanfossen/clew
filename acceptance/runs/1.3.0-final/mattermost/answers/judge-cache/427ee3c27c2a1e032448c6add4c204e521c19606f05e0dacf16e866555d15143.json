@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Viewable: only `delete_at` is set. Not viewable: if the archived channel is the current one, the user is kicked out with `Events.CHANNEL_ARCHIVED`, and the user is removed from the channel locally.\nVERDICT: HIT\nWHY: The answer's `handleChannelDeletedEvent` row states both branches: not viewable removes the user and kicks them out if it is the current channel, and viewable keeps the channel with `delete_at` set (marked deleted)."
+}

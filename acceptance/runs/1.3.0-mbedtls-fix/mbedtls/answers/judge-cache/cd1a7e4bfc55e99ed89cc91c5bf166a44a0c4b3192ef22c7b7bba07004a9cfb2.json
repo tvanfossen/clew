@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: macros pointing at your functions. No function pointers and no runtime setter (`platform.h:139-144`)\nVERDICT: MISS\nWHY: The answer says there is no runtime setter on the macro path, but never says `mbedtls_platform_set_calloc_free` is neither declared nor compiled there."
+}

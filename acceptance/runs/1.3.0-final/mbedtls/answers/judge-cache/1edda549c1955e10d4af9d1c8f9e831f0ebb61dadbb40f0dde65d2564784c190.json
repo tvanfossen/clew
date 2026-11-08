@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Two options, and the compile-time one wins if both are present (platform.c:16\u201319).\" and \"Enable `MBEDTLS_PLATFORM_MEMORY` and define both `MBEDTLS_PLATFORM_CALLOC_MACRO` and `MBEDTLS_PLATFORM_FREE_MACRO`\" and \"Enable `MBEDTLS_PLATFORM_MEMORY` without the macros. Then call once... `mbedtls_platform_set_calloc_free(my_calloc, my_free)`\"\nVERDICT: MISS\nWHY: The answer separates the compile-time macro pair from the runtime function-pointer pair. But it says the compile-time one \"wins if both are present\", which is precedence, not mutual exclusivity. It also tells the reader to enable the runtime option \"without the macros\"."
+}

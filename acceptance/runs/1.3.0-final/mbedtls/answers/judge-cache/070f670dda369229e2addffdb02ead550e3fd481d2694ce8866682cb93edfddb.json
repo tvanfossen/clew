@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"It installs its own functions by calling `mbedtls_platform_set_calloc_free`.\"\nVERDICT: MISS\nWHY: The answer says the buffer allocator calls the setter, but never states it is the only in-tree user. It also lists benchmark and selftest code as using the same hook."
+}

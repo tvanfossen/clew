@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `tiers.py` defines five tiers and resolves them as `(tier1 or tier2 or tier5) \u222a tier3 \u222a tier4`\nVERDICT: HIT\nWHY: The answer explicitly states that layered options resolve through five tiers, then describes tiers 1\u20135 and how they combine rather than a single override."
+}

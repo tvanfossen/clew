@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Compile time. Both macros must be defined together. `check_config.h:558-573` rejects one without the other. ... Runtime. Enable only `MBEDTLS_PLATFORM_MEMORY` ... call the setter ... `mbedtls_platform_set_calloc_free(my_calloc, my_free);` ... \"Compile-time macros win. `platform.c:16-19` drops the runtime setter entirely when both macros are defined.\"\nVERDICT: HIT\nWHY: The answer separates the compile-time macro pair from the runtime function-pointer setter. It also says that defining the macros drops the runtime setter entirely, and the table's \"alone\" row marks the two as exclusive."
+}

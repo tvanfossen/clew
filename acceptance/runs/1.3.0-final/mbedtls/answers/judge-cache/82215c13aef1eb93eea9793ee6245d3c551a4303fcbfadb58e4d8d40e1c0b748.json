@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The public `mbedtls_ct_memcmp` is documented as constant-time with respect to the data but **not** with respect to `n`, so buffer lengths can leak.\nVERDICT: MISS\nWHY: The answer mentions mbedtls_ct_memcmp as public but never concludes the public API is only that single function with other primitives internal."
+}

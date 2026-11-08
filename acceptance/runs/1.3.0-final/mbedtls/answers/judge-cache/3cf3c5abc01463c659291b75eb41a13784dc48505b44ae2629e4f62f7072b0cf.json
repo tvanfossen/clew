@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: With `MBEDTLS_PLATFORM_NO_STD_FUNCTIONS` they default to stubs: `calloc` returns NULL and `free` does nothing (`platform.c:24-42`). A project that forgets the setter on such a target gets NULL from its first allocation, which the library reports as an allocation failure.\nVERDICT: HIT\nWHY: The answer states that the default pointers under NO_STD_FUNCTIONS are stubs where calloc returns NULL and free does nothing, so an uninitialised setup fails instead of falling back."
+}

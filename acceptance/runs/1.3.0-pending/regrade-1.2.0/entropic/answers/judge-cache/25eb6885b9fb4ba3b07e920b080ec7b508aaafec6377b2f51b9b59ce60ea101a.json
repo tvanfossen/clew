@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"it is contained in the implementation layer, with a few leaks.\" / \"**Facade, `src/facade/entropic.cpp`:** the one place outside `src/inference` that touches it.\"\nVERDICT: MISS\nWHY: The answer says the dependency is contained in src/inference with a few leaks, and it names only the facade as outside. It never says it is concentrated but not contained, and it gives no count of reaching files outside src/inference."
+}

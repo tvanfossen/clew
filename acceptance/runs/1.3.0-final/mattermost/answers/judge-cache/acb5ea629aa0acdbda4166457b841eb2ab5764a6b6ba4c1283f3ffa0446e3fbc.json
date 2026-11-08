@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The only caller of `retryFailedPost` is the failed-post bottom sheet's \"Try Again\" action (`app/components/post_list/post/body/failed/index.tsx:48`). Nothing retries on reconnect or on a timer.\"\nVERDICT: HIT\nWHY: The answer states that retry occurs only via the user's \"Try Again\" action and names `retryFailedPost` as what it calls."
+}

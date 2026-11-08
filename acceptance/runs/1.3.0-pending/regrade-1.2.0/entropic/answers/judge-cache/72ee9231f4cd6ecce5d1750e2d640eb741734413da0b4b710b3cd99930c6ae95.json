@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: This is the usual two-phase C buffer pattern. Nothing is retried. The first call is a measurement, and the second call does the work.\nVERDICT: HIT\nWHY: The answer concludes it is a sizing probe followed by one real call, not retry logic, noting nothing is retried and the first call is a measurement. It does not explicitly list \"no backoff/delay/counter\", but the core conclusion matches."
+}

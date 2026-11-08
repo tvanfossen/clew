@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"llama.cpp answers with the negative of the required token count, and the code flips it to a positive size.\"\nVERDICT: HIT\nWHY: The answer states the first call (null buffer) returns the negative required size and that the code flips it to positive to size the second call's buffer."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `programs/ssl/ssl_server2.c` and `ssl_client2.c` define it on line 8, before `ssl_test_lib.h`.\nVERDICT: HIT\nWHY: The answer states that example programs (ssl_server2.c, ssl_client2.c) define the opt-out macro themselves, rather than only getting it via common.h."
+}

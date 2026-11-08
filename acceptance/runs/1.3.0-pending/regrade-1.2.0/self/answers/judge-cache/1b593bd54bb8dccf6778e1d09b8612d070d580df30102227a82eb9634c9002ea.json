@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never mentions markdown being deliberately excluded from path rows or the coverage-count rationale; it only discusses YAML/JSON, shell, and CMake."
+}

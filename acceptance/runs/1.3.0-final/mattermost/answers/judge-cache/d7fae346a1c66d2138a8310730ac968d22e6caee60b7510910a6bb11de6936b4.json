@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Three server errors take a different path: `DELETED_ROOT_POST_ERROR`, `TOWN_SQUARE_READ_ONLY_ERROR` and `PLUGIN_DISMISSED_POST_ERROR`. For these, the post is removed outright (`removePost`) rather than kept as failed.\nVERDICT: HIT\nWHY: The answer names all three errors and states the failed post is removed rather than kept as failed."
+}

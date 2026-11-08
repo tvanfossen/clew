@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never discusses flat vs. traversal surfaces or fuzzy-confidence edges being kept or excluded, nor the multiplication of wrong subtrees per hop."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**The library itself is the only consumer of the setter.** `library/memory_buffer_alloc.c:566-576`: `mbedtls_memory_buffer_alloc_init(buf, len)` calls `mbedtls_platform_set_calloc_free(...)` with its own `buffer_alloc_calloc` and `buffer_alloc_free`.\"\nVERDICT: HIT\nWHY: The answer says the buffer allocator is the only in-tree consumer of the setter and installs its own functions from its init function. It doesn't name the `MBEDTLS_MEMORY_BUFFER_ALLOC_C` macro, but the mechanism and location are both stated."
+}

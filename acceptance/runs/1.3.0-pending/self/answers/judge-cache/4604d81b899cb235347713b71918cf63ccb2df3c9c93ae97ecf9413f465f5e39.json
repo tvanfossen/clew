@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer discusses only call-graph callers of a function and never mentions inverted causal polarity or readers' \"callers\" being the functions whose writes they observe."
+}

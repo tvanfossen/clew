@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Python uses **ctypes**, not pybind11 or cffi. There is no Python extension module.\nVERDICT: HIT\nWHY: The answer explicitly names ctypes over librentropic.so (via CDLL) and states there is no compiled Python extension module."
+}

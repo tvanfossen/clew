@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: | MCP accept loop | `src/facade/external_bridge.cpp:796` | ... | Health monitor | `src/mcp/health_monitor.cpp:92` | ... | SSE reader | `src/mcp/transport_sse.cpp:107` | ... | Inference cancel pollers | `src/inference/inference_c_api.cpp:385`, `interface_factory.cpp:246`, `src/core/response_generator.cpp:413`\nVERDICT: MISS\nWHY: The answer lists threads across the bridge, MCP transports, health monitor and inference, but it never states that thread creation is spread out or not centralised, so it only gestures at the item."
+}

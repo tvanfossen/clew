@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The library itself | `library/common.h:132` defines it unconditionally | `MBEDTLS_PRIVATE(x)` becomes plain `x` in every library `.c` that includes `common.h`.\"\nVERDICT: HIT\nWHY: The answer states that the shared header library/common.h turns the opt-out on, so library sources see plain member names."
+}

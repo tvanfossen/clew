@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**How many automatic retries: zero.** The client has a default of 3 exponential-backoff retries (`app/managers/network_manager.ts`, lines 68\u201371). But `app/client/rest/posts.ts` (line 46) sends `createPost` with `noRetry: true`, and `app/client/rest/tracking.ts` (lines 383\u2013384) turns that into `retryPolicyConfiguration: {retryLimit: 0}`.\"\nVERDICT: HIT\nWHY: The answer explicitly states createPost is never automatically retried (zero retries, noRetry: true, retryLimit 0)."
+}

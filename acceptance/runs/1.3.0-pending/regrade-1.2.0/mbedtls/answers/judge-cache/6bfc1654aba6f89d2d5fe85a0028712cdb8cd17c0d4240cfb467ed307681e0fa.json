@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: join with \" : \", or \"UNKNOWN ERROR CODE (XXXX)\" when no case matches\nVERDICT: HIT\nWHY: The answer's diagram shows a code split into a high-level part (module/category bits, `ret & 0xFF80`) and a low-level part (module-specific bits), with `mbedtls_strerror` joining both with \" : \"."
+}

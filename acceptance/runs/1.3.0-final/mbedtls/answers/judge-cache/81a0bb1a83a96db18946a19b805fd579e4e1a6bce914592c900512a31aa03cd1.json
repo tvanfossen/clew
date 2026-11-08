@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Otherwise they are stubs: calloc returns NULL and free does nothing (`platform.c:25-42`).\nVERDICT: HIT\nWHY: The answer states that the uninitialised-default stubs fail (calloc returns NULL, free does nothing) rather than falling back."
+}

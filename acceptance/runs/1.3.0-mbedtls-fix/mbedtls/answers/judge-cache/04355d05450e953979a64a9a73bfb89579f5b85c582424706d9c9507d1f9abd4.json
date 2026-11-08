@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says every public-header struct member uses the macro but gives no scale of hundreds of sites or public-header vs implementation distribution; it even says it can't produce a census."
+}

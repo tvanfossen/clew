@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: | `data` | ... | `schema` | ... | `code` | ... \"`db_status` sets `stale` when any of these holds\" and \"`notices()` returns a list of `{axis, message}` entries in the order data \u2192 schema \u2192 code.\"\nVERDICT: HIT\nWHY: The answer explicitly presents staleness as three independent axes (data, schema, code), names them, and gives each a distinct meaning and remedy."
+}

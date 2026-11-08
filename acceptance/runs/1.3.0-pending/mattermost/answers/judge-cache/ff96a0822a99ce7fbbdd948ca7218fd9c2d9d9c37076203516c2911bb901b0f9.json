@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The exceptions are `DELETED_ROOT_POST_ERROR`, `TOWN_SQUARE_READ_ONLY_ERROR`, and `PLUGIN_DISMISSED_POST_ERROR`, which delete the local post instead (line 181).\nVERDICT: HIT\nWHY: The answer names all three error codes for which the failed post is deleted rather than kept."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Deny list** (`permissions.deny`) is checked only in `ServerManager::execute`, after approval has already happened. `check_approval` never consults it.\"\nVERDICT: HIT\nWHY: The answer states deny is enforced only in ServerManager::execute via is_denied, with the approval gate never consulting it. That matches the item's substance, though it adds that tier and MCP-key checks also run."
+}

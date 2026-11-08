@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: With assembly it is `asm volatile(\"\" : \"+r\"(x))`, so the compiler cannot see through the value.\nVERDICT: HIT\nWHY: The answer gives the empty asm volatile with \"+r\" input-output operand as the compiler barrier, which conveys the mechanism and its purpose as an optimisation barrier."
+}

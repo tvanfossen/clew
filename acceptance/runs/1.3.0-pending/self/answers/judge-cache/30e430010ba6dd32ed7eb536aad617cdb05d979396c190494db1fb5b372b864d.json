@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `not_indexed` counts for extensions the index skipped (`.rs`, `.toml`, `.csv`, and others)\nVERDICT: MISS\nWHY: The answer names file types that were skipped, but it never says the reply also lists file types that were in scope and returned zero rows. Listing indexed extensions is a different claim from listing in-scope types that came up empty."
+}

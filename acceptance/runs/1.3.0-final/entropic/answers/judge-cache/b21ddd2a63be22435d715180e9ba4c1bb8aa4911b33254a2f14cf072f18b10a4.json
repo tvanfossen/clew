@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer mentions llama.cpp's `llama_sampler*`, `llama_vocab*` and a subclass pattern, but never identifies the seam as a C API of free functions with a `llama_` prefix."
+}

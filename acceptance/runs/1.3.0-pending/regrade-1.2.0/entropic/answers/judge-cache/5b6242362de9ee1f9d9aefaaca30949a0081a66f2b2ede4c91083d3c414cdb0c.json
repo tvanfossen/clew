@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The header comment says the `int*` choice avoids atomics across the `.so` boundary\" and \"Mirrors the engine's `interrupt_flag_` into the C-ABI `int` cancel flag\"\nVERDICT: HIT\nWHY: The answer says the observer threads mirror the engine's atomic interrupt flag into a plain C-ABI `int` cancel flag, and that the `int*` choice avoids atomics across the `.so` boundary. That is the bridging purpose the item asks for."
+}

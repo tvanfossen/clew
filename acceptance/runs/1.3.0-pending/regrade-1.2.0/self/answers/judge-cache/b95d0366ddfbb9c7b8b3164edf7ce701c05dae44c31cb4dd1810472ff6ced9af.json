@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `_verdict` gives it only when `q.unsearched_corpora` returns nothing, which subtracts the kinds `search` reads from the kinds the database actually holds.\nVERDICT: HIT\nWHY: The answer says the definitive wording is granted per call only when a query of unsearched corpora finds no matching rows, not by result shape."
+}

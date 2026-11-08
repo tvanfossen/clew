@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"it is used by roughly 40 call sites across bignum, cipher padding, MAC/AEAD tag checks, RSA, PSA and TLS.\"\nVERDICT: MISS\nWHY: The answer says roughly 40 call sites across several areas, but it never says the primitives are used in about twenty modules, so the \"module\" breadth in the item is not stated."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says `DISTINCT` on endpoint identity collapses repeated call sites, and it lists `source` as the extraction layer. It never says call_edges stores one row per layer or that the same logical edge from two detectors is stored twice."
+}

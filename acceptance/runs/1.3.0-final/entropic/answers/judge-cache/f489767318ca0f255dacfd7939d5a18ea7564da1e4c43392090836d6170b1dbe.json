@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Neither is a retry in the sense of re-attempting a failed operation. Nothing loops, nothing backs off, and the first call isn't a failure to be retried. The first call is a query for the buffer size.\nVERDICT: HIT\nWHY: The answer concludes it is size negotiation, not retry, and notes no loop and no backoff. It also describes exactly two calls."
+}

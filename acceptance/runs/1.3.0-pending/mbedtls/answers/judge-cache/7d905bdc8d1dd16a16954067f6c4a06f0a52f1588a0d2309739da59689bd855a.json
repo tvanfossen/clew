@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_ct_compiler_opaque(x)` is the barrier. With assembly it is `asm volatile(\"\" : \"+r\"(x))`, so the compiler cannot see through the value.\nVERDICT: HIT\nWHY: The answer names mbedtls_ct_compiler_opaque as the barrier preventing the compiler from seeing the value, and it puts the definitions in `library/constant_time_impl.h`. It names that file as the location of the API definitions but doesn't tie that to this function explicitly. The two statements together carry the item."
+}

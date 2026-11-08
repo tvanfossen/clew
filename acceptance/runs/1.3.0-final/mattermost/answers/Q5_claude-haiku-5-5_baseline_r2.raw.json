@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 31115,
+  "stop_reason": "end_turn",
+  "session_id": "d70fd5e1-079b-41cb-81e3-4f2ab2479b82",
+  "total_cost_usd": 0.011693180000000001,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 28704,
+    "cache_read_input_tokens": 326718,
+    "output_tokens": 5368,
+    "output_tokens_details": {
+      "thinking_tokens": 1970
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 28704,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2446,
+        "cache_read_input_tokens": 68626,
+        "cache_creation_input_tokens": 755,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 755
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 5368,
+      "cacheReadInputTokens": 326718,
+      "cacheCreationInputTokens": 28704,
+      "webSearchRequests": 0,
+      "costUSD": 0.011693180000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1970,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 28704,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 12,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** `ServerDataOperator` is a mixin chain on top of `ServerDataOperatorBase`. Only the base's `batchRecords` (in `BaseDataOperator`) calls `database.write`, and the app-database operator shares it.\n\n**How the class is built**\n\n`app/database/operator/server_data_operator/index.ts` does `mix(ServerDataOperatorBase).with(...)`. `app/utils/mix.ts` reduces over the mixins, so each one wraps the previous class as a subclass. The file also declares an interface that merges every `*HandlerMix` type, which is what gives callers typed access to `handleX` methods.\n\n```\nBaseDataOperator          base_data_operator/index.ts      (DB plumbing)\n  \u2514\u2500 ServerDataOperatorBase   server_data_operator/handlers/index.ts\n       \u2514\u2500 + AgentsHandler, BoardsHandler, CategoryHandler, ChannelHandler,\n            CustomProfileHandler, GroupHandler, PlaybookHandler, PostHandler,\n            PropertiesHandler, TeamHandler, ThreadHandler,\n            TeamThreadsSyncHandler, UserHandler\n            = ServerDataOperator  (constructor takes database + serverUrl)\n```\n\n`DatabaseManager.createServerDatabase` (`app/database/manager/index.ts:184`) is the only place it is constructed.\n\n**Handlers defined elsewhere**\n\nTen handlers live in `app/database/operator/server_data_operator/handlers/` (category, channel, custom_profile, group, post, properties, team, team_threads_sync, thread, user). Three live in product folders:\n\n| Mixin | File |\n|---|---|\n| `AgentsHandler` | `app/products/agents/database/operators/handlers/index.ts` |\n| `BoardsHandler` | `app/products/boards/database/operators/handlers/index.ts` |\n| `PlaybookHandler` | `app/products/playbooks/database/operators/handlers/index.ts` |\n\nThe `ServerDataOperatorBase` base class is in the same folder as the core handlers, but it is not a mixin. It supplies `handleRole`, `handleCustomEmojis`, `handleSystem`, `handleConfigs`, `handleReactions`, `handleFiles`, and `execute`.\n\n**Where a handler's write actually happens**\n\nHandlers never call `database.write` themselves. Most go through `handleRecords` or `processRecords`/`prepareRecords`, and some call `this.batchRecords` directly (post.ts does this about 19 times). The chain:\n\n1. `handleRecords` (`base_data_operator/index.ts:224`) calls `processRecords`, which queries existing rows and splits the input into create, update, and delete lists.\n2. `prepareRecords` (`:134`) runs each item through a transformer to build WatermelonDB models. Deletes become `prepareDestroyPermanently()`.\n3. `batchRecords` (`:191`) is the only function that writes. It does `this.database.write(async writer => writer.batch(...models))`. On error it logs, emits `DATABASE_CORRUPTION_DETECTED` if the error is a corruption error, and rethrows only when `propagateError` is set.\n\nNote that `prepareRecordsOnly` defaults to `true` in `handleRecords`, so many handlers return prepared models without writing. The caller has to pass `false` or call `batchRecords` itself.\n\n**What else shares that write path**\n\n- `AppDataOperator` (`app/database/operator/app_data_operator/index.ts`) extends `BaseDataOperator` directly. Its `handleInfo` and `handleGlobal` use the same `handleRecords` \u2192 `batchRecords` path against the global app database.\n- Inside `ServerDataOperatorBase`, `handleReactions`, `handleFiles`, and `execute` all reuse `prepareRecords` and `batchRecords`.\n- The product mixins (agents, playbooks) call `this.batchRecords` directly, as do many post.ts methods.\n- `DatabaseManager` has its own `database.write` calls (`app/database/manager/index.ts`, around lines 232\u2013473). Those are manager-level operations and do not go through the operator.\n\nI did not check whether the mixin application order has any override behavior when two mixins define the same method name.",
+  "ttft_ms": 3876,
+  "type": "result",
+  "duration_ms": 31455,
+  "uuid": "d4f4bea0-3c32-403a-a68c-1a9b8da86995",
+  "ttft_stream_ms": 3578,
+  "time_to_request_ms": 103,
+  "first_content_frame_ms": 3578,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

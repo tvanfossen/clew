@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_memory_buffer_alloc_init(buf, len)` (`library/memory_buffer_alloc.c:566-600`) is the library's own allocator. ... Calls `mbedtls_platform_set_calloc_free()` with `buffer_alloc_calloc_mutexed` / `buffer_alloc_free_mutexed`, or the unmutexed pair.\nVERDICT: MISS\nWHY: The answer says the buffer allocator's init calls the setter, but it never says it's the only in-tree user, and it doesn't name MBEDTLS_MEMORY_BUFFER_ALLOC_C."
+}

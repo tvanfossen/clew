@@ -140,7 +140,7 @@ from .doxygen import (
 )
 from .diagnostics import collect as collect_diagnostics
 from .enrichment import enrich_database
-from .errors import DoxygenUnavailableError, RustdocUnavailableError
+from .errors import DoxygenFailedError, DoxygenUnavailableError, RustdocUnavailableError
 from .event_edges import import_event_edges
 from .filedocs import ingest_file_docs
 from .harvest_plan import build_harvest_plan, warm_harvest_plan
@@ -171,6 +171,9 @@ from .requirements import (
 )
 from .pydocs import enrich_python_docstrings
 from .rustdoc import run_rustdoc, uses_rustdoc
+from .code_text import record_code_text
+from .req_mentions import record_req_mentions
+from .generated import record_self_declared
 from .synth import emit_definitions as emit_synth_definitions
 from .synth import register_paths as register_synth_paths
 from .scope import (
@@ -1696,7 +1699,10 @@ def _is_rust_only_repo(repo_root: Path) -> bool:
 ## @param preprocessor The resolved preprocessor configuration this index represents.
 ## @param timer Stage timer, marked once the tree scan and its hash are complete.
 ## @return Path to the doxygen SQLite output (cached or freshly generated).
-## @version 12
+## v13: the skip path records `doxygen_status = skipped` on args, so the stamp can tell
+## "skipped, no C here" from "ran" and from "failed" — before, skipping was an INFO line only.
+## v14: the empty stand-in database is written beside the index, not into a leaked `mkdtemp`.
+## @version 14
 ## @dg_internal
 def _doxygen_stage(
     doxyfile: Path,
@@ -1771,7 +1777,8 @@ def _doxygen_stage(
             "doxygen: skipped — none of the %d file(s) in scope is a language doxygen reads",
             len(in_scope),
         )
-        return _empty_doxygen_database()
+        args.doxygen_status = DOXYGEN_SKIPPED
+        return _empty_doxygen_database(args)
     if cache is None:
         return _run_doxygen_from_args(doxyfile, args, predefined)
     summary = cache.scan(in_scope)
@@ -1809,11 +1816,92 @@ def _doxygen_stage(
     return generated
 
 
+## What the build recorded about doxygen. Stamped under `diagnostics.` because that section is
+## "what the build looked for and did not find" — and a C layer that failed is exactly that.
+DOXYGEN_RAN = "ran"
+DOXYGEN_SKIPPED = "skipped"
+DOXYGEN_FAILED = "failed"
+
+
+## @brief Run the doxygen stage, building without the C/C++ layer if doxygen fails.
+## @param doxyfile Doxyfile path.
+## @param repo_root Repository root.
+## @param args Parsed build arguments; `doxygen_status` and `doxygen_reason` are set on it.
+## @param cache Index cache, or None.
+## @param preprocessor Preprocessor configuration.
+## @param timer Stage timer.
+## @return A doxygen-schema database: real, or empty when doxygen did not run or failed.
+## Version 2: the empty stand-in database is written beside the index, not into a leaked `mkdtemp`.
+## @version 2
+## @dg_internal
+def _doxygen_or_partial(doxyfile, repo_root, args, cache, preprocessor, timer) -> Path:
+    """ONE DOXYGEN CRASH USED TO COST THE WHOLE INDEX. `run_doxygen` exited the process, so a
+    mixed repository — a TypeScript app carrying a little native code — got nothing, though
+    every other layer would have built.
+
+    AND THE FATAL VERSION WAS THE ONE THAT LOOPED. A failed build never swaps its staged
+    database in, so the previous one stays older than its sources and the MCP server retries
+    the crashing build on every query. A partial build swaps in, is current, and stops that.
+
+    THE SKIP PATH ALREADY PROVED THE SHAPE: an empty doxygen-schema database and the rest of the
+    build proceeds. A failure takes the same exit — but it is RECORDED as a failure with its
+    reason, because "skipped, there was no C" and "failed, the C is missing" are opposite facts
+    that must never look alike. Nothing is cached on this path, so the next build tries again.
+
+    @brief Doxygen stage that degrades to a stamped partial index.
+    @return Doxygen database path.
+    @version 1
+    """
+    args.doxygen_status = DOXYGEN_RAN
+    try:
+        return _doxygen_stage(doxyfile, repo_root, args, cache, preprocessor, timer)
+    except DoxygenFailedError as exc:
+        logger.error(
+            "doxygen FAILED (%s) — building WITHOUT the C/C++ layer. Every other layer is indexed; "
+            "the index records the failure, so a missing C/C++ symbol will be reported as "
+            "unindexed rather than absent.",
+            exc.reason,
+        )
+        args.doxygen_status = DOXYGEN_FAILED
+        args.doxygen_reason = exc.reason
+        return _empty_doxygen_database(args)
+
+
+## @brief The doxygen facts to stamp, or nothing when this build has no doxygen stage.
+## @param args Parsed build arguments.
+## @return build_meta diagnostics entries.
+## @version 1
+## @dg_internal
+def _doxygen_meta(args) -> dict[str, str]:
+    """ABSENT, NOT BLANK, WHEN THE STAGE NEVER RAN — a rustdoc build has no doxygen stage, and a
+    `doxygen` key there would claim a fact about something that was not attempted.
+
+    @brief Doxygen status for build_meta.
+    @return Mapping.
+    @version 1
+    """
+    status = getattr(args, "doxygen_status", None)
+    if status is None:
+        return {}
+    meta = {"doxygen": status}
+    if status == DOXYGEN_FAILED:
+        meta["doxygen_reason"] = getattr(args, "doxygen_reason", "") or "unrecorded"
+    return meta
+
+
+## Version 63: builds the code-text corpus after the self-declared scan.
+##
 ## @brief Run every build stage against one (temp) output DB path.
 ## @param timer Stage timer; one `mark` closes each stage below. A fresh one when omitted.
 ## 59 -> 60: the configuration-default stage joined, directly beside the gates — the two are
 ## one answer, so a reader finds them together.
-## @version 60
+## v61: runs doxygen through `_doxygen_or_partial`, which builds without the C/C++ layer on a
+## doxygen failure instead of losing the whole index, and stamps the outcome into diagnostics.
+## v62: records self-declared generated files after the parse front end, over every indexed
+## file and not only JS/TS, since the front end returns early on a tree with no JS/TS.
+## v64: records every indexed file line naming a known requirement (`req_mentions`).
+## v65: the code corpus is built after AST recovery, so recovered C bodies are searchable.
+## @version 65
 ## @req REQ-DDB-PIPE-001
 ## @req REQ-DDB-MCP-004
 ## @req REQ-DDB-CONFIG-007
@@ -1870,7 +1958,7 @@ def _build_stages(
         timer.mark("copy")
         timer.mark("sanitize")
     else:
-        generated_db = _doxygen_stage(doxyfile, repo_root, args, cache, preprocessor, timer)
+        generated_db = _doxygen_or_partial(doxyfile, repo_root, args, cache, preprocessor, timer)
         timer.mark("doxygen")
         copy_database(generated_db, output)
         timer.mark("copy")
@@ -1972,6 +2060,10 @@ def _build_stages(
     ## that resolves against `memberdef` (and above `recover_ast_symbols`, which must see
     ## these spans as covered), for the reason given at that stage.
     emit_synth_definitions(output, repo_root, cache)
+    ## AFTER the parse front end, which clears `generated_files` before writing its CMake rows, and
+    ## OUTSIDE it, because it returns early on a tree with no JS/TS or script file — and a C tree
+    ## commits generated files too. Timed with it rather than as a stage of its own.
+    record_self_declared(output, repo_root)
     timer.mark("synth_definitions")
     ## gh#18 part 3, and INDEPENDENT of the line above on purpose: a gate on a symbol no
     ## Kconfig declares is dead code behind a symbol nobody can set, which is a finding
@@ -2229,6 +2321,14 @@ def _build_stages(
     timer.mark("req_edges")
     import_req_test_edges(output)
     timer.mark("req_test_edges")
+    ## EVERY INDEXED LINE THAT NAMES A KNOWN REQUIREMENT: docs, diagrams, build files, comments.
+    record_req_mentions(output, repo_root, requirements_yaml)
+    timer.mark("req_mentions")
+    ## THE CODE-TEXT CORPUS, AFTER `recover_ast_symbols`: it was built beside the parse front end,
+    ## before recovery wrote the C functions doxygen's preprocessor skipped — measured on mbedtls
+    ## in the 1.3.0-final grid, 1,052 of 4,127 bodies were searchable and none of ssl_tls.c's 234.
+    record_code_text(output, repo_root)
+    timer.mark("code_text")
 
     # Python entry points are STRUCTURAL, not name-shaped: a `__main__` guard's
     # callee has doxygen attributing the guard call to the function ITSELF, so it
@@ -2385,7 +2485,8 @@ def _build_stages(
             ## gh#385 — the same declaration the locks stage ran with, so the hint cannot
             ## suggest declaring something this build already had.
             getattr(args, "locks", None),
-        ).as_meta(),
+        ).as_meta()
+        | _doxygen_meta(args),
     )
     timer.mark("signature")
 
@@ -2416,17 +2517,29 @@ def _doxygen_has_source(in_scope: dict[str, Path]) -> bool:
     )
 
 
+## Version 2: written into the build's own doxygen scratch directory, not a fresh `mkdtemp`.
+##
 ## @brief A fresh, empty database carrying doxygen's schema, standing in for its output.
+## @param args Parsed build arguments; they locate the build's doxygen scratch directory.
 ## @return Path to the database.
-## @version 1
+## @version 2
 ## @dg_internal
-def _empty_doxygen_database() -> Path:
-    """@brief Doxygen's schema with no rows, for a build doxygen has nothing to add to."""
-    import tempfile
+def _empty_doxygen_database(args: argparse.Namespace) -> Path:
+    """IN THE BUILD'S OWN SCRATCH DIRECTORY, beside the index, and replaced each build. It was a
+    `mkdtemp` nothing removed: one directory per TypeScript build and per test that ran one, and
+    1,649 of them were in `/tmp` when the owner's disk filled. Its own file name, so it never
+    overwrites a real doxygen output a warm cache may still serve.
 
+    @brief Doxygen's schema with no rows, for a build doxygen has nothing to add to.
+    @return Path to the database.
+    @version 2
+    """
     from .rustdoc import create_doxygen_schema
 
-    path = Path(tempfile.mkdtemp(prefix="clew-nodoxygen-")) / "doxygen_sqlite3.db"
+    out = _doxygen_out_dir(args)
+    out.mkdir(parents=True, exist_ok=True)
+    path = out / "nodoxygen_sqlite3.db"
+    path.unlink(missing_ok=True)
     create_doxygen_schema(path).close()
     return path
 

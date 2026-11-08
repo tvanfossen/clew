@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer mentions two edge sources with different confidence but never says the flat surface keeps fuzzy-confidence edges while the traversal excludes them, nor the multiplication-into-wrong-subtree reason."
+}

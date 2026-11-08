@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the facility reaches RSA, HMAC, bignum, base64 and NIST KW \"but not the whole library\" and notes no internal callers of mbedtls_ct_memcmp. It never conveys broad consumption across about twenty modules."
+}

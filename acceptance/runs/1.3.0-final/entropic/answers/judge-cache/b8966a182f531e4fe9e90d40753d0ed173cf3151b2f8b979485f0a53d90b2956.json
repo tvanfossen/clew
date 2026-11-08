@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Bindings are generated** from `entropic.h` by `scripts/gen_bindings.py` (`inv gen-bindings`, enforced by a pre-commit `--check`). The output `_bindings.py` is marked do-not-edit.\nVERDICT: HIT\nWHY: The answer explicitly states the bindings are generated from the C header by scripts/gen_bindings.py and that the output is do-not-edit."
+}

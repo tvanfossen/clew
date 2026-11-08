@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says the query surface collapses per-layer variants into one row per neighbour; it describes per-edge `source` and `confidence` fields and says fan-out rows survive, with no mention of collapsing to the strongest evidence."
+}

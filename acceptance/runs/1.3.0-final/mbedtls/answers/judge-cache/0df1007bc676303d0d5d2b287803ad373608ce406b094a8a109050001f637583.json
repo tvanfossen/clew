@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`platform.c:16-19` drops the runtime setter entirely when both macros are defined.\"\nVERDICT: HIT\nWHY: The answer says the runtime setter is dropped entirely when both macros are defined, so it is absent rather than present and ignored. It never says the setter is undeclared, but \"entirely\" carries the substance."
+}

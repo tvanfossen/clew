@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "ITEMS:\nsrc/mcp/tool_executor.cpp\nsrc/mcp/server_manager.cpp\nsrc/facade/entropic.cpp\nsrc/mcp/permission_manager.cpp\nsrc/config/loader.cpp\nsrc/storage/permission_persister.cpp\nsrc/mcp/servers/bash.cpp\npermission_manager.h\nEND"
+}

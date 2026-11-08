@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_THREADING_C` is commented out (`include/mbedtls/mbedtls_config.h:3787`). `MBEDTLS_THREADING_PTHREAD` and `MBEDTLS_THREADING_ALT` are also commented out (lines 2185, 2196). ... Every mutex use is guarded by `#if defined(MBEDTLS_THREADING_C)`.\nVERDICT: HIT\nWHY: The answer names both MBEDTLS_THREADING_C (as the guard on all mutex code) and MBEDTLS_THREADING_PTHREAD as the threading config macros, which is what the item asks for."
+}

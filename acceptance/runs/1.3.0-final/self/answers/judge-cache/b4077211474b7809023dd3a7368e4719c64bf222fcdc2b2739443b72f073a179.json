@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `_callers_of` in `clew/dispatch_edges.py:194` shows the same caller can appear once per extraction layer, and the strongest confidence is kept.\nVERDICT: HIT\nWHY: The answer states that the same caller appears once per extraction layer, which is the item's substance (one row per layer, duplicates across detectors)."
+}

@@ -1,0 +1,83 @@
+{
+  "cell": "Q1_claude-haiku-5-5_baseline_r3",
+  "arm": "baseline",
+  "rubric_version": "5.0.0",
+  "rubric_digest": "d8447c7b18eafbf5",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.5,
+  "unmarked_pct": 0.0,
+  "split_decisions": 0,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "names derive_scope in clew/scope.py as where the decision is resolved",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": false,
+      "detail": "QUOTE: `derive_scope` falls through to `whole_repo_scope`, and the reason string records why | WHY: The answer mentions `derive_scope` and `scope.py`, but it never says that `derive_scope` is the place where scope is resolved or decided. It names `whole_repo_scope` and `_declared_index_scope` in `scope.py` and mentions `derive_scope` only in passing. || QUOTE: `derive_scope` falls through to `whole_repo_scope`, and the reason string records why | WHY: The answer names derive_scope and scope.py in passing, but never states that derive_scope in clew/scope.py is where the scope decision is resolved. It only says derive_scope falls through to whole_repo_scope, and the flow diagram cites scope.py's `_declared_index_scope` and `whole_repo_scope` instead. || QUOTE: `derive_scope` falls through to `whole_repo_scope`, and the reason string records why | WHY: The answer names `derive_scope` but never places it in `clew/scope.py` as where the decision is resolved. It cites `scope.py` only for `_declared_index_scope` and `whole_repo_scope`.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that a repository's own declared index_scope is preferred, and that every failure to find one falls through to indexing the whole repository",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"section present but unusable \u2500\u2500\u2500\u2500\u2500\u2500\u25ba logged as rejected, falls through (excludes-only, unknown key, no existing roots, not a mapping)\" and \"nothing usable \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u25ba whole_repo_scope(root)\" | WHY: The answer says a declared index_scope is preferred and that unusable, absent or invalid declarations all fall through to whole-repo indexing. || QUOTE: \"section present but unusable \u2500\u2500\u25ba logged as rejected, falls through (excludes-only, unknown key, no existing roots, not a mapping)\" and \"nothing usable \u2500\u2500\u25ba whole_repo_scope(root)\" | WHY: The answer says a declared `index_scope` is used when valid, and that every failure (absent, unusable, or rejected) falls through to whole-repo scope. || QUOTE: \"\u2514\u2500 nothing usable \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u25ba whole_repo_scope(root)\" and \"section present but unusable \u2500\u2500\u2500\u2500\u2500\u2500\u25ba logged as rejected, falls through (excludes-only, unknown key, no existing roots, not a mapping)\" | WHY: The answer says a declared index_scope is used when valid, and that every failure to find a usable one (rejected, missing, unusable) falls through to whole-repo indexing.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "conveys that the fallback carries a REASON explaining which scope was used and why, so an unstated scope is never silently guessed",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: `derive_scope` falls through to `whole_repo_scope`, and the reason string records why (for example \"no index_scope is declared for this repo\"). | WHY: The answer states the fallback carries a reason string recording which scope was used and why, so an undeclared scope is not silently guessed. || QUOTE: `derive_scope` falls through to `whole_repo_scope`, and the reason string records why (for example \"no index_scope is declared for this repo\"). | WHY: The answer states the fallback carries a reason string recording why the whole-repo scope was used, which covers the item's substance of never silently guessing the scope. || QUOTE: the reason string records why (for example \"no index_scope is declared for this repo\") | WHY: The answer says the whole-repo fallback carries a reason string recording why that scope was used, which makes the choice explicit instead of guessed.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that a Doxyfile's own INPUT is deliberately NOT used to decide the indexed tree, and explains why \u2014 a repository that ships one would get only its documented subset while a repository that ships none gets its whole tree",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: A repo's Doxyfile `INPUT` no longer decides scope. The Doxyfile is still read for `ALIASES` and `PREDEFINED`, but its `INPUT` and `FILE_PATTERNS` are replaced. | WHY: It says the Doxyfile's INPUT no longer decides scope, but it never gives the reason: a repo that ships a Doxyfile would get only its documented subset, while a repo with none would get its whole tree. || QUOTE: A repo's Doxyfile `INPUT` no longer decides scope. The Doxyfile is still read for `ALIASES` and `PREDEFINED`, but its `INPUT` and `FILE_PATTERNS` are replaced. | WHY: The answer says the Doxyfile's INPUT no longer decides scope, but it never gives the reason: a repo with a Doxyfile would get only its documented subset while a repo without one gets its whole tree. || QUOTE: A repo's Doxyfile `INPUT` no longer decides scope. The Doxyfile is still read for `ALIASES` and `PREDEFINED`, but its `INPUT` and `FILE_PATTERNS` are replaced. | WHY: The answer says the Doxyfile INPUT no longer decides scope, but it never gives the reason: a repo that ships a Doxyfile would get only its documented subset, while a repo with none gets its whole tree.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that nested git trees are INDEXED and tagged rather than excluded from the scope",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: nested git trees INCLUDED, not cut out | WHY: The answer explicitly says the whole-repo scope includes nested git trees rather than excluding them, and that `external.py` tags those rows afterwards. || QUOTE: nested git trees INCLUDED, not cut out | WHY: The answer states that on the whole-repo default, nested git trees are included rather than excluded. It also says `external.py` tags the foreign clones that fall inside a declared root. || QUOTE: nested git trees INCLUDED, not cut out | WHY: The answer states that on the whole-repo default, nested git trees are included, and that `external.py` tags foreign clones inside a declared root.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "conveys that the containment call was REMOVED rather than left in place with its callers dropped",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer is about index file-set scoping and says nothing about a containment call being removed rather than left with its callers dropped. || QUOTE: NONE | WHY: The answer describes index scope and file selection; it never mentions a containment call being removed. || QUOTE: NONE | WHY: The answer describes index scope and file selection, and says nothing about a containment call being removed rather than left in place with its callers dropped.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the resolved scope is not the whole answer \u2014 within it, a file reaches the index only if something can read it, and names at least one of the two filters: the parse-built front end claiming the file types doxygen cannot read, or binary classification dropping files whose extension lies about them",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: Binary detection runs before parsing. Non-text files are skipped, but there is no size limit, so a large generated `.c` is still read. | WHY: The answer describes binary detection as a content check and puts extension filtering in doxygen, but it never says the resolved scope is only part of the answer. It also never names the parse-built front end or the binary filter that drops files whose extension lies about them. || QUOTE: Binary detection runs before parsing. Non-text files are skipped, but there is no size limit, so a large generated `.c` is still read. | WHY: The answer mentions binary detection, but it doesn't say the filter drops files whose extension lies about them. It also says doxygen's default patterns handle extensions and never mentions the parse-built front end claiming file types doxygen can't read. It doesn't state the \"resolved scope is not the whole answer\" idea with one of the two named filters. || QUOTE: Binary detection runs before parsing. Non-text files are skipped, but there is no size limit, so a large generated `.c` is still read. | WHY: The answer mentions binary detection and doxygen's extension patterns, but it doesn't say the resolved scope is only part of the answer. It also doesn't name the parse-built front end claiming file types doxygen can't read, or binary classification catching files whose extension lies about them.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    }
+  ]
+}

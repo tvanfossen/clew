@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Otherwise it XORs with a `volatile` zero (`constant_time.c:23-30`).\nVERDICT: MISS\nWHY: The answer mentions XOR with a volatile zero fallback but never identifies the extern volatile global (e.g., mbedtls_ct_zero) by name."
+}

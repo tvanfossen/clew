@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`stale_code_refusal()` is called by `build_or_refresh` and `_first_build_refusal`, and it does not accept an override; `force` does not bypass it.\"\nVERDICT: MISS\nWHY: The answer says write paths refuse and force doesn't bypass, but it never says the refusal is placed ahead of the build decision. That placement is the specific mechanism the item requires."
+}

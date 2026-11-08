@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never identifies the seam as llama.cpp's C API of llama_-prefixed free functions. It mentions \"mocks `llama_*` C functions\" in tests and \"public C ABI\" for entropic's own header, but does not state that the integration seam is llama.cpp's C API rather than C++ classes."
+}

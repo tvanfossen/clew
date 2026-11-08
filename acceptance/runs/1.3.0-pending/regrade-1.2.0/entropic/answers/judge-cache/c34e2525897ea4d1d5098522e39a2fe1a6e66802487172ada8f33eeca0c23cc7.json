@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The code comment says the int is kept to avoid atomics across the `.so` boundary, but that does not make the race benign.\nVERDICT: HIT\nWHY: The answer says an observer thread writes `cancel_int` (a plain int) because atomics are avoided across the `.so`/C boundary, which is the bridging purpose."
+}

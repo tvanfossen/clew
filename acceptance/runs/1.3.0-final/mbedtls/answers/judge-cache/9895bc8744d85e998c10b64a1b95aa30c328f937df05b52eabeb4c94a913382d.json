@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_ct_compiler_opaque(x)` launders a value through an empty asm barrier (asm path) or XORs it with a `volatile` global zero (C path).\nVERDICT: HIT\nWHY: The answer says the asm path of the opaque function is an empty asm barrier that launders the value, which the compiler can't see through. It doesn't mention the input-output register operand, but it does give the empty asm and its barrier role."
+}

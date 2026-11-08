@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says the public API is only mbedtls_ct_memcmp; it lists many primitives as the API and only names include/mbedtls/constant_time.h as the public header."
+}

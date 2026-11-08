@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The opt-out is per translation unit and must come before the first public header. The struct definition expands the macro when `ssl.h` is parsed.\n\nVERDICT: MISS\n\nWHY: The answer explains the mechanism (default renames to `private_x`, opt-out gives the plain name) and who uses each. But it says nothing about two consumers seeing different views of the same public headers. It also warns that mixing the two in one translation unit breaks the build."
+}

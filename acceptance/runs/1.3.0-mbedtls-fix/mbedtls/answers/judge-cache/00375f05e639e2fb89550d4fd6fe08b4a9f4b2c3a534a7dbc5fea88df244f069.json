@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never states that the macro is applied at many hundreds of sites in public headers. It gives only \"14 occurrences remain in `library/`\" and does not give the scale in public headers."
+}

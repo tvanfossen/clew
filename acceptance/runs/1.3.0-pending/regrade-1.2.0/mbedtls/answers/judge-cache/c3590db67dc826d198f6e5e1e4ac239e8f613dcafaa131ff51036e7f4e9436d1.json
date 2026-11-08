@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A field `foo` is spelled `private_foo`, so `ctx.foo` fails to compile. Application code that touches a field directly breaks at build time instead of silently depending on the layout.\nVERDICT: HIT\nWHY: The answer says the macro renames the member so direct access fails to compile, and that the fields are still declared and documented. It never says the layout is hidden, so it covers the item's substance."
+}

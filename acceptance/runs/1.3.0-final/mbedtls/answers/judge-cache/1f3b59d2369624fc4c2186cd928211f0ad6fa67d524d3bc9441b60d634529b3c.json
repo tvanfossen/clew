@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: ```c\n#ifndef MBEDTLS_ALLOW_PRIVATE_ACCESS\n#define MBEDTLS_PRIVATE(member) private_##member\n#else\n#define MBEDTLS_PRIVATE(member) member\n#endif\n```\nVERDICT: HIT\nWHY: The answer shows both expansions and says that by default the field is named `private_state`, while the opt-out macro makes it expand to the plain member name."
+}

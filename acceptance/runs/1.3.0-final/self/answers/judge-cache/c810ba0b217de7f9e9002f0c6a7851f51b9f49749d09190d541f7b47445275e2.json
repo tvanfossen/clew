@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Schema stale, index newer, or code stale: restart the MCP client. A rebuild does not help in either case.\" and \"Data stale: ... call `index(action='refresh')`\"\nVERDICT: HIT\nWHY: The answer states that the data axis is cleared by a rebuild/refresh while the code axis (and schema when the index is newer) requires a client restart, because a rebuild cannot fix them. It never says this is why one flag would not have been enough, but the substance, that the axes need different remedies, is there."
+}

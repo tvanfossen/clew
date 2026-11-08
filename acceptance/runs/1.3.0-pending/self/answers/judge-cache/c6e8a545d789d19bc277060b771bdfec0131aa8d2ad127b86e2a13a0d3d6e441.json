@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `QueryTools._staleness` in `tools_query.py` attaches it, sized to the reply's remaining budget, and annotates only the repository the reply actually read.\nVERDICT: HIT\nWHY: The answer states that the staleness annotation applies only to the repository the reply actually read, which matches the item. It doesn't contrast this with the server's default target, but the substance is the same."
+}

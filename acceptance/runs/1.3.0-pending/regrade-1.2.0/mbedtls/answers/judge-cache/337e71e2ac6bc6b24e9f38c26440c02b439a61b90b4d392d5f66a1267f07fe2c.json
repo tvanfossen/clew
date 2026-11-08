@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`mbedtls_memory_buffer_alloc_init(buf, len)` (line ~568) sets the global pointers to its own `buffer_alloc_calloc` / `buffer_alloc_free`, or to `_mutexed` variants when `MBEDTLS_THREADING_C` is on.\"\nVERDICT: MISS\nWHY: The answer says the buffer allocator's init installs itself over the pointers. It never says this is the only in-tree user of the setter, and it describes the allocator as \"its own consumer\", which doesn't claim uniqueness."
+}

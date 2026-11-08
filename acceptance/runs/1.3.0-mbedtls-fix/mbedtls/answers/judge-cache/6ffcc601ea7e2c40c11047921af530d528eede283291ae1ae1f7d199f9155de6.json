@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It changes identifier spelling only, not layout, so it is not an ABI mechanism.\nVERDICT: HIT\nWHY: The answer says MBEDTLS_PRIVATE renames members (private_state) so access fails to compile, and that it changes spelling only, not layout, so the fields stay visible and sized."
+}

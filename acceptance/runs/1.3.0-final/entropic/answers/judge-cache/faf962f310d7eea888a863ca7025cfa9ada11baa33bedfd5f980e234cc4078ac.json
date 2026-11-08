@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `HealthMonitor::monitor_loop` (`src/mcp/health_monitor.cpp:92`...), `ExternalBridge::accept_loop` (`src/facade/external_bridge.cpp:796`...), `ResponseGenerator::dispatch_batch_generate` (`src/core/response_generator.cpp:413`), `SSETransport::sse_reader_loop`, `StdioTransport::stderr_reader_loop`\nVERDICT: HIT\nWHY: The answer lists thread spawn sites across the health monitor, external bridge, MCP transports (SSE/stdio) and inference/response paths, which shows creation is distributed. It doesn't say \"not centralised\" in so many words, but that follows from the enumeration."
+}

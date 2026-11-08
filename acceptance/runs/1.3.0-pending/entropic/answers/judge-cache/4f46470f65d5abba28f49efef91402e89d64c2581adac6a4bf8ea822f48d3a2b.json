@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"about nine files include `llama.h`, `chat.h`, `sampling.h`, `speculative.h` or `mtmd.h`\" and \"Across `src/`, 25 files reference `llama_`, `ggml_`, `mtmd_` or `common_` symbols, about 722 occurrences in total.\"\nVERDICT: HIT\nWHY: The answer conveys that llama.cpp reaches roughly nine to twenty-five of entropic's own source files, beyond a single wrapper, with leaks into the orchestrator, facade and others."
+}

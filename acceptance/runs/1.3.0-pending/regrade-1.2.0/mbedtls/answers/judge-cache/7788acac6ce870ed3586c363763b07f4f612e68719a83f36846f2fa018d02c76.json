@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `programs/ssl/ssl_server2.c:8` | Whole file | Plain member names everywhere in the sample server ... `programs/ssl/ssl_client2.c:8` | Whole file | Same for the sample client\nVERDICT: HIT\nWHY: The answer lists the sample programs ssl_server2.c and ssl_client2.c as defining the opt-out for themselves, so they bypass the private-access guard on purpose."
+}

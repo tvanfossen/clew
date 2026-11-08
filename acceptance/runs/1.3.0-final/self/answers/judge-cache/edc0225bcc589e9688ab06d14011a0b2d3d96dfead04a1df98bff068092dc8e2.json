@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Callers are not only `call` edges. Shared-key dataflow also appears, and `edge_class` tells them apart. Check it before reading a caller as a caller.\"\nVERDICT: HIT\nWHY: The answer states that neighbours include both call edges and shared-key dataflow, and that the consumer must read `edge_class` to tell them apart."
+}

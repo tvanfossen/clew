@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Opacity barrier.** `mbedtls_ct_compiler_opaque` (`:85`) stops the compiler from folding a value it could otherwise prove constant.\nVERDICT: HIT\nWHY: The answer names mbedtls_ct_compiler_opaque as the primitive preventing compiler knowledge of a value, and places it in constant_time_impl.h (the section opens by naming that file, and the symbol is cited at `:85`)."
+}

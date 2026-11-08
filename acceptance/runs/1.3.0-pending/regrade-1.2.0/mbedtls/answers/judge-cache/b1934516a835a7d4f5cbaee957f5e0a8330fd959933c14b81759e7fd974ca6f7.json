@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: scripts/generate_errors.pl  + scripts/data_files/error.fmt (template)\nVERDICT: HIT\nWHY: The answer states that library/error.c is generated from the include/mbedtls/*.h headers by scripts/generate_errors.pl using scripts/data_files/error.fmt as the template, and tells contributors not to hand-edit it."
+}

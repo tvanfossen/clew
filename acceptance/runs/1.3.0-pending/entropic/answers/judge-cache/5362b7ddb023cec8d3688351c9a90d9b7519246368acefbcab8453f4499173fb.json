@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never concludes default-allow. It says that with no callback and no allow match the call is denied (\"Permission denied\"), and that a registered callback approves it only as a notification. It does not say a tool matching neither list simply runs."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`private_access.h:14-18` gates the macro on `MBEDTLS_ALLOW_PRIVATE_ACCESS`. If the symbol is not defined, `MBEDTLS_PRIVATE` renames the member. If it is defined, the macro expands to the bare member name.\"\nVERDICT: HIT\nWHY: The answer explains that code defining the macro sees bare member names, while ordinary consumers of the public headers see the renamed `private_` fields."
+}

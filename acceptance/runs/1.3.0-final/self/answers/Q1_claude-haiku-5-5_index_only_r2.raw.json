@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 25441,
+  "stop_reason": "end_turn",
+  "session_id": "7af19e54-e36f-4f04-8544-269fcbe4c135",
+  "total_cost_usd": 0.00993052,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 25926,
+    "cache_read_input_tokens": 226982,
+    "output_tokens": 4949,
+    "output_tokens_details": {
+      "thinking_tokens": 2120
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 25926,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3076,
+        "cache_read_input_tokens": 58430,
+        "cache_creation_input_tokens": 5729,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 5729
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 4949,
+      "cacheReadInputTokens": 226982,
+      "cacheCreationInputTokens": 25926,
+      "webSearchRequests": 0,
+      "costUSD": 0.00993052,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2120,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 25926,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 17,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** the repository's own `index_scope:` declaration in `.clew.yaml` decides. If there isn't a usable one, the whole repository is the scope, minus what git ignores and minus dot and cache directories. A Doxyfile no longer decides scope. The decision lives in `clew/scope.py`, mainly `derive_scope` (line 639).\n\n**Decision flow**\n\n```\nderive_scope(repo_root, stated?)\n \u2502\n \u251c\u2500 _declared_index_scope()\n \u2502   \u251c\u2500 no index_scope: section \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510\n \u2502   \u251c\u2500 section not a mapping \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510      \u2502\n \u2502   \u251c\u2500 unknown keys inside it \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2524      \u2502\n \u2502   \u2502      (_Rejected, logged WARNING)  \u2502      \u2502\n \u2502   \u251c\u2500 roots listed, none exist \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2524      \u2502\n \u2502   \u2502      (missing roots dropped       \u2502      \u2502\n \u2502   \u2502       with a warning)             \u2502      \u2502\n \u2502   \u2514\u2500 usable roots \u2500\u2500\u25ba DECLARED scope  \u2502      \u2502\n \u2502                       (roots taken    \u2502      \u2502\n \u2502                        at their word, \u2502      \u2502\n \u2502                        never walked)  \u2502      \u2502\n \u2502                                       \u25bc      \u25bc\n \u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u25ba whole_repo_scope()\n                                  root = the repo\n                                  excludes = git-ignored paths\n                                           + dot/cache dirs\n                                  nested git trees INCLUDED\n```\n\n**The declared tier.** A declared `roots:` list is the only tier that narrows the index, and the roots are taken as written. Declared `excludes:` apply on top. The docs for `_declared_index_scope` say a clone of another repository sitting under a declared root is indexed with no walk to notice it. Paths that don't exist are dropped with a warning rather than handed to doxygen. Two cases fall through to the whole repository. One is a rejected section, meaning a non-mapping or an unknown key, which is logged. The other is a section where no root exists. The rejection is absorbed into the whole-repo tier so internal callers always get a usable scope. `declared_scope_rejection` is the separate build-time check that the CLI and MCP refresh paths use to refuse instead. The docs describe an excludes-only declaration as the case where this absorption caused a 900-second doxygen timeout.\n\n**What happens when nothing is declared.** `whole_repo_scope` (line 683) is the default tier, not a last resort. Its single root is the whole repository, and it subtracts three things:\n\n1. **Git-ignored paths.** `_gitignored_paths` runs `git ls-files --others --ignored --exclude-standard --directory` through `git_argv` and `git_env`, so a target's own git config cannot execute code. It also runs the same query inside each nested git tree, because the parent's `ls-files` stops at a submodule boundary.\n2. **Dot and cache directories.** `_pruned_dirs` walks the tree. `_SKIP_DIR_NAMES` is `{__pycache__, node_modules}`. Dot directories are also skipped by `_skip_dir`, which I did not open. The walk stops descending at nested git trees, keeping only their top-level dot directories. It also stops at depth 16 (`_MAX_DEPTH`), and everything below that is taken wholesale and recorded.\n3. **Nested git trees are not excluded.** Since gh#333 they are indexed and tagged by `external.py`, so a call that crosses into a vendored library is still traced.\n\n**What the Doxyfile still does.** It no longer supplies `INPUT`. The Doxyfile is only a documentation target, and the docs use the measured Mbed-TLS case to show that honouring its `INPUT` indexed 1,571 headers and none of the 108 `library/*.c` implementations. The repo's Doxyfile still supplies `ALIASES` and `PREDEFINED`, and its `INPUT` is replaced. The doxygen-guard `files:` pattern is not a scope tier either, because it answers what must be documented, not what should be indexed.\n\n**Things to know**\n\n- **Outside git:** `_gitignored_paths` logs a warning and excludes nothing, so the scope is wider than the repo asked for.\n- **Every derivation logs its reason.** The log says which tier was used and why, including the rejection text when a declaration was refused.\n- **Stated options.** An embedding caller can pass a tier-1 `index_scope` at call time through `derive_scope(stated=\u2026)`. It is built the same way as a declared one.\n\nI did not open `_skip_dir` or `_INDEX_SCOPE_KEYS`, so the exact dot-directory rule and the full list of accepted keys are unverified here. `clew/scope.py` and `docs/languages/C_INTEGRATION.md` would settle both.",
+  "ttft_ms": 2225,
+  "type": "result",
+  "duration_ms": 26050,
+  "uuid": "de7b03fe-7b88-4326-929e-7a8a13d964ef",
+  "ttft_stream_ms": 1643,
+  "time_to_request_ms": 68,
+  "first_content_frame_ms": 1643,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

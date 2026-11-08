@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Compile-time macros win.** `platform.c:16-19` drops the runtime setter entirely when both macros are defined.\"\nVERDICT: HIT\nWHY: The answer separates the compile-time macro pair from the runtime setter for function pointers (`mbedtls_platform_set_calloc_free`). It says defining the macros removes the runtime setter entirely, so the two routes can't be combined."
+}

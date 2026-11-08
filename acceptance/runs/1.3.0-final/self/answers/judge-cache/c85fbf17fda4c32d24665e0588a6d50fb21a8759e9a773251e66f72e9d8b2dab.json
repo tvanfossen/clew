@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Tiers 3 and 4 accumulate and survive every stated tier. A stated `entry_patterns` list cannot remove the built-in `main` entry, because the facts layer always stays in the resolved set. Tier 5 is the only layer a stated value displaces.\"\nVERDICT: HIT\nWHY: The answer says stated tiers replace one another (\"Nothing is merged\") while discovered layers (facts, ecosystem signatures) accumulate and survive any stated value."
+}

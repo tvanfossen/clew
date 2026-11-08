@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"So with a callback registered, any call not on the allow list is approved, and the only gate left is the deny list.\"\nVERDICT: MISS\nWHY: The answer says a tool on neither list is approved only when a callback is registered. Without a callback it says the call is denied. It does not conclude that the posture is default-allow."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Exceptions | Never cross into C. Trampolines catch, print, and return 0. | `hooks.py`, `streams.py`\nVERDICT: HIT\nWHY: The answer says hook trampolines catch every exception rather than letting it cross into C, and return 0, which matches the pass-through treatment of a failed hook."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `StdioTransport::open` (`:164`) | `stderr_reader_loop` | Body not in the index. The class owns `io_mutex_`. | `SSETransport::open` (`:107`) | `sse_reader_loop`\nVERDICT: HIT\nWHY: The answer lists a stderr_reader_loop thread spawned in StdioTransport::open and an sse_reader_loop thread spawned in SSETransport::open, so each transport has its own reader thread."
+}

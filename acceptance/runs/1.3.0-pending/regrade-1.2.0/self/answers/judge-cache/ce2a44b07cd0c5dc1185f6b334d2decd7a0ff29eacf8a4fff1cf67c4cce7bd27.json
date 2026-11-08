@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Binary files are detected and dropped (`_drop_binary_files`, `filetypes.binary_files`).\nVERDICT: MISS\nWHY: The answer mentions binary file dropping but never says it targets files whose extensions lie, and it doesn't name the parse-built front end for types doxygen can't read. It also says it didn't trace non-doxygen languages, and it doesn't state that scope isn't the whole answer in the item's sense."
+}

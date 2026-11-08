@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Unknown top-level keys are refused by name, except keys with an experimental prefix, which older clew versions tolerate and ignore.\nVERDICT: MISS\nWHY: The answer says unknown keys are refused by name, but it never gives the reason (an ignored section would build with defaults while reporting the declaration was honoured). It also never mentions the allowed set."
+}

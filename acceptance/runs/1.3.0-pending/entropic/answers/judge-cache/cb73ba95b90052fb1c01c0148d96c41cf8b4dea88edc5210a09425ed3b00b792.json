@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The second call is not repeated if it fails.\nVERDICT: MISS\nWHY: The answer says the second call isn't retried and that tokenize() logs an error and returns `{}` on failure. It never says a negative or non-positive result from the second call is terminal and returns empty."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Name-based identity. Callers are listed by name. If two functions share a name, the reply carries an `ambiguous` block, and the neighbour rows are then shared across candidates.\nVERDICT: MISS\nWHY: The answer never says the flat surface selects the focal side by resolved identity while the traversal surface matches on the bare name. It only notes that ambiguity is flagged."
+}

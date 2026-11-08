@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Every spawned body installs a `HandleLogScope` with the owning handle's log id, so logs from background threads go to the right session.\nVERDICT: HIT\nWHY: The answer states that every spawned thread body installs a per-handle log scope tied to the owning handle's log id, so background logs are attributed correctly. It does not say the scope is the first statement, but the mechanism and location are named."
+}

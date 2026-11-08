@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"If neither holds and an `on_tool_call` callback is registered, the call is approved anyway... With no callback and no match, the call is denied with 'Permission denied'.\"\n\nVERDICT: MISS\nWHY: The answer says an unmatched call is approved only when a callback is registered and denied otherwise, so it never concludes that the effective posture is default-allow."
+}

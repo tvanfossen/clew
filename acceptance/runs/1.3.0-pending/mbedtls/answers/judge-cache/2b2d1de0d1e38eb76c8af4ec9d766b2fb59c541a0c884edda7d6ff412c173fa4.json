@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the library spawns no threads and threading is off by default, but it never says the pthread example compiles to a stub main under a default build. It even describes `ssl_pthread_server.c` as having per-connection threads."
+}

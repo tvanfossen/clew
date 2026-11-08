@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The repo's Doxyfile still supplies ALIASES and PREDEFINED. Its `INPUT` is replaced, so a Doxyfile that documents only a header subset no longer narrows the index. The docs cite Mbed-TLS: its Doxyfile's `INPUT = ../include` would have indexed 1,571 header declarations and zero of the 108 `library/*.c` files.\nVERDICT: HIT\nWHY: The answer says the Doxyfile's INPUT is replaced and no longer narrows the index to the documented subset, and gives a concrete example. It doesn't spell out the contrast with repos that ship no Doxyfile, but it separately says a repo with none still gets the whole tree."
+}

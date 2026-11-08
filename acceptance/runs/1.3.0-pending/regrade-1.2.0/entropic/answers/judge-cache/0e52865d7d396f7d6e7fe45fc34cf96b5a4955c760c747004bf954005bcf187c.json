@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says the split lets `import entropic` succeed before the engine is installed, and it never mentions an install-engine subcommand. It describes lazy exports and a loader, but gives no such rationale."
+}

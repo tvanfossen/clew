@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The item asks for the general rule \"fix the corpus, not the sentence about the corpus\". The answer only explains how to interpret empty search results, and never says that the remedy is to fix the corpus itself."
+}

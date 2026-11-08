@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Entropic's public headers mostly stay clear of it... `src/facade/entropic.cpp` | Includes `llama_cpp_backend.h` and calls `dynamic_cast<entropic::LlamaCppBackend*>` in three places; `orchestrator.h` and `speculative_compat.h` forward-declare `struct llama_context;`\nVERDICT: HIT\nWHY: The answer shows llama.cpp reaching heavily into src/inference but also into src/facade/entropic.cpp and public headers outside it, so the dependency is concentrated but not contained."
+}

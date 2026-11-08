@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Deny (`ServerManager::execute`).** Runs after approval, so a deny pattern blocks a call even when it was approved.\"\nVERDICT: MISS\nWHY: The answer describes two gates, approval (allow list, auto-approve, callback) and deny. It never says the deny list is the only thing blocking execution."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: When `hasSearch` is true, it renders `<NavigationSearch ... ref={ref} />` (lines 128\u2013135).\nVERDICT: MISS\nWHY: The answer says the ref is forwarded to NavigationSearch when hasSearch is true. It never says that the ref is attached to nothing when hasSearch is false."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It calls `mbedtls_platform_set_calloc_free()` to install `buffer_alloc_calloc_mutexed`/`_free_mutexed`, or the unmutexed pair if threading is off.\nVERDICT: MISS\nWHY: The answer says the buffer allocator's init installs itself via the setter, but never says it is the only in-tree user of the setter, and the item requires that claim."
+}

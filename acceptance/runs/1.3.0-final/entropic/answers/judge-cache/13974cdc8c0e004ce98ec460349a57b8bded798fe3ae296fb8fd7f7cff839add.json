@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Confined to `src/inference/`.** That is the backend, orchestrator, adapter manager, grammar registry, and speculative-compat code.\" and \"`src/facade/entropic.cpp` includes `llama_cpp_backend.h` and `dynamic_cast`s to `LlamaCppBackend`\"\nVERDICT: MISS\nWHY: The answer says the headers are confined to src/inference (plus the facade and tests), but it never concludes that the dependency is concentrated yet not contained, nor does it count the files outside src/inference as a minority."
+}

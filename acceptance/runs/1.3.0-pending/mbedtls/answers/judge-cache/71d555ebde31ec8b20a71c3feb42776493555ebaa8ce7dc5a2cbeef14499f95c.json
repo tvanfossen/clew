@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The public surface is `include/mbedtls/constant_time.h` (`mbedtls_ct_memcmp`), `mbedtls_mpi_lt_mpi_ct` in `bignum.h`, and `bignum_core.h`.\nVERDICT: MISS\nWHY: The answer lists multiple public items (mbedtls_ct_memcmp, mbedtls_mpi_lt_mpi_ct, bignum_core.h), not a single-function public API, so it contradicts the item's conclusion."
+}

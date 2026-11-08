@@ -1,0 +1,103 @@
+{
+  "cell": "Q1_claude-haiku-5-5_index_only_r3",
+  "arm": "index_only",
+  "rubric_version": "3.1.0",
+  "rubric_digest": "bbf6195f605be452",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.5,
+  "unmarked_pct": 0.0,
+  "split_decisions": 0,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "names MBEDTLS_THREADING_C and MBEDTLS_THREADING_PTHREAD as the gating macros",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: the index was built with `MBEDTLS_THREADING_C` and `MBEDTLS_THREADING_PTHREAD` forced on | WHY: The answer names both MBEDTLS_THREADING_C and MBEDTLS_THREADING_PTHREAD as the threading macros that gate the mutexes and the pthread example, which is the substance of the item. || QUOTE: the index was built with `MBEDTLS_THREADING_C` and `MBEDTLS_THREADING_PTHREAD` forced on | WHY: The answer names both macros as the threading-layer gates (also \"Only when the threading macros are on\"). || QUOTE: the index was built with `MBEDTLS_THREADING_C` and `MBEDTLS_THREADING_PTHREAD` forced on | WHY: The answer names both MBEDTLS_THREADING_C and MBEDTLS_THREADING_PTHREAD as the threading macros that gate the mutexes and the pthread example server (\"Only when the threading macros are on\").",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the shipped mbedtls_config.h leaves BOTH threading macros undefined, so a default build defines neither",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: the index was built with `MBEDTLS_THREADING_C` and `MBEDTLS_THREADING_PTHREAD` forced on, and it has no config header, so the shipped default comes only from the `default_state: off` entries it reports (`mbedtls_config.h:2196` and `:3787`). Confirm those lines before relying on this. | WHY: The answer hedges and asks the reader to confirm. It never states that the shipped config leaves both threading macros undefined, so a default build defines neither. || QUOTE: NONE | WHY: The answer only says the shipped default comes from `default_state: off` entries and tells the reader to confirm those lines. It never states that the shipped config leaves both threading macros undefined, so a default build defines neither. || QUOTE: the index was built with `MBEDTLS_THREADING_C` and `MBEDTLS_THREADING_PTHREAD` forced on, and it has no config header, so the shipped default comes only from the `default_state: off` entries it reports (`mbedtls_config.h:2196` and `:3787`). Confirm those lines before relying on this. | WHY: The answer hedges and tells the reader to confirm the lines. It never plainly states that the shipped config leaves both macros undefined, so a default build defines neither.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that a default build of mbedtls creates no threads at all, and that the pthread example compiles to a stub main under that condition",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer says the library spawns no threads and that the pthread server example is gated on threading macros, but it never concludes that a default build creates no threads at all or that the pthread example compiles to a stub main. || QUOTE: NONE | WHY: The answer says the library spawns no threads and the pthread example is gated by the threading macros, but it never concludes that a default build creates no threads at all or that the pthread example compiles to a stub main. || QUOTE: NONE | WHY: The answer says the library spawns no threads and the pthread example is gated by threading macros, but it never concludes that a default build creates no threads at all or that the pthread example compiles to a stub main.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states BOTH halves of the contrast: that nothing in library/ creates a thread, AND that library/ nonetheless supplies the mutex abstraction used by threaded callers",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"Library code | `library/` | Never spawns threads. All four spawn sites the index found are in `programs/`.\" and \"`threading.c` provides function pointers `mbedtls_mutex_init/free/lock/unlock`, defaulting to the pthread implementations.\" | WHY: The answer says library/ never spawns threads and also that the library's threading layer supplies the mutex abstraction used by callers. || QUOTE: Library code | `library/` | Never spawns threads. All four spawn sites the index found are in `programs/`. ... `threading.c` provides function pointers `mbedtls_mutex_init/free/lock/unlock`, defaulting to the pthread implementations. | WHY: The answer states that library/ never spawns threads and that threading.c in the library supplies the mutex abstraction used by callers. || QUOTE: Library code | `library/` | Never spawns threads. All four spawn sites the index found are in `programs/`. ... `threading.c` provides function pointers `mbedtls_mutex_init/free/lock/unlock`, defaulting to the pthread implementations. | WHY: The answer says library/ never spawns threads and that threading.c supplies the mutex abstraction (init/free/lock/unlock function pointers) used by callers.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "every source file containing a thread-creation site \u2014 programs/ssl/ssl_pthread_server.c",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every source file containing a thread-creation site \u2014 programs/test/benchmark.c",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every source file containing a thread-creation site \u2014 precision",
+      "kind": "set_precision",
+      "weight": 2,
+      "hit": true,
+      "detail": "clean",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "identifies the benchmark timer thread as Windows-only, gated on a platform condition rather than on the threading config",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: Windows timer thread | `programs/test/benchmark.c` (`mbedtls_set_alarm` \u2192 `TimerProc`) | Windows-only, test benchmark. | WHY: The answer says the timer thread is Windows-only, but it never says it is gated on a platform condition rather than the threading config. Its framing ties the other sources to the threading macros, so the platform-gating mechanism is missing. || QUOTE: | Windows timer thread | `programs/test/benchmark.c` (`mbedtls_set_alarm` \u2192 `TimerProc`) | Windows-only, test benchmark. | | WHY: The answer says the timer thread is Windows-only but never says it is gated on a platform condition rather than the threading config, so it misses that contrast. || QUOTE: Windows timer thread | `programs/test/benchmark.c` (`mbedtls_set_alarm` \u2192 `TimerProc`) | Windows-only, test benchmark. | WHY: The answer says the timer thread is Windows-only but never says it's gated on a platform condition rather than the threading config.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies debug_mutex as serialising debug output so that concurrent connections do not interleave their logging",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never mentions debug_mutex or mutex-serialised debug output; it covers other mutexes (readdir, gmtime, PSA) only. || QUOTE: NONE | WHY: The answer never mentions debug_mutex or mutex serialising debug/logging output across connections. || QUOTE: NONE | WHY: The answer never mentions debug_mutex or mutex-serialised debug output across concurrent connections.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    }
+  ]
+}

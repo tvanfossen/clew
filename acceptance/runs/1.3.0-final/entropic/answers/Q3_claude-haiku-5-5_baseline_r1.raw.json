@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 56148,
+  "stop_reason": "end_turn",
+  "session_id": "708eafb1-1396-47dd-b583-d4240af7fe74",
+  "total_cost_usd": 0.021666809999999998,
+  "usage": {
+    "input_tokens": 24,
+    "cache_creation_input_tokens": 53789,
+    "cache_read_input_tokens": 604361,
+    "output_tokens": 9726,
+    "output_tokens_details": {
+      "thinking_tokens": 4075
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 53789,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1993,
+        "cache_read_input_tokens": 66296,
+        "cache_creation_input_tokens": 3004,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 3004
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 24,
+      "outputTokens": 9726,
+      "cacheReadInputTokens": 604361,
+      "cacheCreationInputTokens": 53789,
+      "webSearchRequests": 0,
+      "costUSD": 0.021666809999999998,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 4075,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 53789,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 24,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** a call runs only if it clears the precondition chain in `ToolExecutor`, the approval gate, and then the deny check at dispatch. The allow and deny lists are matched with `fnmatch`. The deny list is the only hard stop, and it is checked after approval.\n\n## The path a call takes\n\n```\nmodel emits tool call\n \u2514\u2500 ToolExecutor::process_single_call            tool_executor.cpp:729\n     \u251c\u2500 PRE_TOOL_CALL hook can cancel            :733\n     \u2514\u2500 check_call_preconditions                 :667  (first rejection wins)\n         \u251c\u2500 anti-spiral hard block\n         \u251c\u2500 schema validation (required/enum/type)\n         \u251c\u2500 MCP key check (per-identity)         :575  only if identity registered\n         \u251c\u2500 tier allowed_tools                   :198\n         \u251c\u2500 duplicate-call check\n         \u2514\u2500 check_approval                       :161\n             \u251c\u2500 auto_approve_tools?  \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u25ba approved\n             \u251c\u2500 allow list match?    \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u25ba approved\n             \u251c\u2500 on_tool_call callback set? \u2500\u2500\u25ba approved = true (callback return is ignored)\n             \u2514\u2500 else                 \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u25ba DENIED \"No approval callback\"\n     \u2514\u2500 execute_tool \u2192 ServerManager::execute    server_manager.cpp:153\n         \u2514\u2500 deny list match? \u2500\u2500\u25ba \"Error: Permission denied\"   (deny wins, even with auto_approve)\n         \u2514\u2500 else route to in-process or external server\n```\n\nPoints that matter:\n\n- **The approval callback does not gate anything.** `on_tool_call` is `void(*)(const char*, void*)` (`engine_types.h:370`). Once it is set, `check_approval` marks the call approved without reading any result (`tool_executor.cpp:168-172`). The header's \"approved via callback\" wording is therefore misleading. With a callback wired, the only thing that stops a call is the deny list.\n- **Deny is checked after the prompt.** A call that matches `deny` still triggers `on_tool_call`, so the user may see a prompt for a call that is then refused.\n- **`auto_approve` does not bypass deny.** It only skips the approval step; `ServerManager::execute` always checks the deny list.\n- **Without a callback, the default is deny.** A call is denied unless `auto_approve` is set or the allow list matches. That is the only real default-deny behaviour.\n- **The header's \"default-deny\" claim holds only in headless mode.** With a callback wired, the default is effectively allow-with-notification.\n\n## What a pattern does\n\nConfig keys are `permissions.allow`, `permissions.deny` and `permissions.auto_approve` (`loader.cpp:369-371`). The matcher is `PermissionManager::pattern_matches` (`permission_manager.cpp:101`):\n\n1. Split the pattern at the first `:`.\n2. Left side: `fnmatch` against the tool name, e.g. `filesystem.*`.\n3. Right side, if present: `fnmatch` against `tool:<argvalue>`.\n\nArgument value: `args_to_pattern` (`server_manager.cpp:426`) takes the first JSON key's value, if it is a string. Iteration order is nlohmann's default, which is sorted by key, so \"first\" means alphabetically first, not first in the schema. If there is no string arg, or parsing fails, the value is `*`.\n\n| Pattern | Matches |\n|---|---|\n| `filesystem.*` | every filesystem tool, any args |\n| `git.commit` | that tool only, any args (no colon) |\n| `filesystem.read_file:/home/*` | that tool when its first string arg starts with `/home/` |\n| `bash.execute:git *` | `bash.execute` whose command starts with `git ` |\n\nBehaviour to be aware of:\n\n- **`fnmatch` flags are 0**, so `*` also matches `/`. `/home/*` covers deep paths. There is no path normalisation, so `..` segments are not caught.\n- **Bash prefix rules can be bypassed.** `bash.execute:git *` matches the whole command string, so `git status; rm -rf ~` matches the allow rule. The bash server's own comment says approval is the gate, so this is a real gap if `allow` is used for bash.\n- **`BashServer::get_permission_pattern` (`bash.cpp:200`) is dead code.** Nothing calls `ServerManager::get_permission_pattern`. Both `is_denied` and `is_allowed` use `args_to_pattern`. The \"execute:{base_cmd} *\" design in that override is not what is enforced.\n- **Allow and deny are both first-match boolean checks.** Order in the list does not matter, and deny overrides allow.\n- **Runtime additions**: `add_permission` (`server_manager.cpp:359`) appends and de-duplicates. `PermissionPersister::save_permission` writes YAML, but nothing in `src/` calls it, and `PermissionPersistFn` is declared but never invoked. \"Always allow\" does not persist in this tree.\n\n## Related: MCP keys\n\n`MCPAuthorizationManager` is a separate check that runs before approval. It is enforced only for identities that have been registered (`mcp_authorization.cpp:37`). An unregistered identity is allowed by default (`check_access`, line 100). It is not part of the `allow`/`deny` lists.\n\n## Discrepancy\n\n`data/schemas/config_schema.json:61-62` names the keys `allow_patterns` and `deny_patterns`, but the loader reads `allow` and `deny`. Either the schema or the loader is wrong. I did not check which one users' configs follow.\n\nI read the code but did not run anything, so the bypass and ordering claims are from reading, not from a test.",
+  "ttft_ms": 1986,
+  "type": "result",
+  "duration_ms": 56683,
+  "uuid": "e86c913e-c673-4954-abc3-fae903bded98",
+  "ttft_stream_ms": 1549,
+  "time_to_request_ms": 106,
+  "first_content_frame_ms": 1549,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

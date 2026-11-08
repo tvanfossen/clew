@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `llama_tokenize` and `llama_token_to_piece`\nVERDICT: MISS\nWHY: The answer names a few llama_ functions in passing, but it never identifies the seam as llama.cpp's C API of free functions. It describes the seam as C++ wrapper classes (LlamaCppBackend, LlamaCppSampler, LlamaCppTokenizer) and a C boundary for entropic's own API."
+}

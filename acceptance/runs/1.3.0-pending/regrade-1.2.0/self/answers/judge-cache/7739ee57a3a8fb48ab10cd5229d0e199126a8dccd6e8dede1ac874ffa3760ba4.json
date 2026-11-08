@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**`.clew.yaml`** also carries a `guard:` section for the doxygen gate.\" and \"| 2 | Declared | `.clew.yaml` at the repo root, one section per option (`clew/declaration.py`) | Replaces the stated layer |\"\nVERDICT: MISS\nWHY: The answer names `.clew.yaml` as tier 2 at the repo root, but never says that both entry points (CLI and MCP) discover it, which the item requires."
+}

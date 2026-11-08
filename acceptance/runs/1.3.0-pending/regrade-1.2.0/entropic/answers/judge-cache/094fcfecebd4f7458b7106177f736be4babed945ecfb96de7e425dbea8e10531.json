@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`run_async_ask` worker | `external_bridge.cpp:1158` | **Detached** (l.1222)\" and \"`run_async_ask` captures `this` and is never joined. `stop()` joins the accept and client threads but not this one, so an in-flight ask could outlive the bridge.\"\nVERDICT: HIT\nWHY: The answer names the async-ask worker as the one detached thread (the \"one exception\") and says it is never joined and can outlive the bridge."
+}

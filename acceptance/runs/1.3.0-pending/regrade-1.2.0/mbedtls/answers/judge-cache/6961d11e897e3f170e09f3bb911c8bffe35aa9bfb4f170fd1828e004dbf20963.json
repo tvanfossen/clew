@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The high bits (`0xFF80`) identify the module and the low bits (`~0xFF80`) identify the specific error.\" and \"A code with both parts reads like `\\\"<MODULE> - <high> : <low>\\\"`.\"\nVERDICT: HIT\nWHY: The answer states that a code has a high-level module part and a low-level part, and that mbedtls_strerror outputs both joined with \" : \" when both are present."
+}

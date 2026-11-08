@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 28932,
+  "stop_reason": "end_turn",
+  "session_id": "f2801276-e079-4266-8148-f940670f592a",
+  "total_cost_usd": 0.00878125,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 18176,
+    "cache_read_input_tokens": 227855,
+    "output_tokens": 5733,
+    "output_tokens_details": {
+      "thinking_tokens": 2873
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 18176,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3604,
+        "cache_read_input_tokens": 55819,
+        "cache_creation_input_tokens": 2104,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2104
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 5733,
+      "cacheReadInputTokens": 227855,
+      "cacheCreationInputTokens": 18176,
+      "webSearchRequests": 0,
+      "costUSD": 0.00878125,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2873,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 18176,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 10,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** in the default configuration the library runs no threads and takes no locks. Nothing inside mbedtls runs concurrently with anything else. Concurrency exists only in the test and example programs, and those are unprotected by the library.\n\n**Why the default is single-threaded**\n\nThe default config turns off every threading option:\n\n| Macro | Default | Where |\n|---|---|---|\n| `MBEDTLS_THREADING_C` | off (commented out) | `include/mbedtls/mbedtls_config.h:3787` |\n| `MBEDTLS_THREADING_PTHREAD` | off (commented out) | `mbedtls_config.h:2196` |\n| `MBEDTLS_THREADING_ALT` | off (commented out) | `mbedtls_config.h:2185` |\n\nWith `MBEDTLS_THREADING_C` off, `library/threading.c` compiles to nothing, and every mutex use in the library is compiled out. The sampled guards confirm this: `memory_buffer_alloc.c:540` (the heap mutex wrapper), `psa_crypto.c:130` and the other PSA lock sites. I did not open every call site's guard, so the claim for the others (`ssl_cache.c`, `rsa.c`, `hmac_drbg.c`, `ssl_ticket.c`, `x509_crt.c`) rests on the pattern, not a per-site check.\n\nThe header's own documentation says the same thing: the library \"assumes it is used in a non-threaded environment or that contexts are not shared between threads,\" and the PSA subsystem \"has an implicit shared context,\" so any multithreaded use must enable `MBEDTLS_THREADING_C`.\n\n**What runs concurrently in the repo**\n\nThe index finds four thread or signal spawn sites, all in `programs/`, none in `library/`:\n\n- `programs/ssl/ssl_pthread_server.c:277` spawns a pthread per connection (`handle_ssl_connection`).\n- `programs/test/benchmark.c:430` has a Win32 `TimerProc` and `:444` a `sighandler`, both via `mbedtls_set_alarm`.\n- `programs/ssl/ssl_server2.c:1699` installs `term_handler` as a signal handler.\n\nThe signal handlers are asynchronous, so they can interrupt the library at any point. Nothing in the default build protects against that.\n\n**What the mutexes protect when enabled**\n\nThese apply only when `MBEDTLS_THREADING_C` is on, and the pthread backend is selected.\n\n| Mutex (`include/mbedtls/threading.h`) | Protects | Evidence |\n|---|---|---|\n| `mbedtls_threading_key_slot_mutex` | PSA key-slot table, registered readers | `psa_crypto.c:1310\u20132045`, `psa_crypto_slot_management.c:822` |\n| `mbedtls_threading_psa_globaldata_mutex` | Non-RNG PSA `global_data` fields | `psa_crypto.c:141\u2013166`, `:8407\u20138594`; `slot_management.c:200` |\n| `mbedtls_threading_psa_rngdata_mutex` | PSA RNG state and `rng_state` | `psa_crypto.c:131`, `:8030\u20138425` |\n| `mbedtls_threading_readdir_mutex` | Non-reentrant `readdir()` in CRT directory parsing | `x509_crt.c:1611` and `:1660` |\n| `mbedtls_threading_gmtime_mutex` | `gmtime()` fallback, only where no thread-safe variant exists | `threading.c` (`THREADING_USE_GMTIME`) |\n| `ctx->mutex` / `cache->mutex` (per object) | Session cache, ticket keys, RSA context, HMAC-DRBG state | `ssl_cache.c:84,259,331`, `ssl_ticket.c:330,445`, `rsa.c:1239,1518`, `hmac_drbg.c:388` |\n| `heap.mutex` | Heap allocator in `memory_buffer_alloc.c` | `:544`, `:558` |\n\nPer-object locks protect only the object they live in. Application data passed between threads, or TLS, X.509 and PK contexts shared between threads, get no protection from them.\n\n**Caveats on the index**\n\n- The lock layer reports one identity, `mutex->mutex` in `threading.c`, at low confidence, because member expressions are not modelled. The named globals above come from the symbol inventory and the source, not from the lock layer.\n- The lock layer also reports zero nested two-lock holdings. That is a database result, not a proof of deadlock freedom.\n- The thread layer counts only spawn primitives this build's patterns match (pthread, Win32, signals). Other spawn mechanisms would be missed silently.",
+  "ttft_ms": 1583,
+  "type": "result",
+  "duration_ms": 29857,
+  "uuid": "26701887-08a9-477a-8725-445f34ad8354",
+  "ttft_stream_ms": 1309,
+  "time_to_request_ms": 97,
+  "first_content_frame_ms": 1309,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the llama.cpp C API is confined to a small `llama_cpp_*` family in `src/inference/` and reached only through interfaces. It never says the dependency spreads across roughly a dozen of entropic's own files."
+}

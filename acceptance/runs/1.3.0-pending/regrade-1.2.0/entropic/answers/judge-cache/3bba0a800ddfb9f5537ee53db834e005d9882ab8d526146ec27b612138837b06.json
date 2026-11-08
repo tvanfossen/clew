@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Each spawned thread also installs a `HandleLogScope` so its logs reach the owning handle's session log.\nVERDICT: HIT\nWHY: The answer states that each spawned thread installs a HandleLogScope so logs reach the owning handle's session log. That matches the item's substance. It doesn't say \"first statement\", but the per-handle scope and its purpose are both there."
+}

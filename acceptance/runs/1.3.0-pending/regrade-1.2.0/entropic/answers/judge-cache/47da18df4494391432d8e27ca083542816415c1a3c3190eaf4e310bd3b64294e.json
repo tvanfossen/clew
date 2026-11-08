@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `add_permission` can add more at runtime, and the persister writes them back to config.\nVERDICT: MISS\nWHY: The answer says a persister writes permissions back to config, but it never names config.local.yaml or an append-to-file mechanism for persisting across sessions."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: There is no pybind11, cffi, or extension module. The Python package is a ctypes shim over the shared library:\nVERDICT: HIT\nWHY: The answer states ctypes.CDLL loads librentropic.so and explicitly says there is no extension module."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_ct_compiler_opaque(x)` returns `x ^ mbedtls_ct_zero`, where `mbedtls_ct_zero` is a `volatile` global set to 0 in `library/constant_time.c`.\nVERDICT: HIT\nWHY: The answer says the plain-C fallback XORs with the volatile global `mbedtls_ct_zero` (set to 0) and names that global. It places this under \"Everywhere else\", i.e. when assembly isn't used. It describes the fallback as a separate C path for `mbedtls_ct_bool`, `mbedtls_ct_uint_lt` and `mbedtls_ct_if`, so \"the SAME function\" is only implied, not stated outright."
+}

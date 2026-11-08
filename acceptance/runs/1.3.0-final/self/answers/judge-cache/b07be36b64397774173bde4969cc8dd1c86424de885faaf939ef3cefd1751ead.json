@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `_staleness` and `_staleness_within_budget` (`tools_query.py`) size the text to fit. When the payload is large they fall back to a compact message, \"stale \u2014 call status\" at minimum.\nVERDICT: HIT\nWHY: The answer states that the staleness notice is fitted to the budget by shrinking its text to a compact message, not by omitting it."
+}

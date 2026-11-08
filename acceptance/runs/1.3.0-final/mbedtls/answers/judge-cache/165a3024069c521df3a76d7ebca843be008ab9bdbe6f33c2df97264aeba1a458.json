@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer names a few example sites in headers but never conveys that the macro is used at a scale of many hundreds of sites, overwhelmingly in public headers rather than library implementation."
+}

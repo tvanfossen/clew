@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the REST call sends `noRetry: true`, which turns off the network layer's retry for this request. It never says that requests in general retry with exponential backoff and a limit of 3, set by the network manager."
+}

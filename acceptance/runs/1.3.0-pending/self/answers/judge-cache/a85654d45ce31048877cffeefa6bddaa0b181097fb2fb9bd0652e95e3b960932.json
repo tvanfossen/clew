@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `derive_scope` falls through to `whole_repo_scope`, and the reason string records why\nVERDICT: MISS\nWHY: The answer names `derive_scope` but never places it in `clew/scope.py` as where the decision is resolved. It cites `scope.py` only for `_declared_index_scope` and `whole_repo_scope`."
+}

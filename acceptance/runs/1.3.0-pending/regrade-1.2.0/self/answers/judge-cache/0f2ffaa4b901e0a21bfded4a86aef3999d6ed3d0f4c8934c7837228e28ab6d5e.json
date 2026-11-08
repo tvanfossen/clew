@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: | Tier | Source | Combines by | ... | 1 | Explicit: a CLI flag, or the `options` argument for an embedding caller | ... | 2 | Declared: `.clew.yaml` | ... | 3 | Target facts ... | 4 | Ecosystem signatures (UDM, ingot) | ... | 5 | Heuristics: built-in name-pattern guesses\nVERDICT: HIT\nWHY: The answer lays out five named precedence tiers (explicit, declared, target facts, ecosystem signatures, heuristics) with their ordering, not a single override."
+}

@@ -1,0 +1,103 @@
+{
+  "cell": "Q2_claude-haiku-5-5_index_r2",
+  "arm": "index",
+  "rubric_version": "3.1.1",
+  "rubric_digest": "705c131e354e5c22",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.3076923076923077,
+  "unmarked_pct": 0.0,
+  "split_decisions": 0,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "states that llama.cpp is brought in as a git SUBMODULE at extern/llama.cpp, rather than vendored, copied or fetched by the build",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: `.gitmodules` registers `extern/llama.cpp` (from ggml-org/llama.cpp). | WHY: The answer states llama.cpp is a git submodule at extern/llama.cpp, registered in .gitmodules and not fetched via FetchContent. || QUOTE: `.gitmodules` registers `extern/llama.cpp` (from ggml-org/llama.cpp). | WHY: The answer states llama.cpp is a git submodule at extern/llama.cpp, contrasts it with FetchContent for the other dependencies, and notes the directory is an uninitialized submodule. || QUOTE: `.gitmodules` registers `extern/llama.cpp` (from ggml-org/llama.cpp). ... The other dependencies (spdlog, ryml, json, httplib, Catch2) use `FetchContent`, but llama.cpp does not. | WHY: The answer states llama.cpp is a git submodule at extern/llama.cpp, registered in .gitmodules and not fetched via FetchContent.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "conveys that the dependency reaches roughly a dozen files of entropic's own source, not one wrapper",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer lists about a dozen files across src/inference and the facade, but never states that llama.cpp reaches roughly a dozen of entropic's source files. It also frames the boundary as limited to the `src/inference/` layer. || QUOTE: NONE | WHY: The answer lists about a dozen llama.cpp-touching files but never states that the dependency reaches roughly a dozen of entropic's own source files rather than a single wrapper. It frames the reach as a layer and as `LlamaCppBackend` being the main consumer. || QUOTE: NONE | WHY: The answer lists several `src/inference/` files and facade files that touch llama.cpp, but it never states the overall footprint of roughly a dozen files or contrasts it with a single wrapper. It also says \"The index holds seven llama-named source files,\" which is a different claim.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that the dependency is CONCENTRATED in the inference layer but NOT contained by it \u2014 a minority of the reaching files sit outside src/inference",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer says llama.cpp types \"stop at `src/inference/`\", but it also lists `src/facade/entropic.cpp` as reaching llama types. It never concludes the dependency is concentrated but not contained, with a minority of reaching files outside `src/inference`. || QUOTE: So the boundary is: llama.cpp types stop at `src/inference/`. | WHY: The answer claims llama.cpp is contained in src/inference (plus facade); it never concludes that a minority of reaching files sit outside that layer. || QUOTE: So the boundary is: llama.cpp types stop at `src/inference/`. | WHY: The answer claims the dependency is contained in src/inference/, though it also lists facade files (e.g. `src/facade/entropic.cpp`) that reach llama types. It never concludes that a minority of reaching files sit outside the inference layer.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies the seam as llama.cpp's C API \u2014 free functions with an llama_ prefix \u2014 rather than C++ classes or inheritance",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never says the seam is llama.cpp's C API of llama_-prefixed free functions; it only mentions headers, types, and accessors like `llama_model*`. || QUOTE: NONE | WHY: The answer never says the seam is llama.cpp's C API of llama_-prefixed free functions; it only mentions headers, types and accessors, not the C-function mechanism. || QUOTE: NONE | WHY: The answer discusses includes, CMake linking, and accessors like `llama_model*`, but never states that the seam is llama.cpp's C API of free `llama_`-prefixed functions rather than C++ classes.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "the top-level source directories that reach into llama.cpp \u2014 inference",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the top-level source directories that reach into llama.cpp \u2014 config",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": false,
+      "detail": "not named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the top-level source directories that reach into llama.cpp \u2014 core",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": false,
+      "detail": "not named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the top-level source directories that reach into llama.cpp \u2014 facade",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the top-level source directories that reach into llama.cpp \u2014 precision",
+      "kind": "set_precision",
+      "weight": 1,
+      "hit": true,
+      "detail": "clean",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The assembly path is gated by `MBEDTLS_CT_ASM`, which is defined only when `MBEDTLS_HAVE_ASM` is set and the compiler is GCC-compatible (`__GNUC__`) or ARM Compiler (`__ARMCC_VERSION`). `MBEDTLS_HAVE_ASM` is on by default (`include/mbedtls/mbedtls_config.h:52`).\nVERDICT: HIT\nWHY: The answer states that MBEDTLS_CT_ASM is defined from MBEDTLS_HAVE_ASM plus compiler predefined macros (`__GNUC__`, `__ARMCC_VERSION`). It also places only MBEDTLS_HAVE_ASM in the config header, so MBEDTLS_CT_ASM is derived rather than configured."
+}

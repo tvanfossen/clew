@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_memory_buffer_alloc_init(buf, len)` (`library/memory_buffer_alloc.c:566-600`) is the library's own user of this mechanism. It: ... calls `mbedtls_platform_set_calloc_free(buffer_alloc_calloc_mutexed, buffer_alloc_free_mutexed)` (or the non-mutexed pair)\nVERDICT: HIT\nWHY: The answer names the buffer allocator's init function as the library's own user of the runtime setter, installing its allocator functions over the pointers. It doesn't say \"only\" in so many words, but \"the library's own user\" conveys it."
+}

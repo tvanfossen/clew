@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: By default it expands to `private_##member`, so `ctx.nr` no longer compiles and callers must go through the API. Renaming the field makes it a visible break in the source, not a silent one. ... the wrapping is a source-level mechanism, not a language access control.\nVERDICT: HIT\nWHY: The answer says the member name is renamed to `private_<member>` so outside code fails to compile. That is a compile-time break by renaming rather than by language access control. It doesn't say outright that the layout stays visible and sized, but \"renaming the field\" and \"not a language access control\" carry the mechanism."
+}

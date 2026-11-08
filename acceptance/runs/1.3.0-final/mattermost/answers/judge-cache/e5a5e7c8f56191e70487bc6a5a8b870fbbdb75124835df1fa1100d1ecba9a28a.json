@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The file also declares an interface that merges every `*HandlerMix` type, which is what gives callers typed access to `handleX` methods.\nVERDICT: HIT\nWHY: The answer states that a declared interface merges the `*HandlerMix` types, giving the class typed access to every mixed-in handler method. This matches the item's declaration-merging mechanism, though the answer doesn't say the interface carries the same name as the class."
+}

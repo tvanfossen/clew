@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Notices are attached only for the repository that actually answered, so a derived target's staleness is never reported beside another repository's data.\nVERDICT: HIT\nWHY: The answer states that staleness notices are annotated for the repository that actually answered rather than another (default) target, which matches the item's substance."
+}

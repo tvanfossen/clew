@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: MBEDTLS_PLATFORM_MEMORY off (default) \u2514\u2500 macro \u2192 calloc platform.h:167\n\nVERDICT: HIT\nWHY: The answer states that in the default build (PLATFORM_MEMORY off) mbedtls_calloc is a macro resolving directly to calloc, and says `mbedtls_free` follows the same pattern. The free case is less explicit but covered."
+}

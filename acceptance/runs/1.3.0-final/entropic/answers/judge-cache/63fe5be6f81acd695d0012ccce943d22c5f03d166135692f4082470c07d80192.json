@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `do_count_tokens` | `0` | Indistinguishable from empty input.\nVERDICT: HIT\nWHY: The answer states that the token-counting path (`do_count_tokens`) returns 0 on tokenization failure, with no error signalled, and that this can't be told apart from empty input."
+}

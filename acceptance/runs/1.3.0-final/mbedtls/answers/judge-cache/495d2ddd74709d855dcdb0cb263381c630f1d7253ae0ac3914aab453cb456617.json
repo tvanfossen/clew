@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Mbed TLS packs each error as a module (high-level) part and a specific (low-level) part\" and \"If both parts exist, it writes `\" : \"` and appends the low-level text.\"\nVERDICT: HIT\nWHY: The answer explains the two-layer code (high-level module and low-level specific) and that strerror joins both with \" : \" when both are present."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: CLI flags (`--shared-key-patterns`, `--exclude`, `--doxyfile`, \u2026), or the `options` argument for an embedding caller such as the MCP server\nVERDICT: HIT\nWHY: The answer places tier 1 in both CLI flags and the `options` argument for embedding callers like the MCP server, which is what the item asks for."
+}

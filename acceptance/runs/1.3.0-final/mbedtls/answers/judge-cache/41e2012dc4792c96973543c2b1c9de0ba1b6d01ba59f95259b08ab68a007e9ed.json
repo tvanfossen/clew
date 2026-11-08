@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **`mbedtls_ct_compiler_opaque(x)`** (`:85`) hides a value from the optimizer. In the asm path it is an empty `asm volatile` with `\"+r\"`; otherwise it XORs with `mbedtls_ct_zero`.\nVERDICT: HIT\nWHY: The answer names mbedtls_ct_compiler_opaque as the primitive hiding values from the compiler, and places it in library/constant_time_impl.h (stated as \"All primitives live in `library/constant_time_impl.h`\", with the line reference `:85`)."
+}

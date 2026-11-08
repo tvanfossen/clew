@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: For three specific server errors, the post is removed locally with `removePost`: `DELETED_ROOT_POST_ERROR`, `TOWN_SQUARE_READ_ONLY_ERROR` and `PLUGIN_DISMISSED_POST_ERROR`.\nVERDICT: HIT\nWHY: The answer names all three errors (deleted root post, read-only town square, plugin-dismissed post) as the ones where the failed post is removed rather than kept."
+}

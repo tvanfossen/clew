@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Deny is checked here, after approval. Deny wins over allow and over `auto_approve`, because an allow match alone never reaches the server.\nVERDICT: MISS\nWHY: The answer describes two gates, with an approval/allow gate in ToolExecutor::check_approval as well as the deny check. It never concludes that deny is the only blocking list consulted in ServerManager::execute. It says the opposite: that default-deny at gate 1 also blocks calls."
+}

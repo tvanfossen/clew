@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: If not `auto_ok` and an `on_tool_call` callback is registered, it is invoked and `approved = true` unconditionally (`:168-173`). The callback is a notification, not a gate.\nVERDICT: HIT\nWHY: The answer states the callback is invoked and approved is set to true unconditionally, so the callback cannot refuse. It does not mention the void return type, but the substance of the item is there."
+}

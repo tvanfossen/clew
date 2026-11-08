@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names no file as a site where a thread is created. It says the library never creates a thread, and it names `library/` only to say that `library/` contains no `pthread_create`, `std::thread` or `_beginthread`.\n\nITEMS:\nNONE\nEND"
+}

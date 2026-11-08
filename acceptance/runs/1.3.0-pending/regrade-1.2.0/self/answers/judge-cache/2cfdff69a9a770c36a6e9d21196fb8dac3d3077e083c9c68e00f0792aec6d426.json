@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names no file paths for storing, collapsing, filtering or shaping neighbour replies. It mentions only symbol names, field names and a test name, none of which are paths.\n\nITEMS:\nNONE\nEND"
+}

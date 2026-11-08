@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says how many sites use MBEDTLS_PRIVATE or that they are overwhelmingly in public headers. Its \"about 129 files\" figure counts library files that include common.h, not macro sites."
+}

@@ -1,0 +1,101 @@
+{
+  "duration_api_ms": 87630,
+  "stop_reason": "end_turn",
+  "session_id": "744c4ce2-7c6d-4af3-b0c6-b3ea6d0685e8",
+  "total_cost_usd": 0.02339712,
+  "usage": {
+    "input_tokens": 26,
+    "cache_creation_input_tokens": 44688,
+    "cache_read_input_tokens": 823442,
+    "output_tokens": 12445,
+    "output_tokens_details": {
+      "thinking_tokens": 6134
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 44688,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 4504,
+        "cache_read_input_tokens": 82667,
+        "cache_creation_input_tokens": 1911,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1911
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 26,
+      "outputTokens": 12445,
+      "cacheReadInputTokens": 823442,
+      "cacheCreationInputTokens": 44688,
+      "webSearchRequests": 0,
+      "costUSD": 0.02339712,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 6134,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 44688,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 27,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** The facility is a small set of branch-free primitives in `library/constant_time_impl.h`. Inline asm produces the all-ones/all-zeros mask on the four architectures it covers. Everywhere else it falls back to plain C that is only observed to be constant-time, and nothing fails to build. The primitives reach the RSA, record-layer, cipher-padding, tag-compare and bignum code. ECC point arithmetic in `ecp.c` does not use them, and parts of it are documented as not constant-time.\n\n**How it is enforced at the instruction level**\n\n- **Mask generation is the enforced part.** `mbedtls_ct_bool(x)` turns any value into all-ones (true) or zero (false). On x86-64 it is `mov x\u2192s; neg s; or x,s; sar $63,s`, so there is no branch or conditional instruction. AArch64, ARM/Thumb and x86 have equivalent sequences (`constant_time_impl.h:120\u2013203`).\n- **The asm stops the compiler from rewriting the mask.** `MBEDTLS_CT_ASM` is defined when `MBEDTLS_HAVE_ASM` is set and the compiler is GNU-compatible (`constant_time_impl.h:40\u201352`). `mbedtls_ct_compiler_opaque` is then an `asm volatile(\"\" : \"+r\"(x))` barrier, so the compiler cannot prove a condition's value and fold it.\n- **Everything else is built from the mask.** Comparisons, `mbedtls_ct_if`, `mbedtls_ct_memcpy_if` and `mbedtls_ct_zeroize_if` use bit operations. Table lookups read every entry: `mbedtls_mpi_core_ct_uint_table_lookup` (`bignum_core.c:597`) scans the whole table and selects with `uint_eq`. `mbedtls_ct_memcmp` (`constant_time.c:67`) reads through `volatile` pointers, never exits early, and ORs the differences together.\n- **The condition type is opaque.** `MBEDTLS_CT_TRUE`/`FALSE` are wrapped in `compiler_opaque`, and the header says callers must not manipulate the value directly (`constant_time_internal.h:40\u201347`).\n\n**What happens on a compiler that cannot support it**\n\nThe fallback is chosen when any of these holds:\n\n- `MBEDTLS_HAVE_ASM` is off.\n- The compiler is not GNU-compatible (MSVC, or armcc5 before 6.0).\n- The architecture is not one of the four with asm (RISC-V and MIPS, for example). Even with GCC, `mbedtls_ct_bool` then uses C while `compiler_opaque` still uses the asm barrier.\n\nIn the fallback, `compiler_opaque` is `x ^ mbedtls_ct_zero`, where `mbedtls_ct_zero` is a `volatile` global holding 0. `mbedtls_ct_bool` uses the arithmetic sign-bit trick `(-x) | -(x>>1)`. The header says this \"has been observed to be constant-time on latest gcc, clang and MSVC as of May 2023\" (`constant_time_internal.h:55\u201359`). That is an observation about compiler output, not a guarantee. The build succeeds without warning and nothing checks the emitted code.\n\n**How it is tested**\n\n- **Valgrind constant-flow:** `components-sanitizers.sh:105\u2013152` marks secrets as undefined, so a secret-dependent branch or address is reported as use of uninitialised memory. There is one run without asm and one with asm.\n- **MemorySanitizer:** the MSan component turns asm off. `check_config.h:250` rejects MSan with `MBEDTLS_HAVE_ASM`. So MSan only exercises the C fallback.\n- These are dynamic checks on the inputs the tests happen to use, on the CI host's architecture. They are not proof for other hardware or compilers.\n\n**How far it reaches**\n\n- **Public API:** only `mbedtls_ct_memcmp` is in `include/mbedtls/constant_time.h`. Everything else is internal. Its doc says it is not constant-time with respect to `n`, so buffer length can leak.\n- **Users:** about 465 occurrences across 30 library files, from the counts I took. Main groups:\n  - **Record layer:** `ssl_msg.c` (`mbedtls_ssl_decrypt_buf`, `mbedtls_ct_hmac`, padding checks), plus TLS 1.2/1.3 Finished and PSK binder comparisons.\n  - **RSA:** PKCS#1 v1.5 unpadding, OAEP decrypt, and signature-verify comparisons.\n  - **Cipher padding:** `cipher.c` (`get_pkcs_padding`, `get_zeros_and_len_padding`).\n  - **Tag comparisons:** GCM, CCM, ChaCha20-Poly1305, NIST KW, PSA MAC and hash verify.\n  - **Bignum:** `bignum_core.c` (table lookup, conditional assign and swap, `lt_ct`, `check_zero_ct`), `bignum_mod_raw.c`, and the GCD/modinv path in `bignum.c`.\n- **Gaps:**\n  - `ecp.c` calls no `mbedtls_ct_*` functions. Its comments mark `mbedtls_ecp_mul_shortcuts` (the m = 0, 1, \u22121 shortcuts) and `mbedtls_ecp_muladd` as NOT constant-time. The comb method is commented as constant-time, but I did not trace whether the variable-base path is constant-time end to end.\n  - `exp_mod` in `bignum_core.c:756\u2013760` and `:806` is not constant-time with respect to the exponent when the exponent is marked public, or with respect to the window parameter.\n  - The third-party p256-m has its own constant-time discipline (`MUL64_IS_CONSTANT_TIME`) and does not use this facility.\n\n**Not verified:** how `TEST_CF_SECRET` is implemented (I read only the component comments), the base64 call sites (the grep counted 21 hits but I did not read them), and DHM.",
+  "ttft_ms": 2296,
+  "type": "result",
+  "duration_ms": 88944,
+  "uuid": "5ba54c0f-363a-4b9c-a6c4-b31257e6905f",
+  "ttft_stream_ms": 1939,
+  "time_to_request_ms": 67,
+  "first_content_frame_ms": 1939,
+  "queued_turn_count": 0,
+  "result_index": 0
+}

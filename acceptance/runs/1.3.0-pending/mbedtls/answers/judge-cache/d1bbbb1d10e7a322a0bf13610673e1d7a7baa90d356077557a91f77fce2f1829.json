@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"None are in `library/`. The library itself spawns nothing, so the library's concurrency contract is 'caller's problem': a multithreaded application must enable `MBEDTLS_THREADING_C` plus a backend\" and \"`mbedtls_mutex_init/free/lock/unlock` are global function pointers.\"\nVERDICT: HIT\nWHY: The answer says nothing in `library/` spawns threads, and it also describes the mutex abstraction in `library/threading.c` that threaded applications enable and use."
+}

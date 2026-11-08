@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer lists the handler mixins as bases but says it can't confirm the composition mechanism, and it never mentions a `mix(...).with(...)` helper."
+}
