@@ -47,6 +47,11 @@ from pathlib import Path, PurePosixPath
 from typing import ClassVar
 
 from ._common import logger, within_repo
+from .indexcache import IndexCache, memoized
+
+## The memoized payload's version: bump when `extract_file_doc` changes what it returns, or every
+## unchanged file keeps serving its old documentation.
+FILE_DOCS_STAGE_VERSION = 1
 
 ## Doxygen's path rows for symbols it harvested from system headers are bracketed
 ## (`[STL]`, `[generated]`); the SHAPE is filtered, not any one literal. Mirrors
@@ -513,10 +518,12 @@ def _read_text(path: Path, rel_path: str) -> str | None:
 ## @brief Ingest every indexed file's file-level documentation.
 ## @param db_path Path to the index being built.
 ## @param repo_root Working-tree root the indexed paths are relative to.
+## @param cache The run's index cache, or None for an uncached build.
 ## @return Number of files that yielded documentation.
-## @version 1
+## v2 (1.3.4): an unchanged file's documentation is served from the index cache.
+## @version 2
 ## @req REQ-DDB-PIPE-008
-def ingest_file_docs(db_path: Path, repo_root: Path) -> int:
+def ingest_file_docs(db_path: Path, repo_root: Path, cache: IndexCache | None = None) -> int:
     """MUST RUN AFTER `prose.ingest_supplementary_docs`, which DROPs and recreates
     `supplementary_docs` on every build — above it, these rows would be inserted
     and then deleted, and the observable result would be an empty search with no
@@ -542,7 +549,7 @@ def ingest_file_docs(db_path: Path, repo_root: Path) -> int:
     try:
         ensure_file_docs_table(conn)
         conn.execute("DELETE FROM file_docs")
-        rows = _collect_file_docs(conn, repo_root)
+        rows = _collect_file_docs(conn, repo_root, cache)
         conn.executemany("INSERT INTO file_docs (file_path, doc) VALUES (?, ?)", rows)
         conn.execute(
             "CREATE VIRTUAL TABLE IF NOT EXISTS supplementary_docs "
@@ -562,10 +569,14 @@ def ingest_file_docs(db_path: Path, repo_root: Path) -> int:
 ## @brief Every indexed file that carries file-level documentation.
 ## @param conn Open connection to the index.
 ## @param repo_root Working-tree root the indexed paths are relative to.
+## @param cache The run's index cache, or None.
 ## @return List of (repo-relative path, cleaned documentation) pairs.
-## @version 2
+## v3 (1.3.4): memoizes each file's documentation on its content.
+## @version 3
 ## @dg_internal
-def _collect_file_docs(conn: sqlite3.Connection, repo_root: Path) -> list[tuple[str, str]]:
+def _collect_file_docs(
+    conn: sqlite3.Connection, repo_root: Path, cache: IndexCache | None = None
+) -> list[tuple[str, str]]:
     """Split out of `ingest_file_docs` so the transaction handling and the
     per-file work are separately readable, and so the loop stays inside the
     complexity budget.
@@ -575,16 +586,44 @@ def _collect_file_docs(conn: sqlite3.Connection, repo_root: Path) -> list[tuple[
     @version 1
     """
     collected: list[tuple[str, str]] = []
+    ## One resolution memo for this loop (see `within_repo`): the root and each directory once.
+    resolved: dict[str, str] = {}
     for rel in _indexed_files(conn):
         ## An indexed path can be a committed symlink out of the tree, which would have its
         ## target's docblock served as this file's documentation (1.1.0 audit, H2). Skipped the
         ## way an unreadable file is — `_read_text` already returns None for that.
-        if within_repo(repo_root / rel, repo_root, setting=f"file documentation for {rel}") is None:
+        if (
+            within_repo(
+                repo_root / rel, repo_root, setting=f"file documentation for {rel}", memo=resolved
+            )
+            is None
+        ):
             continue
-        text = _read_text(repo_root / rel, rel)
-        if text is None:
-            continue
-        doc = extract_file_doc(rel, text)
+        ## MEMOIZED ON THE FILE'S CONTENT (1.3.4): the read and the docstring parse are the cost,
+        ## and an unchanged file has the same documentation it had last build.
+        doc = memoized(
+            cache,
+            rel,
+            repo_root / rel,
+            "file_docs",
+            FILE_DOCS_STAGE_VERSION,
+            ## THE PATH IS PART OF THE KEY: the extractor is chosen by extension, so two files with
+            ## identical bytes and different names can document differently.
+            rel,
+            lambda rel=rel: _doc_of(repo_root / rel, rel),
+        )
         if doc:
             collected.append((rel, doc))
     return collected
+
+
+## @brief One file's cleaned documentation, read from disk.
+## @param path The file.
+## @param rel Its repo-relative path.
+## @return The documentation, or None when unreadable or undocumented.
+## @version 1
+## @dg_internal
+def _doc_of(path: Path, rel: str) -> str | None:
+    """@brief Read and extract one file's documentation. @return Doc or None."""
+    text = _read_text(path, rel)
+    return None if text is None else (extract_file_doc(rel, text) or None)

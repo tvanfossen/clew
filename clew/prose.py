@@ -34,6 +34,10 @@ from pathlib import Path
 from typing import Any
 
 from ._common import logger, within_repo
+from .indexcache import IndexCache, memoized
+
+## The memoized chunk payload's version: bump when a chunker changes what it returns.
+PROSE_CHUNK_STAGE_VERSION = 1
 
 SUPPLEMENTARY_PATTERNS: list[str] = [
     "README.md",
@@ -280,13 +284,16 @@ def _span_text(data: bytes, start: int, end: int) -> str:
 
 ## reStructuredText files are chunked by their own grammar; before, every file went through
 ## `chunk_markdown`, including the globbed `README.rst`.
+## v5 (1.3.4): the read and the chunking are memoized on the file's content; a skip warning is
+## carried in the payload and logged on every build, so a cached skip is never a silent one.
 ## @brief Read + chunk one prose file; insert chunks; return chunk count.
-## @version 4
+## @version 5
 ## @dg_internal
 def _ingest_one_doc_file(
     conn: sqlite3.Connection,
     file_path: Path,
     rel_path: str,
+    cache: IndexCache | None = None,
 ) -> int:
     """Read + chunk one markdown file; insert chunks; return chunk count.
 
@@ -302,30 +309,55 @@ def _ingest_one_doc_file(
     correct here because the alternative — pretending the file's
     content is "available" when it's actually garbled — is worse.
     """
+    found = memoized(
+        cache,
+        rel_path,
+        file_path,
+        "prose_chunks",
+        PROSE_CHUNK_STAGE_VERSION,
+        rel_path,
+        lambda: _chunks_of(file_path, rel_path),
+    )
+    if found["warning"]:
+        logger.warning("%s", found["warning"])
+    chunks = found["chunks"]
+    conn.executemany(
+        "INSERT INTO supplementary_docs (file_path, heading, content) VALUES (?, ?, ?)",
+        [(rel_path, heading, content) for heading, content in chunks],
+    )
+    return len(chunks)
+
+
+## @brief One prose file's chunks, or the reason it was skipped.
+## @param file_path The file.
+## @param rel_path Its repo-relative path; selects the chunker.
+## @return {"chunks": [[heading, content], ...], "warning": str or None}.
+## @version 1
+## @dg_internal
+def _chunks_of(file_path: Path, rel_path: str) -> dict[str, Any]:
+    """STRICT UTF-8, as before: a file that is not valid UTF-8 is skipped with the offending byte
+    named, never decoded with replacement characters that a model would then cite.
+
+    @brief Read and chunk one file.
+    @return Chunks and an optional warning.
+    """
     try:
         raw = file_path.read_bytes()
     except OSError:
-        logger.warning("Could not read %s, skipping", file_path)
-        return 0
+        return {"chunks": [], "warning": f"Could not read {file_path}, skipping"}
     try:
         text = raw.decode("utf-8", errors="strict")
     except UnicodeDecodeError as ude:
-        logger.warning(
-            "Skipping %s: not valid UTF-8 (byte 0x%02X at offset %d). "
-            "Re-encode the source file or exclude it from the docs build.",
-            rel_path,
-            raw[ude.start] if ude.start < len(raw) else 0,
-            ude.start,
-        )
-        return 0
+        byte = raw[ude.start] if ude.start < len(raw) else 0
+        return {
+            "chunks": [],
+            "warning": (
+                f"Skipping {rel_path}: not valid UTF-8 (byte 0x{byte:02X} at offset {ude.start}). "
+                "Re-encode the source file or exclude it from the docs build."
+            ),
+        }
     chunker = chunk_rst if rel_path.lower().endswith(RST_EXTS) else chunk_markdown
-    chunks = chunker(text, rel_path)
-    for heading, content in chunks:
-        conn.execute(
-            "INSERT INTO supplementary_docs (file_path, heading, content) VALUES (?, ?, ?)",
-            (rel_path, heading, content),
-        )
-    return len(chunks)
+    return {"chunks": [list(c) for c in chunker(text, rel_path)], "warning": None}
 
 
 ## The scanned set now contributes reStructuredText as well as markdown.
@@ -372,13 +404,15 @@ def _candidate_docs(
 
 
 ## @brief Scan repo for markdown/text docs, chunk by heading, insert into FTS5.
-## @version 2
+## v3 (1.3.4): the containment check shares one resolution memo across the loop.
+## @version 3
 ## @req REQ-DDB-PIPE-001
 def ingest_supplementary_docs(
     db_path: Path,
     repo_root: Path,
     patterns: list[str] | None = None,
     files: list[str] | None = None,
+    cache: IndexCache | None = None,
 ) -> int:
     """Scan repo for markdown/text docs, chunk by heading, insert into FTS5.
 
@@ -404,6 +438,8 @@ def ingest_supplementary_docs(
 
     total_chunks = 0
     seen_files: set[str] = set()
+    ## One resolution memo for this loop (see `within_repo`): the root and each directory once.
+    resolved: dict[str, str] = {}
     for file_path in _candidate_docs(repo_root, patterns, files):
         if not file_path.is_file():
             continue
@@ -412,13 +448,16 @@ def ingest_supplementary_docs(
         ## repository's prose under an in-repo path (1.1.0 audit, H2). The relative path is
         ## taken from the UNRESOLVED entry on purpose: it is what the index calls the file,
         ## and only files that survive the check get that far.
-        if within_repo(file_path, repo_root, setting="supplementary document") is None:
+        if (
+            within_repo(file_path, repo_root, setting="supplementary document", memo=resolved)
+            is None
+        ):
             continue
         rel_path = str(file_path.relative_to(repo_root))
         if rel_path in seen_files:
             continue
         seen_files.add(rel_path)
-        total_chunks += _ingest_one_doc_file(conn, file_path, rel_path)
+        total_chunks += _ingest_one_doc_file(conn, file_path, rel_path, cache)
 
     conn.commit()
     conn.close()

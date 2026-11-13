@@ -1905,7 +1905,9 @@ def _doxygen_meta(args) -> dict[str, str]:
 ## file and not only JS/TS, since the front end returns early on a tree with no JS/TS.
 ## v64: records every indexed file line naming a known requirement (`req_mentions`).
 ## v65: the code corpus is built after AST recovery, so recovered C bodies are searchable.
-## @version 65
+## v66 (1.3.4): file docs, generated-file evidence, requirement mentions and code text read
+## an unchanged file's result from the index cache.
+## @version 66
 ## @req REQ-DDB-PIPE-001
 ## @req REQ-DDB-MCP-004
 ## @req REQ-DDB-CONFIG-007
@@ -1995,7 +1997,7 @@ def _build_stages(
     ## note at `src/notes.md` was invisible to `search_prose` while sitting in the
     ## repository the index claims to cover. The scanned set is the build's own answer to
     ## what is in scope, so prose and symbol coverage cannot disagree about this tree.
-    ingest_supplementary_docs(output, repo_root, files=scanned)
+    ingest_supplementary_docs(output, repo_root, files=scanned, cache=cache)
     timer.mark("supplementary_docs")
     ## THE PARSE-BUILT FRONT END (clew/synth.py), for the languages doxygen cannot read:
     ## JavaScript and TypeScript. Its files are registered in `path` HERE, before the shared
@@ -2067,7 +2069,7 @@ def _build_stages(
     ## AFTER the parse front end, which clears `generated_files` before writing its CMake rows, and
     ## OUTSIDE it, because it returns early on a tree with no JS/TS or script file — and a C tree
     ## commits generated files too. Timed with it rather than as a stage of its own.
-    record_self_declared(output, repo_root)
+    record_self_declared(output, repo_root, cache=cache)
     timer.mark("synth_definitions")
     ## gh#18 part 3, and INDEPENDENT of the line above on purpose: a gate on a symbol no
     ## Kconfig declares is dead code behind a symbol nobody can set, which is a finding
@@ -2130,7 +2132,7 @@ def _build_stages(
     ## two codebases, which is not a noisy measurement but a false one.
     external_tagged, external = stamp_external_provenance(output, repo_root)
     timer.mark("external")
-    coverage = report_index_coverage(output, repo_root)
+    coverage = report_index_coverage(output, repo_root, cache=cache)
     timer.mark("coverage")
     ## gh#10. BELOW `report_index_coverage` and this ordering is load-bearing in a way
     ## that is easy to miss: coverage excludes files that yielded PROSE instead of
@@ -2139,7 +2141,7 @@ def _build_stages(
     ## whose entire job is to say how much of the index is empty — would improve without
     ## one extra symbol being indexed. Also below `ingest_supplementary_docs`, which
     ## DROPs that table; above it these rows would be inserted and then deleted.
-    ingest_file_docs(output, repo_root)
+    ingest_file_docs(output, repo_root, cache=cache)
     timer.mark("file_docs")
     build_call_edges(output)
     timer.mark("call_edges")
@@ -2326,12 +2328,12 @@ def _build_stages(
     import_req_test_edges(output)
     timer.mark("req_test_edges")
     ## EVERY INDEXED LINE THAT NAMES A KNOWN REQUIREMENT: docs, diagrams, build files, comments.
-    record_req_mentions(output, repo_root, requirements_yaml)
+    record_req_mentions(output, repo_root, requirements_yaml, cache=cache)
     timer.mark("req_mentions")
     ## THE CODE-TEXT CORPUS, AFTER `recover_ast_symbols`: it was built beside the parse front end,
     ## before recovery wrote the C functions doxygen's preprocessor skipped — measured on mbedtls
     ## in the 1.3.0-final grid, 1,052 of 4,127 bodies were searchable and none of ssl_tls.c's 234.
-    record_code_text(output, repo_root)
+    record_code_text(output, repo_root, cache=cache)
     timer.mark("code_text")
 
     # Python entry points are STRUCTURAL, not name-shaped: a `__main__` guard's

@@ -751,3 +751,52 @@ class IndexCache:
     ## @req REQ-DDB-INDEX-002
     def close(self) -> None:
         self.conn.close()
+
+
+## @brief A per-file result, from the cache when this content was seen before, else computed and stored.
+## @param cache The run's index cache, or None for an uncached build.
+## @param rel Repo-relative path.
+## @param abs_path Absolute path, read only to hash it when the scan did not.
+## @param stage Stage name the payload belongs to.
+## @param version Stage version; bump it when `compute` changes what it returns.
+## @param extra_key Anything besides the file's bytes the result depends on, or "".
+## @param compute Produces the result; must be JSON-serializable and depend only on the
+##        file's content and `extra_key`.
+## @return The result.
+## @version 1
+## @req REQ-DDB-INDEX-002
+def memoized(
+    cache: IndexCache | None,
+    rel: str,
+    abs_path: Path,
+    stage: str,
+    version: int,
+    extra_key: str,
+    compute: Any,
+) -> Any:
+    """1.3.4, Track 2. The whole-tree text stages (file docs, requirement mentions, code text,
+    generated-file banners) re-scanned every indexed file on every build; a refresh after a
+    one-file edit paid for all of them. Keyed like every other extract payload — content sha,
+    stage, stage version, extra key — so an unchanged file is served and an edited one is not.
+
+    WRAPPED IN A ONE-KEY OBJECT, because `extract_get` answers None for a miss and a stage's
+    legitimate result is often None ("this file has no docstring"). Storing the bare value would
+    make every such file a permanent miss — correct, and never faster.
+
+    An unreadable file (no sha) is computed, not cached: there is no identity to key it by.
+
+    @brief Memoize one file's stage result on its content.
+    @return The result.
+    @version 1
+    """
+    sha = cache.sha_for(rel, abs_path) if cache is not None else None
+    if cache is None or sha is None:
+        return compute()
+    hit = cache.extract_get(sha, stage, version, extra_key)
+    if hit is not None:
+        cache.record(True)
+        return hit["v"]
+    value = compute()
+    cache.extract_put(sha, stage, version, extra_key, {"v": value})
+    cache.record(False)
+    return value

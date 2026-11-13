@@ -35,9 +35,13 @@ import re
 import sqlite3
 from pathlib import Path
 
+from .indexcache import IndexCache, memoized
+
 ## How much of a file is read. A banner is at the top; reading further only adds the chance of
 ## matching the TEMPLATE a generator script carries for its output.
 HEAD_BYTES = 2048
+## The memoized payload's version: bump when `self_declared`'s patterns change.
+SELF_DECLARED_STAGE_VERSION = 1
 
 ## The generic rule's window. Every real banner measured sat on lines 1-3; generator scripts carried
 ## theirs near line 25, so five is generous and still excludes them.
@@ -119,10 +123,12 @@ KIND_SELF_DECLARED = "self-declared"
 ## @brief Record every indexed file that declares itself generated.
 ## @param db_path The database under construction.
 ## @param repo_root Repository root the indexed paths are relative to.
+## @param cache The run's index cache, or None for an uncached build.
 ## @return Number of files recorded.
-## @version 1
+## v2 (1.3.4): an unchanged file's evidence is served from the index cache.
+## @version 2
 ## @utility
-def record_self_declared(db_path: Path, repo_root: Path) -> int:
+def record_self_declared(db_path: Path, repo_root: Path, cache: IndexCache | None = None) -> int:
     """EVERY INDEXED FILE, NOT ONLY JS/TS. Generated code is not a JavaScript phenomenon: mbedtls
     commits nineteen generated files, from `*_generated.c` to its test-data suites. This runs as its
     own step for that reason — the parse front end returns early on a repository with no JS/TS or
@@ -147,12 +153,17 @@ def record_self_declared(db_path: Path, repo_root: Path) -> int:
         rows = []
         for (name,) in conn.execute("SELECT name FROM path WHERE type = 1").fetchall():
             rel = str(name)
-            try:
-                with (repo_root / rel).open("rb") as handle:
-                    head = handle.read(HEAD_BYTES)
-            except OSError:
-                continue
-            evidence = self_declared(rel, head)
+            ## MEMOIZED ON THE FILE'S CONTENT AND PATH (1.3.4): the banner regexes over every
+            ## file's head were the cost, and the path convention is part of the answer.
+            evidence = memoized(
+                cache,
+                rel,
+                repo_root / rel,
+                "self_declared",
+                SELF_DECLARED_STAGE_VERSION,
+                rel,
+                lambda rel=rel: _evidence_of(repo_root / rel, rel),
+            )
             if evidence:
                 rows.append(
                     (rel, rel, f"{KIND_SELF_DECLARED}: {evidence}", rel, 0, "output", "", "")
@@ -190,3 +201,19 @@ def self_declared_paths(conn: sqlite3.Connection) -> frozenset[str]:
             (f"{KIND_SELF_DECLARED}:%",),
         )
     )
+
+
+## @brief One file's generated-code evidence, read from its head.
+## @param path The file.
+## @param rel Its repo-relative path.
+## @return The evidence, or None when unreadable or not generated.
+## @version 1
+## @dg_internal
+def _evidence_of(path: Path, rel: str) -> str | None:
+    """@brief Read the head and test it. @return Evidence or None."""
+    try:
+        with path.open("rb") as handle:
+            head = handle.read(HEAD_BYTES)
+    except OSError:
+        return None
+    return self_declared(rel, head)

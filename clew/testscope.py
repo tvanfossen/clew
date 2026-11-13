@@ -40,6 +40,8 @@ published, and a `path.name` once carried the builder's home directory in every 
 from __future__ import annotations
 
 import fnmatch
+import functools
+import re
 import sqlite3
 from pathlib import PurePosixPath
 
@@ -91,11 +93,30 @@ CREATE TABLE IF NOT EXISTS test_scope (
 
 
 ##
+# @brief One compiled regex equivalent to "any of these globs matches".
+# @param patterns The globs.
+# @return The compiled alternation.
+# @version 1
+# @dg_internal
+@functools.lru_cache(maxsize=32)
+def _matcher(patterns: tuple[str, ...]) -> re.Pattern[str]:
+    """`fnmatch.fnmatch` IS `normcase` + the translated regex; on POSIX `normcase` is the identity,
+    so an alternation of the translated patterns is the same predicate, compiled once.
+
+    @brief Compile the globs.
+    @return The regex.
+    """
+    return re.compile("|".join(f"(?:{fnmatch.translate(p)})" for p in patterns) or "(?!)")
+
+
+##
 # @brief Whether one repo-relative path is test code under the given patterns.
 # @param rel Repo-relative path.
 # @param patterns Glob patterns, matched against the whole path and against the basename.
 # @return True when any pattern matches.
-# @version 1
+# v2 (1.3.4): one compiled alternation instead of two `fnmatch` calls per pattern per path —
+# measured 1.27 s of a one-file refresh on this repository, for a pure function of path names.
+# @version 2
 # @dg_internal
 def is_test_path(rel: str, patterns: tuple[str, ...] | list[str]) -> bool:
     """Matched against BOTH the full relative path and the basename, because the two pattern
@@ -111,7 +132,8 @@ def is_test_path(rel: str, patterns: tuple[str, ...] | list[str]) -> bool:
     """
     candidate = rel.lstrip("./")
     name = PurePosixPath(candidate).name
-    return any(fnmatch.fnmatch(candidate, pat) or fnmatch.fnmatch(name, pat) for pat in patterns)
+    matcher = _matcher(tuple(patterns))
+    return bool(matcher.match(candidate) or matcher.match(name))
 
 
 ##

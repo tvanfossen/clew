@@ -44,14 +44,52 @@ console = Console()
 _render_target: ContextVar[Console | None] = ContextVar("clew_render_target", default=None)
 
 
+## @brief A path's real path, memoized in the caller's dict when one is given.
+## @param path The path.
+## @param memo The caller's per-loop memo, or None.
+## @return Its real path.
+## @version 1
+## @dg_internal
+def _real(path: str, memo: dict[str, str] | None) -> str:
+    """@brief realpath, optionally memoized. @return The real path."""
+    if memo is None:
+        return os.path.realpath(path)
+    found = memo.get(path)
+    if found is None:
+        found = memo[path] = os.path.realpath(path)
+    return found
+
+
+## @brief A file's real path: its directory's (memoized) real path plus its name, unless it is a symlink.
+## @param path The file.
+## @param memo The caller's per-loop memo, or None.
+## @return Its real path.
+## @version 1
+## @dg_internal
+def _real_file(path: str, memo: dict[str, str] | None) -> str:
+    """A SYMLINK IS RESOLVED IN FULL, every time: it is the case the containment check exists for.
+
+    @brief Resolve one file cheaply.
+    @return The real path.
+    """
+    if memo is None or os.path.islink(path):
+        return os.path.realpath(path)
+    head, name = os.path.split(path)
+    return os.path.join(_real(head or ".", memo), name)
+
+
 ## @brief Resolve a path and require it to stay inside the repository.
 ## @param candidate The path to check — joined or absolute, resolved here.
 ## @param root The repository root it must stay inside.
 ## @param setting What named the path, for the warning ("kconfig.root", "config_header").
 ## @return The resolved path, or None when it escapes the repository.
-## @version 1
+## @param memo Optional per-loop resolution memo (root and directories), owned by the caller.
+## v2 (1.3.4): the same rule on strings, with an optional per-loop memo.
+## @version 2
 ## @req REQ-DDB-PIPE-014
-def within_repo(candidate: Path, root: Path, *, setting: str) -> Path | None:
+def within_repo(
+    candidate: Path, root: Path, *, setting: str, memo: dict[str, str] | None = None
+) -> Path | None:
     """RESOLVE FIRST, THEN CONTAIN. The other order does not hold: git tracks symlinks, so a
     repository can ship `README.md -> /proc/self/environ` whose every string looks
     repo-relative, and joining an ABSOLUTE declared entry discards `root` entirely
@@ -74,10 +112,19 @@ def within_repo(candidate: Path, root: Path, *, setting: str) -> Path | None:
     @return The resolved path, or None.
     @version 1
     """
-    resolved_root = Path(root).resolve()
-    resolved = Path(candidate).resolve()
-    if resolved == resolved_root or resolved_root in resolved.parents:
-        return resolved
+    ## STRINGS, AND `memo` FOR A LOOP (1.3.4). `Path.resolve()` of the root on every call, a full
+    ## component-by-component realpath of every file, and `root in resolved.parents` (which builds
+    ## every ancestor as a Path) were most of what the per-file stages spent on this check —
+    ## measured on a 19.5k-path tree, more than the reads it guards. A caller looping over many
+    ## files passes one `memo` dict for THAT LOOP: the root and each directory are resolved once,
+    ## and a file that is not itself a symlink resolves to its resolved directory plus its name,
+    ## which is exactly what realpath would return. The memo lives only as long as the caller's
+    ## loop, so a long-lived server never trusts a directory resolution from an earlier build.
+    resolved_root = _real(os.fspath(root), memo)
+    resolved_s = _real_file(os.fspath(candidate), memo)
+    if resolved_s == resolved_root or resolved_s.startswith(resolved_root.rstrip(os.sep) + os.sep):
+        return Path(resolved_s)
+    resolved = Path(resolved_s)
     logger.warning(
         "%s resolves to %s, OUTSIDE the repository %s — refusing to read it. Paths here are "
         "repository-relative, and a symlink pointing out of the tree is not followed.",

@@ -455,8 +455,9 @@ def _summarise(db: Path) -> tuple[dict[str, int], set[str]]:
         conn.close()
 
 
-## Tables never compared: build bookkeeping differs between ANY two builds (timings, epochs).
-_UNCOMPARED = {"build_meta"}
+## Tables never compared: build bookkeeping differs between ANY two builds — clew's own
+## `build_meta` (timings, epochs) and doxygen's `meta` (its `generated_at` timestamp).
+_UNCOMPARED = {"build_meta", "meta"}
 ## FTS5 shadow-table suffixes. Their blobs depend on insert order, so two correct builds differ
 ## byte for byte; the virtual table itself is compared by row count instead.
 _FTS_SHADOWS = ("_data", "_idx", "_docsize", "_config", "_content")

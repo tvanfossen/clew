@@ -23,11 +23,14 @@ A POST-BUILD PASS, rebuilt whole each build like the code corpus. CREATED EVEN W
 
 from __future__ import annotations
 
+import hashlib
 import re
 import sqlite3
 from pathlib import Path
+from typing import Any
 
 from ._common import logger
+from .indexcache import IndexCache, memoized
 
 ## The mentions table.
 TABLE = "req_mentions"
@@ -35,6 +38,8 @@ TABLE = "req_mentions"
 ## A file larger than this is not scanned: a generated table or a vendored archive would cost the
 ## build more than any mention in it is worth to a reader.
 MAX_FILE_BYTES = 2_000_000
+## The memoized payload's version: bump when `_file_mentions` changes what a mention is.
+REQ_MENTIONS_STAGE_VERSION = 1
 
 ## A line carrying a `@req` tag is an implementer link, recorded by `req_edges`.
 _TAG_LINE = re.compile(r"[@\\]req\b")
@@ -44,10 +49,14 @@ _TAG_LINE = re.compile(r"[@\\]req\b")
 ## @param db_path The database under construction.
 ## @param repo_root Repository root the indexed paths are relative to.
 ## @param catalog The requirements catalog file, or None; it is never scanned.
+## @param cache The run's index cache, or None for an uncached build.
 ## @return Number of mentions recorded.
-## @version 1
+## v2 (1.3.4): an unchanged file's mentions are served from the index cache.
+## @version 2
 ## @utility
-def record_req_mentions(db_path: Path, repo_root: Path, catalog: Path | None) -> int:
+def record_req_mentions(
+    db_path: Path, repo_root: Path, catalog: Path | None, cache: IndexCache | None = None
+) -> int:
     """@brief Record requirement mentions. @return Mentions recorded."""
     conn = sqlite3.connect(str(db_path))
     try:
@@ -57,7 +66,7 @@ def record_req_mentions(db_path: Path, repo_root: Path, catalog: Path | None) ->
             "line INTEGER NOT NULL, text TEXT NOT NULL)"
         )
         ids = _known_ids(conn)
-        rows = [] if not ids else _scan(conn, repo_root, catalog, ids)
+        rows = [] if not ids else _scan(conn, repo_root, catalog, ids, cache)
         conn.executemany(f"INSERT INTO {TABLE} VALUES (?, ?, ?, ?)", rows)
         conn.commit()
     finally:
@@ -87,11 +96,17 @@ def _known_ids(conn: sqlite3.Connection) -> set[str]:
 ## @param repo_root Repository root.
 ## @param catalog The catalog file, skipped.
 ## @param ids Known ids.
+## @param cache The run's index cache, or None.
 ## @return (req_id, file, line, text) rows.
-## @version 1
+## v2 (1.3.4): each file's mentions are memoized on its content and the id set.
+## @version 2
 ## @dg_internal
 def _scan(
-    conn: sqlite3.Connection, repo_root: Path, catalog: Path | None, ids: set[str]
+    conn: sqlite3.Connection,
+    repo_root: Path,
+    catalog: Path | None,
+    ids: set[str],
+    cache: IndexCache | None = None,
 ) -> list[tuple[str, str, int, str]]:
     """AN ID MATCHES WHOLE: `REQ-A-001` does not match inside `REQ-A-0011`, so the boundary
     excludes the characters an id is made of on either side.
@@ -105,17 +120,27 @@ def _scan(
         + r")(?![\w-])"
     )
     skip = catalog.resolve() if catalog is not None else None
+    ## THE ID SET IS PART OF THE KEY: a file's mentions change when the catalog gains an id.
+    ids_key = hashlib.sha256("\n".join(sorted(ids)).encode()).hexdigest()[:16]
     rows: list[tuple[str, str, int, str]] = []
     for rel in _indexed_files(conn):
         path = repo_root / rel
-        text = _text_of(path, skip)
-        if text is None:
+        ## THE CATALOG IS SKIPPED OUTSIDE THE MEMO: whether a file IS the catalog is a fact about
+        ## this build's arguments, not about the file's bytes.
+        if skip is not None and path.name == skip.name and path.resolve() == skip:
             continue
-        for number, line in enumerate(text.splitlines(), start=1):
-            if _TAG_LINE.search(line):
-                continue
-            for found in sorted(set(pattern.findall(line))):
-                rows.append((found, str(rel), number, line.strip()))
+        ## MEMOIZED ON THE FILE'S CONTENT (1.3.4): the per-line regex over every indexed file
+        ## was the stage's cost, and an unchanged file mentions what it mentioned last build.
+        found = memoized(
+            cache,
+            str(rel),
+            path,
+            "req_mentions",
+            REQ_MENTIONS_STAGE_VERSION,
+            ids_key,
+            lambda path=path: _mentions_of(path, pattern),
+        )
+        rows.extend((req, str(rel), number, line) for req, number, line in found or ())
     return rows
 
 
@@ -155,3 +180,37 @@ def _text_of(path: Path, skip: Path | None) -> str | None:
         return path.read_text(encoding="utf-8", errors="replace")
     except OSError:
         return None
+
+
+## @brief One file's mentions, read from disk.
+## @param path The file.
+## @param pattern The whole-id pattern.
+## @return (req_id, line, text) per mention; empty when the file is not scannable.
+## @version 1
+## @dg_internal
+def _mentions_of(path: Path, pattern: re.Pattern[str]) -> list[list[Any]]:
+    """@brief Read and scan one file. @return Mentions."""
+    text = _text_of(path, None)
+    return [] if text is None else _file_mentions(text, pattern)
+
+
+## @brief Every mention of a known id in one file's text, skipping `@req` tag lines.
+## @param text The file's text.
+## @param pattern The whole-id pattern.
+## @return (req_id, line number, stripped line) per mention, in order.
+## @version 1
+## @dg_internal
+def _file_mentions(text: str, pattern: re.Pattern[str]) -> list[list[Any]]:
+    """A TAG LINE IS NOT A MENTION: `@req` lines are already `req_edges`, and counting them here
+    would list every implementer twice. Lists, not tuples, because the result round-trips through
+    the JSON cache.
+
+    @brief Scan one text.
+    @return Mentions.
+    """
+    out: list[list[Any]] = []
+    for number, line in enumerate(text.splitlines(), start=1):
+        if _TAG_LINE.search(line):
+            continue
+        out.extend([found, number, line.strip()] for found in sorted(set(pattern.findall(line))))
+    return out

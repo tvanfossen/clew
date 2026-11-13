@@ -27,12 +27,16 @@ corpus" stay distinguishable.
 
 from __future__ import annotations
 
+import hashlib
+import json
 import re
 import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 from .jsast import MODULE_CALLER
+from .indexcache import IndexCache, memoized
 from .synth import DECL_EXTENT
 
 ## The FTS5 table, and its tokenizer: identifiers keep `_` and `$`.
@@ -44,6 +48,9 @@ _TOKENIZE = "porter unicode61 tokenchars '_$'"
 ## A body longer than this is indexed only up to it: a generated table or a minified file would
 ## otherwise dominate the corpus without being anything a reader asks about.
 MAX_BODY_LINES = 2_000
+## The memoized payload's version: bump when a body's indexed text changes shape
+## (`_file_texts`, `_identifier_parts`), or unchanged files keep serving the old text.
+CODE_TEXT_STAGE_VERSION = 1
 
 
 ## @brief One function whose body matched.
@@ -62,16 +69,18 @@ class CodeHit:
     snippet: str
 
 
+## Version 4 (1.3.4): each file's indexed texts are memoized on its content and spans.
 ## Version 3: indexes parse-built constants and typedefs by their recorded extent.
 ## Version 2: indexes each compound identifier's parts too.
 ##
 ## @brief Rebuild the code-text corpus from the index's function rows and the source files.
 ## @param db_path The database under construction.
 ## @param repo_root Repository root the indexed paths are relative to.
+## @param cache The run's index cache, or None for an uncached build.
 ## @return Number of function bodies indexed.
-## @version 3
+## @version 4
 ## @utility
-def record_code_text(db_path: Path, repo_root: Path) -> int:
+def record_code_text(db_path: Path, repo_root: Path, cache: IndexCache | None = None) -> int:
     """READS EACH FILE ONCE, however many functions it holds, and indexes each function's own
     lines. A file that cannot be read is skipped: its functions are simply absent from this
     corpus, which the symbol corpus still covers.
@@ -93,35 +102,65 @@ def record_code_text(db_path: Path, repo_root: Path) -> int:
             "WHERE m.kind = 'function' AND m.bodystart > 0 AND m.bodyend >= m.bodystart "
             "ORDER BY p.name"
         ).fetchall() + _binding_rows(conn)
-        lines_of: dict[str, list[str] | None] = {}
-        covered: dict[str, set[int]] = {}
-        for _rowid, rel, start, end, name in rows:
-            if name != MODULE_CALLER:
-                covered.setdefault(str(rel), set()).update(range(int(start), int(end) + 1))
+        by_file: dict[str, list[tuple[Any, ...]]] = {}
+        for row in rows:
+            by_file.setdefault(str(row[1]), []).append(row)
         batch = []
-        for rowid, rel, start, end, name in rows:
-            if rel not in lines_of:
-                lines_of[rel] = _lines(repo_root / str(rel))
-            lines = lines_of[rel]
-            if not lines:
-                continue
-            if name == MODULE_CALLER:
-                ## ONLY WHAT NO FUNCTION HOLDS: a module's own text — constants, wiring — and not
-                ## a second copy of every function in the file, which doubled the corpus.
-                skip = covered.get(str(rel), set())
-                body = [ln if i + 1 not in skip else "" for i, ln in enumerate(lines)]
-            else:
-                body = lines[int(start) - 1 : min(int(end), int(start) - 1 + MAX_BODY_LINES)]
-            text = "\n".join(body)
-            ## AND EACH COMPOUND IDENTIFIER'S PARTS: `retryLimit` also indexes `retry limit`, so
-            ## the word a reader types finds the identifier that holds it. The table is
-            ## contentless, so the parts cost index entries and nothing is ever shown.
-            batch.append((int(rowid), text + "\n" + " ".join(_identifier_parts(text))))
+        for rel, file_rows in by_file.items():
+            spans = [(int(r[2]), int(r[3]), r[4] == MODULE_CALLER) for r in file_rows]
+            ## MEMOIZED ON THE FILE'S CONTENT AND ITS SPANS (1.3.4): splitting every identifier
+            ## of every body into parts was the stage's cost. The spans are in the key because
+            ## they come from the index, not the file — a body whose extent moved is re-cut.
+            texts = memoized(
+                cache,
+                rel,
+                repo_root / rel,
+                "code_text",
+                CODE_TEXT_STAGE_VERSION,
+                hashlib.sha256(json.dumps(spans).encode()).hexdigest()[:16],
+                lambda rel=rel, spans=spans: _file_texts(repo_root / rel, spans),
+            )
+            if texts:
+                batch.extend((int(r[0]), t) for r, t in zip(file_rows, texts, strict=True))
         conn.executemany(f"INSERT INTO {TABLE} (rowid, body) VALUES (?, ?)", batch)
         conn.commit()
         return len(batch)
     finally:
         conn.close()
+
+
+## @brief The indexed text of every span in one file: its lines plus their identifier parts.
+## @param path The file.
+## @param spans (start, end, is_module) per row, in row order.
+## @return One text per span, or None when the file cannot be read.
+## @version 1
+## @dg_internal
+def _file_texts(path: Path, spans: list[tuple[int, int, bool]]) -> list[str] | None:
+    """A MODULE ROW IS ONLY WHAT NO FUNCTION HOLDS: a module's own text — constants, wiring — and
+    not a second copy of every function in the file, which doubled the corpus. Each text also
+    carries its compound identifiers' parts, so `retryLimit` is found by `retry limit`; the table
+    is contentless, so the parts cost index entries and are never shown. Moved out of
+    `record_code_text` unchanged so it can be memoized per file.
+
+    @brief Cut and annotate one file's bodies.
+    @return Texts or None.
+    """
+    lines = _lines(path)
+    if not lines:
+        return None
+    covered: set[int] = set()
+    for start, end, is_module in spans:
+        if not is_module:
+            covered.update(range(start, end + 1))
+    texts = []
+    for start, end, is_module in spans:
+        if is_module:
+            body = [ln if i + 1 not in covered else "" for i, ln in enumerate(lines)]
+        else:
+            body = lines[start - 1 : min(end, start - 1 + MAX_BODY_LINES)]
+        text = "\n".join(body)
+        texts.append(text + "\n" + " ".join(_identifier_parts(text)))
+    return texts
 
 
 ## @brief Parse-built constants and typedefs with a recorded extent, as corpus rows.
