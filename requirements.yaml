@@ -547,8 +547,9 @@ requirements:
       mcp_server/server.py _refresh_stale/_try_fast/_derived_pending, mcp_server/freshness.py
       AXIS_DERIVED. tests/test_fast_tier.py (incl. fast + full == full by whole_db_diff),
       tests/test_derived_axis.py. Measured with scripts/refresh_bench.py --fast (median of 3
-      one-comment edits, 2026-11-13) — self 261 ms, mbedtls 185 ms, entropic 24 ms,
-      mattermost-mobile 97 ms in-process; 250-520 ms wall including interpreter start.
+      one-comment edits, 2026-11-13), with outgoing AST call edges and code text refreshed
+      in place — self 423 ms, mbedtls 355 ms, entropic 107 ms, mattermost-mobile 579 ms
+      in-process; 293-924 ms wall including interpreter start.
   REQ-DDB-INDEX-002:
     subsystem: pipeline
     name: Incremental/partial re-index for cheap refreshes

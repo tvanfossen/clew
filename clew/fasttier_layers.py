@@ -187,3 +187,62 @@ def _refresh_generated(
             "source_line, role, arg_name, arg_literal) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
             (rel, rel, f"{KIND_SELF_DECLARED}: {evidence}", rel, 0, "output", "", ""),
         )
+
+
+## @brief Replace one file's rows in the contentless code corpus.
+## @param conn Open connection, inside the fast tier's transaction, AFTER positions moved.
+## @param repo_root The working tree.
+## @param rel The edited file.
+## @param cache The index cache.
+## @param old_sha The content sha the last full build indexed.
+## @param old_rows The file's corpus rows BEFORE positions moved, as `code_text_rows` orders them.
+## @return True when the file's corpus rows are current; False when the old text was not
+##         recoverable and the corpus must stay disclosed stale.
+## @version 1
+## @req REQ-DDB-INDEX-006
+def refresh_code_text(
+    conn: sqlite3.Connection,
+    repo_root: Path,
+    rel: str,
+    cache: IndexCache,
+    old_sha: str,
+    old_rows: list,
+) -> bool:
+    """A CONTENTLESS FTS5 TABLE DELETES ONLY BY RESTATING WHAT WAS INDEXED: the `'delete'` command
+    needs each row's exact old text, and SQLite 3.37 has no contentless-delete. That text is in
+    the cache — the full stage memoized it under the OLD content sha and the OLD spans — so it is
+    read back, never recomputed from the new bytes. Not there, nothing is touched and the caller
+    keeps the corpus on the stale list.
+
+    @brief Delete the old corpus rows, insert the new.
+    @return Whether the corpus is current for this file.
+    """
+    from .code_text import (
+        CODE_TEXT_STAGE_VERSION,
+        TABLE,
+        code_text_rows,
+        file_code_texts,
+        spans_key,
+    )
+
+    if not _has(conn, TABLE):
+        return True
+    old = (
+        cache.extract_get(old_sha, "code_text", CODE_TEXT_STAGE_VERSION, spans_key(old_rows))
+        if old_rows
+        else {"v": []}
+    )
+    if old is None:
+        return False
+    for row, text in zip(old_rows, old["v"] or [], strict=False):
+        conn.execute(
+            f"INSERT INTO {TABLE} ({TABLE}, rowid, body) VALUES ('delete', ?, ?)",
+            (int(row[0]), text),
+        )
+    new_rows = code_text_rows(conn, rel)
+    texts = file_code_texts(cache, repo_root, rel, new_rows) if new_rows else []
+    conn.executemany(
+        f"INSERT INTO {TABLE} (rowid, body) VALUES (?, ?)",
+        [(int(r[0]), t) for r, t in zip(new_rows, texts or [], strict=False)],
+    )
+    return True

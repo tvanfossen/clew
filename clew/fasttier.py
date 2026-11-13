@@ -53,7 +53,10 @@ FAST_META_PREFIX = "fast."
 ## Whole-index layers a fast refresh leaves describing the pre-edit tree. Named in `fast.layers`
 ## so the `derived` notice says exactly what not to trust yet.
 STALE_LAYERS = (
-    "call_edges",
+    ## Phase 5 refreshes the edited files' outgoing AST call edges; what stays whole-index of
+    ## the call graph is doxygen's own call layer and the two global prunes.
+    "doxygen_call_edges",
+    "call_edge_prunes",
     "callback_edges",
     "code_text",
     "locks",
@@ -117,7 +120,8 @@ class FastResult:
 ## @param repo_root The working tree.
 ## @param cache_path The index cache sidecar.
 ## @return A FastResult, or None when the fast tier does not apply.
-## @version 1
+## v2 (phase 6): reports the layers this refresh actually left stale.
+## @version 2
 ## @req REQ-DDB-INDEX-006
 def try_fast_refresh(db: Path, repo_root: Path, cache_path: Path) -> FastResult | None:
     """NONE IS THE SAFE ANSWER: every precondition that fails returns None and the caller builds
@@ -139,7 +143,7 @@ def try_fast_refresh(db: Path, repo_root: Path, cache_path: Path) -> FastResult 
             plans = _plan(conn, repo_root, cache)
             if plans is None:
                 return None
-            _apply(conn, repo_root, cache, plans, started)
+            layers = _apply(conn, repo_root, cache, plans, started)
         finally:
             conn.close()
         cache.flush()
@@ -148,7 +152,7 @@ def try_fast_refresh(db: Path, repo_root: Path, cache_path: Path) -> FastResult 
     ms = int((time.perf_counter() - started) * 1000)
     files = tuple(sorted(plans))
     logger.info("fast tier: refreshed %s in place in %d ms", ", ".join(files), ms)
-    return FastResult(files=files, layers=STALE_LAYERS, ms=ms)
+    return FastResult(files=files, layers=layers, ms=ms)
 
 
 ## @brief Whether the index was stamped by this build version.
@@ -167,24 +171,25 @@ def _current_build(db: Path) -> bool:
 ## @param conn Open index connection.
 ## @param repo_root The working tree.
 ## @param cache The index cache.
-## @return {repo-relative path: (path rowid, old anchors, new anchors)} or None.
-## @version 1
+## @return {repo-relative path: (path rowid, old anchors, new anchors, old sha)} or None.
+## v2 (phase 6): each plan carries the old content sha, the key to the corpus texts it replaces.
+## @version 2
 ## @dg_internal
 def _plan(
     conn: sqlite3.Connection, repo_root: Path, cache: IndexCache
-) -> dict[str, tuple[int, list[int], list[int]]] | None:
+) -> dict[str, tuple[int, list[int], list[int], str]] | None:
     """@brief Find the edited files and map each one's lines. @return Plans or None."""
     edited = _edited_files(conn, repo_root, cache)
     refusal = _refusal(edited)
     if refusal:
         logger.info("fast tier: not applicable — %s", refusal)
         return None
-    plans: dict[str, tuple[int, list[int], list[int]]] = {}
+    plans: dict[str, tuple[int, list[int], list[int], str]] = {}
     for rowid, rel, old_sha in edited:
         anchors = _line_anchors(rel, repo_root / rel, old_sha, cache)
         if anchors is None:
             return None
-        plans[rel] = (rowid, *anchors)
+        plans[rel] = (rowid, *anchors, old_sha)
     return plans
 
 
@@ -240,7 +245,8 @@ def _refusal(edited: list[tuple[int, str, str]]) -> str:
 ## @param old_sha The content sha the last full build recorded.
 ## @param cache The index cache.
 ## @return (old anchor lines, new anchor lines), aligned; None when the file refuses.
-## @version 1
+## v2: one shared parse warms both the anchor and the call-site payloads.
+## @version 2
 ## @dg_internal
 def _line_anchors(
     rel: str, path: Path, old_sha: str, cache: IndexCache
@@ -253,12 +259,16 @@ def _line_anchors(
     @return Aligned anchors or None.
     @version 1
     """
-    from .harvest import HarvestTally, _cached_payload, _harvest_one_file
+    from .call_edges import call_site_harvester
+    from .harvest import HarvestTally, _cached_payload, _harvest_one_file, _shared_parse_one_file
 
     harvester = _anchor_harvester(rel)
     if harvester is None:
         logger.info("fast tier: not applicable — no anchor harvester for %s", rel)
         return None
+    ## ONE PARSE FOR BOTH PAYLOADS the fast tier reads (anchors here, call sites in phase 5):
+    ## the shared-parse helper warms every harvester it is given off a single tree.
+    _shared_parse_one_file(rel, path, [harvester, call_site_harvester()], {}, cache, HarvestTally())
     old_payload = _cached_payload(harvester, cache, old_sha)
     new_payload = _harvest_one_file(rel, path, harvester, {}, cache, HarvestTally())
     if old_payload is None or new_payload is None:
@@ -374,35 +384,52 @@ def remap_line(line: int, old: list[int], new: list[int]) -> int:
 ## @param cache The index cache.
 ## @param plans Per-file line maps.
 ## @param started perf_counter at the start, for the recorded cost.
-## @return None.
-## @version 1
+## @return The layers left stale.
+## v2 (1.3.5 phase 5): re-folds the edited files' outgoing AST call edges after the shift.
+## v3 (phase 6): replaces the edited files' code-corpus rows; returns the stale layers.
+## @version 3
 ## @dg_internal
 def _apply(
     conn: sqlite3.Connection,
     repo_root: Path,
     cache: IndexCache,
-    plans: dict[str, tuple[int, list[int], list[int]]],
+    plans: dict[str, tuple[int, list[int], list[int], str]],
     started: float,
-) -> None:
+) -> tuple[str, ...]:
     """ONE TRANSACTION, `BEGIN IMMEDIATE`, so a reader sees the index before or after the whole
     refresh and never between two files of it.
 
+    v2 (phase 5): also replaces the edited files' outgoing AST call edges.
+    v3 (phase 6): and their code-corpus rows; the corpus is named stale only if that failed.
+
     @brief Write the fast refresh.
-    @return None.
-    @version 1
+    @return The layers left stale.
+    @version 3
     """
-    from .fasttier_layers import refresh_text_layers
+    from .code_text import code_text_rows
+    from .fasttier_calls import refresh_outbound_calls
+    from .fasttier_layers import refresh_code_text, refresh_text_layers
 
     conn.execute("BEGIN IMMEDIATE")
     try:
-        for rel, (rowid, old, new) in plans.items():
+        ## The corpus rows BEFORE the shift: their old spans are the old texts' cache key.
+        before = {rel: code_text_rows(conn, rel) for rel in plans}
+        for rel, (rowid, old, new, _sha) in plans.items():
             _shift_symbols(conn, rowid, old, new)
             refresh_text_layers(conn, repo_root, rel, cache)
-        _record(conn, tuple(sorted(plans)), started)
+        ## AFTER EVERY SHIFT: the fold places each call site by the spans it now reads.
+        refresh_outbound_calls(conn, repo_root, cache, {rel: p[0] for rel, p in plans.items()})
+        corpus_current = all(
+            refresh_code_text(conn, repo_root, rel, cache, plan[3], before[rel])
+            for rel, plan in plans.items()
+        )
+        layers = tuple(lay for lay in STALE_LAYERS if lay != "code_text" or not corpus_current)
+        _record(conn, tuple(sorted(plans)), layers, started)
         conn.execute("COMMIT")
     except Exception:
         conn.execute("ROLLBACK")
         raise
+    return layers
 
 
 ## @brief Move one file's symbol positions through its line map.
@@ -456,11 +483,15 @@ def _shift_symbols(conn: sqlite3.Connection, rowid: int, old: list[int], new: li
 ## @brief Write the `fast.*` record the derived axis reads.
 ## @param conn Open index connection, inside the transaction.
 ## @param files The files refreshed.
+## @param layers The layers left stale.
 ## @param started perf_counter at the start.
 ## @return None.
-## @version 1
+## v2 (phase 6): records the layers this refresh actually left stale.
+## @version 2
 ## @dg_internal
-def _record(conn: sqlite3.Connection, files: tuple[str, ...], started: float) -> None:
+def _record(
+    conn: sqlite3.Connection, files: tuple[str, ...], layers: tuple[str, ...], started: float
+) -> None:
     """A SECOND FAST REFRESH ACCUMULATES: its files join the earlier ones, because the stale
     layers still describe the tree before the FIRST of them.
 
@@ -475,15 +506,21 @@ def _record(conn: sqlite3.Connection, files: tuple[str, ...], started: float) ->
         "SELECT value FROM build_meta WHERE key = ?", (f"{FAST_META_PREFIX}pending",)
     ).fetchone()
     every = set(files)
+    stale = set(layers)
     if prior and pending and pending[0] == "1":
         every.update(f for f in str(prior[0]).split(",") if f)
+        ## AND ITS STALE LAYERS: a layer an earlier fast refresh left behind is still behind.
+        earlier = conn.execute(
+            "SELECT value FROM build_meta WHERE key = ?", (f"{FAST_META_PREFIX}layers",)
+        ).fetchone()
+        stale.update(lay for lay in str(earlier[0] if earlier else "").split(",") if lay)
     generation = conn.execute(
         "SELECT value FROM build_meta WHERE key = ?", (f"{FAST_META_PREFIX}generation",)
     ).fetchone()
     values = {
         "pending": "1",
         "files": ",".join(sorted(every)),
-        "layers": ",".join(STALE_LAYERS),
+        "layers": ",".join(lay for lay in STALE_LAYERS if lay in stale),
         "generation": str(int(generation[0]) + 1 if generation else 1),
         "ms": str(int((time.perf_counter() - started) * 1000)),
     }

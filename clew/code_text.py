@@ -50,7 +50,9 @@ _TOKENIZE = "porter unicode61 tokenchars '_$'"
 MAX_BODY_LINES = 2_000
 ## The memoized payload's version: bump when a body's indexed text changes shape
 ## (`_file_texts`, `_identifier_parts`), or unchanged files keep serving the old text.
-CODE_TEXT_STAGE_VERSION = 1
+## 2 (1.3.5): each file's rows are ordered by rowid before their spans are keyed, so the fast
+## tier can rebuild the same key for one file.
+CODE_TEXT_STAGE_VERSION = 2
 
 
 ## @brief One function whose body matched.
@@ -69,6 +71,7 @@ class CodeHit:
     snippet: str
 
 
+## Version 5 (1.3.5): rows come from `code_text_rows`, each file's in rowid order.
 ## Version 4 (1.3.4): each file's indexed texts are memoized on its content and spans.
 ## Version 3: indexes parse-built constants and typedefs by their recorded extent.
 ## Version 2: indexes each compound identifier's parts too.
@@ -78,7 +81,7 @@ class CodeHit:
 ## @param repo_root Repository root the indexed paths are relative to.
 ## @param cache The run's index cache, or None for an uncached build.
 ## @return Number of function bodies indexed.
-## @version 4
+## @version 5
 ## @utility
 def record_code_text(db_path: Path, repo_root: Path, cache: IndexCache | None = None) -> int:
     """READS EACH FILE ONCE, however many functions it holds, and indexes each function's own
@@ -96,30 +99,12 @@ def record_code_text(db_path: Path, repo_root: Path, cache: IndexCache | None = 
             f'CREATE VIRTUAL TABLE {TABLE} USING fts5(body, tokenize = "{_TOKENIZE}", '
             "content = '', detail = none)"
         )
-        rows = conn.execute(
-            "SELECT m.rowid, p.name, m.bodystart, m.bodyend, m.name FROM memberdef m "
-            "JOIN path p ON p.rowid = COALESCE(NULLIF(m.bodyfile_id, 0), m.file_id) "
-            "WHERE m.kind = 'function' AND m.bodystart > 0 AND m.bodyend >= m.bodystart "
-            "ORDER BY p.name"
-        ).fetchall() + _binding_rows(conn)
         by_file: dict[str, list[tuple[Any, ...]]] = {}
-        for row in rows:
+        for row in code_text_rows(conn):
             by_file.setdefault(str(row[1]), []).append(row)
         batch = []
         for rel, file_rows in by_file.items():
-            spans = [(int(r[2]), int(r[3]), r[4] == MODULE_CALLER) for r in file_rows]
-            ## MEMOIZED ON THE FILE'S CONTENT AND ITS SPANS (1.3.4): splitting every identifier
-            ## of every body into parts was the stage's cost. The spans are in the key because
-            ## they come from the index, not the file — a body whose extent moved is re-cut.
-            texts = memoized(
-                cache,
-                rel,
-                repo_root / rel,
-                "code_text",
-                CODE_TEXT_STAGE_VERSION,
-                hashlib.sha256(json.dumps(spans).encode()).hexdigest()[:16],
-                lambda rel=rel, spans=spans: _file_texts(repo_root / rel, spans),
-            )
+            texts = file_code_texts(cache, repo_root, rel, file_rows)
             if texts:
                 batch.extend((int(r[0]), t) for r, t in zip(file_rows, texts, strict=True))
         conn.executemany(f"INSERT INTO {TABLE} (rowid, body) VALUES (?, ?)", batch)
@@ -127,6 +112,77 @@ def record_code_text(db_path: Path, repo_root: Path, cache: IndexCache | None = 
         return len(batch)
     finally:
         conn.close()
+
+
+## @brief Every row the code corpus indexes, or one file's, each file's in rowid order.
+## @param conn Open index connection.
+## @param rel Restrict to one repo-relative file, or None for all.
+## @return (rowid, file, start, end, name) rows.
+## @version 1
+## @req REQ-DDB-INDEX-006
+def code_text_rows(conn: sqlite3.Connection, rel: str | None = None) -> list[tuple[Any, ...]]:
+    """ONE DEFINITION OF THE ROW SET, read by the full stage and by the fast tier, and ORDERED BY
+    ROWID within a file so both build the same spans key for it (1.3.5). The previous order was
+    whatever the query plan produced, which a per-file query would not have reproduced.
+
+    @brief The corpus rows.
+    @return Rows.
+    @version 1
+    """
+    rows = conn.execute(
+        "SELECT m.rowid, p.name, m.bodystart, m.bodyend, m.name FROM memberdef m "
+        "JOIN path p ON p.rowid = COALESCE(NULLIF(m.bodyfile_id, 0), m.file_id) "
+        "WHERE m.kind = 'function' AND m.bodystart > 0 AND m.bodyend >= m.bodystart"
+    ).fetchall() + _binding_rows(conn)
+    if rel is not None:
+        rows = [r for r in rows if str(r[1]) == rel]
+    return sorted(rows, key=lambda r: (str(r[1]), int(r[0])))
+
+
+## @brief The memo key for one file's rows: a digest of their spans.
+## @param file_rows One file's rows, as `code_text_rows` orders them.
+## @return The key.
+## @version 1
+## @dg_internal
+def spans_key(file_rows: list[tuple[Any, ...]]) -> str:
+    """THE SPANS ARE IN THE KEY because they come from the index, not the file — a body whose
+    extent moved is re-cut.
+
+    @brief Key a file's spans.
+    @return Hex digest prefix.
+    """
+    spans = [(int(r[2]), int(r[3]), r[4] == MODULE_CALLER) for r in file_rows]
+    return hashlib.sha256(json.dumps(spans).encode()).hexdigest()[:16]
+
+
+## @brief One file's indexed texts, memoized on its content and spans.
+## @param cache The index cache, or None.
+## @param repo_root The working tree.
+## @param rel The file.
+## @param file_rows Its rows, as `code_text_rows` orders them.
+## @return One text per row, or None when the file cannot be read.
+## @version 1
+## @req REQ-DDB-INDEX-006
+def file_code_texts(
+    cache: IndexCache | None, repo_root: Path, rel: str, file_rows: list[tuple[Any, ...]]
+) -> list[str] | None:
+    """MEMOIZED ON THE FILE'S CONTENT AND ITS SPANS (1.3.4): splitting every identifier of every
+    body into parts was the stage's cost.
+
+    @brief Cut and annotate one file, cache-first.
+    @return Texts or None.
+    @version 1
+    """
+    spans = [(int(r[2]), int(r[3]), r[4] == MODULE_CALLER) for r in file_rows]
+    return memoized(
+        cache,
+        rel,
+        repo_root / rel,
+        "code_text",
+        CODE_TEXT_STAGE_VERSION,
+        spans_key(file_rows),
+        lambda: _file_texts(repo_root / rel, spans),
+    )
 
 
 ## @brief The indexed text of every span in one file: its lines plus their identifier parts.

@@ -110,7 +110,9 @@ def test_a_body_edit_is_applied_in_place_and_disclosed(tmp_path: Path) -> None:
     fast = _fast(out)
     assert fast.get("pending") == "1", f"the fast tier did not run: {fast}"
     assert fast.get("files") == "src/widget.ts"
-    assert "call_edges" in fast.get("layers", "")
+    ## A LAYER THE FAST TIER LEAVES BEHIND must be named. Since phase 5 the edited file's outgoing
+    ## AST call edges are refreshed, so the probe is a layer that stays whole-index.
+    assert "reachability" in fast.get("layers", "")
     fast_spans = {n: _span(out, n) for n in ("fetchWidget", "renderWidget")}
 
     reference = tmp_path / "full.db"
@@ -201,3 +203,83 @@ def test_a_fast_refresh_does_not_poison_the_full_build_that_follows(tmp_path: Pa
     probe = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(probe)
     assert probe.whole_db_diff(out, reference) == []
+
+
+_CALLS = """\
+export function alpha(): number {
+  return 1;
+}
+
+export function beta(): number {
+  return 2;
+}
+
+export function gamma(): number {
+  return alpha();
+}
+"""
+
+
+## @brief The callees an index records for one caller, by name and source.
+## @param db The index.
+## @param caller The caller's name.
+## @return Sorted (callee, source) pairs.
+## @version 1
+def _callees(db: Path, caller: str) -> list[tuple[str, str]]:
+    """@brief Read one caller's edges. @return Pairs."""
+    with sqlite3.connect(db) as conn:
+        return sorted(
+            conn.execute(
+                "SELECT y.name, e.source FROM call_edges e "
+                "JOIN memberdef x ON x.rowid = e.caller_rowid "
+                "JOIN memberdef y ON y.rowid = e.callee_rowid WHERE x.name = ?",
+                (caller,),
+            ).fetchall()
+        )
+
+
+def test_the_edited_files_outgoing_calls_are_current(tmp_path: Path) -> None:
+    """PHASE 5. A body edit that changes what a function calls is the commonest save there is;
+    its outgoing edges must be the full build's, not the pre-edit ones.
+
+    @brief After a fast refresh, an edited function's callees equal a full build's.
+    @return None.
+    @version 1
+    """
+    repo = tmp_path / "repo"
+    (repo / "src").mkdir(parents=True)
+    (repo / "src" / "calls.ts").write_text(_CALLS)
+    out = tmp_path / "clew.db"
+    _build(repo, out)
+    assert ("alpha", "ast") in _callees(out, "gamma")
+    (repo / "src" / "calls.ts").write_text(_CALLS.replace("return alpha();", "return beta();"))
+    _build(repo, out, tier="fast")
+    assert _fast(out).get("pending") == "1"
+    reference = tmp_path / "full.db"
+    _build(repo, reference)
+    assert _callees(out, "gamma") == _callees(reference, "gamma")
+    assert "call_edges" not in _fast(out).get("layers", "").split(",")
+
+
+def test_the_edited_files_code_text_is_current(tmp_path: Path) -> None:
+    """PHASE 6. `search(corpus='code')` over an edited body must find the new text and not the
+    old: the contentless corpus cannot delete by query, so the fast tier deletes each old row with
+    the exact text the full stage indexed (from the cache) and inserts the new.
+
+    @brief After a fast refresh, code search sees the edited body only.
+    @return None.
+    @version 1
+    """
+    from clew.code_text import search_code
+
+    repo, out = _indexed(tmp_path)
+    (repo / "src" / "widget.ts").write_text(_SOURCE.replace("id.length", "id.zebraquotient"))
+    _build(repo, out, tier="fast")
+    fast = _fast(out)
+    assert fast.get("pending") == "1"
+    assert "code_text" not in fast.get("layers", "").split(",")
+    with sqlite3.connect(out) as conn:
+        new_hits = search_code(conn, "zebraquotient", 10, repo)
+        old_hits = search_code(conn, "length", 10, repo)
+    assert [h.name for h in new_hits or []] == ["fetchWidget"]
+    assert not old_hits, "the pre-edit body is still searchable"
