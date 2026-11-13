@@ -1,0 +1,494 @@
+{
+ "wire_version": 1,
+ "envelope_keys": [
+  "also",
+  "ambiguous",
+  "callers_note",
+  "candidates_limited",
+  "chain",
+  "count",
+  "depth_note",
+  "doc_scope",
+  "found",
+  "gate_definitions",
+  "gate_definitions_limited",
+  "gates_shared",
+  "inventory",
+  "kconfig_found",
+  "kind",
+  "matched",
+  "note",
+  "provenance",
+  "results",
+  "subject",
+  "subject_kind",
+  "wire_version"
+ ],
+ "types": {
+  "BodyExcerpt": {
+   "file": "str",
+   "start_line": "int",
+   "end_line": "int",
+   "total_lines": "int",
+   "truncated": "bool",
+   "lines": "tuple[str, ...]",
+   "anchor_mismatch": "bool"
+  },
+  "CallEdge": {
+   "name": "str",
+   "rowid": "int",
+   "source": "str",
+   "confidence": "str | None",
+   "edge_class": "str",
+   "qualified": "str",
+   "file": "str",
+   "strength": "str | None",
+   "key_name": "str | None",
+   "edge_kind": "str | None",
+   "dispatch_mode": "str | None",
+   "edge_triggered": "bool | None",
+   "crosses_thread": "bool | None",
+   "to_thread": "str | None",
+   "implementors": "tuple[str, ...]",
+   "via_macro": "str",
+   "via_macro_expansion": "str"
+  },
+  "Candidate": {
+   "rowid": "int",
+   "signature": "str",
+   "file": "str",
+   "line_start": "int | None",
+   "has_body": "bool",
+   "provenance": "str | None",
+   "qualified": "str"
+  },
+  "Chain": {
+   "seed": "str",
+   "direction": "str",
+   "max_depth": "int",
+   "nodes": "list[ChainNode]",
+   "hops": "list[Hop]",
+   "candidates": "list[Candidate]"
+  },
+  "ChainNode": {
+   "name": "str",
+   "rowid": "int",
+   "depth": "int",
+   "requirements": "list[str]",
+   "is_terminus": "bool",
+   "termini": "list[Terminus]",
+   "omitted": "int"
+  },
+  "ClassCandidate": {
+   "qualified": "str",
+   "kind": "str",
+   "file": "str",
+   "line": "int | None"
+  },
+  "ClassEntry": {
+   "name": "str",
+   "kind": "str",
+   "file": "str",
+   "line": "int | None",
+   "brief": "str",
+   "members": "list[ClassMember]",
+   "bases": "list[str]",
+   "derived": "list[str]",
+   "candidates": "list[ClassCandidate]",
+   "declaration": "BodyExcerpt | None",
+   "merged": "list[MergedDeclaration]"
+  },
+  "ClassMember": {
+   "name": "str",
+   "kind": "str",
+   "signature": "str",
+   "line": "int | None",
+   "brief": "str",
+   "detail": "str"
+  },
+  "CodeHit": {
+   "name": "str",
+   "definition": "str",
+   "kind": "str",
+   "file": "str",
+   "line": "int",
+   "snippet": "str"
+  },
+  "ConfigDefault": {
+   "macro": "str",
+   "state": "str",
+   "file": "str",
+   "line": "int | None",
+   "origin": "str",
+   "shipped": "bool"
+  },
+  "ContextConflict": {
+   "thread": "str",
+   "verdict": "str",
+   "reason": "str",
+   "evidence": "str",
+   "detail": "str",
+   "holder": "str",
+   "file": "str",
+   "line": "int | None",
+   "depth": "int",
+   "confidence": "str"
+  },
+  "CriticalSection": {
+   "lock": "str",
+   "lock_scope": "str",
+   "lock_kind": "str",
+   "holder": "str",
+   "file": "str",
+   "start_line": "int",
+   "end_line": "int | None",
+   "form": "str",
+   "mode": "str",
+   "confidence": "str",
+   "calls": "tuple[SectionCall, ...]"
+  },
+  "DirectoryEntry": {
+   "directory": "str",
+   "indexed_files": "int",
+   "symbols": "int",
+   "external_files": "int",
+   "unresolved_files": "int"
+  },
+  "DirectoryInventory": {
+   "directories": "tuple[DirectoryEntry, ...]",
+   "indexed_files": "int",
+   "rollup_meaning": "str"
+  },
+  "Dossier": {
+   "name": "str",
+   "rowid": "int",
+   "signature": "str",
+   "file": "str",
+   "line_start": "int | None",
+   "line_end": "int | None",
+   "brief": "str",
+   "version": "str",
+   "kind": "str",
+   "static": "bool",
+   "liveness": "str",
+   "detail": "str",
+   "provenance": "str | None",
+   "candidates": "list[Candidate]",
+   "threads": "list[Thread]",
+   "is_terminus": "bool",
+   "termini": "list[Terminus]",
+   "requirements": "list[ReqRef]",
+   "covering_tests": "list[str]",
+   "callers": "list[CallEdge]",
+   "callees": "list[CallEdge]",
+   "writes": "list[KeyEdge]",
+   "reads": "list[KeyEdge]",
+   "overrides": "list[OverrideRef]",
+   "overridden_by": "list[OverrideRef]",
+   "body": "BodyExcerpt | None",
+   "sections": "list[CriticalSection]",
+   "locks_held": "list[CriticalSection]",
+   "external_callees": "list[ExternalCallee]",
+   "macros": "list[MacroDef]",
+   "config_defaults": "list[ConfigDefault]",
+   "gated_by": "list[KconfigGate]",
+   "gates_unplaceable": "int",
+   "macro_collision": "str",
+   "callers_unresolved": "int | None",
+   "context_conflicts": "list[ContextConflict]",
+   "context_undecidable": "int | None"
+  },
+  "EnumSubject": {
+   "name": "str",
+   "rowid": "int",
+   "file": "str",
+   "line": "int | None",
+   "brief": "str",
+   "detail": "str",
+   "version": "str",
+   "provenance": "str | None",
+   "body": "BodyExcerpt | None",
+   "enumerators": "tuple[Enumerator, ...]",
+   "matched_enumerator": "str"
+  },
+  "Enumerator": {
+   "name": "str",
+   "value": "str",
+   "line": "int | None"
+  },
+  "ExternalCallee": {
+   "name": "str",
+   "call_lines": "tuple[int, ...]"
+  },
+  "FileEntry": {
+   "path": "str",
+   "symbol_count": "int",
+   "external_root": "str"
+  },
+  "FileMember": {
+   "name": "str",
+   "kind": "str",
+   "line": "int"
+  },
+  "FileSubject": {
+   "path": "str",
+   "documentation": "str",
+   "symbol_count": "int",
+   "members": "tuple[FileMember, ...]",
+   "harvested": "bool",
+   "external_root": "str",
+   "members_truncated": "bool",
+   "generated_by": "GenerationRule | None",
+   "generates": "tuple[str, ...]"
+  },
+  "GenerationArg": {
+   "literal": "str",
+   "name": "str",
+   "unresolved": "bool"
+  },
+  "GenerationRule": {
+   "output_name": "str",
+   "output_literal": "str",
+   "kind": "str",
+   "source_file": "str",
+   "source_line": "int",
+   "command": "tuple[GenerationArg, ...]",
+   "depends": "tuple[GenerationArg, ...]"
+  },
+  "Hop": {
+   "edge_class": "str",
+   "from_name": "str",
+   "to_name": "str",
+   "source": "str",
+   "confidence": "str | None",
+   "strength": "str | None",
+   "key_name": "str | None",
+   "edge_kind": "str | None",
+   "dispatch_mode": "str | None",
+   "edge_triggered": "bool | None",
+   "crosses_thread": "bool | None",
+   "to_thread": "str | None"
+  },
+  "Implementer": {
+   "name": "str",
+   "rowid": "int",
+   "liveness": "str"
+  },
+  "KconfigEntry": {
+   "name": "str",
+   "type": "str",
+   "prompt": "str",
+   "help": "str",
+   "default_expr": "str",
+   "choice": "str | None",
+   "file_path": "str",
+   "line": "int",
+   "gate_count": "int"
+  },
+  "KconfigGate": {
+   "symbol": "str",
+   "macro": "str",
+   "form": "str",
+   "file_path": "str",
+   "line": "int",
+   "origin": "str",
+   "end_line": "int",
+   "default_state": "str",
+   "default_site": "str"
+  },
+  "KconfigSpace": {
+   "found": "bool",
+   "source": "str",
+   "root": "str",
+   "symbols": "tuple[KconfigEntry, ...]",
+   "gates": "tuple[KconfigGate, ...]",
+   "error": "str",
+   "configured_macros": "str",
+   "configured_macros_source": "str",
+   "config_header": "str",
+   "macros_meaning": "str",
+   "gate_state": "str",
+   "gate_symbols": "int",
+   "gate_symbol_names": "tuple[str, ...]",
+   "gates_meaning": "str"
+  },
+  "KeyEdge": {
+   "key_name": "str",
+   "edge_kind": "str",
+   "other": "str",
+   "other_rowid": "int",
+   "source": "str",
+   "confidence": "str",
+   "dispatch_mode": "str",
+   "edge_triggered": "bool | None",
+   "crosses_thread": "bool | None",
+   "to_thread": "str | None"
+  },
+  "LockEntry": {
+   "name": "str",
+   "scope": "str",
+   "kind": "str",
+   "identity_confidence": "str",
+   "source": "str",
+   "file": "str",
+   "line": "int | None",
+   "acquisitions": "int",
+   "external_root": "str",
+   "path_resolved": "bool"
+  },
+  "LockInventory": {
+   "locks": "tuple[LockEntry, ...]",
+   "rows": "int",
+   "distinct_mutexes": "int",
+   "row_meaning": "str",
+   "nestings": "tuple[LockNestingPair, ...]",
+   "nesting_meaning": "str",
+   "origin": "OriginSplit"
+  },
+  "LockNestingPair": {
+   "outer": "str",
+   "outer_scope": "str",
+   "inner": "str",
+   "inner_scope": "str",
+   "sites": "int",
+   "resolved_sites": "int",
+   "via": "str",
+   "holder": "str",
+   "file": "str",
+   "line": "int"
+  },
+  "LockSubject": {
+   "lock": "LockEntry",
+   "sections": "tuple[CriticalSection, ...]",
+   "siblings": "tuple[LockEntry, ...]"
+  },
+  "MacroDef": {
+   "name": "str",
+   "rowid": "int",
+   "file": "str",
+   "line": "int | None",
+   "params": "str",
+   "expansion": "str",
+   "brief": "str",
+   "referenced_by": "tuple[str, ...]",
+   "provenance": "str | None",
+   "gated_by": "tuple[KconfigGate, ...]",
+   "gates_unplaceable": "int"
+  },
+  "MergedDeclaration": {
+   "kind": "str",
+   "file": "str",
+   "line": "int | None",
+   "bases": "list[str]",
+   "declaration": "BodyExcerpt | None"
+  },
+  "OriginSplit": {
+   "total": "int",
+   "first_party": "int",
+   "external": "int",
+   "unresolved": "int",
+   "external_roots": "tuple[str, ...]"
+  },
+  "OverrideRef": {
+   "name": "str",
+   "rowid": "int",
+   "signature": "str",
+   "file": "str",
+   "line_start": "int | None"
+  },
+  "ProseHit": {
+   "file_path": "str",
+   "heading": "str",
+   "snippet": "str"
+  },
+  "ReqMention": {
+   "file": "str",
+   "line": "int",
+   "text": "str"
+  },
+  "ReqRef": {
+   "req_id": "str",
+   "title": "str"
+  },
+  "ReqTrace": {
+   "req_id": "str",
+   "block": "str",
+   "title": "str",
+   "acceptance": "str",
+   "priority": "str",
+   "implementers": "list[Implementer]",
+   "tests": "list[str]",
+   "mentioned_in": "list[ReqMention] | None"
+  },
+  "SectionCall": {
+   "callee": "str",
+   "line": "int",
+   "resolution": "str"
+  },
+  "SubjectDossier": {
+   "subject": "str",
+   "kind": "str",
+   "also": "tuple[str, ...]",
+   "function": "Dossier | None",
+   "variable": "VariableSubject | None",
+   "compound": "ClassEntry | None",
+   "requirement": "ReqTrace | None",
+   "lock": "LockSubject | None",
+   "thread": "Thread | None",
+   "config": "KconfigSpace | None",
+   "enumeration": "EnumSubject | None",
+   "file": "FileSubject | None",
+   "chain": "Chain | None"
+  },
+  "SymbolHit": {
+   "name": "str",
+   "kind": "str",
+   "file": "str",
+   "brief": "str",
+   "provenance": "str | None",
+   "also_in": "tuple[str, ...]"
+  },
+  "Terminus": {
+   "global_name": "str",
+   "registered_by": "str | None",
+   "kind": "str"
+  },
+  "Thread": {
+   "id": "int",
+   "name": "str",
+   "kind": "str",
+   "entry": "str | None",
+   "source": "str",
+   "confidence": "str",
+   "member_count": "int",
+   "spawn_file": "str",
+   "spawn_line": "int | None",
+   "spawn_function": "str",
+   "external_root": "str"
+  },
+  "ThreadInventory": {
+   "threads": "tuple[Thread, ...]",
+   "rows": "int",
+   "row_meaning": "str",
+   "origin": "OriginSplit"
+  },
+  "VariableSite": {
+   "file": "str",
+   "line": "int",
+   "signature": "str",
+   "static": "bool",
+   "extern": "bool",
+   "initializer": "str",
+   "declaration": "BodyExcerpt | None"
+  },
+  "VariableSubject": {
+   "name": "str",
+   "rowid": "int",
+   "type": "str",
+   "brief": "str",
+   "version": "str",
+   "provenance": "str | None",
+   "sites": "tuple[VariableSite, ...]"
+  }
+ }
+}

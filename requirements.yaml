@@ -341,6 +341,24 @@ requirements:
       not match. The prior note advised checking `target` and staleness only, which was true and
       almost never the cause. clew/query/recovery.py recovery_hint / _hint_from; wired at
       mcp_server/tools_query.py _recovery_for and _batch_miss. tests/test_recovery_hint.py.
+  REQ-DDB-QUERY-014:
+    subsystem: query
+    name: A stable, MCP-free export of the dossier and search replies
+    acceptance_criteria: '`clew.query.export_dossier` and `clew.query.export_search` return, for every
+      subject and every search corpus, exactly the reply the MCP tool gives with only the MCP
+      boundary removed — the byte budget, the neighbour cap and the target/staleness/sub-index
+      stamps; a single-subject miss differs only by the routing advice. Both are re-exported from
+      `clew.query` (semver-covered), stamp `wire_version` on every payload, and build through the
+      same functions the MCP tools call, so the two surfaces cannot word one answer differently.
+      The wire keys are listed by a manifest generated from the reply dataclasses and committed;
+      a renamed or removed key fails the gate.'
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/query/export.py, clew/query/payload.py (moved from mcp_server/tools_query.py),
+      clew/query/wire_manifest.py, docs/wire-keys.json. tests/test_export.py (parity over every
+      name in the rich fixture, every corpus, batches, the manifest). scripts/export_parity.py
+      measured 335/335 agreeing on each of the four 1.3.0-final run indexes (mattermost, mbedtls,
+      self, entropic; 300 sampled names + 35 corpus queries each), 2026-11-13.
   REQ-DDB-SCHEMA-013:
     subsystem: schema
     name: Kconfig structure tables, created independently of the gating table

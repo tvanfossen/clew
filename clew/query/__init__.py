@@ -6,8 +6,11 @@ function accepts a `Path | str | sqlite3.Connection` and returns frozen,
 JSON-serializable dataclasses (via `dataclasses.asdict`) — never raw sqlite
 rows, never HTML. Edge endpoints are resolved to NAMES.
 
+v2 (1.3.1): re-exports the export API (`export_dossier`, `export_search`), the MCP-free form of
+the dossier and search replies.
+
 @brief Public surface of the R2 query library.
-@version 1
+@version 2
 """
 
 from __future__ import annotations
@@ -261,3 +264,10 @@ __all__ = [
     "read_build_signature",
     "index_unusable_reason",
 ]
+
+# THE EXPORT API (1.3.1) — imported LAST, because `export` and `payload` read `clew.query`'s own
+# names at call time through `from .. import query as q`, and the package must be fully bound
+# before they are. Covered by semver like everything else re-exported here.
+from .export import EXPORT_CORPORA, WIRE_VERSION, export_dossier, export_search  # noqa: E402
+
+__all__ += ["EXPORT_CORPORA", "WIRE_VERSION", "export_dossier", "export_search"]

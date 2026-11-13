@@ -39,8 +39,12 @@ REPO = Path(__file__).resolve().parent.parent
 ## thirteen defects shipped, and it was NOT caught: the anti-vacuity assertion was
 ## `len(surfaces) > 100`, and `server.py` alone clears 100. A count cannot detect a blinded
 ## scan. The partition below can, because a module in neither tuple is an error.
+## 1.3.1: the emptiness grading and the reply-content helpers moved into `clew.query` (shared with
+## the export API), so the served text they carry is scanned at its new home.
 RUNTIME_SERVED_MODULES = (
-    "clew/mcp_server/emptiness.py",
+    "clew/query/emptiness.py",
+    "clew/query/payload.py",
+    "clew/query/export.py",
     "clew/mcp_server/freshness.py",
     "clew/mcp_server/tools_query.py",
     "clew/mcp_server/server.py",
@@ -55,6 +59,7 @@ PLUMBING_MODULES = {
     "clew/mcp_server/__init__.py": "re-exports only",
     "clew/mcp_server/__main__.py": "entry point",
     "clew/mcp_server/_sdk.py": "SDK compatibility shims",
+    "clew/mcp_server/emptiness.py": "alias of clew.query.emptiness (moved in 1.3.1); no text",
     "clew/mcp_server/descriptions.py": "loads the JSON; the text lives in the JSON",
     "clew/mcp_server/state.py": "target resolution and registry bookkeeping",
 }

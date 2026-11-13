@@ -39,6 +39,7 @@ import re
 from pathlib import Path
 
 from clew.mcp_server import tools_query
+from clew.query import payload
 from clew.query._common import matching_identity, qualified_name_of
 
 ## The shape doxygen really emits: a `definition` carrying a return type, and the qualified name
@@ -48,6 +49,11 @@ _QUALIFIED = "pkg.harvest.Harvester.harvest"
 _NAME = "harvest"
 
 _SOURCE = Path(tools_query.__file__)
+## THE SERVED GUIDANCE SPANS TWO MODULES SINCE 1.3.1: the reply-content helpers (the ambiguity
+## block, the candidate-cap disclosure) moved to `clew.query.payload`, shared with the export API.
+## The property is unchanged — every `how_to_narrow` the surface serves — so the scan follows the
+## strings to where they now live rather than shrinking to the half left behind.
+_SOURCES = (_SOURCE, Path(payload.__file__))
 
 
 ##
@@ -120,7 +126,8 @@ def test_the_served_parameter_description_names_qualified_not_signature() -> Non
 ##
 # @brief No served `how_to_narrow` may steer the model to a signature or a file selector.
 # @return None.
-# @version 1
+# v2 (1.3.1): the vacuity message names every scanned module.
+# @version 2
 def test_no_runtime_guidance_steers_to_a_signature() -> None:
     """THESE STRINGS ARE READ AT THE WORST POSSIBLE MOMENT. `how_to_narrow` is the advice carried
     inside a reply that has just told the model its name was ambiguous, so it is what the model
@@ -142,7 +149,8 @@ def test_no_runtime_guidance_steers_to_a_signature() -> None:
     served = _how_to_narrow_strings()
 
     assert len(served) >= 4, (
-        f"only {len(served)} how_to_narrow string(s) found in {_SOURCE.name}; the scan is not "
+        f"only {len(served)} how_to_narrow string(s) found in {[p.name for p in _SOURCES]}; the "
+        f"scan is not "
         f"reaching them and would pass vacuously"
     )
 
@@ -162,9 +170,10 @@ def test_no_runtime_guidance_steers_to_a_signature() -> None:
 
 
 ##
-# @brief Every `how_to_narrow` literal in the served module, with its line.
+# @brief Every `how_to_narrow` literal in the served modules, with its line.
 # @return Pairs of line number and the literal text it carries.
-# @version 1
+# v2 (1.3.1): scans `_SOURCES`, the guidance having moved partly into `clew.query.payload`.
+# @version 2
 # @dg_internal
 def _how_to_narrow_strings() -> list[tuple[int, str]]:
     """Flattens f-strings and implicit concatenation down to their CONSTANT parts, which is where
@@ -176,9 +185,8 @@ def _how_to_narrow_strings() -> list[tuple[int, str]]:
     @return Line and text pairs.
     @version 1
     """
-    tree = ast.parse(_SOURCE.read_text("utf-8"))
     out: list[tuple[int, str]] = []
-    for node in ast.walk(tree):
+    for node in (n for src in _SOURCES for n in ast.walk(ast.parse(src.read_text("utf-8")))):
         if not isinstance(node, ast.Dict):
             continue
         for key, value in zip(node.keys, node.values):

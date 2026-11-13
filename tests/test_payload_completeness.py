@@ -190,7 +190,8 @@ def test_a_named_gate_symbol_resolves_to_its_definition_sites(rich_db: Path) -> 
 ## @param tools Bound tool set.
 ## @param monkeypatch Pytest patcher.
 ## @return None.
-## @version 1
+## v2 (1.3.1): patches `clew.query.payload`, where the flattener now resolves the name.
+## @version 2
 def test_gate_definitions_are_attached_to_the_payload_not_just_computable(
     tools: QueryTools, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -210,9 +211,12 @@ def test_gate_definitions_are_attached_to_the_payload_not_just_computable(
     return must reach the payload.
 
     @brief The dossier payload carries whatever the gate resolver returns.
-    @version 1
+    @version 2
     """
-    import clew.mcp_server.tools_query as tq
+    ## PATCHED WHERE `_flatten_subject` LOOKS IT UP. Since 1.3.1 both live in `clew.query.payload`
+    ## (shared with the export API); patching the old name in `tools_query` would leave the
+    ## flattener calling the real resolver and test nothing. The wiring asserted is unchanged.
+    import clew.query.payload as tq
 
     sentinel = {"SENTINEL_GATE": [{"file": "x.h", "line": 1, "expansion": ""}]}
     ## Returns (resolved, disclosure) now — the cap and the no-definition-site case had to
