@@ -105,15 +105,23 @@ index, and then reasons from a stale one — which is worse than not having it.
   and the result is spliced into the existing database rather than replacing it. The closure is
   the part that has to be right: doxygen's xref pass is global, so editing `b.c` invalidates
   `a.c`'s edges into it even though `a.c` did not change, and a second pass over the include
-  graph recovers calls the edit itself introduces. doxygen's own share is now small — about
-  0.3–0.7 s per one-file refresh — but the refresh as a whole is NOT yet cheap: measured on clew
-  1.3.0 with `scripts/refresh_bench.py` (a shared clone, one cold build, then three one-comment
-  edits; median shown), a refresh took 21.3 s on this repository, 7.9 s on mbedtls, 6.9 s on
-  entropic and 18.5 s on mattermost-mobile, because most later stages still recompute over the
-  whole tree. Bringing that under a second is the current work.
-- **Automatic.** When a query arrives against an index whose sources have moved, the refresh
-  runs first and the answer describes the current tree. That is the refresh time above, once,
-  rather than a wrong answer immediately.
+  graph recovers calls the edit itself introduces.
+- **Two tiers.** A save that keeps a file's set of definitions takes the FAST tier: that file's
+  symbol positions, its outgoing call edges, its code-search text, file docs, requirement
+  mentions and blocking call sites are updated in place, in one transaction. Everything that is
+  a property of the whole index — reachability, threads, locks, conflicts, shared-key edges,
+  doxygen's own call layer — is left as it was and NAMED on every reply as the `derived`
+  staleness axis until a full refresh replaces the index. Measured with
+  `scripts/refresh_bench.py --fast` (a shared clone, one cold build, three one-comment edits,
+  median): 423 ms on this repository, 355 ms on mbedtls, 107 ms on entropic and 579 ms on
+  mattermost-mobile, in-process. An added, removed or renamed definition, a configuration file,
+  or more than four edited files takes the full tier instead — 5 to 14 s on those repositories.
+  From a shell or an editor hook: `clew refresh`.
+- **Automatic.** The MCP server watches the repositories it has answered from (OS file events),
+  so a save is refreshed by the fast tier within about a second and the full refresh follows in
+  the background. A query that arrives against a stale index refreshes first; behind someone
+  else's build it waits at most a second and answers from the index as it stands, with its
+  staleness notice.
 - **You can still ask.** `index(action='refresh')` refreshes on demand; add `force=True` for a
   full rebuild.
 

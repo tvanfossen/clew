@@ -125,6 +125,8 @@ from typing import Annotated, Any
 from pydantic import Field
 
 import anyio
+import anyio.from_thread
+import anyio.lowlevel
 
 from .._common import captured_output, logger
 from ..buildlock import build_lock
@@ -696,6 +698,17 @@ def _failure_result(exc: BaseException, rendered: str) -> dict[str, Any]:
 ## returns. A single hung MCP call was the field failure that motivated bounding this at all.
 _LOCK_WAIT_SECONDS = 120
 
+## HOW LONG A QUERY WAITS BEHIND SOMEONE ELSE'S REFRESH (1.3.6). The background loop keeps the
+## long wait above, because deduplicating a concurrent build is its job; a QUERY no longer does.
+## With the fast tier, whatever holds the lock is usually the follow-up full build, and the index
+## it is replacing still answers — with its `derived` notice — so waiting 120 s for it bought a
+## slightly newer answer at the cost of a hung-looking call.
+_QUERY_LOCK_WAIT_SECONDS = 1
+
+## How long the loop lets a burst of file events settle before refreshing: an editor's save is
+## often several writes (temp file, rename, metadata), and one refresh should follow all of them.
+_WAKE_DEBOUNCE_SECONDS = 0.1
+
 ## HOW LONG A QUERY WAITS FOR THE FIRST BUILD IT STARTED BEFORE REFUSING WITH "BUILDING". Sized so a
 ## small repository's first build finishes inside the call that asked for it — the call just
 ## answers — while a large one's refusal arrives well inside any client's tool timeout. The build
@@ -1145,7 +1158,8 @@ class DocsDbServer:
 
     ## @brief Construct the server state.
     ## @param registry Target registry (defaults to the per-user one).
-    ## @version 9
+    ## v10 (1.3.6): holds the file watcher and the loop's wake event.
+    ## @version 10
     ## @dg_internal
     def __init__(self, registry: TargetRegistry | None = None) -> None:
         self.registry = registry if registry is not None else TargetRegistry()
@@ -1167,6 +1181,15 @@ class DocsDbServer:
         ## background loop keeps current. A session's own working set, the way a language server
         ## watches the workspaces it has open rather than every one on disk.
         self._touched: dict[str, Target] = {}
+        ## 1.3.6: OS file events wake the refresh loop instead of it waiting out its interval.
+        ## Created by `keep_current` (an anyio Event belongs to the loop that runs it); None until
+        ## then, so an event before the loop starts is simply dropped — the loop's first pass
+        ## measures staleness anyway.
+        self._wake: anyio.Event | None = None
+        self._wake_token: Any = None
+        from .watcher import RepoWatcher
+
+        self._watcher = RepoWatcher(self._on_file_change)
         ## Automatic first builds, keyed by the slug of the target a query ASKED for.
         self._first_builds: dict[str, FirstBuild] = {}
         ## Serialises the background builds; see `_FIRST_BUILD_CONCURRENCY`. A plain
@@ -1238,7 +1261,8 @@ class DocsDbServer:
     ## @param target The caller's target argument, or None for the default.
     ## @param sub_index The caller's sub_index argument, or None.
     ## @return None.
-    ## @version 6
+    ## v7 (1.3.6): waits at most `_QUERY_LOCK_WAIT_SECONDS` behind another refresh.
+    ## @version 7
     ## @req REQ-DDB-MCP-004
     async def _auto_refresh(self, target: str | None, sub_index: str | None = None) -> None:
         """WHY A QUERY BUILDS AT ALL. Reporting staleness and leaving the fix to the caller
@@ -1283,7 +1307,7 @@ class DocsDbServer:
             return
         if self._data_stale(resolved):
             self._touched[resolved.slug] = resolved
-            await self._refresh_stale(resolved)
+            await self._refresh_stale(resolved, wait=_QUERY_LOCK_WAIT_SECONDS)
         elif not Path(resolved.db_path).is_file():
             await self._await_first_build(resolved)
 
@@ -1291,13 +1315,17 @@ class DocsDbServer:
     ## @param resolved The index to bring current.
     ## @param fast Try the fast in-place tier first (a query, or a data-stale tick); False runs
     ##        the full build a pending fast refresh is waiting for.
+    ## @param wait Seconds to wait for the build lock; None for the background default.
     ## @return None.
     ## v2 (1.3.5): two-tier — a data-stale index tries `clew.fasttier` first, and a pending fast
     ## refresh (`derived` axis) gets its full build on the next background tick.
-    ## @version 2
+    ## v3 (1.3.6): the lock wait is a parameter, so a query waits one second, not 120.
+    ## @version 3
     ## @req REQ-DDB-MCP-004
     ## @req REQ-DDB-INDEX-006
-    async def _refresh_stale(self, resolved: Target, fast: bool = True) -> None:
+    async def _refresh_stale(
+        self, resolved: Target, fast: bool = True, wait: float | None = None
+    ) -> None:
         """SPLIT OUT OF `_auto_refresh` SO THE BACKGROUND LOOP TAKES THE SAME ROUTE a query does:
         the same bounded lock wait, the same re-check inside it, the same failure logging. Two
         copies of this would be two answers to "can a refresh hang this process".
@@ -1309,7 +1337,7 @@ class DocsDbServer:
 
         @brief Refresh a stale index, deduplicated and bounded.
         @return None.
-        @version 2
+        @version 3
         """
         ## BOUNDED ACQUIRE, BECAUSE AN UNBOUNDED ONE TURNS ONE SLOW BUILD INTO A HUNG SESSION.
         ## This method's own docstring promises "a stale answer plus a warning is strictly better
@@ -1324,15 +1352,16 @@ class DocsDbServer:
         ## The wait is generous on purpose — it is sized to let a NORMAL concurrent refresh finish
         ## and be deduplicated, which is the case this lock exists to serve. Only a pathological
         ## build trips it.
-        with anyio.move_on_after(_LOCK_WAIT_SECONDS) as scope:
+        bound = _LOCK_WAIT_SECONDS if wait is None else wait
+        with anyio.move_on_after(bound) as scope:
             await self._build_lock(resolved.repo_path).acquire()
         if scope.cancelled_caught:
             logger.warning(
-                "auto-refresh of %s: another refresh has held the build lock for over %d s, so "
+                "auto-refresh of %s: another refresh has held the build lock for over %s s, so "
                 "this query is answering from the index as it stands rather than waiting. The "
                 "reply still carries its staleness notice.",
                 resolved.repo_path,
-                _LOCK_WAIT_SECONDS,
+                bound,
             )
             return
         try:
@@ -1606,15 +1635,54 @@ class DocsDbServer:
         return refreshed
 
     ## @brief Keep this session's indexes current until cancelled.
-    ## @param interval Seconds between checks.
+    ## @param interval Seconds between checks when no file event arrives.
     ## @return None; runs until its task group is cancelled.
-    ## @version 1
+    ## v2 (1.3.6): woken by OS file events through `watcher.RepoWatcher`, not only by the interval.
+    ## @version 2
     ## @req REQ-DDB-MCP-004
     async def keep_current(self, interval: float) -> None:
-        """@brief Background refresh loop. @return None. @version 1"""
-        while True:
-            await anyio.sleep(interval)
-            await self.refresh_touched()
+        """WOKEN BY A SAVE, OR BY THE INTERVAL (1.3.6). Each pass first reconciles the file
+        watches with the session's working set, then waits for whichever comes first: a relevant
+        file event or `interval` seconds. A burst of events is let settle for
+        `_WAKE_DEBOUNCE_SECONDS` and refreshed once. The watches stop with the loop.
+
+        @brief Background refresh loop.
+        @return None.
+        @version 2
+        """
+        self._wake_token = anyio.lowlevel.current_token()
+        self._wake = anyio.Event()
+        try:
+            while True:
+                self._watcher.sync({t.repo_path for t in self._touched.values()})
+                with anyio.move_on_after(interval):
+                    await self._wake.wait()
+                if self._wake.is_set():
+                    self._wake = anyio.Event()
+                    await anyio.sleep(_WAKE_DEBOUNCE_SECONDS)
+                await self.refresh_touched()
+        finally:
+            self._watcher.stop()
+
+    ## @brief Wake the refresh loop from a file-watch thread.
+    ## @return None.
+    ## @version 1
+    ## @dg_internal
+    def _on_file_change(self) -> None:
+        """CALLED ON WATCHDOG'S THREAD, so the event is set through the loop's token. Never raises:
+        an event arriving while the loop is shutting down is dropped.
+
+        @brief Thread-safe wake.
+        @return None.
+        @version 1
+        """
+        wake, token = self._wake, self._wake_token
+        if wake is None or token is None:
+            return
+        try:
+            anyio.from_thread.run_sync(wake.set, token=token)
+        except Exception:
+            logger.debug("file event dropped: the refresh loop is not running")
 
     ## @brief The staleness axes in play right now, for stamping onto query replies.
     ## @return List of {axis, message}; EMPTY when the tool is current or has no target.

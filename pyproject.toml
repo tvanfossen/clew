@@ -74,6 +74,10 @@ dependencies = [
     # cancellation semantics changes how the server shuts down. Capped at the next major.
     "anyio>=4.0,<5",
     "mcp-types>=2,<3",
+    # OS file-change events (inotify / FSEvents / ReadDirectoryChangesW) for the MCP server's
+    # two-tier refresh (1.3.6, owner 2026-11-13): a save queues the fast tier within ~100 ms
+    # instead of waiting for the next 15 s stat sweep. Capped at the next major.
+    "watchdog>=6,<7",
     # tomllib is stdlib only from 3.11; below that the backport IS the parser.
     'tomli>=2,<3; python_version < "3.11"',
 ]

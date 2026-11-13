@@ -62,6 +62,7 @@ PLUMBING_MODULES = {
     "clew/mcp_server/emptiness.py": "alias of clew.query.emptiness (moved in 1.3.1); no text",
     "clew/mcp_server/descriptions.py": "loads the JSON; the text lives in the JSON",
     "clew/mcp_server/state.py": "target resolution and registry bookkeeping",
+    "clew/mcp_server/watcher.py": "file-change watching for the refresh loop; logs only (1.3.6)",
 }
 
 DESCRIPTIONS_DIR = REPO / "clew/mcp_server/descriptions"
