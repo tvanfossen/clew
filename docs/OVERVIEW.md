@@ -105,11 +105,15 @@ index, and then reasons from a stale one — which is worse than not having it.
   and the result is spliced into the existing database rather than replacing it. The closure is
   the part that has to be right: doxygen's xref pass is global, so editing `b.c` invalidates
   `a.c`'s edges into it even though `a.c` did not change, and a second pass over the include
-  graph recovers calls the edit itself introduces. On this repository doxygen went from 6218 ms
-  to 325 ms, taking a warm refresh from 8672 ms to ~2700 ms.
+  graph recovers calls the edit itself introduces. doxygen's own share is now small — about
+  0.3–0.7 s per one-file refresh — but the refresh as a whole is NOT yet cheap: measured on clew
+  1.3.0 with `scripts/refresh_bench.py` (a shared clone, one cold build, then three one-comment
+  edits; median shown), a refresh took 21.3 s on this repository, 7.9 s on mbedtls, 6.9 s on
+  entropic and 18.5 s on mattermost-mobile, because most later stages still recompute over the
+  whole tree. Bringing that under a second is the current work.
 - **Automatic.** When a query arrives against an index whose sources have moved, the refresh
-  runs first and the answer describes the current tree. That is the ~2700 ms above, once, rather
-  than a wrong answer immediately.
+  runs first and the answer describes the current tree. That is the refresh time above, once,
+  rather than a wrong answer immediately.
 - **You can still ask.** `index(action='refresh')` refreshes on demand; add `force=True` for a
   full rebuild.
 

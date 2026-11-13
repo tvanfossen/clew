@@ -455,6 +455,99 @@ def _summarise(db: Path) -> tuple[dict[str, int], set[str]]:
         conn.close()
 
 
+## Tables never compared: build bookkeeping differs between ANY two builds (timings, epochs).
+_UNCOMPARED = {"build_meta"}
+## FTS5 shadow-table suffixes. Their blobs depend on insert order, so two correct builds differ
+## byte for byte; the virtual table itself is compared by row count instead.
+_FTS_SHADOWS = ("_data", "_idx", "_docsize", "_config", "_content")
+
+
+##
+# @brief Whether a column carries a rowid, which differs between two correct builds.
+# @param name Column name.
+# @param decl Declared column type.
+# @return True for rowid-bearing columns.
+# @version 1
+def _rowid_column(name: str, decl: str) -> bool:
+    """BY NAME AND TYPE: `file_id INTEGER` is a rowid reference, `req_id TEXT` is a requirement id
+    whose value is stable and must be compared by content.
+
+    @brief Rowid-like column test.
+    @return True when the column holds a rowid.
+    """
+    lowered = name.lower()
+    if "rowid" in lowered:
+        return True
+    integer = not decl or "INT" in decl.upper()
+    return integer and (lowered == "id" or lowered.endswith("_id"))
+
+
+##
+# @brief Summarise every comparable table: a row count, plus a content digest when no column holds a rowid.
+# @param db Path to a built clew.db.
+# @return Table name to (count, digest or None).
+# @version 1
+def _table_fingerprints(db: Path) -> dict[str, tuple[int, str | None]]:
+    """COUNT FOR A ROWID-BEARING TABLE, CONTENT FOR THE REST. Rowids are assigned by insertion
+    order, so a table that stores them differs between two correct builds at the same content;
+    such a table is compared by count. Every other table is compared by a digest of its sorted
+    rows, which catches a changed value at an unchanged count.
+
+    @brief Fingerprint every table.
+    @return Fingerprints.
+    @version 1
+    """
+    import hashlib
+
+    conn = sqlite3.connect(db)
+    try:
+        master = conn.execute("SELECT name, sql FROM sqlite_master WHERE type='table'").fetchall()
+        virtual = {n for n, sql in master if sql and sql.upper().startswith("CREATE VIRTUAL")}
+        shadows = {v + suffix for v in virtual for suffix in _FTS_SHADOWS}
+        out: dict[str, tuple[int, str | None]] = {}
+        for name, _sql in master:
+            if name in _UNCOMPARED or name in shadows or name.startswith("sqlite_"):
+                continue
+            count = conn.execute(f'SELECT COUNT(*) FROM "{name}"').fetchone()[0]
+            cols = [(r[1], r[2]) for r in conn.execute(f'PRAGMA table_info("{name}")')]
+            digest = None
+            if name not in virtual and not any(_rowid_column(c, t) for c, t in cols):
+                rows = sorted(repr(r) for r in conn.execute(f'SELECT * FROM "{name}"'))
+                digest = hashlib.sha256("\n".join(rows).encode()).hexdigest()[:16]
+            out[name] = (count, digest)
+        return out
+    finally:
+        conn.close()
+
+
+##
+# @brief Every table on which two indexes disagree.
+# @param a One built clew.db.
+# @param b The other.
+# @return One line per divergence; empty when they agree on every compared table.
+# @version 1
+def whole_db_diff(a: Path, b: Path) -> list[str]:
+    """THE WHOLE DATABASE, NOT THE NINE DOXYGEN TABLES `_COMPARED` NAMES (1.3.3). A derived layer —
+    threads, locks, code text, requirement mentions — could lose rows on the incremental path and
+    the nine counts would still agree. A table present in only one index is itself a divergence:
+    absent is not empty.
+
+    @brief Diff two indexes table by table.
+    @return Divergence lines.
+    @version 1
+    """
+    fa, fb = _table_fingerprints(a), _table_fingerprints(b)
+    out: list[str] = []
+    for name in sorted(set(fa) | set(fb)):
+        if name not in fa or name not in fb:
+            out.append(f"{name}: present only in {'b' if name not in fa else 'a'}")
+        elif fa[name][0] != fb[name][0]:
+            out.append(f"{name}: rows {fa[name][0]} vs {fb[name][0]}")
+        elif fa[name][1] != fb[name][1]:
+            out.append(f"{name}: same row count {fa[name][0]}, different content")
+    return out
+
+
 ##
 # @brief Build one index by driving the real CLI, never a hand-wired pipeline.
 # @param repo Repository to index.
@@ -494,7 +587,8 @@ def _build(repo: Path, out: Path, extra: list[str] | None = None) -> int:
 # @brief Compare an incrementally-refreshed index against a full rebuild of the same tree.
 # @param args Parsed arguments carrying the target repo and the file to edit.
 # @return 0 when the two indexes agree on every compared table.
-# @version 1
+# v2 (1.3.3): also diffs the WHOLE database through `whole_db_diff`.
+# @version 2
 def cmd_compare(args: argparse.Namespace) -> int:
     """THE RELEASE CHECK FOR THE SPLICE, and it is an INVARIANCE rather than a number: an
     incremental refresh must produce what a full rebuild of the same tree produces. A count
@@ -508,7 +602,7 @@ def cmd_compare(args: argparse.Namespace) -> int:
 
     @brief Full-versus-incremental invariance on a real target.
     @return 0 on agreement, 1 on any divergence.
-    @version 1
+    @version 2
     """
     repo = Path(args.repo).resolve()
     target = repo / args.edit_file
@@ -610,6 +704,14 @@ def cmd_compare(args: argparse.Namespace) -> int:
             print(f"    - {name}")
         if only_incr or only_full:
             bad.append(("indexed file SET", len(only_incr), len(only_full)))
+
+        ## EVERY TABLE, not only the nine above (1.3.3): a derived layer is where an incremental
+        ## path loses rows without a doxygen-side count moving.
+        whole = whole_db_diff(incremental, full)
+        print(f"\nwhole-database diff: {len(whole)} table(s) diverge")
+        for line in whole:
+            print(f"    {line}")
+            bad.append((line, "", ""))
 
         if bad:
             print("\nDIVERGENCE — the splice does not reproduce a full rebuild:")
