@@ -53,6 +53,7 @@ from ._common import (
     name_of,
     qualified_name_of,
     resolve_rowid,
+    short_qualified,
     rowids_for_name,
     strip_xml,
     symbol_provenance,
@@ -399,7 +400,8 @@ def unresolved_inbound_for_rowids(conn: sqlite3.Connection, ids: Iterable[int]) 
 ## costing an ambiguity round trip. No new lookup — `identity[1]` was being discarded.
 ## v15: and the endpoint's FILE, by LEFT JOIN, so "how broadly is this consumed" is one reply
 ## rather than one `dossier` per neighbour — the last unfixed mark in the negative-gap set.
-## @version 15
+## v16 (1.3.7): publishes the shortest unique boundary-aligned suffix as `qualified`.
+## @version 16
 ## @dg_internal
 def _direct_call_edges(
     conn: sqlite3.Connection, fn: str, want_callers: bool, qualified: str | None = None
@@ -488,6 +490,14 @@ def _direct_call_edges(
     # name and would otherwise be ordered arbitrarily against each other.
     edges: list[CallEdge] = []
     implementors = _implementors_by_identity(conn, rows)
+    known: dict[str, set[str]] = {}
+
+    def namesakes(name: str) -> set[str]:
+        """Every full qualified name the bare name has, read once per name per call."""
+        if name not in known:
+            known[name] = {qualified_name_of(name, c[1]) for c in function_candidates(conn, name)}
+        return known[name]
+
     for identity, (rowid, variants) in _endpoint_identities(rows).items():
         source, conf = _collapse_variants(variants)
         macro_name, expansion = macro_by_identity.get(identity, ("", ""))
@@ -501,7 +511,14 @@ def _direct_call_edges(
                 ## wrong for a published selector value: it would advertise `qualified="app_run"`
                 ## for a free function, which selects nothing and refuses a call that had no
                 ## ambiguity to resolve.
-                qualified=identity[1] if identity[1] != identity[0] else "",
+                ## AND THE SHORTEST UNIQUE SUFFIX OF IT (1.3.7): a TypeScript identity spelled
+                ## its whole module path, 29% of mattermost's neighbour-row bytes, and the row's
+                ## `file` already says where it lives. The selector accepts the suffix.
+                qualified=(
+                    short_qualified(identity[1], namesakes(identity[0]))
+                    if identity[1] != identity[0]
+                    else ""
+                ),
                 rowid=rowid,
                 source=source,
                 confidence=conf,

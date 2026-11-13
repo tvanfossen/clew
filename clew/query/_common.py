@@ -295,12 +295,73 @@ def function_candidates(
     return cands if qualified is None else matching_identity(name, cands, qualified)
 
 
+## @brief The shortest separator-aligned suffix of a qualified name no other identity ends with.
+## @param full The identity's full qualified name.
+## @param others Every other qualified name sharing the bare name.
+## @return The shortest unique suffix with at least one qualifier, or `full` when none is shorter.
+## @version 1
+## @req REQ-DDB-QUERY-010
+def short_qualified(full: str, others: set[str]) -> str:
+    """1.3.7. `qualified` was 29% of mattermost's neighbour-row bytes, because a TypeScript identity
+    spells its module path in full and the row's `file` spells it again. Any suffix unique among
+    the identities that share the bare name selects exactly one of them — `resolve_selector`
+    accepts it — so the row publishes the shortest. ALIGNED TO `.` OR `::`, never a string suffix:
+    `Monitor.run` must not stand for `HealthMonitor.run`. AT LEAST ONE QUALIFIER, because the bare
+    name is what the row's `name` already says.
+
+    @brief Shorten a qualified name to its shortest unique suffix.
+    @return The suffix.
+    @version 1
+    """
+    tokens = re.split(r"(::|\.)", full)
+    parts, seps = tokens[0::2], tokens[1::2]
+    for keep in range(2, len(parts)):
+        start = len(parts) - keep
+        suffix = parts[start] + "".join(s + p for s, p in zip(seps[start:], parts[start + 1 :]))
+        if not any(_ends_at_boundary(other, suffix) for other in others if other != full):
+            return suffix
+    return full
+
+
+## @brief Whether a qualified name ends with a suffix at a separator boundary (or equals it).
+## @param name The qualified name.
+## @param suffix The candidate suffix.
+## @return True when `suffix` names `name` at a boundary.
+## @version 1
+## @dg_internal
+def _ends_at_boundary(name: str, suffix: str) -> bool:
+    """@brief Boundary-aligned suffix test. @return True when aligned."""
+    return name == suffix or name.endswith("." + suffix) or name.endswith("::" + suffix)
+
+
+## @brief The full qualified name a selector names among a bare name's identities.
+## @param qualifieds Every full qualified name the bare name has.
+## @param selector A full qualified name or a boundary-aligned suffix of one.
+## @return The one full name it selects, or None when it selects none or several.
+## @version 1
+## @req REQ-DDB-QUERY-010
+def resolve_selector(qualifieds: set[str], selector: str) -> str | None:
+    """EXACT FIRST, then a UNIQUE boundary-aligned suffix — the form `short_qualified` publishes.
+    Several matches select NOTHING, never the first: a selector that silently picked one of two
+    identities would be the ambiguity it exists to remove.
+
+    @brief Resolve a qualified selector.
+    @return Full qualified name or None.
+    @version 1
+    """
+    if selector in qualifieds:
+        return selector
+    matches = [q for q in qualifieds if _ends_at_boundary(q, selector)]
+    return matches[0] if len(matches) == 1 else None
+
+
 ## @brief Keep only the candidate rows whose IDENTITY is the named qualified one.
 ## @param name Bare function name the rows were fetched by.
 ## @param cands Rows from `function_candidates`.
 ## @param qualified The qualified-name identity to select (as published in `Candidate.qualified`).
 ## @return The subset of `cands` whose `qualified_name_of` equals `qualified`; empty when none does.
-## @version 1
+## v2 (1.3.7): accepts a unique boundary-aligned suffix, via `resolve_selector`.
+## @version 2
 ## @req REQ-DDB-QUERY-010
 def matching_identity(
     name: str, cands: list[tuple[int, str, str, int | None, bool]], qualified: str
@@ -343,7 +404,8 @@ def matching_identity(
     @return The matching subset, possibly empty.
     @version 1
     """
-    return [c for c in cands if qualified_name_of(name, c[1]) == qualified]
+    target = resolve_selector({qualified_name_of(name, c[1]) for c in cands}, qualified)
+    return [c for c in cands if target is not None and qualified_name_of(name, c[1]) == target]
 
 
 ## @brief Collapse rows that describe ONE physical declaration into one.
@@ -645,7 +707,8 @@ def qualified_name_of(name: str, definition: str | None) -> str:
 ## @param name Function name to resolve.
 ## @param qualified Optional identity selector, replacing the definition-preferring guess; see `matching_identity`.
 ## @return Ascending rowids of the canonical identity (decl + def rows of ONE function); empty when unknown.
-## @version 2
+## v3 (1.3.7): a selector may be a unique boundary-aligned suffix, via `resolve_selector`.
+## @version 3
 ## @req REQ-DDB-QUERY-003
 ## @req REQ-DDB-QUERY-010
 def identity_rowids(conn: sqlite3.Connection, name: str, qualified: str | None = None) -> list[int]:
@@ -683,7 +746,14 @@ def identity_rowids(conn: sqlite3.Connection, name: str, qualified: str | None =
     cands = function_candidates(conn, name)
     if not cands:
         return []
-    target = qualified if qualified is not None else qualified_name_of(name, cands[0][1])
+    if qualified is not None:
+        ## A FULL NAME OR A UNIQUE SUFFIX OF ONE (1.3.7): neighbour rows publish the shortest
+        ## unique suffix, and following one must reach the same identity the full name would.
+        target = resolve_selector({qualified_name_of(name, c[1]) for c in cands}, qualified)
+        if target is None:
+            return []
+    else:
+        target = qualified_name_of(name, cands[0][1])
     return sorted(r for r, sig, _f, _ls, _hb in cands if qualified_name_of(name, sig) == target)
 
 
