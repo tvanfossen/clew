@@ -70,6 +70,9 @@ ENVELOPE_KEYS: tuple[str, ...] = (
     "inventory",
     "doc_scope",
     "wire_version",
+    ## 1.3.7, opt-in compact shape: a neighbour list's groups and the reply's shared values.
+    "rows",
+    "edge_defaults",
 )
 
 

@@ -51,6 +51,7 @@ from ..query.payload import (  # noqa: F401 — re-bound here: tests and callers
     _hoist_build_wide,
     _kind_limitation_clause,
     _refusal_note,
+    compact_neighbours,
 )
 from ..query.recovery import recovery_hint
 from .descriptions import load_descriptions
@@ -771,6 +772,34 @@ _DOSSIER_HINTS = {
 }
 
 
+## The environment switch for the compact neighbour-row shape (1.3.7). The clew plugin sets it;
+## every other MCP consumer gets the semver-covered flat rows.
+WIRE_ENV = "CLEW_WIRE"
+WIRE_COMPACT = "compact"
+
+
+## @brief Apply the compact neighbour shape when the server was asked for it.
+## @param doss A finished dossier payload, or None.
+## @return The same payload, compacted when `CLEW_WIRE=compact`.
+## @version 1
+## @req REQ-DDB-QUERY-014
+def _wire_shape(doss: dict[str, Any] | None) -> dict[str, Any] | None:
+    """AFTER THE BUDGET AND THE CAP, because compaction only ever shrinks a payload: the trimmers
+    keep counting flat rows, `_limited` keeps reporting row counts, and a payload that fitted
+    flat fits compact. Read from the environment PER CALL, so a test or a host can switch it
+    without restarting anything.
+
+    @brief Opt-in compaction at the MCP boundary.
+    @return The payload.
+    @version 1
+    """
+    import os
+
+    if doss is None or os.environ.get(WIRE_ENV) != WIRE_COMPACT:
+        return doss
+    return compact_neighbours(doss)
+
+
 ## @brief Trim a serialized dossier's nested lists to the response budget.
 ## @param doss Serialized dossier, or None.
 ## @return The dossier, trimmed and annotated when it exceeded the budget.
@@ -1431,7 +1460,8 @@ class QueryTools:
     ## here is advice omitted exactly where the reply is hardest to read.
     ## v8 (1.3.1): the envelope is `clew.query.export.batch_payload`, shared with the export API;
     ## this adds the batch budget and the absent-panel elision after it.
-    ## @version 8
+    ## v9 (1.3.7): each entry takes the compact neighbour shape when `CLEW_WIRE=compact`.
+    ## @version 9
     ## @dg_internal
     def _batched_dossiers(
         self,
@@ -1478,6 +1508,7 @@ class QueryTools:
         limited = _budget_batch(entries, overhead)
         for entry in entries:
             wire.prune_absent_keys(entry, _DOSSIER_OPTIONAL)
+            _wire_shape(entry)
         if limited is not None:
             out["_limited"] = limited
         return self._answered(out, kind="dossiers", target=target, sub_index=sub_index)
@@ -1497,7 +1528,8 @@ class QueryTools:
     ## one; it can, and five graded clusters carrying 31 weight were losing file-level marks.
     ## v15 (1.3.1): resolves through `clew.query.export.subject_payload`, the builder the export
     ## API shares; this adds the budget, the neighbour cap and the server stamps.
-    ## @version 15
+    ## v16 (1.3.7): serves the compact neighbour shape when `CLEW_WIRE=compact`.
+    ## @version 16
     ## @req REQ-DDB-MCP-003
     ## @req REQ-DDB-QUERY-010
     def dossier(
@@ -1540,7 +1572,9 @@ class QueryTools:
                 description=(
                     "Cap on callers and callees listed per symbol. Omitted: 25 at depth 1, 8 "
                     "per hop of a deeper walk. A cut list is disclosed in `_limited` with its "
-                    "`total_available`; raise this to see the rest."
+                    "`total_available`; raise this to see the rest. The rows may arrive grouped "
+                    "by `file`; then `edge_defaults` holds the `source`/`confidence`/`edge_class` "
+                    "a row leaves out."
                 )
             ),
         ] = None,
@@ -1676,7 +1710,7 @@ class QueryTools:
         )
         cap = max_neighbors if max_neighbors is not None else DEFAULT_MAX_NEIGHBORS
         return self._answered(
-            _capped_neighbors(_budgeted_dossier(payload), cap),
+            _wire_shape(_capped_neighbors(_budgeted_dossier(payload), cap)),
             kind="dossier",
             subject=subject,
             target=target,

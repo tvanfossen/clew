@@ -13,6 +13,7 @@
       "type": "stdio",
       "command": "uvx",
       "args": ["--from", "clew-trace==1.3.0", "clew-mcp"],
+      "env": { "CLEW_WIRE": "compact" },
       "alwaysLoad": true
     }
   }

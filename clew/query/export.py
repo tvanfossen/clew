@@ -45,6 +45,7 @@ from .payload import (
     _flatten_subject,
     _hoist_build_wide,
     _kind_limitation_clause,
+    compact_neighbours,
 )
 from .recovery import recovery_hint
 
@@ -237,8 +238,10 @@ def subject_miss(db: Path, subject: str) -> dict[str, Any]:
 ## @param depth Walk depth, 1..MAX_SUBJECT_DEPTH.
 ## @param direction 'forward' or 'back', for depth >= 2.
 ## @param max_neighbors Fan-out per hop of a deeper walk.
+## @param compact Group neighbour rows by file with shared values stated once (1.3.7).
 ## @return The payload, stamped with `wire_version`.
-## @version 1
+## v2 (1.3.7): the opt-in compact neighbour shape.
+## @version 2
 ## @req REQ-DDB-QUERY-014
 def export_dossier(
     db: Path | str,
@@ -251,6 +254,7 @@ def export_dossier(
     depth: int = 1,
     direction: str = "forward",
     max_neighbors: int = 8,
+    compact: bool = False,
 ) -> dict[str, Any]:
     """THE MCP `dossier` REPLY, UNBUDGETED. Same validation (a list over the cap, an empty list
     and `qualified` beside a list all raise), same notes, same elision; no byte budget, no
@@ -269,6 +273,8 @@ def export_dossier(
         )
         for entry in out["results"]:
             wire.prune_absent_keys(entry, _DOSSIER_OPTIONAL)
+            if compact:
+                compact_neighbours(entry)
     else:
         payload = subject_payload(
             db,
@@ -286,6 +292,8 @@ def export_dossier(
             if payload is None
             else wire.prune_absent_keys(payload, _DOSSIER_OPTIONAL)
         )
+        if compact and payload is not None:
+            compact_neighbours(out)
     return {**out, "wire_version": WIRE_VERSION}
 
 

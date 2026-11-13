@@ -9,6 +9,7 @@
   "count",
   "depth_note",
   "doc_scope",
+  "edge_defaults",
   "found",
   "gate_definitions",
   "gate_definitions_limited",
@@ -20,6 +21,7 @@
   "note",
   "provenance",
   "results",
+  "rows",
   "subject",
   "subject_kind",
   "wire_version"

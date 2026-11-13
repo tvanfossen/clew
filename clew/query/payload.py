@@ -774,3 +774,82 @@ def _config_found_on_the_wire(payload: dict[str, Any]) -> dict[str, Any]:
     ## COMPACTED HERE so all three routes that serialize a `KconfigSpace` inherit it, which is the
     ## lesson of the `found` collision one function up: fixing one route left two broken.
     return _compact_gate_panel(out)
+
+
+## The neighbour lists the compact shape groups, and the per-row fields it states once.
+_NEIGHBOUR_LISTS = ("callers", "callees")
+_DEFAULTABLE = ("source", "confidence", "edge_class")
+
+
+## @brief Group neighbour rows by file and state each reply's common field values once.
+## @param payload A flat dossier payload; mutated and returned.
+## @return The compact payload.
+## @version 1
+## @req REQ-DDB-QUERY-014
+def compact_neighbours(payload: dict[str, Any]) -> dict[str, Any]:
+    """1.3.7 parts B and C, OPT-IN (`CLEW_WIRE=compact`, set by the clew plugin; the flat shape is
+    semver-covered and stays the default). `callers`/`callees` become
+    `[{"file": f, "rows": [...]}]` in first-seen file order, and each of `source`, `confidence` and
+    `edge_class` whose most common value repeats is stated once in `edge_defaults` and left off the
+    rows that carry it.
+
+    LOSSLESS BY CONSTRUCTION: a field is defaulted only when EVERY neighbour row carries it, so
+    re-applying the default can never invent a value a row did not have; a row whose value
+    differs keeps it. `tests/test_compact_wire.py` expands the result and compares.
+
+    @brief Compact a payload's neighbour rows.
+    @return The payload.
+    @version 1
+    """
+    rows = [r for key in _NEIGHBOUR_LISTS for r in payload.get(key) or [] if isinstance(r, dict)]
+    if not rows:
+        return payload
+    defaults = _edge_defaults(rows)
+    for key in _NEIGHBOUR_LISTS:
+        if isinstance(payload.get(key), list):
+            payload[key] = _grouped(payload[key], defaults)
+    if defaults:
+        payload["edge_defaults"] = defaults
+    return payload
+
+
+## @brief The value of each defaultable field that every row carries and at least two share.
+## @param rows Every neighbour row of the reply.
+## @return {field: most common value}.
+## @version 1
+## @dg_internal
+def _edge_defaults(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    """@brief Pick per-field modal values. @return Defaults."""
+    from collections import Counter
+
+    defaults: dict[str, Any] = {}
+    for field in _DEFAULTABLE:
+        if not all(field in r for r in rows):
+            continue
+        value, count = Counter(str(r[field]) for r in rows).most_common(1)[0]
+        if count >= 2:
+            defaults[field] = next(r[field] for r in rows if str(r[field]) == value)
+    return defaults
+
+
+## @brief One neighbour list grouped by file, defaults removed from its rows.
+## @param rows The flat list.
+## @param defaults The reply's edge defaults.
+## @return [{"file", "rows"}] in first-seen file order.
+## @version 1
+## @dg_internal
+def _grouped(rows: list[Any], defaults: dict[str, Any]) -> list[dict[str, Any]]:
+    """@brief Group and strip. @return Groups."""
+    groups: dict[str | None, list[dict[str, Any]]] = {}
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        slim = {k: v for k, v in row.items() if k != "file" and defaults.get(k, _MISSING) != v}
+        groups.setdefault(row.get("file"), []).append(slim)
+    ## A ROW WITH NO FILE (an endpoint whose file did not resolve) goes in a group with no `file`
+    ## key — absent, as on the flat row — rather than under an invented empty path.
+    return [({"file": f} if f is not None else {}) | {"rows": rs} for f, rs in groups.items()]
+
+
+## Sentinel: a field with no default never equals a row value.
+_MISSING = object()
