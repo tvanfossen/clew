@@ -250,6 +250,16 @@ _UNEARNED_BY_PARTIAL = (
     "there, then refresh, before concluding the repository has none."
 )
 
+## A fast in-place refresh left whole-index layers behind (see `freshness.AXIS_DERIVED`). Any
+## definitive negative may be drawn from one of them, so it is withdrawn whatever its shape.
+_DERIVED_AXIS = "derived"
+_UNEARNED_BY_DERIVED = (
+    " NOT DEFINITIVE: this index was just updated in place for an edit, and the whole-index "
+    "layers named in `staleness` below still describe the code before it — so callers, threads "
+    "or reachability involving the edited files may be missing rather than absent. Ask again once "
+    "the full refresh completes, or call index(action='refresh')."
+)
+
 ## Why this is still the residual case in 1.0.8 rather than a solved one: a data-stale query now
 ## refreshes BEFORE answering, so a miss with a live `data` notice means the refresh did not run —
 ## the `code` axis refuses it, or it failed. Both are conditions the reader must act on, so the
@@ -296,8 +306,9 @@ _DEFINITIVE_CLAIMS = ("definitive", "do not retry")
 ##
 ## v3: a `partial` axis withdraws a definitive negative too, with its own sentence — the
 ## schema remedy (refresh with force) would only re-run the doxygen that failed.
+## v4 (1.3.5): so does the `derived` axis, a fast in-place refresh awaiting its full refresh.
 ## @req REQ-DDB-MCP-004
-## @version 3
+## @version 4
 def _withdraw_definitive(payload: dict[str, Any], staleness: list[dict[str, str]]) -> None:
     """@brief Withdraw a definitive-negative claim a stale index cannot earn. @version 3"""
     note = payload.get("note")
@@ -312,6 +323,8 @@ def _withdraw_definitive(payload: dict[str, Any], staleness: list[dict[str, str]
         replacement = _UNEARNED_DEFINITIVE
     elif _PARTIAL_AXIS in axes:
         replacement = _UNEARNED_BY_PARTIAL
+    elif _DERIVED_AXIS in axes:
+        replacement = _UNEARNED_BY_DERIVED
     elif _DATA_AXIS in axes and payload.get("found") is False:
         replacement = _UNEARNED_BY_DRIFT
     if replacement is None:

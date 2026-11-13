@@ -1132,7 +1132,8 @@ def _data_model_meta(db: Path) -> dict[str, str]:
 ## @brief Freshness/identity report for one target's database.
 ## @param target Target to inspect.
 ## @return Dict with existence, stamped/expected build version, source drift, staleness, age, scope, coverage, refresh cost, layered-option tiers, the options an operator stated, build diagnostics, the declared data model, code identity and interpreted notices.
-## @version 12
+## v13 (1.3.5): reports a pending fast in-place refresh (`fast`) and counts it as stale.
+## @version 13
 ## @req REQ-DDB-MCP-001
 ## @req REQ-DDB-MCP-004
 ## @req REQ-DDB-CONFIG-006
@@ -1182,6 +1183,11 @@ def db_status(target: Target) -> dict[str, object]:
     stamped = read_build_signature(db) if exists else None
     age_days = round((time.time() - db.stat().st_mtime) / 86400.0, 3) if exists else None
     changed, newest = _source_drift(db, Path(target.repo_path)) if exists else (0, None)
+    ## A FAST IN-PLACE REFRESH STILL PENDING ITS FULL REFRESH (1.3.5). It counts as stale: the
+    ## in-place write moved the database's mtime past the edit, so without this the index would
+    ## read as current on every axis and the follow-up full build would skip itself.
+    fast = _meta_section(db, "fast") if exists else {}
+    fast_pending = fast.get("pending") == "1"
     status: dict[str, object] = {
         "repo_path": target.repo_path,
         "db_path": target.db_path,
@@ -1194,7 +1200,7 @@ def db_status(target: Target) -> dict[str, object]:
         "expected_build_version": CLEW_BUILD_VERSION,
         "source_changed_files": changed,
         "newest_changed_source": newest,
-        "stale": (not exists) or stamped != CLEW_BUILD_VERSION or changed > 0,
+        "stale": (not exists) or stamped != CLEW_BUILD_VERSION or changed > 0 or fast_pending,
         "age_days": age_days,
         ## WHY this file set, not just what. Absent on an index built before build 16, which
         ## is the honest signal — "not recorded" rather than a fabricated default.
@@ -1218,6 +1224,9 @@ def db_status(target: Target) -> dict[str, object]:
         ## only section about absent rows, and the one that makes an empty causal layer
         ## distinguishable from a repo that has no dataflow (gh#320).
         **({"diagnostics": _diagnostics_meta(db)} if exists else {}),
+        ## WHICH FILES A FAST REFRESH UPDATED IN PLACE and which layers it left behind. Absent
+        ## unless one is pending, so a current index carries nothing.
+        **({"fast": fast} if fast_pending else {}),
         ## WHICH GENERATED DATA MODEL the repository declares, how much of it the code was
         ## observed to touch, and every manifest the discovery declined and why (gh#351).
         ## Absent before build 37. Empty-but-present for the many repositories that have no

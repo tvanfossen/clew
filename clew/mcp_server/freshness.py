@@ -66,6 +66,11 @@ AXIS_SCHEMA = "schema"
 ## layer but one is complete and up to date — so it is not stale; but the envelope is where a
 ## reader learns what is wrong with this index and what to do, and a missing layer is that.
 AXIS_PARTIAL = "partial"
+## 1.3.5, two-tier refresh. A fast in-place refresh brought the edited files' OWN layers current and
+## left the whole-index layers describing the tree before the edit, until the full refresh that
+## follows. Its own axis because the `data` axis compares mtimes and an in-place write clears it,
+## and because neither `data`'s remedy nor `partial`'s describes this state.
+AXIS_DERIVED = "derived"
 
 ## THE TWO HALVES OF THE `code` AXIS, WRITTEN ONCE. They are constants rather than inline
 ## prose because the notice and the write refusal must not be able to drift apart: the
@@ -442,6 +447,40 @@ def _partial_notice(status: Mapping[str, object]) -> dict[str, str] | None:
     }
 
 
+## @brief The derived-axis notice, while a fast in-place refresh awaits its full refresh.
+## @param status A `db_status` payload.
+## @return One notice, or None when no fast refresh is pending.
+## @version 1
+## @dg_internal
+def _derived_notice(status: Mapping[str, object]) -> dict[str, str] | None:
+    """NAMES THE FILES AND THE LAYERS, because both decide what a reader may trust: the edited
+    files' symbols, bodies and outgoing calls are current; the named whole-index layers (and any
+    answer built from them — callers reaching INTO those files, reachability, threads) still
+    describe the code before the edit.
+
+    THE REMEDY IS TIME, OR A REFRESH. The server starts the full refresh itself, so asking again
+    shortly is usually enough; `index(action='refresh')` forces it.
+
+    @brief Build the derived-axis notice.
+    @return The notice, or None.
+    @version 1
+    """
+    fast = status.get("fast")
+    if not isinstance(fast, Mapping) or str(fast.get("pending")) != "1":
+        return None
+    files = str(fast.get("files") or "the edited files")
+    layers = str(fast.get("layers") or "the whole-index layers").replace(",", ", ")
+    return {
+        "axis": AXIS_DERIVED,
+        "message": (
+            f"this index was updated in place for {files}: those files' own symbols, bodies and "
+            f"outgoing calls are current, but {layers} — and anything built from them, such as "
+            f"callers reaching into those files — still describe the code BEFORE that edit. A "
+            f"full refresh completes this; ask again shortly, or call index(action='refresh')."
+        ),
+    }
+
+
 ## @brief The schema-axis notice, when the stamped and expected versions disagree.
 ## @param status A `db_status` payload.
 ## @return One notice, or None when the versions agree.
@@ -608,7 +647,8 @@ def stale_code_refusal(code: Mapping[str, object] | None = None) -> str | None:
 ## @return Notices in data → schema → code order; EMPTY when the tool is current.
 ## v2: adds the `partial` axis — a doxygen failure leaves the index without its C/C++ layer,
 ## and a stamp nobody reads would let a missing symbol pass as an absent one.
-## @version 2
+## v3 (1.3.5): adds the `derived` axis — a fast in-place refresh awaiting its full refresh.
+## @version 3
 ## @req REQ-DDB-MCP-004
 def notices(
     status: Mapping[str, object], code: Mapping[str, object] | None = None
@@ -631,6 +671,7 @@ def notices(
         _data_notice(status),
         _schema_notice(status),
         _partial_notice(status),
+        _derived_notice(status),
         _code_notice(identity),
     )
     return [notice for notice in found if notice is not None]
