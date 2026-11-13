@@ -241,6 +241,10 @@ GUARD_COMMAND = "guard"
 ## for a host that cannot import `clew.query`. Mirrors `query_command.QUERY_COMMAND`, lazily
 ## imported like its siblings.
 QUERY_COMMAND = "query"
+## `refresh` brings an index current after an edit — the fast tier in place when it applies, a full
+## build otherwise (1.3.5). A verb rather than a seventh build flag, so the build's six arguments
+## stay the surface `tests/test_cli_surface.py` pins. Mirrors `refresh_command.REFRESH_COMMAND`.
+REFRESH_COMMAND = "refresh"
 
 ## The `build_meta` section carrying the scope decision, and the key inside it that
 ## records what the OPERATOR removed — kept apart from `scope.excludes`, which is
@@ -3727,7 +3731,8 @@ def _stamp_refresh_metrics(
 
 ## @brief Entry point — dispatch a subcommand, else parse args and build.
 ## v18 (1.3.2): dispatches `clew query`, the export API as JSON on stdout.
-## @version 18
+## v19 (1.3.5): dispatches `clew refresh`, the two-tier refresh.
+## @version 19
 ## @req REQ-DDB-CLI-001
 def main() -> None:
     """Entry point — parse args, run doxygen, optionally enrich.
@@ -3758,7 +3763,7 @@ def main() -> None:
     have been worse.
 
     @brief Parse CLI arguments and run the build pipeline.
-    @version 16
+    @version 17
     """
     if sys.argv[1:2] == [PROPOSE_COMMAND]:
         from .propose.command import (
@@ -3786,6 +3791,10 @@ def main() -> None:
         from .query_command import query_main
 
         sys.exit(query_main(sys.argv[2:]))
+    if sys.argv[1:2] == [REFRESH_COMMAND]:
+        from .refresh_command import refresh_main
+
+        sys.exit(refresh_main(sys.argv[2:]))
     args = _build_argparser().parse_args()
     _configure_logging(args.verbose)
     _resolve_output(args)

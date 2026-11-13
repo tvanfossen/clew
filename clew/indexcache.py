@@ -279,6 +279,22 @@ class IndexCache:
         self._current[rel] = identity
         return identity.content_sha
 
+    ## @brief The content sha the last committed build recorded for one path.
+    ## @param rel Repo-relative path.
+    ## @return The recorded sha, or None when the last build did not record the path.
+    ## @version 1
+    ## @req REQ-DDB-INDEX-006
+    def previous_sha(self, rel: str) -> str | None:
+        """THE FAST TIER'S BASELINE (1.3.5): what the index describes, as distinct from what the
+        working tree now holds (`sha_for`).
+
+        @brief Read the recorded sha.
+        @return Sha or None.
+        @version 1
+        """
+        known = self._previous.get(rel)
+        return None if known is None else known.content_sha
+
     ## @brief Whether a lookup may be served from the store at all.
     ## @param key The full (content_sha, stage, stage_version, extra_key) tuple.
     ## @return True when reads are enabled or this run wrote the entry itself.

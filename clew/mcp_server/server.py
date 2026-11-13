@@ -1287,19 +1287,29 @@ class DocsDbServer:
         elif not Path(resolved.db_path).is_file():
             await self._await_first_build(resolved)
 
-    ## @brief Rebuild one stale index under its repository's build lock.
+    ## @brief Bring one stale index current under its repository's build lock.
     ## @param resolved The index to bring current.
+    ## @param fast Try the fast in-place tier first (a query, or a data-stale tick); False runs
+    ##        the full build a pending fast refresh is waiting for.
     ## @return None.
-    ## @version 1
+    ## v2 (1.3.5): two-tier — a data-stale index tries `clew.fasttier` first, and a pending fast
+    ## refresh (`derived` axis) gets its full build on the next background tick.
+    ## @version 2
     ## @req REQ-DDB-MCP-004
-    async def _refresh_stale(self, resolved: Target) -> None:
+    ## @req REQ-DDB-INDEX-006
+    async def _refresh_stale(self, resolved: Target, fast: bool = True) -> None:
         """SPLIT OUT OF `_auto_refresh` SO THE BACKGROUND LOOP TAKES THE SAME ROUTE a query does:
         the same bounded lock wait, the same re-check inside it, the same failure logging. Two
         copies of this would be two answers to "can a refresh hang this process".
 
+        THE FAST TIER FIRST, FOR THE ONE WAITING (1.3.5). A query that finds its index data-stale
+        no longer pays a whole-index rebuild: the edited files are refreshed in place and the
+        whole-index layers are disclosed stale; the full build follows on the background tick,
+        where nobody is waiting for it.
+
         @brief Refresh a stale index, deduplicated and bounded.
         @return None.
-        @version 1
+        @version 2
         """
         ## BOUNDED ACQUIRE, BECAUSE AN UNBOUNDED ONE TURNS ONE SLOW BUILD INTO A HUNG SESSION.
         ## This method's own docstring promises "a stale answer plus a warning is strictly better
@@ -1327,39 +1337,98 @@ class DocsDbServer:
             return
         try:
             if self._data_stale(resolved):
-                try:
-                    ## BOUND, NOT DISCARDED. `_run_build` does NOT raise on a failed build: it
-                    ## catches (Exception, SystemExit) and RETURNS a failure dict, and
-                    ## `_failure_result` deliberately emits no separate log line because a
-                    ## raise would land in the same captured buffer. So this dict was the ONLY
-                    ## record of the failure — including the pipeline's captured log records —
-                    ## and discarding it meant a persistently broken build was retried on every
-                    ## query with no trace anywhere. "Silent loss is worse than a crash."
-                    ## `skip_if_fresh=True`: this path exists only to make a STALE index
-                    ## current, so if another process got there first there is nothing
-                    ## left to do. Positional, because `to_thread.run_sync` takes no kwargs.
-                    outcome = await anyio.to_thread.run_sync(
-                        self._run_build, resolved, None, SCOPE_FROM_GUARD, None, None, True
-                    )
-                    if isinstance(outcome, dict) and not outcome.get("ok", True):
-                        logger.warning(
-                            "auto-refresh of %s did not succeed: %s",
-                            resolved.repo_path,
-                            outcome.get("error") or outcome,
-                        )
-                except Exception as exc:
-                    logger.warning(
-                        "auto-refresh of %s failed (%s) — answering from the index as it "
-                        "stands, which still carries its staleness notice",
-                        resolved.repo_path,
-                        exc,
-                    )
+                if fast and await anyio.to_thread.run_sync(self._try_fast, resolved):
+                    return
+                await self._full_refresh(resolved)
+            elif not fast and self._derived_pending(resolved):
+                await self._full_refresh(resolved)
         finally:
             ## RELEASED IN A `finally` BECAUSE THE ACQUIRE IS NOW EXPLICIT. `async with` used to
             ## guarantee this; a bounded acquire cannot use the context manager, so the release
             ## has to be unconditional here. Leaking it would recreate the very hang this change
             ## removes, permanently and for every later query.
             self._build_lock(resolved.repo_path).release()
+
+    ## @brief Run the full build for one index, logging rather than raising on failure.
+    ## @param resolved The index.
+    ## @return None.
+    ## @version 1
+    ## @dg_internal
+    async def _full_refresh(self, resolved: Target) -> None:
+        """MOVED OUT OF `_refresh_stale` UNCHANGED (1.3.5), so the data-stale and the
+        derived-pending branches run the one build path.
+
+        @brief Full build with failure logging.
+        @return None.
+        @version 1
+        """
+        try:
+            ## BOUND, NOT DISCARDED. `_run_build` does NOT raise on a failed build: it
+            ## catches (Exception, SystemExit) and RETURNS a failure dict, and
+            ## `_failure_result` deliberately emits no separate log line because a
+            ## raise would land in the same captured buffer. So this dict was the ONLY
+            ## record of the failure — including the pipeline's captured log records —
+            ## and discarding it meant a persistently broken build was retried on every
+            ## query with no trace anywhere. "Silent loss is worse than a crash."
+            ## `skip_if_fresh=True`: this path exists only to make a STALE index
+            ## current, so if another process got there first there is nothing
+            ## left to do. Positional, because `to_thread.run_sync` takes no kwargs.
+            outcome = await anyio.to_thread.run_sync(
+                self._run_build, resolved, None, SCOPE_FROM_GUARD, None, None, True
+            )
+            if isinstance(outcome, dict) and not outcome.get("ok", True):
+                logger.warning(
+                    "auto-refresh of %s did not succeed: %s",
+                    resolved.repo_path,
+                    outcome.get("error") or outcome,
+                )
+        except Exception as exc:
+            logger.warning(
+                "auto-refresh of %s failed (%s) — answering from the index as it "
+                "stands, which still carries its staleness notice",
+                resolved.repo_path,
+                exc,
+            )
+
+    ## @brief Try the fast in-place tier on one index.
+    ## @param resolved The index.
+    ## @return True when it refreshed in place; False when a full build is needed.
+    ## @version 1
+    ## @dg_internal
+    def _try_fast(self, resolved: Target) -> bool:
+        """NEVER RAISES: a fast tier that failed is a full build, not a failed query.
+
+        @brief Run clew.fasttier for this target.
+        @return Whether it applied.
+        @version 1
+        """
+        from ..fasttier import try_fast_refresh
+
+        db = Path(resolved.db_path)
+        try:
+            done = try_fast_refresh(
+                db, Path(resolved.repo_path), db.with_name(db.name + ".idxcache")
+            )
+        except Exception as exc:
+            logger.warning(
+                "fast refresh of %s failed (%s) — running a full build", resolved.repo_path, exc
+            )
+            return False
+        return done is not None
+
+    ## @brief Whether a fast in-place refresh is waiting for its full build.
+    ## @param resolved The index.
+    ## @return True when `fast.pending` is recorded.
+    ## @version 1
+    ## @dg_internal
+    def _derived_pending(self, resolved: Target) -> bool:
+        """@brief Read fast.pending without raising. @return True when pending."""
+        from ..query._common import meta_section
+
+        try:
+            return meta_section(Path(resolved.db_path), "fast").get("pending") == "1"
+        except Exception:
+            return False
 
     ## @brief Why an absent index may not be built automatically, or None when it may.
     ## @param asked The index a query resolved to.
@@ -1502,7 +1571,8 @@ class DocsDbServer:
 
     ## @brief Bring every index this session has used current, once.
     ## @return Slugs of the indexes refreshed.
-    ## @version 1
+    ## v2 (1.3.5): also runs the full build a pending fast refresh is waiting for.
+    ## @version 2
     ## @req REQ-DDB-MCP-004
     async def refresh_touched(self) -> list[str]:
         """THE WORK MOVES OFF THE QUERY. A query-time refresh is correct and stays, but it charges
@@ -1523,9 +1593,13 @@ class DocsDbServer:
             try:
                 if not Path(target.db_path).is_file():
                     continue
-                if not await anyio.to_thread.run_sync(self._data_stale, target):
+                data = await anyio.to_thread.run_sync(self._data_stale, target)
+                ## A FAST REFRESH WAITING FOR ITS FULL BUILD (1.3.5) clears the `data` axis, so it
+                ## is checked separately and runs the full build, not another fast one.
+                derived = not data and await anyio.to_thread.run_sync(self._derived_pending, target)
+                if not (data or derived):
                     continue
-                await self._refresh_stale(target)
+                await self._refresh_stale(target, fast=not derived)
                 refreshed.append(target.slug)
             except Exception as exc:
                 logger.warning("background refresh of %s failed: %s", target.slug, exc)

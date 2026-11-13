@@ -45,7 +45,7 @@ _COMMENT = {".py": "#", ".sh": "#", ".cmake": "#", ".txt": "#"}
 # @param db The index path.
 # @return Elapsed milliseconds.
 # @version 1
-def _build(clone: Path, db: Path) -> int:
+def _build(clone: Path, db: Path, verb: str = "") -> int:
     """THROUGH THE CLI, as `incremental_probe` does: the number must be what a user's build costs.
 
     @brief Run one build.
@@ -54,7 +54,16 @@ def _build(clone: Path, db: Path) -> int:
     """
     started = time.monotonic()
     proc = subprocess.run(
-        [sys.executable, "-m", "clew", "--repo-root", str(clone), "--output", str(db)],
+        [
+            sys.executable,
+            "-m",
+            "clew",
+            *([verb] if verb else []),
+            "--repo-root",
+            str(clone),
+            "--output",
+            str(db),
+        ],
         cwd=str(REPO),
         capture_output=True,
         text=True,
@@ -86,6 +95,21 @@ def _stamped(db: Path) -> tuple[int, dict[str, int]]:
 
 
 ##
+# @brief The recorded cost of the last fast refresh, if one is pending.
+# @param db The index.
+# @return Milliseconds, or None.
+# @version 1
+def _fast_ms(db: Path) -> int | None:
+    """@brief Read fast.ms. @return Ms or None."""
+    conn = sqlite3.connect(db)
+    try:
+        row = conn.execute("SELECT value FROM build_meta WHERE key = 'fast.ms'").fetchone()
+    finally:
+        conn.close()
+    return int(row[0]) if row else None
+
+
+##
 # @brief Clone, build, edit-and-refresh N times, report, clean up.
 # @return Process exit code.
 # @version 1
@@ -96,6 +120,9 @@ def main() -> int:
     parser.add_argument("file")
     parser.add_argument("--reps", type=int, default=3)
     parser.add_argument("--keep", action="store_true", help="keep the scratch directory")
+    parser.add_argument(
+        "--fast", action="store_true", help="refresh with `clew refresh` (fast tier first)"
+    )
     args = parser.parse_args()
     work = Path(tempfile.mkdtemp(prefix="clew-bench-"))
     try:
@@ -110,8 +137,12 @@ def main() -> int:
         for i in range(args.reps):
             with target.open("a") as handle:
                 handle.write(f"\n{prefix} refresh_bench edit {i}\n")
-            wall = _build(clone, db)
+            wall = _build(clone, db, "refresh" if args.fast else "")
             stamped, stages = _stamped(db)
+            ## A FAST REFRESH STAMPS `fast.ms`, not `refresh.*` (those describe the last FULL
+            ## build), so its cost is read from there.
+            fast_ms = _fast_ms(db) if args.fast else None
+            stamped = fast_ms if fast_ms is not None else stamped
             runs.append({"wall_ms": wall, "duration_ms": stamped, "stages": stages})
         median = sorted(runs, key=lambda r: r["duration_ms"])[len(runs) // 2]
         print(

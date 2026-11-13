@@ -529,6 +529,26 @@ requirements:
     x-evidence: clew/doxygen.py _DOXYFILE_FORCED_FLAGS, applied by _build_doxyfile_content and
       exposed for cache hashing by doxyfile_content_for; consumed by run_doxygen. EXTRACT_ANON_NSPACES
       is forced too. cli.py --extra-input/--extra-exclude.
+  REQ-DDB-INDEX-006:
+    subsystem: index
+    name: A one-file save refreshes in place in under a second, and says what it left behind
+    acceptance_criteria: >-
+      After an edit that keeps the set of definitions in a file, `clew refresh` and
+      the MCP auto-refresh update the symbol positions of that file and text layers in place, in one
+      transaction, without a whole-index rebuild; the whole-index layers it did not recompute are
+      recorded in build_meta `fast.*` and served on every reply as the `derived` staleness axis
+      until a full build — which the server runs on its next background tick — replaces the
+      index. A changed definition set, a configuration input, more than four files or no change
+      at all refuses the fast tier and builds in full. A fast refresh followed by a full build
+      produces exactly the index a full build alone produces.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/fasttier.py, clew/fasttier_layers.py, clew/refresh_command.py,
+      mcp_server/server.py _refresh_stale/_try_fast/_derived_pending, mcp_server/freshness.py
+      AXIS_DERIVED. tests/test_fast_tier.py (incl. fast + full == full by whole_db_diff),
+      tests/test_derived_axis.py. Measured with scripts/refresh_bench.py --fast (median of 3
+      one-comment edits, 2026-11-13) — self 261 ms, mbedtls 185 ms, entropic 24 ms,
+      mattermost-mobile 97 ms in-process; 250-520 ms wall including interpreter start.
   REQ-DDB-INDEX-002:
     subsystem: pipeline
     name: Incremental/partial re-index for cheap refreshes

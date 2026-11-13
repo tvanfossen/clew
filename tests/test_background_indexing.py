@@ -413,3 +413,37 @@ async def test_concurrent_absent_indexes_do_not_run_their_builds_at_once(
     assert len(real_build.built) == len(repos), (
         f"every asked build must still happen, serialised: {real_build.built}"
     )
+
+
+@pytest.mark.anyio
+async def test_a_query_takes_the_fast_tier_and_the_tick_runs_the_full_build(
+    tmp_path: Path, rich_db: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """THE TWO TIERS, IN ORDER (1.3.5). A data-stale index the fast tier can refresh is refreshed
+    in place, with no full build on the path anyone waits on; the next background tick sees the
+    pending fast record and runs the full build — not another fast one.
+
+    @brief Fast on the query path, full on the following tick.
+    @version 1
+    """
+    registry = st.TargetRegistry(tmp_path / "state")
+    _mcp, state = build_server(registry)
+    repo = tmp_path / "used"
+    repo.mkdir()
+    target = registry.register(repo)
+    Path(target.db_path).write_bytes(rich_db.read_bytes())
+    state.tools.dossier("sensor_poll", target=str(repo))
+    build = _RecordingBuild(rich_db)
+    state._run_build = build
+    fast_calls: list[bool] = []
+    monkeypatch.setattr(state, "_try_fast", lambda _t: fast_calls.append(True) or True)
+
+    monkeypatch.setattr(state, "_data_stale", lambda _target: True)
+    await state.refresh_touched()
+    assert fast_calls == [True] and build.built == [], "the fast tier must answer a data-stale tick"
+
+    monkeypatch.setattr(state, "_data_stale", lambda _target: False)
+    monkeypatch.setattr(state, "_derived_pending", lambda _target: True)
+    await state.refresh_touched()
+    assert fast_calls == [True], "a pending fast refresh must not be answered by another fast one"
+    assert build.built == [None], "the pending fast refresh must get its full build"
