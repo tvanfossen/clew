@@ -109,7 +109,8 @@ def _build_proc(repo: Path, out: Path) -> subprocess.Popen:
 # @brief Two concurrent builds of one target must equal one build.
 # @param tmp_path Pytest temp dir.
 # @return None.
-# @version 1
+# v2: a failure prints each process's exit code and stderr tail (diagnostics only).
+# @version 2
 @pytest.mark.integration
 def test_two_concurrent_builds_of_one_target_do_not_destroy_the_index(tmp_path: Path) -> None:
     """AN INVARIANCE, NOT A NUMBER. N concurrent builds must produce what one build produces, row
@@ -154,10 +155,19 @@ def test_two_concurrent_builds_of_one_target_do_not_destroy_the_index(tmp_path: 
         f"Reference build had {expected}. Note the file still opens and integrity_check still "
         f"returns ok, which is why this must be asserted per table."
     )
+    ## WHAT EACH PROCESS SAID, on failure. Added after a run under the full gate produced an index
+    ## with every graph table present and EMPTY (memberdef 0, path 24031 of 26027) and passed four
+    ## times in isolation; the run left nothing behind to diagnose from. The exit codes and the
+    ## tail of each process's stderr are the evidence the next occurrence needs.
+    said = "\n".join(
+        f"  process {i}: exit {code}\n    "
+        + "\n    ".join(err.decode(errors="replace").splitlines()[-40:])
+        for i, (code, (_out, err)) in enumerate(zip(codes, results, strict=True))
+    )
     assert actual == expected, (
         f"two concurrent builds produced a different index than one build.\n"
         f"  one build : {expected}\n"
-        f"  concurrent: {actual}"
+        f"  concurrent: {actual}\n{said}"
     )
 
     ## AND NO PROCESS MAY CLAIM SUCCESS FALSELY. A non-zero exit is acceptable — losing a race is
