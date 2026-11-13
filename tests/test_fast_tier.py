@@ -283,3 +283,53 @@ def test_the_edited_files_code_text_is_current(tmp_path: Path) -> None:
         old_hits = search_code(conn, "length", 10, repo)
     assert [h.name for h in new_hits or []] == ["fetchWidget"]
     assert not old_hits, "the pre-edit body is still searchable"
+
+
+_BLOCKING_C = """\
+#include <zephyr/kernel.h>
+
+void idle(void) {
+}
+
+void waiter(void) {
+    k_sleep(5);
+}
+"""
+
+
+## @brief One file's blocking call sites, by holder name.
+## @param db The index.
+## @return Sorted (holder, line, primitive) rows.
+## @version 1
+def _blocking(db: Path) -> list[tuple[str, int, str]]:
+    """@brief Read blocking_calls. @return Rows."""
+    with sqlite3.connect(db) as conn:
+        return sorted(
+            conn.execute(
+                "SELECT m.name, b.line, b.primitive FROM blocking_calls b "
+                "JOIN memberdef m ON m.rowid = b.holder_rowid"
+            ).fetchall()
+        )
+
+
+def test_the_edited_files_blocking_calls_are_current(tmp_path: Path) -> None:
+    """PHASE 6. Blocking call sites belong wholly to one file — harvested from it, held by one of
+    its functions — so the fast tier rewrites them; they must equal a full build's.
+
+    @brief After a fast refresh, blocking call sites equal a full build's.
+    @return None.
+    @version 1
+    """
+    repo = tmp_path / "repo"
+    (repo / "src").mkdir(parents=True)
+    (repo / "src" / "wait.c").write_text(_BLOCKING_C)
+    out = tmp_path / "clew.db"
+    _build(repo, out)
+    assert _blocking(out), "the fixture must record a blocking call"
+    (repo / "src" / "wait.c").write_text("/* a */\n/* b */\n" + _BLOCKING_C)
+    _build(repo, out, tier="fast")
+    assert _fast(out).get("pending") == "1"
+    assert "blocking_calls" not in _fast(out).get("layers", "").split(",")
+    reference = tmp_path / "full.db"
+    _build(repo, reference)
+    assert _blocking(out) == _blocking(reference)

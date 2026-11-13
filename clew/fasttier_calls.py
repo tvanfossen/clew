@@ -40,18 +40,19 @@ FOLD_SOURCES = (CALL_SOURCE_AST, CALL_SOURCE_AST_MEMBER, CALL_SOURCE_BINDING, CA
 ## @param repo_root The working tree.
 ## @param cache The index cache.
 ## @param files {repo-relative path: path rowid} of the edited files.
-## @return Edges inserted.
-## @version 1
+## @return The resolution maps it built, so later per-file layers reuse them.
+## v2 (phase 6): returns the maps, so the blocking-call rewrite reuses `file_funcs`.
+## @version 2
 ## @req REQ-DDB-INDEX-006
 def refresh_outbound_calls(
     conn: sqlite3.Connection, repo_root: Path, cache: IndexCache, files: dict[str, int]
-) -> int:
+) -> dict[str, Any]:
     """AFTER THE POSITION SHIFT, because the fold assigns each call site to the function whose
     span holds its line: the spans must already be the edited file's.
 
     @brief Re-fold and replace one or more files' outgoing AST edges.
-    @return Edges inserted.
-    @version 1
+    @return The resolution maps.
+    @version 2
     """
     from . import call_edges as ce
 
@@ -81,8 +82,8 @@ def refresh_outbound_calls(
             one_function=maps["one_function"],
         )
     collapsed, fuzzy = ce._collapse_duplicate_targets(fuzzy, maps["identity_of"], maps["defined"])
-    inserted_resolved, inserted_fuzzy = ce._ast_insert_edges(conn, resolved + collapsed, fuzzy)
-    return inserted_resolved + inserted_fuzzy
+    ce._ast_insert_edges(conn, resolved + collapsed, fuzzy)
+    return maps
 
 
 ## @brief The index-wide maps the AST fold resolves against, built as the full stage builds them.
@@ -171,3 +172,53 @@ def _call_payload(rel: str, path: Path, cache: IndexCache) -> Any:
     from .harvest import HarvestTally, _harvest_one_file
 
     return _harvest_one_file(rel, path, call_site_harvester(), {}, cache, HarvestTally())
+
+
+## @brief Rewrite the blocking call sites of the edited files.
+## @param conn Open index connection, inside the fast tier's transaction, after the shift.
+## @param repo_root The working tree.
+## @param cache The index cache.
+## @param files {repo-relative path: path rowid} of the edited files.
+## @param file_funcs The function spans per path rowid, from `refresh_outbound_calls`' maps.
+## @return Rows inserted.
+## @version 1
+## @req REQ-DDB-INDEX-006
+def refresh_blocking_calls(
+    conn: sqlite3.Connection,
+    repo_root: Path,
+    cache: IndexCache,
+    files: dict[str, int],
+    file_funcs: dict[int, list],
+) -> int:
+    """WHOLLY PER FILE, the same way `blocking.extract_blocking_calls` builds it: the file's
+    payload, each site's holder by the function span that contains its line, one row each.
+
+    @brief Replace one or more files' blocking_calls rows.
+    @return Rows inserted.
+    @version 1
+    """
+    from .blocking import blocking_harvester
+    from .call_edges import _ast_caller_at_line, _table_exists
+    from .harvest import HarvestTally, _harvest_one_file
+
+    ## NOT `ensure_blocking_table`: its `executescript` COMMITs, which would end the fast tier's
+    ## one transaction half-way. An index without the table never ran the layer; nothing to do.
+    if not _table_exists(conn, "blocking_calls"):
+        return 0
+    inserted = 0
+    for rel, rowid in files.items():
+        conn.execute("DELETE FROM blocking_calls WHERE path_rowid = ?", (rowid,))
+        payload = _harvest_one_file(
+            rel, repo_root / rel, blocking_harvester(), {}, cache, HarvestTally()
+        )
+        for record in payload or []:
+            holder = _ast_caller_at_line(file_funcs.get(rowid, []), record[1])
+            if holder is None:
+                continue
+            inserted += conn.execute(
+                "INSERT OR IGNORE INTO blocking_calls "
+                "(holder_rowid, path_rowid, line, primitive, wait, wait_operand, guard) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (holder, rowid, record[1], record[0], record[2], record[3], record[4]),
+            ).rowcount
+    return inserted

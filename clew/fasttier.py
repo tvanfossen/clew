@@ -60,7 +60,6 @@ STALE_LAYERS = (
     "callback_edges",
     "code_text",
     "locks",
-    "blocking_calls",
     "threads",
     "reachability",
     "context_conflicts",
@@ -246,7 +245,8 @@ def _refusal(edited: list[tuple[int, str, str]]) -> str:
 ## @param cache The index cache.
 ## @return (old anchor lines, new anchor lines), aligned; None when the file refuses.
 ## v2: one shared parse warms both the anchor and the call-site payloads.
-## @version 2
+## v3: and the blocking-call payload.
+## @version 3
 ## @dg_internal
 def _line_anchors(
     rel: str, path: Path, old_sha: str, cache: IndexCache
@@ -259,6 +259,7 @@ def _line_anchors(
     @return Aligned anchors or None.
     @version 1
     """
+    from .blocking import blocking_harvester
     from .call_edges import call_site_harvester
     from .harvest import HarvestTally, _cached_payload, _harvest_one_file, _shared_parse_one_file
 
@@ -268,7 +269,14 @@ def _line_anchors(
         return None
     ## ONE PARSE FOR BOTH PAYLOADS the fast tier reads (anchors here, call sites in phase 5):
     ## the shared-parse helper warms every harvester it is given off a single tree.
-    _shared_parse_one_file(rel, path, [harvester, call_site_harvester()], {}, cache, HarvestTally())
+    _shared_parse_one_file(
+        rel,
+        path,
+        [harvester, call_site_harvester(), blocking_harvester()],
+        {},
+        cache,
+        HarvestTally(),
+    )
     old_payload = _cached_payload(harvester, cache, old_sha)
     new_payload = _harvest_one_file(rel, path, harvester, {}, cache, HarvestTally())
     if old_payload is None or new_payload is None:
@@ -387,7 +395,8 @@ def remap_line(line: int, old: list[int], new: list[int]) -> int:
 ## @return The layers left stale.
 ## v2 (1.3.5 phase 5): re-folds the edited files' outgoing AST call edges after the shift.
 ## v3 (phase 6): replaces the edited files' code-corpus rows; returns the stale layers.
-## @version 3
+## v4 (phase 6): and their blocking call sites.
+## @version 4
 ## @dg_internal
 def _apply(
     conn: sqlite3.Connection,
@@ -401,13 +410,14 @@ def _apply(
 
     v2 (phase 5): also replaces the edited files' outgoing AST call edges.
     v3 (phase 6): and their code-corpus rows; the corpus is named stale only if that failed.
+    v4: and their blocking call sites.
 
     @brief Write the fast refresh.
     @return The layers left stale.
-    @version 3
+    @version 4
     """
     from .code_text import code_text_rows
-    from .fasttier_calls import refresh_outbound_calls
+    from .fasttier_calls import refresh_blocking_calls, refresh_outbound_calls
     from .fasttier_layers import refresh_code_text, refresh_text_layers
 
     conn.execute("BEGIN IMMEDIATE")
@@ -418,7 +428,9 @@ def _apply(
             _shift_symbols(conn, rowid, old, new)
             refresh_text_layers(conn, repo_root, rel, cache)
         ## AFTER EVERY SHIFT: the fold places each call site by the spans it now reads.
-        refresh_outbound_calls(conn, repo_root, cache, {rel: p[0] for rel, p in plans.items()})
+        files = {rel: p[0] for rel, p in plans.items()}
+        maps = refresh_outbound_calls(conn, repo_root, cache, files)
+        refresh_blocking_calls(conn, repo_root, cache, files, maps["file_funcs"])
         corpus_current = all(
             refresh_code_text(conn, repo_root, rel, cache, plan[3], before[rel])
             for rel, plan in plans.items()
