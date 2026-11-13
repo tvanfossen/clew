@@ -237,6 +237,10 @@ INIT_COMMAND = "init"
 ## and the gate never pays for the pipeline. `clew-guard` is the same entry point as a
 ## console script, which is what the pre-commit hook runs.
 GUARD_COMMAND = "guard"
+## `query` prints the export API's dossier/search payloads as JSON (1.3.2) — the process boundary
+## for a host that cannot import `clew.query`. Mirrors `query_command.QUERY_COMMAND`, lazily
+## imported like its siblings.
+QUERY_COMMAND = "query"
 
 ## The `build_meta` section carrying the scope decision, and the key inside it that
 ## records what the OPERATOR removed — kept apart from `scope.excludes`, which is
@@ -3720,7 +3724,8 @@ def _stamp_refresh_metrics(
 
 
 ## @brief Entry point — dispatch a subcommand, else parse args and build.
-## @version 17
+## v18 (1.3.2): dispatches `clew query`, the export API as JSON on stdout.
+## @version 18
 ## @req REQ-DDB-CLI-001
 def main() -> None:
     """Entry point — parse args, run doxygen, optionally enrich.
@@ -3751,7 +3756,7 @@ def main() -> None:
     have been worse.
 
     @brief Parse CLI arguments and run the build pipeline.
-    @version 15
+    @version 16
     """
     if sys.argv[1:2] == [PROPOSE_COMMAND]:
         from .propose.command import (
@@ -3775,6 +3780,10 @@ def main() -> None:
         from .guard.main import main as guard_main
 
         sys.exit(guard_main(sys.argv[2:]))
+    if sys.argv[1:2] == [QUERY_COMMAND]:
+        from .query_command import query_main
+
+        sys.exit(query_main(sys.argv[2:]))
     args = _build_argparser().parse_args()
     _configure_logging(args.verbose)
     _resolve_output(args)

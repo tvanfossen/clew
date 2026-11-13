@@ -131,15 +131,38 @@ Three limits worth knowing, none of them silent:
 output shape, so when it moves the cached doxygen output is discarded and no index of the old
 shape survives to be queried. Upgrading clew therefore costs one full build, once.
 
+## Programmatic use
+
+The MCP tools are one surface over the index; three more give the **same answer** to a consumer
+that is not an MCP client. All four build every reply through the same functions, so they cannot
+word one answer differently.
+
+| from | use |
+|---|---|
+| Python | `clew.query.export_dossier(db, subject, ...)` and `clew.query.export_search(db, text, corpus=...)` |
+| any process | `clew query dossier NAME [NAME ...]` / `clew query search TEXT --corpus C` — the same payload as JSON on stdout |
+| a long-lived host | one `clew-mcp` process: MCP is JSON-RPC 2.0 over stdio |
+
+What the export leaves out is the MCP **boundary**, not any of the answer: no byte budget, no
+default neighbour cap, and no `target`/`staleness` stamps — an export caller names its database
+and checks freshness with `read_build_signature`. Every export payload carries `wire_version`.
+
+`clew query` exits 0 with the payload on stdout, 1 when there is no index (stdout stays empty),
+and 2 when the request is refused (the reason on stderr).
+
 ## What semver covers
 
 **Covered** — a breaking change here means a major bump:
 
-- the `clew` CLI verbs and their flags (`init`, `propose`, `export`, and the
-  build invocation)
+- the `clew` CLI verbs and their flags (`init`, `propose`, `export`, `query`, and
+  the build invocation)
 - the MCP **tool names and their wire keys** — a consumer reads `edge_class`,
-  `confidence`, `source` and friends by name
-- `clew.query`'s public functions and the dataclasses they return
+  `confidence`, `source` and friends by name. The keys are listed in
+  [`docs/wire-keys.json`](wire-keys.json), generated from the reply dataclasses; a
+  test fails when one is renamed or removed
+- `clew.query`'s public functions and the dataclasses they return, including the
+  export API (`export_dossier`, `export_search`, `WIRE_VERSION`) — see
+  [Programmatic use](#programmatic-use)
 
 **Not covered**, and deliberately so:
 

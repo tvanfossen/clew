@@ -358,7 +358,8 @@ requirements:
       clew/query/wire_manifest.py, docs/wire-keys.json. tests/test_export.py (parity over every
       name in the rich fixture, every corpus, batches, the manifest). scripts/export_parity.py
       measured 335/335 agreeing on each of the four 1.3.0-final run indexes (mattermost, mbedtls,
-      self, entropic; 300 sampled names + 35 corpus queries each), 2026-11-13.
+      self, entropic; 300 sampled names + 35 corpus queries each), 2026-11-13. `clew query`
+      (clew/query_command.py) prints the same payloads as JSON; tests/test_query_cli.py.
   REQ-DDB-SCHEMA-013:
     subsystem: schema
     name: Kconfig structure tables, created independently of the gating table
