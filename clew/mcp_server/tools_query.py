@@ -51,6 +51,7 @@ from ..query.payload import (  # noqa: F401 — re-bound here: tests and callers
     _hoist_build_wide,
     _kind_limitation_clause,
     _refusal_note,
+    compact_docs,
     compact_neighbours,
 )
 from ..query.recovery import recovery_hint
@@ -781,7 +782,8 @@ WIRE_COMPACT = "compact"
 ## @brief Apply the compact neighbour shape when the server was asked for it.
 ## @param doss A finished dossier payload, or None.
 ## @return The same payload, compacted when `CLEW_WIRE=compact`.
-## @version 1
+## v2 (1.3.9): also serves a docstring the body already carries once (`compact_docs`).
+## @version 2
 ## @req REQ-DDB-QUERY-014
 def _wire_shape(doss: dict[str, Any] | None) -> dict[str, Any] | None:
     """AFTER THE BUDGET AND THE CAP, because compaction only ever shrinks a payload: the trimmers
@@ -791,13 +793,13 @@ def _wire_shape(doss: dict[str, Any] | None) -> dict[str, Any] | None:
 
     @brief Opt-in compaction at the MCP boundary.
     @return The payload.
-    @version 1
+    @version 2
     """
     import os
 
     if doss is None or os.environ.get(WIRE_ENV) != WIRE_COMPACT:
         return doss
-    return compact_neighbours(doss)
+    return compact_docs(compact_neighbours(doss))
 
 
 ## @brief Trim a serialized dossier's nested lists to the response budget.

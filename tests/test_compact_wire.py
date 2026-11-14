@@ -169,3 +169,41 @@ def test_the_plugin_opts_into_the_compact_shape() -> None:
         (Path(__file__).parent.parent / ".claude-plugin" / "plugin.json").read_text()
     )
     assert manifest["mcpServers"]["clew"]["env"][WIRE_ENV] == WIRE_COMPACT
+
+
+_DOC = "Fetch the widget by id. Returns the cached widget when present, else loads it."
+
+
+def test_a_docstring_already_in_the_body_is_served_once() -> None:
+    """1.3.9. A Python docstring sits INSIDE the body excerpt, and doxygen serves the same text
+    again as `detail` — measured at 14.7% of this repository's dossier bytes. In the compact shape
+    `detail` is dropped when the body already carries it, and `detail_in_body: true` says so, so
+    an absent `detail` is never read as "undocumented".
+
+    @brief compact_docs drops a detail the body repeats, and marks it.
+    @return None.
+    @version 1
+    """
+    from clew.query.payload import compact_docs
+
+    payload = {
+        "brief": "Fetch the widget.",
+        "detail": _DOC,
+        "body": {"lines": ["def fetch(id):", f'    """{_DOC}"""', "    return cache[id]"]},
+    }
+    out = compact_docs(copy.deepcopy(payload))
+    assert "detail" not in out and out["detail_in_body"] is True
+    assert out["brief"] == payload["brief"]
+
+
+def test_a_detail_the_body_does_not_carry_is_kept() -> None:
+    """@brief Doc text outside the body (a C comment above it), or no body, keeps `detail`.
+    @return None.
+    @version 1
+    """
+    from clew.query.payload import compact_docs
+
+    elsewhere = {"detail": _DOC, "body": {"lines": ["int fetch(int id) {", "  return 0;", "}"]}}
+    assert compact_docs(copy.deepcopy(elsewhere)) == elsewhere
+    bodiless = {"detail": _DOC}
+    assert compact_docs(copy.deepcopy(bodiless)) == bodiless

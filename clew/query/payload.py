@@ -17,6 +17,7 @@ The byte budget, the neighbour cap and the server stamps stay in `tools_query`.
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -853,3 +854,40 @@ def _grouped(rows: list[Any], defaults: dict[str, Any]) -> list[dict[str, Any]]:
 
 ## Sentinel: a field with no default never equals a row value.
 _MISSING = object()
+
+
+## How much of `detail`'s wording the body must already carry for the compact shape to drop it.
+## Word overlap rather than string equality, because doxygen re-renders a docstring (tags,
+## whitespace) and an exact match would almost never fire. 0.9 measured: 14.7% of this
+## repository's dossier bytes are a Python docstring served twice; under 1% elsewhere.
+_DOC_OVERLAP = 0.9
+_WORD = re.compile(r"[a-z0-9_]{3,}")
+
+
+## @brief Drop a `detail` the body excerpt already carries, and say so.
+## @param payload A flat dossier payload; mutated and returned.
+## @return The payload.
+## @version 1
+## @req REQ-DDB-QUERY-014
+def compact_docs(payload: dict[str, Any]) -> dict[str, Any]:
+    """1.3.9, COMPACT SHAPE ONLY (`detail` is a semver-covered key). A Python docstring sits inside
+    the body excerpt and doxygen serves it again as `detail`. When at least `_DOC_OVERLAP` of
+    detail's words are in the body lines, `detail` is removed and `detail_in_body: true` added —
+    the marker is what keeps an absent `detail` from reading as "undocumented". `brief` stays:
+    it is short, and it is what a reader scans first.
+
+    @brief Serve a docstring once.
+    @return The payload.
+    @version 1
+    """
+    detail = payload.get("detail")
+    body = payload.get("body")
+    lines = body.get("lines") if isinstance(body, dict) else None
+    if not isinstance(detail, str) or not detail or not lines:
+        return payload
+    words = _WORD.findall(detail.lower())
+    carried = set(_WORD.findall(" ".join(lines).lower()))
+    if words and sum(w in carried for w in words) / len(words) >= _DOC_OVERLAP:
+        payload.pop("detail")
+        payload["detail_in_body"] = True
+    return payload

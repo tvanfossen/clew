@@ -73,6 +73,8 @@ ENVELOPE_KEYS: tuple[str, ...] = (
     ## 1.3.7, opt-in compact shape: a neighbour list's groups and the reply's shared values.
     "rows",
     "edge_defaults",
+    ## 1.3.9, compact shape: `detail` dropped because the body excerpt already carries it.
+    "detail_in_body",
 )
 
 
