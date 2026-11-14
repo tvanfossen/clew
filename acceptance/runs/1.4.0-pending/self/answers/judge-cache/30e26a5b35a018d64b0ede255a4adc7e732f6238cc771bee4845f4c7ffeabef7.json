@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer gives a \"definitive for the searched set\" grade and several \"not definitive\" grades. It never names a grade that is definitive for a reason other than absence, and the `exclude` row says only that a zero is \"a choice, not a finding\"."
+}

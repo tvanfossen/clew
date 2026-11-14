@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Compile time (no runtime cost):** MBEDTLS_PLATFORM_MEMORY, MBEDTLS_PLATFORM_CALLOC_MACRO = my_calloc, MBEDTLS_PLATFORM_FREE_MACRO = my_free\" and \"**Runtime:** define only `MBEDTLS_PLATFORM_MEMORY`, then call early... `mbedtls_platform_set_calloc_free(my_calloc, my_free);`\"\nVERDICT: MISS\nWHY: The answer distinguishes the compile-time macro pair from the runtime function-pointer setter, but it never says they are mutually exclusive. The closest it gets is the table row where the runtime path applies \"only\" when the macros are not defined, which implies exclusivity without stating it."
+}

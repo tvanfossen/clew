@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"the permission lists are consulted at two points: an allow lookup inside the approval step, and a deny lookup inside `ServerManager::execute`\"\nVERDICT: MISS\nWHY: The answer says the allow list is also consulted (in the approval step) and describes several other checks before execution. That contradicts the claim that DENY is the only list that blocks execution."
+}

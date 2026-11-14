@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 14660,
+  "stop_reason": "end_turn",
+  "session_id": "ca095983-66f7-4e2d-932d-cec59ed810ed",
+  "total_cost_usd": 0.011272879999999999,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 40672,
+    "cache_read_input_tokens": 198248,
+    "output_tokens": 2310,
+    "output_tokens_details": {
+      "thinking_tokens": 506
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 40672,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1255,
+        "cache_read_input_tokens": 55530,
+        "cache_creation_input_tokens": 2457,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2457
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 2310,
+      "cacheReadInputTokens": 198248,
+      "cacheCreationInputTokens": 40672,
+      "webSearchRequests": 0,
+      "costUSD": 0.011272879999999999,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 506,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 40672,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 8,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "Clew has three ways to tell it how to index a repository, and a fixed rule for when they conflict. I answered from the index alone, so the details below come from docstrings and tests, not from reading the source.\n\n**The ways to say so**\n\n1. **Built-in defaults.** Clew assumes nothing repo-specific. These are the baseline when nothing else is stated.\n2. **Declaration file: `<repo>/.clew.yaml`.** This is the repo's standing statement, found from the repo root. It is the route that works through the MCP server, which passes no CLI flags. Each top-level section mirrors a standalone manifest format, so a repo can move an existing file's contents in unchanged. Sections include `shared_key_patterns`, `thread_patterns`, `mqtt_dispatch`, `dispatch`, `preprocessor`, `kconfig`, `requirements`, `locks`, `doxyfile`, `sub_indexes`, and others. The `guard:` section is the gate's config and lives in the same file. The index ignores it.\n3. **Explicit statements at call time.** These are CLI flags such as `--shared-key-patterns` or `--doxyfile`, or, for an embedding caller, one structured `options` argument to `build_index`/`build_or_refresh`. The option names are the same as the declaration section names, with one documented alias, `predefined`. `options` can also carry an inline document instead of a path.\n\nSome things are deliberately not declarations. `--scope`, `--index-cache` and `--rebuild` describe one run, not the repository, so they have no section.\n\n**When they disagree**\n\n- **Explicit beats declared.** A flag or `options` value overrides the `.clew.yaml` section for that build. The file is the standing statement and the flag is a deliberate one-off. An empty stated value (`{}`) withdraws the statement and falls back to the declaration.\n- **Validation is all-or-nothing.** `apply_options` checks every entry before assigning any of them, so one bad entry leaves the settings untouched. It does not half-apply the policy.\n- **Unknown section names are refused.** A misspelled top-level key fails and names the probable cause. Keys with an `x-` prefix are tolerated and ignored. A malformed declaration degrades to defaults.\n\n**The general rule (five tiers)**\n\nThe formal precedence lives in `clew/tiers.py`:\n\n| Tier | Source | Combines by |\n|---|---|---|\n| 1 | CLI flag / `options` | replaces the layer below |\n| 2 | `.clew.yaml` | replaces |\n| 3 | Facts someone already wrote, such as a Doxyfile's aliases or predefined macros | accumulates |\n| 4 | Known-ecosystem signatures | accumulates |\n| 5 | Name-pattern heuristics, the floor | replaces |\n\nThe resolved set is `(tier1 or tier2 or tier5) \u222a tier3 \u222a tier4`. A stated value displaces the guesses, but it cannot remove facts the repo has already recorded. The module's summary is \"you can correct our guesses; you cannot un-discover a fact.\"\n\nThe point of this is that an explicit value can't silently drop something. Earlier, passing `--entry-patterns` dropped `main` and nothing reported it. Under this rule, `main` survives whatever a user states.",
+  "ttft_ms": 1400,
+  "type": "result",
+  "duration_ms": 16085,
+  "uuid": "c38e828e-47be-49b5-833e-a880fef1a337",
+  "ttft_stream_ms": 1053,
+  "time_to_request_ms": 76,
+  "first_content_frame_ms": 1053,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

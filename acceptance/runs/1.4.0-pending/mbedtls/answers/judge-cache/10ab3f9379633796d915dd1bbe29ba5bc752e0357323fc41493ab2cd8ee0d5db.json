@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `programs/ssl/ssl_server2.c:8` | Blanket define before any include | The whole translation unit can touch private fields. ... `programs/ssl/ssl_client2.c:8` | Same blanket define\nVERDICT: HIT\nWHY: The answer states that the example programs ssl_server2.c and ssl_client2.c define MBEDTLS_ALLOW_PRIVATE_ACCESS themselves to reach private fields, and it names the coupling to internals."
+}

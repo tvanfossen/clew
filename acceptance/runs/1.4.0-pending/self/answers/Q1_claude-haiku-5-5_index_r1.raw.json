@@ -1,0 +1,110 @@
+{
+  "duration_api_ms": 25622,
+  "stop_reason": "end_turn",
+  "session_id": "8bac16da-b3ed-41b9-a743-8943b40f1297",
+  "total_cost_usd": 0.01404334,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 45284,
+    "cache_read_input_tokens": 262984,
+    "output_tokens": 4711,
+    "output_tokens_details": {
+      "thinking_tokens": 2171
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 45284,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3238,
+        "cache_read_input_tokens": 60951,
+        "cache_creation_input_tokens": 3210,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 3210
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 4711,
+      "cacheReadInputTokens": 262984,
+      "cacheCreationInputTokens": 45284,
+      "webSearchRequests": 0,
+      "costUSD": 0.01404334,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2171,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 45284,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [
+    {
+      "tool_name": "mcp__clew__propose_declaration",
+      "tool_use_id": "toolu_01MyraKAzd2SnG18MdWTGj2M",
+      "tool_input": {
+        "ignore_declaration": true
+      }
+    }
+  ],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 10,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** the index's file set is decided in `clew/scope.py`. A declared `index_scope` in `.clew.yaml` sets the roots, and if none is usable the whole repository is the scope. Which files then produce rows depends on each harvester's extension list. Files in scope that no harvester claims are reported as \"not indexed,\" not dropped silently.\n\n```\n.clew.yaml (repo root only)\n   \u2502  index_scope: present and usable?\n   \u251c\u2500 yes \u2500\u2500\u25ba roots (repo-relative, must exist) + excludes  \u2500\u2500\u2510\n   \u2514\u2500 no  \u2500\u2500\u25ba whole_repo_scope: root = repo, excludes = \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2524\n              git-ignored paths + dot/cache dirs               \u2502\n                                                               \u25bc\n                                   _fold_scope_into_args \u2192 build INPUT/EXCLUDE\n                                   (replaces the Doxyfile's INPUT)\n                                                               \u25bc\n                       per-harvester extension tables decide which in-scope files get rows\n                                                               \u25bc\n                       in-scope files with no rows \u2192 \"not_indexed\" (ext=count)\n```\n\n**1. The declaration.** `derive_scope` (`clew/scope.py:639`) first checks for a stated scope from an MCP caller, then `<root>/.clew.yaml` via `load_declaration_located` (`clew/declaration.py:299`). Only the repo root is read. The `index_scope:` section takes `roots` and `excludes`. Roots are repo-relative. The rules:\n- `roots` is required; `excludes` alone does nothing.\n- A root that does not exist is dropped with a warning.\n- An absolute or `../` entry that escapes the repo is refused (`_existing_paths`).\n- An unknown key inside `index_scope` is refused by name, and an unknown top-level section fails the build. The `guard:` section is stripped out and does not affect the index.\n\n**2. Nothing declared.** A missing `.clew.yaml`, or one with no `index_scope:`, falls through to `whole_repo_scope` (`scope.py:683`). The scope's reason string says which case applied: \"no `.clew.yaml` was found at \u2026\" or \"exists but carries no `index_scope`.\" A declaration that is present but unusable also falls through, with the rejection reason carried into the reason string. `declared_scope_rejection` lets the CLI and MCP refresh refuse such a build instead of absorbing it. The old Doxyfile fallback is gone (gh#333). A Doxyfile still supplies ALIASES and PREDEFINED, but not INPUT.\n\n**3. What the whole-repo tier includes and excludes.**\n- Included: the entire tree, including nested git clones. `external.py` tags their rows afterwards so they stay distinguishable.\n- Excluded, in two parts:\n  - Anything git ignores, via `git ls-files --others --ignored --exclude-standard --directory`, run through `git_argv`/`git_env` so a target's own `.git/config` cannot execute code. This is applied on both sides of every nested-repo boundary.\n  - Dot and cache directories, found by walking the tree (`_pruned_dirs`, `scope.py:908`). The walk stops at nested git trees and at a depth limit, and the depth-limited directories are recorded.\n\nThis repo's status shows the excludes as `.git, .claude-plugin, .github`, which is the dot-directory rule at work.\n\n**4. Folding into the build.** `_fold_scope_into_args` (`clew/cli.py:739`) writes the roots into INPUT, the excludes into EXCLUDE, and sets `replace_input`. Every tier goes through this one function.\n\n**5. Which in-scope files get rows.** This is decided by extension, per harvester, not by the scope. The tables are `harvest._CPP_EXTS`, `_PY_EXTS`, `_TS_EXTS`, `synth.SYNTH_EXTS`, doxygen's `.c`/`.h`, and rustdoc's `.rs`. A file in scope with no claiming extension yields no rows. The build records those file types as `not_indexed` (`_not_indexed_scope`, `clew/cli.py`), and an extensionless file is named \"(no extension).\" That record is what stops an empty answer being read as absence.\n\n**This repo's current state** (from `index(action='status')`):\n- No `index_scope` is declared, so the whole repository is the scope.\n- 435 files are in scope and 397 are indexed.\n- 14 files are listed as not indexed by extension: 3 extensionless, 3 `.csv`, 2 `.rs`, 2 `.toml`, and 1 each of `.jsonl`, `.lock`, `.motor` and `.sql`.\n\nTwo things I did not settle:\n- The 14 listed files account for only part of the 38-file gap between 435 and 397, and I did not trace the remainder.\n- Two `.rs` files are listed as not indexed even though rustdoc claims `.rs`. I did not find out why.\n\nI also could not run `propose_declaration`, because its permission was not granted, so I did not check what a proposed declaration would change. `load_declaration_located` reported a line-anchor mismatch against the build, so its body may be slightly out of date; the behaviour I describe above comes from its docstring and the tests named in the index.",
+  "ttft_ms": 1669,
+  "type": "result",
+  "duration_ms": 27341,
+  "uuid": "be166598-2e0b-44cc-8592-1c7921aa961a",
+  "ttft_stream_ms": 1122,
+  "time_to_request_ms": 74,
+  "first_content_frame_ms": 1122,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

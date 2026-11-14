@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Writes are refused on a code-stale process.** `stale_code_refusal()` returns a refusal message that `force` does not override. Reads still work, and read data is live.\n\nVERDICT: MISS\n\nWHY: The answer says the write path refuses and that force does not override it, but it never states that the refusal is placed ahead of the build decision, which is the mechanism the item requires."
+}

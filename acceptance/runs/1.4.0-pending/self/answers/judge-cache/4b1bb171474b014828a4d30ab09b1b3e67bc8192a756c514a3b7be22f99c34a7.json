@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says the fallback carries a reason/source explaining which scope was used. It only mentions `DerivedScope(source=clew-declaration)` and a warning when not a git repo, which doesn't convey a reason field that prevents silent guessing."
+}

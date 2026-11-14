@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**\"Not definitive\" wording** is a deliberate downgrade. It says the search is not an error and not a malformed call, and that the caller should look elsewhere before concluding absence.\"\nVERDICT: MISS\nWHY: The answer describes multiple downgrade cases (unread corpus, no file-docs corpus) and never says there is exactly one absent-corpus downgrade or that limiting it to one is deliberate to avoid blanket hedging."
+}

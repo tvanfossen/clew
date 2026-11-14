@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 29751,
+  "stop_reason": "end_turn",
+  "session_id": "10733f0c-d150-41a6-b09c-f8057880205b",
+  "total_cost_usd": 0.0090106,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 19536,
+    "cache_read_input_tokens": 220240,
+    "output_tokens": 5800,
+    "output_tokens_details": {
+      "thinking_tokens": 2872
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 19536,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2458,
+        "cache_read_input_tokens": 52755,
+        "cache_creation_input_tokens": 1204,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1204
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 5800,
+      "cacheReadInputTokens": 220240,
+      "cacheCreationInputTokens": 19536,
+      "webSearchRequests": 0,
+      "costUSD": 0.0090106,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2872,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 19536,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 10,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**What it does.** `MBEDTLS_PRIVATE(member)` is a compile-time rename, defined in `include/mbedtls/private_access.h:14-18`:\n\n- Without `MBEDTLS_ALLOW_PRIVATE_ACCESS`, `MBEDTLS_PRIVATE(foo)` expands to `private_foo`. The struct declares the field as `private_foo`, so application code that writes `ctx->foo` fails to compile with \"no member named foo\".\n- With the define, it expands to `foo` and the name is visible again.\n\nIt is a hard compile break, not a warning, and it is not access control. Anyone can define the macro. The purpose is to say \"this is not API\" and to let maintainers rename, reorder or remove fields in a minor release without it counting as an API break. `docs/3.0-migration-guide.md:74` says direct access \"is likely to break in a future minor version\", and the `ssl.h` note at lines 5159-5169 calls direct access to `ssl->state` deprecated.\n\n**Who it is for.** Mostly the library's own code and a few programs. Applications are the ones who get the rename.\n\n**Where the opt-out is turned on:**\n\n| Location | Effect |\n|---|---|\n| `library/common.h:132` | Defines the macro for every library TU that includes `common.h`. The three library `.c` files that use `MBEDTLS_PRIVATE` (`ecdh.c`, `md.c`, `x509_crt.c`) all include it first, so their member accesses resolve to real names. |\n| `programs/ssl/ssl_server2.c:8` and `ssl_client2.c:8` | Defined before `ssl_test_lib.h`, so the test servers and clients read and write real `ssl` and config fields directly. |\n\nFor code in those places, the consequence is that the code is coupled to the real field names. A rename inside `library/` is fine, because the same TU sees the new name. But the two SSL test programs break if the library changes what those fields mean, and that is the coupling the `ssl.h` warning is about.\n\n**Where it is not turned on, and what happens there:** The test suites (`tests/suites/test_suite_x509write.function:763`, `test_suite_psa_crypto.function:1329`) and `programs/ssl/ssl_context_info.c:553-568` write `MBEDTLS_PRIVATE(...)` explicitly without the opt-out. That is the documented \"last resort\". It works because the header and the usage expand in the same TU, so both resolve to `private_flags` or `flags`, consistently.\n\nCaveat: the three library files depend on `common.h` coming before any header that expands the macro. I checked that they include it first. I did not check every library TU that includes the internal headers, so I can't say the ordering holds everywhere.",
+  "ttft_ms": 1451,
+  "type": "result",
+  "duration_ms": 30236,
+  "uuid": "77cd4151-340b-4679-bf0f-7d8b8ba92c75",
+  "ttft_stream_ms": 1112,
+  "time_to_request_ms": 93,
+  "first_content_frame_ms": 1112,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

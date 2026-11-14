@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `InferenceBackend::count_tokens` | `0` | `backend.cpp:496-502` ... \"C API `entropic_inference_count_tokens` | `0`, also on null handle, null text, or exception\" ... \"Count and prompt-size callers get `0` and cannot tell it from a real zero.\"\nVERDICT: HIT\nWHY: The answer states that the token-counting path returns 0 on failed tokenization, indistinguishable from a real zero, rather than signalling an error."
+}

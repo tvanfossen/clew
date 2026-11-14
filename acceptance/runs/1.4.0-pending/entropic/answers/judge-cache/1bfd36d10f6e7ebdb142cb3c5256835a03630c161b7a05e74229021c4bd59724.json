@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The empty vector is indistinguishable from a legitimate empty result. With `add_special=false` and `\"\"`, `{}` is correct. No error code or flag reaches the caller.\" and \"Most callers do not check for it.\"\nVERDICT: HIT\nWHY: The answer states failed tokenization returns `{}` indistinguishable from a legitimately empty result, and that most callers do not check for it. The item says no caller checks. The answer notes the speculative/MTP paths do check, but only for a size under 2 tokens, so this is a minor qualification."
+}

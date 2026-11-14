@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `external_bridge.cpp:796` ... Accept loop ... Joined in `stop()` | `external_bridge.cpp:945` | One thread per MCP client ... `stop()` shuts down each fd, then joins\nVERDICT: HIT\nWHY: The table lists an accept loop thread and a separate per-MCP-client thread in the external bridge, which is the two-level structure."
+}

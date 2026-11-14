@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 15821,
+  "stop_reason": "end_turn",
+  "session_id": "bfdb628a-772c-469a-9aa2-1badc7aa037d",
+  "total_cost_usd": 0.00318626,
+  "usage": {
+    "input_tokens": 6,
+    "cache_creation_input_tokens": 3635,
+    "cache_read_input_tokens": 117066,
+    "output_tokens": 2576,
+    "output_tokens_details": {
+      "thinking_tokens": 1340
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 3635,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2164,
+        "cache_read_input_tokens": 40514,
+        "cache_creation_input_tokens": 1397,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1397
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 6,
+      "outputTokens": 2576,
+      "cacheReadInputTokens": 117066,
+      "cacheCreationInputTokens": 3635,
+      "webSearchRequests": 0,
+      "costUSD": 0.00318626,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1340,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 3635,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 4,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The answer is a list of **enclosing functions that call `git_argv`**, grouped by file, not a list of call sites. For `git_argv` (`clew/gitenv.py:89`) it returned six callers:\n\n- `_detect_git_version` (`clew/guard/main.py`)\n- `_git_ls_files` (`clew/guard/tags.py`)\n- `_gitignored_paths` and `_is_dependency_of_parent` (`clew/scope.py`)\n- `run_git` (`clew/guard/git.py`)\n- `tracked_files` (`clew/propose/notindexed.py`)\n- `test_the_disarmed_key_list_reaches_the_argv` (`tests/test_security_surface.py`)\n\nAround that list it also gives the function's body and `@version`, its requirement (`REQ-DDB-CONFIG-001`), covering tests, liveness, and any threads that reach it. Each caller row carries only a name and file, with no line numbers, so the exact call sites still need the source.\n\nReading that as a list of call sites would be wrong in these ways:\n\n- **Granularity.** A caller is a function, not a line. A function that calls `git_argv` three times appears once, and you need to open its body to see the sites.\n- **Tests are callers too.** The last row is a test. \"Who calls this in production\" means filtering those out yourself.\n- **Empty or short is not \"none\".** The index reports `callers_unresolved` and per-file `unresolved_files`. Here `callers_unresolved` is 0, but the status shows 6 unresolved files and 14 files outside the index. A caller in one of those is simply absent. The same goes for indirect calls the parser cannot resolve, such as dynamic dispatch or string-named lookups. An absent caller means \"not found by the parser\", not \"does not exist\".\n- **Callees are empty here, and that is a statement about the index.** `callees: []` means no indexed callee. `git_argv` calls `str`, `list.extend` and `f-string` formatting, none of which are indexed. Don't read it as \"calls nothing\".\n- **Threads are inference.** The `thread` row (`_first_build_worker`, reached through `_await_first_build`) is marked `confidence: medium`. It says the function is reachable from a spawned thread, not that it is called on that thread.\n- **`covering_tests` looks wrong on its face.** For `git_argv` it lists `test_mqtt_dispatch_accepts_an_inline_document_not_only_a_path`, which has nothing to do with git argv construction. Treat that field as a weak association and check it by hand before relying on it as \"the tests that exercise this function\".\n- **Requirements are mentions.** `REQ-DDB-CONFIG-001` is the requirement the function is linked to. It does not prove the function implements it.\n\nSo the answer is a good map for finding where to look. To answer \"what does the code do at each call,\" open the callers' bodies, and check the index's coverage numbers before concluding that nothing else calls it.",
+  "ttft_ms": 2012,
+  "type": "result",
+  "duration_ms": 16275,
+  "uuid": "a6bccdad-19f5-40c6-a33f-fa2eb1bd4c8b",
+  "ttft_stream_ms": 1126,
+  "time_to_request_ms": 72,
+  "first_content_frame_ms": 1126,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

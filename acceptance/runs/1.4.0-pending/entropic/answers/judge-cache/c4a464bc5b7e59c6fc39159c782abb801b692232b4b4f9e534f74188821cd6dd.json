@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Python reaches the engine through a flat, auto-generated `ctypes` binding over `librentropic.so`. There is no C++ object or pybind layer.\nVERDICT: HIT\nWHY: The answer names ctypes over librentropic.so as the mechanism and explicitly says there is no pybind or compiled extension layer."
+}

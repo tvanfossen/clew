@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_ct_compiler_opaque` becomes `x ^ mbedtls_ct_zero`, where `mbedtls_ct_zero` is a global `volatile` zero (`constant_time.c:23-30`).\nVERDICT: HIT\nWHY: The answer says the same function, `mbedtls_ct_compiler_opaque`, falls back to XOR-ing with `mbedtls_ct_zero`, a volatile global zero, when the assembly path is unavailable. It also names the global."
+}

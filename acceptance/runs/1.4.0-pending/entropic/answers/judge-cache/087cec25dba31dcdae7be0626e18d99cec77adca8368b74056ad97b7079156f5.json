@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Bindings are generated.** `scripts/gen_bindings.py` parses `entropic.h` and the type headers and emits `_bindings.py` and `_bindings_manifest.py`. CLAUDE.md design rule 15 is the source for this. Hand edits will drift.\nVERDICT: HIT\nWHY: The answer explicitly says the bindings are generated from the C header by scripts/gen_bindings.py and that hand edits will drift."
+}

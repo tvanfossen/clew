@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"That method refuses to refresh when the process source does not match, because a stale process would rebuild with old pipeline logic.\" and \"Only a client restart; a rebuild cannot fix it\"\nVERDICT: MISS\nWHY: The answer covers the build-with-stale-process side but never states that reads remain current because query tools open the database per call, so the asymmetry is absent."
+}

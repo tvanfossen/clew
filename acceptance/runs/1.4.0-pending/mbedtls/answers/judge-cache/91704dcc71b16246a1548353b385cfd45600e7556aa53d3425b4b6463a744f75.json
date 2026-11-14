@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The index shows the header included by roughly 20 library files and called from many more\nVERDICT: HIT\nWHY: The answer states the header is included by roughly 20 library files and lists use across bignum, RSA, cipher, TLS and PSA modules, so it is not confined to one or two."
+}

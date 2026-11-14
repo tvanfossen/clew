@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Auto-approve or the allow list is the only thing that skips prompting... `auto_ok = auto_approve_tools || ServerManager::is_explicitly_allowed (allow list)` ... \"Allow entries are consulted in `check_approval`. Deny entries are consulted in `ServerManager::execute`\"\nVERDICT: HIT\nWHY: The answer says the allow list only skips prompting and is consulted in check_approval (tool_executor.cpp), with is_explicitly_allowed living in ServerManager, a different file."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: operator.handleReactions({ prepareRecordsOnly: false, ... }) ... prepareRecords(transformReactionRecord) ... batchRecords() (write; body not opened)\nVERDICT: HIT\nWHY: The answer shows the reaction is stored via the operator's handleReactions, which prepares records with prepareRecords(transformReactionRecord) and writes them with batchRecords."
+}

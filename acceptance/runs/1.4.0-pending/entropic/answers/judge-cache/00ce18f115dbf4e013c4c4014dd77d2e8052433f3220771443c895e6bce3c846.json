@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The exception is the async-ask worker, which is detached and not joined on destroy.\" and \"`ExternalBridge::stop()` does not track or join async workers.\"\nVERDICT: HIT\nWHY: The answer names the async-ask worker as the one detached thread and states it has no join, so it can outlive the bridge and handle that spawned it."
+}

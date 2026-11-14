@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 30156,
+  "stop_reason": "end_turn",
+  "session_id": "2012cde7-ad0a-46ae-b599-50d8e830ee5b",
+  "total_cost_usd": 0.010228560000000001,
+  "usage": {
+    "input_tokens": 14,
+    "cache_creation_input_tokens": 23252,
+    "cache_read_input_tokens": 302026,
+    "output_tokens": 5113,
+    "output_tokens_details": {
+      "thinking_tokens": 2291
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 23252,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2938,
+        "cache_read_input_tokens": 56621,
+        "cache_creation_input_tokens": 1033,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1033
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 14,
+      "outputTokens": 5113,
+      "cacheReadInputTokens": 302026,
+      "cacheCreationInputTokens": 23252,
+      "webSearchRequests": 0,
+      "costUSD": 0.010228560000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2291,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 23252,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 10,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** the reply separates the two cases by grading the empty result, not by reporting one flat \"no rows\" sentence. Only one grade earns the strong \"definitive, do not retry\" wording. Everything else says \"not definitive\" and names what to do next. I worked from the source, since the clew MCP tools are not in my toolset here.\n\n**How the grading works** (`clew/mcp_server/emptiness.py`, `search_emptiness` and `_verdict`)\n\n| Empty because\u2026 | Reply says | Confidence in a \"no\" |\n|---|---|---|\n| One token, no hits in any searched corpus, no hits in an unread corpus, `file_docs` present | `_DEFINITIVE`: \"a definitive empty result\u2026 Do not retry\" | High, but only for the indexed fields (below) |\n| One token matches rows in a corpus `search` does not read (typedefs, enums, macros, etc.) | \"NOT DEFINITIVE \u2014 this index HOLDS matching rows\u2026\", with kinds and counts; `unsearched_corpus_hits` in the payload | None for \"not in repo\". The rows exist. |\n| Multi-token conjunction | Per-token counts (`token_hits`), naming dead tokens; \"retry without them\" or \"retry with fewer tokens\" | Low. It is a query-shape problem, not a repo fact. |\n| No `file_docs` table | `_NO_FILE_DOCS`: \"NOT definitive. Rebuild\u2026\" | None. The index could not have looked. |\n| Prose search, no `supplementary_docs` | `_NO_PROSE_CORPUS` | None |\n\nThe unread-corpus check (`clew/query/symbols.py`, `unsearched_corpora`) is derived by subtraction. It takes the kinds actually present in the database minus the kinds `search` reads. So a new kind of symbol downgrades the verdict without an edit to the wording. The tests that pin this are in `tests/test_emptiness.py`, including `test_an_absent_symbol_keeps_the_definitive_note`, which is the control against hedging every answer.\n\n**Where it looked: the scope block**\n\nEvery empty reply carries a `scope` payload (`_scope_payload`):\n- file count and scope source (whole-repo or declared),\n- the covered extensions and top-level directories, capped at 12 but checked uncapped in the grader,\n- `not_indexed` and `not_indexed_count`: file types the build walked that hold no rows, by extension (`cli._not_indexed_scope`).\n\n`not_indexed` is what separates \"outside the declared scope\" from \"this build does not index that file type\" from \"not in the repo.\" When nothing was missed, or the build did not record it, both keys are dropped rather than set to empty. The code states this as the falsy-drop rule: an empty list would claim a measurement that never happened.\n\nLayer-level absence (a layer that never ran versus one that ran empty) lives in `graph_stats.layer_states`, which reports `absent`, `empty` or `populated`. The search reply deliberately does not repeat this. A gate-layer downgrade was built and reverted (gh#393) because it would hedge nearly every reply.\n\n**Limits on the strong claim**\n\n- The single-token check is a case-insensitive substring match over symbol names, `@brief` text, macro expansions, class and file docs, and the other searched kinds. A token that appears only in function bodies or inline comments is invisible to it. The reply's own `_SEARCHED` string says \"names + @brief\", so the scope is disclosed, but the wording \"the database records none\" is broader than that.\n- The claim is only as good as the index's freshness and scope. Stale or schema-old indexes are handled separately (`test_a_schema_stale_index_withdraws_the_definitive_claim`).\n\n**Bottom line:** a single-token zero with the strong wording is good evidence that the indexed name and brief fields do not contain the token. A zero with any other wording is evidence about the query or the index, not about the repository. Check the `scope` and `not_indexed` fields before concluding \"not in the repo.\"",
+  "ttft_ms": 1966,
+  "type": "result",
+  "duration_ms": 30859,
+  "uuid": "dc21185d-ebce-4b6e-af75-da92581e95f8",
+  "ttft_stream_ms": 1220,
+  "time_to_request_ms": 136,
+  "first_content_frame_ms": 1220,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

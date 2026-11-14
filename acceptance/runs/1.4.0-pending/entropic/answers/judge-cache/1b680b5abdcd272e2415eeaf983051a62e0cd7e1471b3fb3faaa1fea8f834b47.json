@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Atomic `done` flag; captures are by pointer to the caller's frame, which outlives the join | Atomic `observer_done`; RAII `CancelFlagBridge` in `inference_c_api.cpp:419`\nVERDICT: MISS\nWHY: The answer names the cancel poller and a CancelFlagBridge but never says the thread exists to bridge an atomic into a plain int because the C ABI cannot carry an atomic."
+}

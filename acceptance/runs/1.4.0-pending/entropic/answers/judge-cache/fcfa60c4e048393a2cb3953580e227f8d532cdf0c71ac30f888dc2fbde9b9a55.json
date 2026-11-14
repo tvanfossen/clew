@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The empty vector is indistinguishable from a real empty result, so the failure is not visible to the caller except through the one error log.\nVERDICT: HIT\nWHY: The answer states failure yields an empty vector indistinguishable from a legitimate empty result, and that callers (apart from a couple of size checks) don't treat it as an error; \"no tokens.empty() guard\" and \"no caller treats that as an error\" cover the no-check part."
+}

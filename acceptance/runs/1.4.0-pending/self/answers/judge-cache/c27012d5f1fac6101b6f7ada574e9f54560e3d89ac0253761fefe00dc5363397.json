@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Doxyfile `INPUT`.** A Doxyfile still supplies ALIASES and PREDEFINED, but its INPUT is replaced. Honouring it would index only headers for a repo like mbedtls.\nVERDICT: HIT\nWHY: The answer says Doxyfile INPUT is deliberately not used and gives a reason, that honouring it would index only a documented subset (headers). It never states the contrast with repos that ship no Doxyfile getting the whole tree, but it does give the substance of the rationale."
+}

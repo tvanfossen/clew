@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Most handlers do not write directly. They go through `handleRecords` in `BaseDataOperator`\nVERDICT: MISS\nWHY: The answer says \"most\" handlers use the `handleRecords` \u2192 `batchRecords` path and lists two that write directly. It never concludes that every handler's writes inherit `batchRecords` because each mixin is constrained to `ServerDataOperatorBase`. Its caveat also says the claim was not verified for all handlers."
+}

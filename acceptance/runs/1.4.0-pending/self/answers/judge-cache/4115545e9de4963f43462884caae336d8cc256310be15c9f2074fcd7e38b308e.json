@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Clew has five ways to state a build option, ranked by tier. ... | 1, explicit | ... | 2, declared | ... | 3, target-fact | ... | 4, ecosystem | ... | 5, heuristic |\nVERDICT: HIT\nWHY: The answer lays out five named precedence tiers (explicit, declared, target-fact, ecosystem, heuristic) with resolution rules, rather than a single override."
+}

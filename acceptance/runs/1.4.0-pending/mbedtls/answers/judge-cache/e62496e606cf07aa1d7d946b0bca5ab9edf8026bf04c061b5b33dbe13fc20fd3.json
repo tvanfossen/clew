@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: About 487 references to `mbedtls_ct_*` / `MBEDTLS_CT_*` across 29 library files.\nVERDICT: HIT\nWHY: The answer states the primitives are used across 29 library files, backed by a table of many modules, so the usage is broad rather than confined to one or two. That matches the roughly twenty-module scale."
+}

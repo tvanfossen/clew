@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 25777,
+  "stop_reason": "end_turn",
+  "session_id": "e4d501d0-9b4f-4d09-b53b-f85dbf0f70ce",
+  "total_cost_usd": 0.017048030000000002,
+  "usage": {
+    "input_tokens": 14,
+    "cache_creation_input_tokens": 56437,
+    "cache_read_input_tokens": 344923,
+    "output_tokens": 4620,
+    "output_tokens_details": {
+      "thinking_tokens": 1508
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 56437,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2353,
+        "cache_read_input_tokens": 70992,
+        "cache_creation_input_tokens": 1637,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1637
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 14,
+      "outputTokens": 4620,
+      "cacheReadInputTokens": 344923,
+      "cacheCreationInputTokens": 56437,
+      "webSearchRequests": 0,
+      "costUSD": 0.017048030000000002,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1508,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 56437,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 11,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** `ServerDataOperator` is a mixin composition. Most handlers live next to it in `handlers/`, but the Agents, Boards and Playbooks handlers are defined in their product folders. Every handler's write goes through one method, `BaseDataOperator.batchRecords`, which wraps `database.write` (`app/database/operator/base_data_operator/index.ts:191-211`). `AppDataOperator` shares that base, so it uses the same write path.\n\n**How the class is built**\n\n- `app/database/operator/server_data_operator/index.ts:40-59` declares `class ServerDataOperator extends mix(ServerDataOperatorBase).with(...)`. The base is `ServerDataOperatorBase`, and 13 mixins are applied in order: Agents, Boards, Category, Channel, CustomProfile, Group, Playbook, Post, Properties, Team, Thread, TeamThreadsSync, User.\n- `mix` (`app/utils/mix.ts`) is a small reducer: `mixins.reduce((c, m) => m(c), superclass)`. Each mixin is a function that takes a base class and returns a subclass.\n- The `interface ServerDataOperator extends \u2026Mix {}` block at lines 23-38 merges the typed `*HandlerMix` interfaces into the class, so callers see the method signatures.\n- The constructor (line 55) calls `super(database)` and stores `serverUrl`. `DatabaseManager` creates instances at `app/database/manager/index.ts:184`.\n\n**Where the handlers are defined**\n\n| Handler | Location |\n|---|---|\n| `ServerDataOperatorBase` (base) | `server_data_operator/handlers/index.ts` (same folder) |\n| Category, Channel, CustomProfile, Group, Post, Properties, Team, TeamThreadsSync, Thread, User | `server_data_operator/handlers/<name>.ts` (same folder) |\n| `AgentsHandler` | `app/products/agents/database/operators/handlers/index.ts` |\n| `BoardsHandler` | `app/products/boards/database/operators/handlers/index.ts` |\n| `PlaybookHandler` | `app/products/playbooks/database/operators/handlers/index.ts` |\n\nThe product files are reached through the `@agents`, `@boards` and `@playbooks` path aliases (`tsconfig.json`, `babel.config.js`). Each product handler is a `Constructor<ServerDataOperatorBase>` mixin, the same pattern as the in-folder handlers.\n\n**What performs the database write**\n\nA handler does not write directly in the normal case. The chain is:\n\n1. A handler method (e.g. `AgentsHandler.handleAIBots`, `agents/.../handlers/index.ts:43`) builds records with `this.handleRecords(...)`.\n2. `BaseDataOperator.handleRecords` (`base_data_operator/index.ts:224`) calls `processRecords` to split the raw input into create, update and delete sets, then calls `prepareRecords` to run the transformer per record.\n3. If `prepareRecordsOnly` is false, it calls `this.batchRecords(models, description)`.\n4. `batchRecords` runs `this.database.write(async (writer) => writer.batch(...models), description)`. On error it logs, emits `Events.DATABASE_CORRUPTION_DETECTED` if the error is a corruption error, and rethrows only when `propagateError` is set.\n\nSome handlers skip this and call `database.write` themselves. Examples are `post.ts:516` and `thread.ts:74`. Those are exceptions to the single-path rule.\n\n**What else shares it**\n\n- **`BaseDataOperator`** is the shared parent. `ServerDataOperatorBase` extends it, and so does `AppDataOperator` (`app/database/operator/app_data_operator/index.ts:15`). Both inherit `batchRecords`, `handleRecords`, `prepareRecords` and `processRecords`, so the app database and the per-server databases share one write path.\n- **Within the server operator**, `ServerDataOperatorBase.execute`, `handleFiles` and `handleReactions` also end in `batchRecords`. Every product handler reaches it through `this`.\n- **Callers outside the operator:** the index shows about 232 unresolved callers of `batchRecords` and no direct edges from the cleanup actions. I did not verify those, so I am not claiming they reach the operator.",
+  "ttft_ms": 1844,
+  "type": "result",
+  "duration_ms": 28690,
+  "uuid": "8f399501-dd92-41f9-a268-54cd1183e7b7",
+  "ttft_stream_ms": 1628,
+  "time_to_request_ms": 129,
+  "first_content_frame_ms": 1628,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

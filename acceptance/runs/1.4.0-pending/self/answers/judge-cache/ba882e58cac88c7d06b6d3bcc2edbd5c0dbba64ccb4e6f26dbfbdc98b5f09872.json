@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Tier 3 and 4 facts: these survive every stated tier.\" and \"Where two disagree, a stated value replaces the defaults for that option and the rest accumulate.\"; table: tiers 1-2 \"Replaces the stated layer\", tiers 3-4 \"Accumulates\"\nVERDICT: HIT\nWHY: The answer states that stated tiers replace one another while discovered layers (Doxyfile facts, manifests, ecosystem signatures) accumulate and survive every stated tier."
+}

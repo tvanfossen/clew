@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **`mbedtls_ct_compiler_opaque(x)`** (`constant_time_impl.h:85`). With asm, it is an empty `asm volatile(\"\" : [x] \"+r\"(x))`, so the compiler cannot prove the value.\nVERDICT: HIT\nWHY: The answer names mbedtls_ct_compiler_opaque as the mechanism that stops the compiler from proving a value, and places it in constant_time_impl.h."
+}

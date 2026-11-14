@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 13266,
+  "stop_reason": "end_turn",
+  "session_id": "d407ba49-201a-48c8-adf6-41d32d229364",
+  "total_cost_usd": 0.00214862,
+  "usage": {
+    "input_tokens": 4,
+    "cache_creation_input_tokens": 1531,
+    "cache_read_input_tokens": 76552,
+    "output_tokens": 2153,
+    "output_tokens_details": {
+      "thinking_tokens": 1068
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 1531,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1915,
+        "cache_read_input_tokens": 38276,
+        "cache_creation_input_tokens": 1531,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1531
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 4,
+      "outputTokens": 2153,
+      "cacheReadInputTokens": 76552,
+      "cacheCreationInputTokens": 1531,
+      "webSearchRequests": 0,
+      "costUSD": 0.00214862,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1068,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 1531,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 2,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The answer for `git_argv` is a set of **caller names grouped by file**, not call sites. Here is what it contains:\n\n- **Callers at depth 1:** six names across six files, including `_detect_git_version` (guard/main.py), `_git_ls_files` (guard/tags.py), `_gitignored_paths` and `_is_dependency_of_parent` (scope.py), `run_git` (guard/git.py), `tracked_files` (propose/notindexed.py), and a test, `test_the_disarmed_key_list_reaches_the_argv`.\n- **Provenance:** the edges are AST-resolved with `confidence: resolved` and `callers_unresolved: 0`. That field is a measurement and says the indexer found no unresolved callers.\n- **Requirement and tests:** `REQ-DDB-CONFIG-001` is attached, and one covering test is listed.\n- **Threads:** a `clew-first-build-` pthread entry, reached via `_first_build_worker`, is attached.\n\nWhat would make it wrong to read this as a list of call sites:\n\n1. **Names, not lines.** Each row is a function, not a call location. If `_gitignored_paths` calls `git_argv` three times, the answer shows one row. You cannot count invocations from it.\n\n2. **Absence is not emptiness.** A git invocation that bypasses `git_argv` will not appear as a caller. The codebase's rule is that no site builds its own argv, and `test_security_surface.py` enforces that by scanning source text, not by the call graph. So \"no other callers\" does not mean \"no unguarded git calls\". Only the test proves that, and only for the patterns it scans.\n\n3. **Static edges only.** Dynamic dispatch, `getattr`, callbacks, and calls from other languages (the shell and CMake parts of the repo) are not in the list. `callers_unresolved: 0` covers resolved edges only.\n\n4. **`callees: []` does not mean the function has no effect.** `git_argv` only builds a list. Its effect happens in whatever runs that list, which is why the caller rows matter more than the empty callee list.\n\n5. **Thread membership is reachability, not a direct call.** The `clew-first-build-` thread (medium confidence) is attached because `_first_build_worker` can reach `git_argv`. It does not mean the thread calls it directly.\n\n6. **Covering tests can be a weak link.** The listed covering test is `test_mqtt_dispatch_accepts_an_inline_document_not_only_a_path`, which has nothing obvious to do with git. Treat `covering_tests` as a heuristic lead to verify, not as proof of coverage.\n\n7. **Test callers are mixed in.** `tests/test_security_surface.py` appears alongside production callers, so you have to split them by file path yourself.\n\nThis is one dossier call on one function, so the points are about the shape of the answer rather than a survey of every symbol. To check any specific caller, `dossier` on that caller gives its verbatim body, and a grep on the caller's body shows the actual call sites and their count.",
+  "ttft_ms": 2066,
+  "type": "result",
+  "duration_ms": 13564,
+  "uuid": "61837392-cd7c-4b31-8e24-67cffa6063f7",
+  "ttft_stream_ms": 1139,
+  "time_to_request_ms": 72,
+  "first_content_frame_ms": 1139,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

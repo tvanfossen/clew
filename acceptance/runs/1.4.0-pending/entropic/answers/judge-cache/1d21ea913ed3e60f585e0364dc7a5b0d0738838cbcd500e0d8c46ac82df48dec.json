@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Without a callback, a non-allowed call is denied.\nVERDICT: MISS\nWHY: The answer says a call missing the allow list is approved if a callback is wired (notify = approve) but denied otherwise. It never concludes that a tool matching neither list simply runs, so default-allow is not stated."
+}

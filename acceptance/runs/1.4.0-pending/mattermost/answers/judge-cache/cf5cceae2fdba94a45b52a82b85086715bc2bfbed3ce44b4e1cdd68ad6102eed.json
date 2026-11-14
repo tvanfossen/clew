@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The post is written to the local database before the network call, under a `pending_post_id`, so it shows immediately. ... On error, the post is stored with `props.failed = true` and shown with an error icon.\nVERDICT: HIT\nWHY: The answer states the post is written locally before the send and kept with failed = true on error."
+}

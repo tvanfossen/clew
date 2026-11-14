@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: enable `MBEDTLS_THREADING_C` plus either `MBEDTLS_THREADING_PTHREAD` (on POSIX) or `MBEDTLS_THREADING_ALT`\nVERDICT: HIT\nWHY: The answer names MBEDTLS_THREADING_C as the gating macro and MBEDTLS_THREADING_PTHREAD as the implementation macro, and it says the threading code is compiled only under `#if defined(MBEDTLS_THREADING_C)`."
+}

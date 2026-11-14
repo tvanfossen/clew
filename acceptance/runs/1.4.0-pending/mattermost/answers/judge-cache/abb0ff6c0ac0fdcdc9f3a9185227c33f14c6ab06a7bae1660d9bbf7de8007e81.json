@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"queryReaction(database, emoji_name, post_id, user_id).fetch()   (queries/servers/reaction.ts:12)\n          if found \u2192 database.write(() => reaction[0].destroyPermanently())\" and \"It does not go through `handleReactions`, `sanitizeReactions`, or the transformer. There is no operator call\"\nVERDICT: HIT\nWHY: The answer states that removal bypasses the operator, querying the reaction and destroying it directly inside `database.write`."
+}

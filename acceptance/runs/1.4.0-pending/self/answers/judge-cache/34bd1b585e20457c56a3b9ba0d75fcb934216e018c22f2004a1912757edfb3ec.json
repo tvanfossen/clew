@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The code also has a control test, `test_an_absent_symbol_keeps_the_definitive_note`, that is meant to stop the wording from becoming a blanket hedge.\nVERDICT: MISS\nWHY: The answer never says there is exactly one absent-corpus downgrade or that keeping it to one is deliberate. It only mentions a control test against a blanket hedge, and it describes several different downgrade conditions."
+}

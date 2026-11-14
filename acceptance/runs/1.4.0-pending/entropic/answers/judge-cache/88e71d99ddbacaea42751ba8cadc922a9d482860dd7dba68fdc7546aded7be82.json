@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**`do_count_tokens`** (`:825`) returns 0. `count_tokens` and `entropic_inference_count_tokens` (`inference_c_api.cpp:548`) pass 0 through. The C API has no error channel for this, so a caller doing context budgeting sees \"0 tokens\" and proceeds.\"\nVERDICT: HIT\nWHY: The answer states that a failed tokenization leads the count-tokens path to return 0 with no error signal, which is the item's substance."
+}

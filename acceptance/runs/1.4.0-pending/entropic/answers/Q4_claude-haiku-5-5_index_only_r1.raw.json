@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 16587,
+  "stop_reason": "end_turn",
+  "session_id": "9b52f21f-918e-4a62-ad89-e82ac93288eb",
+  "total_cost_usd": 0.01280329,
+  "usage": {
+    "input_tokens": 6,
+    "cache_creation_input_tokens": 52174,
+    "cache_read_input_tokens": 79239,
+    "output_tokens": 3151,
+    "output_tokens_details": {
+      "thinking_tokens": 1266
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 52174,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2661,
+        "cache_read_input_tokens": 43263,
+        "cache_creation_input_tokens": 8911,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 8911
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 6,
+      "outputTokens": 3151,
+      "cacheReadInputTokens": 79239,
+      "cacheCreationInputTokens": 52174,
+      "webSearchRequests": 0,
+      "costUSD": 0.01280329,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1266,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 52174,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 4,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The index shows nine production spawn sites that run off the caller's thread, plus one in a test mock. Thread-safety rests on a few mechanisms, but the lock-order check is unverified.\n\n**Threads that run off the caller's thread (`src/`)**\n\n| Spawn site | What runs there | Joined or detached |\n|---|---|---|\n| `ExternalBridge::start` \u2192 `accept_loop` (`src/facade/external_bridge.cpp:796`) | Polls the listen socket and accepts MCP clients | Long-lived; stopped via `running_` |\n| `ct->thread` in `accept_loop` (`:945`) | One `serve_client` thread per accepted client | Reaped later by `reap_finished_clients_locked()` |\n| `run_async_ask` lambda (`:1158`) | Runs `entropic_run` for an async `entropic.ask` | Detached |\n| `HealthMonitor::start` \u2192 `monitor_loop` (`src/mcp/health_monitor.cpp:92`) | MCP server health checks | Long-lived |\n| `StdioTransport::open` \u2192 `stderr_reader_loop` (`src/mcp/transport_stdio.cpp:164`) | Drains MCP child-process stderr | Long-lived |\n| `SSETransport::open` \u2192 `sse_reader_loop` (`src/mcp/transport_sse.cpp:107`) | Reads the SSE stream | Long-lived |\n| `ResponseGenerator::dispatch_batch_generate` observer (`src/core/response_generator.cpp:413`) | Mirrors the engine's interrupt flag into the C-ABI int cancel flag | Joined before return |\n| `iface_generate_with_cancel` poller (`src/inference/interface_factory.cpp:246`) | Same cancel bridging for the orchestrator | Joined before return |\n| `CancelFlagBridge` poller (`src/inference/inference_c_api.cpp:385`) | Same cancel bridging for the C API | Joined in its destructor |\n\nA tenth site, `MockSSEServer::listen_after_bind` (`tests/unit/mcp/transport_sse_test.cpp:98`), is test-only.\n\n**What keeps it safe**\n\n- **Shared registries are mutex-guarded.** `run_async_ask` inserts the task under `tasks_mutex_`, then updates status and writes the completion sentinel under that same lock. Per-client threads go into `client_threads_` under `client_threads_mutex_`.\n- **Cancellation uses atomics and polling.** Interrupt and cancel flags are `std::atomic<bool>` with acquire/release ordering. The C-ABI boundary passes a plain `int*` polled every 10 ms, because the design rules forbid `std::atomic` across the `.so` boundary.\n- **Helper threads are joined before the caller returns.** The observer and poller threads share stack locals by reference, so their lifetimes are bounded by the call.\n- **Each client thread owns its fd.** `serve_client` closes its own fd and sets a `finished` atomic flag. `stop()` calls `shutdown(fd, SHUT_RDWR)` to wake blocked reads.\n- **Access is restricted before a thread exists.** `accept_loop` checks `SO_PEERCRED` and closes connections from a different uid before spawning a serve thread.\n- **Logging context is carried across threads.** Each spawned thread opens a `HandleLogScope` with the owning handle's `log_id`.\n- **Known gap.** The speculative-decoding batch path is not cancellable mid-decode; `dispatch_batch_generate` falls back to the non-cancel entry. This is documented in the code, not a silent failure.\n\n**Lock ordering: not confirmed**\n\nThe index records 45 distinct lock identities and three two-lock nestings. All three have zero resolved call sites, so none is confirmed:\n\n- `HealthMonitor::event_mutex_` then `AdapterManager::adapter_mutex_` (in `process_events`)\n- `MCPAuthorizationManager::auth_mutex_` then `MCPKeySet::key_mutex_` (in `check_access`, 4 sites)\n- `MockSSEServer::mu_` then `adapter_mutex_` (test only)\n\nNo pair appears in the opposite order, so the index raises no deadlock risk. But that is absence of evidence, not proof of ordering. Four lock identities are member expressions (`bridge->tasks_mutex_` and similar) that the index does not model, so `ExternalBridge::tasks_mutex_` coverage is partial.\n\nThe thread entries are rated medium confidence (spawn sites are matched by pattern, not verified at runtime).",
+  "ttft_ms": 1651,
+  "type": "result",
+  "duration_ms": 17740,
+  "uuid": "e2e4a6b8-d7db-4555-88bb-99dc6378fd38",
+  "ttft_stream_ms": 1355,
+  "time_to_request_ms": 81,
+  "first_content_frame_ms": 1356,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

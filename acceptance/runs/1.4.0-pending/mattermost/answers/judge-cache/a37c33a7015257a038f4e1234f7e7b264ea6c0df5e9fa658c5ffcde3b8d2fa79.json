@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `AppDataOperator` (`app/database/operator/app_data_operator/index.ts`, `handleGlobal`/`handleInfo`) also inherits `handleRecords` and `batchRecords` from `BaseDataOperator`, so it shares this path with the server database.\nVERDICT: HIT\nWHY: The answer names AppDataOperator as another operator inheriting from BaseDataOperator and sharing the batchRecords/handleRecords write path with the server database."
+}

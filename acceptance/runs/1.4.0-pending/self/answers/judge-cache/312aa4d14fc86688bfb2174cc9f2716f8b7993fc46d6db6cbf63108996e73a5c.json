@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer separates definitive-absence from not-definitive cases. It never names a grade that is definitive for a reason other than absence, such as a file type outside the index. It says that downgrade is missing for `search`."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"A clew index knows it is out of date along three separate axes.\" followed by \"**Data axis (sources changed).**\", \"**Schema axis (version mismatch).**\", \"**Code axis (the running process predates its source).**\"\nVERDICT: HIT\nWHY: The answer states staleness is three separate axes (data, schema, code) rather than one flag, names each, and notes the remedy depends on which axis is stale."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `derive_scope` falls through to `whole_repo_scope`... `_declared_index_scope` in `clew/scope.py` reads `index_scope:`... `derive_scope` itself does fall back to the whole repo\n\nVERDICT: HIT\nWHY: The answer names `derive_scope` in `clew/scope.py` as the place where scope is resolved, covering the declared path, the whole-repo fallback, and `derive_scope_logged`."
+}

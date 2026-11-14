@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`ClientPosts.createPost` (`app/client/rest/posts.ts:43-47`) passes `noRetry: true`. ... that sets `retryPolicyConfiguration = {retryLimit: 0}`.\" and \"The app makes exactly one send attempt\"\nVERDICT: HIT\nWHY: The answer states that create-post is never auto-retried (noRetry: true, retryLimit 0, exactly one send attempt)."
+}

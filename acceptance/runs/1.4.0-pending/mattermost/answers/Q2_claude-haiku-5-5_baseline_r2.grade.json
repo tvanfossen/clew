@@ -1,0 +1,63 @@
+{
+  "cell": "Q2_claude-haiku-5-5_baseline_r2",
+  "arm": "baseline",
+  "rubric_version": "1.0.0",
+  "rubric_digest": "32294778c2753056",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.9,
+  "unmarked_pct": 0.0,
+  "split_decisions": 0,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "names the websocket event dispatcher that routes `reaction_added` to its handler (`handleWebSocketEvent` \u2192 `handleReactionAddedToPostEvent`)",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: `handleWebSocketEvent` (`app/actions/websocket/event.ts:163`) routes `reaction_added` to `handleReactionAddedToPostEvent`. | WHY: The answer explicitly names handleWebSocketEvent as the dispatcher routing reaction_added to handleReactionAddedToPostEvent.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the added reaction is stored through the database operator's `handleReactions`, which prepares Reaction records and writes them with `batchRecords`",
+      "kind": "retrieval",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: handleReactions` (`app/database/operator/server_data_operator/handlers/index.ts:124`) calls `sanitizeReactions`... `prepareRecords` (`base_data_operator/index.ts:134`) runs `transformReactionRecord` with `action: CREATE`... `batchRecords` (`base_data_operator/index.ts:191`) runs `writer.batch(...)` inside `database.write`. | WHY: The answer states the added reaction is stored via the operator's handleReactions, which prepares records with prepareRecords and writes them with batchRecords. || QUOTE: `handleReactions` (`app/database/operator/server_data_operator/handlers/index.ts:124`) calls `sanitizeReactions`... `prepareRecords` (`base_data_operator/index.ts:134`) runs `transformReactionRecord` with `action: CREATE`... `batchRecords` (`base_data_operator/index.ts:191`) runs `writer.batch(...)` inside `database.write`. | WHY: The answer says the added reaction is stored via the operator's `handleReactions`, which prepares records with `prepareRecords` and writes them with `batchRecords`. || QUOTE: `handleReactions` (`app/database/operator/server_data_operator/handlers/index.ts:124`) calls `sanitizeReactions`. ... `prepareRecords` (`base_data_operator/index.ts:134`) runs `transformReactionRecord` with `action: CREATE`. ... Since `prepareRecordsOnly` is false, `batchRecords` (`base_data_operator/index.ts:191`) runs `writer.batch(...)` inside `database.write`. | WHY: The answer states the added reaction is stored via the operator's handleReactions, which prepares records with prepareRecords and writes them with batchRecords.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that a removed reaction does NOT go through the operator: its handler queries the reaction and destroys it with a direct `database.write`",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"It runs `destroyPermanently()` inside its own `database.write`, which is an immediate hard delete.\" and \"no `handleReactions`, no `sanitizeReactions`, no transformer, no `batchRecords`\" and the diagram \"queryReaction(emoji_name, post_id, user_id).fetch()\" | WHY: The answer states that removal bypasses the operator, queries the reaction, and destroys it via a direct `database.write`. || QUOTE: \"It then bypasses the operator entirely and hard-deletes the row directly.\" and \"RX->>DB: queryReaction(emoji_name, post_id, user_id).fetch() ... RX->>DB: database.write \u2192 destroyPermanently()\" | WHY: The answer states that the removed handler skips the operator, queries the reaction, and destroys it inside its own direct `database.write`. || QUOTE: \"It runs `destroyPermanently()` inside its own `database.write`, which is an immediate hard delete.\" and \"queryReaction(emoji_name, post_id, user_id).fetch()\" with \"no `handleReactions`, no `sanitizeReactions`, no transformer, no `batchRecords`\" | WHY: The answer states that reaction_removed bypasses the operator, queries the reaction, and destroys it with a direct database.write.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "explains that `skipSync: true` stops the single incoming reaction being treated as the post's complete set \u2014 without it every other reaction on the post would be deleted",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: Without it, the one-reaction payload would be treated as the full set for the post and every other reaction would be deleted. | WHY: The answer's flag table states that skipSync prevents the single incoming reaction from being treated as the post's full set, which would delete every other reaction. || QUOTE: Without it, the one-reaction payload would be treated as the full set for the post and every other reaction would be deleted. | WHY: The answer's flags table states that skipSync prevents the single incoming reaction from being treated as the post's complete set, which would delete all other reactions. || QUOTE: Without it, the one-reaction payload would be treated as the full set for the post and every other reaction would be deleted. | WHY: The answer's flags table states that skipSync stops the single reaction from being treated as the post's complete set, which would delete all other reactions.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "notes that both handlers swallow any error silently (empty catch), so a failed write leaves no trace",
+      "kind": "conclusion",
+      "weight": 1,
+      "hit": false,
+      "detail": "QUOTE: Any exception is swallowed by an empty `catch`. | WHY: The answer says the added handler swallows exceptions with an empty catch. It never says the removed handler does too, and it never says a failed write leaves no trace, so only half the item is stated. || QUOTE: Any exception is swallowed by an empty `catch`. | WHY: The answer says the added handler swallows exceptions via an empty catch, but it does not say the removed handler does too, and it never notes that a failed write leaves no trace. || QUOTE: Any exception is swallowed by an empty `catch`. | WHY: The answer says only the added handler swallows exceptions with an empty catch. It does not say the removed handler does too, and it does not say a failed write leaves no trace.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    }
+  ]
+}

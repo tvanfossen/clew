@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: schema, index newer | server predates index; rebuilding cannot clear the flag | restart the MCP client\nVERDICT: HIT\nWHY: The answer says that when the index is newer than the server, rebuilding cannot clear the schema flag and a client restart is needed. That matches the item. It does not spell out the re-stamping mechanism, but the unresolvable-by-rebuild substance is stated."
+}

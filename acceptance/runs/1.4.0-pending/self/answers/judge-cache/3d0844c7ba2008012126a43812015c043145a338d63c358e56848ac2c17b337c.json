@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`_ts_language_for` (`clew/harvest.py:184`) returns `None` when `_grammar_available` is false... The build does not crash\"\nVERDICT: MISS\nWHY: The answer states the capability gate and that the build doesn't crash. On the other half of the item, it says it did not verify that these file types are reported as not indexed and that `.sh` \"may not appear in that report at all.\""
+}

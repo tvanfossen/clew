@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: llama.cpp's `llama_tokenize` returns a negative number when the output buffer is too small, and the magnitude is the required token count. The first call passes a null buffer with size 0 to learn that count. The code then allocates a vector of that size and makes the second call to fill it.\nVERDICT: HIT\nWHY: The answer says the first call returns a negative number whose magnitude is the required count, and that the code uses it to size the vector for the second call. It never says \"negates\" explicitly, but \"magnitude\" plus the sizing step conveys the same mechanism."
+}

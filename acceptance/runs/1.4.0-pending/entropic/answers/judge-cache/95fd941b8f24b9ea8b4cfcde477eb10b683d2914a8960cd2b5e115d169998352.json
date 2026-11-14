@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `inv gen-bindings --check` runs in pre-commit and fails on drift.\nVERDICT: HIT\nWHY: The answer states that a generator check (gen-bindings --check, which parses the header) runs in pre-commit and fails on drift. That matches the item, though \"re-runs and diffs\" is implied rather than spelled out."
+}

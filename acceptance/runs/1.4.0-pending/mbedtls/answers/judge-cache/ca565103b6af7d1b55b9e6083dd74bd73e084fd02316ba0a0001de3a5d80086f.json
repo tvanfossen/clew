@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_ct_compiler_opaque(x)` stops the optimiser from learning a value. With asm it is an empty `asm volatile` barrier. Without asm it is `x ^ mbedtls_ct_zero`, where `mbedtls_ct_zero` is a `volatile` global.\nVERDICT: HIT\nWHY: The answer names mbedtls_ct_compiler_opaque as the primitive that stops the optimiser from knowing a value, and its section header ties the primitives to `library/constant_time_impl.h`."
+}

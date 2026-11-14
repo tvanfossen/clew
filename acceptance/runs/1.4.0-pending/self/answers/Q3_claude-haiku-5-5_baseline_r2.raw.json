@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 33465,
+  "stop_reason": "end_turn",
+  "session_id": "2fec0822-2777-4e29-ab74-5b1c4619a08f",
+  "total_cost_usd": 0.01613753,
+  "usage": {
+    "input_tokens": 18,
+    "cache_creation_input_tokens": 42119,
+    "cache_read_input_tokens": 479293,
+    "output_tokens": 5838,
+    "output_tokens_details": {
+      "thinking_tokens": 2180
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 42119,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2654,
+        "cache_read_input_tokens": 74022,
+        "cache_creation_input_tokens": 2472,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2472
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 18,
+      "outputTokens": 5838,
+      "cacheReadInputTokens": 479293,
+      "cacheCreationInputTokens": 42119,
+      "webSearchRequests": 0,
+      "costUSD": 0.01613753,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2180,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 42119,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 15,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "A clew index is judged stale on three independent axes. The tool reports them as a `staleness` list on every reply, and the caller usually does not have to act, because query tools refresh the data axis automatically. The one axis a rebuild cannot fix needs a client restart.\n\n**How it knows**\n\n| Axis | Measured by | Cleared by |\n|---|---|---|\n| `data`: sources changed since the build | `_source_drift` (`clew/mcp_server/state.py:823`) stats each indexed file and compares its mtime with the database's mtime | rebuild |\n| `schema`: the index was built by a different pipeline version | `build_version` in `build_meta` vs `CLEW_BUILD_VERSION` (`clew/signature.py`) | rebuild if the index is older; restart the client if it is newer |\n| `code`: the running server imported older clew code than is on disk | `source_fingerprint` (`clew/mcp_server/freshness.py:112`) hashes relative path and content of every package `.py`, compared against a fingerprint taken at import | restart the client only |\n\n`db_status` sets `stale` from the first two only (`state.py:1197`), so a `code` mismatch does not show up in `stale`.\n\n**What it tells the caller**\n\n`freshness.notices()` (`freshness.py:573`) returns a list of `{axis, message}` and is empty when everything is current. `staleness_notices()` (`server.py:1548`) attaches that list to query replies, so when the index is current the field is simply absent. The messages name the fix:\n- `data`: \"call `index(action='refresh')`\", with the measured cost of the last refresh from `build_meta`.\n- `schema`, older index: `index(action='refresh', force=True)`. Newer index: restart the client, because a rebuild re-stamps the same newer version and cannot clear it.\n- `code`: restart the client. Reads are still accurate because queries reopen the database per call, but writes are refused, since an old process rebuilding would drop layers.\n\n**What the caller does**\n\n- **Query tools, automatically.** Every query is wrapped by `_answering_with_refresh` (`server.py:519`), which calls `_auto_refresh`. It refreshes only when the `data` axis is stale and `matches_source` is true (`_data_stale`, `server.py:1209`). The refresh takes the per-repo build lock with a bounded wait, re-checks staleness inside the lock so concurrent queries deduplicate to one build, and builds with `skip_if_fresh=True`. A failed or timed-out refresh still answers from the stale index, with the notice attached.\n- **Absent index.** A first build starts in the background, but only if `_first_build_refusal` finds a git work tree or a registered repo, and the process is not stale (`server.py:1368`).\n- **Background.** `keep_current` runs `refresh_touched` on a timer (`server.py:1538`).\n- **Explicit.** `build_or_refresh` (`server.py:2189`) refuses with `stale_code_refusal` when the code axis fires. `force` does not get past that refusal.\n\n**Gaps I noticed (not run, read from code)**\n\n- `_source_drift` stats only paths already in the `path` table. A source file added since the build is never counted, so a new file does not mark the index stale.\n- Deleted files are skipped silently (`state.py:866`) on the assumption the rebuild will notice.\n- Mtime is the data signal, so a `git checkout` that rewrites identical content still marks the index stale. That costs a rebuild but never a wrong answer.\n- Config changes (Doxyfile, scope) are only caught through mtime of indexed paths, or through a `build_version` bump. I did not verify the config case.",
+  "ttft_ms": 1642,
+  "type": "result",
+  "duration_ms": 34248,
+  "uuid": "f291d3f5-b067-4b42-9f40-2b1977e294ed",
+  "ttft_stream_ms": 1308,
+  "time_to_request_ms": 152,
+  "first_content_frame_ms": 1308,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

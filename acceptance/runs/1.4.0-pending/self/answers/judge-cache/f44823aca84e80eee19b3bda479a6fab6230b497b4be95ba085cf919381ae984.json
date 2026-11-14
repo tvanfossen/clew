@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The `options` argument of `build_index` or `index(action='refresh')` | For MCP and embedding callers, which have no shell. Same vocabulary as `.clew.yaml`.\nVERDICT: MISS\nWHY: The answer says the options use the same vocabulary as `.clew.yaml`, but it never says the names are also the words the diagnostics use, and the item requires both."
+}

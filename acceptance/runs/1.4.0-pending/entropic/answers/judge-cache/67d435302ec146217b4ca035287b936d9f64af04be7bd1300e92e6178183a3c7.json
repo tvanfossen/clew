@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"the deny list is the only thing left that can stop an unlisted call\"\nVERDICT: HIT\nWHY: The answer states the deny list is enforced in ServerManager::execute via is_denied before route_tool_call, and that it is the only thing left that can stop an unlisted call, since the allow list only governs prompting."
+}

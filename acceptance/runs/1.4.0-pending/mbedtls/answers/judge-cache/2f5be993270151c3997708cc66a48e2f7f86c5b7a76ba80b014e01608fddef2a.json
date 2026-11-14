@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Under `MBEDTLS_PLATFORM_MEMORY`, an unconfigured build fails every allocation with NULL. ... `platform_calloc_uninit` and `platform_free_uninit` ... stubs: calloc returns NULL, free is a no-op\nVERDICT: HIT\nWHY: The answer states the default pointers point to uninit stubs where calloc returns NULL and free does nothing, so unconfigured allocation fails rather than falling back."
+}

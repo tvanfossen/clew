@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the asm is \"gated on `MBEDTLS_CT_ASM`\" and requires `MBEDTLS_HAVE_ASM`, a GNU-style compiler and a target architecture. It never says MBEDTLS_CT_ASM is derived rather than set in mbedtls_config.h."
+}

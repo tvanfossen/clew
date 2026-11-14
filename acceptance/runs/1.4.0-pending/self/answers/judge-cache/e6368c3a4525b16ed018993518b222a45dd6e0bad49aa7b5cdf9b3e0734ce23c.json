@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"the flag wins outright. The declaration is not merged in. The declaration stays on disk, and the build records that tier 1 won.\"\nVERDICT: MISS\nWHY: The answer says the build records that tier 1 won, but it never says the record is derived from the stored rows rather than stamped as a separate summary."
+}

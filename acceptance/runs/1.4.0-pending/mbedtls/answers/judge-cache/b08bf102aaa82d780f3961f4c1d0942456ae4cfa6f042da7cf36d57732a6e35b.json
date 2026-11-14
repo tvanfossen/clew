@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Under `MBEDTLS_TEST_CONSTANT_FLOW_VALGRIND` (memcheck) or `MBEDTLS_TEST_CONSTANT_FLOW_MEMSAN` (MemorySanitizer), the secret is marked uninitialized.\nVERDICT: MISS\nWHY: The answer names the valgrind and MSan verification mechanism. It never says the facility is off by default, and it never says the facility is explicitly not part of the library API."
+}

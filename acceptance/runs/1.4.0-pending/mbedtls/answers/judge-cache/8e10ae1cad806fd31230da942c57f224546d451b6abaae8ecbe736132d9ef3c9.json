@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "Paths below are written as the answer gives them. The answer names `library/constant_time_impl.h` and `library/constant_time.c` as holding the implementation. It also names `include/mbedtls/constant_time.h` as the public header, which declares `mbedtls_ct_memcmp`. It names `constant_time_internal.h` as an internal header, without a directory.\n\nITEMS:\nlibrary/constant_time_impl.h\nlibrary/constant_time.c\ninclude/mbedtls/constant_time.h\nconstant_time_internal.h\nEND"
+}

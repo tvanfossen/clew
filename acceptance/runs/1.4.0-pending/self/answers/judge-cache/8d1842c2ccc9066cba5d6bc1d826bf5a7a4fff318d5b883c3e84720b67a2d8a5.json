@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The row is one per endpoint identity, not one per layer (`CallEdge`, `models.py:145`). `source` and `confidence` describe the strongest evidence found for that endpoint.\n\nVERDICT: MISS\nWHY: The answer describes the query-time `CallEdge` row as collapsed per endpoint. It never says the `call_edges` table stores one row per extraction layer, so the same edge found by two detectors is stored twice."
+}

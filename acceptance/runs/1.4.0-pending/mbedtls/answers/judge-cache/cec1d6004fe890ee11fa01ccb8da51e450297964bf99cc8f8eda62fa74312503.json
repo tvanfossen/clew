@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: No runtime hook is compiled in, and the macros are used directly.\nVERDICT: MISS\nWHY: The answer says no runtime hook is compiled in on the macro path, but never says that mbedtls_platform_set_calloc_free does not exist or is not declared. It even says the function would fail to link there, which is a different claim."
+}

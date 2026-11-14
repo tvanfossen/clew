@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"| 5 | Built-in heuristics (name-pattern guesses, the floor) | ... | 4 | Known-ecosystem signatures (UDM, ingot) | ... | 3 | Facts a target already wrote ... | 2 | The repo's `.clew.yaml` ... | 1 | Explicit statement at call time: a CLI flag, or the `options` argument\"\nVERDICT: HIT\nWHY: The answer lays out five numbered precedence tiers for layered build options, covering built-in heuristics, ecosystem signatures, target-written facts, `.clew.yaml`, and call-time options, not a single override."
+}

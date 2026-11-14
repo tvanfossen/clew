@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"If the index is newer, restart the client, because a rebuild re-stamps the same version.\" and \"On `schema` (server older than index): restart the MCP client. Rebuilding does not clear it.\"\nVERDICT: HIT\nWHY: The answer says that when the index is newer than the server, a rebuild cannot clear the schema axis because it re-stamps the same version."
+}

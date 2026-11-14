@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `.clew.yaml` at the repo root (tier 2) | The repo's standing declaration | One section per option (`preprocessor:`, `index_scope:`, ...)\nVERDICT: MISS\nWHY: The answer names `.clew.yaml` as the repo's tier-2 standing declaration at the root, but never says both entry points discover it rather than it being plumbed per section."
+}

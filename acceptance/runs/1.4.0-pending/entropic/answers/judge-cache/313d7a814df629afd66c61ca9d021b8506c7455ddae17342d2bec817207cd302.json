@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes `_bindings.py` as generated and `_loader.py` as the library locator, but never states a deliberate split between a names-only manifest that imports no ctypes and the bindings module that loads the library."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says to add a #define in the public header and rebuild, and not to hand-edit error.c, but it explicitly says the description source is unverified (\"most likely... doc comment, but I have not verified it\") and never states the `/** */` doc comment as the source."
+}

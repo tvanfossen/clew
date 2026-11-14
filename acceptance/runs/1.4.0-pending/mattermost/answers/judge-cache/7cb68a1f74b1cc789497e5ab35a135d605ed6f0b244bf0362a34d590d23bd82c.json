@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"It calls `client.createPost` once more. On success it stores the server's post and updates the channel's last-post time. On failure it sets `failed = true` again, or removes the post for the three error IDs above.\"; \"It makes no further attempts after that single retry\"\nVERDICT: HIT\nWHY: The answer states a single new attempt with no further retries, and on failure the post is marked failed again or removed for the three errors."
+}

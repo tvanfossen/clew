@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Without asm, it is `x ^ mbedtls_ct_zero`, where `mbedtls_ct_zero` is a `volatile` zero defined in `library/constant_time.c:29`.\nVERDICT: HIT\nWHY: The answer says `mbedtls_ct_compiler_opaque` falls back without asm to XOR with the volatile zero global `mbedtls_ct_zero`, and it names that global."
+}

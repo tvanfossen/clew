@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Each handler is `const XHandler = <TBase extends Constructor<ServerDataOperatorBase>>(superclass) => class extends superclass {...}`\" and \"The real database write is `BaseDataOperator.batchRecords` ... It is the only place in the operator layer that calls `database.write` and `writer.batch`.\"\nVERDICT: MISS\nWHY: The answer names the constraint and batchRecords but says some code (playbooks local actions) writes around it and doesn't conclude every handler's writes go through batchRecords because of the constraint."
+}

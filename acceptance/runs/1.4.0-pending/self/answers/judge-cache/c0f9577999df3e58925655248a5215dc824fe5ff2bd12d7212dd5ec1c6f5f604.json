@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`freshness.notices()` splits the problem into three axes\" and the table listing `data`, `schema`, `code`\nVERDICT: HIT\nWHY: The answer explicitly says staleness splits into three axes, rather than one flag, and names them as data, schema and code."
+}

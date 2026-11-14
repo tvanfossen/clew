@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Result: the event can only create. It cannot remove reactions by other users that the local DB still has.\nVERDICT: MISS\nWHY: The answer says skipSync prevents deletions (returns deleteReactions: []), but it never states the reason: that without it the single incoming reaction would be treated as the post's complete set, so every other reaction on the post would be deleted."
+}

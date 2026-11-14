@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Facts (3 and 4): these accumulate and survive any stated tier. A declaration cannot remove a fact a Doxyfile already states.\nVERDICT: MISS\nWHY: The answer says tiers 3 and 4 both accumulate, but it never says the distinction between them is deliberately inert. It also never names fact-versus-guess as the load-bearing line."
+}

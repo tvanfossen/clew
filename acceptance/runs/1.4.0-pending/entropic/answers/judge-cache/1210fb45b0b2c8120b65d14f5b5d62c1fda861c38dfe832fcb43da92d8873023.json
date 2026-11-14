@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Deny list (`is_denied`, checked only in `ServerManager::execute`): a match refuses the call even if it was approved earlier\nVERDICT: MISS\nWHY: The answer places `is_denied` in `ServerManager::execute` (deny check, then `route_tool_call`). It does not conclude that the deny list is the only blocker. It says a call with no allow match and no callback is refused with \"Permission denied\", and it lists other gates such as schema, tier and hooks."
+}

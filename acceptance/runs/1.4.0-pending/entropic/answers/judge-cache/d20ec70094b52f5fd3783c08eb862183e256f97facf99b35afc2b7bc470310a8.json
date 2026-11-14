@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: the wrappers catch every exception so nothing unwinds into C (`hooks.py` prints the traceback and returns 0).\nVERDICT: HIT\nWHY: The answer states the Python trampolines catch every exception to avoid unwinding into C, and that hooks.py returns 0 (pass-through) after printing the traceback."
+}

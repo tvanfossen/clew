@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Only `SearchScreen` shows a search field. The other seven pass no `hasSearch` or pass `false`, so `NavigationHeader` never renders `NavigationSearch` for them.\nVERDICT: HIT\nWHY: The answer names `app/screens/home/search/search.tsx` (SearchScreen, `hasSearch={true}`) as the only renderer that enables the search field."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Included: the entire tree, including nested git clones. `external.py` tags their rows afterwards so they stay distinguishable.\nVERDICT: HIT\nWHY: The answer states nested git clones are included in the whole-repo scope and that external.py tags their rows afterwards."
+}

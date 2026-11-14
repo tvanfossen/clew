@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"It runs `destroyPermanently()` inside its own `database.write`, which is an immediate hard delete.\" and \"queryReaction(emoji_name, post_id, user_id).fetch()\" with \"no `handleReactions`, no `sanitizeReactions`, no transformer, no `batchRecords`\"\nVERDICT: HIT\nWHY: The answer states that reaction_removed bypasses the operator, queries the reaction, and destroys it with a direct database.write."
+}

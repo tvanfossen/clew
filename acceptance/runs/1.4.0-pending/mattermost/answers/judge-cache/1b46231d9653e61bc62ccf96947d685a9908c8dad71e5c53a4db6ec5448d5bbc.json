@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The function returns `{data: true}` even on failure, so callers do not see the error.\nVERDICT: HIT\nWHY: The answer states `createPost` returns `{data: true}` on failure, and that the failure shows only as a locally stored post marked failed."
+}

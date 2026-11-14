@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Config-gated. Everything sits under `MBEDTLS_ERROR_C`. With it off, `mbedtls_strerror` is a stub that writes an empty string (`error.c:144`).\nVERDICT: MISS\nWHY: The answer says the strings are gated by MBEDTLS_ERROR_C but never states it is enabled in the shipped config, so a default build has the table."
+}

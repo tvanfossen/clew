@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The handlers all extend `ServerDataOperatorBase`, so they share its helpers.\nVERDICT: HIT\nWHY: The answer states each handler factory is constrained to `Constructor<ServerDataOperatorBase>`, that the base extends `BaseDataOperator`, and that writes funnel through `BaseDataOperator.batchRecords`."
+}

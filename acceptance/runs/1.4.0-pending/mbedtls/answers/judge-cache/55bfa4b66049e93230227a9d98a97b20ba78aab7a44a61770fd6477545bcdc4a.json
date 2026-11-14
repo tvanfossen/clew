@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `programs/ssl/ssl_server2.c:8` and `ssl_client2.c:8` | Defined before `ssl_test_lib.h`, so the test servers and clients read and write real `ssl` and config fields directly.\nVERDICT: HIT\nWHY: The answer states that example programs (ssl_server2/ssl_client2) define MBEDTLS_ALLOW_PRIVATE_ACCESS themselves, accessing real fields directly, which matches the item's substance."
+}

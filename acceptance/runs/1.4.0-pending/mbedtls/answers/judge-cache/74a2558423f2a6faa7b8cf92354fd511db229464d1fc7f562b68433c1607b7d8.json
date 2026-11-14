@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Add a `#define MBEDTLS_ERR_<MODULE>_<NAME> -0x....` in that module's public header... Do not hand-edit `error.c`. The next build overwrites it. ... Rebuild through the normal CMake build. `error.c` is regenerated\nVERDICT: MISS\nWHY: The answer covers adding a #define to the public header and regenerating, but it never says the define must be documented with a /** */ comment. It explicitly says the description source is unverified (\"most likely source is the header's doc comment, but I have not verified it\"), so the documented-define mechanism is not stated."
+}

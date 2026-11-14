@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_THREADING_PTHREAD` (`:2196`) and `MBEDTLS_THREADING_ALT` (`:2185`) are also commented out. `check_config.h:995-1009` makes both require `MBEDTLS_THREADING_C`.\nVERDICT: HIT\nWHY: The answer names MBEDTLS_THREADING_C as the macro gating every lock, and it names MBEDTLS_THREADING_PTHREAD as the backend that depends on it."
+}

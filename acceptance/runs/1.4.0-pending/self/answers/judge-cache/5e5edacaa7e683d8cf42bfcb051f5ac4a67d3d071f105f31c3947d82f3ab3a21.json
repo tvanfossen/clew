@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer cites the \"absence is not emptiness\" rule and the `not_indexed` behaviour. It never states the general rule of fixing the corpus rather than the wording of the claim about the corpus."
+}

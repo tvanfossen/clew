@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Under `MBEDTLS_PLATFORM_MEMORY`, an unconfigured build fails every allocation with NULL. / default `platform_calloc_uninit` and `platform_free_uninit` ... stubs: calloc returns NULL, free is a no-op\nVERDICT: HIT\nWHY: The answer states that the uninitialised default stubs make calloc return NULL and free do nothing, rather than falling back to libc."
+}

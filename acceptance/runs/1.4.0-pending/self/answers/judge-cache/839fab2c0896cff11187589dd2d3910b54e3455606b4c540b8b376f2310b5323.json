@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: schema, index newer | server predates index; rebuilding cannot clear the flag | restart the MCP client; code | server loaded old logic; reads are fine, writes are affected | restart the MCP client; rebuild cannot fix it; data | ... | `index(action='refresh')`\nVERDICT: MISS\nWHY: The answer lists the clearing action per axis (refresh for data, restart for code), but never states that this difference is why a single flag would not have sufficed."
+}

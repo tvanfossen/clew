@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `'key'` for a function that writes a shared key which `fn` reads, with no call between them. A `'key'` row is not a caller.\nVERDICT: HIT\nWHY: The answer states that \"callers\" of a reader include functions that write a key the reader reads, i.e. the writers-observed-by-reader semantics, though it frames it as \"not a caller\" rather than \"inverted polarity\".\n\nHmm, reconsidering strictness: the item requires noting inversion between the two halves (call vs key). The answer notes key rows list writers as \"callers\" of a reader, which is the substance.\n\nQUOTE: `'key'` for a function that writes a shared key which `fn` reads, with no call between them.\nVERDICT: HIT\nWHY: States that key-edge \"callers\" of a reader are the functions whose writes it reads."
+}

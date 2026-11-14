@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Both handlers wrap everything in `try { \u2026 } catch { // Do nothing }`. A malformed payload or a DB error leaves no log.\nVERDICT: HIT\nWHY: The answer states both handlers swallow errors in an empty catch and that failures leave no log."
+}

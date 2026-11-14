@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says a failure in the probe is not handled and the fill call returning negative yields an empty vector, but it never states that a negative second-call result is terminal with no further attempt. It only says \"Nothing is retried\" generally."
+}

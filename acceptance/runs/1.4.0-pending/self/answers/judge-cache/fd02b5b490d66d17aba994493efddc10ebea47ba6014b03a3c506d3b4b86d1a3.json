@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The code's own rule is \"fix the corpus, not the sentence about the corpus,\" which means a detector gap is not hedged in the wording.\nVERDICT: HIT\nWHY: The answer states the rule and conveys its meaning: a detector gap is fixed at the corpus level rather than hedged in the wording."
+}

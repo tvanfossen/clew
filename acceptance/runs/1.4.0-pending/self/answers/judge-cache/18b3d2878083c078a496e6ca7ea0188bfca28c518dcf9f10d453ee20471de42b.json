@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"It holds no symbols for YAML or JSON, and no call edges for any of them.\" and \"`.yaml`, `.yml`, `.json` | `path` row only | None, by design\" and \"So YAML and JSON are 'registered and never harvested': they are findable by name\"\nVERDICT: HIT\nWHY: The answer states YAML/JSON get path rows but no symbols, while shell/CMake get function/macro symbols when grammars are present, so the two groups are treated differently."
+}

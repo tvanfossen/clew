@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Otherwise it is `x ^ mbedtls_ct_zero`, where `mbedtls_ct_zero` is a `volatile` zero the compiler cannot fold.\nVERDICT: HIT\nWHY: The answer says that without assembly, `mbedtls_ct_compiler_opaque` (the same function that uses asm) XORs with `mbedtls_ct_zero`, a volatile zero, and it names that global."
+}

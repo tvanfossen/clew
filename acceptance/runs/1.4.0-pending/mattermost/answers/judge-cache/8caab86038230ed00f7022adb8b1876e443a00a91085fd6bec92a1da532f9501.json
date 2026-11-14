@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Every product handler reaches it through `this`. ... Each product handler is a `Constructor<ServerDataOperatorBase>` mixin\nVERDICT: HIT\nWHY: The answer says every handler's writes go through `BaseDataOperator.batchRecords`, inherited via `ServerDataOperatorBase`, and that each mixin is a `Constructor<ServerDataOperatorBase>`. It does note exceptions where handlers call `database.write` directly, but the core conclusion and mechanism are stated."
+}

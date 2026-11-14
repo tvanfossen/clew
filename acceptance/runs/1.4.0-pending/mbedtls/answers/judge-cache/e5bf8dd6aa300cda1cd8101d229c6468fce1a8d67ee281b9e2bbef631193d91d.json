@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The high and low halves are separate lookups. A code can have both, and the result is one string such as `\"X - high : Y - low\"`.\"\nVERDICT: HIT\nWHY: The answer states that a code splits into a high-level module part and a low-level part, and that both are rendered and joined with \" : \" when both are present."
+}

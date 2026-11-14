@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Python exceptions must not escape.** The hook trampoline and the token observer both catch and print them, because an exception unwinding into C is undefined behaviour.\"\nVERDICT: MISS\nWHY: The answer says the trampoline catches and prints exceptions. It never says a failed hook is treated as a pass-through, so the fallback behavior the item requires is missing."
+}

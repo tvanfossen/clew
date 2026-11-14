@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The index shows the header included by roughly 20 library files and called from many more:\"\nVERDICT: HIT\nWHY: The answer states the primitives' header is included by roughly 20 library files, which matches the \"on the order of twenty modules\" item. The table of areas also shows the use is broad."
+}

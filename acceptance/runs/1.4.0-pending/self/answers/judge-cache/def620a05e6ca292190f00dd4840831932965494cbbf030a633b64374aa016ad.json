@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`q.unsearched_corpora` must find no matching rows in corpora that `search` does not read. And `q.has_file_docs` must confirm the file-docs corpus exists.\"\nVERDICT: HIT\nWHY: The answer says the strong wording is used case by case, only after a per-query check of unsearched corpora, rather than being tied to a result shape (\"Only the verdict is worded as definitive, and it is earned case by case\")."
+}

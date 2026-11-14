@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Retry count: the automatic count is zero. There is one attempt, and the transport is told not to retry.\nVERDICT: HIT\nWHY: The answer explicitly says createPost is sent once with noRetry and zero automatic retries."
+}

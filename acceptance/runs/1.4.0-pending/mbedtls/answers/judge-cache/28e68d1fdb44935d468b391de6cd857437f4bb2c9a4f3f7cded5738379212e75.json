@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the memory-buffer allocator installs its own calloc/free via mbedtls_platform_set_calloc_free, but never states that it requires MBEDTLS_PLATFORM_MEMORY. The runtime option only says \"Set only MBEDTLS_PLATFORM_MEMORY\" for substitution, which is a different claim."
+}

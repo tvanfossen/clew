@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"It reports them as an annotation on every query reply, and the caller's remedy depends on which axis fired.\" The table's \"Cleared by\" column adds \"A rebuild\" for `data` and \"Only restarting the MCP client\" for `code`. The answer also says the `code` notice \"says a rebuild cannot fix it.\"\nVERDICT: HIT\nWHY: The answer states that the data axis is cleared by a rebuild and the code axis only by a client restart, so the remedy depends on the axis. It never says outright that one flag would not have been enough, but that follows from the point it makes."
+}

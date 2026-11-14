@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The old Doxyfile fallback is gone (gh#333). A Doxyfile still supplies ALIASES and PREDEFINED, but not INPUT.\nVERDICT: MISS\nWHY: The answer says the Doxyfile no longer supplies INPUT, but it never explains why (documented-subset vs whole-tree asymmetry between repos with and without a Doxyfile)."
+}

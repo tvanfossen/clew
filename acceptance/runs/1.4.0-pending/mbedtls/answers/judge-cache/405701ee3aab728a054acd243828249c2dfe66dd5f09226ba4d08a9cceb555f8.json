@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `library/common.h:132` | Unconditional `#define MBEDTLS_ALLOW_PRIVATE_ACCESS` | Every library `.c` that includes `common.h` (all but `ecp_curves_new.c` and `ssl_debug_helpers_generated.c`) sees the real field names.\nVERDICT: HIT\nWHY: The answer says library code turns the opt-out on in the shared header `common.h`, so library translation units see the real (plain) member names."
+}

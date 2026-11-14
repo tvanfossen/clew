@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 21639,
+  "stop_reason": "end_turn",
+  "session_id": "c2c71775-b3a5-4f24-b04c-117613b6bd24",
+  "total_cost_usd": 0.00900296,
+  "usage": {
+    "input_tokens": 14,
+    "cache_creation_input_tokens": 21974,
+    "cache_read_input_tokens": 286276,
+    "output_tokens": 3488,
+    "output_tokens_details": {
+      "thinking_tokens": 724
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 21974,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1663,
+        "cache_read_input_tokens": 55528,
+        "cache_creation_input_tokens": 848,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 848
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 14,
+      "outputTokens": 3488,
+      "cacheReadInputTokens": 286276,
+      "cacheCreationInputTokens": 21974,
+      "webSearchRequests": 0,
+      "costUSD": 0.00900296,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 724,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 21974,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 9,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "A zero-row reply carries two separate signals. The first is a verdict on the query. The second is a scope block that says what the index covers. Only the verdict is worded as definitive, and it is earned case by case.\n\n**The verdict** (`clew/mcp_server/emptiness.py`, `search_emptiness` and `_verdict`)\n\n- **Single token, nothing matched anywhere:** the strong wording (\"definitive\u2026 do not retry or fall back to guessing\") is used, but only after two checks. `q.unsearched_corpora` must find no matching rows in corpora that `search` does not read. And `q.has_file_docs` must confirm the file-docs corpus exists. If the file-docs corpus is missing, the reply says \"NOT definitive\" and points to a rebuild.\n- **Single token, but the index holds rows in an unread corpus:** the reply says \"NOT DEFINITIVE\", names the kinds and counts, and tells the caller to use `dossier` with the name. The docstring explains why this check outranks the others: the reply should not send the caller to fix the wrong thing.\n- **Multi-token query:** never definitive. `search` is a conjunction, so the reply reports per-token hit counts. If one token has zero hits, it is named as the cause and the caller is told to retry without it. Otherwise it says to retry with fewer tokens.\n- **Prose query (`search_prose`):** `prose_emptiness` says the same thing about the prose corpus. If the symbol corpora hold the token, the reply is \"NOT DEFINITIVE \u2014 this repository does use these terms.\" It is definitive only when neither the prose corpus nor the symbol corpora hold the token.\n\n**The scope block** (`_scope_payload`, `_not_indexed_scope` in `clew/cli.py`)\n\nThis is the part that answers \"I did not look in the place it lives.\" At build time, the build walks the repo and records which file extensions it had in scope but produced no `path` rows for. That is stored as `not_indexed` (top 12 by count) and `not_indexed_count`, and the reply includes them. The reply also includes `file_count`, `source` (whole-repo or declared), and the covered shape. The `reason` paragraph is removed on this surface and left to `status`.\n\nTwo details matter for reading the scope block:\n\n- The falsy-drop rule means an absent `not_indexed` key is \"not recorded,\" not \"nothing was missed.\" An index built before this was stamped, or a rustdoc-only build that never walked the tree, shows no key at all.\n- The check is by file type, not by directory. A file in an included extension but an excluded directory is not reported by `not_indexed`. That is a scope question, and the caller has to read `status.scope` for it.\n\n**How much confidence each answer deserves**\n\n| Reply shape | What it licenses |\n|---|---|\n| Definitive, no unread hits, file docs present, single token | Trust the negative. A retry will not help. |\n| \"NOT DEFINITIVE \u2014 rows in unread corpus\" | The symbol exists. Go to `dossier` by name. |\n| Conjunction note | Not a negative. Drop the named token and retry. |\n| Prose miss, symbols hit | The repo uses the term. Search symbols or `dossier`. |\n| `not_indexed` present | The listed file types were in scope and produced no rows. Read those files directly. |\n| `not_indexed` absent | Unknown. Do not read it as \"nothing missed.\" |\n| Scope says \"whole-repo\" or \"declared\" with a small file count | Check whether the file is outside the scope before concluding the repo lacks it. |\n\nThe design rule stated in the code is \"fix the corpus, not the sentence about the corpus.\" The code also has a control test, `test_an_absent_symbol_keeps_the_definitive_note`, that is meant to stop the wording from becoming a blanket hedge.\n\nI read the code and did not run a query against a live index, so these are the intended behaviors as written, not measured outputs. The graded cases are covered by `tests/test_emptiness.py`, and `tests/test_not_indexed_report.py` covers the scope side. I did not run those tests.",
+  "ttft_ms": 1697,
+  "type": "result",
+  "duration_ms": 22239,
+  "uuid": "ddaef8d0-571f-4cf2-91eb-3bb89b138759",
+  "ttft_stream_ms": 1100,
+  "time_to_request_ms": 131,
+  "first_content_frame_ms": 1100,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

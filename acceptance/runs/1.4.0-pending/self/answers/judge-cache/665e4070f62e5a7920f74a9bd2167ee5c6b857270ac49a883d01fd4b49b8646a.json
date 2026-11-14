@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The edge metadata says `source: ast`, `confidence: resolved`, `edge_class: call`.\nVERDICT: MISS\nWHY: The answer mentions `edge_class: call` only as metadata on these rows and says the list holds only direct callers; it never says the list also mixes in shared-key dataflow neighbours that the consumer must tell apart with `edge_class`."
+}

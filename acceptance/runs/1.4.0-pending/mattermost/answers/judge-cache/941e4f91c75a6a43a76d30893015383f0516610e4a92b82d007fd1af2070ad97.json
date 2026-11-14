@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Triggered by the user from `app/components/post_list/post/body/failed/index.tsx:48`\nVERDICT: MISS\nWHY: The answer says retry is user-triggered via `retryFailedPost` and that there are zero automatic retries, but it never mentions the \"Try Again\" choice on the failed post."
+}

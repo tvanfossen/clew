@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`app/client/rest/posts.ts:43-48`: `createPost` passes `noRetry: true`.\" and \"Sending a post is therefore one attempt.\"\nVERDICT: HIT\nWHY: The answer states create-post is never retried automatically (retryLimit 0, noRetry), sent as a single attempt."
+}

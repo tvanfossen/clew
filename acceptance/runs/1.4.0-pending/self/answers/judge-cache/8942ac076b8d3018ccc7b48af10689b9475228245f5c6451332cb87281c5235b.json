@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Same vocabulary as `.clew.yaml`.\nVERDICT: MISS\nWHY: The answer says the inline `options` argument shares the `.clew.yaml` vocabulary, but it never says the names match the declaration file's section names and the diagnostics' wording."
+}

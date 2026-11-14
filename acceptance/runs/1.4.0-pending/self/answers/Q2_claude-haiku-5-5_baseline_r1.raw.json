@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 31398,
+  "stop_reason": "end_turn",
+  "session_id": "f4151b7e-b3ea-4991-a550-ea869a3f5bc8",
+  "total_cost_usd": 0.01731576,
+  "usage": {
+    "input_tokens": 18,
+    "cache_creation_input_tokens": 53811,
+    "cache_read_input_tokens": 388676,
+    "output_tokens": 5330,
+    "output_tokens_details": {
+      "thinking_tokens": 1595
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 53811,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2134,
+        "cache_read_input_tokens": 64557,
+        "cache_creation_input_tokens": 2186,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2186
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 18,
+      "outputTokens": 5330,
+      "cacheReadInputTokens": 388676,
+      "cacheCreationInputTokens": 53811,
+      "webSearchRequests": 0,
+      "costUSD": 0.01731576,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1595,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 53811,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 18,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The reply separates the two cases by grading the empty result, not by using one sentence for every empty result. The grading lives in `clew/mcp_server/emptiness.py`. I read the code and did not run a live query, so this is from source.\n\n**What the reply says about the answer**\n\nFor a single-token `search` that returns nothing, `_verdict` picks one of three wordings:\n\n| Condition | Wording | Entitled confidence |\n|---|---|---|\n| No unread corpus holds the name, and file docs were built | \"This IS a definitive empty result from the database\u2026 Do not retry\" | Strong, but only about the database and its searched corpora |\n| An unread corpus holds matching rows | \"NOT DEFINITIVE \u2014 this index HOLDS matching rows that search does not read: N kind\" | None for the negative. The name exists; ask `dossier` for it |\n| Index has no file-level docs corpus | \"NOT definitive\u2026 Rebuild with index(action='refresh')\" | None. The index could not have looked |\n\nFor multi-token queries the reply is never definitive. It names each token with zero independent hits and says to retry without it, or with fewer tokens. The `search(corpus='prose')` path grades the same way: \"definitive\" only when the symbol corpora also hold nothing for the token.\n\n**How the reply shows where it looked**\n\nEvery empty reply carries a `scope` block (file count, whole-repo vs. declared source, extensions, top levels). It also carries `not_indexed` and its count, but only when the build recorded that report. An unrecorded report is dropped rather than shown as `[]`. A \"Searched:\" line lists the symbol kinds read and says markdown and Kconfig prose were not searched.\n\nThe envelope has a `target` naming the repository answered from, and `sub_index` and `not_searched` in `Answering` (`clew/mcp_server/state.py:296`). On a split repository, a negative from one part lists the sibling parts it did not read, including parts that are known but not yet built (`clew/mcp_server/routing.py:125`). `status` adds a `staleness` block only when the index is stale.\n\n**How much confidence each answer deserves**\n\n- **\"Definitive\" from a single-token search** is the strongest the reply will say. It means the token is absent from every corpus `search` reads, the file docs corpus exists, and the name is not in an unread corpus. It does not mean the repository lacks the name. Four things still limit it: files outside the indexed scope, a stale index, a detector that is blind to a construct, and a layer that is absent rather than empty. The vocabulary comment in `clew/vocabulary.py:954` gives the blind-detector case: mbedtls's accessors are macros and the detector recorded zero rows.\n- **\"Empty\" with `not_searched` non-empty** is a negative about one part only. The server description (`clew/mcp_server/server.py:483`) says to check `target` and `not_searched` before concluding a symbol does not exist.\n- **\"Not definitive\" wording** is a deliberate downgrade. It says the search is not an error and not a malformed call, and that the caller should look elsewhere before concluding absence.\n\n**Gaps in the design**\n\nThe reply can only say \"I did not look there\" for places the code names: unread corpora, out-of-scope files, unbuilt sibling parts, stale indexes, and absent corpora. A detector blind spot that is not recorded, such as a macro-generated symbol with no rows, shows up as a plain strong negative. The code's own rule is \"fix the corpus, not the sentence about the corpus,\" which means a detector gap is not hedged in the wording.",
+  "ttft_ms": 1663,
+  "type": "result",
+  "duration_ms": 32247,
+  "uuid": "e550c7bd-4b1c-4335-9b8a-04f0577653c8",
+  "ttft_stream_ms": 1155,
+  "time_to_request_ms": 125,
+  "first_content_frame_ms": 1155,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

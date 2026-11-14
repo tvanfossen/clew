@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: If the index is newer, restart the client, because a rebuild re-stamps the same version.\nVERDICT: HIT\nWHY: The answer says that a schema-axis mismatch where the index is newer than the server is not cleared by a rebuild, because the rebuild re-stamps the same version. Step 3 repeats this: \"Rebuilding does not clear it.\""
+}

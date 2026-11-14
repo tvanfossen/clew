@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The ref is not attached to the title header or the large title. It is forwarded only into `<NavigationSearch {...searchProps} ... ref={ref} />`, which renders only when `hasSearch` is true (lines 128\u2013138). ... If `hasSearch` is false, the ref is silently dropped, because `NavigationSearch` is never rendered.\nVERDICT: HIT\nWHY: The answer states that NavigationHeader forwards its ref to NavigationSearch, which renders only when hasSearch is true, and that the ref is otherwise dropped, attached to nothing."
+}

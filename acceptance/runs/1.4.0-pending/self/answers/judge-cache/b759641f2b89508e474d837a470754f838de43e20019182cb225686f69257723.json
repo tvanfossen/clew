@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: binary files \u2502 \u2192 dropped and reported as skipped [cli._drop_binary_files]\nVERDICT: MISS\nWHY: The answer lists binary dropping, but as \"minus binaries\" in the scope, not as binary classification dropping files whose extension lies about them. It also says nothing is filtered by extension and that no front end was traced. It never says that a file reaches the index only if something can read it, and it names neither the parse-built front end nor extension-lying files."
+}

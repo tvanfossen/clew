@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_ct_compiler_opaque` becomes `x ^ mbedtls_ct_zero`, where `mbedtls_ct_zero` is a global `volatile` zero (`constant_time.c:23-30`).\nVERDICT: HIT\nWHY: The answer says that in the non-assembly fallback, `mbedtls_ct_compiler_opaque` XORs with `mbedtls_ct_zero`, a global volatile zero, so the function and the global are both identified."
+}

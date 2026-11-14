@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Top-level commands, variables, `source` chains, `$1`-style args (empty by design)\"\nVERDICT: MISS\nWHY: The answer only says `$1`-style args are empty by design. It never says shell functions are recorded with no argument list and no return, and it never says the language has neither."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: An unknown section is refused by name, with the spelling checked against `index_scope`. A malformed declaration degrades to defaults\nVERDICT: MISS\nWHY: The answer says unknown sections are refused by name but gives no reason (ignored section would build with defaults while claiming the declaration was honoured). It also doesn't mention the allowed set, only a spelling check against `index_scope`."
+}

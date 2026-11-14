@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"If `index_scope` is present but unusable (a non-mapping, an unknown key, or no existing roots), it is rejected with a reason. `derive_scope` then falls back to whole-repo and logs a WARNING.\"\nVERDICT: MISS\nWHY: The answer says a declared scope is used and some failures fall back to whole-repo. It does not say that every failure to find a declaration falls through, and it describes the CLI/MCP refresh path as refusing rather than falling through."
+}

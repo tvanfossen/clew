@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"uses the first key of the args object, and only if its value is a string. Otherwise it uses `*`.\"\nVERDICT: HIT\nWHY: The answer says only one argument (the first key) is used for pattern matching and that a non-string value falls back to `*`. This also implies the other arguments are never matched. It doesn't mention unparseable arguments, but the core fact is stated."
+}

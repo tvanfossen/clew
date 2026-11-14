@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes the current graded empty-result wording, but it never says a single unmatched token was previously treated as proof of absence. The closest it gets is \"not by using one sentence for every empty result\", which only gestures at that."
+}

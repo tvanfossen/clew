@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Every product handler reaches it through `this`. ... Each product handler is a `Constructor<ServerDataOperatorBase>` mixin, the same pattern as the in-folder handlers.\n\nVERDICT: MISS\n\nWHY: The answer says all handlers' writes go through `batchRecords` but explicitly lists exceptions (`post.ts:516`, `thread.ts:74` call `database.write` directly). It does not conclude that every handler's writes go through the inherited method."
+}

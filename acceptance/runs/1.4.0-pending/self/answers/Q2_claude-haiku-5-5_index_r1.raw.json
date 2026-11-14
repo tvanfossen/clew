@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 12188,
+  "stop_reason": "end_turn",
+  "session_id": "61792cff-e746-4b78-9234-96bf8ee1fd8c",
+  "total_cost_usd": 0.00652881,
+  "usage": {
+    "input_tokens": 4,
+    "cache_creation_input_tokens": 24780,
+    "cache_read_input_tokens": 54491,
+    "output_tokens": 2055,
+    "output_tokens_details": {
+      "thinking_tokens": 1046
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 24780,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1733,
+        "cache_read_input_tokens": 38299,
+        "cache_creation_input_tokens": 2673,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2673
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 4,
+      "outputTokens": 2055,
+      "cacheReadInputTokens": 54491,
+      "cacheCreationInputTokens": 24780,
+      "webSearchRequests": 0,
+      "costUSD": 0.00652881,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1046,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 24780,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 3,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** a `search` reply separates the two cases by naming the boundary it searched, not by the row count. An empty result is a definitive answer only inside that boundary. Outside it, the reply is silent about absence, and you have to go look yourself.\n\n**What the reply says.** I ran `search` for a made-up name, `zzqx_nonexistent_symbol`. The reply came back with `count: 0` and a `note` that spells out both sides:\n\n- **Searched:** names and `@brief` text of functions, variables, macros, typedefs, enums and enum values, plus macro expansions, classes, structs and unions, config symbols, and per-file docs.\n- **Not searched:** markdown and Kconfig prose, which is `corpus='prose'`, and function bodies, which is `corpus='code'`. The note adds that a conceptual phrase often lands in prose, so a symbol-corpus miss does not rule that out.\n- **Scope:** 426 files, whole-repo, with the extension list and a `not_indexed` list. Here `.rs`, `.toml`, `.sql`, `.csv` and extensionless files are outside the index.\n- **Target:** the repo that answered. For a split repository, `sub_index` and `not_searched` say which part was read.\n- **Instruction:** \"This IS a definitive empty result \u2026 Do not retry this query.\"\n\n**The other half comes from `index(status)`.** It reports `stale: false` with 0 changed source files, so the index matches the source. It also shows 15 \"barren\" files (indexed, but no symbols extracted) and 6 unresolved files. Those are the places where \"nothing found\" is weaker, because the extractor may have produced nothing from a file that does contain code.\n\n**Confidence by answer:**\n\n| Claim | Entitled confidence |\n|---|---|\n| No symbol, macro, type, class or config name matches, in an indexed extension, with a fresh index and the right `target` | High. The note says it is definitive for that corpus. |\n| No prose or Kconfig mention | Not established. Run `search(corpus='prose')`. |\n| No function body contains the literal | Not established. Run `search(corpus='code')`. |\n| Symbol is absent from the repo | Not established if it could live in `.rs`, `.toml`, `.sql`, an extensionless file, a sub-index, or a stale or barren file. Use Grep for those. |\n\n**Practical rule.** Read `target`, `scope.not_indexed` and `not_searched` before concluding anything. Fall back to `Grep` for prose, bodies, and non-indexed file types. The index's own code and `AGENTS.md` describe the same rule: an empty table means \"looked and found nothing\", and a missing key means \"this layer never ran\".",
+  "ttft_ms": 2159,
+  "type": "result",
+  "duration_ms": 12479,
+  "uuid": "46210e61-6b95-4fbf-818e-be83ccd4fb2b",
+  "ttft_stream_ms": 1129,
+  "time_to_request_ms": 74,
+  "first_content_frame_ms": 1129,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

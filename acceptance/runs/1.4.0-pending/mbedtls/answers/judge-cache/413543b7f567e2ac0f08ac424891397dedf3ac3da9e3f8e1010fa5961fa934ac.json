@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: When `MBEDTLS_PLATFORM_STD_CALLOC` is not defined, the default calloc is `platform_calloc_uninit` (`platform.c:25`), which always returns NULL. A library built this way cannot allocate unless a project installs its own functions.\nVERDICT: MISS\nWHY: The answer covers the calloc-returns-NULL default but says nothing about the uninitialised free doing nothing, and the item requires both halves."
+}

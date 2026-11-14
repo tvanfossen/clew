@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 34893,
+  "stop_reason": "end_turn",
+  "session_id": "fd351530-061b-45ec-8631-9fb006ee93de",
+  "total_cost_usd": 0.018253980000000003,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 56666,
+    "cache_read_input_tokens": 324108,
+    "output_tokens": 7357,
+    "output_tokens_details": {
+      "thinking_tokens": 4026
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 56666,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 4791,
+        "cache_read_input_tokens": 73487,
+        "cache_creation_input_tokens": 2060,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2060
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 7357,
+      "cacheReadInputTokens": 324108,
+      "cacheCreationInputTokens": 56666,
+      "webSearchRequests": 0,
+      "costUSD": 0.018253980000000003,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 4026,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 56666,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 11,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The library never calls `malloc`/`calloc`/`free` directly. Every allocation goes through `mbedtls_calloc()` and `mbedtls_free()`, and which real function runs is decided at build time or at runtime.\n\n## What gets called\n\n```\nlibrary code (ssl_tls.c, bignum.c, cipher_wrap.c, ...)\n        \u2502  mbedtls_calloc(n, sz) / mbedtls_free(p)\n        \u25bc\ninclude/mbedtls/platform.h:138-168 \u2014 chosen by config\n  \u251c\u2500 MBEDTLS_PLATFORM_MEMORY off           \u2192 macro \u2192 calloc / free        (no indirection)\n  \u251c\u2500 MEMORY + CALLOC_MACRO + FREE_MACRO    \u2192 macro \u2192 your functions       (compile-time, no indirection)\n  \u2514\u2500 MEMORY only                           \u2192 real functions, platform.c:47-55\n                                              \u2502 call through function pointers\n                                              \u25bc\n                              mbedtls_calloc_func / mbedtls_free_func  (platform.c:44-45)\n                                  default = MBEDTLS_PLATFORM_STD_CALLOC/FREE\n                                  if undefined \u2192 stubs: calloc returns NULL, free is a no-op\n```\n\n- **Config off:** `platform.h:166-167` define `mbedtls_calloc` as `calloc` and `mbedtls_free` as `free`.\n- **Compile-time substitution:** `platform.h:139-145` maps the names to `MBEDTLS_PLATFORM_CALLOC_MACRO` and `MBEDTLS_PLATFORM_FREE_MACRO`. `check_config.h:548-575` requires that both macros be defined together.\n- **Runtime substitution:** `platform.c:16-19` says the compile-time macros take precedence, and when both are defined the runtime setter is compiled out entirely.\n- **Stubs:** the default `platform_calloc_uninit` and `platform_free_uninit` (`platform.c:24-42`) are used when nothing else is configured. Under `MBEDTLS_PLATFORM_MEMORY`, an unconfigured build fails every allocation with NULL.\n\n## How a project substitutes its allocator\n\n**Option A: compile time (zero overhead).** In the user config, enable `MBEDTLS_PLATFORM_C`, `MBEDTLS_PLATFORM_MEMORY`, and define both `MBEDTLS_PLATFORM_CALLOC_MACRO=my_calloc` and `MBEDTLS_PLATFORM_FREE_MACRO=my_free`. Define both or neither. The `check_config.h` errors enforce this.\n\n**Option B: runtime.** Enable `MBEDTLS_PLATFORM_MEMORY` and leave the macros undefined, or define `MBEDTLS_PLATFORM_STD_CALLOC`/`_FREE` as the defaults. Then call `mbedtls_platform_set_calloc_free(my_calloc, my_free)` before any other mbedtls call (`platform.c:57-63`). The setter does no NULL checks and always returns 0. It is a plain pointer write, not synchronized, so call it before threads start. Any substitute must tolerate `free(NULL)`, because the wrapper forwards whatever it receives.\n\n## What the library does with the facility\n\n- **Every allocation funnels through the wrappers.** Callers include `ssl_tls.c`, `bignum.c`, `cipher_wrap.c`, `pkparse.c`, `x509_crt.c` and the PSA core. `mbedtls_zeroize_and_free` in `common.h` also uses `mbedtls_free`. A grep of `library/` for raw `calloc|malloc|free|realloc` finds no direct calls except `memory_buffer_alloc.c:404`, `free(hdr->trace)`, which is inside `MBEDTLS_MEMORY_BACKTRACE`. I did not check how `trace` is allocated.\n- **The library ships its own substitute.** `mbedtls_memory_buffer_alloc_init(buf, len)` (`memory_buffer_alloc.c:566-600`) zeroes a static `heap` context, then installs its own allocator through `mbedtls_platform_set_calloc_free`. It uses the mutex-wrapped variants when `MBEDTLS_THREADING_C` is enabled (`:541-563`) and uses libc nowhere. It is the only library code that calls the setter.\n- **Weak points in the bundled allocator:**\n  - In the mutexed calloc, if unlock fails after a successful allocation, the function returns NULL and leaks the buffer (`:547-550`).\n  - In the mutexed free, if the lock fails, the free is silently skipped and the block leaks (`:558-560`). The comment says this is deliberate: losing memory is preferred to corrupting the heap.\n- **Design intent is tested.** The `component_test_psa_crypto_without_heap` component in `tests/scripts/components-configuration-crypto.sh` builds a configuration where the core library cannot use calloc/free while test code still can.",
+  "ttft_ms": 1643,
+  "type": "result",
+  "duration_ms": 35348,
+  "uuid": "afd09e04-fee1-427a-838a-e8fe0d7bf87b",
+  "ttft_stream_ms": 1146,
+  "time_to_request_ms": 73,
+  "first_content_frame_ms": 1146,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `InferenceBackend::count_tokens` | `0` | `backend.cpp:496-502`\nVERDICT: HIT\nWHY: The answer states that the token-counting path (count_tokens, do_count_tokens, the C API) returns 0 on failed tokenization instead of signalling an error, and it says callers can't tell this from a real zero."
+}

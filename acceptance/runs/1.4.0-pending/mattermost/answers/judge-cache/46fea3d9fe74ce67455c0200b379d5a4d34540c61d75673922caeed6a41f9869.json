@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **`AppDataOperator`** (`app/database/operator/app_data_operator/index.ts`) extends `BaseDataOperator` directly, so it shares `batchRecords` and the diff/prepare helpers but not the server-only handlers.\nVERDICT: HIT\nWHY: The answer names AppDataOperator as a direct BaseDataOperator subclass sharing the batchRecords write path, which matches the item. It doesn't say \"app-level database\" in those words."
+}

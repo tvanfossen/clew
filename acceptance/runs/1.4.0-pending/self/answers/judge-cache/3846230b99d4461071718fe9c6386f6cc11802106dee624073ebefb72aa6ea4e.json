@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Writes are refused when the process predates its source. `stale_code_refusal` is called in `build_or_refresh` (`server.py:2278`) and in first-build gating (`server.py:1393`). `force=True` does not bypass it.\nVERDICT: HIT\nWHY: The answer says writes are refused (not warned), the refusal is checked in build_or_refresh and first-build gating, and `force=True` does not bypass it."
+}

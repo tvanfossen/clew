@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says invalid options refuse the whole mapping and an empty document is not an error, but it never says an unknown section is refused by name against an allowed set, and it gives no reason about defaults being built while claiming the declaration was honoured."
+}

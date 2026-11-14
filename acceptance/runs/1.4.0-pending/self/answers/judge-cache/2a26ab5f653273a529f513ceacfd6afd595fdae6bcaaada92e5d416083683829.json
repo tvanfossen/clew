@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"A stated value displaces the guesses, but it cannot remove facts the repo has already recorded. The module's summary is \"you can correct our guesses; you cannot un-discover a fact.\"\"\nVERDICT: HIT\nWHY: The answer's tier table marks the stated tiers (CLI/options, .clew.yaml) as \"replaces\" and the discovered tiers (3 and 4) as \"accumulates\". It gives the formula `(tier1 or tier2 or tier5) \u222a tier3 \u222a tier4` and says discovered facts survive whatever a user states."
+}

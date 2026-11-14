@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"About 190 `llama_*` call sites live there, in `llama_cpp_backend`, `llama_cpp_sampler`, `llama_cpp_tokenizer`, `adapter_manager`, `orchestrator`, `grammar_registry`, `speculative_compat`, `inference_c_api`, `prompt_cache`, `tool_call_markers.h` and the adapters.\"\nVERDICT: MISS\nWHY: The answer lists about ten modules but frames the dependency as contained in `src/inference/` and never states that it spans roughly a dozen files of entropic's own source."
+}

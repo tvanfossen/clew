@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Write paths refuse on the code axis.** `stale_code_refusal` (`freshness.py:531`) refuses any write when the process predates its source. `force=True` does not bypass it, because the incident that motivated the guard used `force`.\"\nVERDICT: HIT\nWHY: The answer states that writes are refused (not warned) and that `force=True` cannot bypass the refusal. It does not say the check sits ahead of the build decision, but a force flag being unable to override it carries that substance."
+}

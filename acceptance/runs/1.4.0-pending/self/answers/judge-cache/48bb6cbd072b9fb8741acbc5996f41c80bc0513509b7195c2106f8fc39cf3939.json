@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"They do not appear in `not_indexed`, so the index reports nothing missing.\"\nVERDICT: MISS\nWHY: The answer says a grammar-less install silently indexes those files as present with no report, which contradicts the item's claim that a capability gate routes them to \"not indexed\"."
+}

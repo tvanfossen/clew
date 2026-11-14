@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `LlamaCppBackend::tokenize` | empty `vector<llama_token>` | `llama_cpp_backend.cpp:788-800`; also empty when `tokenizer_` is null\nVERDICT: HIT\nWHY: The answer states the backend's tokenize wrapper returns an empty vector on failure and also empty when `tokenizer_` is null, i.e. the same value for both cases."
+}

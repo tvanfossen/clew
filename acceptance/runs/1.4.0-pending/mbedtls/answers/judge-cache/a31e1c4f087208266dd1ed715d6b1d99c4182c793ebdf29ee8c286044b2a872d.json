@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Compile-time override**: define `MBEDTLS_PLATFORM_MEMORY`, `MBEDTLS_PLATFORM_CALLOC_MACRO` and `MBEDTLS_PLATFORM_FREE_MACRO`... `check_config.h:558-573` requires that both macros are set together, and that `MBEDTLS_PLATFORM_STD_*` is not also set.\" and \"**Runtime override**: define only `MBEDTLS_PLATFORM_MEMORY`... `#define MBEDTLS_PLATFORM_MEMORY /* and no *_MACRO defines */`\"\nVERDICT: HIT\nWHY: The answer separates the compile-time macro pair from the runtime function-pointer pair and says the runtime path requires that no `*_MACRO` defines are set. That states they are mutually exclusive."
+}

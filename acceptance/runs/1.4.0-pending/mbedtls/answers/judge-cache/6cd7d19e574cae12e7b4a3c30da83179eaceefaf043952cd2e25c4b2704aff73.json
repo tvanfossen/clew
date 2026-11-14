@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says ssl_server2.c and ssl_client2.c define the macro, but it frames them as test drivers. It never says that example programs deliberately reach past the public API they otherwise demonstrate."
+}

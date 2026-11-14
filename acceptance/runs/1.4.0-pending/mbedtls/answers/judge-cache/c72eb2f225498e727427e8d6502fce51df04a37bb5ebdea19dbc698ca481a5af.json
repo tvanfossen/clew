@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `programs/ssl/ssl_server2.c:8` and `ssl_client2.c:8` | Defined before `ssl_test_lib.h`, so the test servers and clients read and write real `ssl` and config fields directly.\nVERDICT: HIT\nWHY: The answer states that example programs (ssl_server2.c, ssl_client2.c) define the opt-out macro themselves to access real field names directly, despite otherwise being API consumers."
+}

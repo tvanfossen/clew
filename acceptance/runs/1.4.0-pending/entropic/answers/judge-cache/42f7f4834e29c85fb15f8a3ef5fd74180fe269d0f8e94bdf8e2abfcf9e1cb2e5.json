@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It calls the C API directly (`llama_model_load_from_file`, decode, KV seq ops, state save/restore)\nVERDICT: HIT\nWHY: The answer says the backend calls llama.cpp's C API directly with `llama_`-prefixed free functions, and it mocks the `llama_*` functions at link time. Both point to a C-function seam, not C++ classes or inheritance."
+}

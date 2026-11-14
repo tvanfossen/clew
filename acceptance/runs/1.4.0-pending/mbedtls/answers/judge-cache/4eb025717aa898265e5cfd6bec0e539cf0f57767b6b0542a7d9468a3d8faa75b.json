@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names no top-level directories as containing uses of MBEDTLS_PRIVATE. It cites paths such as `include/mbedtls/private_access.h`, `library/common.h` and `programs/ssl/ssl_client2.c`. Those are mentioned as where the macro is defined or where `MBEDTLS_ALLOW_PRIVATE_ACCESS` is defined, not as directories containing uses of `MBEDTLS_PRIVATE`. The answer does say the public headers use it in accessors, but it never names a top-level directory for them.\n\nITEMS:\nNONE\nEND"
+}

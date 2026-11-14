@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names these locations as containing MBEDTLS_PRIVATE uses or the opt-out define:\n\n- `library/` is named, since `library/*.c` and `ecdh.c` use it.\n- `programs/` is named, since `ssl_client2.c` and `ssl_server2.c` define the macro.\n- `include/` is named, since the macro is defined in `include/mbedtls/private_access.h`, and `ssl.h`, `cipher.h` and `psa/crypto_struct.h` use it.\n\nITEMS:\nlibrary\nprograms\ninclude\nEND"
+}

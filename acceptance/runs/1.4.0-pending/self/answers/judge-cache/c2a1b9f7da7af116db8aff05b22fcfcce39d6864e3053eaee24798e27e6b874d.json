@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The scope's reason string says which case applied: \"no `.clew.yaml` was found at \u2026\" or \"exists but carries no `index_scope`.\" A declaration that is present but unusable also falls through, with the rejection reason carried into the reason string.\nVERDICT: HIT\nWHY: The answer states that the whole-repo fallback scope carries a reason string explaining which case applied and why, so scope isn't silently guessed."
+}

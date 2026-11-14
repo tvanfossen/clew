@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names these files as taking part in the call-edge reply:\n\nITEMS:\nclew/gitenv.py\nguard/main.py\nguard/tags.py\nscope.py\nguard/git.py\npropose/notindexed.py\ntest_security_surface.py\nEND"
+}

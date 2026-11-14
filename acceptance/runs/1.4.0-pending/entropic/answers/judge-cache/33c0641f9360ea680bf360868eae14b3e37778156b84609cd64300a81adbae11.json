@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: if no allow-list or auto-approve match exists and an `on_tool_call` callback is registered, `approved` is set to `true` after the callback fires... the deny list is the only thing left that can stop an unlisted call.\nVERDICT: HIT\nWHY: The answer states that an unlisted tool gets approved and only the deny list can block it, which is the default-allow posture."
+}

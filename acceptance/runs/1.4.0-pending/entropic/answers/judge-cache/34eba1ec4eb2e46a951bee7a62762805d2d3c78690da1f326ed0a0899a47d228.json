@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: That is the first argument's string value, or `*` for empty, non-object, or non-string-first-argument JSON.\nVERDICT: HIT\nWHY: The answer states that `args_to_pattern` uses only the first argument's string value and yields `*` for non-string or non-object input, and its issue 3 repeats the non-string case. It does not mention unparseable arguments explicitly, but it does say the pattern is built from one argument only."
+}

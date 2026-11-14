@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer traces writes to `BaseDataOperator.batchRecords`, but it never says the mixins are constrained to extend `ServerDataOperatorBase`. It also says \"Not every write goes through `batchRecords`\", which contradicts the item's conclusion."
+}

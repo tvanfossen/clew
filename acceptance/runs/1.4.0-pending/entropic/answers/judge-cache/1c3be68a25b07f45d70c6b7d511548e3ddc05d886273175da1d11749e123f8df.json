@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: If nothing resolves, `find()` returns `None` and the CLI tells the user to run `entropic install-engine`.\nVERDICT: MISS\nWHY: The answer mentions install-engine and the loader's None return, but never concludes that the split exists so `import entropic` succeeds before the engine is on disk."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `build_or_refresh` (`server.py:2189`) refuses with `stale_code_refusal` when the code axis fires. `force` does not get past that refusal.\nVERDICT: HIT\nWHY: The answer says the write path refuses (not warns) on stale code and that `force` cannot override it. The claim about placement ahead of the build decision is only implied, but the substance is there."
+}

@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 20653,
+  "stop_reason": "end_turn",
+  "session_id": "8ee52627-3ffd-47e2-8110-7c118061cd02",
+  "total_cost_usd": 0.00842187,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 21378,
+    "cache_read_input_tokens": 220677,
+    "output_tokens": 3877,
+    "output_tokens_details": {
+      "thinking_tokens": 1661
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 21378,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2297,
+        "cache_read_input_tokens": 55640,
+        "cache_creation_input_tokens": 2408,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2408
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 3877,
+      "cacheReadInputTokens": 220677,
+      "cacheCreationInputTokens": 21378,
+      "webSearchRequests": 0,
+      "costUSD": 0.00842187,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1661,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 21378,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 13,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** every library allocation goes through `mbedtls_calloc()` / `mbedtls_free()`. Those forward to two static function pointers in `library/platform.c`, which default to the C standard library. A project swaps the allocator either at build time or at runtime. The library's own memory allocator, `memory_buffer_alloc`, uses the same hook to take over allocation entirely.\n\n**Call chain**\n\n```\nlibrary code  \u2500\u2500\u25ba  mbedtls_calloc(n, size)     library/platform.c:47\n                     \u2502  (*mbedtls_calloc_func)(n, size)\n                     \u25bc\n               mbedtls_calloc_func  (static, platform.c:44)\n                 = MBEDTLS_PLATFORM_STD_CALLOC by default (calloc)\n\nlibrary code  \u2500\u2500\u25ba  mbedtls_free(p)             library/platform.c:52\n                     \u2502  (*mbedtls_free_func)(p)\n                     \u25bc\n               mbedtls_free_func  (static, platform.c:45)\n                 = MBEDTLS_PLATFORM_STD_FREE by default (free)\n```\n\nThe library never calls `calloc`/`free` directly in the code I could see. The `calloc(` search returned 40 hits and only one was outside the library (`programs/wince_main.c`). That search was capped at 40, so it is not exhaustive. Most allocation sites are `mbedtls_calloc(1, sizeof(...))` in `cipher_wrap.c`, `pk_wrap.c`, `psa_crypto.c`, `ssl_tls.c`, `bignum.c` and `bignum_mod_raw.c`. The index reports 147 callers of `mbedtls_calloc` and 133 of `mbedtls_free`.\n\n**How a project substitutes its allocator**\n\n1. **Compile time (the usual route).** Define `MBEDTLS_PLATFORM_MEMORY` in the config. The config file `tests/configs/user-config-malloc-0-null.h` does this and sets `MBEDTLS_PLATFORM_STD_CALLOC` to `custom_calloc` (line 21). Per the index, the `MBEDTLS_PLATFORM_MEMORY` default is off in `mbedtls_config.h:208`, and the calloc/free macro switches are gated on it. I inferred the exact `#if` structure from the gate records; I did not read the header bodies.\n2. **Runtime.** Call `mbedtls_platform_set_calloc_free(my_calloc, my_free)` (`platform.c:57`). It just assigns the two pointers and returns 0. It takes no lock, so it should run before any other thread starts using the library. That is an inference from the code, not something the index states.\n\n**What the library does with the facility**\n\n- **Stack/heap allocator.** `mbedtls_memory_buffer_alloc_init(buf, len)` (`memory_buffer_alloc.c:566`) carves allocations out of a caller-supplied buffer and never calls `calloc`/`free`. It installs its own functions via `mbedtls_platform_set_calloc_free`. With `MBEDTLS_THREADING_C` it installs mutex-wrapped variants (`buffer_alloc_calloc_mutexed`, line 541), which lock around `buffer_alloc_calloc`.\n- **No-heap builds.** When `MBEDTLS_PLATFORM_STD_CALLOC` is not defined, the default calloc is `platform_calloc_uninit` (`platform.c:25`), which always returns NULL. A library built this way cannot allocate unless a project installs its own functions. The index has a component, `component_test_psa_crypto_without_heap`, that builds this way: test code may use calloc/free, but the core library may not.\n\n**Not verified:** the `#if` bodies in `platform.h` and `platform.c`, and whether the library ever allocates outside `mbedtls_calloc`. The index answers from call edges and doesn't show raw `malloc` calls. Reading `include/mbedtls/platform.h` lines 84\u2013170 would settle the exact macro wiring.",
+  "ttft_ms": 1657,
+  "type": "result",
+  "duration_ms": 22150,
+  "uuid": "644f9cea-4bb9-4c58-a688-637dd19027ae",
+  "ttft_stream_ms": 1157,
+  "time_to_request_ms": 71,
+  "first_content_frame_ms": 1157,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

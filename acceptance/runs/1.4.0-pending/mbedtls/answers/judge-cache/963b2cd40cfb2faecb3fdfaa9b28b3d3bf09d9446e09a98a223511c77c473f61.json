@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `include/mbedtls/mbedtls_config.h:3787` has `//#define MBEDTLS_THREADING_C`, so the threading layer is off. ... `mbedtls_config.h:2185` (`MBEDTLS_THREADING_ALT`) and `:2196` (`MBEDTLS_THREADING_PTHREAD`) are also commented out.\nVERDICT: HIT\nWHY: The answer says the shipped config header leaves THREADING_C and THREADING_PTHREAD (and ALT) commented out, so a default build defines none of them."
+}

@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 53568,
+  "stop_reason": "end_turn",
+  "session_id": "cef835f5-822d-4186-a5ab-5bd32e6cb791",
+  "total_cost_usd": 0.016395550000000002,
+  "usage": {
+    "input_tokens": 22,
+    "cache_creation_input_tokens": 29108,
+    "cache_read_input_tokens": 557325,
+    "output_tokens": 9997,
+    "output_tokens_details": {
+      "thinking_tokens": 5353
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 29108,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1391,
+        "cache_read_input_tokens": 63303,
+        "cache_creation_input_tokens": 3411,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 3411
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 22,
+      "outputTokens": 9997,
+      "cacheReadInputTokens": 557325,
+      "cacheCreationInputTokens": 29108,
+      "webSearchRequests": 0,
+      "costUSD": 0.016395550000000002,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 5353,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 29108,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 15,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "## How Python reaches the engine\n\nThere is no pybind11 or cffi. The only bridge is `ctypes` calling the C ABI of `librentropic.so`.\n\n```\nyour Python code\n  \u2514\u2500 entropic/__init__.py       PEP 562 lazy exports\n       \u251c\u2500 hooks.py, streams.py  Pythonic wrappers: dict\u2194JSON, callback keepalive\n       \u2514\u2500 _bindings.py          generated ctypes; _bind() pins restype/argtypes\n            \u2514\u2500 _loader.py       ctypes.CDLL(librentropic.so)\n                 \u2514\u2500 include/entropic/entropic.h  \u2192  src/facade/entropic.cpp\n```\n\n- `scripts/gen_bindings.py` parses the public headers with a hand-rolled parser (not pycparser) and emits `_bindings.py` and `_bindings_manifest.py`.\n- `_loader.py` finds the library in this order: `$ENTROPIC_LIB`, `$ENTROPIC_HOME`, `~/.entropic`, then `ldconfig`.\n- The handle is an opaque `c_void_p`. Structs are `ctypes.Structure`. Enums are `IntEnum`.\n\n## Memory rules across the boundary\n\nThe header (`entropic.h`, \"Memory ownership\") and the hook/stream code set these rules:\n\n1. **Engine-returned `char*` is caller-owned.** Free it with `entropic_free()`. Internally this is `malloc`/`free` in the same `.so`.\n2. **Buffers the engine will free must come from `entropic_alloc()`.** Hook `modified_json` is the main case. `hooks.py` does this in its trampoline.\n3. **`const char*` returns belong to the handle.** They stay valid until the next call on that handle. `entropic_version()` is static and must not be freed.\n4. **Callback arguments are borrowed for the callback only.** The hook `context_json` and the stream token buffer are copied with `ctypes.string_at` before returning.\n5. **Exceptions never cross into C.** Trampolines catch and print them. Each returns a status code instead.\n6. **Keep CFUNCTYPE objects alive.** `hooks.py` keeps them in per-handle lists. `streams.py` keeps them in `_observers`. A dropped wrapper means C calls freed memory.\n7. **Handle lifecycle is single-threaded.** `create`/`destroy` must not race other calls on the same handle. Calls are serialized per handle.\n\n## Problems I found\n\n**1. Owned strings leak in Python.** Six functions return a caller-owned `char*` but are bound with `restype=ctypes.c_char_p`:\n\n- `entropic_adapter_info`\n- `entropic_grammar_get`\n- `entropic_grammar_validate`\n- `entropic_profile_get`\n- `entropic_list_mcp_keys`\n- `entropic_get_identity_config`\n\n`ctypes` converts a `c_char_p` return into a `bytes` copy and discards the raw pointer. So `entropic_free()` can never be called on it. The generator causes this: `scripts/gen_bindings.py:133` maps every `char*` return to `c_char_p`. The fix is `restype=c_void_p`, copy with `string_at`, then `entropic_free`. Out-params (`char**`, as in `entropic_run`) have the same trap. The raw pointer must be read with `cast(out, c_void_p)` before `.value`. I did not run a leak test. A loop with RSS monitoring would confirm it.\n\n**2. Documentation names a function that does not exist.** `entropic_free_string` appears in `entropic.h:701` and `:812`, and in `entropic.cpp:4022` and `:4099`. The real function is `entropic_free`. A consumer following the docs will get a link error.\n\n**3. Dead helper.** `hooks.py:123` `_alloc_c_string` has no callers. The trampoline at about line 160 repeats its logic inline. This violates the DRY rule in the project standards.\n\nNothing was built or run. Findings 1 and 2 are from reading the code and headers.",
+  "ttft_ms": 1522,
+  "type": "result",
+  "duration_ms": 55424,
+  "uuid": "0597facb-c7ce-4b2b-80c3-b1320d8307c8",
+  "ttft_stream_ms": 1176,
+  "time_to_request_ms": 117,
+  "first_content_frame_ms": 1176,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

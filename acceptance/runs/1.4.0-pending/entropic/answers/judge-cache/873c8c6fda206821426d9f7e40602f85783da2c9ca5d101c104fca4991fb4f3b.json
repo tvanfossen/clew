@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The result is that failure, missing tokenizer, and empty input all look the same to the caller. Only the log line tells them apart\" and \"So the main path has no check.\"\nVERDICT: HIT\nWHY: The answer says failure is indistinguishable from empty results and that the main-path callers do not check for it. It does note that the speculative/MTP paths check `tokens.size() < 2`, but that is a size check, not a failure check, so the item's substance is still stated."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `programs/ssl/ssl_client2.c:8` | Test/example client. Defined at the top of the file, so it can read and write SSL context fields directly. (and ssl_server2.c:8 \"Same, for the server test program\")\nVERDICT: HIT\nWHY: The answer identifies that example programs (ssl_client2.c, ssl_server2.c) define the opt-out macro themselves to access private fields directly."
+}

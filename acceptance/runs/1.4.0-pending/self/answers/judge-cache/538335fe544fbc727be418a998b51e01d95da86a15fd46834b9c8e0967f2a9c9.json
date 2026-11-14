@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`derive_scope` (`clew/scope.py:639`) first checks for a stated scope from an MCP caller, then `<root>/.clew.yaml` via `load_declaration_located`\"\nVERDICT: HIT\nWHY: The answer explicitly names derive_scope in clew/scope.py as where the scope decision (declared vs whole-repo fallback) is resolved."
+}

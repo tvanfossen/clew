@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Mirrors the engine's interrupt flag into the C-ABI int cancel flag; \"The C-ABI boundary passes a plain `int*` polled every 10 ms, because the design rules forbid `std::atomic` across the `.so` boundary.\"\nVERDICT: HIT\nWHY: The answer says observer/poller threads mirror the atomic interrupt flag into a plain int* for the C ABI because atomics can't cross the .so boundary."
+}

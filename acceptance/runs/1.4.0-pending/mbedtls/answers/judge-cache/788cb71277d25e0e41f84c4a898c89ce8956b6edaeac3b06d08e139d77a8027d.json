@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Without asm it XORs with `mbedtls_ct_zero`, a `volatile` global that is 0 (`constant_time.c:29`), so the compiler cannot fold the value at compile time.\nVERDICT: HIT\nWHY: The answer states that without asm the opaque function XORs with `mbedtls_ct_zero`, a volatile global holding 0, and names that global."
+}

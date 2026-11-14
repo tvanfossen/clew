@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The thread is `.detach()`ed, so nothing joins it.\nVERDICT: HIT\nWHY: The answer identifies the async ask worker (`run_async_ask`) as detached with nothing joining it, and elsewhere notes the other threads are joined or reaped. That covers the no-join part, though it never says the thread outlives its caller's scope."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "ITEMS:\ntool_executor.cpp\nfacade/entropic.cpp\nserver_manager.cpp\npermission_manager.cpp\nloader.cpp\nconfig.h\npermission_manager.h\nbash.cpp\nserver_manager_test.cpp\ntool_calling_loop_test.cpp\nEND"
+}

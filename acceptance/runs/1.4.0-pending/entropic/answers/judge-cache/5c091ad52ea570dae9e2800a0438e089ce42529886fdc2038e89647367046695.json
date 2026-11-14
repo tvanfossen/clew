@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`EngineCallbacks::on_tool_call` returns `void`, and `check_approval` sets `approved = true` after calling it (`tool_executor.cpp:168-173`).\"\nVERDICT: HIT\nWHY: The answer states the callback returns void and that approved is set to true after calling it, so the callback can never deny."
+}

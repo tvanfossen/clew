@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Deny entries are consulted in `ServerManager::execute`, so a denied call fails even if auto-approve or the callback approved it.\nVERDICT: MISS\nWHY: The answer says deny is checked in ServerManager::execute and overrides approvals, but it also lists other pre-execution checks that can block a call (schema, tier, duplicate, no-callback denial). It never concludes that the deny list is the only blocking list."
+}

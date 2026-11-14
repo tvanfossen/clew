@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: #ifndef MBEDTLS_ALLOW_PRIVATE_ACCESS #define MBEDTLS_PRIVATE(member) private_##member #else #define MBEDTLS_PRIVATE(member) member #endif \u2014 and \"by default a field `foo` is actually named `private_foo`\"\nVERDICT: HIT\nWHY: The answer shows the macro and states that by default the field is renamed to private_foo, and that defining MBEDTLS_ALLOW_PRIVATE_ACCESS makes it expand to the bare member name."
+}

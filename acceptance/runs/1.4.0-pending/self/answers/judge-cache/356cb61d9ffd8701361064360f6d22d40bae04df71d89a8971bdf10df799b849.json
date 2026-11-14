@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "ITEMS:\n.clew.yaml\nclew/declaration.py\ntoolchain.toml\nsuppress.toml\nclew/tiers.py\nbuildoptions.py\ncli.py\nscope.py\npreprocessor.py\nshared_key_edges.py\ntoolchain.py\nEND"
+}

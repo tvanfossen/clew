@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"This axis means the server process is running old logic, not that the index is old.\" and \"code | server loaded old logic; reads are fine, writes are affected\" and \"Reads are still current, but writes through the stale process are refused.\"\nVERDICT: HIT\nWHY: The answer states that on the code axis reads stay current while writes (builds) through the stale process are affected or refused because of the old logic."
+}

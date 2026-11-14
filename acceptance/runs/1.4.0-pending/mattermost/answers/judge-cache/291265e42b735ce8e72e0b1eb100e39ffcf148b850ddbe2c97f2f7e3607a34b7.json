@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: This is the single-reaction, event-driven case, so it must not treat the rest of the post's reactions as stale.\nVERDICT: HIT\nWHY: The answer says skipSync: true returns before computing deleteReactions because a single incoming reaction must not cause the post's other reactions to be treated as stale (deleted)."
+}

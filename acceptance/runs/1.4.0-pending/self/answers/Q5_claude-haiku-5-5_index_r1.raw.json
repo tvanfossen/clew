@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 24427,
+  "stop_reason": "end_turn",
+  "session_id": "c2827091-06ee-4d7b-a0ec-4e6b18089909",
+  "total_cost_usd": 0.01476421,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 50051,
+    "cache_read_input_tokens": 261381,
+    "output_tokens": 4278,
+    "output_tokens_details": {
+      "thinking_tokens": 2150
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 50051,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2329,
+        "cache_read_input_tokens": 62510,
+        "cache_creation_input_tokens": 6418,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 6418
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 4278,
+      "cacheReadInputTokens": 261381,
+      "cacheCreationInputTokens": 50051,
+      "webSearchRequests": 0,
+      "costUSD": 0.01476421,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2150,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 50051,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 11,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The repository gives clew five ways to change what it indexes, ordered by precedence. Where two disagree, a stated value replaces the defaults for that option and the rest accumulate. Everything below comes from clew's own docs and function docstrings. I did not run a build, and several function bodies are flagged as changed since the index was built, so treat the line-level details as unverified.\n\n**The ways to say so**\n\n| Tier | Source | Combines by |\n|---|---|---|\n| 1 | CLI flag (`--scope`, `--exclude`, `--entry-patterns`, `--doxyfile`, `--predefined`, \u2026), or the `options` argument an embedding caller passes to `build_index` / `build_or_refresh` | Replaces the stated layer |\n| 2 | `.clew.yaml` at the repo root, found via `--repo-root` | Replaces the stated layer |\n| 3 | Facts the target already wrote: a Doxyfile's `ALIASES` and `PREDEFINED`, generator manifests, language entry points | Accumulates |\n| 4 | Known-ecosystem signatures (UDM, ingot) | Accumulates |\n| 5 | Name-pattern heuristics, the floor | Replaced by any stated tier |\n\nThe `.clew.yaml` sections and the `options` keys share one vocabulary, so `index_scope`, `preprocessor`, `kconfig` and the rest are the same names in both places. Mechanics such as `--scope`, `--index-cache` and `--rebuild` describe one run, not the repository, so they are flags only.\n\n**When they disagree**\n\n- **Flag against declaration, same option:** the flag wins and the declaration is ignored for that option. `_declared_or_flag` in `clew/cli.py` does this. Section-level values are replaced whole, not deep-merged, so a flag that states `preprocessor: {predefined: [...]}` does not blend with the declared `config_header`.\n- **Tier 3 and 4 facts:** these survive every stated tier. The docs say so explicitly. I did not verify that every consumer honours this.\n- **Tier 5 heuristics:** any stated tier displaces them. The design exists so that stating `--entry-patterns` cannot silently drop `main`.\n- **Empty values withdraw rather than state:** `[]` or `{}` falls through to the declaration, and then to the floor. An empty `options` document changes nothing and is not an error.\n- **Doxyfile INPUT versus `index_scope`:** the declaration wins. A Doxyfile is a documentation target, so its `INPUT` is replaced, while its `ALIASES` and `PREDEFINED` are kept. `--scope doxyfile` is the explicit opt-out that indexes the Doxyfile's own `INPUT` list instead.\n- **Invalid options:** `apply_options` validates the whole mapping before assigning anything, so one bad entry refuses the whole mapping. A stated `doxyfile` must exist, or the build refuses rather than silently indexing the whole repo.\n\n**Making disagreements visible**\n\nEach build records the winning tier per manifest option in `build_meta`, so `options.<name>.tier` shows whether a flag, the declaration or the floor supplied it. Files in scope with no rows are reported as `not_indexed` counts, so a gap is not mistaken for absence.",
+  "ttft_ms": 2222,
+  "type": "result",
+  "duration_ms": 26521,
+  "uuid": "634d51ba-925d-4c37-bedb-17ed93260a92",
+  "ttft_stream_ms": 1438,
+  "time_to_request_ms": 77,
+  "first_content_frame_ms": 1438,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

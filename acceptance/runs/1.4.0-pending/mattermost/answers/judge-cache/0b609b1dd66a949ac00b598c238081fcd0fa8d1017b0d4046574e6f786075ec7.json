@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The remove path does not use the handler at all: it looks up the row and destroys it directly.\" and \"rows = queryReaction(database, emoji_name, post_id, user_id).fetch() 4. if rows.length \u2192 database.write(() => rows[0].destroyPermanently())\"\nVERDICT: HIT\nWHY: The answer states that removal bypasses the operator's handleReactions and instead queries the reaction and destroys it via a direct database.write."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Every in-tree and product handler calls `this.batchRecords` or `this.handleRecords`.\nVERDICT: MISS\nWHY: The answer says handlers use batchRecords from the base class, but it never says this follows from each mixin being constrained to extend ServerDataOperatorBase. It also names bypasses, so it doesn't conclude that every write goes through it."
+}

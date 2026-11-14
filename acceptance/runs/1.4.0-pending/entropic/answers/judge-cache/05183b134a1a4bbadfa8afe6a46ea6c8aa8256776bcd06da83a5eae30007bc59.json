@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the allow lookup sits in the approval step and that `auto_approve` skips only approval, but it never states that an ALLOW match does not grant execution. It also never notes that the allow list is consulted only from `check_approval`, in a different file than the deny check."
+}

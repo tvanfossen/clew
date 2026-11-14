@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 29458,
+  "stop_reason": "end_turn",
+  "session_id": "37cd16f1-9d40-4777-a5d3-8709c9a116fd",
+  "total_cost_usd": 0.01527924,
+  "usage": {
+    "input_tokens": 18,
+    "cache_creation_input_tokens": 40172,
+    "cache_read_input_tokens": 488604,
+    "output_tokens": 4714,
+    "output_tokens_details": {
+      "thinking_tokens": 1121
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 40172,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1751,
+        "cache_read_input_tokens": 71993,
+        "cache_creation_input_tokens": 2554,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2554
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 18,
+      "outputTokens": 4714,
+      "cacheReadInputTokens": 488604,
+      "cacheCreationInputTokens": 40172,
+      "webSearchRequests": 0,
+      "costUSD": 0.01527924,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1121,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 40172,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 15,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "A clew index can be stale on three independent axes. Clew detects each one differently, reports it in the reply, and the right fix depends on the axis. I answered from reading the code and did not run anything.\n\n**How it knows**\n\n- **Data axis (sources changed since build).** `db_status` in `clew/mcp_server/state.py:1140` calls `_source_drift` (`state.py:823`). It compares each indexed file's mtime against the database's mtime. Files dated in the future are excluded, and deleted files are skipped. Stale also means `build_version != CLEW_BUILD_VERSION` or `changed > 0`.\n- **Schema axis (version mismatch).** `build_version` is compared with `CLEW_BUILD_VERSION` (`clew/signature.py`). The direction matters. If the index is newer than the server, rebuilding cannot clear it.\n- **Code axis (the running process predates its source).** `code_identity()` in `freshness.py` hashes the relative path and content of every `.py` under the package, at import and again on demand. It compares the two digests. The check uses content, not mtime, so a `git checkout` that restores identical bytes does not trip it. An unreadable tree yields `\"\"`, and that is treated as \"cannot tell\", not as a match.\n\n**What it tells the caller**\n\n- `freshness.notices()` (`freshness.py:573`) turns these into `{axis, message}` pairs. The list is empty when the tool is current.\n- `db_status` exposes the raw fields (`source_changed_files`, `newest_changed_source`, `build_version`, `expected_build_version`, `refresh.duration_ms`, `code.matches_source`) and a `staleness` list when there are notices.\n- Query replies carry the same notices under `staleness` (`tools_query.py:1841`). If the payload is too large, the notices are compacted and then minimised rather than dropped (`_staleness_within_budget`, `tools_query.py:158`).\n- On a subject miss (`found: false`), `data` and `schema` staleness withdraw the \"definitive negative\" claim (`tools_query.py:200\u2013209`). A symbol that is simply newer than the index is not reported as absent.\n- Each message names the action that clears it. The data message says to call `index(action='refresh')` and quotes the measured cost. The schema message says to refresh with `force=True` when the index predates the server. The code message says a rebuild cannot fix it and the client must restart.\n\n**What the caller does**\n\n| Axis | Clearing action |\n|---|---|\n| data | `index(action='refresh')`. Cheap and incremental. |\n| schema (index older) | `index(action='refresh', force=True)` |\n| schema (index newer) | Restart the MCP client. Rebuilding cannot clear it. |\n| code | Restart the MCP client. Refresh is refused. |\n\nThe server also acts on its own for the data axis. `_auto_refresh` (`server.py:1242`) runs before each query. It rebuilds only when the data axis is stale and the process matches its source. The build runs under a per-repo lock with a bounded wait. A re-check inside the lock deduplicates concurrent refreshes. Failures are logged and the query still answers from the old index, with its staleness notice attached.\n\nWrites are refused when the process predates its source. `stale_code_refusal` is called in `build_or_refresh` (`server.py:2278`) and in first-build gating (`server.py:1393`). `force=True` does not bypass it.\n\n**Things I noticed**\n\n- The data axis still uses mtime. A `touch` or a checkout can therefore trigger a refresh with no content change. The refresh is incremental and the cache is sha256-keyed, so the cost is small, but it is not a true content check.\n- I did not read the CLI path, so this covers the MCP surface only. I also did not read the body of `_staleness` in `tools_query.py`, so the exact withdrawal logic is taken from its comments.",
+  "ttft_ms": 2153,
+  "type": "result",
+  "duration_ms": 30238,
+  "uuid": "d5cb457d-4e3a-4a6e-a1df-f8f87e8ab03e",
+  "ttft_stream_ms": 1206,
+  "time_to_request_ms": 131,
+  "first_content_frame_ms": 1206,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

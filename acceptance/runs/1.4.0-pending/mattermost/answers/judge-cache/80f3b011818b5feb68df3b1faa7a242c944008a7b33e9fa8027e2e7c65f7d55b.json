@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"If viewable, archive sets `delete_at` locally via `setChannelDeleteAt` and keeps the channel in the sidebar. If not, the user is removed from the channel locally\" and \"On a channel-deleted event: if not viewable, kick the user out of the current channel (`Events.CHANNEL_ARCHIVED`) and remove membership. If viewable, only the `delete_at` is stored.\"\nVERDICT: HIT\nWHY: The answer states that when not viewable the user is removed (and kicked out if current channel), and when viewable the channel is kept with delete_at set (marked deleted)."
+}

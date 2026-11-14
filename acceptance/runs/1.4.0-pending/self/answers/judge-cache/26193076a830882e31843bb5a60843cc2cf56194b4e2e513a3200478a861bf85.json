@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Stated tiers replace guesses.** A CLI flag or a `.clew.yaml` value replaces the heuristic layer, and a flag replaces the declaration. Tiers 1, 2 and 5 are mutually \"replace\" in the sense that the highest stated one supplies the value. - **Tiers 3 and 4 accumulate.** They are unioned in and survive any stated tier.\"\nVERDICT: HIT\nWHY: The answer states that tiers 1, 2 and 5 replace one another, while tiers 3 and 4 are unioned in and survive any stated tier. That is the asymmetry the item describes."
+}

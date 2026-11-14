@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Each handler is `const XHandler = <TBase extends Constructor<ServerDataOperatorBase>>(superclass) => class extends superclass {...}`... \"The real database write is `BaseDataOperator.batchRecords`... It is the only place in the operator layer that calls `database.write` and `writer.batch`.\"\n\nVERDICT: MISS\n\nWHY: The answer names the constraint and `batchRecords` as the write point, but it doesn't conclude that every handler's writes go through the inherited `batchRecords` because of that constraint. It also says the playbooks local actions write around the operator."
+}

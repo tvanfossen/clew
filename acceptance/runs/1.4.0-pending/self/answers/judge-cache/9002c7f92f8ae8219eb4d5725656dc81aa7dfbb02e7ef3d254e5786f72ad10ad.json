@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer discusses git_argv callers and never mentions a provenance ranking in a vocabulary module deciding collapsed-row provenance."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Declaring an `index_scope:` is the only thing that narrows the walk to chosen roots. ... \"absent / unusable \u2500\u2500\u25ba whole_repo_scope(root)\" ... \"Whole repo, when nothing usable is declared.\"\nVERDICT: HIT\nWHY: The answer says a declared index_scope is tried first and that when it is absent or unusable, the result falls through to whole_repo_scope, which indexes the whole repository."
+}

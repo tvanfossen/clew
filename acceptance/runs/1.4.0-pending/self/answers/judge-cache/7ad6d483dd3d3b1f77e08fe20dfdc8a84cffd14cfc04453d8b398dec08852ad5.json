@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: CLI flags (`--doxyfile`, `--exclude`, `--entry-patterns`, `--scope`, `--declare <file>`), or the `options` argument for embedding callers\nVERDICT: HIT\nWHY: The answer places tier 1 in both CLI flags and the `options` argument for embedding callers, which covers both entry points."
+}

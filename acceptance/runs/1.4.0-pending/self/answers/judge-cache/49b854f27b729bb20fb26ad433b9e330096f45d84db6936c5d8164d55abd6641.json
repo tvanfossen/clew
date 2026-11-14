@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"unless the repo declares an `index_scope:` in its `.clew.yaml`, clew indexes the whole repository\" and \"nothing declared (the default) \u2500\u2500 whole_repo_scope(repo)\"\nVERDICT: HIT\nWHY: The answer says a declared `index_scope` wins and that the absence of one falls through to the whole repository. It adds that the CLI refuses an unusable declaration, but that is a separate case from failing to find one."
+}

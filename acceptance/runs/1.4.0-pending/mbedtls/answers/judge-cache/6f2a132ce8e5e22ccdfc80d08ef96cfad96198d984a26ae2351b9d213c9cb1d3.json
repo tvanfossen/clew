@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It zeroes a static `heap` context and calls `mbedtls_platform_set_calloc_free()` with `buffer_alloc_calloc_mutexed`/`buffer_alloc_free_mutexed` when `MBEDTLS_THREADING_C` is on, or the unmutexed pair otherwise.\nVERDICT: HIT\nWHY: The answer states that the buffer allocator init installs the mutexed pair when MBEDTLS_THREADING_C is on and the plain pair otherwise. It cites the init function `mbedtls_memory_buffer_alloc_init`, and the conditional on a config macro makes the choice compile-time."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: With a colon, the right part is matched against `tool:<arg>`, where `<arg>` is the first JSON value in the arguments (`args_to_pattern`, `server_manager.cpp:426`). Empty args become `*`.\nVERDICT: MISS\nWHY: The answer says only the first value is used and empty args become `*`, but never states that other arguments are invisible to matching or that non-string/unparseable arguments collapse to a wildcard."
+}

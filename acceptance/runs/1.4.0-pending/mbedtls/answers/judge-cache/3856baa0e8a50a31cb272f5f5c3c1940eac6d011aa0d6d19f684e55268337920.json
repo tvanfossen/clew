@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Verification is runtime testing under MemorySanitizer or Valgrind, and those builds disable the assembly\" and \"`component_test_memsan_constant_flow` and `component_release_test_valgrind_constant_flow`\"\nVERDICT: MISS\nWHY: The answer says verification is via MSan/Valgrind testing, but it never says the facility is off-by-default or explicitly outside the library API."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The header `include/mbedtls/private_access.h` defines it two ways, depending on whether `MBEDTLS_ALLOW_PRIVATE_ACCESS` is defined\nVERDICT: HIT\nWHY: The answer explicitly locates the MBEDTLS_PRIVATE definition in include/mbedtls/private_access.h, with line numbers."
+}

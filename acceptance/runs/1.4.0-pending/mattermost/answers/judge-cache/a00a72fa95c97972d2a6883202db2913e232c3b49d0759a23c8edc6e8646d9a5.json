@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Archiving a channel | `archiveChannel` in `app/actions/remote/channel.ts:1390` | Sets `delete_at` locally, so the channel stays in the local DB as archived | Removes the current user from the channel locally; and \"If the user is viewing that channel, kicks them out (`Events.CHANNEL_ARCHIVED`), then removes the user from the channel\"\nVERDICT: HIT\nWHY: The answer states that with the flag off (not viewable) the user is removed from the channel and kicked out if viewing it, and with the flag on the channel stays with `delete_at` set (marked deleted)."
+}

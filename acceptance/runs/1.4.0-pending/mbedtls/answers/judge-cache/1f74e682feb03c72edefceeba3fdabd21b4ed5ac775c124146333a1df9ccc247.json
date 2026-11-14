@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The `mbedtls_ct_*` / `MBEDTLS_CT_*` symbols and the `constant_time` header appear in about 35 library files, roughly 444 occurrences in total.\nVERDICT: MISS\nWHY: The answer says about 35 files, not roughly twenty modules, and it also says the facility is \"not across the whole library\", so it doesn't convey the item's broad-consumption claim at that scale."
+}

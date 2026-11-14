@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`LlamaCppTokenizer::detokenize` (`:93` and `:99`). This one does have a fallback: it tries a 256-byte stack buffer, and if that is too small it resizes to the required size and calls again.\"\nVERDICT: HIT\nWHY: The answer says detokenize tries a 256-byte stack buffer first and resizes only if too small, and says tokenize first probes with a null buffer for the size and then fills a vector of that size."
+}

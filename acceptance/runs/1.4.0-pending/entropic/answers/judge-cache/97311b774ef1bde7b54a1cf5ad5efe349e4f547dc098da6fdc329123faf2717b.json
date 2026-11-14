@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `HealthMonitor::stop()` sets `running_` with `exchange`, notifies `wake_cv_`, and joins.\nVERDICT: HIT\nWHY: The answer states that stop() uses an atomic exchange on running_, notifies the condition variable, and joins the thread."
+}

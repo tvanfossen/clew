@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says that staleness measurement never raises or that a failed measurement degrades to no annotation. It says a failed refresh is logged and the query still answers, but that is about refreshing, not measuring. The closest line, \"An unreadable tree counts as a match\", covers only the code-axis fingerprint."
+}

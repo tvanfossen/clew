@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "ITEMS:\nclew/gitenv.py\nclew/guard/main.py\nclew/guard/tags.py\nclew/scope.py\nclew/guard/git.py\nclew/propose/notindexed.py\ntests/test_security_surface.py\nEND"
+}

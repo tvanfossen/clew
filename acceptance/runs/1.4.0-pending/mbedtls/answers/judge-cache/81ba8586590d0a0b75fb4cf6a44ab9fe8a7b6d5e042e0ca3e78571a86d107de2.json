@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the default build has no locks or mutexes, but it never says no threads are created, and never mentions the pthread example compiling to a stub main."
+}

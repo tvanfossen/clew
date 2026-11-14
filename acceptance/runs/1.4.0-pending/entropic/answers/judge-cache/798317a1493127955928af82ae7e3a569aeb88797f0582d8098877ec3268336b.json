@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Thread-local `HandleLogScope` (`src/types/logging.cpp:36`) routes each thread's logs to the right handle.\nVERDICT: MISS\nWHY: The answer mentions a thread-local HandleLogScope generally (and on one worker), but never states that every thread body installs it as its first statement."
+}

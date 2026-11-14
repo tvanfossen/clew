@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Count is silently wrong.** The C API's `catch` branch falls back to `len/4`, but a tokenizer failure does not throw. It returns `0`, so a failed count is reported as zero tokens.\"\nVERDICT: HIT\nWHY: The answer states that a failed tokenization makes the count path return 0 rather than signalling an error, and that no error code or status propagates."
+}

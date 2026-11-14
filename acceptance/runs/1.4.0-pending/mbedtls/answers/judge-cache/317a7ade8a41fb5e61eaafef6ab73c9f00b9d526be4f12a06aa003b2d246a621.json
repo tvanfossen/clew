@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer lists compile-time (MBEDTLS_PLATFORM_MEMORY macros) and runtime (mbedtls_platform_set_calloc_free) routes, but never states they are mutually exclusive. It also does not describe the compile-time route as a pair of macros that replace the function pointers."
+}

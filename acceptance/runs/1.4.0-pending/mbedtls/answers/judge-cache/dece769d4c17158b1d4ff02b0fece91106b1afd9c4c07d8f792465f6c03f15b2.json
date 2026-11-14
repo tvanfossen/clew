@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The path is `mbedtls_strerror()` in `library/error.c`, which is generated, not hand-written.\" and \"**Define it in the module's header** in `include/mbedtls/`, with one Doxygen description\" and \"**Regenerate and commit `library/error.c`** by building, so the Makefile or CMake rule runs.\"\nVERDICT: HIT\nWHY: The answer says to add the documented #define to the public header and regenerate error.c, and it calls error.c generated, not hand-written, so it does not edit that file by hand."
+}

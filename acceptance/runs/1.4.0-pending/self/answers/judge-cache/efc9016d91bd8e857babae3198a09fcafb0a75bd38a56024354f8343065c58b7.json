@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Each query reply carries a `staleness` block only when a notice exists, so a current index adds no key at all.\nVERDICT: HIT\nWHY: The answer states that every query reply carries the staleness annotation when a notice exists and that it is absent (empty) when the index is current. Its `notices()` description also says the list is empty when the tool is current."
+}

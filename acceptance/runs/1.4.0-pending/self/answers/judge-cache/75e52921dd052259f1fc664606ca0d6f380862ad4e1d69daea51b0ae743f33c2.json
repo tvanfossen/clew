@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: So \"whole repo\" means every file clew has a parser for, not every file on disk.\nVERDICT: MISS\nWHY: The answer only notes that a file whose extension no grammar handles is dropped. It doesn't name the parse-built front end claiming the file types doxygen can't read, and it doesn't name binary classification dropping files whose extension lies about them."
+}

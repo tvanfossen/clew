@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes `_bindings.py` as the generated module that loads the library, but never mentions a names-only manifest that imports no ctypes, nor that the generated surface is deliberately split in two."
+}

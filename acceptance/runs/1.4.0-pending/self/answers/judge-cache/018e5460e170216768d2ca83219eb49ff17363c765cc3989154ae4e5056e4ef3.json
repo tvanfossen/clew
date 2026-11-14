@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Every declaration section can also be given as a call-time option, so an MCP caller that cannot reach a shell still has tier 1.\nVERDICT: MISS\nWHY: The answer says declaration sections can be passed as call-time options, but it never states that the option names are the same words as the section names and the diagnostics."
+}

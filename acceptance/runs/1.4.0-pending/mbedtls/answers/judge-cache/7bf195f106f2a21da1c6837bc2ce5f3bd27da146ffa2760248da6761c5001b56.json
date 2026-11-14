@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Without the define, the field is really named `private_foo`, so `ctx->foo` in application code fails to compile. With the define, the field is named `foo`.\nVERDICT: HIT\nWHY: The answer states that code defining MBEDTLS_ALLOW_PRIVATE_ACCESS sees plain member names, while code that doesn't define it (an ordinary consumer) sees the `private_`-prefixed names."
+}

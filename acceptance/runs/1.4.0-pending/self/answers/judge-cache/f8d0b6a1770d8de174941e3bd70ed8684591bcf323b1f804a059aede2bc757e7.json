@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Each resolved option stamps the tier that won into `build_meta`. Only tier 1 is replayed on a later refresh.\nVERDICT: MISS\nWHY: The answer says the winning tier is stamped into build_meta but never says the record is derived from stored rows rather than a separate summary; it actually describes stamping."
+}

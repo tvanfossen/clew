@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Pervasive inside the inference library, where `#include <llama.h>` appears in about ten `src/inference` files. ... Leaked as opaque pointers into several public C++ headers... `src/facade/entropic.cpp` includes llama_cpp_backend.h, dynamic_casts to LlamaCppBackend, calls llama_model_ptr()/llama_context_ptr()\n\nVERDICT: HIT\nWHY: The answer says llama.cpp is pervasive in src/inference but also reaches outside it (public headers, src/facade, tests), so it is concentrated there without being contained."
+}

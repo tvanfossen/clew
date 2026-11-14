@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The grading logic is in `clew/mcp_server/emptiness.py`.\nVERDICT: HIT\nWHY: The answer explicitly names clew/mcp_server/emptiness.py as where the grading (verdict) logic lives."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Compile time (no runtime cost):** MBEDTLS_PLATFORM_CALLOC_MACRO = my_calloc / MBEDTLS_PLATFORM_FREE_MACRO = my_free\" and \"**Runtime:** define only `MBEDTLS_PLATFORM_MEMORY`, then call early... `mbedtls_platform_set_calloc_free(my_calloc, my_free);`\"\nVERDICT: MISS\nWHY: The answer distinguishes the compile-time macro pair from the runtime function-pointer setter, but it never says they are mutually exclusive. Its table says the runtime path applies with \"`MBEDTLS_PLATFORM_MEMORY` only\", which only implies exclusivity."
+}

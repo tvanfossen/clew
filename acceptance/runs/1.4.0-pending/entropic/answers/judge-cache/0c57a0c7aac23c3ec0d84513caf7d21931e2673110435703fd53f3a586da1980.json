@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Each spawned thread opens a `HandleLogScope` with the owning handle's `log_id` (`external_bridge.cpp:797`, `:946`). The log routing is `thread_local` (`src/types/logging.cpp:36`), so without this, lines from a worker would go to the wrong session log.\nVERDICT: HIT\nWHY: The answer states that spawned threads open a per-handle log scope with the owning handle's log_id so worker logs route to the correct handle/session."
+}

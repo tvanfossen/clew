@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Writes are refused when the process predates its source. `stale_code_refusal` is called in `build_or_refresh` (`server.py:2278`) and in first-build gating (`server.py:1393`). `force=True` does not bypass it.\n\nVERDICT: MISS\n\nWHY: The answer says writes are refused when the code is stale. It never says that reads stay current because query tools open the database per call. It also never says that a stale-process build would write old pipeline logic."
+}

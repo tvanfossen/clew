@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes how the loader finds the library and mentions the install-engine error, but never concludes that the split exists so `import entropic` works before the engine is on disk, or that this enables shipping an install-engine subcommand in the same package."
+}

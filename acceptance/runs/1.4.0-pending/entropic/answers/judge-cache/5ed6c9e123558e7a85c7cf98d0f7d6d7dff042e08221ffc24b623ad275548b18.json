@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `stop()` sets `running_`, notifies the condition variable, and joins.\nVERDICT: HIT\nWHY: The answer states that HealthMonitor::stop() sets the running flag, notifies the condition variable, and joins the thread. The \"atomic exchange\" detail is not spelled out, but the flag set, the cv wake and the join are all there."
+}

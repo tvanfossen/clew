@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `.yaml`, `.yml`, `.json` | A `path` row per file, zero symbols | Findable by name, but no `memberdef`, so no keys (`steps:`, etc.) enter the symbol namespace.\nVERDICT: HIT\nWHY: The answer says YAML/JSON files are in the index as path rows with zero symbols, while shell/CMake get function symbols, so the two file groups are treated differently."
+}

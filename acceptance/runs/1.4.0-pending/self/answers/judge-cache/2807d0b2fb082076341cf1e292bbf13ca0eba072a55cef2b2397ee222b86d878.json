@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: An unread corpus holds matching rows | \"NOT DEFINITIVE \u2014 this index HOLDS matching rows that search does not read: N kind\" ... \"No unread corpus holds the name, and file docs were built | This IS a definitive empty result\"\nVERDICT: MISS\nWHY: The answer describes grading by unread corpora but never states that the strong wording is earned per call rather than tied to a result shape."
+}

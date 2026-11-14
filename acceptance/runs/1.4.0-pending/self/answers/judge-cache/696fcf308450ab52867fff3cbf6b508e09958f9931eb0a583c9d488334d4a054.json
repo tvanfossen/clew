@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says auto-refresh failures are logged and the query still answers, but it never states that measuring staleness itself never raises and degrades to no annotation."
+}

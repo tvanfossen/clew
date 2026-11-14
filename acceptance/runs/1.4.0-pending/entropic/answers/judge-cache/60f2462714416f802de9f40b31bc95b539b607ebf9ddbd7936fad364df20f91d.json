@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`do_count_tokens` / `count_tokens` (`llama_cpp_backend.cpp:825`) | Returns `0`. The C API `entropic_inference_count_tokens` (`inference_c_api.cpp:548`) returns that `0` too.\"\nVERDICT: HIT\nWHY: The answer states that the token-counting path returns 0 when tokenization fails (empty vector), rather than signalling an error."
+}

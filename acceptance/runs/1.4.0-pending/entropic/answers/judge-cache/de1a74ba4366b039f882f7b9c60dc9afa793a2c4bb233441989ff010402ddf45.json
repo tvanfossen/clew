@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The interface contract at `include/entropic/inference/tokenizer.h` says \"empty on failure or empty input\", so a failure cannot be told apart from an empty prompt.\nVERDICT: HIT\nWHY: The answer states failure is indistinguishable from empty input and that most callers do not check, with only the speculative and MTP paths guarding, though some of those guards only reject empty or tiny results."
+}

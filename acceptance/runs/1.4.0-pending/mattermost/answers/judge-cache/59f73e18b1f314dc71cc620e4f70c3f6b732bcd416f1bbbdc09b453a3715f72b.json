@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The handlers all extend `ServerDataOperatorBase`, so they share its helpers.\" and \"`ServerDataOperatorBase.execute` ... `this.batchRecords(models, description)`\" and \"the base itself extends `BaseDataOperator`\"\nVERDICT: MISS\nWHY: The answer says handlers extend ServerDataOperatorBase and that writes go through BaseDataOperator.batchRecords, but it never concludes that every handler's writes route through the inherited `batchRecords` because each mixin is constrained to ServerDataOperatorBase. It also lists handlers that call `batchRecords` directly or via `execute`, without tying that to the constraint."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Public API surface is limited to `mbedtls/constant_time.h` (`mbedtls_ct_memcmp`, `memcmp_partial`) and `mbedtls/bignum.h` (`mbedtls_mpi_lt_mpi_ct`).\nVERDICT: MISS\nWHY: The answer lists several public functions (memcmp, memcmp_partial, mpi_lt_mpi_ct), not a single public function with the rest internal."
+}

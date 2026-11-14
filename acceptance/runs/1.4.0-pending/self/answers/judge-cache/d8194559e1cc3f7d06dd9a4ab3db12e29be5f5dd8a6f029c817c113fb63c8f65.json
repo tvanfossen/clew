@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `--declare FILE` (tier 1) ... `options=` argument to `build_index` / `index(action='refresh')` (tier 1) | An MCP or embedding caller with no shell\n\nVERDICT: HIT\nWHY: The answer lists both a CLI route (`--declare` and named flags) and a structured `options=` argument as tier 1, and says the latter is for callers with no shell."
+}

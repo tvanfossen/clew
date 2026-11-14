@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `resolved = (tier1 or tier2 or tier5) \u222a tier3 \u222a tier4`\nVERDICT: HIT\nWHY: The answer describes five numbered tiers (flags/--declare, .clew.yaml, target facts, ecosystem signatures, floor) with a combined resolution rule, not a single override."
+}

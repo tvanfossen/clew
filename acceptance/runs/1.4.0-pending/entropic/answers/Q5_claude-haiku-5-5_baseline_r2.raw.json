@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 58407,
+  "stop_reason": "end_turn",
+  "session_id": "9803450c-c38a-47f9-9156-aa44395aeccc",
+  "total_cost_usd": 0.01970997,
+  "usage": {
+    "input_tokens": 22,
+    "cache_creation_input_tokens": 40125,
+    "cache_read_input_tokens": 607727,
+    "output_tokens": 11211,
+    "output_tokens_details": {
+      "thinking_tokens": 5716
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 40125,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 4119,
+        "cache_read_input_tokens": 73259,
+        "cache_creation_input_tokens": 575,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 575
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 22,
+      "outputTokens": 11211,
+      "cacheReadInputTokens": 607727,
+      "cacheCreationInputTokens": 40125,
+      "webSearchRequests": 0,
+      "costUSD": 0.01970997,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 5716,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 40125,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 16,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** Python doesn't use a binding framework. It calls the C ABI directly through `ctypes`, and the memory rules are the C header's rules (`entropic.h`), not Python's. In the current code, the generated bindings don't fully honor those rules, so some engine-allocated strings leak. I read the code but did not build or run anything, so the leak and the hook bug below are from reading, not reproduction.\n\n## How Python reaches the engine\n\n```\nuser code\n  \u2514\u2500 entropic/__init__.py       PEP 562 lazy exports (no .so load at import)\n       \u251c\u2500 entropic/_bindings.py      AUTO-GENERATED from entropic.h by scripts/gen_bindings.py\n       \u2502    \u2514\u2500 _loader.load() \u2192 ctypes.CDLL(librentropic.so)\n       \u2502         search: $ENTROPIC_LIB \u2192 $ENTROPIC_HOME \u2192 ~/.entropic \u2192 ldconfig\n       \u2502    \u2514\u2500 _bind(name, restype, *argtypes) per ENTROPIC_EXPORT\n       \u251c\u2500 entropic/hooks.py     Pythonic facade: keeps CFUNCTYPE trampolines alive, dict\u2194JSON\n       \u251c\u2500 entropic/streams.py   Pythonic facade: token observer keepalive\n       \u2514\u2500 entropic/helpers.py   apply_patch via git (not part of the ABI)\n\nlibrentropic.so \u2192 src/facade/entropic.cpp  extern \"C\" \u2192 C++ internals\n```\n\n- The `.so` ships separately (`entropic install-engine`). The Python package is pure Python.\n- Handles are `c_void_p`. Errors come back as `entropic_error_t` ints, mirrored by the `EntropicError` IntEnum. C++ exceptions never cross.\n- Message and config payloads are JSON strings.\n\n## Memory rules that cross the boundary\n\n| Direction | Rule | Source |\n|---|---|---|\n| C \u2192 caller, `char*` return | Caller owns it; free with `entropic_free()` | `entropic.h` ~L33, L227\u2013249 |\n| C \u2192 caller, `char**` out-param | Same ownership as above | e.g. `entropic_run`, L262\u2013274 |\n| C \u2192 caller, `const char*` | Owned by the handle; valid until the next call on that handle. Don't free. | `entropic.h` L36 |\n| `entropic_version()` | Static lifetime, never freed | `entropic.h` L171\u2013173 |\n| Python \u2192 C, `c_char_p` args | Borrowed for the call. C must copy if it keeps the pointer. | ctypes semantics |\n| Caller \u2192 engine, buffers the engine will free (e.g. hook `modified_json`) | Must be allocated with `entropic_alloc()`, which is `malloc` (`entropic.cpp` ~L1944) | `entropic.h` L227\u2013236 |\n| Callback token/string pointers | Valid only during the callback. Copy them (`ctypes.string_at`). | streams.py, hooks.py |\n| Callbacks | No exception may escape into C. The Python trampolines catch and print. Don't call back into the API from `on_token`. | streams.py, hooks.py, `entropic.h` L360, L432 |\n| CFUNCTYPE objects | Python must hold a reference for as long as C may call them. Otherwise GC frees the trampoline. | hooks.py, streams.py |\n| Threading | Callbacks can fire on the engine thread. ctypes takes the GIL for them. Create/destroy are single-threaded; each handle is serialized. | `entropic.h` L19\u201330, L491 |\n\n## Problems I found\n\n1. **Engine-allocated strings leak in the Python bindings.** `gen_bindings.py:133` maps `char*` return types to `ctypes.c_char_p`, so functions like `entropic_list_mcp_servers` (`_bindings.py:294`), `entropic_adapter_info` (L305), `entropic_grammar_get` / `entropic_grammar_validate` (L310\u2013311) get `restype=c_char_p`. ctypes returns a `bytes` copy and discards the raw pointer, so nothing can call `entropic_free` on it. `entropic_free` is referenced in Python only by its own binding line. The out-param `char**` functions (e.g. `entropic_run`, L263) have the same problem. Fix: map `char*` returns to `c_void_p`, copy with `string_at`, then call `entropic_free`. Keep `c_char_p` for `const char*`. This is a generator change, not an interface change.\n\n2. **`hooks.register_hooks` can leave an earlier handle with a dangling function pointer.** `_HookEntry` objects live at module level and are shared across handles. For each new handle, `register_hooks` runs `entry.trampoline = _build_trampoline(entry.func)`, which overwrites the trampoline the first handle is using. The first handle's CFUNCTYPE then loses its last reference and gets collected, but its C engine still holds the pointer. The likely symptom is a crash on the next hook fire for the first handle. Fix: store trampolines per `(handle, entry)` in `_bound`, not on the shared entry.\n\n3. **Minor:** `_observers` (streams.py) and `_bound` (hooks.py) are keyed by handle address and never cleared on `entropic_destroy`. A reused address could inherit a stale keepalive.\n\n4. **Stale docs:** `entropic.h` L701 and L812 (and `entropic.cpp` L4022, L4099) refer to `entropic_free_string`, which doesn't exist. The function is `entropic_free`.\n\nWant me to fix items 1 and 2 (and add a RED test for each)? Item 1 touches the generator and needs `inv gen-bindings` to regenerate `_bindings.py`.",
+  "ttft_ms": 1607,
+  "type": "result",
+  "duration_ms": 59747,
+  "uuid": "5b63ee43-2edc-4b9f-8bc7-4001d29ebd3a",
+  "ttft_stream_ms": 1281,
+  "time_to_request_ms": 156,
+  "first_content_frame_ms": 1282,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: | **Tier 2: declared** | `<repo>/.clew.yaml` in the target repo | Both CLI and MCP, since both already know the repo root |\nVERDICT: HIT\nWHY: The answer identifies `.clew.yaml` as the tier 2 in-repo declaration, and says both the CLI and MCP reach it because both already know the repo root."
+}

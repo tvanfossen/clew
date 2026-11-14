@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says that the callers/readers polarity is inverted. It only notes that dataflow readers/writers are separate from `callers`."
+}

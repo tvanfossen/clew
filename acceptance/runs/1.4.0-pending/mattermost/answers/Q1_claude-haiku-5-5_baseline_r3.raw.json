@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 15689,
+  "stop_reason": "end_turn",
+  "session_id": "31c28b35-8d64-46e6-84ed-f443a28fb056",
+  "total_cost_usd": 0.00552033,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 10217,
+    "cache_read_input_tokens": 218493,
+    "output_tokens": 2582,
+    "output_tokens_details": {
+      "thinking_tokens": 598
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 10217,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 808,
+        "cache_read_input_tokens": 48296,
+        "cache_creation_input_tokens": 2795,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2795
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 2582,
+      "cacheReadInputTokens": 218493,
+      "cacheCreationInputTokens": 10217,
+      "webSearchRequests": 0,
+      "costUSD": 0.00552033,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 598,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 10217,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 9,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "A failed post stays on screen, marked as failed. It is not retried automatically, and \"Try Again\" resends the same post.\n\n1. **Failure handling** (`app/actions/remote/post.ts:154-198`): `createPost` makes one `client.createPost` call. On error it logs the failure and writes the post locally with `props.failed: true`, keeping the pending ID. The post remains visible in the channel. The exceptions are three server errors (deleted root post, Town Square read-only, plugin-dismissed post), where the post is removed from the database instead.\n\n2. **Automatic retries: none.** The network layer is configured with exponential retry and `retryLimit: 3` (`app/managers/network_manager.ts:68-70`). But `client.createPost` passes `noRetry: true` (`app/client/rest/posts.ts:46`), which sets `retryLimit: 0` (`app/client/rest/tracking.ts:383-384`). So a failed send gets one attempt and no automatic resend.\n\n3. **Manual retry** (`retryFailedPost`, `post.ts:228-307`): the failed post's bottom sheet has a \"Try Again\" action (`app/components/post_list/post/body/failed/index.tsx:46-49`) that calls this. It:\n   - Clears `props.failed` and refreshes `update_at` so the UI shows the post as pending again.\n   - Sends the post to the server again. The `create_at` timestamp is kept from the original attempt.\n   - On success, writes the server's post to the database, replacing the local placeholder.\n   - On failure, marks the post failed again, or removes it for the same three server errors.\n\n   It is a single attempt per tap, and the user can tap again. The other option on that sheet, \"Delete Message\", removes the post.",
+  "ttft_ms": 1675,
+  "type": "result",
+  "duration_ms": 16126,
+  "uuid": "46f9dada-54f0-4dc4-95d9-eb2fbb542767",
+  "ttft_stream_ms": 1179,
+  "time_to_request_ms": 101,
+  "first_content_frame_ms": 1179,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names files that call `git_argv` or hold it, not files that store, collapse, filter or shape call edges. These are the only paths it gives, and none of them takes part in the edge handling the instruction asks about:\n\nITEMS:\nclew/gitenv.py\nguard/main.py\nguard/tags.py\nscope.py\nguard/git.py\npropose/notindexed.py\ntest_security_surface.py\nEND"
+}

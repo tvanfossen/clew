@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Only `SearchScreen` does. It is the only site that passes `hasSearch={true}`; the other callers either pass `hasSearch={false}` or omit it.\nVERDICT: HIT\nWHY: The answer names `app/screens/home/search/search.tsx` (SearchScreen) as the only caller that enables the search field."
+}

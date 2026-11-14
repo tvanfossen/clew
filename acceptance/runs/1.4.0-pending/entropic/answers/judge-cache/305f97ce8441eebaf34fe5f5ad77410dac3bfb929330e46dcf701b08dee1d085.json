@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The argument side is built by `args_to_pattern` (`server_manager.cpp:426`), which takes the value of the first string argument, or `*` if there is none.\"\nVERDICT: HIT\nWHY: The answer states only one argument value (the first string argument) is used in the pattern and that a call with no string argument falls back to `*`, which covers the wildcard-collapse part. Ignoring the other arguments is implied by \"first string argument\"."
+}

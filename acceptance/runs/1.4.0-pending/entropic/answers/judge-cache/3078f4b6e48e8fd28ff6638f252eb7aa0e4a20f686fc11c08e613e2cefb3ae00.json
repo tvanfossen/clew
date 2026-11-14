@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The `.so` ships separately (`entropic install-engine`). The Python package is pure Python.\nVERDICT: MISS\nWHY: The answer notes the engine ships separately and that the package lazy-loads without the .so at import, but it never concludes that this split exists so `import entropic` works before the engine is installed, enabling an in-package install-engine subcommand."
+}

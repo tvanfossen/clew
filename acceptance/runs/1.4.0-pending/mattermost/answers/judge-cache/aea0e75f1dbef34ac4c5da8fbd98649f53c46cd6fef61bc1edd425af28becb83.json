@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It is triggered from the failed-post indicator (`app/components/post_list/post/body/failed/index.tsx`, `Failed.onPress`). ... It calls `client.createPost` once more.\nVERDICT: HIT\nWHY: The answer says retries are manual only (not automatic), triggered by the user from the failed-post indicator, and names `retryFailedPost`. \"Try Again\" is not named verbatim, but the user-initiated mechanism is stated."
+}

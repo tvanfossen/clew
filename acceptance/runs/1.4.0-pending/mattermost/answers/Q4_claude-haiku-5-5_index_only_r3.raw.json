@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 18104,
+  "stop_reason": "end_turn",
+  "session_id": "01a16c86-6817-4715-80b0-07fbbf7bd6d9",
+  "total_cost_usd": 0.013413690000000002,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 46469,
+    "cache_read_input_tokens": 249139,
+    "output_tokens": 3255,
+    "output_tokens_details": {
+      "thinking_tokens": 814
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 46469,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1739,
+        "cache_read_input_tokens": 75183,
+        "cache_creation_input_tokens": 6282,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 6282
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 3255,
+      "cacheReadInputTokens": 249139,
+      "cacheCreationInputTokens": 46469,
+      "webSearchRequests": 0,
+      "costUSD": 0.013413690000000002,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 814,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 46469,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 12,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** `ExperimentalViewArchivedChannels` is a single client-side switch. Only the string `'false'` turns it off. Anything else, including the setting being absent, leaves archived channels viewable.\n\n**How the flag is read**\n\n- `archivedChannelsViewable(value)` returns `value !== 'false'` (`app/queries/servers/system.ts:304`).\n- `canViewArchivedChannels(database)` reads the config value and applies that check (`system.ts:306`). It is the async, one-shot form.\n- `observeCanViewArchivedChannels(database)` does the same from `observeConfigValue`, then `distinctUntilChanged()` (`system.ts:310`). It is the reactive form that the UI uses.\n\n**Where the behaviour depends on it**\n\nNon-exhaustive count is 13 call sites in the index. Grouped by what changes:\n\n| Area | Location | With flag on (or absent) | With flag `'false'` |\n|---|---|---|---|\n| Archiving a channel | `archiveChannel` in `app/actions/remote/channel.ts:1390` | Sets `delete_at` locally, so the channel stays in the local DB as archived | Removes the current user from the channel locally |\n| Delete/archive WebSocket event | `handleChannelDeletedEvent` in `app/actions/websocket/channel.ts:441` | Only updates `delete_at` | If the user is viewing that channel, kicks them out (`Events.CHANNEL_ARCHIVED`), then removes the user from the channel |\n| Unarchive WebSocket event | `handleChannelUnarchiveEvent` (`websocket/channel.ts:71`) | Sets `delete_at` to 0 (not gated by the flag) | Same |\n| Post search | `searchPosts` in `app/actions/remote/search.ts:58` | Sends `include_deleted_channels: true` to the server | Sends `false` |\n| Channel settings archive screen | `app/screens/channel_settings/archive/index.ts:21` and `archive.tsx` | Uses the \"can view archived\" archive-description copy. After archiving, it closes only the current screen (`close(!canViewArchivedChannels)`) | Uses the \"cannot view\" copy and pops to root after archiving |\n| Browse channels | `app/screens/browse_channels/index.ts:21`, `channel_dropdown.tsx`, `dropdown_slideup.tsx`, `search_handler.tsx`, `browse_channels.tsx` | Shows the \"Archived Channels\" option in the dropdown, which adds a bottom-sheet row and a snap-point item | Hides the option |\n| Channel list categories | `app/screens/home/channel_list/categories_list/categories/header/index.ts:15` | Passed into `CategoryModel.observeHasChannels(canViewArchived, \u2026)` (`app/database/models/server/category.ts:107`) so archived channels count as channels in the header | Only non-deleted channels count (the `delete_at === 0` filter). Caller of `observeHasChannels` is not resolved in the index, so I did not confirm this path end to end |\n\n**When the server does not send the setting**\n\n`getConfigValue` returns `undefined` when there is no row for the key (`system.ts:170`). `archivedChannelsViewable(undefined)` is `true`, so the app behaves as if the flag is **on**:\n\n- Archiving keeps the channel locally with `delete_at` set.\n- The archived dropdown option is shown.\n- Search asks the server to include deleted channels.\n- The \"can view archived\" copy is used.\n\nI'm inferring that a missing key in the config table means the server did not send it. I didn't open the code that populates that table, so that link is not verified from the index. Also, the index has no entry for the server-side meaning of the flag, so this describes client behaviour only.",
+  "ttft_ms": 1539,
+  "type": "result",
+  "duration_ms": 20913,
+  "uuid": "70f407bd-2c8a-4868-b434-3ba77277797b",
+  "ttft_stream_ms": 1143,
+  "time_to_request_ms": 74,
+  "first_content_frame_ms": 1143,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

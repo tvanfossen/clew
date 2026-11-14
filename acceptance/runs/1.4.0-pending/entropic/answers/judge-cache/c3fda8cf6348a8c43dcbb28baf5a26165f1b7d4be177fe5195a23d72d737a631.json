@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The part before the first `:` is matched against the tool name. The part after it is matched against the argument value. ... `git.commit` | that tool, any args (no colon means tool name only) ... Matching is `pattern_matches` (`permission_manager.cpp:101`), which uses `fnmatch`\n\nVERDICT: HIT\nWHY: The answer states fnmatch matching, a split at the first colon into tool and argument parts, and that a pattern with no colon matches the tool name only."
+}

@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 32228,
+  "stop_reason": "end_turn",
+  "session_id": "b64d06a2-f7c3-47d8-854c-3c32f82e01fb",
+  "total_cost_usd": 0.0178234,
+  "usage": {
+    "input_tokens": 18,
+    "cache_creation_input_tokens": 53241,
+    "cache_read_input_tokens": 446790,
+    "output_tokens": 5411,
+    "output_tokens_details": {
+      "thinking_tokens": 1513
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 53241,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2205,
+        "cache_read_input_tokens": 66872,
+        "cache_creation_input_tokens": 1986,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1986
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 18,
+      "outputTokens": 5411,
+      "cacheReadInputTokens": 446790,
+      "cacheCreationInputTokens": 53241,
+      "webSearchRequests": 0,
+      "costUSD": 0.0178234,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1513,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 53241,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 17,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The tool detects staleness in three independent ways, reports them as a `staleness` list on every query reply, and fixes only one kind automatically. The caller's job is to act on the notice, not to trust the answer.\n\n**How it knows**\n\n`db_status` (`clew/mcp_server/state.py` ~L1171\u20131232) measures three axes:\n\n- **data**: `_source_drift` (state.py:823) stats every indexed source path in the database against the database's own mtime. Any file newer than the database counts as changed. Files dated implausibly far in the future are excluded and logged, so a skewed clock cannot keep the index stale forever.\n- **schema**: `build_version` stored in the database versus `CLEW_BUILD_VERSION` in the running code.\n- **code**: `clew/mcp_server/freshness.py` fingerprints the running process at import (`PROCESS_SOURCE_FINGERPRINT`) and compares it with a fresh fingerprint of the package's `.py` files. The fingerprint hashes relative path and content, not mtime, because git checkouts and touches would otherwise trip it with no real edit. `matches_source` is false only when both fingerprints are non-empty and differ. This axis means the server process is running old logic, not that the index is old.\n\n`stale` in the status payload is true when the database is missing, the schema differs, or any source file changed.\n\n**What it tells the caller**\n\n`freshness.notices()` (freshness.py:573) returns a list of `{axis, message}`, empty when current. Each message names the action that clears it:\n\n| Axis | Message says | Clearing action |\n|---|---|---|\n| data | N source files changed; cost of refresh from this target's own history | `index(action='refresh')` |\n| schema, index older | index predates server; may be missing layers | `index(action='refresh', force=True)` |\n| schema, index newer | server predates index; rebuilding cannot clear the flag | restart the MCP client |\n| code | server loaded old logic; reads are fine, writes are affected | restart the MCP client; rebuild cannot fix it |\n\nThe list rides on every query reply as `staleness` (tools_query.py:1841\u20131844). When data staleness is present, a \"definitively absent\" answer for a missing subject is also withdrawn (tools_query.py:194\u2013209), since a newer working tree is the likeliest explanation. A `status` call shows the raw fields alongside the same notices.\n\n**What the server does on its own**\n\n- Before each query, `_auto_refresh` (server.py:1242) rebuilds a data-stale index under the per-repository build lock, with a bounded wait. Concurrent queries deduplicate: the waiters re-check inside the lock and find nothing to do.\n- A background `keep_current` loop (server.py:1538) calls `refresh_touched` on the session's working set, so the next query usually finds nothing to do.\n- An absent index gets a background first build, but only for a git work tree or a registered repository.\n- The automatic path refuses to build when the code axis is stale (`_data_stale`, server.py:1209; `stale_code_refusal`, freshness.py:531). `force` does not override that refusal. Build failures degrade to answering from the stale index with its notice intact.\n\n**What the caller does**\n\n1. Read `staleness` on every reply; treat its absence as the signal that the tool is current.\n2. On a data notice, call `index(action='refresh')`, though the server usually does this already.\n3. On a schema notice, refresh with `force=True` if the index is older; restart the client if the server is older.\n4. On a code notice, restart the MCP client. Reads are still current, but writes through the stale process are refused.\n5. Do not read a \"not found\" as a real negative while a data notice is present.\n\nI read the code and did not run the test suite. Two details are from comments rather than code I checked: the 15-second loop interval and the idea that a refresh is cheap enough to pay on the query path.",
+  "ttft_ms": 2091,
+  "type": "result",
+  "duration_ms": 33017,
+  "uuid": "991e6f2d-ded2-4f40-ac11-be32d879ad14",
+  "ttft_stream_ms": 1694,
+  "time_to_request_ms": 132,
+  "first_content_frame_ms": 1694,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

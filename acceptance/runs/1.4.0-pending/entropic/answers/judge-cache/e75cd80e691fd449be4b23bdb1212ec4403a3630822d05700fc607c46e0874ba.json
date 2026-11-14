@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`args_to_pattern`, which is the raw first arg, the full command string\" and \"If args don't parse, `args_to_pattern` returns `*`, so the check string is `tool:*`.\"\nVERDICT: HIT\nWHY: The answer says that only the first arg reaches the pattern and that unparseable args collapse to `*`. It does not mention non-string args, but the single-argument and wildcard-collapse substance is there."
+}

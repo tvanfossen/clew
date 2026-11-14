@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names these directories as containing code that calls into llama.cpp:\n\n- `src/inference` is described as \"the real llama.cpp owner\", with `#include <llama.h>` in about ten files.\n- `src/facade` is described as including `llama_cpp_backend.h`, dynamic_casting to `LlamaCppBackend`, and calling `llama_model_ptr()`/`llama_context_ptr()`.\n\nITEMS:\nsrc/inference\nsrc/facade\nEND"
+}

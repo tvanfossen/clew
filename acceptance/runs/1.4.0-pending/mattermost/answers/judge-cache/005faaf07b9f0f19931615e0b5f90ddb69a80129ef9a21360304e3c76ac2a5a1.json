@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: On error it logs the failure and writes the post locally with `props.failed: true`, keeping the pending ID.\nVERDICT: MISS\nWHY: The answer states the failure path (kept, marked failed) but never says the post is written to the local database before being sent."
+}

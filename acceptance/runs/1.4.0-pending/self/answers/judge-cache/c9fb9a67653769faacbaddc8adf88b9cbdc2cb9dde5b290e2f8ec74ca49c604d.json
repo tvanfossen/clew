@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: If `_gitignored_paths` calls `git_argv` three times, the answer shows one row.\nVERDICT: MISS\nWHY: The answer says rows are one per caller function rather than per call site, but never says the surface returns one row per neighbour collapsed across layers or variants to the strongest evidence."
+}

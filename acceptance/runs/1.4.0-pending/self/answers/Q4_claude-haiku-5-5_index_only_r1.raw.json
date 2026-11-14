@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 17686,
+  "stop_reason": "end_turn",
+  "session_id": "a8f15bf8-509f-43c3-a130-32258df0becb",
+  "total_cost_usd": 0.00702688,
+  "usage": {
+    "input_tokens": 6,
+    "cache_creation_input_tokens": 22976,
+    "cache_read_input_tokens": 92208,
+    "output_tokens": 3018,
+    "output_tokens_details": {
+      "thinking_tokens": 1784
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 22976,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2515,
+        "cache_read_input_tokens": 38231,
+        "cache_creation_input_tokens": 2060,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2060
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 6,
+      "outputTokens": 3018,
+      "cacheReadInputTokens": 92208,
+      "cacheCreationInputTokens": 22976,
+      "webSearchRequests": 0,
+      "costUSD": 0.00702688,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1784,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 22976,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 4,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The answer is a set of edges with provenance, not a list of call sites. I checked this on `_answering_with_refresh` (`clew/mcp_server/server.py:519-570`).\n\n**What the reply contains**\n\n- **Identity:** signature, file and line range, brief, `@version` (4), liveness, and the requirement it implements (REQ-DDB-MCP-004).\n- **`callers`:** one row, `register_query_tools` in the same file, tagged `doxygen_sqlite` / `exact`. It gives the enclosing function's name and file, with no line number.\n- **`callees`:** one row, `refused` in `freshness.py`, tagged `ast` / `resolved`.\n- **`external_callees`:** names clew could not resolve to a definition, each with the line numbers where the call happens. Here that is `before` (line 549) and `ToolError` (line 566).\n- **Counters:** `callers_unresolved: 0`, `context_undecidable: 0`. These say what the index failed to resolve. Zero is a measurement.\n- **Body:** the verbatim source, with inline comments. Much of the behaviour is only here.\n\n**What makes it wrong to read as a list of call sites**\n\n1. **Caller rows are not sites.** You get the calling function, not the line it calls from. Only the unresolved callees carry `call_lines`.\n2. **Indirect invocation is invisible.** The body calls `bound` through `functools.partial` inside `anyio.to_thread.run_sync`. That is not a direct call edge, so `bound` does not appear in `callees`. The real runtime caller is the MCP SDK, which invokes the returned `answering` wrapper through tool registration. No edge shows that. The one caller listed is the registration site.\n3. **Empty or short does not mean unused.** Closures, decorators, function pointers, registration tables and SDK dispatch are all paths the caller list can miss. A one-row answer here reflects that the wrapper is applied at registration, not that the wrapper has one call site.\n4. **Confidence differs by source.** `exact` from doxygen depends on documentation. `resolved` from the AST depends on the parser. An absent edge can mean \"parser could not see it,\" and the `*_unresolved` counters are the only signal for that.\n5. **The meaning sits in the body.** The `before` callee is the pre-answer refresh hook, which the name does not reveal. Reading the caller and callee lists alone would miss that the wrapper refreshes a stale index before answering, and that it keys the refresh on both `target` and `sub_index`.\n6. **Snapshot.** The reply carries `staleness` only when the index is stale, and this one did not. The answer reflects the index at build time, not the working tree at the moment you read it.\n\nShort version: `callers` and `callees` tell you which named functions are linked, with a provenance tag on each link. For where and how a call happens at runtime, use the body and the `external_callees` lines.",
+  "ttft_ms": 2033,
+  "type": "result",
+  "duration_ms": 18210,
+  "uuid": "ffbb591d-8e45-4d8e-84cb-8d87073ff7db",
+  "ttft_stream_ms": 1044,
+  "time_to_request_ms": 71,
+  "first_content_frame_ms": 1044,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `.clew.yaml` at the repo root, found via `--repo-root`\nVERDICT: MISS\nWHY: The answer places `.clew.yaml` at tier 2 and says it is found at the repo root, but it ties discovery to `--repo-root` and never says both entry points discover it. It also doesn't contrast that with plumbing it per section."
+}

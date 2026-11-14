@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer's health monitor row says nothing about an atomic flag exchange, a condition variable wake, or stop() joining the thread."
+}

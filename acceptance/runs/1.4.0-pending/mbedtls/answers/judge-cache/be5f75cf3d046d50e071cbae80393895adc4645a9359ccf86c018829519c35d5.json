@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: With the define: `MBEDTLS_PRIVATE(m)` \u2192 `m`. Members keep their real names. ... Inside the library and the two SSL sample programs, code can read and write struct fields directly... Everywhere else, which includes external applications and the test programs not listed, the fields are renamed and direct access fails to compile.\nVERDICT: HIT\nWHY: The answer explains that code defining MBEDTLS_ALLOW_PRIVATE_ACCESS sees real member names, while ordinary consumers of the public headers see the renamed private_ members."
+}

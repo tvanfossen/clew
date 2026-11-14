@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never states the general rule \"fix the corpus, not the sentence about the corpus\". It describes how the reply signals absence versus not-looked, but gives no rule about fixing the underlying corpus instead of rewording the claim about it."
+}

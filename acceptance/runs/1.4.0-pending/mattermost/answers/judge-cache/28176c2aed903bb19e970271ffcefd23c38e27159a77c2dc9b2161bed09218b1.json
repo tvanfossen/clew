@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says writes funnel through `batchRecords` from `BaseDataOperator`, but it never states that every mixin is constrained to extend `ServerDataOperatorBase`. It also notes that `handleRecords` defaults to prepare-only, so it does not claim every handler write goes through `batchRecords`."
+}

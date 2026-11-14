@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`LlamaCppTokenizer::tokenize` (`src/inference/llama_cpp_tokenizer.cpp:49-71`) calls `llama_tokenize` at lines 55 and 61. The first call passes a null buffer and size 0.\"\nVERDICT: HIT\nWHY: The answer locates the two-call llama_tokenize sizing/fill pattern in llama_cpp_tokenizer.cpp, with line numbers and mechanism."
+}

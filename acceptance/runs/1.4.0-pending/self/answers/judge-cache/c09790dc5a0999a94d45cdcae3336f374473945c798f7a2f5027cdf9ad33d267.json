@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Files inside the scope then pass through `binary_files`. A file is skipped only if it is classified as binary, from its magic numbers and its first 8 KiB. The extension is not trusted.\nVERDICT: HIT\nWHY: The answer says that within the resolved scope, files are still dropped by binary classification that does not trust the extension. That is one of the two filters the item names."
+}

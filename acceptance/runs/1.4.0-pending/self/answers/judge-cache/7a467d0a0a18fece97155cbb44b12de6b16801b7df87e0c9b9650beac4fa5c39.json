@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer separates not-indexed file types (`.rs`, `.toml`, and so on) from the searched scope. It does not say the reply names in-scope file types that produced no rows. The \"15 barren files\" come from `index(status)`, not the `search` reply, and they are individual files rather than file types."
+}

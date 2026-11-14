@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the reply lists scope extensions and a `not_indexed` list, and that `index(status)` reports \"barren\" files. It never says the empty reply names in-scope file types that produced no rows."
+}

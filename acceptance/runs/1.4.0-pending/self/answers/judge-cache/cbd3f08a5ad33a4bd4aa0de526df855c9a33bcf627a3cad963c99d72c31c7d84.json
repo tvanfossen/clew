@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The intended behaviour, per `clew/substrate.py` and `clew/harvest.py`: `_OPTIONAL_KEYS = {\"bash\", \"cmake\"}` means a missing grammar routes to `None` and nothing raises. ... \"My probe found the miss report does not name them, so that part of the design is broken.\"\nVERDICT: MISS\nWHY: The answer says a missing grammar yields no symbols, but it claims the router and `register_paths` never consult a capability gate and that the miss report does not name those files. That contradicts the item's conclusion that the install degrades with the file types reported as not indexed."
+}

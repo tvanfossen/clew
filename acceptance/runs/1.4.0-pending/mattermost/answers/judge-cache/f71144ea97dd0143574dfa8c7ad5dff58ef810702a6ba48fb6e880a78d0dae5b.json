@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Only `SearchScreen` shows a search field.** `NavigationHeader` defaults `hasSearch` to `false`, and only the `hasSearch && <NavigationSearch \u2026/>` branch in `app/components/navigation_header/index.tsx` renders an input.\nVERDICT: HIT\nWHY: The answer states that only SearchScreen (`app/screens/home/search/search.tsx`) enables `hasSearch={true}`, the only caller that shows a search field."
+}

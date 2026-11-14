@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Both calls are in `LlamaCppTokenizer::tokenize` (`src/inference/llama_cpp_tokenizer.cpp:49-71`): 1. **Line 55:** `llama_tokenize(vocab_, ..., nullptr, 0, ...)` ... 2. **Line 61:** the same call again, this time with the buffer.\nVERDICT: HIT\nWHY: The answer names the file and function and describes the size-query-then-fill two-call pattern with line numbers."
+}

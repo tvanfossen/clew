@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `components-sanitizers.sh` has `component_release_test_valgrind_constant_flow`. `tests/scripts/components-configuration-crypto.sh` has `test_with_valgrind_constant_time`, which runs the `constant_time` suites under Valgrind.\nVERDICT: MISS\nWHY: The answer mentions Valgrind-based constant-flow tests but never says the facility is a separate, off-by-default testing facility (MSan/valgrind) explicitly excluded from the library API; it even lists the constant-time helpers as part of the library."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the scope block lists extensions and that a \"Searched:\" line names the symbol kinds read. It never says the reply names file types that were in scope but produced no rows, which is what would separate \"not present\" from \"not indexed\"."
+}

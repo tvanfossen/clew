@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 17212,
+  "stop_reason": "end_turn",
+  "session_id": "b8f5d86e-3ed1-4fad-9233-3da0f9bb0eb1",
+  "total_cost_usd": 0.00674532,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 18191,
+    "cache_read_input_tokens": 155982,
+    "output_tokens": 3093,
+    "output_tokens_details": {
+      "thinking_tokens": 1114
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 18191,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2147,
+        "cache_read_input_tokens": 44385,
+        "cache_creation_input_tokens": 10472,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 10472
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 8,
+      "outputTokens": 3093,
+      "cacheReadInputTokens": 155982,
+      "cacheCreationInputTokens": 18191,
+      "webSearchRequests": 0,
+      "costUSD": 0.00674532,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1114,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 18191,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 9,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** the file set is decided by a single declaration, `index_scope:` in the repo's `.clew.yaml`. If none is usable, clew indexes the whole repository minus what git ignores. The Doxyfile does not decide scope any more. Files are then filtered again by whether a grammar handles their extension.\n\n**Decision flow** (from `clew/scope.py`, `derive_scope`):\n\n```\nderive_scope(repo_root, stated?)\n \u251c\u2500 stated by caller?  \u2500\u2510\n \u251c\u2500 .clew.yaml index_scope:  \u2500\u2524\n \u2502     \u251c\u2500 no section \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510\n \u2502     \u251c\u2500 section invalid (not a mapping, unknown key,\n \u2502     \u2502   no usable roots) \u2500\u25ba log WARNING with reason \u2500\u2524\n \u2502     \u2514\u2500 valid \u2500\u25ba DerivedScope(SOURCE_DECLARED, roots, excludes)\n \u2502                                                      \u2502\n \u2514\u2500 whole_repo_scope(root)  \u25c4\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2518\n       roots    = (repo root,)\n       excludes = git-ignored paths + pruned dot/cache dirs\n```\n\n**The declared tier.** `index_scope:` takes `roots` (required) and `excludes`. Roots are repo-relative. A declared root is taken at its word and never walked, so a foreign clone under it is indexed without being noticed. A root that does not exist on disk is dropped. `excludes` alone does nothing, because `roots` replaces the scope. The loader rejects unknown keys instead of ignoring them, which the code comments call \"fail closed\". A declaration that is present but unusable is logged with the specific reason, and the build then falls back to whole-repo. The fallback reason says the declaration was rejected, so the log does not claim there was none.\n\n**The undeclared case (the default).** Nothing is declared, so `whole_repo_scope` applies:\n\n- **Root:** the whole repository, including nested git trees (submodules). Those are indexed and tagged by `external.py` so their rows can be told apart in answers. Before gh#333 they were cut out.\n- **Excluded:** what git ignores, from `git ls-files --ignored --exclude-standard --directory`. Each nested repo's own ignores are collected separately, because the parent cannot see them through a submodule boundary. Dot-directories and known cache/vendor directories are also pruned. The walk stops at nested trees.\n- **Not git:** if the tree is not a repository, or git is missing, nothing is excluded. clew logs a warning and the scope is simply wider.\n- **Doxyfile:** if the repo ships one, it still supplies ALIASES and PREDEFINED, but its `INPUT` is ignored. The code treats `INPUT` as a documentation target, not a reasoning boundary. The Mbed-TLS example in the docstring shows the old behaviour indexing only headers and no `library/*.c` files.\n- **Gate:** the doxygen-guard `files:` pattern is not consulted. It answers what must be documented, not what should be indexed.\n- **Reason string:** the whole-repo result records \"no `index_scope` is declared\", and advises `propose_declaration`.\n\n**The last filter.** The directory inventory notes that a file whose extension no grammar handles is not indexed at all. So \"whole repo\" means every file clew has a parser for, not every file on disk. This is the one step I took from the inventory note rather than from a function body I read.\n\n**Caveats:** I read `derive_scope`, `whole_repo_scope`, `_declared_index_scope`, `_gitignored_paths` and `_skip_dir` in full. I did not read `_pruned_dirs` or `_SKIP_DIR_NAMES`, so the exact list of pruned cache directories is unverified. The grammar-extension rule comes from the inventory text, not from a function I inspected.",
+  "ttft_ms": 1986,
+  "type": "result",
+  "duration_ms": 18386,
+  "uuid": "9969e2bd-23eb-4aa0-8a01-59c3c984f025",
+  "ttft_stream_ms": 1117,
+  "time_to_request_ms": 76,
+  "first_content_frame_ms": 1118,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

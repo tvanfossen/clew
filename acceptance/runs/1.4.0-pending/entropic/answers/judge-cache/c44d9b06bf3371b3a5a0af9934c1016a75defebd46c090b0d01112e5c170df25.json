@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `llama_cpp_backend.cpp` (about 4,100 lines) calls the raw API directly: model load, context creation, `llama_decode`, batches, KV-cache sequence ops\nVERDICT: HIT\nWHY: The answer says the code consumes llama.cpp's raw API directly through free `llama_*` functions such as `llama_decode` and `llama_log_set`, and it describes the `llama_sampler` chain as a thin wrapper. It names no C++ class inheritance seam."
+}

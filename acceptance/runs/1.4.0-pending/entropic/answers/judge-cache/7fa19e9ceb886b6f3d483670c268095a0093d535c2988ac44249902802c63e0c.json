@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer lists a handful of adapter files (llama_cpp_backend, sampler, tokenizer, adapter_manager, etc.) and frames reach as a \"small adapter layer\"; it never conveys that the dependency reaches roughly a dozen files of entropic's own source."
+}

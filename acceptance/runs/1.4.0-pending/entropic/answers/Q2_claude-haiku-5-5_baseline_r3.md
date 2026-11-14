@@ -1,0 +1,15 @@
+**How it's brought in:** llama.cpp is a git submodule, not a FetchContent dependency. `.gitmodules` maps `extern/llama.cpp` to `ggml-org/llama.cpp`, pinned at commit `20a04b22`. `extern/CMakeLists.txt` then pulls it in with `add_subdirectory(llama.cpp EXCLUDE_FROM_ALL)`, after forcing `LLAMA_BUILD_COMMON=ON` and `LLAMA_BUILD_TOOLS/EXAMPLES/SERVER/TESTS=OFF`. It also adds `llama.cpp/tools/mtmd` for multimodal support. `ENTROPIC_CUDA` maps to `GGML_CUDA`. The static `libllama`, `libmtmd` and `llama-common` are absorbed into `librentropic.so`, and consumers never link llama directly. The installed CMake package comment confirms this.
+
+**Working-tree caveat:** `extern/llama.cpp/` is currently an empty directory, and `git submodule status` shows the leading `-` meaning uninitialized. A configure will fail until `git submodule update --init --recursive` is run. CI already uses `submodules: recursive`. I did not run a build.
+
+**How far it reaches into entropic's source:** the reach is deep, but it is mostly confined to one layer.
+
+- **Inside `src/inference/`**, most files include `<llama.h>` directly: `llama_cpp_backend.{h,cpp}`, `llama_cpp_sampler`, `llama_cpp_tokenizer`, `orchestrator`, `adapter_manager`, `grammar_registry`, `speculative_compat`. The backend also pulls in `chat.h`, `sampling.h`, `speculative.h`, `mtmd.h` and `mtmd-helper.h` from `common/` and `tools/mtmd`. `CMakeLists.txt` adds `extern/llama.cpp/vendor` and `common` as private include paths.
+- **Facade:** `src/facade/entropic.cpp` includes `llama_cpp_backend.h` and uses `dynamic_cast<LlamaCppBackend*>` to reach `llama_model_ptr()` and `llama_context_ptr()` for adapter load, unload and swap. The facade CMake links `llama`, `mtmd` and `llama-common` as `LINK_ONLY` PRIVATE.
+- **Public headers leak it as forward declarations only.** `include/entropic/inference/{orchestrator,adapter_manager,speculative_compat}.h` declare `struct llama_model`, `llama_context` and `llama_adapter_lora`, and their method signatures take those pointers. Nothing in `include/` includes `llama.h`, and `entropic.h` only mentions llama.cpp in comments and error docs. The C ABI stays opaque.
+- **Config** (`src/config/loader.cpp`) only carries string knobs such as `llama_log_path`.
+- **Tests** under `tests/unit` and `tests/model` include `llama.h` and `chat.h` directly, and some link `llama` themselves.
+
+**Build-system inconsistency:** `src/inference/CMakeLists.txt` links `llama-common` as PUBLIC, which conflicts with the facade's "absorbed, never leaks" story. The comment in `extern/CMakeLists.txt` also says llama.cpp "is NOT built in v1.8.0", which is stale.
+
+In short, llama.cpp is vendored as a pinned submodule and built statically into the library. Its types appear throughout `src/inference/`, and only opaque pointers reach the public headers.

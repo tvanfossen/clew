@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never states that a tool matching neither the allow nor deny list is not denied and runs. It says that a registered callback approves every non-allow-listed call, and that only a missing callback denies. That is a related point, not the default-allow conclusion."
+}

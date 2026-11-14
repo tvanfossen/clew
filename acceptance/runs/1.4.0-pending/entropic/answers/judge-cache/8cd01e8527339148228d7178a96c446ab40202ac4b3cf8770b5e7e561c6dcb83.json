@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `LlamaCppTokenizer::detokenize` (lines 93-104) is closer to retry. It tries `llama_token_to_piece` with a 256-byte stack buffer, and if that returns a negative size it allocates exactly that size and tries again. ... `LlamaCppTokenizer::tokenize` ... Line 55 passes a null buffer and capacity 0... Line 61 allocates `n` slots and fills them.\nVERDICT: HIT\nWHY: The answer states detokenize tries a 256-byte stack buffer first and allocates only on a negative return. It also says tokenize always probes for size before filling."
+}

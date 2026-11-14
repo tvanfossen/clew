@@ -1,0 +1,83 @@
+{
+  "cell": "Q1_claude-haiku-5-5_index_r2",
+  "arm": "index",
+  "rubric_version": "1.0.0",
+  "rubric_digest": "32294778c2753056",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.6666666666666666,
+  "unmarked_pct": 0.0,
+  "split_decisions": 0,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "states that the create-post request is never retried automatically \u2014 it is sent once",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer says the post may be retried up to 3 times by the native HTTP layer and that nothing in the post send path sets retryLimit 0. It never states that the create-post request is sent once with no automatic retry, so it effectively contradicts the item. || QUOTE: NONE | WHY: The answer says the native layer retries up to 3 times and that the app code does not retry. It never states that the create-post request is sent only once. It says the opposite for the native layer, so the item's substance is absent. || QUOTE: NONE | WHY: The answer says up to 3 native retries may occur and that the user decides retries, which contradicts the item's claim that the create-post request is sent once with no automatic retry.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "explains that requests in general DO retry (exponential, limit 3, set by the network manager) and that posting opts out of it",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: The `NetworkManager` default config sets `retryPolicyConfiguration` to `EXPONENTIAL_RETRY`, `retryLimit: 3`, base 2, scale 0.5 (`app/managers/network_manager.ts:68-73`). That is up to 3 retries inside the native network client, with exponential backoff | WHY: The answer states the general exponential retry limit 3 from the network manager, but it explicitly says nothing in the post send path overrides it (\"Nothing in the post send path does\") and that it didn't check whether POST is retried. That is the opposite of the item's claim that posting opts out of retries. || QUOTE: The `NetworkManager` default config sets `retryPolicyConfiguration` to `EXPONENTIAL_RETRY`, `retryLimit: 3`, base 2, scale 0.5 (`app/managers/network_manager.ts:68-73`). ... Tracking requests override this to `retryLimit: 0` ... Nothing in the post send path does. | WHY: The answer states the general exponential/limit-3 retry from the network manager, but says posting does not opt out (\"Nothing in the post send path does\") and is unsure whether POSTs are retried, so the opt-out is absent. || QUOTE: The `NetworkManager` default config sets `retryPolicyConfiguration` to `EXPONENTIAL_RETRY`, `retryLimit: 3`, base 2, scale 0.5 (`app/managers/network_manager.ts:68-73`). ... Tracking requests override this to `retryLimit: 0` ... Nothing in the post send path does. | WHY: It states the default exponential retry limit of 3 in the network manager, but says nothing in the post path opts out. It claims the opposite, and it explicitly leaves open whether POST is retried.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the post is written to the local database before it is sent, and on failure is kept and marked `failed: true`",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: Any other failure sets `props.failed = true` (line 169) and saves the post locally (lines 183-195). It stays in the channel as a failed post. | WHY: The answer states the post is saved locally before sending and, on failure, is kept and marked `failed = true`. || QUOTE: The post is written to the local database before the network call, with a `pendingPostId` as its id. ... Any other failure sets `props.failed = true` (line 169) and saves the post locally (lines 183-195). It stays in the channel as a failed post. | WHY: The answer states the post is saved locally before sending and that on failure it is kept and marked `failed = true`. || QUOTE: Any other failure sets `props.failed = true` (line 169) and saves the post locally (lines 183-195). It stays in the channel as a failed post. | WHY: The answer states the post is saved locally before the send and on failure is kept with `failed = true`.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "names the server errors for which the failed post is removed instead of kept \u2014 deleted root post, read-only town square, plugin-dismissed post",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: If the server error is `DELETED_ROOT_POST_ERROR`, `TOWN_SQUARE_READ_ONLY_ERROR` or `PLUGIN_DISMISSED_POST_ERROR`, the post is removed (line 181). | WHY: The answer names all three server errors (deleted root post, read-only town square, plugin-dismissed post) as the ones that cause the failed post to be removed rather than kept. || QUOTE: If the server error is `DELETED_ROOT_POST_ERROR`, `TOWN_SQUARE_READ_ONLY_ERROR` or `PLUGIN_DISMISSED_POST_ERROR`, the post is removed (line 181). | WHY: The answer names all three server errors for which the failed post is removed rather than kept. || QUOTE: If the server error is `DELETED_ROOT_POST_ERROR`, `TOWN_SQUARE_READ_ONLY_ERROR` or `PLUGIN_DISMISSED_POST_ERROR`, the post is removed (line 181). | WHY: The answer names all three server errors (deleted root post, read-only town square, plugin-dismissed post) and says the post is removed rather than kept.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that a retry happens only when the user chooses \"Try Again\" on the failed post, and calls `retryFailedPost`",
+      "kind": "retrieval",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: The button is in `app/components/post_list/post/body/failed/index.tsx:48` and calls `retryFailedPost(serverUrl, post)`. | WHY: The answer names `retryFailedPost` as the function the \"Try Again\" button calls, and states that the user, not the app, decides when to retry. || QUOTE: The button is in `app/components/post_list/post/body/failed/index.tsx:48` and calls `retryFailedPost(serverUrl, post)`. | WHY: The answer names `retryFailedPost` as called by the \"Try Again\" button and states that the user, not the app, decides when to retry. || QUOTE: The button is in `app/components/post_list/post/body/failed/index.tsx:48` and calls `retryFailedPost(serverUrl, post)`. | WHY: The answer names `retryFailedPost` as invoked by the \"Try Again\" button and says \"the user, not the app, decides when to retry,\" which covers the item's substance.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that `retryFailedPost` makes exactly one new attempt with no loop or backoff, and on failure marks the post failed again (or removes it for the same three errors)",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"It then calls `client.createPost` again. On success it writes the server post and updates the last-post time for the channel... On failure, the same error handling applies: the three \"removal\" errors delete the post, and everything else sets `failed: true` again.\" | WHY: The answer says retryFailedPost calls createPost once more and, on failure, either removes the post for the same three errors or marks it failed again. Part 1 says nothing in `createPost` loops or reschedules, and the retry just re-runs that send, so the no-loop point is covered. || QUOTE: \"It then calls `client.createPost` again. On success it writes the server post and updates the last-post time for the channel... On failure, the same error handling applies: the three \"removal\" errors delete the post, and everything else sets `failed: true` again.\" | WHY: The answer says retryFailedPost makes one new createPost call, and on failure it marks the post failed again or deletes it for the three errors. The \"no loop or backoff\" part is covered by \"The app code does not retry\" and \"the user, not the app, decides when to retry\". || QUOTE: \"It then calls `client.createPost` again. On success it writes the server post and updates the last-post time for the channel... On failure, the same error handling applies: the three \"removal\" errors delete the post, and everything else sets `failed: true` again.\" | WHY: The answer says retryFailedPost makes one new createPost call and on failure marks the post failed again or deletes it for the three errors; it names no loop in the retry itself.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "notes that `createPost` reports a failed send as success to its caller (`{data: true}`), so the failure is visible only in the stored post",
+      "kind": "conclusion",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: The function returns `{data: true}` even on failure, so callers do not see the error. | WHY: The answer states `createPost` returns `{data: true}` on failure, and that the failure shows only as a locally stored post marked failed. || QUOTE: The function returns `{data: true}` even on failure, so callers do not see the error. | WHY: The answer states that `createPost` returns `{data: true}` on failure, and it also says the failed post is saved locally with `props.failed = true`, so the failure shows up in the stored post. || QUOTE: The function returns `{data: true}` even on failure, so callers do not see the error. | WHY: The answer states that `createPost` returns `{data: true}` on failure, and it also says the failure is persisted on the stored post (`props.failed = true`), which is the substance of the item.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    }
+  ]
+}

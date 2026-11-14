@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Modules that include it:** `bignum.c`, `bignum_core.c`, `bignum_mod.c`, `bignum_mod_raw.c`, `rsa.c`, `psa_crypto_rsa.c`, `cipher.c`, `gcm.c`, `ccm.c`, `chachapoly.c`, `cmac.c`, `nist_kw.c`, `base64.c`, `ecp_curves.c`, `pk_wrap.c`, `psa_crypto.c`, `psa_crypto_cipher.c`, `psa_crypto_mac.c`, `ssl_msg.c`, `ssl_tls.c`, `ssl_tls12_client.c`, `ssl_tls12_server.c`, `ssl_tls13_generic.c`, `ssl_tls13_server.c`, `ssl_cookie.c`\nVERDICT: HIT\nWHY: The answer lists about 25 modules that include the constant-time facility and says it \"reaches the crypto and TLS paths\", which shows broad consumption across the library."
+}

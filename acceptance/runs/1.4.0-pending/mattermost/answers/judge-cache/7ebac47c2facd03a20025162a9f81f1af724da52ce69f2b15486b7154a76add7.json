@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `archivedChannelsViewable(value)` returns `value !== 'false'`... `archivedChannelsViewable(undefined)` is `true`, so the app behaves as if the flag is **on**\nVERDICT: HIT\nWHY: The answer states that only the string 'false' disables the flag and that a missing setting (undefined) leaves archived channels viewable."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"A missing optional grammar makes the route resolve to nothing instead of raising.\" and \"The build-time not-indexed report ... names the file types that were in scope but not read.\"\nVERDICT: HIT\nWHY: The answer says that missing grammars degrade instead of failing, with routing gated by a capability check (`_grammar_available` / `has_language`) and unread file types reported as not indexed."
+}

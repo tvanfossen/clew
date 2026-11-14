@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Define the new `MBEDTLS_ERR_<MODULE>_<NAME>` macro in the module's public header under `include/mbedtls/`... Do not edit the `Begin Auto-Generated Code` block in `library/error.c` by hand. Regenerate it with `scripts/generate_errors.pl`\"\nVERDICT: HIT\nWHY: The answer concludes the macro goes in the public header and the generator is re-run, with no hand edit of error.c. It never mentions the `/** */` doc comment, but that is a detail of the same conclusion."
+}

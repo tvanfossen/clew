@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the default has no mutexes and that thread spawns exist only in programs/ (needing non-default settings), but it never concludes a default build creates no threads, nor that the pthread example compiles to a stub main."
+}

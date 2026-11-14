@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The resolved set is `(tier1 or tier2 or tier5) \u222a tier3 \u222a tier4`. A stated value displaces the guesses, but it cannot remove facts the repo has already recorded.\nVERDICT: MISS\nWHY: The answer shows tiers 3 and 4 both accumulate, but it never says their distinction is deliberately inert. It also doesn't name fact-versus-guess as the load-bearing line."
+}

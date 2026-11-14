@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Without `MBEDTLS_ALLOW_PRIVATE_ACCESS`, `MBEDTLS_PRIVATE(foo)` expands to `private_foo`. The struct declares the field as `private_foo`, so application code that writes `ctx->foo` fails to compile with \"no member named foo\".\"\nVERDICT: MISS\nWHY: The answer explains the compile-time rename mechanism but never states that the struct layout stays visible and sized, nor contrasts this with hiding the layout (opaque types)."
+}

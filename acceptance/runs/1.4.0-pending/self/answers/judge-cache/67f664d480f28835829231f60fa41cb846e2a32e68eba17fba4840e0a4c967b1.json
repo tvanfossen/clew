@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"a `search` reply separates the two cases by naming the boundary it searched, not by the row count. An empty result is a definitive answer only inside that boundary.\"\nVERDICT: HIT\nWHY: The answer says the definitive wording depends on which corpora the reply says it searched and did not search, not on the empty result shape (`count: 0`). That is the substance of the item, though it never says outright that the check is run per call."
+}

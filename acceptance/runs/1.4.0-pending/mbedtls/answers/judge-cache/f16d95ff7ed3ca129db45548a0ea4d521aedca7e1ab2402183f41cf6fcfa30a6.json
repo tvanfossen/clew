@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: By default each field is really named `private_state`, `private_flags`, and so on. ... Members use their real names. Library code writes `ctx->state` directly. ... Consumers who define `MBEDTLS_ALLOW_PRIVATE_ACCESS` themselves get the same access with no compatibility promise.\nVERDICT: HIT\nWHY: The answer states that the macro's two branches produce `private_` names for ordinary consumers and plain member names for code that defines `MBEDTLS_ALLOW_PRIVATE_ACCESS`."
+}

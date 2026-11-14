@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`do_count_tokens` converts that to a count of `0`. - The C API `entropic_inference_count_tokens` returns that `0`. Its `len/4` fallback only fires on exceptions, and this path does not throw, so a failed count reads as zero tokens.\"\nVERDICT: HIT\nWHY: The answer states that the token-counting path returns 0 on tokenization failure instead of signalling an error."
+}

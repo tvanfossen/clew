@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer separates only two grades, \"no such defined symbol in the indexed files\" (high confidence) and \"the repo does not contain that\" (low confidence). It never names a third grade, \"definitive for a reason that is not absence\"."
+}

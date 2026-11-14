@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The first `llama_tokenize` call passes a null buffer and zero capacity, so llama.cpp returns the negated token count it would need... The first call is a size query, not an attempt that failed.\" and \"Is it retry logic? No. The second call is unconditional and runs on every input... Nothing re-runs the same operation on failure.\"\nVERDICT: HIT\nWHY: The answer concludes this is size negotiation (a size query, then a fill call), not retry. It also says the second call is unconditional and nothing re-runs on failure, which covers the \"no backoff, no counter, exactly one second call\" substance."
+}

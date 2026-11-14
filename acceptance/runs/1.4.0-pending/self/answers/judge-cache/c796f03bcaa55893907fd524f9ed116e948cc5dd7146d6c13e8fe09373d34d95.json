@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**\"Not definitive\" wording** is a deliberate downgrade. It says the search is not an error and not a malformed call\"\nVERDICT: MISS\nWHY: The answer lists several non-definitive cases and never says there is exactly one absent-corpus downgrade or that keeping it to one avoids blanket hedging."
+}

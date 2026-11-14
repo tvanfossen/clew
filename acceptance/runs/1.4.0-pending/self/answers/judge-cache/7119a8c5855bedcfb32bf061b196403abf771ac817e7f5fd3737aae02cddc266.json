@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: An unknown key inside `index_scope` is rejected with a warning, and the build falls back to the whole repository. That is a quieter failure than a refusal.\nVERDICT: MISS\nWHY: The answer mentions an unknown key inside a section but not that a correctly-spelled derived key is refused with its specific reason rather than as unknown."
+}

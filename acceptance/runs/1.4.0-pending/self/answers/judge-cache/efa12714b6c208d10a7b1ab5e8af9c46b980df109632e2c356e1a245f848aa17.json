@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Build metadata records which declaration was used.\nVERDICT: MISS\nWHY: The answer only says build metadata records which declaration was used. It never says the winning tier is recorded with the index, and it says nothing about the record being derived from stored rows rather than stamped as a separate summary."
+}

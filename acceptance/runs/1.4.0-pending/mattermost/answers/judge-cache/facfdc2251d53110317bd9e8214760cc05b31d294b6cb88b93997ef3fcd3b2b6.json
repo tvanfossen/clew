@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"In `sanitizeReactions`, this returns early with `deleteReactions: []`, so a single add event never deletes other reactions on the post. Without it, the function would diff the full DB set against the incoming list and mark anything missing for deletion.\"\nVERDICT: HIT\nWHY: The answer explains that skipSync stops the single incoming reaction from being treated as the full set, which would otherwise delete all other reactions on the post."
+}

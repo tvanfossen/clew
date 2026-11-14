@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"It then bypasses the operator entirely and hard-deletes the row directly.\" and \"RX->>DB: queryReaction(emoji_name, post_id, user_id).fetch() ... RX->>DB: database.write \u2192 destroyPermanently()\"\nVERDICT: HIT\nWHY: The answer states that the removed handler skips the operator, queries the reaction, and destroys it inside its own direct `database.write`."
+}

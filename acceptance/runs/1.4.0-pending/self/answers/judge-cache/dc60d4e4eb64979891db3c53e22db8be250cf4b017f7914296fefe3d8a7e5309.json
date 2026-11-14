@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The row is one per endpoint identity, not one per layer (`CallEdge`, `models.py:145`). `source` and `confidence` describe the strongest evidence found for that endpoint.\nVERDICT: MISS\nWHY: The answer says source/confidence reflect the strongest evidence but never says a ranking in the vocabulary module (rather than SQL) decides which layer's provenance a collapsed row reports."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Otherwise it XORs with a `volatile` global zero, so the optimiser cannot prove the value and fold the code back into a branch.\nVERDICT: MISS\nWHY: The answer says the fallback XORs with a volatile global zero, but it never names the global (e.g. mbedtls_ct_zero)."
+}

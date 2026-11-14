@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: platform.c omits its whole dispatch block (`platform.c:20-22`, `:64`)\nVERDICT: MISS\nWHY: The answer says platform.c omits its dispatch block on the macro path, but it never states that mbedtls_platform_set_calloc_free is neither declared nor compiled there. It even describes the setter as usable only when the macros are absent."
+}

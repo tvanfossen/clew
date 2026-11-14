@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer discusses callers of `git_argv` and index caveats, and never mentions flat vs. traversal surfaces resolving the focal side by identity versus bare name."
+}

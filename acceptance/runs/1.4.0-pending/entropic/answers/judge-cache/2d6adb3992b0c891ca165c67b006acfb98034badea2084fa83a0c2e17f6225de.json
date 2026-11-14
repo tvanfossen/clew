@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `HandleLogScope` carries the owning handle's log id into each new thread.\nVERDICT: HIT\nWHY: The answer states that HandleLogScope carries the owning handle's log id into each new thread, which matches the per-handle logging scope on thread bodies, though \"first statement\" isn't stated explicitly."
+}

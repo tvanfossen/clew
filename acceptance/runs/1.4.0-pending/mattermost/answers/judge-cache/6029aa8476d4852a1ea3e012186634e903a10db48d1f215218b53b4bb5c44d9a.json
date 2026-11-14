@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Makes a single `client.createPost` call (the same no-retry path).\" and \"On failure, it either removes the post (the three \"post is no longer valid\" error IDs) or sets `failed: true` again. It does not loop.\"\nVERDICT: HIT\nWHY: The answer states that retryFailedPost makes one attempt with no loop and on failure removes the post for the three errors or marks it failed again. It does not explicitly mention backoff for this function, but it says the call is no-retry and does not loop."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Library code: no threads.** The index finds 4 thread spawns in this repository, and all of them are in `programs/`... The mutex type is `mbedtls_threading_mutex_t`. The lock/unlock/init/free calls are function pointers (`threading.c:101-104`) that default to pthread, and `mbedtls_threading_set_alt` (`threading.c:133`) swaps them.\nVERDICT: HIT\nWHY: The answer says library code spawns no threads (all spawns are in programs/) and that the library supplies the mutex abstraction (mbedtls_threading_mutex_t with lock/unlock function pointers and set_alt) for threaded callers."
+}

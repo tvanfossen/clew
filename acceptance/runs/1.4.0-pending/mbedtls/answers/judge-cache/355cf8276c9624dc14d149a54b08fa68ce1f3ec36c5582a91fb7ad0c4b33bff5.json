@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: With asm it is an empty `asm volatile` barrier.\nVERDICT: MISS\nWHY: The answer says it's an empty `asm volatile` barrier, but it doesn't mention the input-output register operand or say that it emits no instruction and exists only to block optimisation."
+}

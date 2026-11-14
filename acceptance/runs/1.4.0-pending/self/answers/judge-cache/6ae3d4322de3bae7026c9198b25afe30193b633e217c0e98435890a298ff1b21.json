@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The intended behaviour, per `clew/substrate.py` and `clew/harvest.py`: `_OPTIONAL_KEYS = {\"bash\", \"cmake\"}` means a missing grammar routes to `None` and nothing raises. ... My probe found the miss report does not name them, so that part of the design is broken.\n\nVERDICT: MISS\nWHY: The answer says the router returns None without raising, but it concludes the opposite of the item. It says the miss report fails to name those file types, and it does not describe a capability gate the router consults before routing."
+}

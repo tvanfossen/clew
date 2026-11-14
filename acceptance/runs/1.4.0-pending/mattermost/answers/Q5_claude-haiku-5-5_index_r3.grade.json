@@ -1,0 +1,93 @@
+{
+  "cell": "Q5_claude-haiku-5-5_index_r3",
+  "arm": "index",
+  "rubric_version": "1.0.0",
+  "rubric_digest": "32294778c2753056",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.8125,
+  "unmarked_pct": 0.0,
+  "split_decisions": 0,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "explains that ServerDataOperator is composed with a mixin helper \u2014 `mix(ServerDataOperatorBase).with(...)` \u2014 rather than declaring the handlers itself",
+      "kind": "retrieval",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: `ServerDataOperator` is a mixin composition, not a subclass hierarchy. `app/database/operator/server_data_operator/index.ts:40-59` does: class ServerDataOperator extends mix(ServerDataOperatorBase).with(AgentsHandler, BoardsHandler, CategoryHandler, ..., UserHandler,) | WHY: The answer states that ServerDataOperator is built via `mix(ServerDataOperatorBase).with(...)` using handler mixins, not by declaring handlers itself. || QUOTE: `class ServerDataOperator extends mix(ServerDataOperatorBase).with(AgentsHandler, BoardsHandler, CategoryHandler, ..., UserHandler,)` | WHY: The answer states that ServerDataOperator is composed via `mix(ServerDataOperatorBase).with(...)` and that the handlers are mixins defined elsewhere, not declared in the class itself. || QUOTE: `class ServerDataOperator extends mix(ServerDataOperatorBase).with(AgentsHandler, BoardsHandler, CategoryHandler, ..., UserHandler,)` | WHY: The answer states ServerDataOperator is a mixin composition via `mix(ServerDataOperatorBase).with(...)`, with handlers defined elsewhere as mixins.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "explains that a same-named interface extends each handler's `...Mix` type, so the class is typed with every mixed-in method",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: **Typing:** the `interface ServerDataOperator extends ...Mix` declaration at lines 23-38 merges every mixin's methods into the type. | WHY: The answer states that a same-named interface extends the mixes, merging every mixin's methods into the class type, and notes each handler is paired with an `XHandlerMix` interface. || QUOTE: \"**Typing:** the `interface ServerDataOperator extends ...Mix` declaration at lines 23-38 merges every mixin's methods into the type.\" | WHY: The answer states that a same-named interface extends each handler's Mix type, giving the class every mixed-in method in its type. || QUOTE: **Typing:** the `interface ServerDataOperator extends ...Mix` declaration at lines 23-38 merges every mixin's methods into the type. | WHY: The answer states that a same-named interface extends each handler's Mix type, merging all mixin methods into the class's type.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "every file outside the operator's own handlers directory that defines one of its handlers \u2014 app/products/agents/database/operators/handlers/index.ts",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every file outside the operator's own handlers directory that defines one of its handlers \u2014 app/products/boards/database/operators/handlers/index.ts",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every file outside the operator's own handlers directory that defines one of its handlers \u2014 app/products/playbooks/database/operators/handlers/index.ts",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every file outside the operator's own handlers directory that defines one of its handlers \u2014 precision",
+      "kind": "set_precision",
+      "weight": 2,
+      "hit": true,
+      "detail": "clean",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that every handler's writes go through `batchRecords` inherited from `BaseDataOperator`, because each mixin is constrained to extend ServerDataOperatorBase",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: The one real write is `BaseDataOperator.batchRecords` (`base_data_operator/index.ts:191-211`). | WHY: The answer says the write goes through `batchRecords`, but it also lists direct `database.write` calls that bypass it. It never says that the mixins are constrained to extend ServerDataOperatorBase. || QUOTE: NONE | WHY: The answer traces writes to `BaseDataOperator.batchRecords`, but it never says the mixins are constrained to extend `ServerDataOperatorBase`. It also says \"Not every write goes through `batchRecords`\", which contradicts the item's conclusion. || QUOTE: The one real write is `BaseDataOperator.batchRecords` (`base_data_operator/index.ts:191-211`). | WHY: The answer says writes go through `BaseDataOperator.batchRecords` and that the base is `ServerDataOperatorBase`. It never says each mixin is constrained to extend `ServerDataOperatorBase`, which is the reason the item requires. It also says not every write goes through `batchRecords`, which contradicts the \"every handler\" conclusion.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "names AppDataOperator as the other subclass of BaseDataOperator, sharing the same write path for the app-level database",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: Other operators:** `AppDataOperator` extends `BaseDataOperator`, so the app database writes through the same function. | WHY: The answer names AppDataOperator as extending BaseDataOperator and sharing the write path (batchRecords) for the app database. || QUOTE: \"**Other operators:** `AppDataOperator` extends `BaseDataOperator`, so the app database writes through the same function.\" | WHY: The answer names AppDataOperator as another BaseDataOperator subclass sharing the batchRecords write path for the app database. || QUOTE: Other operators:** `AppDataOperator` extends `BaseDataOperator`, so the app database writes through the same function. | WHY: The answer names AppDataOperator as extending BaseDataOperator and sharing the batchRecords write path for the app database.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    }
+  ]
+}

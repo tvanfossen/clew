@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_ct_compiler_opaque()` is an empty `asm volatile` barrier when assembly is available. Otherwise it XORs with a `volatile` global zero, so the optimiser cannot prove the value and fold the code back into a branch.\nVERDICT: MISS\nWHY: The answer says it is an empty `asm volatile` barrier, but never says the value is an input-output register operand, so it lacks that part of the mechanism."
+}

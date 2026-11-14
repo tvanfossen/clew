@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **`src/facade/entropic.cpp`** is the one outside consumer. It includes `llama_cpp_backend.h` and calls `llama_model_ptr()` and `llama_context_ptr()` to wire the adapter manager.\nVERDICT: MISS\nWHY: The answer says the dependency is contained in src/inference with only one facade file outside it, and it never says the dependency is concentrated but not contained, with a minority of the reaching files outside src/inference. It also says \"Everything else stays in `src/inference/`.\""
+}

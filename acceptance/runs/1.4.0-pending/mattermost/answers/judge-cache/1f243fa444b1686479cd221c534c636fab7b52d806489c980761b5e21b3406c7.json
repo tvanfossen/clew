@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Both websocket handlers swallow all errors with empty `catch` blocks, so a failed add or remove is silent in the logs.\nVERDICT: HIT\nWHY: The answer explicitly states both handlers have empty catch blocks swallowing errors, so a failed add or remove leaves no trace."
+}

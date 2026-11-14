@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Nested repositories are indexed and tagged, not excluded (gh#333).\nVERDICT: HIT\nWHY: The answer explicitly states nested repositories are indexed and tagged rather than excluded."
+}

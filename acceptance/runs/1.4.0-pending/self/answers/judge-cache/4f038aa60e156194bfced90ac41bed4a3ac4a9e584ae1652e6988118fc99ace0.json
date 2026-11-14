@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A whole-repo default is logged at WARNING with the reason, so nobody mistakes a boundary nobody chose for one somebody did.\nVERDICT: HIT\nWHY: The answer states the whole-repo fallback is logged with the reason so a non-chosen boundary isn't mistaken for a declared one, conveying the reason-carrying fallback and no silent guessing."
+}

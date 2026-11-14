@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"the library runs no threads of its own\" and \"`library/threading.c` is wrapped in `#if defined(MBEDTLS_THREADING_C)`, so the global mutexes and the pthread wrapper are not built\" (plus the table of mutexes that apply once `MBEDTLS_THREADING_C` and a backend are enabled).\nVERDICT: HIT\nWHY: The answer says the library creates no threads of its own. It also says `threading.c` supplies the mutex and pthread wrapper abstraction, used by application threads when `MBEDTLS_THREADING_C` is enabled. The \"contains no mutexes\" wording applies only to the default configuration."
+}

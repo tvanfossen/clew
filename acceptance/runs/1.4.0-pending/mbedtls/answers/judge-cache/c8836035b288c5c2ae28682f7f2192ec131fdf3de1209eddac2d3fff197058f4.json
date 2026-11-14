@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_THREADING_C` is commented out in `include/mbedtls/mbedtls_config.h:3787`. `MBEDTLS_THREADING_PTHREAD` (line 2196) and `MBEDTLS_THREADING_ALT` (line 2185) are also off. ... This program needs `MBEDTLS_THREADING_C` and `MBEDTLS_THREADING_PTHREAD` (guard at line 24).\nVERDICT: HIT\nWHY: The answer names both macros as the gating mechanism: THREADING_C gates all mutex use, and both are required by the pthread program."
+}

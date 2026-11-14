@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer discusses where the opt-out is enabled and that the TU resolves names consistently, but never states that a consumer defining MBEDTLS_ALLOW_PRIVATE_ACCESS sees plain names while an ordinary public-header consumer sees the renamed (private_) names. It only says that without the define the name is `private_foo` and with it the name is `foo`. It frames this as a per-translation-unit switch, not as different consumers seeing different views of the same headers."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`mbedtls_memory_buffer_alloc_init()` (`memory_buffer_alloc.c:566`) is the library's one in-tree user of `mbedtls_platform_set_calloc_free()`. It aligns and zeroes a caller-supplied buffer, builds a heap from it, and installs its own calloc/free pair\"\nVERDICT: HIT\nWHY: The answer names the buffer allocator's init function as the sole in-tree caller of the runtime setter that installs its own calloc/free pointers."
+}

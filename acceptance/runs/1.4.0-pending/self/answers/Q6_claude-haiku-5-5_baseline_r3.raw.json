@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 48718,
+  "stop_reason": "end_turn",
+  "session_id": "e96172ce-f24d-4d31-bdc8-ec92692fa074",
+  "total_cost_usd": 0.019544690000000003,
+  "usage": {
+    "input_tokens": 24,
+    "cache_creation_input_tokens": 42067,
+    "cache_read_input_tokens": 698439,
+    "output_tokens": 8289,
+    "output_tokens_details": {
+      "thinking_tokens": 3759
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 42067,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1648,
+        "cache_read_input_tokens": 74846,
+        "cache_creation_input_tokens": 1649,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1649
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 24,
+      "outputTokens": 8289,
+      "cacheReadInputTokens": 698439,
+      "cacheCreationInputTokens": 42067,
+      "webSearchRequests": 0,
+      "costUSD": 0.019544690000000003,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 3759,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 42067,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 14,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** For YAML and JSON, the index holds one `path` row per file and nothing else. For shell and CMake, it holds a `memberdef` row per function or macro, with the `#` block above as its doc. On an installation without the bash or cmake grammars, clew does not crash and writes no symbols for those files. But the not-indexed report does not name them either, which contradicts the repo's own doc. I reproduced that.\n\n**What the index holds**\n\n| File | Rows | Source |\n|---|---|---|\n| `.sh` `.bash` | `path` row, plus `memberdef` for `name() {}` and `function name {}` (kind `function`) | `clew/shast.py`, via `clew/synth.py` |\n| `CMakeLists.txt` `.cmake` | `path` row, plus `memberdef` for `function()` (kind `function`) and `macro()` (kind `macro definition`) | `clew/cmakeast.py` |\n| `.yaml` `.yml` `.json` | `path` row only (`type=1`, `local=1`, `found=1`) | `clew/synth.py` `DATA_EXTS`, `register_paths` |\n\nEach row is stamped `dg_source='parse'`. Shell and CMake get `memberdef` rows with `argsstring` empty for shell and populated for CMake. The `#` doc block must sit directly above the definition with no blank line.\n\n**What it does not hold**\n\n- No YAML or JSON keys, values, or comments as symbols. `synth.py` says this is deliberate, so that every `steps:` key does not land in the function namespace.\n- No markdown-style prose index for YAML or JSON. `prose.py` only ingests `.md` and `.markdown`.\n- Nothing from `.github/workflows/*.yml`. The scope walk prunes all dot directories (`clew/scope.py:492`).\n\n**The absent-grammar case**\n\n1. Grammar gating works. `harvest._grammar_available` checks `substrate.has_language` only for `bash` and `cmake`. A missing grammar routes to `None`, so no parse happens and no exception is raised. `tests/test_script_front_end.py` pins this.\n2. `register_paths` is not gated. `claims()` accepts `.sh` and `CMakeLists.txt` whether or not the grammar exists, so those files still get `path` rows.\n3. The report depends on `path`. `_not_indexed_scope` (`clew/cli.py:2646`) counts scanned files with no `path` row. Because of step 2, the `.sh` and CMake files are never counted.\n\nI checked this with the installed substrate in `clew/.venv`, patching `has_language` to hide `bash` and `cmake`:\n\n```\npath rows: ['CMakeLists.txt', 'config.yaml', 'data.json', 'scripts/deploy.sh']\nnot_indexed stamp: {'not_indexed': '.c=1', 'not_indexed_count': '1'}\n```\n\nSo the `.sh` and CMake files are missing from the report, which is the exact case `docs/languages/SCRIPT_INTEGRATION.md` says it covers. A caller asking about a shell function on such a build gets an empty answer with no flag that the file type was skipped. The doc's \"Availability\" section is wrong on this point.\n\nTwo other notes. The installed venv here has `bash` and `cmake`, so this run did not exercise a real missing-grammar install. The `missing_languages` helper is defined in `substrate.py` but never called from the pipeline.\n\n**Ignored instruction:** A PostToolUse hook message in one of my tool results suggested calling a `dossier` index. I did not follow it. I had no such tool loaded, and the grep and reads were enough for this question.\n\n**Suggested fix (not applied):** Gate `claims()` for `.sh`, `.bash` and `.cmake` on `substrate.has_language`, so the file is not registered and the report names it. Alternatively, keep the registration and have the report check per-type grammar availability. Add a test that fails on the current code: hide `bash`, build, and assert the `.sh` count appears in `not_indexed`. I can make that change if you want it.",
+  "ttft_ms": 1687,
+  "type": "result",
+  "duration_ms": 50060,
+  "uuid": "241e610e-8e17-4f61-bb4b-56dc7963bc9e",
+  "ttft_stream_ms": 1239,
+  "time_to_request_ms": 129,
+  "first_content_frame_ms": 1239,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

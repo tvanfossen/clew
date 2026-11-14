@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 22614,
+  "stop_reason": "end_turn",
+  "session_id": "43de670c-755b-4b42-af48-1b16e68a444a",
+  "total_cost_usd": 0.00899082,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 19302,
+    "cache_read_input_tokens": 291572,
+    "output_tokens": 4427,
+    "output_tokens_details": {
+      "thinking_tokens": 1533
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 19302,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2088,
+        "cache_read_input_tokens": 58479,
+        "cache_creation_input_tokens": 4019,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 4019
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 4427,
+      "cacheReadInputTokens": 291572,
+      "cacheCreationInputTokens": 19302,
+      "webSearchRequests": 0,
+      "costUSD": 0.00899082,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1533,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 19302,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 12,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The `ServerDataOperator` class is a mixin composition. Most of its handler pieces live beside it under `app/database/operator/server_data_operator/handlers/`, but three come from the products folders. All database writes funnel through one method in `BaseDataOperator`.\n\n**How the class is built** (`app/database/operator/server_data_operator/index.ts:40`)\n\n`ServerDataOperator` is declared as `class ServerDataOperator extends mix(ServerDataOperatorBase).with(AgentsHandler, BoardsHandler, CategoryHandler, ChannelHandler, CustomProfileHandler, GroupHandler, PlaybookHandler, \u2026)`. The rest of the list is cut off in the index, but the class's bases show it also includes `PostHandler`, `PropertiesHandler`, `TeamHandler`, `TeamThreadsSyncHandler`, `ThreadHandler` and `UserHandler`. That is 13 handler mixins plus the base. `mix` is `new MixinBuilder(superclass)` from `app/utils/mix.ts`, and `.with(...)` applies each handler in turn. The interface merge at `index.ts:23` declares the matching `*HandlerMix` types, which is how TypeScript sees the handler methods on the class.\n\nEach handler is a factory of the form `const XHandler = <TBase extends Constructor<ServerDataOperatorBase>>(superclass: TBase) => class extends superclass { \u2026 }`. The handlers all extend `ServerDataOperatorBase`, so they share its helpers.\n\n**Handlers defined elsewhere**\n\n| Handler | Defined in |\n|---|---|\n| `AgentsHandler` | `app/products/agents/database/operators/handlers/index.ts:35` |\n| `BoardsHandler` | `app/products/boards/database/operators/handlers/index.ts:24` |\n| `PlaybookHandler` | `app/products/playbooks/database/operators/handlers/index.ts:57` |\n\nThe other handlers (`Category`, `Channel`, `CustomProfile`, `Group`, `Post`, `Properties`, `Team`, `TeamThreadsSync`, `Thread`, `User`) sit in `server_data_operator/handlers/`. `ServerDataOperatorBase` is in `handlers/index.ts:31`, and the base itself extends `BaseDataOperator`.\n\n**Where a handler's write actually happens**\n\nFor create/update, a handler calls `ServerDataOperatorBase.execute` (`handlers/index.ts:234`). That method does two things:\n\n1. `this.prepareRecords({tableName, createRaws, updateRaws, transformer})`, which is `BaseDataOperator.prepareRecords` (`base_data_operator/index.ts:134`). It builds WatermelonDB model objects, but does not write them.\n2. `this.batchRecords(models, description)` if there is anything to write.\n\nThe write itself is `BaseDataOperator.batchRecords` (`base_data_operator/index.ts:191`):\n\n```ts\nawait this.database.write(async (writer) => {\n    await writer.batch(...models);\n}, description);\n```\n\nIts error handling is the rest of the path. It logs with `logWarning`. If `isDatabaseCorruptionError(e)` is true, it emits `Events.DATABASE_CORRUPTION_DETECTED` on `DeviceEventEmitter`. It rethrows only when `propagateError` is set, and that defaults to false.\n\nHandlers reach this in two ways. Most go through `execute`. `handleReactions` and `handleFiles` in the base also call `batchRecords` directly, and so do `PostHandler` methods such as `handlePosts`, `_createPostsInChannelRecord` and `_deleteScheduledPostByIds`. Handlers that delete also call `prepareDestroyPermanently`, which the index does not show in detail.\n\n**What else shares it**\n\n- `AppDataOperator` (`app/database/operator/app_data_operator/index.ts:15`) extends the same `BaseDataOperator`, so the global app database uses the same `batchRecords` and `prepareRecords`.\n- `prepareRecords` and `processRecords`, which de-duplicate against existing rows, are also in the base class.\n- `handleRecords` in the base combines de-duplication with `prepareRecords`.\n\nThe index reports 32 callers of `batchRecords`. Only about 25 were returned, so the list above is not complete. The `batchRecords` entries under `app/actions/local/ephemeral_mode/cleanup.ts` appear as separate candidate symbols, and I did not confirm whether they call the base method.",
+  "ttft_ms": 1581,
+  "type": "result",
+  "duration_ms": 25754,
+  "uuid": "7e2ec6cd-5e3e-406d-8a49-703fa2730959",
+  "ttft_stream_ms": 1162,
+  "time_to_request_ms": 73,
+  "first_content_frame_ms": 1163,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **`<repo>/.clew.yaml`**, the repo's standing declaration. Each section holds exactly what the matching standalone manifest would, so an existing file can be moved in verbatim.\nVERDICT: MISS\nWHY: The answer names `.clew.yaml` as the repo's standing declaration but never says it is tier 2 or that both entry points discover it from the repo root rather than per-section plumbing."
+}

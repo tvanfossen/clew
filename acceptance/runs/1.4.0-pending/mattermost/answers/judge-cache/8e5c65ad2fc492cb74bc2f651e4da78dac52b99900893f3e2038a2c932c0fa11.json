@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Result: the event can only create. It cannot remove reactions by other users that the local DB still has.\nVERDICT: MISS\nWHY: The answer says skipSync makes the add path create-only and not delete other users' reactions, but it never explains that without it the single incoming reaction would be treated as the post's complete set and all other reactions deleted. It describes the effect but not that mechanism."
+}

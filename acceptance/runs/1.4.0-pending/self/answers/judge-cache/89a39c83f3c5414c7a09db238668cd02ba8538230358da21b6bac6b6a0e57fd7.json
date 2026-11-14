@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says that the option names stated by an embedding caller are the same words as the declaration file's section names and the diagnostics' words. It only mentions that a stated `options` mapping and `.clew.yaml` sections are refused by name when unknown."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: llama.cpp headers are included by about 9 files under `src/inference/`... `src/facade/entropic.cpp` reaches it only indirectly, through `llama_cpp_backend.h`\nVERDICT: MISS\nWHY: The answer places llama.cpp use essentially all in src/inference, and says facade reaches it only indirectly. It never concludes the dependency is concentrated but not contained, and names no minority of files outside src/inference."
+}

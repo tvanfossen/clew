@@ -1,0 +1,163 @@
+{
+  "cell": "Q4_claude-haiku-5-5_baseline_r1",
+  "arm": "baseline",
+  "rubric_version": "5.0.0",
+  "rubric_digest": "d8447c7b18eafbf5",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.20689655172413793,
+  "unmarked_pct": 0.0,
+  "split_decisions": 0,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "states that call_edges stores one row per extraction LAYER, so the same logical edge found by two detectors is stored twice",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: \"Edges are stored once per layer, and the query collapses them to the strongest evidence\" and \"`UNIQUE(caller, callee, source)` means the raw table is inflated, and the query collapses it.\" | WHY: The answer states edges are stored once per extraction layer (source) and that the same caller/callee pair can exist in several layers, so the raw table holds duplicates. || QUOTE: \"Edges are stored once per layer, and the query collapses them to the strongest evidence\" and \"`UNIQUE(caller, callee, source)` means the raw table is inflated, and the query collapses it.\" | WHY: The answer states edges are stored once per extraction layer (source) and that the same caller/callee pair can exist in several layers, inflating the raw table. || QUOTE: Edges are stored once per layer, and the query collapses them to the strongest evidence; \"the same pair can exist in several layers. `UNIQUE(caller, callee, source)` means the raw table is inflated, and the query collapses it.\" | WHY: The answer states that edges are stored per extraction layer (source) and the same caller/callee pair can appear in multiple layers, inflating the raw table.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that the query surface returns ONE row per neighbour rather than one per layer, collapsing the variants to the strongest evidence",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"Edges are stored once per layer, and the query collapses them to the strongest evidence (`clew/query/symbols.py:_direct_call_edges`).\" and \"`callers` returns a list of `CallEdge` neighbours, one per caller *identity*, not one per call site.\" | WHY: The answer states that edges are stored per layer and the query collapses them to one row per caller using the strongest evidence. || QUOTE: \"Edges are stored once per layer, and the query collapses them to the strongest evidence (`clew/query/symbols.py:_direct_call_edges`).\" and \"`callers` returns a list of `CallEdge` neighbours, one per caller *identity*, not one per call site.\" | WHY: The answer states that edges are stored per layer and the query collapses them to the strongest evidence, giving one row per caller. || QUOTE: \"Edges are stored once per layer, and the query collapses them to the strongest evidence (`clew/query/symbols.py:_direct_call_edges`).\" and \"`callers` returns a list of `CallEdge` neighbours, one per caller *identity*\" | WHY: The answer states that the query returns one row per caller and collapses the per-layer stored edges to the strongest evidence.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies that which layer's provenance a collapsed row reports is decided by a RANKING held in the vocabulary module, not by SQL",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer says edges collapse to the strongest evidence but never says that a ranking in the vocabulary module, rather than SQL, decides which layer's provenance is reported. || QUOTE: NONE | WHY: The answer says the query collapses edges to the strongest evidence layer but never says a ranking in the vocabulary module decides which layer's provenance is reported, as opposed to SQL. || QUOTE: NONE | WHY: The answer says edges collapse to the strongest evidence but never says a ranking in the vocabulary module decides which layer's provenance the row reports.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the same collapse function serves BOTH the flat neighbour surface and the traversal surface, so a chain and a neighbour list cannot disagree about one edge's provenance",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never says one collapse function serves both the flat neighbour surface and the traversal surface; it only mentions `_direct_call_edges` collapsing for the callers list. || QUOTE: NONE | WHY: The answer never says one collapse function serves both the neighbour list and the traversal surface, so a chain and a neighbour list cannot disagree on provenance. It only mentions that `_direct_call_edges` collapses edges for `callers`. || QUOTE: NONE | WHY: The answer never states that one collapse function serves both the flat neighbour list and the traversal surface; it only mentions `_direct_call_edges` collapsing for the callers list.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies that the flat surface KEEPS fuzzy-confidence edges while the traversal surface excludes them, and gives the reason \u2014 a walk expands each hop, so one fuzzy edge multiplies into a wrong subtree",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: Fuzzy edges are not filtered here. `_direct_call_edges` deliberately keeps them. | WHY: The answer says the flat callers list keeps fuzzy edges, but never says a traversal surface excludes them or that a walk multiplies a fuzzy edge into a wrong subtree. || QUOTE: Fuzzy edges are not filtered here. `_direct_call_edges` deliberately keeps them. | WHY: The answer says the flat callers list keeps fuzzy edges but never contrasts it with a traversal surface that excludes them, and gives no reason about a walk multiplying a fuzzy edge into a wrong subtree. || QUOTE: Fuzzy edges are not filtered here. `_direct_call_edges` deliberately keeps them. | WHY: The answer says the flat callers list keeps fuzzy edges, but it never contrasts this with a traversal surface that excludes them. It also never gives the reason that a walk multiplies one fuzzy edge into a wrong subtree.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that `callers`/`callees` return TWO KINDS of neighbour in one list \u2014 direct calls and shared-key dataflow \u2014 distinguished by an `edge_class` field the consumer must read",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: `edge_class`: always `'call'` for this list. Shared-key dataflow edges are a separate class. | WHY: The answer says the callers list is always `edge_class` 'call' and that dataflow edges are a separate class. That contradicts the item's claim that both kinds appear in one list, distinguished by `edge_class`. || QUOTE: `edge_class`: always `'call'` for this list. Shared-key dataflow edges are a separate class. | WHY: The answer says the callers list is always `edge_class` 'call' and that dataflow edges are separate, which contradicts the item's claim that both kinds share one list and the consumer must read `edge_class`. || QUOTE: `edge_class`: always `'call'` for this list. Shared-key dataflow edges are a separate class. | WHY: The answer says callers contains only call edges with `edge_class` always 'call', which contradicts the item's claim that the list mixes direct calls and shared-key dataflow neighbours.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "notes that the causal polarity is INVERTED between the two halves \u2014 the \"callers\" of a reader are the functions whose writes it observes",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never mentions that causal polarity is inverted between halves (reader's callers are the functions whose writes it observes); it only describes call-edge callers and notes shared-key dataflow edges are separate. || QUOTE: NONE | WHY: The answer never says the callers/callees polarity is inverted between call edges and shared-key dataflow halves, nor that a reader's \"callers\" are the functions whose writes it observes. || QUOTE: NONE | WHY: The answer never mentions that \"callers\" of a reader are functions whose writes it observes, or any inverted causal polarity between call-edge and shared-key dataflow halves; it only says dataflow edges are a separate class.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that dossier does NOT take the merged form \u2014 it asks for the call half only, because it already composes the dataflow separately and merging would report each dataflow edge twice in one payload",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never says that dossier asks for the call half only or that merging would report dataflow edges twice; it only notes edge_class is 'call' and dataflow is separate. || QUOTE: NONE | WHY: The answer never says dossier asks for the call half only or that merging would double-report dataflow edges; it only notes that dataflow edges are a separate class. || QUOTE: NONE | WHY: The answer never states that dossier requests only the call half rather than a merged form, nor that merging would double-report dataflow edges.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies that the two surfaces resolve the FOCAL side differently \u2014 the flat surface selects by resolved identity while the traversal surface still matches on the bare name",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never contrasts how two surfaces resolve the focal (queried) function (resolved identity vs bare name); it discusses callers/dossier edge semantics and name ambiguity but not that distinction. || QUOTE: NONE | WHY: The answer never contrasts how two surfaces resolve the focal side (resolved identity vs bare name); it only discusses callers edge semantics and ambiguity. || QUOTE: NONE | WHY: The answer never contrasts how two surfaces resolve the focal side (resolved identity vs bare name); it only discusses callers edges, fuzzy matching and unresolved counts.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide what a neighbour list contains \u2014 clew/call_edges.py",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide what a neighbour list contains \u2014 clew/query/symbols.py",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide what a neighbour list contains \u2014 clew/query/traversal.py",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": false,
+      "detail": "not named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide what a neighbour list contains \u2014 clew/vocabulary.py",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": false,
+      "detail": "not named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide what a neighbour list contains \u2014 clew/query/dossier.py",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": false,
+      "detail": "not named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide what a neighbour list contains \u2014 precision",
+      "kind": "set_precision",
+      "weight": 1,
+      "hit": false,
+      "detail": "named 2 not in the set: ['clew/query/models.py', 'tests/test_unresolved_inbound.py']",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Strongest \\\"not in this repo\\\":** a distinctive name returns 0 on all corpora... **Weak, probably a \\\"did not look\\\":** ... **Retry, not a conclusion:** `token_hits` shows an individual token has 0 hits\"\nVERDICT: MISS\nWHY: The answer gives three confidence tiers, but none is \"definitive for a reason that is not absence\" (for example, an empty result that is definitive because the thing is unindexed or excluded by scope). Its \"strongest\" tier is still absence-based and \"not definitive\" by the tool's own wording."
+}

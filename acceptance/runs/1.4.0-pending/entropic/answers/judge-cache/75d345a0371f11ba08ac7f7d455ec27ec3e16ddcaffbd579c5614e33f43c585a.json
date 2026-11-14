@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Deny list** (`is_denied`, checked only in `ServerManager::execute`): a match refuses the call even if it was approved earlier, including under `auto_approve`.\nVERDICT: HIT\nWHY: The answer states that the deny list is checked only in ServerManager::execute, which refuses the call before route_tool_call. This matches the item's claim that the deny list is the sole blocking check at execute."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Assembly is used only when `MBEDTLS_HAVE_ASM` is set and the compiler is GCC/Clang-style (or ARMCC 6+). It is further restricted to 32-bit and 64-bit ARM, AArch64, x86 and x86-64 (`constant_time_impl.h:40-52`). Anywhere else, `MBEDTLS_CT_ASM` is undefined and the C fallback is used.\nVERDICT: MISS\nWHY: The answer describes the conditions under which assembly is used but never states that MBEDTLS_CT_ASM is a derived macro (not set in mbedtls_config.h), so the item's specific claim is absent."
+}

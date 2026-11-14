@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 22156,
+  "stop_reason": "end_turn",
+  "session_id": "c9151e36-723a-4884-9daa-ba3cb4ee4ed0",
+  "total_cost_usd": 0.007578130000000001,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 17418,
+    "cache_read_input_tokens": 213503,
+    "output_tokens": 3917,
+    "output_tokens_details": {
+      "thinking_tokens": 1561
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 17418,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2558,
+        "cache_read_input_tokens": 52533,
+        "cache_creation_input_tokens": 1560,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1560
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 3917,
+      "cacheReadInputTokens": 213503,
+      "cacheCreationInputTokens": 17418,
+      "webSearchRequests": 0,
+      "costUSD": 0.007578130000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1561,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 17418,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 13,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** `mbedtls_strerror()` splits the negative code into a high-level module part and a low-level part, looks each up in a switch statement, and joins the two strings. That switch is generated at build time by `scripts/generate_errors.pl`, so a contributor adds a code by declaring it in a public header and rebuilding, not by editing `error.c`.\n\n**Runtime path (`library/error.c`)**\n\n```\ncaller: int ret = mbedtls_xxx(...)   // ret < 0\n  \u2502\n  \u25bc\nmbedtls_strerror(ret, buf, buflen)            error.c:792\n  \u251c\u2500 buflen == 0 \u2192 return; else memset(buf, 0)\n  \u251c\u2500 ret = -ret                                // undo the sign\n  \u251c\u2500 high = ret & 0xFF80\n  \u2502    \u2514\u2500 mbedtls_high_level_strerr(ret)       error.c:174  (switch, \"CIPHER - \u2026\", \"DHM - \u2026\")\n  \u2502         NULL \u2192 \"UNKNOWN ERROR CODE (%04X)\"\n  \u2502    \u2514\u2500 if high == SSL fatal alert \u2192 return  (skip the low-level part)\n  \u251c\u2500 low = ret & ~0xFF80; if 0 \u2192 return\n  \u251c\u2500 if buf already has text \u2192 append \" : \"\n  \u2514\u2500 mbedtls_low_level_strerr(ret)             error.c:537  (switch, \"AES - Invalid key length\", \u2026)\n       NULL \u2192 \"UNKNOWN ERROR CODE (%04X)\"\n```\n\n- The sign is removed first because the switch cases are written as `-(MBEDTLS_ERR_\u2026)`.\n- The high and low halves are separate lookups. A code can have both, and the result is one string such as `\"X - high : Y - low\"`.\n- Every module block sits behind its `#if defined(MBEDTLS_<MODULE>_C)`, so a module that is compiled out contributes no strings.\n- The output is always null-terminated and truncated to `buflen`. An unknown code is reported as `UNKNOWN ERROR CODE (xxxx)`, not as an empty string.\n- `programs/util/strerror.c` wraps this function for the shell, so you can check a code from the command line.\n\n**How `error.c` gets generated**\n\n- `library/CMakeLists.txt:134` runs `generate_errors.pl` as a custom command. It takes `include/mbedtls` and `scripts/data_files` as inputs and writes `${CMAKE_CURRENT_BINARY_DIR}/error.c`. So `error.c` lives in the build tree, not the source tree.\n- The rule's dependencies are `generate_errors.pl`, the `error_headers` list, and `scripts/data_files/error.fmt`. Changing a header therefore triggers regeneration.\n- The script's own usage line is `generate_errors.pl include_dir data_dir error_file`.\n\n**What a contributor does to add a new code**\n\n1. Add a `#define MBEDTLS_ERR_<MODULE>_<NAME> -0x....` in that module's public header, using the module's existing band and value range. The generator scans the headers listed in `error_headers`, so a code outside those headers is never seen.\n2. Give it a description the generator can use. The index does not show where that text comes from; the most likely source is the header's doc comment, but I have not verified it.\n3. Rebuild through the normal CMake build. `error.c` is regenerated and the new case appears in the right module block.\n4. Do not hand-edit `error.c`. The next build overwrites it.\n5. Confirm with `programs/util/strerror <code>`, and add a test that asserts the new string. The repo's conventions say tests are specifications, so a test that checks the exact text is the right form.\n\n**Gaps in what I could see**\n\n- `scripts/generate_errors.pl` has no indexed symbols, and `error.fmt` is not indexed at all. I could not confirm the exact header-scanning rule, the description source, or the format template. Read those two files before relying on step 2.\n- `mbedtls_strerror` appears twice in the index (`error.c:792` and `:867`). I assume the second is the variant used when `MBEDTLS_ERROR_STRERROR_DUMMY` is set, but I did not verify that. The 792 body is the one that does the work.\n- I did not check `ChangeLog.d` or any docs for an additional convention a contributor might need to follow.",
+  "ttft_ms": 1666,
+  "type": "result",
+  "duration_ms": 23486,
+  "uuid": "640be0fb-4ad0-48a3-9945-2fc4da7ff284",
+  "ttft_stream_ms": 1168,
+  "time_to_request_ms": 70,
+  "first_content_frame_ms": 1168,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

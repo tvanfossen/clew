@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The measurement is non-raising by contract, so a failure to measure degrades to \"no annotation\" and never turns a good answer into an error.\nVERDICT: HIT\nWHY: The answer explicitly states that staleness measurement never raises and a failure degrades to no annotation rather than turning a reply into an error."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the post may be retried up to 3 times by the native HTTP layer and that nothing in the post send path sets retryLimit 0. It never states that the create-post request is sent once with no automatic retry, so it effectively contradicts the item."
+}

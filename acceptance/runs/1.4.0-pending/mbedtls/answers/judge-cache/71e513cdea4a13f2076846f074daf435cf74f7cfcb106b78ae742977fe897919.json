@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The field is renamed in the public header, so user code that touches it fails to compile. The rename is the enforcement, not a comment. ... The layout is identical either way; only the spelling changes.\nVERDICT: HIT\nWHY: The answer states that enforcement is by renaming the member (`private_##member`) at compile time, with layout unchanged and only the spelling differing."
+}

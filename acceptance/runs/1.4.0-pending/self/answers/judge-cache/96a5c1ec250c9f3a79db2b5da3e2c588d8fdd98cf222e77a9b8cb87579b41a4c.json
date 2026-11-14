@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer lists the in-scope extensions and the `not_indexed` types. It never says the reply names in-scope file types that returned zero rows, which is the specific mechanism the item requires."
+}

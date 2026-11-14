@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Keys use the same names as the declaration file.\nVERDICT: MISS\nWHY: The answer says caller option keys match the declaration file's names, but never says they are the same words the diagnostics use, so the item's second half is absent."
+}

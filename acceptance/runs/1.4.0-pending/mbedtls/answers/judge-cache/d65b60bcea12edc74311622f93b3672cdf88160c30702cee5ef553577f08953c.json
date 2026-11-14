@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: when both are defined the runtime setter is compiled out entirely.\nVERDICT: HIT\nWHY: The answer states that on the macro path (both CALLOC_MACRO and FREE_MACRO defined) the runtime setter is compiled out entirely, which is the claim that the function does not exist rather than being present and ignored."
+}

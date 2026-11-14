@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `running_` is atomic; a condvar wakes it | Joined in `stop()`\nVERDICT: HIT\nWHY: The health monitor row states an atomic `running_` flag, a condvar wake, and that `stop()` joins the thread, which together cover the shutdown mechanism and the join."
+}

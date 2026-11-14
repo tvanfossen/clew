@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_PLATFORM_MEMORY` off (default; `mbedtls_config.h:208` is commented out) | `#define mbedtls_calloc calloc` (plain libc, `platform.h:166-167`)\nVERDICT: HIT\nWHY: The answer states that in the default config `mbedtls_calloc` is a macro defined directly as `calloc`. The same table row covers `mbedtls_free`, which the answer groups with it throughout."
+}

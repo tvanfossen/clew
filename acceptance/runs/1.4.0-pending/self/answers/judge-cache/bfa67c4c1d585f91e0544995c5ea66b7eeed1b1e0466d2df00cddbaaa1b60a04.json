@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The routing is sound. `_ts_language_for` checks `substrate.has_language` for `bash` and `cmake` and returns None, so nothing raises.\nVERDICT: MISS\nWHY: The answer says routing degrades without raising, but it claims the not-indexed report does NOT name shell/CMake files on a degraded install, which contradicts the item's conclusion that those types are reported as not indexed."
+}

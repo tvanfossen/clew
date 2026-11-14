@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 42202,
+  "stop_reason": "end_turn",
+  "session_id": "1f0f54a0-55be-40d8-b5a3-079e8f712c6f",
+  "total_cost_usd": 0.019000979999999997,
+  "usage": {
+    "input_tokens": 28,
+    "cache_creation_input_tokens": 40389,
+    "cache_read_input_tokens": 766188,
+    "output_tokens": 6517,
+    "output_tokens_details": {
+      "thinking_tokens": 1686
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 40389,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1626,
+        "cache_read_input_tokens": 74527,
+        "cache_creation_input_tokens": 240,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 240
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 28,
+      "outputTokens": 6517,
+      "cacheReadInputTokens": 766188,
+      "cacheCreationInputTokens": 40389,
+      "webSearchRequests": 0,
+      "costUSD": 0.019000979999999997,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1686,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 40389,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 18,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "Clew has four ways for a repository to change how it is indexed, plus a few smaller ones. When they disagree, the tier table decides, and most conflicts resolve in the more explicit source's favour. The one exception is a contradiction that cannot be resolved, which makes the build exit with an error rather than pick a winner.\n\n**The ways to say so**\n\n| Route | Who uses it | Notes |\n|---|---|---|\n| `.clew.yaml` at the repo root (tier 2) | The repo's standing declaration | One section per option (`preprocessor:`, `index_scope:`, `shared_key_patterns:`, `event_tags:`, `guard:`, and so on). `clew/declaration.py` lists the known sections. |\n| `--declare FILE` (tier 1) | An operator or script, for one build | Same YAML shape as `.clew.yaml`. Relative paths resolve against `--repo-root`. |\n| `options=` argument to `build_index` / `index(action='refresh')` (tier 1) | An MCP or embedding caller with no shell | Same vocabulary as the declaration file. Manifest options accept either a path or an inline mapping. Validated before anything is applied, and stricter than the file route. |\n| Named CLI flags (tier 1) | Operator on the command line | Collapsed to a six-argument build surface. `--exclude` is recorded into the index and replayed. `--rebuild` and `--verbose` are per-run only. |\n| `toolchain.toml` / `suppress.toml` | Shared across tools (knots, moldy, aurora-lint) | `[ignore].paths` and `tool = \"*\"` suppressions exclude from the index. `[clew.ignore]` and `tool = \"clew\"` affect only the gate. |\n| `CLEW_JOBS` env var | The machine, not the repo | Worker count only. Deliberately not a declaration. |\n\nThere are also auto-discovered inputs that need no statement: the Doxyfile is found by name in the root, `docs/` or `doc/`. Its `INPUT` is replaced but its `ALIASES` and `PREDEFINED` are kept. Its location can be stated with the `doxyfile` option when discovery misses it.\n\n**When two disagree**\n\nThe rule is in `clew/tiers.py`: `resolved = (tier1 or tier2 or tier5) \u222a tier3 \u222a tier4`.\n\n- **Tier 1 beats tier 2, and replaces it.** `_declared_or_flag` prefers a flag or `--declare` value over the section. A stated tier-1 list is not merged with the declared list. The declared one is ignored for that option.\n- **An empty value is a withdrawal, not a statement.** `[]` or `{}` falls through to the declaration, and then to the built-in floor. This is how an operator undoes a recorded flag without deleting the database.\n- **Tiers 3 and 4 always survive.** These are target facts (a Doxyfile's aliases, a generator manifest) and ecosystem signatures. No stated tier can remove them. For example, `--entry-patterns` cannot drop `main`.\n- **Tier 5 is the floor.** Name-pattern guesses are the only layer a stated value replaces.\n- **Two stated sections are additive, not competing.** `shared_key_patterns` and the dispatch key-wrapper section both contribute prefixes. A flag for one does not drop the other.\n- **`index_scope` against `--scope` is refused.** A stated `index_scope` is only read on the `from-guard` path. Pairing it with any other scope exits with status 1 rather than building a different boundary and reporting success. A declared `index_scope` that is invalid (no `roots:`, or no declared root exists) is also refused rather than silently widened to the whole repo.\n- **Malformed `toolchain.toml` does not fail the build.** It is reported as a problem and its exclusions are ignored.\n- **Bad `CLEW_JOBS` values fall back** to a default, with a log line, because the setting only affects speed.\n\nEach build records which tier won for each option in `build_meta`, so a later reader can see whether a value came from a flag, the declaration, or the default.\n\nI read the code and the design comments in `buildoptions.py`, `tiers.py`, `cli.py`, `scope.py`, `preprocessor.py`, `shared_key_edges.py` and `toolchain.py`. I did not run a build to confirm the behaviour end to end. I also did not verify the default `--scope` value in the current CLI, since the flag does not appear in `cli.py` as I searched it.",
+  "ttft_ms": 1644,
+  "type": "result",
+  "duration_ms": 43340,
+  "uuid": "42ebdb9f-488b-45dc-8182-2e019b72c5a5",
+  "ttft_stream_ms": 1259,
+  "time_to_request_ms": 129,
+  "first_content_frame_ms": 1259,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

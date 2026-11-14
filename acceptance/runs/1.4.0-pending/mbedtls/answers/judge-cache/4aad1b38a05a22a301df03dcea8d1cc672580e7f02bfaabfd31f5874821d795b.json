@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_PLATFORM_MEMORY` off (default; `mbedtls_config.h:208` is commented out)\nVERDICT: HIT\nWHY: The answer says that `MBEDTLS_PLATFORM_MEMORY` switches the allocator. It also says the option is commented out in `mbedtls_config.h:208` by default."
+}

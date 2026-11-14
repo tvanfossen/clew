@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Allow: lets the call pass approval. It does not bypass the MCP keys or tier checks that run earlier. / The allow list is consulted only at the approval gate.\nVERDICT: HIT\nWHY: The answer says the allow list is consulted only at the approval gate (`check_approval`) and only lets the call pass approval, not bypassing other checks. It also says deny is enforced separately in `ServerManager::execute` (`server_manager.cpp`), a different file. That covers the point that allow suppresses approval rather than granting execution."
+}

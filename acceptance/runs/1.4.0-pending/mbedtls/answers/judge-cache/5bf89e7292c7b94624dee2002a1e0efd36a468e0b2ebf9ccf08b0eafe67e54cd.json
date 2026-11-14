@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The header is used in roughly 74 files, mostly `include/mbedtls/*.h` and `include/psa/*.h` (`ssl.h` alone has 210 uses).\nVERDICT: HIT\nWHY: It says the macro is concentrated in public headers, with 210 uses in ssl.h alone, which implies hundreds of sites, and the library implementation is covered only lightly."
+}

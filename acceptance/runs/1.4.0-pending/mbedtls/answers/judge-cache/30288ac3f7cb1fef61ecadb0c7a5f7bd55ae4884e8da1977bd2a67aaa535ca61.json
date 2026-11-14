@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Define `MBEDTLS_PLATFORM_CALLOC_MACRO` and `FREE_MACRO` in your user config ... Call `mbedtls_platform_set_calloc_free(calloc_fn, free_fn)` ... assigns two file-static function pointers\nVERDICT: MISS\nWHY: The answer describes both a compile-time macro pair and a runtime function-pointer pair as two options, but it never says they are mutually exclusive."
+}

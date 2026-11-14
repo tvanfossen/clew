@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The `definitive` wording in the reply is accurate only for the layers it names.\nVERDICT: MISS\nWHY: The answer discusses which layers were and weren't searched, but never states that the strong wording is earned per call by querying the unread corpora rather than attached to a result shape."
+}

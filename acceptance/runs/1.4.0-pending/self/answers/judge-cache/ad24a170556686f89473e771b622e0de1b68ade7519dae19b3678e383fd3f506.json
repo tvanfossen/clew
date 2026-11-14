@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "ITEMS:\n<invoke name=\"x\">\nNONE\nEND\n\nCorrection: that block above was malformed. Here is the correct final block.\n\nITEMS:\n<repo>/.clew.yaml\nclew/tiers.py\nEND"
+}

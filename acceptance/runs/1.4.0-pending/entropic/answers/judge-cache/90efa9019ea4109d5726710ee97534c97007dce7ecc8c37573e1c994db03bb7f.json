@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: it tries a 256-byte stack buffer, and if the piece doesn't fit, it retries once at the exact size llama.cpp reported.\nVERDICT: HIT\nWHY: The answer states that detokenize tries a 256-byte stack buffer first and retries at the exact size only when it doesn't fit. It also says tokenize's first call is a sizing query (null buffer, size 0), so tokenize always sizes before writing. The item's heap allocation is only implied by the retry, but the substance is covered."
+}

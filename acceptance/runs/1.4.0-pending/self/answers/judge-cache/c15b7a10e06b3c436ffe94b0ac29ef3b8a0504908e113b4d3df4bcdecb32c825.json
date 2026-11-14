@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes three ways and a requirements-specific five-step order, but never states that build options resolve through five named precedence tiers; it only mentions \"tier 1\" in passing."
+}

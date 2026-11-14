@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The tool reports them as a `staleness` list on every reply... `staleness_notices()` (`server.py:1548`) attaches that list to query replies, so when the index is current the field is simply absent.\nVERDICT: HIT\nWHY: The answer says staleness is reported on every reply and that the field is empty/absent when the index is current."
+}

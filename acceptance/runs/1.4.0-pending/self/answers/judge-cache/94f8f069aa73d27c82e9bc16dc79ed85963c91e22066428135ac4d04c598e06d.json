@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Tiers 3 and 4 always survive. These are target facts (a Doxyfile's aliases, a generator manifest) and ecosystem signatures. No stated tier can remove them. ... \"A stated tier-1 list is not merged with the declared list. The declared one is ignored for that option.\"\nVERDICT: HIT\nWHY: The answer states stated tiers replace one another (tier 1 replaces tier 2, tier 5 replaced) while tiers 3 and 4 (discovered layers) always survive and no stated tier can remove them."
+}

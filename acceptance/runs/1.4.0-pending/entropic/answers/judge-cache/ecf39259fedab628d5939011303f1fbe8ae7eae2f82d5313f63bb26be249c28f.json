@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer mentions `HealthMonitor::event_mutex_` taken in `process_events` and a `monitor_loop` thread, but never says the status callback is not invoked from the monitor thread or that events are queued for the caller to drain."
+}

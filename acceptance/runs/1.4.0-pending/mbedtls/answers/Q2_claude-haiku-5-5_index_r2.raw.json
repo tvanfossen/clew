@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 36249,
+  "stop_reason": "end_turn",
+  "session_id": "2a98225a-3228-4920-bc79-682659e9a6c5",
+  "total_cost_usd": 0.01002984,
+  "usage": {
+    "input_tokens": 16,
+    "cache_creation_input_tokens": 14799,
+    "cache_read_input_tokens": 347444,
+    "output_tokens": 7188,
+    "output_tokens_details": {
+      "thinking_tokens": 2994
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 14799,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1579,
+        "cache_read_input_tokens": 51459,
+        "cache_creation_input_tokens": 1660,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1660
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 16,
+      "outputTokens": 7188,
+      "cacheReadInputTokens": 347444,
+      "cacheCreationInputTokens": 14799,
+      "webSearchRequests": 0,
+      "costUSD": 0.01002984,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2994,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 14799,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 18,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**What it does.** `MBEDTLS_PRIVATE(member)` is a macro defined in `include/mbedtls/private_access.h:14-18`:\n\n```c\n#ifndef MBEDTLS_ALLOW_PRIVATE_ACCESS\n#define MBEDTLS_PRIVATE(member) private_##member\n#else\n#define MBEDTLS_PRIVATE(member) member\n#endif\n```\n\nStruct fields are declared as `MBEDTLS_PRIVATE(foo)`, so by default a field `foo` is actually named `private_foo`. Code outside the library that writes `ctx->foo` fails to compile, and code that writes `ctx->MBEDTLS_PRIVATE(foo)` compiles only because the same macro produced the mangled name. It is a compile-time guard, not an access-control mechanism. The header comment in `library/common.h:127-131` gives the intent: the members are private and should not be accessed by users.\n\n**For whom.** The guard is for application developers and their code. The 3.0 migration guide (`docs/3.0-migration-guide.md:70-74`) tells them to use accessor functions, and to reach a field only as a last resort via `bar.MBEDTLS_PRIVATE(foo)`, \"at your own risk\" and with no stability promise. The `ssl.h:5159-5169` warning says the same about `ssl->state`: direct access is deprecated and could break in any release.\n\n**Where the opt-out is turned on.** I found it in three places (a repo-wide grep for `MBEDTLS_ALLOW_PRIVATE_ACCESS`, including build files, returned only these):\n\n| Location | Effect |\n|---|---|\n| `library/common.h:132` | Defines it for the whole library. Library `.c` files that include `common.h` before any mbedtls header get direct field access. I checked `ecdh.c`, `md.c` and the rest of the library files that use `MBEDTLS_PRIVATE`; each includes `common.h` first. `common.h` does not itself pull in `private_access.h`, so the define lands before the guard is evaluated. |\n| `programs/ssl/ssl_server2.c:8` | Defined before any mbedtls include, so the sample server gets direct access. |\n| `programs/ssl/ssl_client2.c:8` | Same, for the sample client. |\n\n**What this means for the code in those places.** The library and the two sample programs are the only code that gets to write `ctx->foo` directly. Everything else is still forced through the `MBEDTLS_PRIVATE` spelling or through accessors.\n\nTwo points to watch:\n\n- The opt-out is decided once per translation unit, at the first inclusion of `private_access.h`. A file that includes any mbedtls header before defining the macro gets the mangled names, and that is a silent include-order trap.\n- `programs/ssl/ssl_context_info.c` (lines 553-568) and `programs/fuzz/fuzz_dtlsserver.c:138` write `MBEDTLS_PRIVATE(...)` explicitly but do not define the opt-out. They compile in the default mode because the headers declare those fields with the same macro, so the names match. These two files are therefore not using the opt-out. They are written to the \"last resort\" spelling, which is the spelling that keeps working across builds.\n\nI did not build the tree, so the compile behaviour above comes from reading the macro and the include order, not from a build run.",
+  "ttft_ms": 1457,
+  "type": "result",
+  "duration_ms": 37286,
+  "uuid": "6b9faf09-2509-417d-abc4-0b31e5bde8c9",
+  "ttft_stream_ms": 1208,
+  "time_to_request_ms": 75,
+  "first_content_frame_ms": 1208,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

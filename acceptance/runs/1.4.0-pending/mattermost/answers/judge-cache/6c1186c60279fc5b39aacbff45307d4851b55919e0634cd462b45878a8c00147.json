@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Removes the current user from the channel locally (not awaited); \"If viewing that channel, kicks the user out with the `CHANNEL_ARCHIVED` event. Then removes the current user from the channel locally.\"\nVERDICT: HIT\nWHY: The table says that when the gate is off, archiving removes the user from the channel and the websocket delete event kicks them out if it is the current channel. When the gate is on, it sets `delete_at` and keeps the user as a member, which matches the \"kept and marked deleted\" half."
+}

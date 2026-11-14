@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"When `actual < 0`, the function logs an error with the text length only and returns `{}`, an empty vector (`llama_cpp_tokenizer.cpp:64-67`).\"\nVERDICT: HIT\nWHY: The answer says a negative result from the second call (`actual < 0`) logs an error and returns an empty vector, and it says the double call is not retry logic."
+}

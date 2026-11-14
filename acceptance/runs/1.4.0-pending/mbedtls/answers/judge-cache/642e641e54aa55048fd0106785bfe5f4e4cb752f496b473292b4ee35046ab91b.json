@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Application code that writes `ssl->state` no longer compiles, because the real field name is mangled.\nVERDICT: MISS\nWHY: The answer explains the name mangling producing a compile error, but never states that the struct layout stays visible and sized, so the contrast with hiding the layout is absent."
+}

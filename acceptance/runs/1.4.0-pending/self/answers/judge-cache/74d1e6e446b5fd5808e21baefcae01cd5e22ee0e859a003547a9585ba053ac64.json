@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Unknown section names are refused. A misspelled top-level key fails and names the probable cause.\nVERDICT: MISS\nWHY: The answer only covers unknown top-level section names; it never mentions a second refusal for an unknown key inside a section, nor a correctly-spelled derived key refused with its reason."
+}

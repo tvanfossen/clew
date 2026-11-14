@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`ServerDataOperatorBase` extends it, and so does `AppDataOperator` (`app/database/operator/app_data_operator/index.ts:15`). Both inherit `batchRecords`, `handleRecords`, `prepareRecords` and `processRecords`, so the app database and the per-server databases share one write path.\"\nVERDICT: HIT\nWHY: The answer names AppDataOperator as the other BaseDataOperator subclass and says it shares the same write path for the app database."
+}

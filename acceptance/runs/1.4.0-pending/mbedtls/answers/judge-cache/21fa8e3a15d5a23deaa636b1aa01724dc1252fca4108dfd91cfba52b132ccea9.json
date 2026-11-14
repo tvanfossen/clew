@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"with the shipped defaults, mbedtls creates no threads and takes no mutexes.\" and \"The index found four spawn sites, all in `programs/`\" and \"`programs/ssl/ssl_pthread_server.c:277`: one `handle_ssl_connection` thread per client. This program needs `MBEDTLS_THREADING_C` and `MBEDTLS_THREADING_PTHREAD` (guard at line 24).\"\nVERDICT: MISS\nWHY: The answer says the library creates no threads by default, but it never states that the pthread example compiles to a stub main under a default build. It only says the program needs those options, and it lists the program as a spawn site."
+}

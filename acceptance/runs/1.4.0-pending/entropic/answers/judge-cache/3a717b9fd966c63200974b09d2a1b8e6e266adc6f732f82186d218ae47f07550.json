@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says llama.cpp types are confined to src/inference plus one facade file and public headers have only forward declarations. It doesn't conclude that the dependency is concentrated in inference but not contained by it, and it frames the boundary as \"mostly clean.\""
+}

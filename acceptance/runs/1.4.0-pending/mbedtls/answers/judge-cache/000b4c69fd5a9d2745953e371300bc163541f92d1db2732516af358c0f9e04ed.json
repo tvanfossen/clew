@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says mbedtls_calloc/free are real functions in platform.c forwarding through function pointers, and never states that in a default build they are macros expanding directly to calloc/free."
+}

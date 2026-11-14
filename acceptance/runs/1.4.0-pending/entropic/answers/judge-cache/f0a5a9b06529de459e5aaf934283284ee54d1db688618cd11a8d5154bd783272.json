@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `detokenize` (lines 86-105) makes a second `llama_token_to_piece` call only when the 256-byte stack buffer is too small. That is size-on-demand, and it is still not retry.\nVERDICT: HIT\nWHY: The answer states detokenize uses a 256-byte stack buffer and makes a second call only when it is too small, while tokenize always makes two calls (size query first)."
+}

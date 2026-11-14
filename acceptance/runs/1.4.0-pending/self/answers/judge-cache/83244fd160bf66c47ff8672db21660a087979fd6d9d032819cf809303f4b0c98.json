@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Doxygen's `INPUT` is replaced by the repo root. A repo's own Doxyfile still supplies aliases and predefines, but no longer its `INPUT`.\nVERDICT: MISS\nWHY: The answer says the Doxyfile's INPUT is no longer used, but it never explains why: it doesn't say that a repo shipping a Doxyfile would otherwise get only its documented subset while a repo with none gets its whole tree."
+}

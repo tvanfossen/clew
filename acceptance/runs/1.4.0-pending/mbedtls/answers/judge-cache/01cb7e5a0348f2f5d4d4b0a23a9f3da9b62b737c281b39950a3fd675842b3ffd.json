@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It uses the mutex-wrapped variants when `MBEDTLS_THREADING_C` is enabled (`:541-563`) and uses libc nowhere.\nVERDICT: HIT\nWHY: The answer states that `mbedtls_memory_buffer_alloc_init` installs the mutex-wrapped variants when `MBEDTLS_THREADING_C` is enabled. It does not spell out the plain pair or say the choice is made at compile time. The two are implied: the answer says the init installs its own allocator, and it ties the mutexed variants to a config macro."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `staleness` is attached to replies only when a notice exists (`DocsDbServer.staleness_notices`, `server.py:1548`, and `QueryTools._staleness`, `tools_query.py:1886`). A current index adds nothing, so the field stays a signal.\nVERDICT: HIT\nWHY: The answer says the annotation is attached to query replies automatically and is absent when the index is current. The opening line also says \"an annotation on every query reply\"."
+}

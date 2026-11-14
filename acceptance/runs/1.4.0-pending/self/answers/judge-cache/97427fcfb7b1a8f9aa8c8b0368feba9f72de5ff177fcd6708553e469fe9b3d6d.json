@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Rust, JS/TS, shell and CMake files have no doxygen front end. Their extensions are routed in `harvest.py` and `synth.py` instead. I did not trace how each of those harvesters enumerates files...\nVERDICT: MISS\nWHY: The answer says doxygen filters by FILE_PATTERNS and that other languages go through separate harvesters, but it never states the file-reaches-index-only-if-readable point, never names the parse-built front end as a filter, and never mentions binary classification."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Allow list** (`is_allowed`, checked in `check_approval`): a match means the call is approved without calling the frontend. It only skips the prompt.\nVERDICT: HIT\nWHY: The answer says the allow list only skips the prompt and is checked in `check_approval` (in `tool_executor.cpp`), while the deny list is checked in a different file (`server_manager.cpp`). It also notes the deny list can still refuse an allowed call, so the allow list doesn't grant execution."
+}

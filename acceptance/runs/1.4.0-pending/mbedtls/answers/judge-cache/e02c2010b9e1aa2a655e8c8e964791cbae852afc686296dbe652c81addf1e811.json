@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the library is single-threaded by default and that mutex code compiles out. It never says the pthread example compiles to a stub main under a default build. It also lists ssl_pthread_server.c as a thread spawn site in the threaded build, and says it inferred the default state without reading the header."
+}

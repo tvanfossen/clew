@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 19845,
+  "stop_reason": "end_turn",
+  "session_id": "35b8924c-c85c-492a-b326-c79f51fbc884",
+  "total_cost_usd": 0.00995374,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 29522,
+    "cache_read_input_tokens": 219234,
+    "output_tokens": 3712,
+    "output_tokens_details": {
+      "thinking_tokens": 1811
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 29522,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2348,
+        "cache_read_input_tokens": 59229,
+        "cache_creation_input_tokens": 6954,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 6954
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 3712,
+      "cacheReadInputTokens": 219234,
+      "cacheCreationInputTokens": 29522,
+      "webSearchRequests": 0,
+      "costUSD": 0.00995374,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1811,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 29522,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 10,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Ways to say so, from weakest to strongest:**\n\n| Tier | Source | Combines with others by |\n|---|---|---|\n| 5 | Built-in heuristics (name-pattern guesses, the floor) | Replaced by any stated tier |\n| 4 | Known-ecosystem signatures (UDM, ingot) | Accumulates |\n| 3 | Facts a target already wrote: a Doxyfile's `ALIASES`/`PREDEFINED`, generator manifests, language entry points | Accumulates |\n| 2 | The repo's `.clew.yaml`, one section per convention (`index_scope`, `shared_key_patterns`, `thread_patterns`, `mqtt_dispatch`, `data_model`, `preprocessor`, `kconfig`, `doxyfile`, `sub_indexes`, and others) | Replaces the layer below it |\n| 1 | Explicit statement at call time: a CLI flag, or the `options` argument / MCP parameters (`scope`, `exclude`, `doxyfile`, `target`, `force`) | Replaces the stated layer |\n\nEvery declaration section can also be given as a call-time option, so an MCP caller that cannot reach a shell still has tier 1. The one exception is the `predefined` alias.\n\nScope has its own two-tier rule. Only a declared `index_scope:` decides what is indexed. Otherwise the whole repo is indexed, minus what git ignores. A Doxyfile's `INPUT` no longer narrows scope; the Doxyfile is still used for its aliases and predefines.\n\n**When two disagree:**\n\n- **Flag vs. `.clew.yaml`:** the flag wins for that run. The declared section is replaced, not merged. An empty flag or mapping counts as a withdrawal, so the declaration applies.\n- **Stated tiers (1 and 2) vs. guesses (5):** the stated value displaces the guess. Built-in entry points such as `main` survive any stated override.\n- **Facts (3 and 4):** these accumulate and survive any stated tier. A declaration cannot remove a fact a Doxyfile already states.\n- **A rejected `index_scope`:** the internal pipeline logs a warning and falls back to whole-repo scope. The CLI and MCP refresh check first and refuse the build instead. One known failure: an excludes-only `.clew.yaml` silently widened scope and caused a 900-second doxygen timeout.\n- **Malformed `.clew.yaml`:** logged at WARNING and treated as absent, so the build runs on defaults.\n- **Unknown section name:** a hard refusal. A typo would otherwise run on defaults while reporting the declaration was honoured.\n- **Gate config:** the `guard:` section is the gate's, not the index's, and is stripped before index parsing.\n\nI worked from the index's docstrings and test names, not the function bodies beyond what the dossiers returned, so the exact precedence in edge cases is as the code documents it rather than something I traced line by line.",
+  "ttft_ms": 1892,
+  "type": "result",
+  "duration_ms": 21021,
+  "uuid": "fe153ebe-2f99-4631-be88-6dc2b0a7f328",
+  "ttft_stream_ms": 1204,
+  "time_to_request_ms": 83,
+  "first_content_frame_ms": 1204,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

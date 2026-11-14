@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the library's mutexes are compiled out by default and lists spawn sites only in programs/, but it never states that nothing in library/ creates a thread, and it doesn't frame library/ as supplying the mutex abstraction for threaded callers."
+}

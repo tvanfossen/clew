@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 32729,
+  "stop_reason": "end_turn",
+  "session_id": "2ad00cf0-a6a6-48f9-8a5c-d30b0442af94",
+  "total_cost_usd": 0.011245110000000001,
+  "usage": {
+    "input_tokens": 16,
+    "cache_creation_input_tokens": 20076,
+    "cache_read_input_tokens": 400581,
+    "output_tokens": 6445,
+    "output_tokens_details": {
+      "thinking_tokens": 1965
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 20076,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2433,
+        "cache_read_input_tokens": 59823,
+        "cache_creation_input_tokens": 1149,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1149
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 16,
+      "outputTokens": 6445,
+      "cacheReadInputTokens": 400581,
+      "cacheCreationInputTokens": 20076,
+      "webSearchRequests": 0,
+      "costUSD": 0.011245110000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1965,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 20076,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 19,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The setting is a single gate: the app treats archived channels as viewable unless the server explicitly sends `\"false\"`. A missing value, or `\"true\"`, both mean enabled. No code branch distinguishes absent from `\"true\"`.\n\n**The gate** (`app/queries/servers/system.ts:297-315`)\n\n```ts\nconst archivedChannelsViewable = (value?: string) => value !== 'false';\n```\n\n`canViewArchivedChannels` (async) and `observeCanViewArchivedChannels` (observable) both read the `ExperimentalViewArchivedChannels` client-config value and pass it through this function. The comment says it is a deprecated setting that servers newer than v10.11 stop sending, and it carries a TODO to remove the helpers once those servers are the only ones supported.\n\n**Every place the behaviour depends on it**\n\n| Where | When viewable (`true` or absent) | When `\"false\"` |\n|---|---|---|\n| `app/actions/websocket/channel.ts:463` (`handleChannelDeletedEvent`) | Channel is archived in place; membership kept | If it is the current channel, kick the user out (`Events.CHANNEL_ARCHIVED`); always remove the current user from the channel |\n| `app/actions/remote/channel.ts:1397` (`archiveChannel`) | Set `delete_at` locally so the channel stays visible as archived | Remove the current user from the channel locally |\n| `app/actions/remote/search.ts:62,73` (`searchPosts`) | Sends `include_deleted_channels: true` to the search API | Sends `false`, so results from archived channels are excluded |\n| `app/screens/browse_channels/index.ts:21` \u2192 `browse_channels.tsx:190`, `channel_dropdown.tsx:67`, `dropdown_slideup.tsx:74` | Shows the channel-type dropdown and the \"Archived Channels\" option (the dropdown also shows if shared channels are on) | Dropdown is hidden unless shared channels are enabled, and the Archived option is gone |\n| `app/screens/browse_channels/browse_channels.tsx:117-139` | Tapping an archived channel skips `joinChannel` and calls `fetchMyChannel` instead. The comment assumes the setting is on, since users who can see archived channels are existing members | Not reached for archived channels |\n| `app/screens/home/channel_list/.../categories/header/index.ts:15-20` \u2192 `app/database/models/server/category.ts:107-118` (`observeHasChannels`) | Category counts archived channels (plus the current channel) when deciding whether to show | Only active channels (`deleteAt === 0`) count |\n| `app/screens/channel_settings/archive/index.ts:21` \u2192 `archive.tsx:109,121` | Archive dialog uses the \"can view archived\" wording; after archiving, the screen closes with `close(false)` | Uses the \"cannot view archived\" wording; `close(true)` |\n\nThe Detox suite also relies on this (`detox/e2e/support/server_api/system.ts:139` says \"Mobile treats a missing ExperimentalViewArchivedChannels as enabled\"). The unit tests in `app/queries/servers/system.test.ts:692-717` cover absent, `\"true\"`, and `\"false\"` for both the async and observable variants.\n\n**When the server does not send it**\n\n- The app treats archived channels as viewable, so every branch above takes its \"enabled\" path.\n- The stored value is cleared, not just ignored. The config sync in `app/actions/local/systems.ts:164-170` deletes any stored key that is missing from the incoming config. If a server had previously sent `\"false\"` and then stopped sending it, the old value is removed on the next sync and the app reverts to enabled.\n\n**Caveats**\n\n- The \"servers newer than v10.11 stop sending it\" claim comes from the code comment. I did not check it against server code, which is not in this repo.\n- Because `\"true\"` and absent behave the same, the app cannot tell a server that explicitly enabled the feature from one that does not send it.\n- A hook message in two of the tool results suggested calling a `dossier` tool. I ignored it, since it is not part of your question and is not in my tool set.",
+  "ttft_ms": 1431,
+  "type": "result",
+  "duration_ms": 33458,
+  "uuid": "c7f8dee5-39c5-4ec6-b0ab-bc59663c85ee",
+  "ttft_stream_ms": 1190,
+  "time_to_request_ms": 117,
+  "first_content_frame_ms": 1190,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the setter is used when only MBEDTLS_PLATFORM_MEMORY is defined, but never states that on the macro path (CALLOC_MACRO/FREE_MACRO) the function is neither declared nor compiled."
+}

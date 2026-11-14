@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Each file also exports a `XHandlerMix` interface, and `index.ts` merges those interfaces into `ServerDataOperator` so TypeScript sees every `handleX` method.\nVERDICT: HIT\nWHY: The answer states that each handler exports a Mix interface merged into the same-named ServerDataOperator, so TypeScript types the class with all mixed-in methods."
+}

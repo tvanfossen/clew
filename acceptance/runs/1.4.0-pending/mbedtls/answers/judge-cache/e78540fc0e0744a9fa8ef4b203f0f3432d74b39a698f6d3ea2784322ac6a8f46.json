@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "Reading the answer, the macro that disables the renaming is `MBEDTLS_ALLOW_PRIVATE_ACCESS`. The answer says these files define it:\n\n- `library/common.h` (line 132)\n- `programs/ssl/ssl_server2.c` (line 8)\n- `programs/ssl/ssl_client2.c` (line 8)\n\nIt names the test suites and `ssl_context_info.c` only as files that do not turn it on.\n\nITEMS:\nlibrary/common.h\nprograms/ssl/ssl_server2.c\nprograms/ssl/ssl_client2.c\nEND"
+}

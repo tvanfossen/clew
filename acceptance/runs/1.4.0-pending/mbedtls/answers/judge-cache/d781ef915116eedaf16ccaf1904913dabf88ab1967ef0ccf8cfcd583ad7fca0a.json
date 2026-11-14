@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Define the new `MBEDTLS_ERR_<MODULE>_<NAME>` macro in the module's public header under `include/mbedtls/`... Do not edit the `Begin Auto-Generated Code` block in `library/error.c` by hand. Regenerate it with `scripts/generate_errors.pl`\"\nVERDICT: HIT\nWHY: The answer concludes that a new string means adding the macro to the public header and re-running the generator, not hand-editing error.c. It never mentions the `/** */` doc comment, and it admits it couldn't confirm where the description text comes from. I counted that as a gap in detail, not a missing conclusion."
+}

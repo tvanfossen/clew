@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: code | server loaded old logic; reads are fine, writes are affected | restart the MCP client; rebuild cannot fix it\nVERDICT: HIT\nWHY: The table pairs data with refresh/rebuild and code with client restart, and states \"rebuild cannot fix it\" for code. The item's substance, that different axes need different actions, is stated."
+}

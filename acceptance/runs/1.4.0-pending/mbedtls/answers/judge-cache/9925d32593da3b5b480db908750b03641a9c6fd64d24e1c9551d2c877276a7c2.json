@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"high = ret & 0xFF80 \u2192 module part (CIPHER)\" and \"buf gets \"HIGH : LOW\" when both exist\"\nVERDICT: HIT\nWHY: The answer states that a code splits into a high-level module part and a low-level part, and that `mbedtls_strerror` joins both as \"HIGH : LOW\" when both exist."
+}

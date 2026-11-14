@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_ct_compiler_opaque` (`:85`) is an empty `asm volatile` that forces the value through a register.\nVERDICT: HIT\nWHY: The answer states the opaque function is an empty `asm volatile` that forces the value through a register, which is the barrier mechanism. It doesn't say \"input-output operand\" or \"no instruction\" explicitly, but \"empty\" and \"forces the value through a register\" carry the substance."
+}

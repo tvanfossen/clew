@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: ExternalBridge::start \u2192 accept_loop (src/facade/external_bridge.cpp:796); HealthMonitor::start \u2192 monitor_loop (src/mcp/health_monitor.cpp:92); StdioTransport::open \u2192 stderr_reader_loop; SSETransport::open \u2192 sse_reader_loop; ResponseGenerator::dispatch_batch_generate observer (src/core/response_generator.cpp:413); iface_generate_with_cancel poller (src/inference/interface_factory.cpp:246)\nVERDICT: HIT\nWHY: The answer's table lists spawn sites across the external bridge, MCP transports, health monitor and inference path, showing thread creation is distributed rather than centralised. It doesn't say \"not centralised\" in so many words, but the enumeration carries the substance."
+}

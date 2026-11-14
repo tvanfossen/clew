@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`build_or_refresh` (`server.py:2199`) calls `stale_code_refusal` before taking the lock. A stale process returns `REFUSED` and writes nothing, and `force` does not bypass it.\"\nVERDICT: HIT\nWHY: The answer states the write path refuses (rather than warns) ahead of the lock/build and that `force` cannot override it."
+}

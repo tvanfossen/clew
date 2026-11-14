@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"A caller cannot distinguish \"empty text\" from \"tokenizer failed,\"\" and \"The index shows no error check at any of these sites\" and \"`tokenize_text` ... callers have no way to tell the two apart.\"\nVERDICT: HIT\nWHY: The answer says failure collapses to an empty vector indistinguishable from legitimately empty input, and that no caller checks for it."
+}

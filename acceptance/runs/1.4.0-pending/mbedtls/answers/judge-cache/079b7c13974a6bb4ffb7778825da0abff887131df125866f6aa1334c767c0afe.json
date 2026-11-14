@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Library code: no threads.** The index finds 4 thread spawns in this repository, and all of them are in `programs/`\nVERDICT: HIT\nWHY: The answer says no library code creates threads (all spawns are in programs/) and also details that the library supplies the mutex abstraction (`mbedtls_threading_mutex_t`, with lock/unlock function pointers and a pthread default) that threaded callers use."
+}

@@ -1,0 +1,173 @@
+{
+  "cell": "Q4_claude-haiku-5-5_baseline_r1",
+  "arm": "baseline",
+  "rubric_version": "3.1.1",
+  "rubric_digest": "705c131e354e5c22",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.8888888888888888,
+  "unmarked_pct": 0.0,
+  "split_decisions": 0,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "identifies that thread creation is spread across several subsystems \u2014 the external bridge, the MCP transports, the health monitor and the inference path \u2014 rather than being centralised",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: The table lists threads in `external_bridge.cpp` (accept loop, per-client, async ask worker), `src/mcp/health_monitor.cpp:92`, `src/mcp/transport_stdio.cpp:164`, `src/mcp/transport_sse.cpp:107`, `src/core/response_generator.cpp:413`, `src/inference/inference_c_api.cpp:385`, `src/inference/interface_factory.cpp:246` | WHY: The answer's table enumerates threads created in the external bridge, MCP transports, health monitor and inference path, showing creation spread across subsystems. || QUOTE: Table listing threads at `external_bridge.cpp` (accept loop, per-client, async ask worker), `src/mcp/health_monitor.cpp:92`, `src/mcp/transport_stdio.cpp:164`, `src/mcp/transport_sse.cpp:107`, and `src/inference/inference_c_api.cpp:385` / `response_generator.cpp:413` | WHY: The answer's table enumerates thread creation in the external bridge, MCP transports, health monitor, and inference path, showing it is spread across subsystems rather than centralised. || QUOTE: The table lists thread creation in `external_bridge.cpp` (accept loop, per-client threads, async ask worker), `health_monitor.cpp` (health monitor loop), `transport_stdio.cpp` and `transport_sse.cpp` (MCP transports), and `response_generator.cpp`, `inference_c_api.cpp`, `interface_factory.cpp` (inference path). | WHY: The answer's table lists threads spawned across the external bridge, MCP transports, health monitor and inference path, which shows thread creation is spread across subsystems. It never says outright that this is not centralised. The quote above is my own summary of the table, not a verbatim line from the answer.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "describes the external bridge's two-level thread structure: one accept thread that spawns a further thread per connected client",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: Accept loop | `running_` is atomic; the fd is closed in `stop()` | Joined in `stop()` ... One thread per MCP client | `client_threads_` under `client_threads_mutex_` | WHY: The answer lists an accept-loop thread and a separate per-MCP-client thread in the external bridge, and `stop()` joins both. That covers the two-level structure. || QUOTE: `external_bridge.cpp:796` ... Accept loop ... Joined in `stop()` | `external_bridge.cpp:945` | One thread per MCP client ... `stop()` shuts down each fd, then joins | WHY: The table lists an accept loop thread and a separate per-MCP-client thread in the external bridge, which is the two-level structure. || QUOTE: Accept loop | `running_` is atomic; the fd is closed in `stop()` | Joined in `stop()` ... `external_bridge.cpp:945` | One thread per MCP client | `client_threads_` under `client_threads_mutex_` | WHY: The table lists an accept-loop thread in the external bridge and a separate one-thread-per-MCP-client entry, which is the two-level structure.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies the async-ask worker as the ONE detached thread, and that it therefore outlives its caller's scope with no join",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"`external_bridge.cpp:1158` | Async `entropic.ask` worker | ... | **Detached**; never joined\" and \"Detached async worker outlives the bridge (most serious)... captures `this` and `handle_`, then detaches.\" | WHY: The answer identifies the async ask worker as the detached thread that is never joined and outlives its owner; it doesn't explicitly say it is the only detached thread, but the table marks it as the sole one. || QUOTE: \"Async `entropic.ask` worker | `tasks_` under `tasks_mutex_`; subscribers under `subscribers_mutex_` | **Detached**; never joined\" and \"Detached async worker outlives the bridge (most serious). `run_async_ask` ... captures `this` and `handle_`, then detaches.\" | WHY: The answer identifies the async-ask worker as the detached, never-joined thread (the others are joined or owned) and says it outlives the bridge with nothing waiting for it. || QUOTE: \"Async `entropic.ask` worker | `tasks_` under `tasks_mutex_`; subscribers under `subscribers_mutex_` | **Detached**; never joined\" and \"`run_async_ask` ... captures `this` and `handle_`, then detaches... So destroying a handle while an async ask is running can let the worker call `entropic_run` on a freed handle\" | WHY: The answer identifies the async ask worker as the detached, never-joined thread and explains it outlives the bridge/caller scope.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "explains that the health monitor does NOT invoke its status callback from the monitor thread \u2014 it queues events under a mutex and the caller drains them on its own thread",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"`HealthMonitor` worker threads only enqueue events. `process_events()` (called from `server_manager.cpp:710`) drains them and runs the callbacks on the engine thread.\" Also the table: \"`watched_` and `event_queue_` each have a mutex\". | WHY: The answer states the monitor thread only enqueues events (with a mutex-guarded event queue) and that the caller drains them and runs callbacks on the engine thread. || QUOTE: \"`HealthMonitor` worker threads only enqueue events. `process_events()` (called from `server_manager.cpp:710`) drains them and runs the callbacks on the engine thread.\"; table also says \"`watched_` and `event_queue_` each have a mutex\" | WHY: The answer states the monitor thread only enqueues events (with a mutex-guarded event queue) and that the caller drains them and runs the callbacks on the engine thread. || QUOTE: \"`HealthMonitor` worker threads only enqueue events. `process_events()` (called from `server_manager.cpp:710`) drains them and runs the callbacks on the engine thread.\" Also the table: \"`watched_` and `event_queue_` each have a mutex\". | WHY: The answer states the monitor thread only enqueues events (with a mutex-guarded event_queue_) and that process_events() drains them and runs callbacks on the engine (caller) thread.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies that the monitor's shutdown is an atomic flag exchange plus a condition variable wake, and that stop() joins rather than detaching or abandoning the thread",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: `running_` is atomic; a condvar wakes it | Joined in `stop()` | WHY: The health monitor row states an atomic `running_` flag, a condvar wake, and that `stop()` joins the thread, which together cover the shutdown mechanism and the join. || QUOTE: `running_` is atomic; a condvar wakes it | Joined in `stop()` | WHY: The health monitor row states an atomic `running_` flag, a condvar wake, and a join in `stop()`, which covers the item's mechanism and its join-not-detach point. || QUOTE: `running_` is atomic; a condvar wakes it | Joined in `stop()` | WHY: The health monitor row states an atomic running_ flag, a condvar wake, and a join in stop(), which covers the item's mechanism.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies the cancellation observer thread as existing to bridge an atomic into a plain int, because the C ABI boundary cannot carry an atomic",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: Each poller watches a flag every 10 ms and sets an atomic. | WHY: The answer describes cancel pollers setting atomics but never says the observer exists to bridge an atomic into a plain int because the C ABI can't carry an atomic. || QUOTE: Each poller watches a flag every 10 ms and sets an atomic. | WHY: The answer describes cancel pollers setting atomics but never states they bridge an atomic into a plain int because the C ABI cannot carry an atomic.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "notes that every thread body installs a per-handle logging scope as its first statement, so background work logs against the handle that owns it",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: **Per-handle logging.** Each spawned thread opens a `HandleLogScope` so its log lines reach the owning handle's session log (`include/entropic/types/logging.h:147`). | WHY: The answer states each spawned thread opens a per-handle logging scope so logs reach the owning handle's log. It does not say \"first statement\", but the mechanism and its purpose match. || QUOTE: Each spawned thread opens a `HandleLogScope` so its log lines reach the owning handle's session log (`include/entropic/types/logging.h:147`). | WHY: The answer states each spawned thread opens a per-handle log scope so logs go to the owning handle's log; \"first statement\" is a detail, but the mechanism and purpose are stated. || QUOTE: **Per-handle logging.** Each spawned thread opens a `HandleLogScope` so its log lines reach the owning handle's session log (`include/entropic/types/logging.h:147`). | WHY: The answer states each spawned thread opens a per-handle log scope so logs reach the owning handle's log, which matches the item's substance. It does not say the scope is the thread body's first statement, but the item's core mechanism is stated.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies that each MCP transport runs its own reader thread \u2014 a stderr forwarder for the stdio transport and an event reader for the SSE transport",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: `src/mcp/transport_stdio.cpp:164` | Child-process stderr reader | ... and `src/mcp/transport_sse.cpp:107` | SSE reader | `pending_mutex_` plus condvar; `running_` and `connected_` are atomic | Owned by transport | WHY: The table names a stderr reader thread for the stdio transport and an SSE reader thread for the SSE transport, each owned by its transport. || QUOTE: `src/mcp/transport_stdio.cpp:164` | Child-process stderr reader | ... and `src/mcp/transport_sse.cpp:107` | SSE reader | `pending_mutex_` plus condvar; `running_` and `connected_` are atomic | Owned by transport | WHY: The table names a stderr reader thread in the stdio transport and an SSE reader thread in the SSE transport, each owned by its transport. || QUOTE: `src/mcp/transport_stdio.cpp:164` | Child-process stderr reader | `io_mutex_`; `connected_` is atomic | Owned by transport ... `src/mcp/transport_sse.cpp:107` | SSE reader | `pending_mutex_` plus condvar; `running_` and `connected_` are atomic | Owned by transport | WHY: The answer lists a stderr reader thread owned by the stdio transport and an SSE reader thread owned by the SSE transport, matching the item.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "every first-party source file that creates a thread \u2014 src/facade/external_bridge.cpp",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every first-party source file that creates a thread \u2014 src/mcp/health_monitor.cpp",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every first-party source file that creates a thread \u2014 src/mcp/transport_stdio.cpp",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every first-party source file that creates a thread \u2014 src/mcp/transport_sse.cpp",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every first-party source file that creates a thread \u2014 src/core/response_generator.cpp",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every first-party source file that creates a thread \u2014 src/inference/inference_c_api.cpp",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every first-party source file that creates a thread \u2014 src/inference/interface_factory.cpp",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every first-party source file that creates a thread \u2014 precision",
+      "kind": "set_precision",
+      "weight": 1,
+      "hit": true,
+      "detail": "clean",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    }
+  ]
+}

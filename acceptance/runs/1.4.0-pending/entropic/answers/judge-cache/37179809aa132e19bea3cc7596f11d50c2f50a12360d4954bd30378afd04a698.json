@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The argument value comes from `args_to_pattern`, which takes the first JSON key's string value, or `*` when there is none.\nVERDICT: HIT\nWHY: The answer states that only the first key's string value reaches the pattern, with `*` as the fallback when there isn't one. That covers a single argument being matched and the others being invisible. It does not mention that a non-string or unparseable argument collapses to a wildcard, but the \"`*` when there is none\" fallback is close enough to count."
+}

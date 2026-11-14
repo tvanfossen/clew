@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `ExternalBridge::start` (`external_bridge.cpp:796`) | `accept_loop` | Joined in `stop()` ... `ExternalBridge::accept_loop` (`:945`) | `serve_client` per accepted socket | Owned by `client_threads_`; joined in `stop()`\nVERDICT: HIT\nWHY: The answer shows the bridge starts an accept_loop thread, which spawns a serve_client thread per accepted socket (tracked in client_threads_), which is the two-level structure."
+}

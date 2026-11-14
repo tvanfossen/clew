@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Each spawned body installs `HandleLogScope(log_id)` so its logs reach the owning handle's session log.\nVERDICT: HIT\nWHY: The answer states that each spawned thread body installs a per-handle log scope so logs reach the owning handle. It doesn't say \"first statement\", but the mechanism and its purpose are stated."
+}

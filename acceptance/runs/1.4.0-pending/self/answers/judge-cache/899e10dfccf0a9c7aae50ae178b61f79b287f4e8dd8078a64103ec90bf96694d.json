@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Its reason string says which case applied, for example \"no index_scope is declared for this repo\". ... Scope reason: `.clew.yaml` exists but carries no `index_scope`, so the whole repository is the scope.\nVERDICT: HIT\nWHY: The answer states the whole-repo fallback carries a reason string stating which scope applied and why (no index_scope declared), conveying that the scope is never silently guessed."
+}

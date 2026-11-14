@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Line 55 passes a null buffer and capacity 0. llama.cpp answers with the negated token count it would need, and the code flips the sign to get `n`.\nVERDICT: HIT\nWHY: The answer states the first call returns a negated count (the required size) and that the code flips the sign to get `n`, which sizes the buffer for the second call."
+}

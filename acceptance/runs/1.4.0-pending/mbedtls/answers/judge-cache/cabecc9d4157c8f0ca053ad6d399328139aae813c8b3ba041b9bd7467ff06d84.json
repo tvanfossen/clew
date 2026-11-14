@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: With asm, it is an empty `asm volatile(\"\" : [x] \"+r\"(x))`, so the compiler cannot prove the value.\nVERDICT: HIT\nWHY: The answer states that the asm path is an empty `asm volatile` with the value as a \"+r\" in/out operand. It also says the point is to stop the compiler from reasoning about the value, which is the optimisation-barrier purpose."
+}

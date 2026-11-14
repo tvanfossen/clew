@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer lists HealthMonitor's loop thread and its mutexes but never says the status callback isn't invoked from the monitor thread or that events are queued for the caller to drain."
+}

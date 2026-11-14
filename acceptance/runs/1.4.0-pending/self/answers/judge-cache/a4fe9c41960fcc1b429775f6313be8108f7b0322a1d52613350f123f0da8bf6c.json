@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Unknown section names are refused. A misspelled key on the inline route is refused, while the file route is laxer.\nVERDICT: MISS\nWHY: The answer mentions unknown section names and misspelled keys but never describes a refusal of an unknown key inside a valid section, or a correctly-spelled derived key refused with its own reason rather than as unknown."
+}

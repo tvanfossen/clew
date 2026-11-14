@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `LlamaCppTokenizer::tokenize` (`src/inference/llama_cpp_tokenizer.cpp:49-71`, calls at lines 55 and 61). It is a size-probe... The first call passes a null buffer and size 0... It allocates `n` slots and calls again to fill them.\nVERDICT: HIT\nWHY: The answer names the file and function, identifies the two llama_tokenize calls, and explains the size-probe then fill mechanism."
+}

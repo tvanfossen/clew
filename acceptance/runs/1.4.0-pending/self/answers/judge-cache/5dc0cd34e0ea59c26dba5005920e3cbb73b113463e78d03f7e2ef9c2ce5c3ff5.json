@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"code | server loaded old logic; reads are fine, writes are affected\" and \"Reads are still current, but writes through the stale process are refused.\"\nVERDICT: HIT\nWHY: The answer states reads remain current while writes/builds through the stale-code process are affected or refused. It does not give the \"database opened per call\" mechanism, but it does state the read/write asymmetry on the code axis, and the item's \"writes old pipeline logic\" is conveyed as the server running old logic with builds refused."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The repo's Doxyfile no longer supplies the INPUT. It still contributes aliases and predefined macros.\" and \"still says a missing declaration 'drops the resolution to the Doxyfile's own INPUT'. That fallback was removed in gh#333\"\nVERDICT: MISS\nWHY: The answer says the Doxyfile INPUT was removed as the source of scope, but it never explains why (documented subset for repos with a Doxyfile versus whole tree for repos without one)."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `skipSync: true` (add) ... \"`sanitizeReactions` returns no deletions, and the delete step is skipped. Only creates happen, so a single-reaction event never removes other stale reactions on the post.\"\nVERDICT: HIT\nWHY: The answer states that skipSync prevents deletions so a single incoming reaction doesn't remove the other reactions on the post, which is the item's mechanism."
+}

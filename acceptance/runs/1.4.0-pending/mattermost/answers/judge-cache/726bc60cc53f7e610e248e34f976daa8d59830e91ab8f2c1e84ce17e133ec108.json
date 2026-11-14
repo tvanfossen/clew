@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"It calls `client.createPost` once more. On success it stores the server's post and updates the channel's last-post time. On failure it sets `failed = true` again, or removes the post for the three error IDs above.\"; \"It makes no further attempts after that single retry\"\nVERDICT: HIT\nWHY: The answer states `retryFailedPost` makes one new attempt with no further attempts, and on failure marks the post failed again or removes it for the three errors. It does not say \"backoff\" in so many words. It does say there is no further attempt, and the earlier `retryLimit: 0` point supports that."
+}

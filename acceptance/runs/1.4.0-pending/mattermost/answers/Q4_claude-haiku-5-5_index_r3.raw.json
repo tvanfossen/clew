@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 24627,
+  "stop_reason": "end_turn",
+  "session_id": "714db6a2-684d-4165-9d5e-7d497e793387",
+  "total_cost_usd": 0.012190840000000003,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 32643,
+    "cache_read_input_tokens": 324554,
+    "output_tokens": 4831,
+    "output_tokens_details": {
+      "thinking_tokens": 933
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 32643,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1802,
+        "cache_read_input_tokens": 74908,
+        "cache_creation_input_tokens": 2528,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2528
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 4831,
+      "cacheReadInputTokens": 324554,
+      "cacheCreationInputTokens": 32643,
+      "webSearchRequests": 0,
+      "costUSD": 0.012190840000000003,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 933,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 32643,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 18,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** the app treats `ExperimentalViewArchivedChannels` as a single \"can this user see archived channels\" switch. Only an explicit `'false'` turns it off. If the server omits the setting, the app behaves as if it is `true`, so archived channels are on.\n\n**How the value is read**\n\n`app/queries/servers/system.ts:304` defines `archivedChannelsViewable = (value) => value !== 'false'`. Two public helpers wrap it:\n- `canViewArchivedChannels(database)` (line 306): one-shot read, used in actions.\n- `observeCanViewArchivedChannels(database)` (line 310): observable, `distinctUntilChanged`, used in screens.\n\nThe comment at lines 297\u2013303 records the intent: servers newer than v10.11 stopped sending the key, and older supported servers (down to v5.26.2) still send it and may have disabled it. There is a TODO to delete these helpers once v10.11 and older are dropped.\n\n**Every place the behaviour depends on it**\n\n| Location | What changes |\n|---|---|\n| `app/actions/remote/channel.ts:1397` (`archiveChannel`) | If viewable, archive sets `delete_at` locally via `setChannelDeleteAt` and keeps the channel in the sidebar. If not, the user is removed from the channel locally (`removeCurrentUserFromChannel`). |\n| `app/actions/websocket/channel.ts:463` (`handleChannelDeletedEvent`) | On a channel-deleted event: if not viewable, kick the user out of the current channel (`Events.CHANNEL_ARCHIVED`) and remove membership. If viewable, only the `delete_at` is stored. |\n| `app/actions/remote/search.ts:62\u201373` (`searchPosts`) | Sends `include_deleted_channels` to the server, so search results include archived channels only when viewable. |\n| `app/screens/browse_channels/index.ts:21` \u2192 `browse_channels.tsx:190`, `channel_dropdown.tsx:67`, `dropdown_slideup.tsx:74` | The channel-type dropdown is shown if archived OR shared channels are enabled. The \"Archived Channels\" option only appears when viewable. |\n| `app/screens/browse_channels/search_handler.tsx:196` | Chooses the `archivedChannels` list for the ARCHIVED tab. |\n| `app/screens/browse_channels/browse_channels.tsx:121\u2013126` | `onSelectChannel` skips `joinChannel` for archived channels and calls `fetchMyChannel` + `switchToChannelById`. The comment assumes archived channels only show to existing members when the setting is enabled. |\n| `app/screens/channel_settings/archive/index.ts:21` \u2192 `archive.tsx:109,121` | Archive confirmation text differs (\"can view archived\" vs \"cannot view archived\"). After archiving, `close(!canViewArchivedChannels)` closes the screen when the channel will disappear. |\n| `app/database/models/server/category.ts:107` (`observeHasChannels`) via `app/screens/home/channel_list/categories_list/categories/header/index.ts:15\u201322` | Category header counts archived channels as \"has channels\" only when viewable (the current channel is always counted). |\n\nNot app code: `detox/shared/server-baseline.ts:80` marks the key `absentIsBaseline: true`, and `detox/e2e/support/server_api/system.ts:139\u2013142` accepts an absent key as enabled. Detox tests also assert the key is explicitly `'true'` in several archive specs.\n\n**What the app does when the server omits the setting**\n\nThe value is `undefined` in both helpers. `undefined !== 'false'` is `true`, so:\n- archive keeps channels visible with `delete_at` set, instead of removing membership;\n- websocket channel-deleted events do not kick the user out;\n- search sends `include_deleted_channels: true`;\n- the Browse Channels \"Archived\" tab is shown;\n- the category header counts archived channels;\n- the archive dialog uses the \"can view archived\" message.\n\nThe unit tests confirm this: `app/queries/servers/system.test.ts:692` and `:706` expect `true` when the key is absent, for both the one-shot and observable helpers.\n\n**Caveat:** I did not trace `getConfigValue`/`observeConfigValue` to confirm the exact missing-row path. The tests cover that path, so I am relying on them.",
+  "ttft_ms": 1421,
+  "type": "result",
+  "duration_ms": 25460,
+  "uuid": "3aaa0b71-16e9-4c7c-9f63-a2617a22cc5c",
+  "ttft_stream_ms": 1173,
+  "time_to_request_ms": 68,
+  "first_content_frame_ms": 1174,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Compile time (fastest, no runtime hook).** Enable `MBEDTLS_PLATFORM_MEMORY` and define *both* `MBEDTLS_PLATFORM_CALLOC_MACRO` and `MBEDTLS_PLATFORM_FREE_MACRO`... **Runtime.** Enable `MBEDTLS_PLATFORM_MEMORY` without the macros, then call `mbedtls_platform_set_calloc_free(my_calloc, my_free)`\n\nVERDICT: MISS\n\nWHY: The answer distinguishes the compile-time macro pair from the runtime function-pointer setter. But it never says they are mutually exclusive. The runtime path is described as available only \"without the macros\", which implies exclusivity without stating it. Item 3 also suggests combining a STD_CALLOC override with the runtime setter, which muddies the point."
+}

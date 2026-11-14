@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer lists many mbedtls_ct_* primitives as the API and never concludes that mbedtls_ct_memcmp is the only public function while the rest are library-internal."
+}

@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 51170,
+  "stop_reason": "end_turn",
+  "session_id": "c3ad4d6b-c996-44fc-8014-63c6d3450df3",
+  "total_cost_usd": 0.023262159999999997,
+  "usage": {
+    "input_tokens": 26,
+    "cache_creation_input_tokens": 59649,
+    "cache_read_input_tokens": 705226,
+    "output_tokens": 8555,
+    "output_tokens_details": {
+      "thinking_tokens": 4768
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 59649,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2560,
+        "cache_read_input_tokens": 73170,
+        "cache_creation_input_tokens": 2096,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2096
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 26,
+      "outputTokens": 8555,
+      "cacheReadInputTokens": 705226,
+      "cacheCreationInputTokens": 59649,
+      "webSearchRequests": 0,
+      "costUSD": 0.023262159999999997,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 4768,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 59649,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 15,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** for shell and CMake, the index holds function and macro definitions when the substrate has the bash and cmake grammars. For YAML and JSON it holds only a file-set entry. On an install without those grammars, the code does not do what the docs say. The not-indexed report does not name the shell and CMake files, and the docs claim it does.\n\n**What the index holds**\n\n| File | Rows | Source |\n|---|---|---|\n| `.sh` `.bash` | `memberdef` function rows for `name() {}` and `function name {}`. Doc comes from the `#` block directly above, with no blank line. `argsstring` is empty. | `clew/shast.py`, via `synth.py` |\n| `CMakeLists.txt` `.cmake` | `memberdef` rows for `function()` (kind `function`) and `macro()` (kind `macro definition`), with named parameters. | `clew/cmakeast.py`, via `synth.py` |\n| `.yaml` `.yml` `.json` | One `path` row. The file is findable by name and has no symbols. | `synth.py` `DATA_EXTS` |\n\nEvery row carries `dg_source='parse'`.\n\n**What it does not hold**\n\n- YAML and JSON contents: no keys, values or structure. Making `steps:` keys into symbols was rejected on purpose, since it would flood the function namespace.\n- Shell top-level code outside functions, shell variables, and CMake `set()` or `target_link_libraries` calls. Only definitions are harvested.\n- Full-text content of any of these files. `prose.py` ingests only markdown.\n- Anything under dot directories. The scope walk prunes them, so `.github/workflows/*.yml` is not in scope.\n\n**What happens without the grammars**\n\nThe routing is sound. `_ts_language_for` checks `substrate.has_language` for `bash` and `cmake` and returns None, so nothing raises. That is the part the docs describe correctly.\n\nThe file registration is not sound. `claims()` in `synth.py` is substrate-blind, and `register_synth_paths` runs unconditionally at `cli.py:1923`. Shell and CMake files therefore still get `path` rows with no symbols on a published-wheel install. `substrate.py` says the front ends \"register nothing\" in that case, and the code contradicts it.\n\nThat matters for the not-indexed report. `_not_indexed_scope` (`cli.py:2646`) computes \"missing\" as scanned files minus `path type=1`. Because `.sh` and `.cmake` are registered, they never appear as missing. On a degraded install, `dossier(\"deploy\")` returns empty, and the report says nothing about shell. That is the case the report exists to catch. YAML and JSON are never named on any install, because they are always registered.\n\nThe unit test in `tests/test_not_indexed_report.py` passes because its fixture builds a `path` table with no `.sh` rows. That models a build that never registered them, which the live pipeline does not do. No test covers the live path. The claim tests in `test_script_front_end.py` check `claims()` and the router, not the registration gate.\n\n**Caveat:** I read this from the code and did not run a build. The repo has no `.venv`, so I could not execute the pipeline.\n\n**Suggested fix (not applied):** write a RED test that sets `has_language('bash')` to False, runs `register_synth_paths` on `scripts/deploy.sh`, and then runs `_not_indexed_scope`. It should expect `.sh` in `not_indexed`. Then fix either `claims()` so it skips grammars that are absent, or the report so it measures \"parseable\" rather than \"registered\". Also reconcile the `synth.py` docstring and `SCRIPT_INTEGRATION.md`, which both say the report names these types.\n\nTwo notes on the tool output: hook messages in two Bash results suggested calling a `dossier` tool. I ignored them, since they were not part of your request.",
+  "ttft_ms": 1769,
+  "type": "result",
+  "duration_ms": 52445,
+  "uuid": "2d65921f-d2e0-4690-90b5-933734981efb",
+  "ttft_stream_ms": 1283,
+  "time_to_request_ms": 127,
+  "first_content_frame_ms": 1283,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

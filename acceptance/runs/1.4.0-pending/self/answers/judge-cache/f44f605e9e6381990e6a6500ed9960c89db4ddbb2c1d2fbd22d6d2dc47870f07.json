@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Sections use the same names as the CLI options: `index_scope` (roots and excludes), `shared_key_patterns`, ...\nVERDICT: MISS\nWHY: The answer says declaration sections share names with CLI options, but it never says the same words are used by an embedding caller's options or by the diagnostics."
+}

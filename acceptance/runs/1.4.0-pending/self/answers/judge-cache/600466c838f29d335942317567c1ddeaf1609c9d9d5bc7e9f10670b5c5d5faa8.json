@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says `qualified` changes the focal function and that `callers` and traversal can disagree. It ties that disagreement to fuzzy-edge filtering and never says traversal matches the focal side on the bare name."
+}

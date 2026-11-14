@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 28871,
+  "stop_reason": "end_turn",
+  "session_id": "67aea72d-4000-47a1-a650-a9f9725b374e",
+  "total_cost_usd": 0.019675010000000003,
+  "usage": {
+    "input_tokens": 16,
+    "cache_creation_input_tokens": 66080,
+    "cache_read_input_tokens": 390341,
+    "output_tokens": 5108,
+    "output_tokens_details": {
+      "thinking_tokens": 1821
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 66080,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2617,
+        "cache_read_input_tokens": 65384,
+        "cache_creation_input_tokens": 696,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 696
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 16,
+      "outputTokens": 5108,
+      "cacheReadInputTokens": 390341,
+      "cacheCreationInputTokens": 66080,
+      "webSearchRequests": 0,
+      "costUSD": 0.019675010000000003,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1821,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 66080,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 12,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "Ten first-party spawn sites run on their own threads, per the index. Most are shut down by a `stop`/`close` that joins them. The exception is the async-ask worker, which is detached and not joined on destroy.\n\n| Thread (spawn site) | What it does | What keeps it safe |\n|---|---|---|\n| **ExternalBridge `accept_loop`** (`src/facade/external_bridge.cpp:796`) | Accepts MCP socket clients, polling with a 500 ms timeout. | `stop()` clears `running_`, closes the listen fd and joins the thread. Each accepted fd is checked with `SO_PEERCRED`, so cross-uid connections are closed before a thread is spawned. |\n| **ExternalBridge per-client `serve_client`** (`:945`) | One thread per connected client, blocking on reads. | `client_threads_mutex_` guards the vector. `stop()` calls `shutdown(SHUT_RDWR)` to unblock reads, then joins. `reap_finished_clients_locked()` joins and erases finished threads. |\n| **ExternalBridge async ask `run_async_ask`** (`:1158`, detached at `:1222`) | Runs `entropic_run` on the handle in a fire-and-forget thread, then broadcasts `notifications/progress`. | `tasks_mutex_` guards the task registry, and the sentinel is written under that lock. The worker captures `this` and `handle_`. **See gap below.** |\n| **HealthMonitor `monitor_loop`** (`src/mcp/health_monitor.cpp:92`) | Health and reconnect loop. | `stop()` sets `running_` false, notifies `wake_cv_`, and joins. Shared state is under `event_mutex_`, `watched_mutex_` and `wake_mutex_`. |\n| **StdioTransport `stderr_reader_loop`** (`src/mcp/transport_stdio.cpp:164`) | Drains the child's stderr. | `close()` joins it (`transport_stdio.cpp:219`). I/O is serialized by `io_mutex_`. |\n| **SSETransport `sse_reader_loop`** (`src/mcp/transport_sse.cpp:107`) | Reads the SSE stream. | `close()` clears `running_` and `connected_`, calls `client_->stop()`, notifies `pending_cv_`, then joins (`transport_sse.cpp:139`). Pending requests are under `pending_mutex_`. |\n| **Cancel pollers**: `iface_generate_with_cancel` (`src/inference/interface_factory.cpp:246`), `CancelFlagBridge` (`src/inference/inference_c_api.cpp:385`), and the observer in `ResponseGenerator::dispatch_batch_generate` (`src/core/response_generator.cpp:413`) | Short-lived 10 ms polls that mirror an interrupt flag into the C-ABI `int` cancel flag. | The thread is joined before the call returns (`interface_factory.cpp:262`, `response_generator.cpp:429`, `inference_c_api.cpp:403`). Cross-thread flags are `std::atomic` with acquire/release ordering. The by-reference captures are safe only because of that join. |\n\nTest-only spawns (`MockSSEServer`, `listen_after_bind`) are excluded.\n\n**Gap: the detached async-ask worker.** I found no mechanism that waits for it:\n- `ExternalBridge::stop()` does not track or join async workers.\n- `~ExternalBridge` just calls `stop()`.\n- `entropic_destroy` (`src/facade/entropic.cpp:1877`) stops the bridge, then does `delete handle` at `:1904`.\n- `cancel_inflight_async_tasks` runs only from `handle_clear` (`external_bridge.cpp:459`), not on destroy.\n\nSo if a `entropic.ask` is in flight when the handle is destroyed, the detached worker can call `entropic_run(handle_)` and touch `this` and `tasks_` after they are freed. That is a use-after-free. I did not run it, so this is from reading the code. Fix options: keep a per-bridge count of in-flight workers and wait for it to reach zero in `stop()` (after cancelling via `entropic_interrupt`), or hold the worker threads in a joinable list like the client threads.\n\n**Lock ordering.** The index shows three two-lock nestings: `event_mutex_` then `adapter_mutex_` in `HealthMonitor::process_events`, `auth_mutex_` then `key_mutex_` in `MCPAuthorizationManager::check_access`, and a test-only `mu_` then `adapter_mutex_`. I saw no opposite-order pair, so there is no deadlock pattern in the index. The index marks all three as having unverified receivers, so I would not claim the ordering is confirmed without checking those call sites.",
+  "ttft_ms": 1708,
+  "type": "result",
+  "duration_ms": 31261,
+  "uuid": "110aef89-a5b3-42bc-8db6-bc6c2efc3cb2",
+  "ttft_stream_ms": 1412,
+  "time_to_request_ms": 109,
+  "first_content_frame_ms": 1413,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

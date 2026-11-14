@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the library creates no threads and the mutex code is compiled out, but it never says the pthread example compiles to a stub main under the default build. It also lists `ssl_pthread_server.c` as an example server with a thread per connection."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Declaration file: `<repo>/.clew.yaml`. This is the repo's standing statement, found from the repo root. It is the route that works through the MCP server, which passes no CLI flags.\nVERDICT: MISS\nWHY: The answer names `.clew.yaml` as the standing declaration found from the repo root (tier 2). But it never says both entry points (CLI and MCP) discover it, nor that it is not plumbed per section. It only ties the file to the MCP route, so the specific mechanism is absent."
+}

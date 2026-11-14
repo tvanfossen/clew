@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The allow list is consulted only at the approval gate.\nVERDICT: HIT\nWHY: The answer says the allow list is consulted only at the approval gate (`check_approval`, tool_executor.cpp) and that allow \"lets the call pass approval. It does not bypass the MCP keys or tier checks.\" Deny is a separate check in `server_manager.cpp`, so the allow list is in a different file and does not grant execution."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`tokenize` returns an empty `std::vector<int32_t>`. It does this in three cases: the vocab pointer is null (silent), the fill call returns negative (logged at error level, with only the text length), or no tokenizer is wired (`llama_cpp_backend.cpp:795`).\"\nVERDICT: HIT\nWHY: The answer says a failed fill returns an empty vector and that the no-tokenizer-wired case returns the same empty vector, so failure and absence look identical."
+}

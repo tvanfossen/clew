@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: There are three ways to say so, in descending precedence. ... Tier 1: stated for this build ... Tier 2: declared ... Tiers 3\u20135: defaults ... `resolved = (tier1 or tier2 or tier5) \u222a tier3 \u222a tier4`.\nVERDICT: HIT\nWHY: The answer names five precedence tiers (tier 1, tier 2, tiers 3\u20135) and the resolution rule across them, so it shows the layered five-tier resolution rather than a single override."
+}

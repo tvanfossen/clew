@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 21929,
+  "stop_reason": "end_turn",
+  "session_id": "f0bd40ac-5947-4666-970b-2a29d87cd286",
+  "total_cost_usd": 0.01073571,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 30231,
+    "cache_read_input_tokens": 253751,
+    "output_tokens": 4302,
+    "output_tokens_details": {
+      "thinking_tokens": 1869
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 30231,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2488,
+        "cache_read_input_tokens": 65224,
+        "cache_creation_input_tokens": 9817,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 9817
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 4302,
+      "cacheReadInputTokens": 253751,
+      "cacheCreationInputTokens": 30231,
+      "webSearchRequests": 0,
+      "costUSD": 0.01073571,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1869,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 30231,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 11,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "`ServerDataOperator` is a thin class that mixes 14 handler mixins onto `ServerDataOperatorBase`. Ten of the handlers are defined next to it; three are defined in product folders. Every handler write goes through one method, `BaseDataOperator.batchRecords`.\n\n**How the class is built** (`app/database/operator/server_data_operator/index.ts`)\n\n- `ServerDataOperatorBase` (`handlers/index.ts:31`) is the base. It extends `BaseDataOperator` and holds `serverUrl`, `handleRole`, `handleSystem`, `handleConfigs`, `handleCustomEmojis`, `handleReactions`, `handleFiles`, and `execute`.\n- `mix(ServerDataOperatorBase).with(...)` (`app/utils/mix.ts`) applies each handler class as a subclass layer, so the handler methods become instance methods.\n- The `interface ServerDataOperator extends ...Mix` block adds the TypeScript types for those methods through declaration merging. Each handler exports an `XHandlerMix` interface alongside its class.\n\n**Handlers defined elsewhere**\n\n| Handler | Defined in |\n|---|---|\n| `AgentsHandler` | `app/products/agents/database/operators/handlers/index.ts` |\n| `BoardsHandler` | `app/products/boards/database/operators/handlers/index.ts` |\n| `PlaybookHandler` | `app/products/playbooks/database/operators/handlers/index.ts` |\n\nThe other ten are in `app/database/operator/server_data_operator/handlers/`: category, channel, custom_profile, group, post, properties, team, team_threads_sync, thread, and user.\n\n**The write path**\n\n```\nhandler (e.g. AgentsHandler.handleAIBots)\n  \u2192 this.handleRecords / this.prepareRecords / this.processRecords\n  \u2192 this.batchRecords(models, description)        base_data_operator/index.ts:191\n      \u2192 this.database.write(async (writer) => writer.batch(...models))\n```\n\n- `batchRecords` is the actual write. It calls WatermelonDB's `database.write` and `writer.batch`. On error it logs and, unless `propagateError` is set, swallows the error. If the error is a corruption error it emits `DATABASE_CORRUPTION_DETECTED`.\n- `handleRecords` (`base_data_operator/index.ts:224`) runs `processRecords` to diff against existing rows, then `prepareRecords` to build models, and calls `batchRecords` only when `prepareRecordsOnly` is false.\n- Handlers that use the `prepareRecordsOnly` flag let callers combine several prepared models into one batch.\n\n**What else shares that write code**\n\n- Every `ServerDataOperator` handler, including the three product handlers, writes through `batchRecords`. The product handlers call it directly or through `handleRecords`.\n- `AppDataOperator` (`app/database/operator/app_data_operator/index.ts`, `handleGlobal`/`handleInfo`) also inherits `handleRecords` and `batchRecords` from `BaseDataOperator`, so it shares this path with the server database.\n- Ephemeral-mode cleanup in `app/actions/local/ephemeral_mode/cleanup.ts` also calls `batchRecords`.\n- `prepareRecords` and `processRecords` are used only by the server handlers and `handleRecords`.\n\nOperator writes are not the only writes. Many action files call `database.write(...)` or `database.batch(...)` directly, bypassing the operator. Examples are `app/actions/local/post.ts`, `app/actions/local/file.ts`, and the playbooks actions. `DatabaseManager` (`app/database/manager/index.ts`) also writes to the app database directly. Those writes don't get the operator's error handling or corruption event.\n\nI did not check whether `DatabaseManager` or the action files route any writes through `ServerDataOperator`.",
+  "ttft_ms": 1612,
+  "type": "result",
+  "duration_ms": 24725,
+  "uuid": "a13f79cc-05de-406e-a19b-736814eee7d2",
+  "ttft_stream_ms": 1212,
+  "time_to_request_ms": 104,
+  "first_content_frame_ms": 1212,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Each notice names the action that clears it, because the three axes need different actions.\nVERDICT: HIT\nWHY: The answer says the axes need different actions and tabulates them (data \u2192 rebuild via refresh; code \u2192 restart the MCP client; schema \u2192 no rebuild clears it), and it explains that a rebuild through a code-stale process is wrong. That covers the rebuild-versus-restart distinction. It never says outright that this is why one flag would not have been enough, but the per-axis reasoning carries the substance."
+}

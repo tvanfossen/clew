@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: | Python \u2192 engine, buffer the engine frees | Must be allocated with `entropic_alloc()`, never with Python's allocator. | Hook `modified_json`, `hooks.py:123` and `:159` |\nVERDICT: HIT\nWHY: The answer states that buffers the engine frees must be allocated with entropic_alloc and points to the Python side doing so in hooks.py:159-162."
+}

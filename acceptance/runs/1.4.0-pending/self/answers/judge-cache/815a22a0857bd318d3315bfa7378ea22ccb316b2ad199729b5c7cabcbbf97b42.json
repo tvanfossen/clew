@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Declared scope.** `_declared_index_scope` reads an `index_scope:` block from `.clew.yaml`... **Whole repository.** `whole_repo_scope` (line 683) is the fallback.\"\nVERDICT: MISS\nWHY: The answer gives declared scope first and whole-repo as a fallback, but it never says that every failure to find one (missing file, malformed block, unusable roots) falls through to the whole repository. It says a present block with no usable root \"is rejected with a reason\", which cuts against that."
+}

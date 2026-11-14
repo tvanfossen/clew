@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"It spreads the rest of its props into `<NavigationSearch {...searchProps} ref={ref} />`, inside `{hasSearch && \u2026}`.\"\nVERDICT: HIT\nWHY: The answer says NavigationHeader forwards its ref to NavigationSearch, which is rendered only inside `{hasSearch && \u2026}`, and that `hasSearch` defaults to false. It doesn't say outright that the ref is attached to nothing otherwise, but that follows directly from the conditional mount."
+}

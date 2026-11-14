@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says shell functions are recorded as rows with docs, but never states that they have no argument list or return type because the language lacks them."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The index shows that worker as a bare `std::thread` lambda that captures `this` and `handle_`. The displayed part of its body does not show a `detach()`, and I could not read the tail... If that thread is detached, destroying the bridge while an ask is running would leave it using a freed `this`.\"\nVERDICT: MISS\nWHY: The answer only speculates that the ask worker might be detached and never identifies it as the one detached thread, and it lists the other threads as joined."
+}

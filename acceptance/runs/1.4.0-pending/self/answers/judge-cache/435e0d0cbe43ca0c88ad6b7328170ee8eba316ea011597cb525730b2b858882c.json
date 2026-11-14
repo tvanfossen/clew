@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Tier 5 | Built-in heuristics ... Tier 4 | Known-ecosystem signatures ... Tier 3 | Facts a target already wrote ... Tier 2 | The repo's `.clew.yaml` ... Tier 1 | Explicit statement at call time\nVERDICT: HIT\nWHY: The answer lays out five numbered, named precedence tiers for resolving options, not a single override."
+}

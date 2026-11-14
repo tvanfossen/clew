@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The first `llama_tokenize` call passes a null buffer and zero capacity, so llama.cpp returns the negated token count it would need. The code flips the sign, allocates a vector of that size, and makes the second call to fill it.\nVERDICT: HIT\nWHY: The answer states the first call returns a negated (negative) required count and that the code flips the sign to size the buffer for the second call."
+}

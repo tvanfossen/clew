@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says `clew/declaration.py` lists known sections but never states that an unknown section is refused by name against the allowed set, or why ignoring it would be harmful."
+}

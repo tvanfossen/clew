@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 21858,
+  "stop_reason": "end_turn",
+  "session_id": "21e5cb6d-71f5-4f82-b8cc-c041e571d5f9",
+  "total_cost_usd": 0.00945524,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 28165,
+    "cache_read_input_tokens": 174694,
+    "output_tokens": 4149,
+    "output_tokens_details": {
+      "thinking_tokens": 2002
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 28165,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2536,
+        "cache_read_input_tokens": 56244,
+        "cache_creation_input_tokens": 8632,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 8632
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 8,
+      "outputTokens": 4149,
+      "cacheReadInputTokens": 174694,
+      "cacheCreationInputTokens": 28165,
+      "webSearchRequests": 0,
+      "costUSD": 0.00945524,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2002,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 28165,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 11,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** For this repository's shell, CMake, YAML and JSON files, the index holds their existence and, for shell and CMake, their function definitions. It does not hold YAML or JSON content as symbols, and it holds no variables, keys, or config values from any of them. On an install whose substrate lacks the grammars, those files drop out of the index and the miss report names them, but the answer is built from the design docs and tests, not from running that install.\n\n**What the index holds**\n\n| File type | Rows | Detail |\n|---|---|---|\n| `.sh`, `.bash` | `memberdef` rows for `name() {\u2026}` and `function name {\u2026}` | Doc comes from the `#` block directly above. `args` is always empty because shell has no parameter list. Classes are empty. |\n| `CMakeLists.txt`, `.cmake` | `memberdef` rows for `function()` and `macro()` | Macros are recorded as macros. |\n| `.yaml`, `.yml`, `.json` | A `path` row per file, zero symbols | Findable by name, but no `memberdef`, so no keys (`steps:`, etc.) enter the symbol namespace. |\n\nI confirmed this from the index's own data. `.clew.yaml`, `requirements.yaml`, `.pre-commit-config.yaml`, and the `acceptance/targets/*/questions.yaml` files are all indexed with `symbol_count: 0`. The `.sh` and `.cmake` harvesters (`clew/shast.py`, `clew/cmakeast.py`) are wired through `clew/synth.py`.\n\n**What it does not hold**\n\n- Any YAML or JSON key, value, or structure as a queryable symbol. This is deliberate: the design doc says keys would drown real functions.\n- Shell variables, `source` relationships, or CMake `set()`/`option()`/targets. The harvesters only record function and macro definitions. I found no harvester for those.\n- Call edges from shell or CMake. The index does not say whether those edges exist for these languages, so I can't confirm either way.\n- `.jsonl`, `.toml`, `.csv`, `.sql`, and extensionless files. The current build's not-indexed report lists these, and `.jsonl` is not `.json`.\n\n**What happens on an installation without the grammars**\n\nThe gate is `clew/substrate.py`. It asks what is compiled into the installed `lang-parsing-substrate` wheel, not what version is installed. The upstream fork that carries these grammars reports the same version string as the published wheel, so a version check can't tell them apart.\n\n- The front ends register nothing for missing languages. Routing to an absent grammar returns \"no grammar\" instead of raising `ValueError`.\n- Files in those types are not in the file set, so they get no rows.\n- An empty answer for a name in those files is then reported as \"this file type was not indexed here\", which points the caller to read the file directly. This comes from `clew/cli.py` and `clew/query/models.py`, which stamp the not-indexed counts at build time.\n- The substrate gate has no crash path: an unimportable substrate yields no languages and logs an error.\n\nTwo caveats. First, `_OPTIONAL_KEYS` in `clew/harvest.py` lists only `bash` and `cmake`, so the per-route check covers shell and CMake. The docs say YAML and JSON are also absent on the published wheel, but I could not confirm from the index which check gates their registration. Second, the docs disagree slightly on YAML/JSON: `synth.py` says they are \"registered and never harvested,\" while `substrate.py` says the front ends \"register nothing.\" The tests I could read support the second reading for the absent-grammar case.",
+  "ttft_ms": 1745,
+  "type": "result",
+  "duration_ms": 23048,
+  "uuid": "4e4f3c37-4cae-485b-a1cf-456936c332c4",
+  "ttft_stream_ms": 1106,
+  "time_to_request_ms": 77,
+  "first_content_frame_ms": 1106,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

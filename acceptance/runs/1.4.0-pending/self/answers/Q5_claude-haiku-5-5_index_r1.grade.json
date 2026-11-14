@@ -1,0 +1,143 @@
+{
+  "cell": "Q5_claude-haiku-5-5_index_r1",
+  "arm": "index",
+  "rubric_version": "5.0.0",
+  "rubric_digest": "d8447c7b18eafbf5",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.25925925925925924,
+  "unmarked_pct": 0.14814814814814814,
+  "split_decisions": 0,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "identifies that layered build options resolve through FIVE named precedence tiers, rather than a single override",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: The repository gives clew five ways to change what it indexes, ordered by precedence. ... | 1 | CLI flag ... | 2 | `.clew.yaml` ... | 3 | Facts the target already wrote ... | 4 | Known-ecosystem signatures ... | 5 | Name-pattern heuristics, the floor | WHY: The answer explicitly lays out five named, ordered precedence tiers (flag, declaration, target facts, ecosystem signatures, heuristics) rather than a single override. || QUOTE: The repository gives clew five ways to change what it indexes, ordered by precedence. [...] | 1 | CLI flag ... | 2 | `.clew.yaml` ... | 3 | Facts the target already wrote ... | 4 | Known-ecosystem signatures ... | 5 | Name-pattern heuristics, the floor | WHY: The answer explicitly lays out five named, ordered precedence tiers (flag, declaration, target facts, ecosystem signatures, heuristics) rather than a single override. || QUOTE: The repository gives clew five ways to change what it indexes, ordered by precedence. [...] | 1 | CLI flag ... | 2 | `.clew.yaml` ... | 3 | Facts the target already wrote ... | 4 | Known-ecosystem signatures ... | 5 | Name-pattern heuristics, the floor | WHY: The answer explicitly lays out five named, ordered precedence tiers (CLI flag, .clew.yaml, target facts, ecosystem signatures, heuristics) rather than a single override.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that the rule is ASYMMETRIC \u2014 the stated tiers REPLACE one another while the discovered layers ACCUMULATE and survive whatever anyone states",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"Tier 3 and 4 facts: these survive every stated tier.\" and \"Replaces the stated layer\" (tiers 1\u20132); \"Accumulates\" (tiers 3\u20134) | WHY: The answer states that stated tiers (flag, declaration) replace one another while discovered facts (Doxyfile ALIASES/PREDEFINED, manifests, ecosystem signatures) accumulate and survive every stated tier. || QUOTE: \"Tier 3 and 4 facts: these survive every stated tier. The docs say so explicitly.\" and \"a stated value replaces the defaults for that option and the rest accumulate\" and table: tiers 1\u20132 \"Replaces the stated layer\", tiers 3\u20134 \"Accumulates\" | WHY: The answer states that stated tiers (flag/declaration) replace one another while discovered layers (Doxyfile facts, manifests, ecosystem signatures) accumulate and survive every stated tier. || QUOTE: \"Tier 3 and 4 facts: these survive every stated tier.\" and \"Where two disagree, a stated value replaces the defaults for that option and the rest accumulate.\"; table: tiers 1-2 \"Replaces the stated layer\", tiers 3-4 \"Accumulates\" | WHY: The answer states that stated tiers replace one another while discovered layers (Doxyfile facts, manifests, ecosystem signatures) accumulate and survive every stated tier.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that tiers 3 and 4 combine IDENTICALLY, so the distinction between them is deliberately inert, and that the load-bearing line is fact-versus-guess",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: Tier 3 | Facts the target already wrote... | Accumulates; Tier 4 | Known-ecosystem signatures (UDM, ingot) | Accumulates | WHY: The answer lists both tiers as accumulating but never says they combine identically, that the distinction is deliberately inert, or that fact-versus-guess is the load-bearing line. || QUOTE: Tier 3 | Facts the target already wrote ... | Accumulates; Tier 4 | Known-ecosystem signatures (UDM, ingot) | Accumulates | WHY: The answer shows both tiers accumulate, but never says the distinction between them is deliberately inert or that the load-bearing line is fact-versus-guess. || QUOTE: Tier 3 | Facts the target already wrote ... | Accumulates; Tier 4 | Known-ecosystem signatures (UDM, ingot) | Accumulates | WHY: The answer says tiers 3 and 4 both accumulate, but it never says they combine identically, that the distinction is deliberately inert, or that the load-bearing line is fact versus guess.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies `.clew.yaml` as the repository's own standing declaration \u2014 tier 2, discovered from the repo root by BOTH entry points rather than plumbed per section",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: `.clew.yaml` at the repo root, found via `--repo-root` | WHY: The answer places `.clew.yaml` at tier 2 and says it is found at the repo root, but it ties discovery to `--repo-root` and never says both entry points discover it. It also doesn't contrast that with plumbing it per section. || QUOTE: `.clew.yaml` at the repo root, found via `--repo-root` | Replaces the stated layer (Tier 2 row); \"The `.clew.yaml` sections and the `options` keys share one vocabulary\" | WHY: The answer names `.clew.yaml` as tier 2 at the repo root, but never says it is discovered by both entry points (CLI and embedding/`build_index`) rather than plumbed per section; it only mentions `--repo-root`. || QUOTE: `.clew.yaml` at the repo root, found via `--repo-root` | Replaces the stated layer (Tier 2 row); \"The `.clew.yaml` sections and the `options` keys share one vocabulary\" | WHY: The answer names `.clew.yaml` as tier 2 at the repo root, but it never says both entry points discover it themselves, as opposed to the declaration being plumbed per section. It ties discovery to the `--repo-root` flag only.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that tier 1 is reachable from BOTH entry points \u2014 a CLI flag and a structured options argument \u2014 so an embedding caller with no shell can still state the top tier",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"CLI flag (`--scope`, `--exclude`, `--entry-patterns`, `--doxyfile`, `--predefined`, \u2026), or the `options` argument an embedding caller passes to `build_index` / `build_or_refresh`\" | WHY: The tier 1 row names both the CLI flags and the `options` argument for embedding callers, and the answer notes the two share one vocabulary. || QUOTE: \"CLI flag (`--scope`, `--exclude`, `--entry-patterns`, `--doxyfile`, `--predefined`, \u2026), or the `options` argument an embedding caller passes to `build_index` / `build_or_refresh`\" | WHY: Tier 1 is explicitly listed as reachable via both a CLI flag and the `options` argument for embedding callers. || QUOTE: \"CLI flag (`--scope`, `--exclude`, `--entry-patterns`, `--doxyfile`, `--predefined`, \u2026), or the `options` argument an embedding caller passes to `build_index` / `build_or_refresh`\" | WHY: The answer's Tier 1 row names both a CLI flag and the structured `options` argument for embedding callers as the top-tier entry points.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "notes that the option names an embedding caller states are the SAME WORDS as the declaration file's section names, and the same words the diagnostics use",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: The `.clew.yaml` sections and the `options` keys share one vocabulary, so `index_scope`, `preprocessor`, `kconfig` and the rest are the same names in both places. | WHY: The answer says options keys and declaration sections share names, but it never says the diagnostics use those same words. Without that half, the item is only partly stated. || QUOTE: The `.clew.yaml` sections and the `options` keys share one vocabulary, so `index_scope`, `preprocessor`, `kconfig` and the rest are the same names in both places. | WHY: The answer says the `options` keys and `.clew.yaml` sections share names, but it never says the diagnostics use those same words. The item needs both. || QUOTE: The `.clew.yaml` sections and the `options` keys share one vocabulary, so `index_scope`, `preprocessor`, `kconfig` and the rest are the same names in both places. | WHY: The answer says options keys and declaration sections share names, but it never says the diagnostics use those same words (`options.<name>.tier` in build_meta is mentioned only as a tier report, not as a shared vocabulary claim).",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies that an unknown SECTION is refused by name against the allowed set rather than ignored, and gives the reason \u2014 an ignored section builds with defaults while reporting the declaration was honoured",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer says invalid options refuse the whole mapping and an empty options document is no error, but it never says an unknown section is refused by name against the allowed set, and it gives no reason about ignored sections building with defaults. || QUOTE: NONE | WHY: The answer says invalid options refuse the whole mapping and an empty document is not an error, but it never says an unknown section is refused by name against an allowed set, and it gives no reason about defaults being built while claiming the declaration was honoured. || QUOTE: NONE | WHY: The answer says invalid options refuse the whole mapping, but never says an unknown section is refused by name against the allowed set, or that ignoring it would build with defaults while claiming the declaration was honoured.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies a SECOND refusal one level down \u2014 an unknown key INSIDE a well-named section \u2014 and that a correctly-spelled derived key is refused with its reason rather than as unknown",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer says one bad entry refuses the whole mapping, but never identifies a second refusal for an unknown key inside a well-named section, nor a correctly-spelled derived key refused with its reason. || QUOTE: NONE | WHY: The answer says one bad entry refuses the whole mapping, but never describes an unknown key inside a well-named section, nor a correctly-spelled derived key being refused with its reason instead of as unknown. || QUOTE: NONE | WHY: The answer says \"one bad entry refuses the whole mapping\" and that an unknown option is refused, but it never describes a second refusal for an unknown key inside a well-named section. It also never says a correctly spelled derived key is refused with its reason rather than as unknown.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the winning tier is RECORDED with the index, and that the record is derived from the stored rows rather than stamped as a separate summary",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: Each build records the winning tier per manifest option in `build_meta`, so `options.<name>.tier` shows whether a flag, the declaration or the floor supplied it. | WHY: The answer says the winning tier is recorded in build_meta, but never says the record is derived from the stored rows rather than stamped as a separate summary. || QUOTE: Each build records the winning tier per manifest option in `build_meta`, so `options.<name>.tier` shows whether a flag, the declaration or the floor supplied it. | WHY: The answer says the winning tier is recorded in build_meta, but never says the record is derived from stored rows rather than stamped as a separate summary.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide a build option's value",
+      "kind": "set",
+      "weight": 1,
+      "hit": null,
+      "detail": "extraction matched no member \u2014 likely a key mismatch, not a wrong answer. extracted ['clew/cli.py']; members ['buildoptions.py', 'declaration.py', 'tiers.py']",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide a build option's value",
+      "kind": "set",
+      "weight": 1,
+      "hit": null,
+      "detail": "extraction matched no member \u2014 likely a key mismatch, not a wrong answer. extracted ['clew/cli.py']; members ['buildoptions.py', 'declaration.py', 'tiers.py']",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide a build option's value",
+      "kind": "set",
+      "weight": 1,
+      "hit": null,
+      "detail": "extraction matched no member \u2014 likely a key mismatch, not a wrong answer. extracted ['clew/cli.py']; members ['buildoptions.py', 'declaration.py', 'tiers.py']",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide a build option's value",
+      "kind": "set",
+      "weight": 1,
+      "hit": null,
+      "detail": "extraction matched no member \u2014 likely a key mismatch, not a wrong answer. extracted ['clew/cli.py']; members ['buildoptions.py', 'declaration.py', 'tiers.py']",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Retrying happens only when the user chooses \"Try Again.\" ... **Manual retry (`retryFailedPost`, `app/actions/remote/post.ts:228`)** The failed post's \"Try Again\" action ... calls this function.\nVERDICT: HIT\nWHY: The answer states retry occurs only on the user's \"Try Again\" choice and names `retryFailedPost` as the function invoked."
+}

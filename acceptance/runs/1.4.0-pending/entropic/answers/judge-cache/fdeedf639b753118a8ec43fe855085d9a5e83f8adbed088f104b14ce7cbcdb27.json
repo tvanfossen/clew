@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: That is the first argument's string value, or `*` for empty, non-object, or non-string-first-argument JSON.\nVERDICT: HIT\nWHY: The answer states that `args_to_pattern` uses only the first argument's string value and yields `*` for non-string or non-object input. It also notes the non-string case makes argument-scoped rules unable to match. It doesn't explicitly say the other arguments are invisible, but \"the first argument's string value\" implies it. It doesn't say unparseable JSON becomes `*` either, but \"non-object\" input covers the wildcard collapse closely enough."
+}

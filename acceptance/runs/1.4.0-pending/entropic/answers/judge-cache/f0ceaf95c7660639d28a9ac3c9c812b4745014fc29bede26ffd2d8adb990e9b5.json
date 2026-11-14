@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Per-handle logging.** Each spawned thread opens a `HandleLogScope` so its log lines reach the owning handle's session log (`include/entropic/types/logging.h:147`).\nVERDICT: HIT\nWHY: The answer states each spawned thread opens a per-handle log scope so logs reach the owning handle's log, which matches the item's substance. It does not say the scope is the thread body's first statement, but the item's core mechanism is stated."
+}

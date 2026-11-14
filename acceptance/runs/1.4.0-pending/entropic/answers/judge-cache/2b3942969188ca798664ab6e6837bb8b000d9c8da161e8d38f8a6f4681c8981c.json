@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"It is a size-probe, not retry logic.\" and \"The second call runs unconditionally after a successful probe. Nothing re-attempts a failed operation, so this is two-phase sizing, not retry.\"\nVERDICT: HIT\nWHY: The answer concludes this is size negotiation (null-buffer probe then fill) rather than retry, noting nothing re-attempts a failed operation and the second call is unconditional."
+}

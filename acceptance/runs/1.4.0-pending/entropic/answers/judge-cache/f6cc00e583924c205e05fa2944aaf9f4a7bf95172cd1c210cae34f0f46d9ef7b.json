@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `LlamaCppTokenizer::tokenize` (`src/inference/llama_cpp_tokenizer.cpp:49-71`) calls `llama_tokenize` at line 55 and again at line 61\nVERDICT: HIT\nWHY: The answer names the file, the function, and both llama_tokenize call sites (size probe then fill), which is the two-call pattern."
+}

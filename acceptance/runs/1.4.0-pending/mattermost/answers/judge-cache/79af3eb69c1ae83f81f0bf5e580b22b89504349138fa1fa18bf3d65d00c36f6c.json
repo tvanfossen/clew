@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"It is not retried automatically, and \\\"Try Again\\\" resends the same post.\" and \"the failed post's bottom sheet has a \\\"Try Again\\\" action (`app/components/post_list/post/body/failed/index.tsx:46-49`) that calls this\" (`retryFailedPost`)\nVERDICT: HIT\nWHY: The answer says there is no automatic retry, that the failed post's \"Try Again\" action is the manual retry, and that it calls `retryFailedPost`."
+}

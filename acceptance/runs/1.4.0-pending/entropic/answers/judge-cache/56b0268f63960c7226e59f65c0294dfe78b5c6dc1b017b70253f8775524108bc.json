@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `$ENTROPIC_LIB`, then `$ENTROPIC_HOME`, then `~/.entropic/...`, then `ctypes.util.find_library`.\nVERDICT: MISS\nWHY: The answer gives env overrides, a user directory and a system cache fallback, but it never states that two directory layouts are tried per root, and the item requires that detail."
+}

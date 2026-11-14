@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Note the `ssl_pthread_server` thread is gated on `MBEDTLS_THREADING_C` (line 30). Without it, the example does not build with threads.\nVERDICT: MISS\nWHY: The answer says the library runs no threads by default and the example doesn't build with threads, but it never states that the pthread example compiles to a stub main. It also lists the pthread example's spawn as a concurrency source rather than concluding no threads are created."
+}

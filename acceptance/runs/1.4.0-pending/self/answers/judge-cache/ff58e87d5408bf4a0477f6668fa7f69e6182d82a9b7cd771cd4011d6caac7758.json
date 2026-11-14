@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The docstring explains why this check outranks the others: the reply should not send the caller to fix the wrong thing.\nVERDICT: HIT\nWHY: The answer says the unread-corpus check outranks the others, and gives the reason that the reply shouldn't misdirect the caller. That is close enough to the ordering rationale (a matching row is specific to this query) to count."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Deny: blocks the call at execution, even if `auto_approve` is on or the allow list matches.\" and \"Then `process_single_call` calls `ServerManager::execute` ... runs `is_denied` against the deny list and returns \"Error: Permission denied\" without routing.\"\n\nVERDICT: MISS\nWHY: The answer says deny is enforced in `ServerManager::execute`. It also says the allow list gates approval, and that six other gates run before execution. That contradicts the item's claim that the deny list is the only thing blocking execution."
+}

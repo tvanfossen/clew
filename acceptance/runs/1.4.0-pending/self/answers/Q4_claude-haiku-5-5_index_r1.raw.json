@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 12815,
+  "stop_reason": "end_turn",
+  "session_id": "fc23e828-72b9-4f5d-bd47-b5fbfb84e1dc",
+  "total_cost_usd": 0.00623663,
+  "usage": {
+    "input_tokens": 4,
+    "cache_creation_input_tokens": 22811,
+    "cache_read_input_tokens": 57153,
+    "output_tokens": 2205,
+    "output_tokens_details": {
+      "thinking_tokens": 1215
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 22811,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1923,
+        "cache_read_input_tokens": 38276,
+        "cache_creation_input_tokens": 3412,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 3412
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 4,
+      "outputTokens": 2205,
+      "cacheReadInputTokens": 57153,
+      "cacheCreationInputTokens": 22811,
+      "webSearchRequests": 0,
+      "costUSD": 0.00623663,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1215,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 22811,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 3,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The answer is a set of **enclosing functions that contain a resolved call**, grouped by file. It is not a list of call sites.\n\nFor `git_argv` (`clew/gitenv.py:89`), the reply gave six callers across five files: `_detect_git_version`, `_git_ls_files`, `_gitignored_paths`, `_is_dependency_of_parent`, `run_git`, `tracked_files`, plus one test, `test_the_disarmed_key_list_reaches_the_argv`. Each row is a name, not a line. The edge metadata says `source: ast`, `confidence: resolved`, `edge_class: call`. The reply also carried `callees: []`, `writes`, `reads`, `requirements` (REQ-DDB-CONFIG-001) and a `covering_tests` entry. Those are context about the function, not more callers.\n\nReading it as a call-site list goes wrong in several ways:\n\n- **Granularity.** A caller that invokes `git_argv` twice appears once. Line numbers are not in the depth-1 answer, so you need the caller's own `dossier` or the source to find the site.\n- **Completeness.** It only covers static, resolved calls. Calls through function pointers, registered callbacks, dynamic dispatch or event handlers can be missing. This repo's counters show `dispatch_edges=0`, `event_edges=0` and `mqtt_dispatch=0`. Those zeros could mean no such dispatch exists, or that the layer found nothing to link. The index does not separate the two here. The `callback_edges=89` layer is separate and was not part of this answer.\n- **Mixed kinds.** Test callers sit in the same list as production callers. Filter them before reasoning about runtime impact.\n- **Not transitive.** Depth 1 is direct callers only. \"What can reach `git_argv`\" needs `depth \u2265 2` with `direction: back`.\n- **Empty callees are not \"calls nothing\".** `callees: []` means no *indexed* callees. Unindexed calls would appear under `external_callees`, which is absent here.\n- **Threads and liveness are separate claims.** The thread row (`_first_build_worker`, medium confidence, from an AST spawn) says what runs `git_argv` on a background thread. It is not a caller.\n- **Freshness.** The index is current (build 9, `stale: false`), but `anchor_mismatch` would flag a function whose lines moved since the build.\n\nTo answer \"is every place this runs covered,\" treat the caller list as a lower bound from static resolution, then check the dispatch and callback layers and grep the source for indirect references to the name.",
+  "ttft_ms": 2004,
+  "type": "result",
+  "duration_ms": 13167,
+  "uuid": "6668448a-160c-449c-949e-32e25d02bd68",
+  "ttft_stream_ms": 1138,
+  "time_to_request_ms": 83,
+  "first_content_frame_ms": 1138,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

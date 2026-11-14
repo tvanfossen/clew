@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: So the dependency reaches well into `src/inference/`. It also touches the orchestrator and one facade entry point.\nVERDICT: MISS\nWHY: The answer lists `src/facade/entropic.cpp` as one outside file, but it never concludes the dependency is concentrated in inference yet not contained by it. It claims types \"stay inside `src/inference/` and one facade function\" and presents the dependency as largely contained."
+}

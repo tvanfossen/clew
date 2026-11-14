@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Regenerate it with `scripts/generate_errors.pl`, whose usage is `include_dir data_dir error_file`. The script's header comment says it generates `error.c`.\nVERDICT: MISS\nWHY: The answer names the generator script but disclaims knowing its inputs, and it never mentions `error.fmt` as the template. It also says the data comes from the module headers only tentatively."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The index finds four thread or signal entry points, all in `programs/`. None are in `library/`.\nVERDICT: MISS\nWHY: The answer says no spawns are in library/, but it never states that library/ supplies the mutex abstraction for threaded callers. It says mutexes exist only under MBEDTLS_THREADING_C and are off by default, which doesn't state the second half of the contrast."
+}

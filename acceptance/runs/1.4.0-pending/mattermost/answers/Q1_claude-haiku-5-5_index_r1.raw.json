@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 19860,
+  "stop_reason": "end_turn",
+  "session_id": "7f25080c-27eb-4e5d-a6ff-e499d2274bc8",
+  "total_cost_usd": 0.01243677,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 40093,
+    "cache_read_input_tokens": 271097,
+    "output_tokens": 3412,
+    "output_tokens_details": {
+      "thinking_tokens": 811
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 40093,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1476,
+        "cache_read_input_tokens": 58013,
+        "cache_creation_input_tokens": 960,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 960
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 3412,
+      "cacheReadInputTokens": 271097,
+      "cacheCreationInputTokens": 40093,
+      "webSearchRequests": 0,
+      "costUSD": 0.01243677,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 811,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 40093,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 12,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** a failed send is kept locally and marked failed. It is not retried automatically: `createPost` makes exactly one request. Retrying is a manual \"Try Again\" action that makes one more single attempt.\n\n**1. What happens on failure**\n\n`createPost` in `app/actions/remote/post.ts:74-226` writes the post to the local database with a pending ID before calling the server. If `client.createPost` throws, the catch block (lines 156-198) branches:\n\n- **Root post deleted, town square read-only, or plugin-dismissed** (`DELETED_ROOT_POST_ERROR`, `TOWN_SQUARE_READ_ONLY_ERROR`, `PLUGIN_DISMISSED_POST_ERROR`): the post is removed with `removePost` (line 181).\n- **Any other error:** the post is kept with `props.failed = true` (lines 164-196). It stays visible in the thread and is shown as failed.\n- **Burn-on-read denied by policy:** the cached render-permission entry for the channel is expired (line 161).\n\n**2. Automatic retries: none for new posts**\n\n- `app/client/rest/posts.ts:43-47`: `createPost` is sent with `noRetry: true`.\n- `app/client/rest/tracking.ts:383-384`: `noRetry` sets `retryPolicyConfiguration = {retryLimit: 0}` for that request.\n- The app-wide default in `app/managers/network_manager.ts:68-73` is exponential retry with `retryLimit: 3`, but the per-request override replaces it for posts.\n\nThe likely reason is that a POST that times out may already have created the post on the server. Replaying it would duplicate the message. The detox helper `isReplayableBody` in `detox/e2e/support/server_api/client.ts` documents the same concern.\n\n**3. What \"retry\" does**\n\nThe user opens the failed-post bottom sheet and taps \"Try Again\" (`app/components/post_list/post/body/failed/index.tsx:46-49`), which calls `retryFailedPost` (`app/actions/remote/post.ts:228-307`). That function:\n\n1. Rebuilds the post from its stored API form, sets `props.failed = false`, and resets `create_at`/`update_at` to now. The UI shows it as pending again.\n2. Makes a single `client.createPost` call (the same no-retry path).\n3. On success, stores the server's post and updates the channel's last-post time (and CRT thread state where relevant).\n4. On failure, it either removes the post (the three \"post is no longer valid\" error IDs) or sets `failed: true` again. It does not loop.\n\n**Caveat:** I read the code but did not run the app or a test. I did not verify that `toApi()` carries `pending_post_id` through the retry, which matters for deduplication.",
+  "ttft_ms": 1622,
+  "type": "result",
+  "duration_ms": 20340,
+  "uuid": "2bc42647-4b1e-4aec-84ba-d7eb221784fe",
+  "ttft_stream_ms": 1175,
+  "time_to_request_ms": 68,
+  "first_content_frame_ms": 1176,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

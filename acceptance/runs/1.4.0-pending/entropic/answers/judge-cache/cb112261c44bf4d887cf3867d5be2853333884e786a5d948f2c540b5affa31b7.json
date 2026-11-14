@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Exceptions in callbacks | Must never escape into C. Trampolines catch and print them. | `hooks.py:_trampoline`, `streams.py:_trampoline`\nVERDICT: MISS\nWHY: The answer says trampolines catch and print exceptions so they don't escape into C, but it never says a failed hook is treated as a pass-through, which this item requires."
+}

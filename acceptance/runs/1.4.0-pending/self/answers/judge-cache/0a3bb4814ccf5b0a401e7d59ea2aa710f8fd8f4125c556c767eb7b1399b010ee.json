@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`scope` (`file_count`, `extensions`, `not_indexed`) | The files that were actually read, and the extensions that were never parsed. Here `.rs`, `.toml`, `.csv`, `.sql`, `.lock`, `.jsonl`, `.motor` and extensionless files are not indexed.\"\nVERDICT: MISS\nWHY: The answer describes extensions that were not indexed, not the file types that were in scope and yielded zero rows. The item's specific mechanism, listing in-scope types with no rows, is absent."
+}

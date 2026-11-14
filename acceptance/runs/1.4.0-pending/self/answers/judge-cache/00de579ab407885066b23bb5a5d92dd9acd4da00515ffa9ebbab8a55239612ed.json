@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never mentions that causal polarity is inverted between halves (reader's callers are the functions whose writes it observes); it only describes call-edge callers and notes shared-key dataflow edges are separate."
+}

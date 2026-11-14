@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Each notice names the action that clears it, because the three axes need different actions.\nVERDICT: HIT\nWHY: The answer states that each axis needs a different action (rebuild for data, client restart for code, none for schema) and explains per-axis remedies, which is why the notices are separate per axis."
+}

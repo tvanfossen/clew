@@ -1,0 +1,83 @@
+{
+  "cell": "Q1_claude-haiku-5-5_baseline_r1",
+  "arm": "baseline",
+  "rubric_version": "5.0.0",
+  "rubric_digest": "d8447c7b18eafbf5",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.5625,
+  "unmarked_pct": 0.0,
+  "split_decisions": 1,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "names derive_scope in clew/scope.py as where the decision is resolved",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: cli._apply_scope / derive_scope_logged            (clew/cli.py:753, scope.py:1313) ... derive_scope alone falls back to whole-repo | WHY: The answer names derive_scope_logged at scope.py:1313 and mentions derive_scope in scope.py as where the declaration or whole-repo decision resolves. || QUOTE: cli._apply_scope / derive_scope_logged            (clew/cli.py:753, scope.py:1313) ... derive_scope alone falls back to whole-repo | WHY: The answer names `derive_scope_logged` at `scope.py:1313` as where scope is resolved, and also mentions `derive_scope` falling back to whole-repo, so both the function and the file are named.",
+      "agreement": 0.6666666666666666,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that a repository's own declared index_scope is preferred, and that every failure to find one falls through to indexing the whole repository",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"unless the repo declares an `index_scope:` in its `.clew.yaml`, clew indexes the whole repository\" and \"nothing declared (the default) \u2500\u2500 whole_repo_scope(repo)\" | WHY: The answer says a declared `index_scope` is used when present and that the whole repository is indexed whenever none is found. It also notes `derive_scope` alone falls back to whole-repo when a declaration is unusable, though the CLI refuses in that case. || QUOTE: \"unless the repo declares an `index_scope:` in its `.clew.yaml`, clew indexes the whole repository\" and \"nothing declared (the default) \u2500\u2500 whole_repo_scope(repo)\" | WHY: The answer says a declared `index_scope` wins and that the absence of one falls through to the whole repository. It adds that the CLI refuses an unusable declaration, but that is a separate case from failing to find one. || QUOTE: \"unless the repo declares an `index_scope:` in its `.clew.yaml`, clew indexes the whole repository\"; \"nothing declared (the default) \u2500\u2500 whole_repo_scope(repo)\"; \"derive_scope alone falls back to whole-repo\" | WHY: The answer gives the declared `index_scope` priority and says that both a missing declaration and (in `derive_scope`) an unusable one fall back to the whole repository. It adds that the CLI refuses an unusable declaration, but the fallthrough itself is stated.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "conveys that the fallback carries a REASON explaining which scope was used and why, so an unstated scope is never silently guessed",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never says the fallback carries a reason or source label explaining which scope was used and why. It mentions `DerivedScope(source=clew-declaration)` and a warning when the directory is not a git repo, but it never states that a reason is attached to the fallback to prevent a silent guess. || QUOTE: NONE | WHY: The answer never says the fallback carries a reason/source explaining which scope was used. It only mentions `DerivedScope(source=clew-declaration)` and a warning when not a git repo, which doesn't convey a reason field that prevents silent guessing. || QUOTE: NONE | WHY: The answer never says the fallback carries a reason explaining which scope was used and why; it mentions a `source=clew-declaration` field and warnings, but not a reason attached to the fallback scope.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that a Doxyfile's own INPUT is deliberately NOT used to decide the indexed tree, and explains why \u2014 a repository that ships one would get only its documented subset while a repository that ships none gets its whole tree",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: Doxygen's `INPUT` is replaced by the repo root. A repo's own Doxyfile still supplies aliases and predefines, but no longer its `INPUT`. | WHY: The answer says the Doxyfile's INPUT is no longer used, but it never explains why: it doesn't say that a repo shipping a Doxyfile would otherwise get only its documented subset while a repo with none gets its whole tree. || QUOTE: \"Doxygen's `INPUT` is replaced by the repo root. A repo's own Doxyfile still supplies aliases and predefines, but no longer its `INPUT`.\" | WHY: The answer says the Doxyfile's INPUT is no longer used, but it never explains why: that a repo shipping a Doxyfile would get only its documented subset while a repo without one gets its whole tree. || QUOTE: Doxygen's `INPUT` is replaced by the repo root. A repo's own Doxyfile still supplies aliases and predefines, but no longer its `INPUT`. | WHY: The answer says the Doxyfile's INPUT is no longer used, but it never explains why: it doesn't say that a repo shipping a Doxyfile would otherwise get only its documented subset while a repo without one gets the whole tree.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that nested git trees are INDEXED and tagged rather than excluded from the scope",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: Nested git trees are included and tagged, not excluded. | WHY: The answer explicitly states that nested git trees are indexed and tagged rather than excluded. || QUOTE: Nested git trees are included and tagged, not excluded. | WHY: The answer explicitly states that nested git trees are included and tagged rather than excluded from the index scope. || QUOTE: Nested git trees are included and tagged, not excluded. | WHY: The answer explicitly states nested git trees are included and tagged rather than excluded from the index scope.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "conveys that the containment call was REMOVED rather than left in place with its callers dropped",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer is about index scope and never mentions a containment call being removed rather than left in place with its callers dropped. || QUOTE: NONE | WHY: The answer is about index scope and says nothing about a containment call being removed rather than left in place with its callers dropped. || QUOTE: NONE | WHY: The answer is about index scope and never mentions a containment call being removed rather than left in place with callers dropped.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the resolved scope is not the whole answer \u2014 within it, a file reaches the index only if something can read it, and names at least one of the two filters: the parse-built front end claiming the file types doxygen cannot read, or binary classification dropping files whose extension lies about them",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: Doxygen then applies the forced `FILE_PATTERNS` list (C/C++, Java, Python, Markdown, Fortran, and so on). The tree-sitter layers route by extension. A file that matches no pattern is walked and hashed but produces no rows. | WHY: The answer says scope isn't the whole answer: in-scope files reach the index only if doxygen's patterns or the tree-sitter front end claims them. That covers the parse-built front end for file types doxygen can't read. || QUOTE: Doxygen then applies the forced `FILE_PATTERNS` list (C/C++, Java, Python, Markdown, Fortran, and so on). The tree-sitter layers route by extension. A file that matches no pattern is walked and hashed but produces no rows. | WHY: The answer says the resolved scope isn't the whole answer. Within it, a file produces rows only if doxygen's patterns or the tree-sitter front end (routed by extension) can read it, which names the parse-built front end as one of the two filters. || QUOTE: Doxygen then applies the forced `FILE_PATTERNS` list (C/C++, Java, Python, Markdown, Fortran, and so on). The tree-sitter layers route by extension. A file that matches no pattern is walked and hashed but produces no rows. | WHY: The answer says scope isn't the whole story: within scope, a file only yields rows if doxygen's patterns or the tree-sitter front end (routed by extension) can read it. That names the parse-built front end as a filter.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Almost every public accessor in the tree is written this way.\nVERDICT: MISS\nWHY: The answer never states a scale of many hundreds of sites, nor that usage is overwhelmingly in public headers; it says the opposite for library internals (library/*.c) and only gives a few examples."
+}

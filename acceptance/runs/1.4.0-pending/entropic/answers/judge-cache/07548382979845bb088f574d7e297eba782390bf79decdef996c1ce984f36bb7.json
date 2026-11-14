@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer mentions a `PermissionPersister` that writes YAML and an unwired persist function, but it never mentions config.local.yaml or appending a decision to it for future sessions as distinct from the in-memory add_permission call."
+}

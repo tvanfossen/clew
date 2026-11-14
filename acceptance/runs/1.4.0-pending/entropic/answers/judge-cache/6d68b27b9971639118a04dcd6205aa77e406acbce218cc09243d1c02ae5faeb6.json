@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Deny wins over everything, but the approval step is weaker than its docs suggest.\" and \"the permission lists are consulted at two points: an allow lookup inside the approval step, and a deny lookup inside `ServerManager::execute`\"\nVERDICT: MISS\nWHY: The answer says both allow and deny lists are consulted (allow in the approval step), which contradicts the item's conclusion that only the deny list blocks execution in ServerManager's execute path."
+}

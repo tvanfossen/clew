@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"high = ret & 0xFF80 \u2192 module part (CIPHER)\" and \"buf gets \"HIGH : LOW\" when both exist, truncated to buflen, always NUL-terminated\"\nVERDICT: HIT\nWHY: The answer explains the two layers (high-level module part and low-level part) and states that the output joins both as \"HIGH : LOW\" when both exist."
+}

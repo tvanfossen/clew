@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Tool-only pattern (`filesystem.*`, `git.commit`): the part before `:` is matched against the fully qualified tool name. With no colon, every call to that tool matches, whatever its arguments.\nVERDICT: HIT\nWHY: The answer states that the pattern is split at the colon into a tool part and an argument part, that fnmatch is used, and that a pattern with no colon matches on the tool name alone."
+}

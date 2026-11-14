@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer separates \"absent\" from \"not looked at\", but it never says that a single token matching nothing used to be treated as proof of absence, which is the specific mechanism the item requires."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names these top-level directories as containing uses of `MBEDTLS_PRIVATE`. I included `programs` because the answer says those files can poke at SSL internals, though it only cites the `MBEDTLS_ALLOW_PRIVATE_ACCESS` define there. I left out `docs`, which the answer only quotes.\n\nITEMS:\ninclude\nlibrary\nprograms\nEND"
+}

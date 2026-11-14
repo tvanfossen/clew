@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"the whole repository, including nested git trees (submodules). Those are indexed and tagged by `external.py` so their rows can be told apart in answers. Before gh#333 they were cut out.\"\nVERDICT: HIT\nWHY: The answer explicitly says nested git trees are indexed and tagged, not excluded, in the whole-repo scope."
+}

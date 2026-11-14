@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "ITEMS:\nguard/main.py\nguard/tags.py\nscope.py\nguard/git.py\npropose/notindexed.py\ntests/test_security_surface.py\nEND"
+}

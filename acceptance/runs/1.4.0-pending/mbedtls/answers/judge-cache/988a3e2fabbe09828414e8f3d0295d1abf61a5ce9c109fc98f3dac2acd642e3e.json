@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Add `#define MBEDTLS_ERR_<MODULE>_<NAME> -0x....` in the owning module's header under `include/mbedtls/`... Do not edit `error.c`. Rebuild through the CMake target so the generator reruns.\"\nVERDICT: HIT\nWHY: The answer says to add the #define to the module's public header, not edit error.c, and re-run the generator via a rebuild. It does not explicitly say the comment must be `/** */`-style, but it does say the description comes from a header comment."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `do_count_tokens` (`:825`) | Returns `0`. The `count_tokens` C API (`inference_c_api.cpp:548-562`) returns that `0` unchanged. A caller cannot distinguish \"empty text\" from \"tokenizer failed,\"\nVERDICT: HIT\nWHY: The answer states that the token-counting path returns 0 on tokenizer failure, with no error signalled and no way to tell it apart from empty text."
+}

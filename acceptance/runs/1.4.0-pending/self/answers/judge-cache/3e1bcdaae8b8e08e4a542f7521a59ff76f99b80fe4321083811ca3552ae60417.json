@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`q.unsearched_corpora` must find no matching rows in corpora that `search` does not read.\" and \"the strong wording ... is used, but only after two checks.\"\nVERDICT: HIT\nWHY: The answer says the definitive wording is gated per query on `unsearched_corpora`, which finds rows in corpora search did not read, so the wording is earned per call and not tied to a result shape."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `argsstring` is empty.\nVERDICT: MISS\nWHY: The answer notes that shell `argsstring` is empty but never says there is no return recorded, nor that the language has neither an argument list nor a return."
+}

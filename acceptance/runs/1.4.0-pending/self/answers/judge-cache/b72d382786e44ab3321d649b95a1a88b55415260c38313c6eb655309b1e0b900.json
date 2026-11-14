@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Restart the MCP client. A rebuild cannot fix this. ... `data` | `source_changed_files > 0` | `index(action='refresh')`\nVERDICT: HIT\nWHY: The answer states data is cleared by a refresh/rebuild and code by a client restart (a rebuild cannot fix it), and frames the flag as insufficient: \"The flag alone does not say what to do about it.\""
+}

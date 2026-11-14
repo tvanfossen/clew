@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `.sh` `.bash` | yes ... `CMakeLists.txt` `.cmake` | yes | `memberdef` per `function()`\n\nVERDICT: HIT\nWHY: The answer's table names `.sh`, `.bash`, `.cmake` extensions and lists `CMakeLists.txt` by its file name, and it also says `SCRIPT_EXTS` registers `.sh` and `CMakeLists.txt`."
+}

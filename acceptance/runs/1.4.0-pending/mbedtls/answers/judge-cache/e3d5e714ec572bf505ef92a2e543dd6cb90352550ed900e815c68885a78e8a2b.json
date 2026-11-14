@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The setter is declared only in the `MBEDTLS_PLATFORM_MEMORY` branch (platform.h:160), so it does not exist in the other configurations.\nVERDICT: MISS\nWHY: The answer says the setter is declared only in the MEMORY branch and \"does not exist in the other configurations\", and says it is \"compiled out\" when both macros are set. It never says that on the macro path specifically the function is neither declared nor compiled. The \"does not exist\" remark refers to the non-MEMORY configurations, so the specific macro-path claim is absent."
+}

@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 35471,
+  "stop_reason": "end_turn",
+  "session_id": "78e5b261-58e8-4032-9ee4-9fd517e9f963",
+  "total_cost_usd": 0.01961873,
+  "usage": {
+    "input_tokens": 22,
+    "cache_creation_input_tokens": 55586,
+    "cache_read_input_tokens": 573083,
+    "output_tokens": 5537,
+    "output_tokens_details": {
+      "thinking_tokens": 1585
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 55586,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1802,
+        "cache_read_input_tokens": 70087,
+        "cache_creation_input_tokens": 1116,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1116
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 22,
+      "outputTokens": 5537,
+      "cacheReadInputTokens": 573083,
+      "cacheCreationInputTokens": 55586,
+      "webSearchRequests": 0,
+      "costUSD": 0.01961873,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1585,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 55586,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 15,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "There are three ways to say so, in descending precedence. When two disagree, the higher one wins for that option, with the exceptions noted below.\n\n**The three routes**\n\n| Route | Where it comes from | Reaches |\n|---|---|---|\n| **Tier 1: stated for this build** | CLI flags (`--declare FILE`, `--exclude`, `--output`, `--rebuild`, `--verbose`), or the `options` mapping on `build_index()` / MCP `index(action=\"refresh\")` | Any caller, including one with no shell |\n| **Tier 2: declared** | `<repo>/.clew.yaml` in the target repo | Both CLI and MCP, since both already know the repo root |\n| **Tiers 3\u20135: defaults** | Facts already in the tree (Doxyfile aliases, manifests), known-ecosystem signatures, and name-pattern heuristics | Built in |\n\n`--declare` and the `options` mapping are the same route. `_apply_declared_document` hands the whole mapping to `apply_options` (`clew/cli.py:586`). The `.clew.yaml` file is the only way to state things in-tree. `--scope` and `--index-cache` are build mechanics, not declarations, so they have no config home.\n\nThe `guard:` section of `.clew.yaml` configures the gate, not the index. The index drops it when loading (`clew/declaration.py:304`).\n\n**When they disagree**\n\nThe rule is in `clew/tiers.py`: `resolved = (tier1 or tier2 or tier5) \u222a tier3 \u222a tier4`.\n\n- **Same option, tier 1 and tier 2:** the flag or `--declare` replaces the `.clew.yaml` value. The file is the standing statement, and the flag is a deliberate one-off override (`clew/cli.py:1619`). Only the options you name are replaced. Other sections still come from `.clew.yaml`. The code shows this per option, so I inferred the section-level behavior.\n- **An empty value:** an empty stated value withdraws to the declaration rather than clearing it. Absent inherits, empty withdraws, and non-empty replaces.\n- **Tiers 3 and 4:** these accumulate. Nothing stated can remove a target fact or an ecosystem signature. This is so that passing `--entry-patterns` cannot silently drop `main` and collapse reachability.\n- **Tier 5 heuristics:** these are the only defaults a stated value displaces.\n- **`--scope` with `index_scope`:** this is a hard error with exit 1, not a silent override. A stated `index_scope` is only read on `--scope from-guard`. Pairing it with any other scope would build a different boundary and report success (`clew/cli.py:783`).\n- **A rejected `index_scope`:** the CLI and MCP refuse the build. The internal `derive_scope` falls back to the whole repo with a warning (`clew/scope.py:606`, `:634`).\n\n**Other failure behavior**\n\n- An unknown top-level section in `.clew.yaml` is refused by name. A misspelled key inside an inline `options` value is also refused, so it cannot read as a valid but unused mapping.\n- Sections prefixed `x-` are tolerated and ignored with a warning, so experimental keys do not break older clew builds.\n\n**Provenance**\n\nThe winning tier is recorded in `build_meta` for each option. Only tier-1 statements are replayed onto later builds, so the index can carry a policy the repo does not declare. Tier 2 is re-read from the file each time.\n\n**Unverified:** I did not confirm whether `--declare` and `.clew.yaml` merge per option or whether `--declare` replaces the file entirely. The per-option semantics in `_apply_declared_document` point to a merge, but I did not trace the full load path.",
+  "ttft_ms": 1864,
+  "type": "result",
+  "duration_ms": 36535,
+  "uuid": "1d926828-64e7-4e78-9faa-3b3854ad93cc",
+  "ttft_stream_ms": 1422,
+  "time_to_request_ms": 133,
+  "first_content_frame_ms": 1422,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

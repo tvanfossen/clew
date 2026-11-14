@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `tokenize` logs `\"Tokenization failed for text of length N\"` at ERROR (`:64\u201367`) and returns `{}`... `do_count_tokens` ... Returns **0**. Callers see a zero-token text with no error.\nVERDICT: HIT\nWHY: The answer states that a failed tokenization yields an empty vector, which the count-tokens path reports as 0 with no error signal."
+}

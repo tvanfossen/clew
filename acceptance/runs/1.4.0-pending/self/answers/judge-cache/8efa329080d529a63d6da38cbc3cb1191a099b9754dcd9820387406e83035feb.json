@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Doxyfile:** if the repo ships one, it still supplies ALIASES and PREDEFINED, but its `INPUT` is ignored. The code treats `INPUT` as a documentation target, not a reasoning boundary. The Mbed-TLS example in the docstring shows the old behaviour indexing only headers and no `library/*.c` files.\"\nVERDICT: HIT\nWHY: The answer says Doxyfile INPUT is ignored because it is a documentation target and not a scope boundary, and it cites the Mbed-TLS case where only the documented subset (headers) got indexed. It does not spell out the contrast with repos that ship no Doxyfile, but the documented-subset rationale is stated."
+}

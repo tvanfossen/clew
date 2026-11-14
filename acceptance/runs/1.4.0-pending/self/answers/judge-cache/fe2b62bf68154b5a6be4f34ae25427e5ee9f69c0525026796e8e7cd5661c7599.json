@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"READS ARE UNAFFECTED\" \u2014 not present; the answer says only \"A `code` mismatch means the server process is old, not the index. Only a client restart fixes it.\" and \"Write paths refuse on the code axis... when the process predates its source.\"\nVERDICT: MISS\nWHY: The answer never says reads stay current because query tools open the database per call, and it does not state that a build through a stale process writes old pipeline logic. It only says write paths refuse on a code mismatch."
+}

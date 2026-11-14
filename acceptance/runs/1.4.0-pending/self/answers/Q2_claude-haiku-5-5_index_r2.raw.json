@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 20370,
+  "stop_reason": "end_turn",
+  "session_id": "f2f52efd-9ce5-4062-9b26-f33a30ae4fd0",
+  "total_cost_usd": 0.00603363,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 9669,
+    "cache_read_input_tokens": 246663,
+    "output_tokens": 3264,
+    "output_tokens_details": {
+      "thinking_tokens": 1302
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 9669,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1950,
+        "cache_read_input_tokens": 45824,
+        "cache_creation_input_tokens": 2144,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2144
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 3264,
+      "cacheReadInputTokens": 246663,
+      "cacheCreationInputTokens": 9669,
+      "webSearchRequests": 0,
+      "costUSD": 0.00603363,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1302,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 9669,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 7,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** an empty reply is not one signal. The reply carries several fields and wordings that separate \"not in this index\" from \"not looked for there,\" and only the strong \"definitive negative\" wording is entitled to high confidence. I checked this by reading the source (`clew/mcp_server/emptiness.py`, `routing.py`, `query/subject.py`). I did not run an empty query against a deliberately gapped index, so the behaviour below is what the code says it does, not something I observed.\n\n**What separates the two readings**\n\n| Signal in the reply | Meaning |\n|---|---|\n| `target` | Which database answered. A negative covers that index only. |\n| `not_searched` | Other parts of a split repo that were not read. Empty for a whole-repo answer. Unbuilt vendored parts are listed too, so a miss there is \"more partial,\" not \"definitive.\" |\n| Unread corpora | `search` reads only some corpora. If the database holds a match in one it doesn't read, the reply says \"NOT DEFINITIVE\" and names that kind. |\n| Multi-token miss | Every token must match in one unit. The reply names the token that emptied the query. |\n| Dossier kind gap | For kinds the subject surface doesn't describe (typedef, file), a miss is worded as a limitation, not a negative. Enums were fixed; the mechanism stays. |\n| `staleness` | Present only when the index is older than its sources. |\n| No database built | Not an empty reply. It is a refusal naming the target and the build to run. |\n\n**Confidence each reading earns**\n\n- **\"Definitive negative\" (strong):** the whole repository answered, no unread corpus holds the query, and the kind is one the surface describes. This is a claim about the index as built, within its scope. Excludes, vendored trees and untracked files are outside it. Trust it as \"not in this index.\"\n- **\"NOT DEFINITIVE\" / limitation wording:** the name may exist in a corpus or kind this surface doesn't read. Use `dossier` on the name or query another corpus before concluding anything.\n- **Sub-index answer with `not_searched` non-empty:** a negative covers that part only. Check the listed parts before concluding the symbol is absent from the repository.\n- **Stale index:** the symbol may postdate the last build. Refresh before trusting absence.\n\n**Practical rule:** on an empty answer, check `target`, `not_searched` and whether the wording says \"definitive.\" If it doesn't, treat the miss as unknown and fall back to grep or a source read. The code deliberately keeps only one \"absent corpus\" downgrade, so a missing layer alone doesn't turn every reply into a hedge. That means an empty answer on an index missing a layer can still read as definitive.",
+  "ttft_ms": 2175,
+  "type": "result",
+  "duration_ms": 21007,
+  "uuid": "f5fac39c-628b-4585-8ef2-8a558e46ef80",
+  "ttft_stream_ms": 1126,
+  "time_to_request_ms": 77,
+  "first_content_frame_ms": 1126,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

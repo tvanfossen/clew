@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer mentions \"the program's own debug mutex\" but never identifies debug_mutex as serialising debug output to prevent interleaved logging across connections."
+}

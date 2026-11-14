@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Eight files render `NavigationHeader`, and only one of them shows a search field: `app/screens/home/search/search.tsx`.\nVERDICT: HIT\nWHY: The answer explicitly names search.tsx as the only file that shows the search field, passing `hasSearch={true}` while the others don't."
+}

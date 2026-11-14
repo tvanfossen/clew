@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Short-lived 10 ms polls that mirror an interrupt flag into the C-ABI `int` cancel flag. ... Cross-thread flags are `std::atomic` with acquire/release ordering.\nVERDICT: HIT\nWHY: The answer says the cancel observer threads mirror an atomic interrupt flag into the C-ABI plain `int` cancel flag. That is the bridge the item describes. It does not state outright that the C ABI cannot carry an atomic, but it names the atomic-to-`int` mirroring as the thread's purpose, which carries the substance."
+}

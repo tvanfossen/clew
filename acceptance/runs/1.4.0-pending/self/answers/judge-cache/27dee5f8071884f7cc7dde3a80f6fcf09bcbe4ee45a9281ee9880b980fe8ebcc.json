@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The notices ride on every query reply through `staleness_notices` (`server.py:1548`) and `_staleness` (`tools_query.py:1886`). ... `notices()` ... is empty when the index is current. A current index gets no annotation at all, by design.\nVERDICT: HIT\nWHY: The answer says notices ride on every query reply and that the list is empty (no annotation) when the index is current."
+}

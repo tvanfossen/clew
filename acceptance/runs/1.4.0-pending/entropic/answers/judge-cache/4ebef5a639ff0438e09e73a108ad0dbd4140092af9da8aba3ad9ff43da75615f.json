@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the second call runs unconditionally after the probe and that failures return empty, but it never states that a negative/non-positive result from the second call is terminal and returns empty rather than retrying."
+}

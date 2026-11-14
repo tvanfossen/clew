@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"| code | server loaded old logic; reads are fine, writes are affected | restart the MCP client; rebuild cannot fix it |\" alongside \"| data | N source files changed... | `index(action='refresh')` |\"\nVERDICT: HIT\nWHY: The answer says the data axis is cleared by a refresh and the code axis only by a client restart, since a rebuild cannot fix it. It never says outright that one flag would not have been enough, but the point that each axis needs a different action is there."
+}

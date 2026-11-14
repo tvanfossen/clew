@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `args_to_pattern` (`server_manager.cpp:426`) uses the value of the first key in the JSON object, and only if it is a string. Otherwise it uses `*`. For a no-args call (`{}`) the value is also `*`.\nVERDICT: HIT\nWHY: The answer says only the first key's value reaches the pattern (the remaining arguments are not used) and that non-string values collapse to `*`. It does not mention unparseable arguments, but the substance of the item is covered."
+}

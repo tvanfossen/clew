@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer lists facade (src/facade/entropic.cpp) and tests as other places touching llama, but it never concludes that the dependency is concentrated in the inference layer yet not contained by it, and it gives no count or minority of reaching files outside src/inference. It says the reach is \"mostly confined to one layer\", which is the opposite framing."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The `interface ServerDataOperator extends ...Mix` block adds the TypeScript types for those methods through declaration merging. Each handler exports an `XHandlerMix` interface alongside its class.\nVERDICT: HIT\nWHY: The answer states that a same-named interface `ServerDataOperator` extends the handlers' `...Mix` types, so the class is typed with the mixed-in methods via declaration merging."
+}

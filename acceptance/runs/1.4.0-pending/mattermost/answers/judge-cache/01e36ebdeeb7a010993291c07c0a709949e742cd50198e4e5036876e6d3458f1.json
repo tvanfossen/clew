@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`archivedChannelsViewable(value)` is `value !== 'false'` (line 304).\" and \"`archivedChannelsViewable(undefined)` is `true`, so every row above takes its \\\"viewable\\\" branch.\"\nVERDICT: HIT\nWHY: The answer states that a missing setting means archived channels are viewable and that only an explicit 'false' turns the feature off."
+}

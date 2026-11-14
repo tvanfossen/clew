@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A matching `interface ServerDataOperator extends \u2026Mix` at line 23 supplies the method typings through declaration merging.\nVERDICT: HIT\nWHY: The answer states that a same-named interface extends the `...Mix` types and supplies the mixed-in method typings via declaration merging."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Only `app/screens/home/search/search.tsx` passes `hasSearch={true}`.\" and \"The search screen is the only one that shows a search field in the header.\"\nVERDICT: HIT\nWHY: The answer explicitly identifies search.tsx as the sole renderer enabling the search field."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes build integration and opaque forward-declared types but never identifies llama.cpp's C API (free functions with `llama_` prefix) as the seam."
+}

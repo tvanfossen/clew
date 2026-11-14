@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `LlamaCppBackend::tokenize` (`llama_cpp_backend.cpp:788`) | `{}` | Also `{}` when `tokenizer_` is unset.\nVERDICT: HIT\nWHY: The answer states the backend wrapper returns `{}` on failure and also `{}` when `tokenizer_` is unset, so the two cases return the same empty value."
+}

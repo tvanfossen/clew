@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Rebuilding does not help, and `stale_code_refusal` guards this. A write from a process that predates its source is refused with \"Nothing was written,\" and `force` does not override the refusal. The refusal exists because a stale process once rebuilt an index at an older version and dropped a layer.\"\nVERDICT: MISS\nWHY: The answer covers the write refusal and the old-version rebuild risk. It never says reads stay current because query tools open the database per call, so the read/write asymmetry is absent."
+}

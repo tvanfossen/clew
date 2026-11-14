@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Inside `src/inference/`, most files include `<llama.h>` directly: `llama_cpp_backend.{h,cpp}`, `llama_cpp_sampler`, `llama_cpp_tokenizer`, `orchestrator`, `adapter_manager`, `grammar_registry`, `speculative_compat`.\"\nVERDICT: MISS\nWHY: The answer lists about seven inference files plus the facade, public headers, and tests, but it never states that the reach is roughly a dozen files of entropic's own source, so the count is not conveyed."
+}

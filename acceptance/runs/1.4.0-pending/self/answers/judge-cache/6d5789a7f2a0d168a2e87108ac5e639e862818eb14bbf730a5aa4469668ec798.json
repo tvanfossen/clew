@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the empty-result wording is always hedged (\"not a definitive negative\") and lists the corpora not searched. It never says that strong \"not found\" wording is earned per call by checking which corpora went unread, as opposed to being tied to a result shape."
+}

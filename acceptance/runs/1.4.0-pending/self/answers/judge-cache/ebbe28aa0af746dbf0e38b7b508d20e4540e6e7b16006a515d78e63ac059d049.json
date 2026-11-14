@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says an empty reply means \"absent from the places the tool looked.\" It never says a single non-matching token used to be treated as proof of absence, and it never mentions the earlier behavior or the token-conjunction mechanism."
+}

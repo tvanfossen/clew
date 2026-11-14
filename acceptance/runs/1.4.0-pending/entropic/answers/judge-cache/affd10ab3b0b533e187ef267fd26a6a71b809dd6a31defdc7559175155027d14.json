@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The callback returns nothing, so an unlisted tool runs after notification. Only when no callback is registered does the default-deny (`:184`) apply.\"\nVERDICT: HIT\nWHY: The answer states that a tool matching neither list is not denied and runs (approval callback sets approved = true), which is default-allow at the gate."
+}

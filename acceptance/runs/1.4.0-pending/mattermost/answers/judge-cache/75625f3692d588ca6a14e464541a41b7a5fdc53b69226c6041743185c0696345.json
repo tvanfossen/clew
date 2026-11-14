@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `ServerDataOperator` (`app/database/operator/server_data_operator/index.ts:40`) is a mixin composition, not a hand-written class. `ServerDataOperatorBase` is the root, and each handler is a mixin that wraps it ... `mix(...).with(\u202613 mixins\u2026)`\nVERDICT: HIT\nWHY: The answer states ServerDataOperator is composed via `mix(...).with(...)` over ServerDataOperatorBase with handlers as mixins, not declared in the class itself."
+}

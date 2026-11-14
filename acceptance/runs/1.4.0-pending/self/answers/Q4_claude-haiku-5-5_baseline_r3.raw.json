@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 29912,
+  "stop_reason": "end_turn",
+  "session_id": "de33da26-4138-48b6-bf3b-62acdc1cb797",
+  "total_cost_usd": 0.00809376,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 15241,
+    "cache_read_input_tokens": 228486,
+    "output_tokens": 5519,
+    "output_tokens_details": {
+      "thinking_tokens": 2453
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 15241,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3463,
+        "cache_read_input_tokens": 46820,
+        "cache_creation_input_tokens": 2800,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2800
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 5519,
+      "cacheReadInputTokens": 228486,
+      "cacheCreationInputTokens": 15241,
+      "webSearchRequests": 0,
+      "costUSD": 0.00809376,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2453,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 15241,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 9,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** `callers` returns causal neighbours with their evidence grade attached, not a verified list of call sites. Several things in it can make a row or a count misleading. I answered from reading the source (`clew/query/symbols.py`, `clew/query/models.py`, `clew/call_edges.py`, `clew/mcp_server/tools_query.py`). I did not run clew against an index.\n\n**What the answer contains**\n\n`callers(db, fn)` (`symbols.py:756`) returns a list of `CallEdge` rows. Each row has:\n\n- **`edge_class`**: `'call'` for a real direct caller, or `'key'` for a function that writes a shared key which `fn` reads, with no call between them. A `'key'` row is not a caller. It may run asynchronously on another thread.\n- **`source`**: which extraction layer found it. Possible values are `doxygen_sqlite`, `ast`, `ast_member`, `macro_hop`, `fnptr`, `declared_dispatch` and `binding`.\n- **`confidence`**: `exact` (doxygen's inline xref), `resolved` (unique name match), or `fuzzy` (several candidates share the name).\n- **`implementors`**: for a virtual endpoint, the known overrides from doxygen's `reimplements` relation. This is an annotation, not an extra edge.\n- **`expansion`**: for `macro_hop` rows, the macro's initializer text, which is the only place the call appears as text.\n- **Key-only fields** (`strength`, `key_name`, `dispatch_mode`, `crosses_thread`, `to_thread`), set only on `'key'` rows.\n\nThe row is one per endpoint identity, not one per layer (`CallEdge`, `models.py:145`). `source` and `confidence` describe the strongest evidence found for that endpoint.\n\n**What makes it wrong to read as a list of call sites**\n\n1. **It includes dataflow neighbours.** Because `callers` merges `'key'` rows with `'call'` rows, `len(callers)` is not a call count. You have to filter on `edge_class`.\n\n2. **Fuzzy edges are not filtered here.** This surface keeps them on purpose (`_direct_call_edges`, `symbols.py:389`). The code comment measures 21.3% of clew's own call edges as fuzzy, and 79.8% on a large C++ codebase. A fuzzy `ast_member` edge matches an unqualified tail without checking the receiver's type. So every call to `obj.Get()` emits an edge to all 33 functions named `Get`. `NameAmbiguity` (`models.py:1441`) gives a worked example: one function showed 162 callers, and at most one per call site can be real.\n\n3. **Name ambiguity is a separate question.** `name_ambiguity()` (`symbols.py:1959`) returns the number of same-named candidates and how many neighbours arrive through the shared name. It returns `None` when the name is clean. Read it alongside the list. It counts distinct signatures, not memberdef rows, so declarations and definitions don't inflate it.\n\n4. **`qualified` changes which function you are asking about.** Without it, the focal function is chosen by the first row. The gh#26 case from the code comments: `dossier(\"_classify\")` reported callers that belonged to other modules' `_classify`, including a fabricated self-edge. Pass the `qualified` identity from `candidates` when a name is shared.\n\n5. **An empty list is not \"no callers\".** Construction through braces or a constructor is not a call edge. `_empty_callers_note` (`tools_query.py`, around line 632) flags this when the name also resolves as a class, and when the build recorded refusals against the symbol. An unmeasured count (`None`) is not a zero, and the code says so.\n\n6. **Virtual dispatch is not pulled in.** A base method's caller list does not include callers of its overrides. Those appear only through the `implementors` annotation, and only if doxygen recorded the override.\n\n7. **It is one hop.** `callers` is a flat neighbour list, not transitive. Multi-hop paths go through `chain_trace` or traversal, which filters `fuzzy` edges. So the two can disagree on the same function.\n\n8. **A missing table reads as empty.** If `call_edges` does not exist, `_direct_call_edges` returns `[]` (`symbols.py:423`). That is the same result as \"no callers\". I did not check whether a higher layer reports the missing table separately.\n\n**How to read it**\n\nTreat the answer as candidate neighbours, each with a grade. Before you act on it:\n\n- Keep only `edge_class == 'call'` rows.\n- Check `confidence`, and check `name_ambiguity` when the name is shared.\n- Pass `qualified` when the name is shared.\n- Treat an empty list as a question, not a clearance. Look at the note and the refusal count.\n- Confirm the specific call site with grep before editing.",
+  "ttft_ms": 1840,
+  "type": "result",
+  "duration_ms": 30423,
+  "uuid": "c0c8a01f-7a8b-4f40-bef6-e1b1e0b5444d",
+  "ttft_stream_ms": 1289,
+  "time_to_request_ms": 129,
+  "first_content_frame_ms": 1289,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

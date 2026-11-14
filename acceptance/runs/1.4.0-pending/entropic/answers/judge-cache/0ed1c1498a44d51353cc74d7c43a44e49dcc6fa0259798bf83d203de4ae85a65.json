@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never states that a tool matching neither allow nor deny list is not denied and runs. It says a call runs if it's in allow, auto_approve, or the callback fires. It doesn't conclude default-allow."
+}

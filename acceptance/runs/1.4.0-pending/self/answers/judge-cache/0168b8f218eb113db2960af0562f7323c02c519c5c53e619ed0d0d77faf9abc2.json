@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer gives a precedence order (caller, then `.clew.yaml`, then defaults) but never says that discovered layers accumulate and survive whatever is stated, so the asymmetry is absent."
+}

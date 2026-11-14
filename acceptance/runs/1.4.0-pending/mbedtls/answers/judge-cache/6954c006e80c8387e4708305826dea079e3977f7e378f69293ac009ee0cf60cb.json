@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Without assembly it is `x ^ mbedtls_ct_zero`, where `mbedtls_ct_zero` is a `volatile` global defined in `library/constant_time.c:29`.\nVERDICT: HIT\nWHY: The answer says that without assembly `mbedtls_ct_compiler_opaque` XORs with `mbedtls_ct_zero`, a volatile global. It names the global and its location, and it ties the fallback to the same function. It never says the value is zero or that the global is extern, though the name `mbedtls_ct_zero` implies zero."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `NavigationHeader` is `forwardRef<SearchRef, Props>`. It does not use the ref itself. It spreads the rest of its props into `<NavigationSearch {...searchProps} ref={ref} />`, inside `{hasSearch && \u2026}`.\nVERDICT: HIT\nWHY: The answer says NavigationHeader forwards its ref to NavigationSearch, rendered only when hasSearch is true. It does not say outright that the ref attaches to nothing otherwise, but \"mounted only when it is true\" and the conditional render imply it."
+}

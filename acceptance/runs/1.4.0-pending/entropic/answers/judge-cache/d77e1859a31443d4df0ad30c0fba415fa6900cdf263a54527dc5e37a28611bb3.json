@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Caller \u2192 engine buffers the engine will free (e.g. hook `modified_json`) | Must be allocated with `entropic_alloc()`. | `hooks.py` `_build_trampoline` does this. The Python string is copied into engine memory, and the trampoline only allocates when the hook returns a value.\nVERDICT: HIT\nWHY: The answer states that buffers the engine will free must be allocated with entropic_alloc and identifies hooks.py `_build_trampoline` as where Python does it."
+}

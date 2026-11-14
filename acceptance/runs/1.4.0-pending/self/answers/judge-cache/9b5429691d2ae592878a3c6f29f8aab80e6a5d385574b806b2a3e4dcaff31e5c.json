@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `not_indexed` present | The listed file types were in scope and produced no rows. Read those files directly.\nVERDICT: HIT\nWHY: The answer states the reply includes `not_indexed`, the file extensions in scope that produced no rows, and contrasts present vs. absent so \"not indexed\" differs from \"nothing missed.\""
+}

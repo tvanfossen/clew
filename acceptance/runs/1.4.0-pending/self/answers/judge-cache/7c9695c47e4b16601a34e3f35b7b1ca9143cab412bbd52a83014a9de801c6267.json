@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A missing grammar routes to `None`, so no parse happens and no exception is raised.\nVERDICT: MISS\nWHY: The answer says missing grammars skip parsing without crashing, but it concludes the not-indexed report does NOT name those files, which contradicts the item's claim that they are reported as not indexed."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Edges are stored once per layer, and the query collapses them to the strongest evidence (`clew/query/symbols.py:_direct_call_edges`).\" and \"`callers` returns a list of `CallEdge` neighbours, one per caller *identity*, not one per call site.\"\nVERDICT: HIT\nWHY: The answer states that edges are stored per layer and the query collapses them to one row per caller using the strongest evidence."
+}

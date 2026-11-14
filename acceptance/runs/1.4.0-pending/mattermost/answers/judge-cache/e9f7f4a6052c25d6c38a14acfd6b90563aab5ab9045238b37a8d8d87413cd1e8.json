@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The button is in `app/components/post_list/post/body/failed/index.tsx:48` and calls `retryFailedPost(serverUrl, post)`.\nVERDICT: HIT\nWHY: The answer names `retryFailedPost` as invoked by the \"Try Again\" button and says \"the user, not the app, decides when to retry,\" which covers the item's substance."
+}

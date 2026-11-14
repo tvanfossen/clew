@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says CMake parameters come from the argument list but never states that the definition's name is an argument of the command rather than a named field of the node."
+}

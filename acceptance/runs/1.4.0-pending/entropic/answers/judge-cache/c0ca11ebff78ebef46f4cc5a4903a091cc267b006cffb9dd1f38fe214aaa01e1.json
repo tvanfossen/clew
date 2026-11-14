@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The empty vector is ambiguous. An empty prompt with `add_special=false` also produces `{}`, so no caller can tell \"failed\" from \"nothing to tokenize.\"\nVERDICT: HIT\nWHY: The answer says failure returns `{}`, which is indistinguishable from a legitimately empty result. It also details callers that don't check (count_tokens returns 0, and generate paths have no empty check)."
+}

@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 24293,
+  "stop_reason": "end_turn",
+  "session_id": "54945e7c-d63f-40e1-ab7d-c27344ebe30a",
+  "total_cost_usd": 0.00616422,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 8520,
+    "cache_read_input_tokens": 206422,
+    "output_tokens": 4790,
+    "output_tokens_details": {
+      "thinking_tokens": 1940
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 8520,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2684,
+        "cache_read_input_tokens": 45316,
+        "cache_creation_input_tokens": 1524,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1524
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 4790,
+      "cacheReadInputTokens": 206422,
+      "cacheCreationInputTokens": 8520,
+      "webSearchRequests": 0,
+      "costUSD": 0.00616422,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1940,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 8520,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 10,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**What it does.** `MBEDTLS_PRIVATE` is a macro in `include/mbedtls/private_access.h`:\n\n```c\n#ifndef MBEDTLS_ALLOW_PRIVATE_ACCESS\n#define MBEDTLS_PRIVATE(member) private_##member\n#else\n#define MBEDTLS_PRIVATE(member) member\n#endif\n```\n\nEach struct field in the public headers is declared as `MBEDTLS_PRIVATE(name)`, so by default the field is really called `private_name`. Code that writes `ssl->state` then fails to compile, and the only supported way in is the accessor functions (`mbedtls_ssl_is_handshake_over()`, `mbedtls_ssl_get_hostname()`, and so on). The layout and field names can change between releases without breaking callers, because nobody outside the library is meant to depend on them. The header is used in roughly 74 files, mostly `include/mbedtls/*.h` and `include/psa/*.h` (`ssl.h` alone has 210 uses).\n\n**For whom.** The default protects the library's API boundary, meaning application developers who include the public headers. The opt-out is for code that is part of the library or the test tooling.\n\n**Where the opt-out is turned on in this tree:**\n\n| Location | Effect |\n|---|---|\n| `library/common.h:132` \u2014 `#define MBEDTLS_ALLOW_PRIVATE_ACCESS` | Unconditional for all library translation units. `common.h` is included by `ssl_misc.h`, `ssl_ciphersuites.c`, `md.c`, `ecdh.c`, `x509_crt.c`, `pk.c` and `ssl_tls.c`, so inside the library `MBEDTLS_PRIVATE(x)` expands to plain `x`. |\n| `programs/ssl/ssl_server2.c:8` and `programs/ssl/ssl_client2.c:8` | Defined before the first include, so these sample/test programs read `ssl->state`-style fields directly. |\n\nWhat this means for the code in those places:\n\n- **Library code.** The `MBEDTLS_PRIVATE(...)` spellings in `library/ecdh.c`, `library/md.c`, `library/x509_crt.c`, `library/pk_internal.h` and `library/ssl_ciphersuites_internal.h` are effectively documentation. They compile to the same thing as the bare field names. The library is compiled against the real field names everywhere, so the rename is invisible to it. Two consequences follow. First, the opt-out is not optional for the library: if a translation unit used a header that contained `MBEDTLS_PRIVATE` before `common.h` was included, it would expand to `private_x` and fail to build. Second, the macro gives no protection between library modules, which is intended.\n- **Test and sample programs.** The two `ssl_*2.c` programs bypass the boundary on purpose, and they are the only in-tree consumers that do so. `programs/ssl/ssl_context_info.c` uses `MBEDTLS_PRIVATE(...)` without defining the opt-out, so it goes through the mangled names, which are the same as the real names only because the struct declarations use the same macro. Those programs are the ones that break if the struct layout changes.\n- **External users.** Nothing in the public API turns the opt-out on. An application that defines `MBEDTLS_ALLOW_PRIVATE_ACCESS` before including mbedtls headers gets direct access, but `ssl.h:5159\u20135169` marks that as deprecated and possibly broken in future releases.\n\n**Limits of this check.** I did not build the tree or compile a test, so the claims about expansion and build failures come from reading the macro and the include graph, not from a compile. The include claims are from grepping `#include` lines in `library/`, not from following every transitive include. I also did not check the build system for any extra opt-out define (for example in CMake or `tests/`), so if one exists outside `.c`/`.h` sources it would not show up here.",
+  "ttft_ms": 1426,
+  "type": "result",
+  "duration_ms": 24816,
+  "uuid": "cc0a9256-cc29-4157-9e42-2b26fe83e699",
+  "ttft_stream_ms": 1177,
+  "time_to_request_ms": 72,
+  "first_content_frame_ms": 1177,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

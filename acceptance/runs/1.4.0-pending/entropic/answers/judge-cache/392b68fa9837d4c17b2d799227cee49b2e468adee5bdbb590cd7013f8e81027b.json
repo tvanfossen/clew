@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The empty vector is indistinguishable from a legitimate empty result. With `add_special=false` and `\"\"`, `{}` is correct. No error code or flag reaches the caller.\" and \"Most callers do not check for it.\"\nVERDICT: HIT\nWHY: The answer states that failure returns an empty vector indistinguishable from a legitimately empty result, and that most callers don't check for it, which covers the item's substance."
+}

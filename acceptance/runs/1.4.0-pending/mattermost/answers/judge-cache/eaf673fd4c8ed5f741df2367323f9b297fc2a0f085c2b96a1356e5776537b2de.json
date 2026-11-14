@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The interface merge at `index.ts:23` declares the matching `*HandlerMix` types, which is how TypeScript sees the handler methods on the class.\nVERDICT: HIT\nWHY: The answer states that an interface merge declares the matching `*HandlerMix` types so TypeScript sees the handler methods on the class. That is the item's mechanism."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: There is no pybind11 or cffi. The only bridge is `ctypes` calling the C ABI of `librentropic.so`.\nVERDICT: HIT\nWHY: The answer states ctypes over librentropic.so is the mechanism and explicitly rules out compiled extension modules like pybind11/cffi."
+}

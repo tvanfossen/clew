@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: If `_gitignored_paths` calls `git_argv` three times, the answer shows one row. You cannot count invocations from it.\nVERDICT: MISS\nWHY: The answer says rows are per caller function (collapsing multiple calls), but it says nothing about one row per neighbour rather than per layer, or about collapsing variants to the strongest evidence."
+}

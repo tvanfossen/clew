@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"A `code` mismatch means the server process is old, not the index. Only a client restart fixes it.\" and \"**data:** ... call `index(action='refresh')`\" and \"**code:** the logic may predate the working tree; a rebuild cannot fix it; restart the client.\"\nVERDICT: HIT\nWHY: The answer states that data staleness is cleared by a refresh/rebuild while code staleness needs a client restart and that a rebuild cannot fix it. It does not say that this is why one flag would not have been enough, but the different-remedy substance is there."
+}

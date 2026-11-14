@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **One row per distinct caller identity**, not per call site. `_direct_call_edges` (`clew/query/symbols.py:389`) collapses duplicates that two layers both found.\n\nVERDICT: HIT\n\nWHY: The answer states that the query returns one row per distinct caller identity and that duplicates found by multiple layers are collapsed, which is the item's substance."
+}

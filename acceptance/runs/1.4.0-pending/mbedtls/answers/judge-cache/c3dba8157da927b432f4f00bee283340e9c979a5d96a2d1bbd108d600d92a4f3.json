@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the library has no threads and no mutexes in the default config, and it never states the contrast that nothing in library/ creates a thread while library/ still supplies the mutex abstraction for threaded callers."
+}

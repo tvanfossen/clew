@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer lists about six or seven files, but it never says the dependency reaches roughly a dozen files of entropic's own source. It also describes the reach as mostly contained to `src/inference/`, not as a broad spread."
+}

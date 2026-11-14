@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `LlamaCppTokenizer::tokenize` (`src/inference/llama_cpp_tokenizer.cpp:55` and `:61`). llama.cpp's `llama_tokenize` returns a negative number when the output buffer is too small or absent... The first call passes a null buffer to learn the size, and the second call fills a `std::vector` of that size.\nVERDICT: HIT\nWHY: The answer locates the two-call size-probe pattern in llama_cpp_tokenizer.cpp, naming the file, function and lines."
+}

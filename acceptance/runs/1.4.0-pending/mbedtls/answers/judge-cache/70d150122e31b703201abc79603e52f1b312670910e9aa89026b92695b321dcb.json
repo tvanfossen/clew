@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Otherwise it returns `x ^ mbedtls_ct_zero`, where `mbedtls_ct_zero` is a `volatile` global (`library/constant_time.c:29`).\nVERDICT: HIT\nWHY: The answer says that without MBEDTLS_CT_ASM, mbedtls_ct_compiler_opaque falls back to XOR with the volatile global mbedtls_ct_zero, so the same function and the global are both named. It doesn't spell out \"extern\" or \"holds zero\", but \"ct_zero\" and the XOR convey both."
+}

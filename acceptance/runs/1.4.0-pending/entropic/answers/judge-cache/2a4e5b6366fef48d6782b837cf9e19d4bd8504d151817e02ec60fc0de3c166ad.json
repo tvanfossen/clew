@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The first call passes a null buffer with size 0 to learn that count. The code then allocates a vector of that size and makes the second call to fill it. The second call is the one that produces the result. Nothing is retried: there is no loop, no changed parameters, and no second attempt after a failure.\"\nVERDICT: HIT\nWHY: The answer identifies a size probe followed by the real call, and says nothing is retried (no loop, no second attempt). It doesn't explicitly list \"no backoff/delay/counter\", but the substance, size negotiation rather than retry, is stated."
+}

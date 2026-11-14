@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "Only `clew/gitenv.py` appears in the answer, as the location of `git_argv`, the function being queried. The answer doesn't describe it as storing, collapsing or filtering call edges or shaping a neighbour reply, so I'm reporting none.\n\nITEMS:\nNONE\nEND"
+}

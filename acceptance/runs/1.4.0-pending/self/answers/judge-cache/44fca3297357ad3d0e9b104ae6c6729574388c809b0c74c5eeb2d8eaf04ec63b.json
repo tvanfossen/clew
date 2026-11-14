@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`_fold_scope_into_args` writes the roots into the INPUT list and the excludes into the EXCLUDE list, with `replace_input=True`. Doxygen therefore no longer takes INPUT from the Doxyfile. The Doxyfile still supplies ALIASES and PREDEFINED only.\"\nVERDICT: MISS\nWHY: The answer says the Doxyfile's INPUT is no longer used, but it never gives the reason (a repo with a Doxyfile gets only its documented subset while one without gets its whole tree)."
+}

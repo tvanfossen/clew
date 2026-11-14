@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: ExternalBridge `accept_loop` ... Accepts MCP socket clients ... Each accepted fd is checked with `SO_PEERCRED`, so cross-uid connections are closed before a thread is spawned. | ExternalBridge per-client `serve_client` ... One thread per connected client, blocking on reads.\nVERDICT: HIT\nWHY: The answer names an accept thread (`accept_loop`) and a separate per-client thread (`serve_client`), one per connected client, and says threads are spawned after accept."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: In a default build, a field `flags` is really named `private_flags`. Code that writes `ctx->flags` fails to compile. The layout is unchanged; only the name moves.\nVERDICT: HIT\nWHY: The answer states the compile-time enforcement is via renaming the member (private_ prefix), with layout unchanged and fields still visible."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Two ways to state it are `--declare FILE` and the inline `options` mapping.\nVERDICT: HIT\nWHY: The answer names both a CLI flag and an inline options mapping as ways to state a caller option (tier 1), so an embedding caller can use the options argument."
+}

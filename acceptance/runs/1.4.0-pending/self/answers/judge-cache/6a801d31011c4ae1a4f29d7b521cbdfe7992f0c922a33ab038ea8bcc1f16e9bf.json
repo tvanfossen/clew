@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer explains how to tell \"not in the repo\" from \"not looked there\" and cites the \"absence is not emptiness\" rule. It never states the rule that the fix is to correct the corpus, not the sentence describing it."
+}

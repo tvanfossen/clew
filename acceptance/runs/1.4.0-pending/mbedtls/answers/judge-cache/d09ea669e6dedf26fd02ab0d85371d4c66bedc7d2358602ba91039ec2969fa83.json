@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"High-level part (`ret & 0xFF80`): the module identity. It is passed to `mbedtls_high_level_strerr`. - Low-level part (`ret & ~0xFF80`): the specific error.\" and \"If both parts are present, they are joined with `\" : \"`, provided there is room.\"\nVERDICT: HIT\nWHY: The answer explains the code splits into high-level (module) and low-level parts, and that strerror joins both with \" : \" when both are present."
+}

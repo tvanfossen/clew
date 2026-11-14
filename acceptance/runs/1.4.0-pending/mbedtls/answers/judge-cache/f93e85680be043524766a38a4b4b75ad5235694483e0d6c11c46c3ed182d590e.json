@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Two options: 1. **Compile time.** Define `MBEDTLS_PLATFORM_MEMORY`, `MBEDTLS_PLATFORM_CALLOC_MACRO=my_calloc` and `MBEDTLS_PLATFORM_FREE_MACRO=my_free` in the config. Both macros must be set together. No runtime hook is compiled in... 2. **Runtime.** Define `MBEDTLS_PLATFORM_MEMORY` without the macros, then call `mbedtls_platform_set_calloc_free(my_calloc, my_free)`\nVERDICT: HIT\nWHY: The answer separates the compile-time macro pair from the runtime function-pointer pair. It says the runtime path is compiled out when the macros are defined, which states that the two are mutually exclusive."
+}

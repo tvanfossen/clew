@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Without the define: `MBEDTLS_PRIVATE(m)` \u2192 `private_m`. Members are renamed and hidden. - With the define: `MBEDTLS_PRIVATE(m)` \u2192 `m`. Members keep their real names.\"\nVERDICT: HIT\nWHY: The answer states the default expansion to private_<member> and that defining MBEDTLS_ALLOW_PRIVATE_ACCESS leaves the member name unchanged."
+}

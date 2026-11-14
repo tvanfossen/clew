@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes how an empty result names its searched boundary, but never says that a single non-matching token was previously treated as proof of absence, or that the old behavior conflated \"nothing exists\" with \"I did not look there.\""
+}

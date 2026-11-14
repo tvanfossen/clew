@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Python reaches the engine through a ctypes binding to the C ABI in `librentropic.so`.\nVERDICT: HIT\nWHY: The answer names ctypes over librentropic.so as the mechanism (`_bindings.py` with ctypes functions, loaded via `_loader.py`). It describes a pure C ABI and mentions no compiled extension module."
+}

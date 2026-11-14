@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"CLI flag (`--scope`, `--exclude`, `--entry-patterns`, `--doxyfile`, `--predefined`, \u2026), or the `options` argument an embedding caller passes to `build_index` / `build_or_refresh`\"\nVERDICT: HIT\nWHY: The tier 1 row names both the CLI flags and the `options` argument for embedding callers, and the answer notes the two share one vocabulary."
+}

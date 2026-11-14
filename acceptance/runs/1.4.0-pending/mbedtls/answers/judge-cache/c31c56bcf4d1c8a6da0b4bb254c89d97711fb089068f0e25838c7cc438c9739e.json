@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The header is used in roughly 74 files, mostly `include/mbedtls/*.h` and `include/psa/*.h` (`ssl.h` alone has 210 uses).\"\nVERDICT: MISS\nWHY: The answer gives about 74 files and 210 uses in ssl.h, mostly in public headers, but it never states a total of many hundreds of sites, so the scale part of the item is missing."
+}

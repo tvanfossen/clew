@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "ITEMS:\nclew/buildoptions.py\n.clew.yaml\nclew/declaration.py\nclew/cli.py\nDoxyfile\nEND"
+}

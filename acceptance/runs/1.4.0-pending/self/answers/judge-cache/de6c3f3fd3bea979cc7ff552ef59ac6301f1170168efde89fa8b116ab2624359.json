@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: binary files \u2502 \u2192 dropped and reported as skipped [cli._drop_binary_files]\nVERDICT: MISS\nWHY: The answer lists binary dropping but never says extensions lie about it or that the parse-built front end claims the types doxygen can't read. It also states \"Nothing is filtered by file extension,\" which doesn't match the item."
+}

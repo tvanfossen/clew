@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`library/error.c`, which is generated, not hand-written.\" and \"**Define it in the module's header** in `include/mbedtls/`, with one Doxygen description\" and \"**Regenerate and commit `library/error.c`** by building, so the Makefile or CMake rule runs.\"\nVERDICT: HIT\nWHY: The answer says error.c is generated and not hand-written. It says a new code means adding the documented #define to the module header and then regenerating error.c, rather than editing it directly."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Without the define, the field is really named `private_foo`, so `ctx->foo` in application code fails to compile. With the define, the field is named `foo`.\nVERDICT: HIT\nWHY: The answer states that code defining MBEDTLS_ALLOW_PRIVATE_ACCESS sees plain `foo` while ordinary consumers see `private_foo`, and it ties the opt-out to library code and in-tree programs versus external application code."
+}

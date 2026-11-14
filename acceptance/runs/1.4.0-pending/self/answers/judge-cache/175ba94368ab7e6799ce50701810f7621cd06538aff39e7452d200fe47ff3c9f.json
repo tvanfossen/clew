@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **`edge_class`**: `'call'` for a real direct caller, or `'key'` for a function that writes a shared key which `fn` reads, with no call between them. A `'key'` row is not a caller. ... Because `callers` merges `'key'` rows with `'call'` rows, `len(callers)` is not a call count. You have to filter on `edge_class`.\nVERDICT: HIT\nWHY: The answer states that callers merges direct-call and shared-key rows in one list, distinguished by `edge_class`, which the consumer must filter on."
+}

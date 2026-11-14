@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The mask `0xFF80` splits a code into a high-level part (the module bits) and a low-level part (the bits under 0x80). So `-0x40A0` decodes as RSA (`0x4080`) plus AES (`0x20`), and the output is `RSA - Bad input parameters to function : AES - Invalid key length`.\nVERDICT: HIT\nWHY: The answer explains the two-layer split (high-level module part and low-level part) and shows that strerror outputs both joined with \" : \" when both are present."
+}

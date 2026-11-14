@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `ExternalBridge::start` \u2192 `accept_loop` (`src/facade/external_bridge.cpp:796`) | Polls the listen socket and accepts MCP clients ... `ct->thread` in `accept_loop` (`:945`) | One `serve_client` thread per accepted client\n\nVERDICT: HIT\nWHY: The answer states that the external bridge has an accept-loop thread, and that it spawns one serve_client thread per accepted client."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`programs/ssl/ssl_server2.c:8` | That one program only, defined before any include. | `programs/ssl/ssl_client2.c:8` | That one program only\"\nVERDICT: HIT\nWHY: The answer states that the example programs ssl_server2.c and ssl_client2.c define MBEDTLS_ALLOW_PRIVATE_ACCESS themselves, which is the opt-out, and the table lists it as a per-program setting."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_memory_buffer_alloc_init(buf, len)` (`library/memory_buffer_alloc.c:566-600`) is a built-in heap: It zeroes a static `heap` context and calls `mbedtls_platform_set_calloc_free()` with `buffer_alloc_calloc_mutexed`/`buffer_alloc_free_mutexed`... The library uses the same hook itself.\n\nVERDICT: HIT\nWHY: The answer states the buffer allocator's init function installs itself via the runtime setter. It doesn't name MBEDTLS_MEMORY_BUFFER_ALLOC_C explicitly or say \"only\", but \"the library uses the same hook itself\" plus the init-function mechanism carries the substance."
+}

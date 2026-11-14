@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: With `MBEDTLS_THREADING_C` it uses mutex-wrapped variants (`buffer_alloc_calloc_mutexed`, which locks around the inner call).\nVERDICT: MISS\nWHY: The answer mentions mutex-wrapped variants under THREADING_C but doesn't state the plain-pair-otherwise choice made at compile time inside the init function."
+}

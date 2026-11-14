@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "ITEMS:\nagents/database/operators/handlers/index.ts\nboards/database/operators/handlers/index.ts\nplaybooks/database/operators/handlers/index.ts\nEND"
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The design rule stated in the code is \"fix the corpus, not the sentence about the corpus.\"\nVERDICT: HIT\nWHY: The answer quotes the general design rule and also explains that the check outranks others so the reply doesn't send the caller to fix the wrong thing."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `code`: the running server imported older clew code than is on disk ... | restart the client only; `data` ... | rebuild\nVERDICT: HIT\nWHY: The table states data is cleared by a rebuild and code by a client restart, and the answer adds that schema can need either action. That is the substance of the item. The \"why one flag wouldn't be enough\" framing is implicit in the table."
+}

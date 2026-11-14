@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The Doxyfile no longer supplies INPUT (gh#333). It still contributes ALIASES and PREDEFINED.\nVERDICT: MISS\nWHY: The answer says the Doxyfile no longer supplies INPUT but gives no explanation that this avoids a repo with a Doxyfile getting only its documented subset while one without gets its whole tree."
+}

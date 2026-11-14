@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The C ABI carries only `int*`, so no atomic crosses the `.so` boundary. The poller threads bridge the int to the atomic.\"\nVERDICT: HIT\nWHY: The answer states the poller threads exist to bridge int and atomic because the C ABI can't carry an atomic, which matches the item, even if it calls them \"cancel pollers\" rather than \"observer.\""
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_ct_compiler_opaque` (`:85`) is an empty `asm volatile` that forces the value through a register. Without asm it XORs with `mbedtls_ct_zero`... so the compiler cannot fold the value at compile time.\nVERDICT: HIT\nWHY: The answer names mbedtls_ct_compiler_opaque as the optimizer barrier preventing the compiler from knowing the value, within the section stating all primitives live in library/constant_time_impl.h (line 85)."
+}

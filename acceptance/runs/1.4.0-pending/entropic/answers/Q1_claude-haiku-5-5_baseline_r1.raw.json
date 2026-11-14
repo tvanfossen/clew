@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 38650,
+  "stop_reason": "end_turn",
+  "session_id": "8d34316e-90c8-4cab-9c65-c2ffa91b744d",
+  "total_cost_usd": 0.014046820000000002,
+  "usage": {
+    "input_tokens": 16,
+    "cache_creation_input_tokens": 36925,
+    "cache_read_input_tokens": 316772,
+    "output_tokens": 6985,
+    "output_tokens_details": {
+      "thinking_tokens": 3696
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 36925,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3087,
+        "cache_read_input_tokens": 51012,
+        "cache_creation_input_tokens": 1532,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1532
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 16,
+      "outputTokens": 6985,
+      "cacheReadInputTokens": 316772,
+      "cacheCreationInputTokens": 36925,
+      "webSearchRequests": 0,
+      "costUSD": 0.014046820000000002,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 3696,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 36925,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 10,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Why it calls twice.** `LlamaCppTokenizer::tokenize` (`src/inference/llama_cpp_tokenizer.cpp:55-63`) uses llama.cpp's two-phase sizing protocol. The first `llama_tokenize` call passes a null buffer and zero capacity. llama.cpp answers with the negative of the required token count, and the code flips the sign to get the size. The second call fills a vector of that size. The first call is a size query, not an attempt that failed. Nothing is retried.\n\nThe same two-step shape appears in `detokenize` (lines 93-104). It tries a fixed 256-byte stack buffer, and only if llama.cpp returns a negative size does it allocate exactly that size and call again. That is the closest thing to a retry in the file, but it is still a buffer-size fallback, not a retry of a failed operation. A test helper in `tests/model/test_gh87_common_chat_e2e.cpp:51-58` copies the tokenize probe-then-fill pattern.\n\nSo I would not call it retry logic. It is size negotiation. There is no loop, no attempt limit beyond two, and no backoff. A failure in the probe is not handled at all: the code treats the negative value as a size and goes straight to the fill.\n\n**What the caller receives on failure.** `tokenize` returns an empty `std::vector<int32_t>`. It does this in three cases: the vocab pointer is null (silent), the fill call returns negative (logged at error level, with only the text length), or no tokenizer is wired (`llama_cpp_backend.cpp:795`). The interface contract at `include/entropic/inference/tokenizer.h` says \"empty on failure or empty input\", so a failure cannot be told apart from an empty prompt. `detokenize` similarly returns `\"\"` on failure.\n\n**What the callers do with the empty result:**\n\n| Caller | Behaviour on empty tokens |\n|---|---|\n| `do_count_tokens` / `count_tokens` (`llama_cpp_backend.cpp:825`) | Returns `0`. The C API `entropic_inference_count_tokens` (`inference_c_api.cpp:548`) returns that `0` too. Its doc says \"text_len/4 estimate on error\", but the estimate only happens on a caught exception, so this doc does not match the code. |\n| `tokenize_text` (`:837`) | Passes the empty vector through. |\n| `do_generate_text_only`, `do_generate_cancellable`, `do_generate_streaming` (`:2561`, `:2643`, `:2728`) | No check. They log \"0 input tokens\" and call `run_prefill_cached`. `run_prefill` (`:1484`) with zero tokens clears KV memory and returns true, so generation proceeds with no prompt in context. The sampling path was not traced, so I can't say whether it errors or emits junk. The log line is the only visible trace. |\n| `do_complete` (`:3947`) | No check. Same path into `decode_loop`. |\n| `do_generate_batch` (`:1911`) | Stores empty token vectors and computes prefix/suffix lengths without validation. I did not trace what the batched decode does with them. |\n| System-prefix sizing (`:2066`) | Returns `0`, which reads as \"no system prefix\". |\n| Speculative (`:3593`) and MTP (`:3921`) | The only callers that guard. They reject with `GENERATE_FAILED` when `tokens.size() < 2`. |\n\nDetokenize failures return `\"\"`, which the streaming loop (`:1534`) and content concatenation (`:1819`) append as nothing, so a bad token is dropped silently.\n\n**Bottom line.** The double call is a size-probe protocol, not a retry. A tokenization failure is reported only as an empty vector, which most generation entry points do not check. The result is that a failed encode can surface as a generation from an empty context, or as a count of `0`, with only an error-level log in the fill-failure branch. The cleanest fix is to return a status (or `std::optional`) from the Tokenizer seam and have the generate, complete and count entry points return an error code on failure. Changing the `Tokenizer` seam signature is an interface change under the repo's rules, so it needs user sign-off.",
+  "ttft_ms": 1550,
+  "type": "result",
+  "duration_ms": 39570,
+  "uuid": "5b2f8e7c-2d80-4d00-9634-623cb1f0372a",
+  "ttft_stream_ms": 1269,
+  "time_to_request_ms": 145,
+  "first_content_frame_ms": 1269,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

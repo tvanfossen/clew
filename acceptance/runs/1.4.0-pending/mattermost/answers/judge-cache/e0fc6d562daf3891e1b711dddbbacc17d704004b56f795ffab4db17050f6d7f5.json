@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Any exception is swallowed by an empty `catch`.\nVERDICT: MISS\nWHY: The answer says only the added handler swallows exceptions with an empty catch. It does not say the removed handler does too, and it does not say a failed write leaves no trace."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: reaction = JSON.parse(msg.data.reaction)\n            \u251c\u2500 queries/servers/reaction.ts:12  queryReaction(emoji_name, post_id, user_id).fetch()\n            \u2514\u2500 if (reaction.length) database.write(() => reaction[0].destroyPermanently())\nVERDICT: HIT\nWHY: The answer says removal does not go through the operator, queries the reaction via queryReaction, and destroys it with a direct database.write."
+}

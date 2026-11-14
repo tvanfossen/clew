@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer lists several inference files but says its list is \"representative, not exhaustive\" and confines usage to `src/inference/`; it never conveys that the dependency reaches roughly a dozen files of entropic's own source."
+}

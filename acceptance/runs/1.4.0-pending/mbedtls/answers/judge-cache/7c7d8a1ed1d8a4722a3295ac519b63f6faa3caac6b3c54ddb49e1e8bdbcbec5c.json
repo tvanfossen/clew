@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Defining `MBEDTLS_ALLOW_PRIVATE_ACCESS` makes the macro the identity, so bare `ctx->flags` compiles. ... In a default build, a field `flags` is really named `private_flags`. Code that writes `ctx->flags` fails to compile.\nVERDICT: HIT\nWHY: The answer states that code defining the opt-out sees plain member names, while default consumers of the public headers see `private_`-prefixed names."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Every empty reply carries `scope` (file count, source tier, extensions, top levels, and `not_indexed` when recorded). That is the field that distinguishes 'outside what was indexed' from 'not in the repo.'\"\nVERDICT: HIT\nWHY: The answer says empty replies carry a scope block listing indexed extensions and `not_indexed`. It says this block separates \"file type not indexed\" from \"not in the repo\", which is the distinction the item asks for."
+}

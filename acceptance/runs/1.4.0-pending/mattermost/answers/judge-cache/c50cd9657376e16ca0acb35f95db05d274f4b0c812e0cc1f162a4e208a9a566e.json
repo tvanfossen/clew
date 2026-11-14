@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It is passed directly as `ref={ref}` to `<NavigationSearch>` at `index.tsx:~124`, and only when `hasSearch` is true. ... When `hasSearch` is false, `NavigationSearch` is not mounted, so a ref passed to `NavigationHeader` stays null.\nVERDICT: HIT\nWHY: The answer states that NavigationHeader forwards its ref to NavigationSearch, which renders only when `hasSearch` is true, so the ref stays null otherwise."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Tiers 3 and 4 always survive. These are target facts (a Doxyfile's aliases, a generator manifest) and ecosystem signatures. No stated tier can remove them.\nVERDICT: MISS\nWHY: The answer says tiers 3 and 4 both survive and combine by union, but never states that they combine identically, that the distinction between them is inert, or that the load-bearing line is fact versus guess."
+}

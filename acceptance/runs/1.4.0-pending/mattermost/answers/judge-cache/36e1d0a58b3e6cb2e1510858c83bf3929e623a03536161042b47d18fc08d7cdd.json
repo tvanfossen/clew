@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: This is the single-reaction, event-driven case, so it must not treat the rest of the post's reactions as stale.\nVERDICT: HIT\nWHY: The answer says skipSync makes sanitizeReactions skip computing deleteReactions, so the lone incoming reaction isn't treated as the post's full set and the other reactions aren't treated as stale (and deleted)."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `library/common.h:132` | Defines it for the whole library. Library `.c` files that include `common.h` before any mbedtls header get direct field access.\nVERDICT: HIT\nWHY: The answer states the library-internal shared header (common.h) defines the opt-out, so all library files including it see plain member names."
+}

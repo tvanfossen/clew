@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Exceptions never cross into C.** Trampolines catch and print them. Each returns a status code instead.\nVERDICT: MISS\nWHY: The answer says exceptions are caught and a status code returned, but never says a failed hook is treated as a pass-through, and it doesn't say that the trampoline swallows every exception."
+}

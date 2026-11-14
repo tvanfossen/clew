@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"unless the repo declares an `index_scope:` in its `.clew.yaml`, clew indexes the whole repository\"; \"nothing declared (the default) \u2500\u2500 whole_repo_scope(repo)\"; \"derive_scope alone falls back to whole-repo\"\nVERDICT: HIT\nWHY: The answer gives the declared `index_scope` priority and says that both a missing declaration and (in `derive_scope`) an unusable one fall back to the whole repository. It adds that the CLI refuses an unusable declaration, but the fallthrough itself is stated."
+}

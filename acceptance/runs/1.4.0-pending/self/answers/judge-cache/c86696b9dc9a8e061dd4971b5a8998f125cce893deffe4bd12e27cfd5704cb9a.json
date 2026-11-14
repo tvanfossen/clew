@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer gives two confidence tiers: a definitive \"no such defined symbol in the indexed files\" and a low-confidence \"repo does not contain that\". It never describes a separate grade for a reply that is definitive for a reason other than absence."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"with the shipped defaults, mbedtls creates no threads and takes no mutexes.\" Also: \"The index found four spawn sites, all in `programs/`... This program needs `MBEDTLS_THREADING_C` and `MBEDTLS_THREADING_PTHREAD`\"\nVERDICT: MISS\nWHY: The answer says the library creates no threads by default, but it never says the pthread example compiles to a stub main under default config. It only notes the program needs those options."
+}

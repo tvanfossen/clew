@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `library/common.h:132` | Every library TU that includes `common.h` (nearly all of `library/*.c`) | Members use their real names. Library code writes `ctx->state` directly.\nVERDICT: HIT\nWHY: The answer states that library/common.h, a shared header, turns on the opt-out, so every library TU that includes it sees real member names."
+}

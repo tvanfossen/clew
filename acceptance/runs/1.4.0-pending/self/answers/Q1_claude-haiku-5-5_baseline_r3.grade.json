@@ -1,0 +1,83 @@
+{
+  "cell": "Q1_claude-haiku-5-5_baseline_r3",
+  "arm": "baseline",
+  "rubric_version": "5.0.0",
+  "rubric_digest": "d8447c7b18eafbf5",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.5625,
+  "unmarked_pct": 0.0,
+  "split_decisions": 2,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "names derive_scope in clew/scope.py as where the decision is resolved",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: `derive_scope` then falls back to whole-repo and logs a WARNING. | WHY: The answer names `derive_scope` in the context of `scope.py` (step 2 heading \"scope.py, `_declared_index_scope`\" followed by `derive_scope` resolving to whole-repo fallback), showing it as where the scope decision is resolved. || QUOTE: `derive_scope` then falls back to whole-repo and logs a WARNING. | WHY: The answer names `derive_scope` in the `scope.py` section as the place where the scope decision (declared vs whole-repo fallback) is resolved.",
+      "agreement": 0.6666666666666666,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that a repository's own declared index_scope is preferred, and that every failure to find one falls through to indexing the whole repository",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: \"If `index_scope` is present but unusable (a non-mapping, an unknown key, or no existing roots), it is rejected with a reason. `derive_scope` then falls back to whole-repo and logs a WARNING.\" | WHY: The answer says a declared scope is used and some failures fall back to whole-repo. It does not say that every failure to find a declaration falls through, and it describes the CLI/MCP refresh path as refusing rather than falling through. || QUOTE: \"If `index_scope` is present but unusable (a non-mapping, an unknown key, or no existing roots), it is rejected with a reason. `derive_scope` then falls back to whole-repo and logs a WARNING.\" | WHY: The answer says a declared scope is used and that unusable declarations fall back to whole-repo. It never states that every failure to find one (absent file, guard-only, unparseable) falls through to whole-repo, and it says the CLI and MCP refresh paths refuse the rejected case instead.",
+      "agreement": 0.6666666666666666,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "conveys that the fallback carries a REASON explaining which scope was used and why, so an unstated scope is never silently guessed",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: If `index_scope` is present but unusable (a non-mapping, an unknown key, or no existing roots), it is rejected with a reason. `derive_scope` then falls back to whole-repo and logs a WARNING. | WHY: The answer says the whole-repo fallback carries a rejection reason and logs a warning that no `index_scope` is declared, so the scope is not guessed silently. || QUOTE: If `index_scope` is present but unusable (a non-mapping, an unknown key, or no existing roots), it is rejected with a reason. `derive_scope` then falls back to whole-repo and logs a WARNING. | WHY: The answer states the fallback carries a reason (rejected \"with reason\", and a WARNING stating that the whole repository is being indexed because no `index_scope` is declared), so the scope is never silently guessed. || QUOTE: If `index_scope` is present but unusable (a non-mapping, an unknown key, or no existing roots), it is rejected with a reason. `derive_scope` then falls back to whole-repo and logs a WARNING. | WHY: The answer says the fallback is rejected with a reason and logged, and the diagram labels it \"whole-repo, with reason\". That conveys the fallback carries a reason for the scope used, so the scope is not silently guessed.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that a Doxyfile's own INPUT is deliberately NOT used to decide the indexed tree, and explains why \u2014 a repository that ships one would get only its documented subset while a repository that ships none gets its whole tree",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: A repo's own Doxyfile is still read, but only for `ALIASES` and `PREDEFINED`. Its `INPUT`, `FILE_PATTERNS` and `EXCLUDE*` are discarded, so a repo cannot narrow the index by documenting itself. | WHY: The answer says a Doxyfile's INPUT is discarded and gives the reason that a repo cannot narrow the index by documenting itself, which matches the documented-subset rationale. It does not spell out the contrast with a repo that ships no Doxyfile, but the substance is there. || QUOTE: A repo's own Doxyfile is still read, but only for `ALIASES` and `PREDEFINED`. Its `INPUT`, `FILE_PATTERNS` and `EXCLUDE*` are discarded, so a repo cannot narrow the index by documenting itself. | WHY: The answer states the Doxyfile's INPUT is discarded and gives the reason, that a repo cannot narrow the index by documenting itself. That matches the item's rationale about a documented subset versus a whole tree. || QUOTE: A repo's own Doxyfile is still read, but only for `ALIASES` and `PREDEFINED`. Its `INPUT`, `FILE_PATTERNS` and `EXCLUDE*` are discarded, so a repo cannot narrow the index by documenting itself. | WHY: The answer states the Doxyfile's INPUT is discarded and gives the reason: a repo cannot narrow the index by documenting itself. That is the documented-subset-versus-whole-tree rationale, in compressed form.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that nested git trees are INDEXED and tagged rather than excluded from the scope",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: Nested git trees are included,** not excluded. They are tagged as external afterwards in `external.py`, so `chain_trace` can say what a call does instead of stopping at a submodule boundary. | WHY: The answer explicitly states nested git trees are indexed (included) and tagged as external rather than excluded. || QUOTE: **Nested git trees are included,** not excluded. They are tagged as external afterwards in `external.py`, so `chain_trace` can say what a call does instead of stopping at a submodule boundary. | WHY: The answer explicitly states nested git trees are included in the index scope and tagged as external afterward, rather than excluded. || QUOTE: **Nested git trees are included,** not excluded. They are tagged as external afterwards in `external.py`, so `chain_trace` can say what a call does instead of stopping at a submodule boundary. | WHY: The answer explicitly states nested git trees are included in the index and tagged as external afterward rather than excluded.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "conveys that the containment call was REMOVED rather than left in place with its callers dropped",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer describes scope and indexing mechanics but never mentions a containment call being removed rather than left in place with its callers dropped. || QUOTE: NONE | WHY: The answer describes index scope selection and never mentions a containment call being removed rather than left in place with its callers dropped. || QUOTE: NONE | WHY: The answer never mentions a containment call being removed rather than left in place with callers dropped; it only describes scope derivation.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the resolved scope is not the whole answer \u2014 within it, a file reaches the index only if something can read it, and names at least one of the two filters: the parse-built front end claiming the file types doxygen cannot read, or binary classification dropping files whose extension lies about them",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: Rust, JS/TS, shell and CMake files have no doxygen front end. Their extensions are routed in `harvest.py` and `synth.py` instead. | WHY: The answer says doxygen filters by FILE_PATTERNS and that other languages are routed separately, but it never states the parse-built front end claiming doxygen-unreadable types as a filter, and it never mentions binary classification dropping files with misleading extensions. || QUOTE: Rust, JS/TS, shell and CMake files have no doxygen front end. Their extensions are routed in `harvest.py` and `synth.py` instead. | WHY: The answer says doxygen filters by FILE_PATTERNS and mentions other languages routed separately, but it doesn't state that a file reaches the index only if something can read it. It also doesn't name the parse-built front end claiming the file types doxygen can't read as a filter on the resolved scope, and it never mentions binary classification dropping files with misleading extensions. || QUOTE: Rust, JS/TS, shell and CMake files have no doxygen front end. Their extensions are routed in `harvest.py` and `synth.py` instead. I did not trace how each of those harvesters enumerates files... | WHY: The answer says doxygen filters by FILE_PATTERNS and that other languages go through separate harvesters, but it never states the file-reaches-index-only-if-readable point, never names the parse-built front end as a filter, and never mentions binary classification.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    }
+  ]
+}

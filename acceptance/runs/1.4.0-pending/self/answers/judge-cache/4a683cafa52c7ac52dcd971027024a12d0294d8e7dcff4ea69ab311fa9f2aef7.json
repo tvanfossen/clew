@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The `options` argument of `build_index` or `index(action='refresh')` | For MCP and embedding callers, which have no shell.\" and \"1, explicit | CLI flags (`--scope`, ...)\"\nVERDICT: HIT\nWHY: The answer places both CLI flags and the structured `options` argument at tier 1, and says the `options` route serves embedding callers with no shell."
+}

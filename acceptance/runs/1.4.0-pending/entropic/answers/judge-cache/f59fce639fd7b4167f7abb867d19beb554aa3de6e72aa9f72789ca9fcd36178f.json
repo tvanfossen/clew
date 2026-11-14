@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Auto-approve or the allow list is the only thing that skips prompting... Allow entries are consulted in `check_approval`.\nVERDICT: HIT\nWHY: The answer says the allow list skips prompting (suppresses approval) and that allow entries are consulted in `check_approval` (tool_executor.cpp:161), while deny is checked in a different file's `ServerManager::execute`."
+}

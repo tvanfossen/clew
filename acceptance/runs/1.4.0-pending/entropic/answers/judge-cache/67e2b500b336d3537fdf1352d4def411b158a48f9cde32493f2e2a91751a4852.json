@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: if no callback \u2192 denied (\"No approval callback \u2014 denying\"); \"So with a callback registered, every call not on the allow list runs. ... The deny list still holds.\"\nVERDICT: MISS\nWHY: The answer says that with a callback registered, calls not on the allow list run, which is a default-allow claim. But it hedges on the no-callback case, where it says the call is denied, and it never states the posture for a tool that matches neither list."
+}

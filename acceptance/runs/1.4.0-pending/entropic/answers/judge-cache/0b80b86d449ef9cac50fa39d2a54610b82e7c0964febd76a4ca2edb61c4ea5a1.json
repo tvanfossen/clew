@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The index shows 10 thread spawn sites in entropic's own code... `ExternalBridge::accept_loop` (`src/facade/external_bridge.cpp:796`)... `SSETransport::sse_reader_loop` (`src/mcp/transport_sse.cpp:107`)... `HealthMonitor::monitor_loop` (`src/mcp/health_monitor.cpp:92`)... `iface_generate_with_cancel` poller (`src/inference/interface_factory.cpp:246`)\nVERDICT: HIT\nWHY: The answer lists thread spawn sites across the external bridge, the MCP transports (stdio and SSE), the health monitor and the inference path, which shows creation is spread out rather than centralised. It never states \"decentralised\" in so many words, but the table makes the spread plain."
+}

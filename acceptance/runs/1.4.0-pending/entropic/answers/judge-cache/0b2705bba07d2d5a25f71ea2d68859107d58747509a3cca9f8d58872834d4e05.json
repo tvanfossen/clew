@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Allow list: consulted only in `check_approval`. A match skips the prompt. It does not check the deny list.\nVERDICT: HIT\nWHY: The answer says the allow list is consulted only in check_approval and only skips the prompt, and it places check_approval in tool_executor.cpp (separate from server_manager.cpp, where the deny list is checked)."
+}

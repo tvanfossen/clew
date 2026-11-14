@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: An allow hit skips the prompt. It does not bypass the deny check, which runs later.\nVERDICT: HIT\nWHY: The answer says an allow match only skips the approval prompt and does not bypass the later deny check. It also places the allow check in `check_approval` (`tool_tcall_executor.cpp`) and the deny check in `ServerManager::execute` (`server_manager.cpp`), so the different-file location is named."
+}

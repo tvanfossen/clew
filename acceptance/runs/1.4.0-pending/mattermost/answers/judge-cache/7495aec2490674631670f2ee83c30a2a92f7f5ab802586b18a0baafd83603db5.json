@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It first writes an optimistic local post with a `pending_post_id` and `id: ''`, so it shows in the UI before the server responds. ... Every other failure saves the post with `failed: true`.\nVERDICT: HIT\nWHY: The answer says the post is written locally before the send, and that on failure it is kept and marked `failed: true`."
+}

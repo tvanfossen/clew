@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The reply also names the `target` it answered from.\nVERDICT: MISS\nWHY: The answer says replies name their target but never says a routed reply is annotated for the repository it actually read rather than the server's default target."
+}

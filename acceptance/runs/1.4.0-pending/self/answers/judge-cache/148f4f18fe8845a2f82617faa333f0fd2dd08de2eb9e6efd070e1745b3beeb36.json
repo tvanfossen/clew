@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Explicit statement at call time: a CLI flag, or the `options` argument / MCP parameters (`scope`, `exclude`, `doxyfile`, `target`, `force`)\" and \"so an MCP caller that cannot reach a shell still has tier 1\"\nVERDICT: HIT\nWHY: The answer states tier 1 is reachable via both a CLI flag and the options argument/MCP parameters, so a shell-less caller still has tier 1."
+}

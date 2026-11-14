@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`external_bridge.cpp:1158` | Async `entropic.ask` worker | ... | **Detached**; never joined\" and \"Detached async worker outlives the bridge (most serious)... captures `this` and `handle_`, then detaches.\"\nVERDICT: HIT\nWHY: The answer identifies the async ask worker as the detached thread that is never joined and outlives its owner; it doesn't explicitly say it is the only detached thread, but the table marks it as the sole one."
+}

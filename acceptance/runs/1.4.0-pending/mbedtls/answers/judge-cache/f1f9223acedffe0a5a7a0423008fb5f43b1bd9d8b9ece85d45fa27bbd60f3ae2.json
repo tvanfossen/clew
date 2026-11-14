@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: When that is off, the stub gated by `MBEDTLS_ERROR_STRERROR_DUMMY` (around `error.c:867`) is used, per `include/mbedtls/mbedtls_config.h:1170`.\nVERDICT: MISS\nWHY: The answer names the DUMMY stub but doesn't state it keeps strerror linkable when the table is compiled out, nor that it is enabled by default."
+}

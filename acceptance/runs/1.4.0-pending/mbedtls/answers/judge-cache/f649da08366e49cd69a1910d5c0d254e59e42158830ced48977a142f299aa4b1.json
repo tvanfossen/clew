@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: or to \"always fail\" stubs if those are undefined (platform.c:24-45)\nVERDICT: MISS\nWHY: The answer mentions always-fail stubs only when STD_CALLOC/FREE are undefined, and never states that an uninitialised calloc pointer returns NULL or that an uninitialised free does nothing."
+}

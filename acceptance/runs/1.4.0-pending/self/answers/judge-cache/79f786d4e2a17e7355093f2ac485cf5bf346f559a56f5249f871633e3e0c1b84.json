@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names no file paths. It mentions functions (`db_status`, `code_identity()`, `staleness_notices()`, `_staleness()`, `freshness.notices()`, `stale_code_refusal()`, `_refresh_stale()`), but none of them is given as a file path. `freshness.notices()` is a module-qualified function, not a path.\n\nITEMS:\nNONE\nEND"
+}

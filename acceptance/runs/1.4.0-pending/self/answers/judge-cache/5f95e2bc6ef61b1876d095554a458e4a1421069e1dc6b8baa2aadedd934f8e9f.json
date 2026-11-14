@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Query replies carry these notices in a `staleness` field, sized to fit the payload.\nVERDICT: MISS\nWHY: The answer says notices are sized to fit the payload but never says wording is degraded rather than the warning dropped."
+}

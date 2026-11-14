@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`db_status` (`clew/mcp_server/state.py:1140`) measures three things and sets `stale` if any is true:\" followed by the table with `schema`, `data`, `code` axes.\nVERDICT: HIT\nWHY: The answer states that staleness is measured on three distinct axes (schema, data, code), each with its own measurement and remedy, and names them."
+}

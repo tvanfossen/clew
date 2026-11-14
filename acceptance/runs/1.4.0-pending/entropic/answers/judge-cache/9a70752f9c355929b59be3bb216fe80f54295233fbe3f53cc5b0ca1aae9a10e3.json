@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer details reach into src/inference and also into src/facade/entropic.cpp and public headers, but never explicitly concludes the dependency is concentrated in the inference layer yet not contained by it, nor that a minority of reaching files sit outside it."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Writes are refused on a code-stale process. `stale_code_refusal()` returns a refusal message that `force` does not override. Reads still work, and read data is live. The module records that a rebuild from a stale process once dropped a whole layer and then reported `stale: false`.\nVERDICT: HIT\nWHY: The answer says reads still work with live data while writes/rebuilds from a code-stale process are refused because the old pipeline logic would re-stamp the index (it names a dropped layer as the past failure). It does not explain the per-call database open that keeps reads current, but the asymmetry itself is stated."
+}

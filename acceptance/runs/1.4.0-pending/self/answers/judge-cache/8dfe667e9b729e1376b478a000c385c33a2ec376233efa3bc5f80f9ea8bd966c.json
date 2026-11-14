@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Reads are still accurate because queries reopen the database per call, but writes are refused, since an old process rebuilding would drop layers.\nVERDICT: HIT\nWHY: The answer states that reads stay current because queries reopen the database per call, while a stale-code process's rebuild is refused because it would drop layers (old pipeline logic)."
+}

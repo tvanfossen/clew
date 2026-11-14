@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The first `llama_tokenize` call passes a null buffer and zero capacity. llama.cpp answers with the negative of the required token count, and the code flips the sign to get the size.\"\nVERDICT: HIT\nWHY: The answer states the first call returns the negative of the required size and that the code flips the sign to size the second call's buffer."
+}

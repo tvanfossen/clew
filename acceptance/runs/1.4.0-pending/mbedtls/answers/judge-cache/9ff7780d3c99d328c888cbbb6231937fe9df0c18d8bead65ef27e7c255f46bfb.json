@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: MBEDTLS_PLATFORM_MEMORY off (default)\nVERDICT: MISS\nWHY: The answer treats MBEDTLS_PLATFORM_MEMORY as a configuration switch but says defaults are \"inferred\" and unchecked. It never states that it is commented out in the shipped mbedtls_config.h."
+}

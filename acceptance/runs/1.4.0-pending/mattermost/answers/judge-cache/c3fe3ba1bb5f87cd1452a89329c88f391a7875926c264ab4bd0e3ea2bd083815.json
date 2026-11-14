@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The `app/routes/**` files use `useNavigationHeader` from `@hooks/navigation_header`, which configures the native stack header. They do not render this component.\nVERDICT: MISS\nWHY: The answer never mentions the `Header` component from `navigation_header/header.tsx` or excludes its renderers; it only says routes use the hook and don't render NavigationHeader."
+}

@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 14052,
+  "stop_reason": "end_turn",
+  "session_id": "673e1b45-0950-41f4-abb0-cb0483aaaaf2",
+  "total_cost_usd": 0.01282949,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 50824,
+    "cache_read_input_tokens": 152139,
+    "output_tokens": 2285,
+    "output_tokens_details": {
+      "thinking_tokens": 536
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 50824,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1445,
+        "cache_read_input_tokens": 53920,
+        "cache_creation_input_tokens": 14219,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 14219
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 8,
+      "outputTokens": 2285,
+      "cacheReadInputTokens": 152139,
+      "cacheCreationInputTokens": 50824,
+      "webSearchRequests": 0,
+      "costUSD": 0.01282949,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 536,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 50824,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 7,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "A clew index can be stale on three independent axes, and the tool reports each one in every query reply. The caller's remedy depends on which axis fired. For this repository the index is current: `status` shows build version 9 matching the expected 9, zero changed source files, and a source fingerprint that matches the running code.\n\n**How it knows**\n\n`db_status` in `clew/mcp_server/state.py:1140` computes `stale` as true when any of these holds: the database is missing, its stamped build version differs from the expected one, or `source_changed_files > 0`. The last term compares source mtimes against the build, so edits made after a build are caught even when the pipeline version has not changed. `code_identity()` in `clew/mcp_server/freshness.py:221` covers the third axis: it compares the fingerprint of the running process with the fingerprint of the package source on disk. It reports `matches_source: false` only on positive evidence that two non-empty fingerprints differ, so an unreadable tree does not cause a false warning.\n\n**The three axes**\n\n| Axis | Meaning | Who can clear it |\n|---|---|---|\n| `data` | Indexed source files changed since the build | A rebuild (`index(action='refresh')`) |\n| `schema` | The stamped build version differs from the server's | A forced rebuild if the index is older; a client restart if the index is newer, because a rebuild re-stamps the same newer version |\n| `code` | The server process loaded clew before its source changed | Only a client restart; a rebuild cannot fix it |\n\n`notices()` in `freshness.py:575` builds the list in the order data, schema, code. It returns an empty list when the tool is current.\n\n**What the caller receives**\n\nEach query reply carries a `staleness` block only when a notice exists, so a current index adds no key at all. `staleness_notices()` in `server.py:1548` gathers the notices, and `_staleness` in `tools_query.py:1886` attaches them under a size budget. The data notice includes the number of changed files, the most recently changed file and the measured cost of a refresh. The code notice explicitly says that a rebuild will not help. Both are designed not to let the reader conclude that the data is wrong when only the server is out of date.\n\nMeasurement is non-raising throughout. A failure to measure degrades to no annotation, so the staleness check cannot turn a good answer into an error.\n\n**What the caller does about it**\n\n- **Query path, automatic:** before answering, `_auto_refresh` (`server.py:1242`) calls `_data_stale`. That method refuses to refresh when the process source does not match, because a stale process would rebuild with old pipeline logic. If the data axis is stale, `_refresh_stale` (`server.py:1294`) takes the per-target build lock with a bounded wait and re-checks staleness inside the lock, so concurrent queries produce one build. A failed or timed-out refresh falls back to answering from the existing index, with the notice still attached.\n- **Explicit refresh:** the caller calls `index(action='refresh')`. `build_or_refresh` (`server.py:2199`) skips the build when the index is already current, unless `force` is set. It refuses outright when the process predates its source, through `stale_code_refusal` (`freshness.py:531`), and `force` cannot override that refusal.\n- **Schema or code axis:** the caller restarts the MCP client to load current code, or forces a rebuild for an index older than the server. It does not retry the rebuild in a loop.\n- **Reading the reply:** the caller should check the `staleness` block and the `target` it names before trusting an answer. A `data` notice means an answer may describe code that no longer exists.",
+  "ttft_ms": 1640,
+  "type": "result",
+  "duration_ms": 15711,
+  "uuid": "9cbddbce-2a6e-43e2-a658-ebcad9abd70c",
+  "ttft_stream_ms": 1200,
+  "time_to_request_ms": 76,
+  "first_content_frame_ms": 1200,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

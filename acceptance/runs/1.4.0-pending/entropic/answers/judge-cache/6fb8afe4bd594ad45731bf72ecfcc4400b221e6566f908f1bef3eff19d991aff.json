@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Python talks to the C ABI through `ctypes`. There is no pybind11, cffi, or C extension module.\nVERDICT: HIT\nWHY: States ctypes loading librentropic.so (via _loader.py) as the mechanism and explicitly excludes any compiled extension module."
+}

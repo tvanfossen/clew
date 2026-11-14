@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `programs/test/benchmark.c:430,444` | `TimerProc` and `sighandler` for alarms | Test tool\nVERDICT: MISS\nWHY: The answer mentions benchmark.c's timer as a test tool but never says it is Windows-only or gated on a platform condition."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Triggered by the user from `app/components/post_list/post/body/failed/index.tsx:48`\" and \"Nothing in `app/` schedules a retry for a failed post.\"\nVERDICT: HIT\nWHY: The answer says no automatic retry occurs, that retrying is user-triggered from the failed-post component, and that it calls `retryFailedPost`. It never names the \"Try Again\" option, but the substance is stated."
+}

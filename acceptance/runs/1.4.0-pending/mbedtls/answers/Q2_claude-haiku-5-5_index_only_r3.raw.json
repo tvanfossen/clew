@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 22513,
+  "stop_reason": "end_turn",
+  "session_id": "df3d18c1-9233-45fd-ac0e-1d133d8b8df2",
+  "total_cost_usd": 0.008842969999999999,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 20299,
+    "cache_read_input_tokens": 283847,
+    "output_tokens": 3887,
+    "output_tokens_details": {
+      "thinking_tokens": 1475
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 20299,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1628,
+        "cache_read_input_tokens": 54988,
+        "cache_creation_input_tokens": 2017,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2017
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 3887,
+      "cacheReadInputTokens": 283847,
+      "cacheCreationInputTokens": 20299,
+      "webSearchRequests": 0,
+      "costUSD": 0.008842969999999999,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1475,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 20299,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 12,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**What it accomplishes:** `MBEDTLS_PRIVATE(member)` is a macro in `include/mbedtls/private_access.h:15`. By default it expands to `private_##member`, so `ssl->MBEDTLS_PRIVATE(state)` becomes `ssl->private_state`. Application code that writes `ssl->state` no longer compiles, because the real field name is mangled. The point is to stop applications from depending on struct layout, so the library can rename, reorder, or change fields in a minor release without breaking callers. The migration guide says the same: \"Attempting to access a private field directly will result in a compilation error\" (`docs/3.0-migration-guide.md`, \"Most structure fields are now private\"). It also describes direct access as a \"last resort.\"\n\nAlmost every public accessor in the tree is written this way. Examples: `mbedtls_ssl_is_handshake_over` (`ssl.h:5148`), `mbedtls_ssl_get_hostname` (`ssl.h:4144`), `mbedtls_cipher_get_name` (`cipher.h:769`), and the `psa_get_key_*` / `psa_set_key_*` helpers in `psa/crypto_struct.h`. The accessors live inside the library's own headers and reach into the struct for the caller.\n\n**The opt-out:** `private_access.h:14-18` is a two-branch gate on `MBEDTLS_ALLOW_PRIVATE_ACCESS`.\n- If it is **not** defined, `MBEDTLS_PRIVATE(m)` \u2192 `private_m` (the default, mangled).\n- If it **is** defined, `MBEDTLS_PRIVATE(m)` \u2192 `m` (plain access).\n\nThe index shows the macro defined in exactly three places:\n\n| Location | Who it is |\n|---|---|\n| `library/common.h:132` | Internal library header. The library turns the gate on for itself. |\n| `programs/ssl/ssl_client2.c:8` | Test/debug client program |\n| `programs/ssl/ssl_server2.c:8` | Test/debug server program |\n\nIt is not set in any config header, `.clew.yaml`-style file, or Kconfig file that the index can see. The gate is \"undeclared\" in the index's terms, so it is not a documented public config option.\n\n**What this means for those places:**\n- **Library internals** (`library/*.c`, via `common.h`) can read and write fields directly, e.g. `ecdh.c:150` uses `ctx->MBEDTLS_PRIVATE(grp).id`, which becomes `ctx->grp.id`. This is the intended use: the library is the owner of the layout, so it is the one party allowed to depend on it. Any field rename in the library has to be done consistently across these files, because the compiler will catch mismatches only within the library's own build.\n- **`ssl_client2.c` and `ssl_server2.c`** can poke at SSL internals for testing and debugging. They are test drivers, not application examples. Application code that copies this pattern is depending on fields that may change without a version bump.\n- **Everyone else** (external applications) gets the mangled name and a compile error if they reach into a field.\n\n**Caveats I could not verify from the index:**\n- The index does not show the `#define` ordering in `ssl_client2.c` / `ssl_server2.c`. The opt-out only works if line 8 precedes the mbedtls includes, which is the usual pattern but is an inference.\n- I could not confirm that every file under `library/` includes `common.h`. If any library file does not, it would see the mangled names and fail to build, so the claim \"the library opts out\" should be checked by reading the include lines.",
+  "ttft_ms": 1415,
+  "type": "result",
+  "duration_ms": 23553,
+  "uuid": "706420c9-2671-4185-8826-aa764f8dcdb9",
+  "ttft_stream_ms": 1169,
+  "time_to_request_ms": 71,
+  "first_content_frame_ms": 1169,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

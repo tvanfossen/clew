@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never states that the buffer allocator (memory_buffer_alloc) itself requires MBEDTLS_PLATFORM_MEMORY, so enabling it alone isn't enough. It only says the allocator installs its hooks through mbedtls_platform_set_calloc_free()."
+}

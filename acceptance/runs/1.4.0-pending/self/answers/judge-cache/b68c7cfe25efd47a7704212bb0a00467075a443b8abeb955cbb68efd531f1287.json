@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: When bash or cmake is absent: ... The file still gets a `path` row ... They do not appear in `not_indexed`, so the index reports nothing missing.\nVERDICT: MISS\nWHY: The answer concludes the opposite: a missing grammar leaves files silently counted as indexed rather than reported as not indexed, and it names no capability gate in the router."
+}

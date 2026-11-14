@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says a single unmatched token was previously treated as proof of absence; it only describes current signals distinguishing in-index absence from not-looked, with no statement of the prior flawed behavior."
+}

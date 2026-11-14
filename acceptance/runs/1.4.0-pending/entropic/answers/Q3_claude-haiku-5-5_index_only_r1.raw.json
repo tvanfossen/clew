@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 34098,
+  "stop_reason": "end_turn",
+  "session_id": "31300867-9566-4878-93f3-8e931aac5794",
+  "total_cost_usd": 0.01722791,
+  "usage": {
+    "input_tokens": 16,
+    "cache_creation_input_tokens": 52664,
+    "cache_read_input_tokens": 379101,
+    "output_tokens": 5805,
+    "output_tokens_details": {
+      "thinking_tokens": 2960
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 52664,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2730,
+        "cache_read_input_tokens": 67080,
+        "cache_creation_input_tokens": 2901,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2901
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 16,
+      "outputTokens": 5805,
+      "cacheReadInputTokens": 379101,
+      "cacheCreationInputTokens": 52664,
+      "webSearchRequests": 0,
+      "costUSD": 0.01722791,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2960,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 52664,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 13,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** a call runs only if it clears a fixed chain of checks in `ToolExecutor`. The allow and deny lists feed two of those checks. The deny list is enforced later, inside `ServerManager::execute`, not in the approval step.\n\n```\nmodel emits tool call\n  \u2514\u2500 process_tool_calls \u2192 sort, truncate to per-turn limit\n      \u2514\u2500 process_single_call\n          1. PRE_TOOL_CALL hook (can cancel)\n          2. check_call_preconditions\n             a. anti-spiral hard block\n             b. schema\n             c. MCP authorization\n             d. tier allowed\n             e. duplicate-call check\n             f. check_approval_pc  \u2190 allow list / auto-approve / callback\n          3. execute_tool\n             \u2514\u2500 ServerManager::execute\n                 \u251c\u2500 is_denied(tool, pattern)? \u2192 \"Permission denied\" JSON, call stops\n                 \u2514\u2500 route_tool_call \u2192 the MCP server runs the tool\n          4. finalize_tool_call (post hook, history)\n```\n\n**Approval step (`check_approval`, `src/mcp/tool_executor.cpp:161`).** Approved if any of these holds:\n- `loop_config_.auto_approve_tools` is set. I did not confirm how this maps to `permissions.auto_approve` in config.\n- `ServerManager::is_explicitly_allowed` matches an allow pattern.\n- An `on_tool_call` callback is registered. See the issue below.\n\nOtherwise the call is denied with \"Permission denied\", and the code logs \"No approval callback \u2014 denying\".\n\n**What an allow pattern does.** Patterns are matched by `PermissionManager::pattern_matches` (`src/mcp/permission_manager.cpp:101`):\n- The text before the first `:` is an fnmatch glob on the fully-qualified tool name, e.g. `filesystem.*`.\n- With no `:`, the tool-name match is enough. A bare `bash.execute` allows every call to that tool.\n- With a `:`, the part after it is an fnmatch glob on the argument pattern built by `args_to_pattern` (`src/mcp/server_manager.cpp:426`). That is the first argument's string value, or `*` for empty, non-object, or non-string-first-argument JSON.\n- Matching is `fnmatch` with flags 0, so `*` also matches `/`, spaces, and shell metacharacters.\n\nAn allow hit skips the prompt. It does not bypass the deny check, which runs later.\n\n**What a deny pattern does.** `is_denied` uses the same matcher, but only in `ServerManager::execute` (`src/mcp/server_manager.cpp:153`). A match returns an error result without running the tool, and it is enforced regardless of allow or auto-approve. The header's \"deny takes precedence\" holds in practice because of this placement, even though `check_approval` never consults the deny list.\n\n**Patterns generated by \"Always Allow/Deny\".**\n- `BashServer::get_permission_pattern` (`src/mcp/servers/bash.cpp:200`) produces `execute:{base_cmd} *`, e.g. `bash.execute:pytest *`. The base command is the text before the first space.\n- `PermissionPersister::save_permission` (`src/storage/permission_persister.cpp:227`) writes the pattern into `permissions.allow` or `permissions.deny` in the project YAML.\n\n**Issues found while reading:**\n1. **The approval callback never denies.** In `check_approval`, if `on_tool_call` is set, `approved` is forced to `true`. The callback returns `void`, so a frontend cannot refuse through it. The header comment says tools are \"approved via callback\", which contradicts the code. Unless the frontend blocks inside the callback, which I could not check from the index, the prompt is notify-only.\n2. **Bash allow patterns can be overbroad.** `execute:pytest *` is matched by fnmatch, so `*` matches `; rm -rf ~` or `&& curl \u2026`. Nothing I read splits the command on shell operators. An \"Always Allow\" on one command therefore approves chained commands too.\n3. **Non-string first argument.** `args_to_pattern` returns `*` for it, so an argument-scoped allow rule such as `tool:/safe/*` cannot match that call.\n\nI did not verify the frontend side of the callback or the `auto_approve` mapping, so both are open questions.",
+  "ttft_ms": 1668,
+  "type": "result",
+  "duration_ms": 37256,
+  "uuid": "688a6f88-60c5-45b3-b973-c6aacf623da6",
+  "ttft_stream_ms": 1271,
+  "time_to_request_ms": 72,
+  "first_content_frame_ms": 1271,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

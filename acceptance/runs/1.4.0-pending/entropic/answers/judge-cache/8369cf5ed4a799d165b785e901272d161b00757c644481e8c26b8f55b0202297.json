@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `process_events()` swaps the event queue out under `event_mutex_` and invokes callbacks after releasing the lock. The docstring says callbacks run on the engine thread.\nVERDICT: HIT\nWHY: The answer states that the monitor thread queues events under a mutex, and that `process_events()` drains them and runs the callbacks on the engine (caller) thread."
+}

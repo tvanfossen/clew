@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: External bridge accept loop | `src/facade/external_bridge.cpp:796` | Joined in `stop()` ... Per-client serve threads | `external_bridge.cpp:945` | Owned by `client_threads_`, joined in `stop()`\nVERDICT: HIT\nWHY: The answer lists an accept-loop thread and separate per-client serve threads kept in `client_threads_`, which is the two-level structure of one accept thread plus a thread per connected client."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `sighandler`, `term_handler`, `TimerProc` | `programs/test/benchmark.c`, `programs/ssl/ssl_server2.c` | Example and test programs only\nVERDICT: MISS\nWHY: The answer names TimerProc in benchmark.c but never says it is Windows-only or gated on a platform condition rather than the threading config."
+}

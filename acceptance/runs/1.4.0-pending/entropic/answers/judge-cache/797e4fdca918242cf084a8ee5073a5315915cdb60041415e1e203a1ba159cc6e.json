@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Leaked as opaque pointers into several public C++ headers... `src/facade/entropic.cpp` includes llama_cpp_backend.h, dynamic_casts to LlamaCppBackend, calls llama_model_ptr()/llama_context_ptr()\nVERDICT: HIT\nWHY: The answer says the reach is pervasive inside src/inference but also leaks outside it, into the public headers, src/facade/entropic.cpp and tests. That gives the concentrated-but-not-contained conclusion."
+}

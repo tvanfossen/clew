@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"An index stamped by a newer build than this process expects cannot be cleared by any rebuild through this process.\" and \"schema | index newer than server | no rebuild clears it\"\nVERDICT: HIT\nWHY: The answer says that a schema-stale index, one newer than the server, can't be fixed by any rebuild through this process. It doesn't give the re-stamping reason, but the unresolvable-by-rebuild substance is stated."
+}

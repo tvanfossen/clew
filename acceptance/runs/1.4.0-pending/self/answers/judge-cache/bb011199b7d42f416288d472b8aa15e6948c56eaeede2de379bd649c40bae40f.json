@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The option names are the same as the declaration section names, with one documented alias, `predefined`.\nVERDICT: MISS\n\nWHY: The answer says the option names match the declaration section names, but it never says they are also the same words the diagnostics use."
+}

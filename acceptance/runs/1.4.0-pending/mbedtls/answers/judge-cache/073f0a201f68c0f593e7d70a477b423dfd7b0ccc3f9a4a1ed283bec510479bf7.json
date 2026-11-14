@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: MBEDTLS_PLATFORM_MEMORY off (default)\n  mbedtls_calloc()  --macro, platform.h:167-->  calloc()          (no indirection)\nVERDICT: HIT\nWHY: The answer states that in the default config mbedtls_calloc is a macro going directly to calloc with no indirection. It mentions mbedtls_free only as mirroring the other cases, but the calloc substance is clearly stated."
+}

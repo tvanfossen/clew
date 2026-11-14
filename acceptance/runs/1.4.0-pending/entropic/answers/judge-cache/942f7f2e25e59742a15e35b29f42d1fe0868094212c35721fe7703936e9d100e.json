@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The part before the first `:` is matched against the tool name. The part after it is matched against the argument value. ... `git.commit` | that tool, any args (no colon means tool name only)\nVERDICT: HIT\nWHY: The answer states fnmatch matching, splitting at the first colon into a tool part and an argument part, and that a pattern with no colon matches on tool name alone."
+}

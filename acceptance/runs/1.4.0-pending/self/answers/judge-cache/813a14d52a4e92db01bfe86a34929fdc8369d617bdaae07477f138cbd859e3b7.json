@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The target's own `.clew.yaml`, sections such as `index_scope`, `preprocessor`, `kconfig`, `entry_patterns`, `locks`, `event_tags`, `dispatch`, `requirements`\nVERDICT: MISS\nWHY: The answer names `.clew.yaml` as the tier 2 declared source. It never says that both entry points discover it from the repo root rather than having it plumbed per section."
+}

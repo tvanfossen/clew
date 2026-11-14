@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Markdown is excluded from `path` on purpose. It goes to the prose corpus instead.\nVERDICT: MISS\nWHY: The answer says markdown is deliberately excluded from `path` and goes to prose, but it never states the coverage-figure reason: that a path row would count it as indexed source."
+}

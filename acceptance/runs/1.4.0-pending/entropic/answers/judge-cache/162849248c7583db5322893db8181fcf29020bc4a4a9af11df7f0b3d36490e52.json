@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: An allow hit skips the prompt. It does not bypass the deny check, which runs later.\nVERDICT: HIT\nWHY: The answer says an allow match only skips the approval prompt and does not bypass the deny check, which runs later in `ServerManager::execute` in a different file. It also says `is_explicitly_allowed` is consulted from `check_approval` in `tool_executor.cpp`. That covers suppressing approval without granting execution, and where the list is consulted."
+}

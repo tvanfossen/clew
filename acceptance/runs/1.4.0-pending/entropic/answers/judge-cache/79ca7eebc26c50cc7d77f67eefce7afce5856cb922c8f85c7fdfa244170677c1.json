@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: located via $ENTROPIC_LIB, $ENTROPIC_HOME, ~/.entropic, ldconfig\nVERDICT: MISS\nWHY: The answer lists the lookup sources (env vars, home directory, ldconfig) but never states the \"two directory layouts tried per root\" detail, and it doesn't describe the resolution order explicitly."
+}

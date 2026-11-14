@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `<repo>/.clew.yaml`, the repo's standing declaration. Each section holds exactly what the matching standalone manifest would\nVERDICT: MISS\nWHY: The answer names .clew.yaml as the repo's standing declaration, but never says it is tier 2 discovered from the repo root by both entry points (CLI and MCP) rather than plumbed per section."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Tiers 3 and 4 accumulate. They are unioned in and survive any stated tier. Their label differs, but they behave identically.\nVERDICT: HIT\nWHY: The answer states that tiers 3 and 4 combine identically (union, differing only in label), and it separately explains facts versus guesses (\"you can correct our guesses; you cannot un-discover a fact\"). That is enough to cover both the inert distinction and the fact-versus-guess line."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Gate 2: deny (`ServerManager::execute`...) \"This runs after approval and checks deny even for calls that were auto-approved or allow-listed.\"\nVERDICT: MISS\nWHY: The answer says execution passes through two gates, approval and deny. The item says the deny list is the only blocker and that ServerManager consults `is_denied` and nothing else. The answer contradicts this by adding an approval gate that also blocks."
+}

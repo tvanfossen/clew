@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `InferenceBackend::count_tokens` | `0` | `backend.cpp:496-502` ... \"The empty vector is indistinguishable from a real empty result, so the failure is not visible to the caller except through the one error log.\"\nVERDICT: HIT\nWHY: The answer states that the count-tokens path returns 0 on tokenization failure (indistinguishable from a real zero) rather than signalling an error."
+}

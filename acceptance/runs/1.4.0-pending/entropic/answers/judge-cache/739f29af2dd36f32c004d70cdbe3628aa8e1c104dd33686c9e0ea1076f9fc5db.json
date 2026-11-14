@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The first call is a size probe, not a retry, and the second call runs unconditionally on every tokenization.\" and \"Nothing failed before the second call, and it is never gated on the first call's result.\"\nVERDICT: HIT\nWHY: The answer identifies this as size negotiation (null buffer probe, then allocate and fill) rather than retry-on-failure, with exactly two calls. It doesn't list \"no backoff/delay/counter\" explicitly, but \"not a retry\", \"nothing failed\", and the unconditional second call carry that substance."
+}

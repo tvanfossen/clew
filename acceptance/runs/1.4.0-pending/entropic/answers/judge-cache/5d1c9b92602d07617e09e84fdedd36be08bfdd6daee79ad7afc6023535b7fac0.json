@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says \"Always allow/deny\" is not wired and mentions PermissionPersister, but never identifies persisting to config.local.yaml as a mechanism separate from the in-memory add_permission call."
+}

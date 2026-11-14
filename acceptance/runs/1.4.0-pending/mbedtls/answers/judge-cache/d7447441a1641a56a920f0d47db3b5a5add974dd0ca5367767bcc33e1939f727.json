@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says calloc/free always go through function pointers in platform.c by default. It never says that a default build has no indirection, with the macros expanding straight to calloc and free."
+}

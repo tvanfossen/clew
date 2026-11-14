@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`speculative_compat.cpp` refers to `extern/llama.cpp/common/speculative.cpp`\" and \"Pinned against llama.cpp submodule b8420\" and \"**Submodule:** ...\"\nVERDICT: HIT\nWHY: The answer states llama.cpp comes in as a git submodule, with its location at extern/llama.cpp supported by the path cited."
+}

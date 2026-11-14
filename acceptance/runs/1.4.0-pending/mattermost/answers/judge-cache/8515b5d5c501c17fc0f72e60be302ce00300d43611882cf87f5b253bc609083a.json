@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The handler wraps everything in a `try` with an empty `catch`, so any failure is silently dropped. ... It also has an empty `catch`.\nVERDICT: HIT\nWHY: The answer states both the add and remove handlers have empty catches that silently drop failures."
+}

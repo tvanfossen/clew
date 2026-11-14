@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Those start at `MBEDTLS_PLATFORM_STD_CALLOC`/`_FREE`, which default to `calloc`/`free` if libc is present, otherwise to stubs (`platform.c:24-42`). Stubs return NULL and do nothing.\"\nVERDICT: HIT\nWHY: The answer says the default stubs used when no allocator is configured return NULL (calloc) and do nothing (free), which is the item's substance."
+}

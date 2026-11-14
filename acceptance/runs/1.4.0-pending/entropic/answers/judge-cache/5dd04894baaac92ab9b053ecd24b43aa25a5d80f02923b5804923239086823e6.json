@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `llama_cpp_backend.cpp` (about 4,100 lines) calls the raw API directly: model load, context creation, `llama_decode`, batches, KV-cache sequence ops, state save/restore\nVERDICT: HIT\nWHY: The answer says the code is consumed \"directly through its C API\" and cites raw `llama_`-prefixed calls such as `llama_decode` and `llama_log_set`, so the seam is identified as the C API with `llama_` free functions."
+}

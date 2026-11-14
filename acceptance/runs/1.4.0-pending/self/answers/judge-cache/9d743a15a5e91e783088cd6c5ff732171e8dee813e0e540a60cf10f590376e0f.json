@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `derive_scope` then falls back to whole-repo and logs a WARNING.\nVERDICT: HIT\nWHY: The answer names `derive_scope` in the `scope.py` section as the place where the scope decision (declared vs whole-repo fallback) is resolved."
+}

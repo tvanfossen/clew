@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"I searched `src/` for `tokens.empty()`, `ids.empty()`, or any check on the failure. There is none, so every caller treats the empty result as valid input.\"\nVERDICT: HIT\nWHY: The answer says tokenize failure returns `{}` indistinguishable from empty input (the \"needs to be distinguishable from empty input\" remark) and that no caller checks for it."
+}

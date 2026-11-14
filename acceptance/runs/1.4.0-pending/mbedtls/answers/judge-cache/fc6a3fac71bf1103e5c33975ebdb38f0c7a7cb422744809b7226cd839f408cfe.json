@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: by default, every mbedtls allocation is a plain `calloc`/`free` from libc... `mbedtls_calloc(n, sz)  \u2500\u2500macro\u2500\u2500>  calloc(n, sz)   (include/mbedtls/platform.h ~167)` / `mbedtls_free(p)       \u2500\u2500macro\u2500\u2500>  free(p)`\nVERDICT: HIT\nWHY: The answer states that in the default build (MBEDTLS_PLATFORM_MEMORY off) mbedtls_calloc and mbedtls_free are macros expanding directly to calloc and free. Its later caveat about the shipped default doesn't remove that statement."
+}

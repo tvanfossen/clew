@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer discusses llama types, pointers, and the llama_ prefixed calls only incidentally (e.g. llama_sampler_init_grammar), but never identifies the seam as llama.cpp's C API of free functions rather than C++ classes."
+}

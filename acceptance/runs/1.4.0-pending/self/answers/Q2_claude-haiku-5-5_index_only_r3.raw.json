@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 14584,
+  "stop_reason": "end_turn",
+  "session_id": "3c4bb930-dc2d-4018-b908-fe11f7dee33a",
+  "total_cost_usd": 0.00207,
+  "usage": {
+    "input_tokens": 4,
+    "cache_creation_input_tokens": 987,
+    "cache_read_input_tokens": 73370,
+    "output_tokens": 2277,
+    "output_tokens_details": {
+      "thinking_tokens": 1176
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 987,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1812,
+        "cache_read_input_tokens": 36685,
+        "cache_creation_input_tokens": 987,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 987
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 4,
+      "outputTokens": 2277,
+      "cacheReadInputTokens": 73370,
+      "cacheCreationInputTokens": 987,
+      "webSearchRequests": 0,
+      "costUSD": 0.00207,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1176,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 987,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 2,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** an empty reply does not mean \"absent.\" It means \"absent from the places the tool looked,\" and the reply tells you which places those were. Confidence depends on how far that set reaches.\n\nI ran a probe for a made-up name (`zzqx_nonexistent_symbol_probe`) against this repo. The reply had these parts:\n\n- **`count: 0`, `results: []`**: the empty result itself.\n- **`note`**: says this is a definitive empty result, not an error or malformed call, and tells you not to retry. It also lists what was searched (names, `@brief`s, macros, typedefs, enums, classes, config symbols, file docs) and what was not (markdown or Kconfig prose, and function bodies).\n- **`scope`**: the coverage. Here it is whole-repo, 426 files, with extensions `.c .cpp .h .json .md .py .yaml`. It also lists `not_indexed` by extension (`no extension=3`, `.csv=3`, `.rs=2`, `.toml=2`, `.jsonl=1`, `.lock=1`, `.motor=1`, `.sql=1`), so those files were never read.\n- **`target`**: the repo that answered. This is what tells you the query ran against the right repository.\n\n**How to tell the two cases apart**\n\n| Signal | Means |\n|---|---|\n| `target` matches the repo you meant | The right index answered |\n| `scope.not_indexed` lists the file type you care about | \"Not looked\" in that file type. Zero is not evidence |\n| `note` \"NOT searched\" names your corpus (prose, code bodies) | Run `search(corpus='prose')` or `corpus='code'` before concluding |\n| `not_searched` (split repos) | A vendored or first-party part was never read |\n| `staleness` present | Index is behind the source; recent additions may be missing |\n| `exclude` in `.clew.yaml` | Deliberately left out, so zero is a choice, not a finding |\n\nNote the design rule: the codebase's contract is that absence of a key means \"nothing was missed,\" and an empty list is a claim that it looked. So a present `not_indexed` key is the thing to read, not the zero count.\n\n**Confidence each answer deserves**\n\n- **\"No symbol with this name\" in the searched set:** high. Here the tool says it is definitive, and the probe bears that out: a repeat query would return the same zero. It is still only as good as the corpus named in the note.\n- **\"The string appears nowhere in the repo\":** low. Symbol search does not cover function bodies, markdown or Kconfig prose, or the `not_indexed` file types. Use `search(corpus='code')` for literals and keys, `corpus='prose'` for concepts, and read the source for things the index does not cover (Makefile, CI config, `.rs` or `.sql` files here).\n- **\"This repo does not contain X\" when `not_indexed` includes X's file type:** no confidence. The zero is a scope fact, not a finding about the code.",
+  "ttft_ms": 2763,
+  "type": "result",
+  "duration_ms": 14949,
+  "uuid": "617c1b8e-81aa-48c9-a1ae-a3455d1a7797",
+  "ttft_stream_ms": 1100,
+  "time_to_request_ms": 70,
+  "first_content_frame_ms": 1100,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

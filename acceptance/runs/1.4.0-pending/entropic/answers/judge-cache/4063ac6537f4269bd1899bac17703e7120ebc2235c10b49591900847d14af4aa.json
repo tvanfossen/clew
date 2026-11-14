@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Python exceptions | Must not escape the trampoline into C. The trampoline catches them, prints the traceback, and returns pass-through (`rc = 0`).\nVERDICT: HIT\nWHY: The answer states the trampoline catches Python exceptions so they don't escape into C and returns pass-through on failure."
+}

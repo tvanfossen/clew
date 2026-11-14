@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Root post deleted, Town Square read-only, or plugin-dismissed post:** the local post is removed (`removePost`). It is not kept as failed.\"\nVERDICT: HIT\nWHY: The answer names all three error conditions (deleted root post, read-only town square, plugin-dismissed post) as the cases where the failed post is removed rather than kept."
+}

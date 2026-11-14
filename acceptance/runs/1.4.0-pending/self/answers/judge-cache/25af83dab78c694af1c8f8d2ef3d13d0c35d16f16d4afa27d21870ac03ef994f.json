@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer lays out a precedence order (caller, then file, then defaults) but never says that discovered layers accumulate and survive whatever is stated, so it never states the asymmetry."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer separates definitive, not definitive, and scope-outside cases, but never states the grade \"definitive for a reason that is not absence\"; it only flags as a gap that the definitive verdict ignores not_indexed."
+}

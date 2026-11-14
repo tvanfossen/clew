@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer lists the facade (`src/facade/entropic.cpp`), config, and tests as outside `src/inference/`, but it never concludes the dependency is concentrated yet not contained. Its summary says \"mostly confined to one layer\" and gives no minority-of-files conclusion."
+}

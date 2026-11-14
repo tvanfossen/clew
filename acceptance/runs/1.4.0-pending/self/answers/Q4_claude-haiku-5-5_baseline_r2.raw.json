@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 32761,
+  "stop_reason": "end_turn",
+  "session_id": "26317f74-a23a-4579-ba5c-f508c6881371",
+  "total_cost_usd": 0.011509199999999999,
+  "usage": {
+    "input_tokens": 18,
+    "cache_creation_input_tokens": 23628,
+    "cache_read_input_tokens": 395830,
+    "output_tokens": 5647,
+    "output_tokens_details": {
+      "thinking_tokens": 2007
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 23628,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2694,
+        "cache_read_input_tokens": 55936,
+        "cache_creation_input_tokens": 2071,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2071
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 18,
+      "outputTokens": 5647,
+      "cacheReadInputTokens": 395830,
+      "cacheCreationInputTokens": 23628,
+      "webSearchRequests": 0,
+      "costUSD": 0.011509199999999999,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2007,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 23628,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 12,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** the answer is a list of *claimed* caller relationships, each labelled with the layer that produced it and how sure clew is. It is not a list of verified call sites, and an empty list does not mean nothing calls the function.\n\n**Where the answer lives.** The standalone `callers` tool is gone. `dossier` (`clew/mcp_server/descriptions/dossier.json`, `clew/query/dossier.py:578`) returns `callers` and `callees` as fields alongside the body, brief, locks and requirements. The README says so explicitly.\n\n**What each row contains**\n\n- **One row per distinct caller identity**, not per call site. `_direct_call_edges` (`clew/query/symbols.py:389`) collapses duplicates that two layers both found.\n- **`source`**, the extraction layer: `doxygen_sqlite`, `ast`, `ast_member`, `fnptr`, `declared_dispatch`, `macro_hop`, or `binding` (`clew/vocabulary.py:216`).\n- **`confidence`**: `exact` (doxygen stated it), `resolved` (a unique name match or a join clew made itself), or `fuzzy` (several indexed functions share the name, so the edge fans out to all of them).\n- **Annotations** such as `implementors` (overrides, from doxygen's `reimplements`) and macro-expansion markers.\n- **A sibling field, `callers_unresolved`**, which counts refused inbound calls. It is `None` when the index predates the measurement. `unresolved_inbound_for_rowids` (`clew/query/symbols.py:348`) exists so that an empty `callers` can be read correctly.\n\n**What makes it wrong to read as a list of call sites**\n\n1. **Not all rows are observed calls.** `declared_dispatch` edges are synthetic: a repo owner's manifest says \"this registrar connects to that handler\" (`clew/dispatch_edges.py`). `fnptr` edges come from a pattern match on `GLOBAL = PARAM;` registration. Both are real information, but they are inferences or assertions, not call sites.\n\n2. **Fuzzy rows are name matches.** A call to `size` with nine namesakes produces up to 331 caller rows, most shared with eight other functions. The `ambiguous` block (`clew/mcp_server/descriptions/_templates/ambiguous.json`) warns about this, and you should re-ask with `qualified` before attributing the rows to one function. Fuzzy rows are kept in `callers` on purpose: this repo has 21.3% fuzzy edges, and entropic has 79.8%. The `dominated_edges.py` pass only removes fan-out when a stronger layer already named a different function at that call site.\n\n3. **Empty does not mean unused.** Several things make a real caller invisible:\n   - Callers outside the indexed scope, or in an external nested repo.\n   - Code behind an unsatisfied preprocessor guard. Its `gated_by` field and `gates_unplaceable` record this.\n   - Macro-mediated calls where the macro's defining header is outside the index scope. `macro_hop` is then empty and nothing says so.\n   - Calls the parser could not resolve at all. `callees` cannot hold these, which is why `external_callees` exists on the callee side. The `callers_unresolved` field is the caller-side counterpart.\n\n4. **Virtual and indirect dispatch.** A caller of a base-class method may not show derived overrides except through the `implementors` annotation, and function-pointer calls are only found when the registration shape matches one of the recognised patterns. A container-held pointer registered by a method call is missed unless a dispatch manifest declares it.\n\n5. **Staleness.** The answer reflects the last build. If a file has changed, `anchor_mismatch` on the body flags it, but nothing flags stale caller rows.\n\n6. **Dataflow is separate.** Readers and writers of shared keys (`shared_key_edges`) are not in `callers`. They appear as `writes`/`reads`, and `include_dataflow` is deliberately off for dossier.\n\n**How I checked this.** I answered from the source and the descriptions, not from a live query. The repository has no built index I ran against, so I did not verify the output on a real target.",
+  "ttft_ms": 1732,
+  "type": "result",
+  "duration_ms": 33795,
+  "uuid": "bbcc56d0-ed4f-4958-9a20-9f77a8cd2b63",
+  "ttft_stream_ms": 1183,
+  "time_to_request_ms": 120,
+  "first_content_frame_ms": 1183,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

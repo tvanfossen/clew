@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: MBEDTLS_PLATFORM_MEMORY off (default)\n  mbedtls_calloc -> calloc\n\nVERDICT: MISS\n\nWHY: The answer says that MBEDTLS_PLATFORM_MEMORY is the gate and is off by default. It never says the option is commented out in the shipped mbedtls_config.h."
+}

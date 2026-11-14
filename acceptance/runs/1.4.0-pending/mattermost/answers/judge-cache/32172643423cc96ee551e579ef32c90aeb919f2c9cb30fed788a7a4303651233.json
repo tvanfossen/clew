@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Both handlers wrap the whole body in `try { \u2026 } catch { // Do nothing }`. A malformed payload, a failed write, or a missing DB silently drops the event with no log.\nVERDICT: HIT\nWHY: The answer states both handlers swallow errors in an empty catch, so a failed write is dropped silently with no log."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `python/src/entropic/_bindings.py` is generated from the C header by `scripts/gen_bindings.py` (run via `inv gen-bindings`; `--check` fails on drift).\nVERDICT: MISS\nWHY: It mentions a `--check` flag that fails on drift, but never says this runs in a pre-commit check that re-runs the generator and diffs."
+}

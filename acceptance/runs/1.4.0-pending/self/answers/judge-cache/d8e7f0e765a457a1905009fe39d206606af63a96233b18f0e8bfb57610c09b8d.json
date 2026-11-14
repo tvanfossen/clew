@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer explains how to read a search reply's boundaries and when to fall back to Grep. It never states the rule to fix the corpus rather than the sentence describing it."
+}

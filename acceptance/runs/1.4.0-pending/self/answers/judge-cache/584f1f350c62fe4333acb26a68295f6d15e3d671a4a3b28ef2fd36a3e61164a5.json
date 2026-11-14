@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The repository gives clew five ways to change what it indexes, ordered by precedence. ... | 1 | CLI flag ... | 2 | `.clew.yaml` ... | 3 | Facts the target already wrote ... | 4 | Known-ecosystem signatures ... | 5 | Name-pattern heuristics, the floor\nVERDICT: HIT\nWHY: The answer explicitly lays out five named, ordered precedence tiers (flag, declaration, target facts, ecosystem signatures, heuristics) rather than a single override."
+}

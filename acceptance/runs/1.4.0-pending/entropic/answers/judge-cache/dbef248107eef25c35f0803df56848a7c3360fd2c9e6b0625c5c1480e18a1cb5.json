@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: | Engine \u2192 Python, `const char*` | Owned by the handle, valid until the next call on that handle. Do not free. `entropic_version` is static. | ... | Engine \u2192 Python, `char*` return or out-param | Caller owns it. Must call `entropic_free()`.\nVERDICT: HIT\nWHY: The answer's table states both rules: a returned `char*` is caller-owned and freed with `entropic_free`, and a `const char*` is owned by the handle and valid until the next call on it."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Two ways to state it are `--declare FILE` and the inline `options` mapping.\"\nVERDICT: HIT\nWHY: The answer says the caller-stated tier (logged as \"tier 1\") can be given by a CLI flag (`--declare`) or by the inline `options` mapping on `build_index` and the MCP tool, so both entry points are covered."
+}

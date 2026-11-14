@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 30312,
+  "stop_reason": "end_turn",
+  "session_id": "2f76a489-a840-43c0-9a40-8ad9e31f66d0",
+  "total_cost_usd": 0.012232470000000002,
+  "usage": {
+    "input_tokens": 14,
+    "cache_creation_input_tokens": 27006,
+    "cache_read_input_tokens": 380387,
+    "output_tokens": 6052,
+    "output_tokens_details": {
+      "thinking_tokens": 1955
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 27006,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2562,
+        "cache_read_input_tokens": 67440,
+        "cache_creation_input_tokens": 479,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 479
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 14,
+      "outputTokens": 6052,
+      "cacheReadInputTokens": 380387,
+      "cacheCreationInputTokens": 27006,
+      "webSearchRequests": 0,
+      "costUSD": 0.012232470000000002,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1955,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 27006,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 17,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "## How `ServerDataOperator` is built\n\n`ServerDataOperator` (`app/database/operator/server_data_operator/index.ts:40`) is a mixin composition, not a hand-written class. `ServerDataOperatorBase` is the root, and each handler is a mixin that wraps it:\n\n```\nBaseDataOperator               base_data_operator/index.ts      (database ref, processRecords, prepareRecords, batchRecords, handleRecords)\n  \u2514\u2500 ServerDataOperatorBase    server_data_operator/handlers/index.ts  (handleRole, handleConfigs, handleReactions, handleFiles, execute, serverUrl)\n       \u2514\u2500 mix(...).with(\u202613 mixins\u2026)   utils/mix.ts  (reduce: each mixin(c) wraps the previous class)\n            \u2514\u2500 ServerDataOperator\n```\n\n- `utils/mix.ts` is a small `MixinBuilder` that folds the mixins over the base class in order.\n- Each handler is `const XHandler = <TBase extends Constructor<ServerDataOperatorBase>>(superclass) => class extends superclass {...}`, plus an exported `XHandlerMix` interface.\n- The `interface ServerDataOperator extends \u2026Mix` declaration merges those interfaces so TypeScript sees every handler method on the class.\n- `DatabaseManager` builds it at `app/database/manager/index.ts:184` as `new ServerDataOperator(database, serverUrl)`.\n\n## Which handlers live elsewhere\n\nTen handlers are in `server_data_operator/handlers/` next to the class: Category, Channel, CustomProfile, Group, Post, Properties, Team, TeamThreadsSync, Thread, User.\n\nThree are defined in product folders and imported through path aliases:\n\n| Mixin | Defined in |\n|---|---|\n| `AgentsHandler` | `app/products/agents/database/operators/handlers/index.ts` |\n| `BoardsHandler` | `app/products/boards/database/operators/handlers/index.ts` |\n| `PlaybookHandler` | `app/products/playbooks/database/operators/handlers/index.ts` |\n\n## Where a handler's write actually happens\n\nMost handlers follow this path:\n\n```\nhandleX(args)\n  \u2192 this.handleRecords(...)                    base_data_operator:224\n      \u2192 processRecords()                       query existing rows; split into create / update / delete\n      \u2192 prepareRecords()                       transformer per raw; prepareDestroyPermanently() for deletes\n      \u2192 batchRecords(models) if !prepareRecordsOnly\n          \u2192 this.database.write(writer => writer.batch(...models))   base_data_operator:191-196\n```\n\nThe real database write is `BaseDataOperator.batchRecords` at `app/database/operator/base_data_operator/index.ts:191`. It is the only place in the operator layer that calls `database.write` and `writer.batch`. On failure it logs a warning, emits `DATABASE_CORRUPTION_DETECTED` if the error is a corruption error, and swallows the error unless `propagateError` is true.\n\nHandlers called with `prepareRecordsOnly: true` return the models without writing. The caller can then batch several handlers' output into one transaction.\n\n## What else shares that write\n\n- Base-class methods: `handleFiles` and `handleReactions` in `ServerDataOperatorBase`, plus `execute()`. All call `batchRecords`.\n- Product handlers: `AgentsHandler` and `PlaybookHandler` call `this.batchRecords` at the end of their handlers.\n- Outside the handler classes: websocket and action code calls `operator.batchRecords` directly, for example `app/actions/websocket/category.ts:93` and `app/products/playbooks/actions/websocket/runs.ts:111`.\n\nSome code writes around the operator. The playbooks local actions (`actions/local/checklist.ts`, `run.ts`, `version.ts`, `channel.ts`) call `database.write(...)` themselves, so they don't go through `batchRecords`, and they won't get its corruption-event handling.\n\nBecause `batchRecords` swallows errors by default, a caller that needs to know whether the write failed has to pass `propagateError = true`.\n\nNote: tool output twice suggested a `dossier` tool that isn't in my toolset, so I used Read and Grep for this.",
+  "ttft_ms": 1496,
+  "type": "result",
+  "duration_ms": 31110,
+  "uuid": "e9a85302-079b-4b25-baaf-13b07b5da5f8",
+  "ttft_stream_ms": 1250,
+  "time_to_request_ms": 110,
+  "first_content_frame_ms": 1251,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

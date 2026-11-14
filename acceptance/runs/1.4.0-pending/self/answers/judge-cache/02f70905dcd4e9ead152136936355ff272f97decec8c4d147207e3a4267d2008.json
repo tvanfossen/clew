@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `DocsDbServer.staleness_notices()` (`server.py:1548`) runs on every reply and never raises.\nVERDICT: HIT\nWHY: The answer states the staleness measurement/notice path never raises, so a failed measurement can't turn a reply into an error, which matches the item's substance."
+}

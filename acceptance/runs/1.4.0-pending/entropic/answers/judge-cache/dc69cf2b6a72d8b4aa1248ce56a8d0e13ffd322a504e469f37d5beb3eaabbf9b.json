@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Inside `src/inference/`, most files include `<llama.h>` directly: `llama_cpp_backend.{h,cpp}`, `llama_cpp_sampler`, `llama_cpp_tokenizer`, `orchestrator`, `adapter_manager`, `grammar_registry`, `speculative_compat`.\"\nVERDICT: MISS\nWHY: The answer lists about seven inference files plus facade, headers and tests, but never states a total of roughly a dozen files, and it frames the reach as mostly confined to one layer."
+}

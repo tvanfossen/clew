@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: MBEDTLS_PLATFORM_MEMORY off (default) ... the index doesn't know the repo's own config header, so shipped defaults are inferred and should be checked against `mbedtls_config.h`\nVERDICT: MISS\nWHY: The answer names MBEDTLS_PLATFORM_MEMORY as a config switch and says \"off (default)\", but it never states that it is commented out in the shipped mbedtls_config.h. It defers that check to the reader."
+}

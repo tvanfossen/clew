@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes signals that separate \"not in this index\" from \"not looked for there,\" but it never says a single non-matching token was previously treated as proof of absence."
+}

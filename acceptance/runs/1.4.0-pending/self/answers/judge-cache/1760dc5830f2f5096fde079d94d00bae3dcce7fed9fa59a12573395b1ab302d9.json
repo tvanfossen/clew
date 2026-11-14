@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: | 1 | CLI flags (`--doxyfile`, `--exclude`, `--entry-patterns`, `--scope`, `--declare <file>`), or the `options` argument for embedding callers | Replaces the layer below it | ... | 5 | Name-pattern heuristics | Replaced by any stated tier |\nVERDICT: HIT\nWHY: The answer lays out a five-tier precedence table (CLI/options, .clew.yaml, facts, ecosystem signatures, heuristics) with how each tier resolves."
+}

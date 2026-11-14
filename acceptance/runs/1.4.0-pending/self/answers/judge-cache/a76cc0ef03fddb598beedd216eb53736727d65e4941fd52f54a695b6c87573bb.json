@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer separates a definitive empty result from a non-definitive one. It never names a \"definitive for a reason other than absence\" grade, so the three-way distinction is not stated. The `exclude` row is only a gesture at it."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Otherwise, if an `on_tool_call` callback is registered, the callback fires and `approved` is set to true anyway. Its return value is not read.\"\nVERDICT: HIT\nWHY: The answer states the callback fires and approval is set true unconditionally, with its return value ignored, so it cannot refuse; it does not mention the void return type, but the substance of the item is present."
+}

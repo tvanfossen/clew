@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: on_tool_call(json)  // void return, cannot veto ... approved = true \u2190 notify = approve; \"**The prompt is notify-only.** `on_tool_call` is `void (*)(const char*, void*)` ... Once it is wired, every call that misses the allow list is approved. The frontend cannot veto\"\nVERDICT: HIT\nWHY: The answer states the callback returns void and approved is set to true unconditionally after firing it, so it cannot refuse."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "Directories under src/ the answer says contain code calling into llama.cpp:\n\n- `src/inference/` is named as holding the real llama.cpp owner, with `#include <llama.h>` in about ten files.\n- `src/facade/` is named because `entropic.cpp` includes `llama_cpp_backend.h`, casts to `LlamaCppBackend` and calls `llama_model_ptr()` and `llama_context_ptr()`.\n\nThe answer also lists `src/inference/adapters/*` (qwen35, qwen36, nemotron3) as a subpath of `src/inference/`.\n\nITEMS:\nsrc/inference/\nsrc/facade/\nsrc/inference/adapters/\nEND"
+}

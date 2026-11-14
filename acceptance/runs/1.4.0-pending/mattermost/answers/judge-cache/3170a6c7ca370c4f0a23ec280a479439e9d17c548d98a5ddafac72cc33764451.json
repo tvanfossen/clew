@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The post is written to the local database before the network call, so it shows in the channel right away. If `client.createPost` throws, the record is updated with `props.failed: true` and kept under its pending ID\nVERDICT: HIT\nWHY: The answer states the post is written locally before sending and, on failure, kept and marked `props.failed: true`."
+}

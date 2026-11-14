@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `programs/ssl/ssl_client2.c:8` | The `ssl_client2` sample program. ... `programs/ssl/ssl_server2.c:8` | The `ssl_server2` sample program.\nVERDICT: HIT\nWHY: The answer states that the sample programs ssl_client2 and ssl_server2 themselves define MBEDTLS_ALLOW_PRIVATE_ACCESS, so they get direct member access past the public accessor API."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"| `.yaml` / `.yml` / `.json` | A `path` row: present in the file set, findable by name, and named by the miss report when a query finds nothing. | Any symbol.\"\nVERDICT: HIT\nWHY: The answer says YAML/JSON are in the file set but hold no symbols, in contrast to shell/CMake, which do get symbols."
+}

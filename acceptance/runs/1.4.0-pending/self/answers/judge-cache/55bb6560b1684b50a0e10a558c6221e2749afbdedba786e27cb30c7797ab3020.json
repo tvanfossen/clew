@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"This IS a definitive empty result from the database\u2026 Do not retry\" / \"NOT DEFINITIVE \u2014 this index HOLDS matching rows that search does not read\" / \"NOT definitive\u2026 Rebuild with index(action='refresh')\"\nVERDICT: MISS\nWHY: The answer gives three wordings, but the second is \"not definitive\" because an unread corpus holds rows, not \"definitive for a reason that is not absence\"; the third is also \"not definitive\", so only two grades are distinguished."
+}

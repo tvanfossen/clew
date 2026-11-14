@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"If one is absent, the route resolves to nothing rather than raising. The test `test_a_missing_grammar_routes_to_nothing_instead_of_raising` covers this.\" and \"`_grammar_available()` in `clew/harvest.py` checks only the optional keys\" and \"A query that comes back empty then says something like '14 `.sh` files were in scope and none are in this index'\"\nVERDICT: HIT\nWHY: The answer says missing grammars degrade (no crash), a capability gate (`_grammar_available`) is consulted in routing, and the affected file types are reported as not indexed via the miss report."
+}

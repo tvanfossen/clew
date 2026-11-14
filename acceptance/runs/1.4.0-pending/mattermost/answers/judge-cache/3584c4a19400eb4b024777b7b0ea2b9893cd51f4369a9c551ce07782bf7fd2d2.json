@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Before the network call, the post is already written to the local database under a pending ID\" and \"normally rewrites the local post with `props.failed = true`. The post stays in the database and the user sees it as failed.\"\nVERDICT: HIT\nWHY: The answer states the post is saved locally before sending, and on failure is kept and marked with `props.failed = true`."
+}

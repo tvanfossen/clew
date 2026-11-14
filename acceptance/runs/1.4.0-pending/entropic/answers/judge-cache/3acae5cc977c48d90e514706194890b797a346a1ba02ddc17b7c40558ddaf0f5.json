@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: llama.cpp headers are included by about 9 files under `src/inference/`\nVERDICT: MISS\nWHY: The answer puts the reaching files inside `src/inference/`, with the facade only reaching it indirectly. It never says a minority of reaching files sit outside that directory, so it does not conclude the dependency is concentrated but not contained."
+}

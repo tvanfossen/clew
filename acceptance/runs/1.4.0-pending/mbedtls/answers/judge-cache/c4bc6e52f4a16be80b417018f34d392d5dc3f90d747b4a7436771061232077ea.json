@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The `mbedtls_ct_*` calls are spread across 29 library files, about 286 call sites\nVERDICT: HIT\nWHY: The answer states the primitives are used across 29 library files, which is on the order of twenty or more modules and not limited to one or two."
+}

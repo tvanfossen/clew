@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer lists a handful of files with ct_ reference counts but never states that the primitives are used across roughly twenty modules. It actually stresses that coverage is partial."
+}

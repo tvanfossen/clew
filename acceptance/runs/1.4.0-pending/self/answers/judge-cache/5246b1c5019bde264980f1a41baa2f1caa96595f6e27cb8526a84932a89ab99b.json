@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `_staleness` in `tools_query.py:1886` attaches them under a size budget. The data notice includes the number of changed files, the most recently changed file and the measured cost of a refresh.\nVERDICT: MISS\nWHY: The answer mentions attaching notices under a size budget but never says the annotation's wording is degraded (shortened) to fit rather than dropped."
+}
