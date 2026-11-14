@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "uvx --from clew-trace==1.3.0 clew-hook --read"
+            "command": "uvx --from clew-trace==1.4.0 clew-hook --read"
           }
         ]
       },
@@ -15,7 +15,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "uvx --from clew-trace==1.3.0 clew-hook --pattern"
+            "command": "uvx --from clew-trace==1.4.0 clew-hook --pattern"
           }
         ]
       },
@@ -24,7 +24,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "uvx --from clew-trace==1.3.0 clew-hook --glob"
+            "command": "uvx --from clew-trace==1.4.0 clew-hook --glob"
           }
         ]
       },
@@ -33,7 +33,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "uvx --from clew-trace==1.3.0 clew-hook --shell"
+            "command": "uvx --from clew-trace==1.4.0 clew-hook --shell"
           }
         ]
       },
@@ -42,7 +42,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "uvx --from clew-trace==1.3.0 clew-hook --used"
+            "command": "uvx --from clew-trace==1.4.0 clew-hook --used"
           }
         ]
       }

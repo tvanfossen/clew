@@ -173,3 +173,27 @@ def test_existing_checkout_at_the_pin_is_not_refetched(
     )
     provision.fetch_pinned(rubric, repo)
     assert [a[0] for a in calls] == ["rev-parse"], f"did more than check HEAD: {calls}"
+
+
+## @brief The index arm's server runs with the environment the shipped plugin gives it.
+## @return None.
+## @version 1
+def test_the_index_arm_server_gets_the_plugins_environment(tmp_path: Path) -> None:
+    """MEASURE WHAT SHIPS (1.4.0). The plugin launches the server with `CLEW_WIRE=compact`; an
+    index arm without it would measure the flat shape no plugin user receives. One rule: every
+    variable the plugin's server entry sets, the harness sets to the same value.
+
+    @brief Harness MCP env ⊇ plugin.json's server env.
+    @return None.
+    @version 1
+    """
+    plugin = json.loads(
+        (Path(__file__).resolve().parent.parent / ".claude-plugin" / "plugin.json").read_text()
+    )
+    db = tmp_path / "clew.db"
+    db.write_bytes(b"x")
+    out = tmp_path / "mcp.json"
+    provision.write_mcp_config(db, tmp_path / "repo", out, tmp_path / "state")
+    env = json.loads(out.read_text())["mcpServers"]["clew"]["env"]
+    for key, value in plugin["mcpServers"]["clew"].get("env", {}).items():
+        assert env.get(key) == value, f"the harness server lacks the plugin's {key}={value}"
