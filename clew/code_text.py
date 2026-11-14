@@ -41,6 +41,12 @@ from .synth import DECL_EXTENT
 
 ## The FTS5 table, and its tokenizer: identifiers keep `_` and `$`.
 TABLE = "code_text"
+## 1.3.10: the text of each C/C++/Python file OUTSIDE every function body (preprocessor lines,
+## file-scope declarations), keyed by the path rowid. A separate table because its rows are files,
+## not memberdef rows, and a hit there is a `kind: "file"` hit.
+FILE_TABLE = "code_text_files"
+## The languages whose file-scope text is indexed. JS/TS already index theirs as `__module__` rows.
+_FILE_SCOPE_SUFFIXES = (".c", ".h", ".cc", ".cpp", ".cxx", ".hh", ".hpp", ".hxx", ".py")
 ## PORTER STEMMING over it, so the word a reader types finds the inflection the code uses: one
 ## 1.3.0 agent searched `retries` where every identifier says `retry`.
 _TOKENIZE = "porter unicode61 tokenchars '_$'"
@@ -71,6 +77,7 @@ class CodeHit:
     snippet: str
 
 
+## Version 6 (1.3.10): also builds `code_text_files`, each C/C++/Python file's file-scope text.
 ## Version 5 (1.3.5): rows come from `code_text_rows`, each file's in rowid order.
 ## Version 4 (1.3.4): each file's indexed texts are memoized on its content and spans.
 ## Version 3: indexes parse-built constants and typedefs by their recorded extent.
@@ -81,7 +88,7 @@ class CodeHit:
 ## @param repo_root Repository root the indexed paths are relative to.
 ## @param cache The run's index cache, or None for an uncached build.
 ## @return Number of function bodies indexed.
-## @version 5
+## @version 6
 ## @utility
 def record_code_text(db_path: Path, repo_root: Path, cache: IndexCache | None = None) -> int:
     """READS EACH FILE ONCE, however many functions it holds, and indexes each function's own
@@ -108,10 +115,93 @@ def record_code_text(db_path: Path, repo_root: Path, cache: IndexCache | None = 
             if texts:
                 batch.extend((int(r[0]), t) for r, t in zip(file_rows, texts, strict=True))
         conn.executemany(f"INSERT INTO {TABLE} (rowid, body) VALUES (?, ?)", batch)
+        _record_file_scope(conn, repo_root, cache, by_file)
         conn.commit()
         return len(batch)
     finally:
         conn.close()
+
+
+## @brief Rebuild the file-scope corpus: each C/C++/Python file's text outside its functions.
+## @param conn Open index connection.
+## @param repo_root The working tree.
+## @param cache The index cache, or None.
+## @param by_file The function-corpus rows grouped by file, as `record_code_text` built them.
+## @return None.
+## @version 1
+## @dg_internal
+def _record_file_scope(
+    conn: sqlite3.Connection,
+    repo_root: Path,
+    cache: IndexCache | None,
+    by_file: dict[str, list[tuple[Any, ...]]],
+) -> None:
+    """CREATED EVEN WHEN EMPTY: an absent table means this index predates the layer, an empty one
+    that no file had file-scope text.
+
+    @brief Fill code_text_files.
+    @return None.
+    """
+    conn.execute(f"DROP TABLE IF EXISTS {FILE_TABLE}")
+    conn.execute(
+        f'CREATE VIRTUAL TABLE {FILE_TABLE} USING fts5(body, tokenize = "{_TOKENIZE}", '
+        "content = '', detail = none)"
+    )
+    rows = []
+    for rowid, name in conn.execute("SELECT rowid, name FROM path WHERE type = 1").fetchall():
+        rel = str(name)
+        if not rel.lower().endswith(_FILE_SCOPE_SUFFIXES):
+            continue
+        text = file_scope_text(cache, repo_root, rel, by_file.get(rel, []))
+        if text:
+            rows.append((int(rowid), text))
+    conn.executemany(f"INSERT INTO {FILE_TABLE} (rowid, body) VALUES (?, ?)", rows)
+
+
+## @brief One file's text outside its function bodies, with identifier parts, cache-first.
+## @param cache The index cache, or None.
+## @param repo_root The working tree.
+## @param rel The file.
+## @param file_rows Its function-corpus rows (their spans are what is excluded).
+## @return The indexed text, or "" when the file is unreadable or has none.
+## @version 1
+## @req REQ-DDB-INDEX-006
+def file_scope_text(
+    cache: IndexCache | None, repo_root: Path, rel: str, file_rows: list[tuple[Any, ...]]
+) -> str:
+    """KEYED BY THE FILE'S CONTENT AND ITS FUNCTION SPANS, like `file_code_texts`: what is "outside
+    every function" depends on where the index says the functions are.
+
+    @brief File-scope text for one file.
+    @return Text.
+    @version 1
+    """
+    spans = [(int(r[2]), int(r[3])) for r in file_rows if r[4] != MODULE_CALLER]
+    return memoized(
+        cache,
+        rel,
+        repo_root / rel,
+        "code_text_files",
+        CODE_TEXT_STAGE_VERSION,
+        spans_key(file_rows),
+        lambda: _outside(repo_root / rel, spans),
+    )
+
+
+## @brief The lines of a file no span covers, joined, with their identifier parts.
+## @param path The file.
+## @param spans (start, end) line spans to exclude.
+## @return The text, or "".
+## @version 1
+## @dg_internal
+def _outside(path: Path, spans: list[tuple[int, int]]) -> str:
+    """@brief Uncovered text. @return Text."""
+    lines = _lines(path)
+    if not lines:
+        return ""
+    covered = {n for start, end in spans for n in range(start, end + 1)}
+    text = "\n".join(ln for i, ln in enumerate(lines) if i + 1 not in covered and ln.strip())
+    return (text + "\n" + " ".join(_identifier_parts(text))) if text.strip() else ""
 
 
 ## @brief Every row the code corpus indexes, or one file's, each file's in rowid order.
@@ -301,7 +391,8 @@ def _lines(path: Path) -> list[str] | None:
 ## @param limit Maximum hits.
 ## @param repo_root Where to read snippet lines from; None leaves snippets empty.
 ## @return Hits, or None when this index has no code corpus.
-## @version 5
+## Version 6 (1.3.10): file-scope matches follow function matches, as `kind: "file"` hits.
+## @version 6
 ## @utility
 def search_code(
     conn: sqlite3.Connection, text: str, limit: int, repo_root: Path | None = None
@@ -355,6 +446,50 @@ def search_code(
                 definition=str(definition or ""),
                 kind=str(kind),
                 file=str(file),
+                line=line,
+                snippet=snippet,
+            )
+        )
+    ## FILE-SCOPE MATCHES AFTER FUNCTION MATCHES (1.3.10): a function is the more specific
+    ## answer; a file hit is for text no function holds — a preprocessor line, a file-scope
+    ## declaration. Absent table (an index from before the layer): function hits only.
+    if len(hits) < limit and _has_table(conn, FILE_TABLE):
+        hits.extend(_file_hits(conn, query, tokens, limit - len(hits), repo_root))
+    return hits
+
+
+## @brief Files whose file-scope text holds every word, as `kind: "file"` hits.
+## @param conn Open index connection.
+## @param query The FTS query already built from the words.
+## @param tokens The words.
+## @param limit Maximum hits.
+## @param repo_root Where snippets are read from.
+## @return The hits.
+## @version 1
+## @dg_internal
+def _file_hits(
+    conn: sqlite3.Connection, query: str, tokens: list[str], limit: int, repo_root: Path | None
+) -> list[CodeHit]:
+    """A FILE HIT IS A DOSSIER SUBJECT: `name` and `file` are the repo-relative path, which
+    `dossier` accepts, and `line`/`snippet` point at the first matching line.
+
+    @brief Search the file-scope corpus.
+    @return Hits.
+    """
+    rows = conn.execute(
+        f"SELECT p.name FROM {FILE_TABLE} JOIN path p ON p.rowid = {FILE_TABLE}.rowid "
+        f"WHERE {FILE_TABLE} MATCH ? LIMIT ?",
+        (query, max(1, limit)),
+    ).fetchall()
+    hits = []
+    for (name,) in rows:
+        line, snippet = _first_match(repo_root, str(name), 1, 10**9, tokens)
+        hits.append(
+            CodeHit(
+                name=str(name),
+                definition="",
+                kind="file",
+                file=str(name),
                 line=line,
                 snippet=snippet,
             )

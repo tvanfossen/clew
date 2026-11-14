@@ -333,3 +333,27 @@ def test_the_edited_files_blocking_calls_are_current(tmp_path: Path) -> None:
     reference = tmp_path / "full.db"
     _build(repo, reference)
     assert _blocking(out) == _blocking(reference)
+
+
+def test_the_edited_files_file_scope_text_is_current(tmp_path: Path) -> None:
+    """1.3.10: the file-scope corpus is rewritten in place too, so a macro added to a file-scope
+    `#if` is found right after a fast refresh and the old one is not.
+
+    @brief After a fast refresh, file-scope code search sees the edited file only.
+    @return None.
+    @version 1
+    """
+    from clew.code_text import search_code
+
+    repo = tmp_path / "repo"
+    (repo / "src").mkdir(parents=True)
+    (repo / "src" / "wait.c").write_text("#if defined(OLD_GATE_MARK)\n#endif\n" + _BLOCKING_C)
+    out = tmp_path / "clew.db"
+    _build(repo, out)
+    (repo / "src" / "wait.c").write_text("#if defined(NEW_GATE_MARK)\n#endif\n" + _BLOCKING_C)
+    _build(repo, out, tier="fast")
+    assert _fast(out).get("pending") == "1"
+    assert "code_text" not in _fast(out).get("layers", "").split(",")
+    with sqlite3.connect(out) as conn:
+        assert [h.kind for h in search_code(conn, "NEW_GATE_MARK", 5, repo) or []] == ["file"]
+        assert not search_code(conn, "OLD_GATE_MARK", 5, repo)

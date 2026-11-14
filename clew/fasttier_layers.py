@@ -198,7 +198,8 @@ def _refresh_generated(
 ## @param old_rows The file's corpus rows BEFORE positions moved, as `code_text_rows` orders them.
 ## @return True when the file's corpus rows are current; False when the old text was not
 ##         recoverable and the corpus must stay disclosed stale.
-## @version 1
+## v2 (1.3.10): also replaces the file's file-scope corpus row.
+## @version 2
 ## @req REQ-DDB-INDEX-006
 def refresh_code_text(
     conn: sqlite3.Connection,
@@ -213,6 +214,8 @@ def refresh_code_text(
     the cache — the full stage memoized it under the OLD content sha and the OLD spans — so it is
     read back, never recomputed from the new bytes. Not there, nothing is touched and the caller
     keeps the corpus on the stale list.
+
+    v2 (1.3.10): and the file's row in the file-scope corpus.
 
     @brief Delete the old corpus rows, insert the new.
     @return Whether the corpus is current for this file.
@@ -245,4 +248,56 @@ def refresh_code_text(
         f"INSERT INTO {TABLE} (rowid, body) VALUES (?, ?)",
         [(int(r[0]), t) for r, t in zip(new_rows, texts or [], strict=False)],
     )
+    return _refresh_file_scope(conn, repo_root, rel, cache, old_sha, old_rows, new_rows)
+
+
+## @brief Replace one file's row in the file-scope corpus, as `refresh_code_text` does for bodies.
+## @param conn Open connection, inside the transaction.
+## @param repo_root The working tree.
+## @param rel The edited file.
+## @param cache The index cache.
+## @param old_sha The content sha the last full build indexed.
+## @param old_rows The file's function-corpus rows before the shift.
+## @param new_rows Its rows after.
+## @return True when current; False when the old text was not recoverable.
+## @version 1
+## @dg_internal
+def _refresh_file_scope(
+    conn: sqlite3.Connection,
+    repo_root: Path,
+    rel: str,
+    cache: IndexCache,
+    old_sha: str,
+    old_rows: list,
+    new_rows: list,
+) -> bool:
+    """@brief Delete the old file-scope row by its cached text, insert the new. @return Current?"""
+    from .code_text import (
+        _FILE_SCOPE_SUFFIXES,
+        CODE_TEXT_STAGE_VERSION,
+        FILE_TABLE,
+        file_scope_text,
+        spans_key,
+    )
+
+    if not _has(conn, FILE_TABLE) or not rel.lower().endswith(_FILE_SCOPE_SUFFIXES):
+        return True
+    path_rowid = conn.execute("SELECT rowid FROM path WHERE name = ?", (rel,)).fetchone()
+    if path_rowid is None:
+        return True
+    old = cache.extract_get(
+        old_sha, "code_text_files", CODE_TEXT_STAGE_VERSION, spans_key(old_rows)
+    )
+    if old is None:
+        return False
+    if old["v"]:
+        conn.execute(
+            f"INSERT INTO {FILE_TABLE} ({FILE_TABLE}, rowid, body) VALUES ('delete', ?, ?)",
+            (int(path_rowid[0]), old["v"]),
+        )
+    text = file_scope_text(cache, repo_root, rel, new_rows)
+    if text:
+        conn.execute(
+            f"INSERT INTO {FILE_TABLE} (rowid, body) VALUES (?, ?)", (int(path_rowid[0]), text)
+        )
     return True
