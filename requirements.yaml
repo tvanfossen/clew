@@ -360,6 +360,21 @@ requirements:
       measured 335/335 agreeing on each of the four 1.3.0-final run indexes (mattermost, mbedtls,
       self, entropic; 300 sampled names + 35 corpus queries each), 2026-11-13. `clew query`
       (clew/query_command.py) prints the same payloads as JSON; tests/test_query_cli.py.
+  REQ-DDB-QUERY-015:
+    subsystem: query
+    name: A function's calls in source order, with the frames that enclose them
+    acceptance_criteria: >-
+      `clew.query.call_sequence(db, repo_root, name, qualified=None)` returns the function's call
+      sites in line order, each naming its callee and the loop / if / elif / else / try / catch /
+      finally / case frames whose line span contains it, outermost first, read from the source at
+      query time with the index's own parser and call-site harvester. Calls inside a nested
+      function are excluded. It returns [] for a function that calls nothing and None when the
+      index holds no such function, no body extent for it, or the source cannot be parsed. It is
+      the message order and the frames a derived sequence diagram (clew wiki flow) is drawn from.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/query/callsites.py; tests/test_call_sequence.py (Python if/else/for, TypeScript
+      if/for/try/catch nesting, unknown vs leaf).
   REQ-DDB-SCHEMA-013:
     subsystem: schema
     name: Kconfig structure tables, created independently of the gating table

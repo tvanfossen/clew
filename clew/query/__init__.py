@@ -8,9 +8,10 @@ rows, never HTML. Edge endpoints are resolved to NAMES.
 
 v2 (1.3.1): re-exports the export API (`export_dossier`, `export_search`), the MCP-free form of
 the dossier and search replies.
+v3 (1.4.0): re-exports `call_sequence` and its `CallSite`/`Frame` dataclasses.
 
 @brief Public surface of the R2 query library.
-@version 2
+@version 3
 """
 
 from __future__ import annotations
@@ -271,3 +272,9 @@ __all__ = [
 from .export import EXPORT_CORPORA, WIRE_VERSION, export_dossier, export_search  # noqa: E402
 
 __all__ += ["EXPORT_CORPORA", "WIRE_VERSION", "export_dossier", "export_search"]
+
+# 1.4.0 Track 4 (clew wiki): a function's calls in source order with their enclosing frames,
+# read from source at query time. Covered by semver like the rest of this package.
+from .callsites import CallSite, Frame, call_sequence  # noqa: E402
+
+__all__ += ["CallSite", "Frame", "call_sequence"]
