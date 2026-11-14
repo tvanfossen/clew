@@ -403,6 +403,22 @@ requirements:
     x-priority: P1
     x-status: implemented
     x-evidence: clew/wiki/evidence.py, clew/wiki/command.py; tests/test_wiki_evidence.py.
+  REQ-DDB-WIKI-003:
+    subsystem: wiki
+    name: A wiki section is validated by name and rendered as a self-contained site
+    acceptance_criteria: >-
+      The `wiki:` section of `.clew.yaml` is accepted and dropped by the build (like `guard:`) and
+      read by clew.wiki.config, which names every unknown key as a problem. `clew wiki check`
+      reports each problem (unknown key, docs glob matching nothing, flow entry or lanes the index
+      cannot serve, missing test report, link template without `{file}`) and imports no Sphinx.
+      `clew wiki build --out DIR` (the `clew-trace[wiki]` extra) renders the prose as written,
+      one page per flow (inline SVG, step table, function bodies) and the requirement trace with
+      Sphinx's bundled theme, referencing no remote asset. `--audience NAME` applies that
+      audience's rules; `exclude_bodies` leaves no function body on any page.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/config.py, check.py, build.py, svg.py, command.py; clew/declaration.py
+      SECTION_WIKI; tests/test_wiki_build.py (incl. redaction asserted on the rendered HTML).
   REQ-DDB-SCHEMA-013:
     subsystem: schema
     name: Kconfig structure tables, created independently of the gating table

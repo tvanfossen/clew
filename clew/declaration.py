@@ -67,6 +67,12 @@ DECLARATION_NAME = CONFIG_FILE_NAME
 ## drops it, because nothing on the index side reads it as a declaration. The index reads the
 ## gate's values through `guardconfig.read_guard_config`, with the gate's schema.
 SECTION_GUARD = CONFIG_SECTION
+## `clew wiki`'s section (1.4.0). NOT a declaration section either, for the same reason as
+## `guard:` — the wiki generator reads it (`clew.wiki.config`), no build stage does — so the loader
+## accepts it and drops it.
+SECTION_WIKI = "wiki"
+## The top-level keys the loader accepts and drops: other tools' sections in the shared file.
+NON_DECLARATION_SECTIONS = frozenset({SECTION_GUARD, SECTION_WIKI})
 
 ## How `stated_document_meta` joins the section names. A COMMA-SPACE, matching `scope.py`'s
 ## separator rather than `tiers.py`'s newline, and safe here for the reason `tiers` is not:
@@ -258,7 +264,7 @@ KNOWN_SECTIONS = frozenset(
 )
 
 ## Every top-level key `.clew.yaml` may carry: the declaration sections plus the gate's.
-ACCEPTED_SECTIONS = KNOWN_SECTIONS | {SECTION_GUARD}
+ACCEPTED_SECTIONS = KNOWN_SECTIONS | NON_DECLARATION_SECTIONS
 
 ## THE ESCAPE HATCH AN OLDER CLEW NEEDS (B5, 1.1.0 merge review). `guard:` is new in 1.1.0,
 ## so a `.clew.yaml` written for it is REFUSED outright by clew <= 1.0.39, which cannot know
@@ -292,7 +298,8 @@ def load_declaration(repo_root: Path | str | None) -> dict[str, Any]:
 ## @param repo_root Repo root to look in.
 ## @return (declaration, source path) — the path is None when nothing was declared.
 ##         Raises DeclarationError when the document names an unknown section.
-## @version 4
+## v5 (1.4.0): the `wiki:` section is accepted and dropped, like `guard:`.
+## @version 5
 ## @req REQ-DDB-CONFIG-001
 def load_declaration_located(
     repo_root: Path | str | None,
@@ -359,7 +366,7 @@ def load_declaration_located(
         data = {
             key: value
             for key, value in data.items()
-            if key != SECTION_GUARD and not str(key).startswith(EXPERIMENTAL_PREFIX)
+            if key not in NON_DECLARATION_SECTIONS and not str(key).startswith(EXPERIMENTAL_PREFIX)
         }
     ## BOTH SIDES OF THE DROPPED TOOL (group B, 1.1.0 merge review). The INDEX reads the
     ## gate's section too — the `@req` id pattern and the requirements catalog come from
@@ -431,7 +438,8 @@ def _parsed_declaration(path: Path) -> tuple[dict[str, Any], str | None]:
 ## @brief One sentence on a repository's `.clew.yaml` and whether a build honours it.
 ## @param repo_root The repository root.
 ## @return The sentence, or "" when the repository has no `.clew.yaml`.
-## @version 2
+## v3 (1.4.0): ignores the `wiki:` section as it does `guard:`.
+## @version 3
 ## @req REQ-DDB-CONFIG-001
 def describe_declaration(repo_root: Path) -> str:
     """gh#48 ASK 4. A reporter's split repository carried a `.clew.yaml` that was comments only, so
@@ -457,7 +465,7 @@ def describe_declaration(repo_root: Path) -> str:
             f"Its {DECLARATION_NAME} holds only comments, so it states nothing and built-in "
             f"defaults apply — uncomment a section to have builds honour it."
         )
-    sections = ", ".join(sorted(str(k) for k in data if k != SECTION_GUARD))
+    sections = ", ".join(sorted(str(k) for k in data if k not in NON_DECLARATION_SECTIONS))
     if not sections:
         return (
             f"Its {DECLARATION_NAME} configures only the gate (`{SECTION_GUARD}:`), so builds "

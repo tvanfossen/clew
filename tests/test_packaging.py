@@ -65,6 +65,13 @@ _JUSTIFIED_UNDECLARED = {
     # by our own floor". gh#23 moved the floor, so that claim expired and the
     # exemption would have hidden a genuinely missing dependency on 3.10.
     "tomllib",
+    # DECLARED, BUT AS THE `wiki` EXTRA (1.4.0, owner 2026-11-13), not as a runtime dependency:
+    # `clew wiki build` renders through Sphinx and nothing else does. Its single import sits
+    # inside `clew.wiki.build._render`, guarded, and refuses with "pip install 'clew-trace[wiki]'"
+    # when the extra is absent — so an install without it loses exactly one verb, loudly. The
+    # index, the MCP server and `clew wiki check` never import it (the last is pinned by
+    # tests/test_wiki_build.py).
+    "sphinx",
 }
 
 
