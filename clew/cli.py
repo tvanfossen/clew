@@ -245,6 +245,8 @@ QUERY_COMMAND = "query"
 ## build otherwise (1.3.5). A verb rather than a seventh build flag, so the build's six arguments
 ## stay the surface `tests/test_cli_surface.py` pins. Mirrors `refresh_command.REFRESH_COMMAND`.
 REFRESH_COMMAND = "refresh"
+## `wiki` derives documentation from the index (1.4.0, #67); `clew.wiki.command.WIKI_COMMAND`.
+WIKI_COMMAND = "wiki"
 
 ## The `build_meta` section carrying the scope decision, and the key inside it that
 ## records what the OPERATOR removed — kept apart from `scope.excludes`, which is
@@ -3732,7 +3734,8 @@ def _stamp_refresh_metrics(
 ## @brief Entry point — dispatch a subcommand, else parse args and build.
 ## v18 (1.3.2): dispatches `clew query`, the export API as JSON on stdout.
 ## v19 (1.3.5): dispatches `clew refresh`, the two-tier refresh.
-## @version 19
+## v20 (1.4.0): dispatches `clew wiki`.
+## @version 20
 ## @req REQ-DDB-CLI-001
 def main() -> None:
     """Entry point — parse args, run doxygen, optionally enrich.
@@ -3763,7 +3766,7 @@ def main() -> None:
     have been worse.
 
     @brief Parse CLI arguments and run the build pipeline.
-    @version 17
+    @version 18
     """
     if sys.argv[1:2] == [PROPOSE_COMMAND]:
         from .propose.command import (
@@ -3795,6 +3798,10 @@ def main() -> None:
         from .refresh_command import refresh_main
 
         sys.exit(refresh_main(sys.argv[2:]))
+    if sys.argv[1:2] == [WIKI_COMMAND]:
+        from .wiki.command import wiki_main
+
+        sys.exit(wiki_main(sys.argv[2:]))
     args = _build_argparser().parse_args()
     _configure_logging(args.verbose)
     _resolve_output(args)
