@@ -389,6 +389,20 @@ requirements:
     x-priority: P1
     x-status: implemented
     x-evidence: clew/wiki/flow.py, clew/wiki/command.py; tests/test_wiki_flow.py.
+  REQ-DDB-WIKI-002:
+    subsystem: wiki
+    name: Each requirement is graded from the evidence CI produced
+    acceptance_criteria: >-
+      `clew wiki trace` (clew.wiki.evidence.requirement_evidence) grades every requirement the index
+      knows (catalog rows and tagged ids) from JUnit results of its linked tests — PASS, GAP (a
+      failure or error), TARGET (every linked result is a skip of a declared target-only test),
+      NOT_RUN (linked tests skipped or absent from the reports) and MISSING (no linked test) — and
+      reports each implementer as covered or uncovered from a Cobertura report, with coverage
+      ABSENT when no report was given. Parametrized cases fold into their test function, taking the
+      worst status. Reports over 64 MB are refused.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/evidence.py, clew/wiki/command.py; tests/test_wiki_evidence.py.
   REQ-DDB-SCHEMA-013:
     subsystem: schema
     name: Kconfig structure tables, created independently of the gating table
