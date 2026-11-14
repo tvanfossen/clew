@@ -9,6 +9,6 @@
  "description": [
   "CALL THIS FIRST for any question about a NAMED THING — one call returns what the index knows, INCLUDING ITS VERBATIM SOURCE BODY AND INLINE COMMENTS, so you need not open the file. `subject_kind` says which kind resolved; `also` names other kinds the name has.",
   "The payload is shaped by the kind, and a field that does not apply is ABSENT. A function carries signature, file/lines, brief, liveness, threads, requirements and tests, callers/callees, writes/reads, `body`, `sections`, `locks_held` and `external_callees` (calls to nothing indexed, so `callees` can be empty). `anchor_mismatch: true` means those lines changed since the build. A variable carries its type and declaration `sites`; a lock its critical sections; a requirement its implementers, tests and mentions; a class its members and bases; a FILE PATH its docs and symbols.",
-  "Pass a LIST of up to 8 subjects for one reply, one entry each, in order; a large batch shares one budget and `_limited` says what was trimmed."
+  "Pass a LIST of up to 8 subjects for one reply, one entry each, in order (more are named in `not_answered`); a batch shares one budget and `_limited` says what was trimmed."
  ]
 }

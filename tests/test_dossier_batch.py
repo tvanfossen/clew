@@ -133,19 +133,25 @@ def test_a_qualified_argument_beside_a_list_is_refused_not_ignored(rich_db: Path
         _tools(rich_db).dossier(list(INDEXED), qualified="some::identity")
 
 
-def test_the_batch_cap_refuses_rather_than_answering_for_the_first_n(rich_db: Path) -> None:
-    """A truncated request answered as if complete is the failure the `_limited`
-    disclosure exists to prevent, one level up. At the cap the call must still work —
-    an off-by-one that refused the documented maximum would make the constant a lie.
+def test_over_the_batch_cap_answers_the_first_n_and_names_the_rest(rich_db: Path) -> None:
+    """THE RULE CHANGED BY OWNER RULING (2026-11-13, 1.3.10): an over-cap batch used to be
+    REFUSED, which cost the agent a second call every time (2 of 188 mbedtls calls in the 1.3.0
+    grid). It now answers the first `MAX_BATCH_SYMBOLS` and names every subject it did not answer
+    in `not_answered` — the disclosure that kept the old rule's purpose: a truncated request must
+    never read as a complete one. At the cap nothing is named.
 
-    @brief Over the cap raises; at the cap answers.
-    @version 1
+    @brief Over the cap answers the first N and names the rest; at the cap names nothing.
+    @version 2
     """
     tools = _tools(rich_db)
-    over = [f"{INDEXED[0]}_{i}" for i in range(q.MAX_BATCH_SYMBOLS + 1)]
-    with pytest.raises(ValueError, match="at most"):
-        tools.dossier(over)
-    assert tools.dossier(over[: q.MAX_BATCH_SYMBOLS])["count"] == q.MAX_BATCH_SYMBOLS
+    over = [f"{INDEXED[0]}_{i}" for i in range(q.MAX_BATCH_SYMBOLS + 2)]
+    reply = tools.dossier(over)
+    assert reply["count"] == q.MAX_BATCH_SYMBOLS
+    assert reply["subject"] == over[: q.MAX_BATCH_SYMBOLS]
+    assert reply["not_answered"] == over[q.MAX_BATCH_SYMBOLS :]
+    assert "re-ask" in reply["not_answered_means"]
+    at_cap = tools.dossier(over[: q.MAX_BATCH_SYMBOLS])
+    assert at_cap["count"] == q.MAX_BATCH_SYMBOLS and "not_answered" not in at_cap
 
 
 def test_an_empty_list_is_refused_rather_than_answered_with_zero_results(

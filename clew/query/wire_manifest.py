@@ -75,6 +75,9 @@ ENVELOPE_KEYS: tuple[str, ...] = (
     "edge_defaults",
     ## 1.3.9, compact shape: `detail` dropped because the body excerpt already carries it.
     "detail_in_body",
+    ## 1.3.10: an over-cap batch names the subjects it did not answer.
+    "not_answered",
+    "not_answered_means",
 )
 
 

@@ -107,3 +107,20 @@ def test_a_callee_row_publishes_the_short_form_and_the_selector_follows_it(neste
         assert identity_rowids(conn, "run", "app.alpha.Handler.run") == [2]
     finally:
         conn.close()
+
+
+def test_a_selector_in_the_other_languages_separator_still_selects(nested: Path) -> None:
+    """1.3.10. A mattermost agent passed `qualified="app::database::...::execute"` — C++ spelling
+    for a TypeScript identity — and got `found: false` for a function the index holds. The two
+    separators name the same nesting, so a selector written with either is resolved with both.
+
+    @brief `::` and `.` are interchangeable in a qualified selector.
+    @return None.
+    @version 1
+    """
+    conn = sqlite3.connect(str(nested))
+    try:
+        assert identity_rowids(conn, "run", "alpha::Handler::run") == [2]
+        assert identity_rowids(conn, "run", "app::beta::Handler::run") == [3]
+    finally:
+        conn.close()

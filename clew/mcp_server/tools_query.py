@@ -53,6 +53,7 @@ from ..query.payload import (  # noqa: F401 — re-bound here: tests and callers
     _refusal_note,
     compact_docs,
     compact_neighbours,
+    disclose_overflow,
 )
 from ..query.recovery import recovery_hint
 from .descriptions import load_descriptions
@@ -1531,7 +1532,8 @@ class QueryTools:
     ## v15 (1.3.1): resolves through `clew.query.export.subject_payload`, the builder the export
     ## API shares; this adds the budget, the neighbour cap and the server stamps.
     ## v16 (1.3.7): serves the compact neighbour shape when `CLEW_WIRE=compact`.
-    ## @version 16
+    ## v17 (1.3.10): an over-cap list answers the first eight and names the rest.
+    ## @version 17
     ## @req REQ-DDB-MCP-003
     ## @req REQ-DDB-QUERY-010
     def dossier(
@@ -1682,8 +1684,10 @@ class QueryTools:
         @version 14
         """
         if not isinstance(subject, str):
-            names = _accepted_batch(list(subject), qualified)
-            return self._batched_dossiers(names, kind, target, sub_index, max_body_lines, depth)
+            names, overflow = _accepted_batch(list(subject), qualified)
+            reply = self._batched_dossiers(names, kind, target, sub_index, max_body_lines, depth)
+            disclose_overflow(reply, overflow)
+            return reply
         payload = _export.subject_payload(
             self.db(target, sub_index),
             subject,

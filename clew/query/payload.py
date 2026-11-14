@@ -634,30 +634,29 @@ def _batch_miss(name: str, unresolved: tuple[str, ...] = (), hint: str = "") -> 
     }
 
 
-## @brief Validate and normalise a batch request, refusing what cannot be answered.
+## @brief Validate and normalise a batch request: de-duplicate, split off what is over the cap.
 ## @param names The requested symbol list, as given.
 ## @param qualified The `qualified` argument, which has no meaning against a list.
-## @return The de-duplicated names, in request order.
-## @version 1
+## @return (the names answered, in request order; the names over the cap, in request order).
+## v2 (1.3.10, owner ruling 2026-11-13): over the cap is ANSWERED for the first
+## `MAX_BATCH_SYMBOLS` and the rest are returned to be named in `not_answered`, not refused.
+## @version 2
 ## @dg_internal
-def _accepted_batch(names: list[str], qualified: str | None) -> list[str]:
-    """REFUSES, NEVER TRIMS. Each of the three rejections here has a silent alternative
-    that looks like success and is worse than an error:
+def _accepted_batch(names: list[str], qualified: str | None) -> tuple[list[str], list[str]]:
+    """TWO REFUSALS REMAIN, one rule changed. An empty list would answer `count: 0` to a request
+    that asked for something, and `qualified` beside a list would scope every dossier by one
+    identity key that belongs to at most one of them — both still raise.
 
-    - an empty list would answer `count: 0` to a request that asked for something, which
-      reads as "none of your symbols is indexed";
-    - a list over the cap answered for its first eight would report a count the caller
-      has to re-check against its own request to notice the loss;
-    - `qualified` beside a list would scope every dossier in the batch by one identity
-      key that belongs to at most one of them.
+    OVER THE CAP NO LONGER RAISES (owner, 2026-11-13). The refusal cost a second call every time
+    an agent asked for nine; the answer for the first eight plus `not_answered` naming the rest
+    keeps what the refusal protected — a truncated request never reads as a complete one —
+    without the round trip.
 
-    De-duplication is the ONE normalisation that is not a refusal, because it removes no
-    information: the same name twice has one answer, and the entry it frees goes to a
-    symbol that was actually asked about.
+    De-duplication removes no information: the same name twice has one answer.
 
     @brief Normalise a batch request or raise.
-    @return De-duplicated names in request order.
-    @version 1
+    @return (answered, not answered).
+    @version 2
     """
     if qualified is not None:
         raise ValueError(
@@ -668,15 +667,28 @@ def _accepted_batch(names: list[str], qualified: str | None) -> list[str]:
     unique = list(dict.fromkeys(names))
     if not unique:
         raise ValueError("dossier needs at least one function name.")
-    if len(unique) > q.MAX_BATCH_SYMBOLS:
-        raise ValueError(
-            f"dossier answers for at most {q.MAX_BATCH_SYMBOLS} symbols in one call and "
-            f"{len(unique)} were requested. Split the list — the request is REFUSED "
-            "rather than answered for the first "
-            f"{q.MAX_BATCH_SYMBOLS}, so a partial answer cannot be mistaken for a "
-            "complete one."
+    return unique[: q.MAX_BATCH_SYMBOLS], unique[q.MAX_BATCH_SYMBOLS :]
+
+
+## @brief Name the subjects an over-cap batch did not answer.
+## @param out The batch envelope; mutated.
+## @param overflow The names over the cap.
+## @return None.
+## @version 1
+## @dg_internal
+def disclose_overflow(out: dict[str, Any], overflow: list[str]) -> None:
+    """ABSENT WHEN NOTHING WAS LEFT OUT, so an ordinary batch carries nothing.
+
+    @brief Add `not_answered` to a batch envelope.
+    @return None.
+    """
+    if overflow:
+        out["not_answered"] = overflow
+        out["not_answered_means"] = (
+            f"dossier answers at most {q.MAX_BATCH_SYMBOLS} subjects per call; these were NOT "
+            "looked up — re-ask for them in another call. Nothing is implied about whether they "
+            "are indexed."
         )
-    return unique
 
 
 ## The gate-row fields worth hoisting when every row agrees. Each identifies the SYMBOL or its

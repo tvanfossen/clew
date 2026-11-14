@@ -47,6 +47,7 @@ from .payload import (
     _kind_limitation_clause,
     compact_docs,
     compact_neighbours,
+    disclose_overflow,
 )
 from .recovery import recovery_hint
 
@@ -243,7 +244,8 @@ def subject_miss(db: Path, subject: str) -> dict[str, Any]:
 ## @return The payload, stamped with `wire_version`.
 ## v2 (1.3.7): the opt-in compact neighbour shape.
 ## v3 (1.3.9): compact also serves a docstring the body already carries once.
-## @version 3
+## v4 (1.3.10): an over-cap list answers the first eight and names the rest.
+## @version 4
 ## @req REQ-DDB-QUERY-014
 def export_dossier(
     db: Path | str,
@@ -269,10 +271,11 @@ def export_dossier(
     db = Path(db)
     root = Path(repo_root) if repo_root is not None else None
     if not isinstance(subject, str):
-        names = _accepted_batch(list(subject), qualified)
+        names, overflow = _accepted_batch(list(subject), qualified)
         out = batch_payload(
             db, names, kind=kind, repo_root=root, max_body_lines=max_body_lines, depth=depth
         )
+        disclose_overflow(out, overflow)
         for entry in out["results"]:
             wire.prune_absent_keys(entry, _DOSSIER_OPTIONAL)
             if compact:

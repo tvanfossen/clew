@@ -338,7 +338,8 @@ def _ends_at_boundary(name: str, suffix: str) -> bool:
 ## @param qualifieds Every full qualified name the bare name has.
 ## @param selector A full qualified name or a boundary-aligned suffix of one.
 ## @return The one full name it selects, or None when it selects none or several.
-## @version 1
+## v2 (1.3.10): `::` and `.` are interchangeable in the selector.
+## @version 2
 ## @req REQ-DDB-QUERY-010
 def resolve_selector(qualifieds: set[str], selector: str) -> str | None:
     """EXACT FIRST, then a UNIQUE boundary-aligned suffix — the form `short_qualified` publishes.
@@ -347,12 +348,15 @@ def resolve_selector(qualifieds: set[str], selector: str) -> str | None:
 
     @brief Resolve a qualified selector.
     @return Full qualified name or None.
-    @version 1
+    @version 2
     """
     if selector in qualifieds:
         return selector
-    matches = [q for q in qualifieds if _ends_at_boundary(q, selector)]
-    return matches[0] if len(matches) == 1 else None
+    ## EITHER SEPARATOR (1.3.10): `::` and `.` name the same nesting, and an agent writing one
+    ## language's spelling for another's identity (`a::b::run` for `a.b.run`) meant that identity.
+    spellings = {selector, selector.replace("::", "."), selector.replace(".", "::")}
+    matches = {q for q in qualifieds for sp in spellings if q == sp or _ends_at_boundary(q, sp)}
+    return next(iter(matches)) if len(matches) == 1 else None
 
 
 ## @brief Keep only the candidate rows whose IDENTITY is the named qualified one.

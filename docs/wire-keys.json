@@ -19,6 +19,8 @@
   "kconfig_found",
   "kind",
   "matched",
+  "not_answered",
+  "not_answered_means",
   "note",
   "provenance",
   "results",
