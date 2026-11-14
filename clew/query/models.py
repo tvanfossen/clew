@@ -1508,6 +1508,10 @@ class Hop:
     edge_triggered: bool | None = None
     crosses_thread: bool | None = None
     to_thread: str | None = None
+    ## 1.4.0 (W1): the endpoints' IDENTITIES on an identity-scoped walk (`chain_trace(...,
+    ## qualified=...)`); "" on a name-scoped one, where a name may stand for several namesakes.
+    from_qualified: str = ""
+    to_qualified: str = ""
 
 
 ## @brief One node reached during a causal-chain traversal.
@@ -1540,6 +1544,8 @@ class ChainNode:
     ## 0 means the taper dropped nothing at this node — a MEASUREMENT, not a placeholder,
     ## and the reason it is not elided on the wire.
     omitted: int = 0
+    ## 1.4.0 (W1): this node's full qualified identity on an identity-scoped walk; "" otherwise.
+    qualified: str = ""
 
 
 ## @brief A complete causal-chain traversal result.

@@ -864,11 +864,19 @@ def _rank_enum_over_mirror(db: DbSource, name: str, kinds: tuple[str, ...]) -> t
 ## @param depth Requested hop depth.
 ## @param direction 'forward' (downstream) or 'backward' (upstream).
 ## @param max_neighbors Fan-out cap at depth 1.
+## @param qualified The caller's identity selector, or None for the name-scoped walk.
 ## @return The Chain, or None when depth is 1 or the subject has no traversal seed.
-## @version 1
+## v2 (1.4.0, W1): passes `qualified` to an identity-scoped walk.
+## @version 2
 ## @dg_internal
 def _chain_for(
-    db: DbSource, kind: str, name: str, depth: int, direction: str, max_neighbors: int
+    db: DbSource,
+    kind: str,
+    name: str,
+    depth: int,
+    direction: str,
+    max_neighbors: int,
+    qualified: str | None = None,
 ) -> Chain | None:
     """REUSES `chain_trace` RATHER THAN WALKING AGAIN. Its fan-out taper, its cycle
     handling and its non-fuzzy-edges-only rule are the bounds that keep a depth-3 walk
@@ -887,7 +895,16 @@ def _chain_for(
     """
     if depth <= 1 or kind != "function":
         return None
-    return chain_trace(db, name, direction=direction, max_depth=depth, max_neighbors=max_neighbors)
+    ## THE SELECTOR REACHES THE WALK (1.4.0, W1): with it the chain follows this identity's
+    ## edges, not its namesakes'.
+    return chain_trace(
+        db,
+        name,
+        direction=direction,
+        max_depth=depth,
+        max_neighbors=max_neighbors,
+        qualified=qualified,
+    )
 
 
 ## @brief The full subject dossier for a name of ANY indexed kind.
@@ -905,7 +922,8 @@ def _chain_for(
 ## (bare tail, selector), because 93.6% of measured misses were spellings clew had served.
 ## v4: a SIGNATURE passed as `qualified` is recovered to the qualified name it contains — all
 ## twelve selectors the 1.1.0 agents passed were signatures, and all twelve resolved to nothing.
-## @version 4
+## v5 (1.4.0, W1): `qualified` also scopes the depth>1 walk.
+## @version 5
 ## @req REQ-DDB-QUERY-004
 ## @req REQ-DDB-QUERY-009
 ## @req REQ-DDB-QUERY-010
@@ -980,7 +998,7 @@ def dossier(
         subject=subject,
         kind=chosen,
         also=tuple(k for k in kinds if k != chosen),
-        chain=_chain_for(db, chosen, subject, depth, direction, max_neighbors),
+        chain=_chain_for(db, chosen, subject, depth, direction, max_neighbors, qualified),
         **section,
     )
 

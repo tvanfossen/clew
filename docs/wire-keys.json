@@ -82,7 +82,8 @@
    "requirements": "list[str]",
    "is_terminus": "bool",
    "termini": "list[Terminus]",
-   "omitted": "int"
+   "omitted": "int",
+   "qualified": "str"
   },
   "ClassCandidate": {
    "qualified": "str",
@@ -272,7 +273,9 @@
    "dispatch_mode": "str | None",
    "edge_triggered": "bool | None",
    "crosses_thread": "bool | None",
-   "to_thread": "str | None"
+   "to_thread": "str | None",
+   "from_qualified": "str",
+   "to_qualified": "str"
   },
   "Implementer": {
    "name": "str",

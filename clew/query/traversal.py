@@ -40,7 +40,9 @@ from ._common import (
     candidate_rows,
     connect,
     function_candidates,
+    identity_rowids,
     is_overloaded,
+    qualified_name_of,
     resolve_rowid,
     table_exists,
     to_bool,
@@ -325,13 +327,192 @@ def _normalize_direction(direction: str) -> str:
     )
 
 
+## @brief Non-fuzzy call hops out of / into ONE identity, each neighbour as an identity too.
+## @param conn Open connection.
+## @param name The focal function's bare name.
+## @param rowids The focal identity's rowids.
+## @param forward True for callees, False for callers.
+## @return (neighbour name, neighbour qualified, canonical rowid, Hop) per neighbour identity.
+## @version 1
+## @dg_internal
+def _identity_call_hops(
+    conn: sqlite3.Connection, name: str, rowids: list[int], forward: bool
+) -> list[tuple[str, str, int, Hop]]:
+    """THE ROWID FILTER IS THE WHOLE POINT (W1): `_call_hops` filters `memberdef.name=?`, which
+    unions every namesake's edges onto this node. Same non-fuzzy rule and the same per-neighbour
+    collapse as `_call_hops`, grouped by neighbour IDENTITY (bare name + qualified name) rather
+    than by name, with the smallest rowid of that identity as its canonical row.
+
+    @brief Identity-scoped call hops.
+    @return Hops.
+    """
+    if not rowids or not table_exists(conn, "call_edges"):
+        return []
+    endpoint, focal = ("x", "c") if forward else ("c", "x")
+    marks = ",".join("?" for _ in rowids)
+    sql = (
+        f"SELECT {endpoint}.name, {endpoint}.definition, {endpoint}.rowid, e.source, e.confidence "
+        "FROM call_edges e JOIN memberdef c ON c.rowid = e.caller_rowid "
+        "JOIN memberdef x ON x.rowid = e.callee_rowid "
+        f"WHERE {focal}.rowid IN ({marks}) AND e.confidence != 'fuzzy'"
+    )
+    focal_q = qualified_name_of(name, _definition(conn, rowids[0]))
+    grouped: dict[tuple[str, str], tuple[int, list[tuple[str, str | None]]]] = {}
+    for nname, definition, nrowid, src, conf in conn.execute(sql, rowids):
+        key = (str(nname), qualified_name_of(str(nname), definition))
+        low, variants = grouped.get(key, (int(nrowid), []))
+        variants.append((src, conf))
+        grouped[key] = (min(low, int(nrowid)), variants)
+    out = []
+    for (nname, nqual), (nrowid, variants) in sorted(grouped.items()):
+        src, conf = _collapse_variants(variants)
+        frm, to = (
+            ((name, focal_q), (nname, nqual)) if forward else ((nname, nqual), (name, focal_q))
+        )
+        hop = Hop(
+            edge_class=EDGE_CLASS_CALL,
+            from_name=frm[0],
+            to_name=to[0],
+            source=src,
+            confidence=conf,
+            from_qualified=frm[1],
+            to_qualified=to[1],
+        )
+        out.append((nname, nqual, nrowid, hop))
+    return out
+
+
+## @brief One memberdef row's definition text.
+## @param conn Open connection.
+## @param rowid The row.
+## @return The definition, or "".
+## @version 1
+## @dg_internal
+def _definition(conn: sqlite3.Connection, rowid: int) -> str:
+    """@brief Read a definition. @return Text."""
+    row = conn.execute("SELECT definition FROM memberdef WHERE rowid = ?", (rowid,)).fetchone()
+    return str(row[0] or "") if row else ""
+
+
+## @brief The identity-scoped breadth-first walk `chain_trace` runs when given `qualified`.
+## @param conn Open connection.
+## @param seed The seed's bare name.
+## @param qualified The seed's identity selector.
+## @param forward Direction.
+## @param bounds (max_depth, max_neighbors).
+## @return (nodes, hops) accumulated, or None when the identity is not indexed.
+## @version 1
+## @dg_internal
+def _identity_walk(
+    conn: sqlite3.Connection, seed: str, qualified: str, forward: bool, bounds: tuple[int, int]
+) -> _ChainState | None:
+    """THE SAME BOUNDS AS THE NAME WALK — depth, the tapered fan-out, cycle and best-depth guards —
+    over identity-scoped CALL hops. Shared-key hops are not part of this walk yet: the key layer
+    records writers and readers by function name, so following one would re-introduce the
+    namesake union this walk exists to remove. Their absence is a scope, stated here and in
+    `chain_trace`.
+
+    @brief Walk call edges by identity.
+    @return State or None.
+    """
+    max_depth, max_neighbors = bounds
+    rowids = identity_rowids(conn, seed, qualified)
+    if not rowids:
+        return None
+    full = qualified_name_of(seed, _definition(conn, rowids[0]))
+    state = _ChainState()
+    root = min(rowids)
+    state.nodes[root] = replace(_make_node(conn, seed, root, 0), qualified=full)
+    state.best_depth[root] = 0
+    queue: deque = deque([(seed, full, root, 0, frozenset({root}))])
+    while queue:
+        name, qual, rowid, depth, path = queue.popleft()
+        if depth >= max_depth or state.nodes[rowid].is_terminus:
+            continue
+        hops = _identity_call_hops(conn, name, identity_rowids(conn, name, qual), forward)
+        cap = _cap_at_depth(max_neighbors, depth + 1)
+        if len(hops) > cap:
+            state.omitted[rowid] = state.omitted.get(rowid, 0) + len(hops) - cap
+        for nname, nqual, nrowid, hop in hops[:cap]:
+            _record_identity(conn, (nname, nqual, nrowid, hop), (depth, path), state, queue)
+    return state
+
+
+## @brief Record one identity-walk neighbour: hop, node, and (maybe) enqueue.
+## @param conn Open connection.
+## @param found (name, qualified, canonical rowid, Hop).
+## @param parent (parent depth, path rowids).
+## @param state The walk state.
+## @param queue The BFS queue.
+## @return None.
+## @version 1
+## @dg_internal
+def _record_identity(
+    conn: sqlite3.Connection,
+    found: tuple[str, str, int, Hop],
+    parent: tuple[int, frozenset[int]],
+    state: _ChainState,
+    queue: deque,
+) -> None:
+    """`_expand_neighbor`'s rules, with the neighbour's rowid taken from the edge rather than
+    re-resolved by name — re-resolving is exactly where a namesake would slip back in.
+
+    @brief Record + conditionally enqueue one identity neighbour.
+    @return None.
+    """
+    nname, nqual, nrowid, hop = found
+    depth, path = parent
+    child = depth + 1
+    state.hops.setdefault(
+        (hop.edge_class, hop.from_name, hop.from_qualified, hop.to_name, hop.to_qualified), hop
+    )
+    if nrowid not in state.nodes or child < state.nodes[nrowid].depth:
+        state.nodes[nrowid] = replace(_make_node(conn, nname, nrowid, child), qualified=nqual)
+    if nrowid in path:
+        return
+    prev = state.best_depth.get(nrowid)
+    if prev is None or child < prev:
+        state.best_depth[nrowid] = child
+        queue.append((nname, nqual, nrowid, child, path | {nrowid}))
+
+
+## @brief Run the identity walk and package it as a Chain.
+## @param db The index.
+## @param seed The seed's bare name.
+## @param qualified The seed's identity selector.
+## @param direction Normalised direction.
+## @param bounds (max_depth, max_neighbors).
+## @return The Chain; empty when the identity is not indexed.
+## @version 1
+## @dg_internal
+def _identity_chain(
+    db: DbSource, seed: str, qualified: str, direction: str, bounds: tuple[int, int]
+) -> Chain:
+    """@brief Identity-scoped chain_trace body. @return Chain."""
+    with connect(db) as conn:
+        state = _identity_walk(conn, seed, qualified, direction == "forward", bounds)
+    if state is None:
+        return Chain(seed=seed, direction=direction, max_depth=bounds[0])
+    nodes = sorted(
+        (replace(n, omitted=state.omitted.get(r, 0)) for r, n in state.nodes.items()),
+        key=lambda n: (n.depth, n.name, n.qualified),
+    )
+    hops = sorted(
+        state.hops.values(),
+        key=lambda h: (h.edge_class, h.from_name, h.from_qualified, h.to_name, h.to_qualified),
+    )
+    return Chain(seed=seed, direction=direction, max_depth=bounds[0], nodes=nodes, hops=hops)
+
+
 ## @brief D6 unified causal traversal from a seed function.
 ## @param db Path | str | sqlite3.Connection to the clew.db.
 ## @param seed Seed function name to trace from.
 ## @param direction 'forward'/'downstream' or 'backward'/'upstream' (alias- and case-tolerant; unknown words raise).
 ## @param max_depth Maximum hop depth from the seed.
 ## @param max_neighbors Base fan-out cap at depth 1 (tapered by _cap_at_depth).
-## @version 7
+## @param qualified Optional identity selector; given, the walk is IDENTITY-scoped over call edges.
+## v8 (1.4.0, W1): takes `qualified`, which runs `_identity_walk` instead of the name walk.
+## @version 8
 ## @req REQ-DDB-QUERY-002
 def chain_trace(
     db: DbSource,
@@ -339,6 +520,7 @@ def chain_trace(
     direction: str = "forward",
     max_depth: int = 6,
     max_neighbors: int = 8,
+    qualified: str | None = None,
 ) -> Chain:
     """Breadth-first walk of UNION(non-fuzzy call_edges incl. fnptr,
     shared_key_edges) from `seed`, annotating each hop and terminating a
@@ -346,27 +528,22 @@ def chain_trace(
     depth is `max_depth`-bounded; fan-out tapers via `_cap_at_depth`. Returns
     an empty Chain when the seed resolves to no indexed function.
 
-    DELIBERATELY DOES NOT TAKE gh#37's `qualified` SELECTOR, and this is the one
-    accessor returning `candidates` that refuses it. The walk resolves every hop by
-    BARE NAME — `_call_hops` and `_key_hops` both filter `memberdef.name=?`, unlike
-    the flat `symbols._direct_call_edges` which filters by identity rowid. So a
-    disambiguated seed would give an identity-correct root node sitting on top of a
-    name-scoped traversal: the chain's own edges would still be the union over every
-    namesake from depth 1 onward, and the reply would carry no signal that only the
-    seed had been narrowed.
-
-    That is precisely the shape gh#37 was filed about — an argument whose effect the
-    surface cannot deliver — so accepting it here to look complete would create a
-    second instance of the defect while closing the first. `candidates` on the seed
-    stays ADVISORY here on purpose: read it, then narrow with `dossier`/`callers`/
-    `callees`, which do resolve by identity. Making the traversal identity-scoped is
-    the separate piece of work that would let this argument mean something.
+    `qualified` (1.4.0, W1) MAKES THE WALK IDENTITY-SCOPED. Without it every hop resolves by
+    BARE NAME — `_call_hops` and `_key_hops` filter `memberdef.name=?` — so a walk from one
+    `execute` also walks its namesakes'; that was why this function used to refuse gh#37's
+    selector rather than accept an argument whose effect it could not deliver. With it, the seed
+    and every CALL hop resolve by identity rowids (`_identity_walk`), each node and hop carries
+    its qualified identity, and a qualified name the index does not hold walks nothing. Shared-key
+    hops are left out of the identity walk: the key layer names writers and readers by bare name,
+    and following one would bring the namesake union back. The bare walk is unchanged.
 
     @brief Trace a bounded, annotated causal chain from a seed function.
-    @version 7
+    @version 8
     """
     direction = _normalize_direction(direction)
     forward = direction == "forward"
+    if qualified is not None:
+        return _identity_chain(db, seed, qualified, direction, (max_depth, max_neighbors))
     with connect(db) as conn:
         seed_cands = function_candidates(conn, seed)
         if not seed_cands:
