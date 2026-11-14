@@ -1538,11 +1538,9 @@ class QueryTools:
             str | list[str],
             Field(
                 description=(
-                    "One name, or a list of up to 8 for one reply. A function, variable, macro, "
-                    "class, enumeration, lock, thread, requirement id, config symbol — or a "
-                    "repo-relative FILE PATH, which returns that file's documentation and the "
-                    "symbols it defines — with `harvested: false` when the index knows the "
-                    "file's name but could not read it."
+                    "One name, or a list of up to 8: a function, variable, typedef, macro, class, "
+                    "enumeration, lock, thread, requirement id, config symbol, or a "
+                    "repo-relative FILE PATH (`harvested: false` when the file was not read)."
                 )
             ),
         ],
@@ -1555,11 +1553,9 @@ class QueryTools:
             int,
             Field(
                 description=(
-                    "How far to walk. Depth 1 is the symbol and its immediate neighbours. "
-                    "Depth 2-6 also returns `chain`, a bounded causal walk across call and "
-                    "shared-key edges; 6 is the maximum. Only a function is an endpoint of "
-                    "those edges, so a deeper walk on any other kind returns `depth_note` "
-                    "saying so instead of pretending."
+                    "1 is the symbol and its neighbours; 2-6 also returns `chain`, a bounded "
+                    "walk over call and shared-key edges (6 is the maximum). Only a function "
+                    "has edges; other kinds return `depth_note`."
                 )
             ),
         ] = 1,
@@ -1570,11 +1566,10 @@ class QueryTools:
             int | None,
             Field(
                 description=(
-                    "Cap on callers and callees listed per symbol. Omitted: 25 at depth 1, 8 "
-                    "per hop of a deeper walk. A cut list is disclosed in `_limited` with its "
-                    "`total_available`; raise this to see the rest. The rows may arrive grouped "
-                    "by `file`; then `edge_defaults` holds the `source`/`confidence`/`edge_class` "
-                    "a row leaves out."
+                    "Callers/callees listed per symbol: 25 at depth 1, 8 per hop deeper. A cut "
+                    "list shows in `_limited` with `total_available`. Rows may arrive grouped "
+                    "by `file`, with `edge_defaults` holding the `source`/`confidence`/"
+                    "`edge_class` a row leaves out."
                 )
             ),
         ] = None,
@@ -1582,37 +1577,29 @@ class QueryTools:
             str | None,
             Field(
                 description=(
-                    "A `candidates[i].qualified` from a previous reply — the QUALIFIED NAME, "
-                    "such as `Owner::method`, NOT the `signature`, which carries a return type "
-                    "and will match nothing. Selects one identity; same-class overloads share "
-                    "one. Keep `subject` bare. Single name only."
+                    "A `qualified` value from a previous reply (`Owner::method`), NOT a "
+                    "`signature`. Selects one identity; keep `subject` bare; single name only."
                 )
             ),
         ] = None,
         target: Annotated[
             str | None,
-            Field(description="Repo root or slug to query; omit for the default target."),
+            Field(description="Repo root or slug; omit for the default."),
         ] = None,
         sub_index: Annotated[
             str | None,
             Field(
                 description=(
-                    "Name of one PART of `target`, when the repository is split into several "
-                    "indexes — a first-party index plus one per vendored dependency. Omit and "
-                    "the whole-repository index answers, or first-party when only the split is "
-                    "built; the reply's `sub_index` says which and `not_searched` names the parts "
-                    "it did not read."
+                    "One PART of a repository split into several indexes (first-party plus one "
+                    "per vendored dependency); omit for the whole repository. The reply's "
+                    "`sub_index` names the part that answered, `not_searched` the parts not read."
                 )
             ),
         ] = None,
         max_body_lines: Annotated[
             int,
             Field(
-                description=(
-                    "Lines of VERBATIM SOURCE returned in `body`, including inline comments. "
-                    "Raise it when a reply comes back `truncated: true` — this is how you read "
-                    "the actual code without opening the file."
-                )
+                description=("Lines of VERBATIM SOURCE in `body`; raise it when `truncated: true`.")
             ),
         ] = q.DEFAULT_BODY_LINES,
     ) -> dict[str, Any]:
@@ -1851,11 +1838,7 @@ class QueryTools:
         text: Annotated[
             str,
             Field(
-                description=(
-                    "Words to match. EVERY whitespace-separated token must appear in ONE "
-                    "searchable unit, so give the two most distinctive words. Ignored by the "
-                    "`locks` and `threads` corpora, which enumerate everything."
-                )
+                description=("Words to match, all in one unit; ignored by `locks` and `threads`.")
             ),
         ] = "",
         *,
@@ -1863,30 +1846,24 @@ class QueryTools:
             str,
             Field(
                 description=(
-                    "What to read. 'symbols' (default) for functions, variables, macros, types "
-                    "and per-file docs; 'prose' for the repo's markdown and reStructuredText, "
-                    "full-text; 'code' for "
-                    "the functions whose BODY contains the words — a literal, a config key, a "
-                    "string no symbol is named for. Or enumerate "
-                    "a whole layer: 'locks', 'threads', 'files', 'config'. Each row's `kind` is "
-                    "what you pass to dossier verbatim."
+                    "'symbols' (default): names and per-file docs; 'prose': markdown and "
+                    "reStructuredText; 'code': function BODIES containing the words (a literal, "
+                    "a config key); or a whole layer: 'locks', 'threads', 'files', 'config'."
                 )
             ),
         ] = "symbols",
         limit: Annotated[int, Field(description="Maximum rows returned.")] = 25,
         target: Annotated[
             str | None,
-            Field(description="Repo root or slug to query; omit for the default target."),
+            Field(description="Repo root or slug; omit for the default."),
         ] = None,
         sub_index: Annotated[
             str | None,
             Field(
                 description=(
-                    "Name of one PART of `target`, when the repository is split into several "
-                    "indexes — a first-party index plus one per vendored dependency. Omit and "
-                    "the whole-repository index answers, or first-party when only the split is "
-                    "built; the reply's `sub_index` says which and `not_searched` names the parts "
-                    "it did not read."
+                    "One PART of a repository split into several indexes (first-party plus one "
+                    "per vendored dependency); omit for the whole repository. The reply's "
+                    "`sub_index` names the part that answered, `not_searched` the parts not read."
                 )
             ),
         ] = None,

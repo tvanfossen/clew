@@ -1,12 +1,10 @@
 {
-  "tool": "index",
-  "tier": 0,
-  "priority": 10,
-  "description": [
-    "Administer the index itself \u2014 one tool, one `action`. Nothing here answers a question about the CODE; that is dossier and search.",
-    "THREE THINGS SET `stale` AND EACH NEEDS A DIFFERENT RESPONSE, so read the `staleness` list rather than the boolean. `data` \u2014 the database is older than the source; `action='refresh'` fixes it. `schema` \u2014 the stamped build version against the one this server expects; when the INDEX IS NEWER no rebuild clears it, because rebuilding re-stamps the same newer version. `code` \u2014 this process is older than the working tree; only restarting the client replaces it, and a build through it is REFUSED rather than allowed to re-stamp the index with old pipeline logic, which can silently drop whole layers and then report health.",
-    "READS ARE UNAFFECTED BY THE `code` AXIS: query tools open the database per call, so the data in a reply is current even when this process is not. WRITES are what the refusal protects.",
-    "`action='status'` is the full diagnosis and costs a call \u2014 do not open a session with it. Every query reply already names its `target` and carries a `staleness` block if and only if there is one, so a current index costs nothing to establish and a stale one announces itself on the first reply you were going to make anyway.",
-    "A declaration is REFUSED BY NAME when it names an unknown section, with the allowed set \u2014 never applied partially and never silently ignored. `index(action='stats')` grades a named index; `action='cull'` deletes aged-out or version-stale databases."
-  ]
+ "tool": "index",
+ "tier": 0,
+ "priority": 10,
+ "description": [
+  "Administer the index — one tool, one `action`; nothing here answers a question about the code.",
+  "Read the `staleness` list, not the `stale` boolean: `data` (sources newer than the index) is fixed by `action='refresh'`; `schema` with a NEWER index is not fixable by a rebuild; `code` (this process older than its source) needs a client restart, and a build through it is REFUSED. `derived` means a fast in-place refresh is awaiting its full refresh. Reads are always current.",
+  "`action='status'` is the full diagnosis — not a session opener, since every reply already carries `target` and any `staleness`. `stats` grades an index; `cull` deletes aged-out or version-stale ones. A declaration naming an unknown section is refused by name."
+ ]
 }

@@ -112,7 +112,10 @@ PAYLOAD_FIELDS = frozenset({"callers", "callees", "graph_stats", "source", "cand
 ## matching and the mention is reported again. `_stale_negations` closes the other half —
 ## an entry whose phrase is gone anywhere in the served text is itself an error, so this
 ## cannot rot into a permanent hole.
-NEGATED = (("set_target", "There is no set_target tool"),)
+##
+## EMPTY SINCE 1.3.8: the instructions were cut to fit the per-turn token budget and no longer
+## mention `set_target` at all, so there is nothing left to exempt — and a stale entry is an error.
+NEGATED: tuple[tuple[str, str], ...] = ()
 
 
 ## @brief Every string literal in a module that is not a docstring.
