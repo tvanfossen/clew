@@ -1965,7 +1965,7 @@ class VariableSite:
 
 
 ## @brief A variable subject: identity, every declaration site, no call graph.
-## @version 1
+## @version 2
 @dataclass(frozen=True)
 class VariableSubject:
     """WHAT A VARIABLE HAS, AND WHAT IT DOES NOT. It has a type, a set of declaration
@@ -1985,7 +1985,7 @@ class VariableSubject:
     this surface, so the first entry is the one that carries the binding.
 
     @brief A variable's identity and its declaration sites.
-    @version 1
+    @version 2
     """
 
     name: str
@@ -1995,6 +1995,9 @@ class VariableSubject:
     version: str
     provenance: str | None = None
     sites: tuple[VariableSite, ...] = ()
+    ## 1.4.0: present only when a `qualified` selector was given and named no declaration — the
+    ## sites are then ALL of them, and this says why. Absent when the selector applied or none was given.
+    selector_note: str | None = None
 
 
 ## @brief One value of an enum, as the index holds it.

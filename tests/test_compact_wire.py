@@ -207,3 +207,54 @@ def test_a_detail_the_body_does_not_carry_is_kept() -> None:
     assert compact_docs(copy.deepcopy(elsewhere)) == elsewhere
     bodiless = {"detail": _DOC}
     assert compact_docs(copy.deepcopy(bodiless)) == bodiless
+
+
+def test_a_detail_is_not_dropped_when_the_body_shown_is_truncated() -> None:
+    """1.4.0 GRID: `build_or_refresh` was served `detail_in_body: true` with its body cut at 60 of
+    137 lines, mid-docstring — the docstring's tail reached the agent nowhere. A detail is "in the
+    body" only if it is in the body THAT WAS SERVED.
+
+    @brief A truncated body keeps `detail`.
+    @return None.
+    @version 1
+    """
+    from clew.query.payload import compact_docs
+
+    payload = {
+        "detail": _DOC,
+        "body": {
+            "lines": ["def fetch(id):", f'    """{_DOC}"""', "    return cache[id]"],
+            "truncated": True,
+        },
+    }
+    assert compact_docs(copy.deepcopy(payload)) == payload
+
+
+def test_a_detail_whose_words_merely_overlap_the_body_is_kept() -> None:
+    """1.4.0 GRID: `_staleness` lost its `@param` text ("answering The routed repository, or None
+    when the derived one answered") — text that is NOT in the body, admitted because 90% of the
+    detail's WORDS occurred somewhere in it. Overlap of a bag of words is not containment: a
+    sentence counts as carried only when it appears, in order, in the served body, and every
+    sentence that is not carried is still served.
+
+    @brief A detail sentence absent from the body is still served.
+    @return None.
+    @version 1
+    """
+    from clew.query.payload import compact_docs
+
+    extra = "Answering the routed repository, or None when the derived one answered."
+    detail = f"{_DOC} {extra}"
+    body = [
+        "def fetch(id, answering):",
+        f'    """{_DOC}"""',
+        "    # the routed repository answering, or the derived one when None answered",
+        "    return cache[id]",
+    ]
+    payload = {"detail": detail, "body": {"lines": body}}
+    out = compact_docs(copy.deepcopy(payload))
+    ## THE ABSENT SENTENCE REACHES THE AGENT; only what the body already shows is dropped. Measured
+    ## on the 1.4.0 self index: most such sentences are `## @param` / `@return` text from the block
+    ## above the `def`, which no body excerpt contains.
+    assert out["detail"].rstrip(".") == extra.rstrip(".")
+    assert out["detail_in_body"] is True

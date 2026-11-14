@@ -4,7 +4,7 @@
  "priority": 10,
  "description": [
   "Administer the index — one tool, one `action`; nothing here answers a question about the code.",
-  "Read the `staleness` list, not the `stale` boolean: `data` (sources newer than the index) is fixed by `action='refresh'`; `schema` with a NEWER index is not fixable by a rebuild; `code` (this process older than its source) needs a client restart, and a build through it is REFUSED. `derived` means a fast in-place refresh is awaiting its full refresh. Reads are always current.",
+  "Read the `staleness` list, not the `stale` boolean: `data` (sources newer than the index) is fixed by `action='refresh'`; `schema` with a NEWER index is not fixable by a rebuild; `code` (this process older than its source) needs a client restart, and a build through it is REFUSED. `derived` means a fast in-place refresh is awaiting its full refresh. READS ARE UNAFFECTED BY THE `code` AXIS — every query reads the current database; writes are what the refusal protects.",
   "`action='status'` is the full diagnosis — not a session opener, since every reply already carries `target` and any `staleness`. `stats` grades an index; `cull` deletes aged-out or version-stale ones. A declaration naming an unknown section is refused by name."
  ]
 }

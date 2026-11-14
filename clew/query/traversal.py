@@ -292,14 +292,15 @@ def _expand_neighbor(
 
 
 _FORWARD_ALIASES = frozenset({"forward", "forwards", "downstream"})
-_BACKWARD_ALIASES = frozenset({"backward", "backwards", "upstream"})
+_BACKWARD_ALIASES = frozenset({"back", "backward", "backwards", "upstream"})
 
 
 ## @brief Normalize a caller-supplied traversal direction to its canonical form.
 ## @param direction Caller-supplied direction (case- and alias-tolerant).
 ## @return Canonical "forward" or "backward".
-## @version 1
+## @version 2
 ## @dg_internal
+## v2 (1.4.0 grid): `back` is accepted — the served text offered it and 6 of 14 calls were refused.
 def _normalize_direction(direction: str) -> str:
     """Map a direction word onto its canonical form, REFUSING anything else.
 

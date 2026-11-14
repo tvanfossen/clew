@@ -3928,3 +3928,59 @@ async def test_a_query_tool_refusal_is_tagged_refused_too() -> None:
     with pytest.raises(ToolError) as excinfo:
         await mcp._tool_manager.call_tool("dossier", {"subject": "main"}, None)
     assert "REFUSED:" in str(excinfo.value), str(excinfo.value)
+
+
+## @brief The steering the 1.3.8 text cut dropped is back, and pinned so the next cut cannot drop it.
+## @return None.
+## @version 1
+def test_the_steering_the_1_4_0_grid_missed_is_served() -> None:
+    """MEASURED IN THE 1.4.0 GRID, every index-arm call against 1.3.0-final's. Each phrase below was
+    in the 1.3.0 served text, was cut in 1.3.8 (15,731 → 10,189 chars), and its absence shows as
+    a behaviour in the transcripts:
+
+      * the standalone "DO NOT OPEN A SESSION WITH `index(action='status')`" became a mid-sentence
+        clause: status openers 0 → 29 calls (29 of 126 cells, ~4 KB each);
+      * the TARGETS paragraph was cut: agents passed the question's repo name as `target` and
+        were refused (0 → 2);
+      * "'files' counts only what THIS INDEX HOLDS" was cut: glob / build-file queries ("*.sh",
+        "CMakeLists.txt") on `corpus='files'` 17 → 46, mostly empty;
+      * search's "claims certainty only when no corpus outside search's reach holds a match" and
+        index's "READS ARE UNAFFECTED BY THE `code` AXIS" were cut — what an empty result and a
+        stale-code notice are worth.
+
+    @brief Restored steering phrases are present.
+    @return None.
+    @version 1
+    """
+    from clew.mcp_server.descriptions import load_descriptions
+    from clew.mcp_server.server import INSTRUCTIONS, TIER0_TOOLS
+
+    served = {**load_descriptions(), **TIER0_TOOLS}
+    for phrase, where in (
+        ("DO NOT OPEN A SESSION WITH `index(action='status')`", INSTRUCTIONS),
+        ("omit `target`", INSTRUCTIONS),
+        ("not a name the question uses", INSTRUCTIONS),
+        ("only what THIS INDEX HOLDS", served["search"]),
+        ("claims certainty only when no corpus outside search's reach", served["search"]),
+        ("READS ARE UNAFFECTED BY THE `code` AXIS", served["index"]),
+    ):
+        assert phrase in where, f"served text lost {phrase!r}"
+
+
+## @brief A negative does not send the caller to `status`.
+## @param tools Query tools over the rich fixture.
+## @return None.
+## @version 1
+def test_a_negative_does_not_invite_a_status_call(tools: QueryTools) -> None:
+    """1.4.0 GRID: 29 `index(action='status')` calls in 126 index-arm cells, ~4 KB each. The
+    found:false note said "call status to see whether the index is stale" — but this very reply
+    carries a `staleness` block whenever the index is stale, so the call it suggested could only
+    repeat what the reply already said.
+
+    @brief The miss note points at the reply's own `staleness`, not at a status call.
+    @return None.
+    """
+    miss = tools.dossier("no_such_symbol_xyz")
+    assert miss["found"] is False
+    assert "call status" not in miss["note"]
+    assert "staleness" in miss["note"]

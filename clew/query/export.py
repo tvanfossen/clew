@@ -238,7 +238,7 @@ def subject_miss(db: Path, subject: str) -> dict[str, Any]:
 ## @param repo_root Working tree bodies are read from; None returns every index-only panel.
 ## @param max_body_lines Body excerpt cap.
 ## @param depth Walk depth, 1..MAX_SUBJECT_DEPTH.
-## @param direction 'forward' or 'back', for depth >= 2.
+## @param direction 'forward'/'downstream' or 'back'/'upstream', for depth >= 2.
 ## @param max_neighbors Fan-out per hop of a deeper walk.
 ## @param compact Group neighbour rows by file with shared values stated once (1.3.7).
 ## @return The payload, stamped with `wire_version`.

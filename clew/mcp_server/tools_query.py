@@ -145,7 +145,11 @@ TIER1_TOOLS: dict[str, str] = load_descriptions()
 ##   bytes for a symbol with 331 callers, and 138 functions on that target have >50 callers. Nothing
 ##   capped the flat one-hop lists; only `chain_trace` had a fan-out bound, so the surface a model
 ##   reaches for FIRST was the unbounded one.
-RESPONSE_BUDGET_BYTES = 65_536
+## 1.4.0 (owner 2026-11-14): 65,536 → 40,960. The client persists a tool result over ~49 KB to a
+## file and shows the model a stub, which an index_only agent cannot read; under it, a reply is
+## carried in context for every later turn. Measured in the 1.4.0 grid: three 48.9 KB variable
+## replies became stubs in one cell (711k tokens), one 48.5 KB batch cost ~100k tokens over 5 turns.
+RESPONSE_BUDGET_BYTES = 40_960
 
 ## Callers and callees listed per dossier subject before the rest is disclosed rather than sent.
 ## Enough for every "where is this used" set the acceptance rubrics grade (the largest is eight
@@ -1290,7 +1294,9 @@ class QueryTools:
     ## grid, 82 of 129 unanswered subjects were recoverable from what the index already held, so a
     ## model with the right target and a fresh index had nowhere to go but retry the same name.
     ## `found` is unchanged: a hint is an extra field on a negative.
-    ## @version 9
+    ## v10 (1.4.0 grid): the note no longer says "call status" — this reply already carries
+    ## `staleness` when the index is stale; 29 status calls in 126 index-arm cells followed it.
+    ## @version 10
     ## @dg_internal
     def _answered(
         self,
@@ -1348,8 +1354,8 @@ class QueryTools:
                     f"No {kind} for {subject!r} in this index. This is a definitive "
                     "negative from the database, NOT an error and NOT a malformed call. "
                     "Before concluding the symbol does not exist, check `target` below "
-                    "names the repository you meant, and call status to see whether the "
-                    "index is stale."
+                    "names the repository you meant; a stale index would carry a `staleness` "
+                    "block on this reply."
                     ## gh#6: and if the name IS indexed under a kind this surface cannot
                     ## describe, the sentence above is FALSE as a negative — so it is
                     ## qualified here rather than left to mislead.

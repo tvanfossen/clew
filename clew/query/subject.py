@@ -38,6 +38,7 @@ from ._common import (
     has_columns,
     identity_rowids,
     qualified_name_of,
+    resolve_selector,
     strip_xml,
     symbol_provenance,
     table_exists,
@@ -566,12 +567,21 @@ def _enum_subject(
 ## @param conn Open connection.
 ## @param name Bare variable name.
 ## @param repo_root Working tree, or None to skip the declaration excerpts.
+## Version 3 (1.4.0 grid): `qualified` narrows `sites` to the declaration it names, or the reply
+## says it was not applied — mattermost's `enhanced` returned one identical 48.9 KB all-sites list
+## to three different selectors, silently.
+##
 ## @param kind `variable`, or `typedef`.
+## @param qualified Optional selector naming one declaration by its definition spelling.
 ## @return The VariableSubject, or None when the name names no such row.
-## @version 2
+## @version 3
 ## @dg_internal
 def _variable_subject(
-    conn: sqlite3.Connection, name: str, repo_root: Path | str | None, kind: str = "variable"
+    conn: sqlite3.Connection,
+    name: str,
+    repo_root: Path | str | None,
+    kind: str = "variable",
+    qualified: str | None = None,
 ) -> VariableSubject | None:
     """EVERY SITE, not the chosen one. The header's `extern` row and the translation
     unit's definition answer different questions, and on the case this exists for they
@@ -591,6 +601,7 @@ def _variable_subject(
     rows = _variable_rows(conn, name, kind)
     if not rows:
         return None
+    rows, note = _select_variable_rows(rows, qualified)
     sites = tuple(
         VariableSite(
             file=r[3],
@@ -613,7 +624,37 @@ def _variable_subject(
         version=version,
         provenance=symbol_provenance(conn, rows[0][0]),
         sites=sites,
+        selector_note=note,
     )
+
+
+## @brief The rows a selector names, or every row with a note saying it named none.
+## @param rows `_variable_rows` output; index 2 is the definition spelling.
+## @param qualified The selector, or None.
+## @return (rows, note); note is None when no selector was given or it applied.
+## @version 1
+## @dg_internal
+def _select_variable_rows(
+    rows: list[tuple], qualified: str | None
+) -> tuple[list[tuple], str | None]:
+    """THE FUNCTION PATH'S RULE (`resolve_selector`: exact, else a unique boundary-aligned suffix,
+    either separator) over each row's definition spelling. NEVER SILENT: a selector that names no
+    declaration keeps every site — the caller still gets the answer — and the note says so.
+
+    @brief Narrow variable rows by selector.
+    @return Rows and note.
+    """
+    if not qualified:
+        return rows, None
+    spellings = {str(r[2] or "").strip() for r in rows} - {""}
+    chosen = resolve_selector(spellings, qualified.strip())
+    if chosen is None:
+        note = (
+            f"`qualified` {qualified!r} names none of the {len(rows)} declarations of this name "
+            "(matched against each site's `signature`), so every site is listed."
+        )
+        return rows, note
+    return [r for r in rows if str(r[2] or "").strip() == chosen], None
 
 
 ## @brief Build the lock section for a name.
@@ -911,7 +952,7 @@ def _chain_for(
 ## @param db Path, str or open connection to a built index.
 ## @param subject The name to describe.
 ## @param kind Restrict to one subject kind, or None to take the best-first resolution.
-## @param qualified Optional identity selector from a prior `candidates.qualified` (functions only).
+## @param qualified Optional identity selector: a function's `candidates.qualified`, or a variable's site `signature`.
 ## @param repo_root Working tree the index was built from; omit to skip every panel that reads bytes.
 ## @param max_body_lines Cap on the function body excerpt.
 ## @param depth Hops to traverse; 1 is adjacency only, up to MAX_SUBJECT_DEPTH.
@@ -1305,12 +1346,16 @@ def _macro_subject(conn: sqlite3.Connection, name: str) -> Dossier | None:
 _BUILDERS = {
     "function": lambda ctx: {"function": _dossier_conn(*ctx.function_args)},
     "macro": lambda ctx: {"function": _macro_subject(ctx.conn, ctx.subject)},
-    "variable": lambda ctx: {"variable": _variable_subject(ctx.conn, ctx.subject, ctx.repo_root)},
+    "variable": lambda ctx: {
+        "variable": _variable_subject(ctx.conn, ctx.subject, ctx.repo_root, qualified=ctx.qualified)
+    },
     ## A TYPEDEF IS READ AS A VARIABLE IS: its type and each declaration statement. Measured on
     ## mattermost-mobile, `dossier("SearchRef")` was a definitive negative for a 1,341-strong
     ## kind of TypeScript definition; C typedefs had only a bare search row.
     "typedef": lambda ctx: {
-        "variable": _variable_subject(ctx.conn, ctx.subject, ctx.repo_root, "typedef")
+        "variable": _variable_subject(
+            ctx.conn, ctx.subject, ctx.repo_root, "typedef", ctx.qualified
+        )
     },
     "class": lambda ctx: {"compound": lookup_class(ctx.conn, ctx.subject, ctx.repo_root)},
     "requirement": lambda ctx: {"requirement": req_trace(ctx.conn, ctx.subject)},

@@ -496,7 +496,8 @@
    "brief": "str",
    "version": "str",
    "provenance": "str | None",
-   "sites": "tuple[VariableSite, ...]"
+   "sites": "tuple[VariableSite, ...]",
+   "selector_note": "str | None"
   }
  }
 }

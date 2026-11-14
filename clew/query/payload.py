@@ -868,38 +868,65 @@ def _grouped(rows: list[Any], defaults: dict[str, Any]) -> list[dict[str, Any]]:
 _MISSING = object()
 
 
-## How much of `detail`'s wording the body must already carry for the compact shape to drop it.
-## Word overlap rather than string equality, because doxygen re-renders a docstring (tags,
-## whitespace) and an exact match would almost never fire. 0.9 measured: 14.7% of this
-## repository's dossier bytes are a Python docstring served twice; under 1% elsewhere.
-_DOC_OVERLAP = 0.9
+## Words, as both sides are tokenized — doxygen re-renders a docstring (tags, whitespace), so a
+## raw string match would almost never fire. 1.4.0: containment PER SENTENCE, in order, replaced a
+## 90% bag-of-words overlap that dropped `@param` text absent from the body (`_staleness`).
 _WORD = re.compile(r"[a-z0-9_]{3,}")
+## A sentence of `detail`: split on sentence punctuation, so each is checked as one ordered run.
+_SENTENCE = re.compile(r"[.;:!?]\s+|\n+")
 
 
-## @brief Drop a `detail` the body excerpt already carries, and say so.
+## v2 (1.4.0 grid): never when the served body is truncated, and only the sentences that occur in
+## order in the served body are dropped — a word-overlap test dropped text the agent never saw.
+##
+## @brief Drop the part of `detail` the body excerpt already carries, and say so.
 ## @param payload A flat dossier payload; mutated and returned.
 ## @return The payload.
-## @version 1
+## @version 2
 ## @req REQ-DDB-QUERY-014
 def compact_docs(payload: dict[str, Any]) -> dict[str, Any]:
     """1.3.9, COMPACT SHAPE ONLY (`detail` is a semver-covered key). A Python docstring sits inside
-    the body excerpt and doxygen serves it again as `detail`. When at least `_DOC_OVERLAP` of
-    detail's words are in the body lines, `detail` is removed and `detail_in_body: true` added —
-    the marker is what keeps an absent `detail` from reading as "undocumented". `brief` stays:
-    it is short, and it is what a reader scans first.
+    the body excerpt and doxygen serves it again as `detail`. Each sentence of `detail` that
+    occurs, in order, in the SERVED body lines (never a truncated body) is dropped from it, and
+    `detail_in_body: true` says so; sentences the body does not show — the `## @param` text above
+    a `def` — are still served. The marker keeps a short or absent `detail` from reading as
+    "undocumented". `brief` stays: it is short, and it is what a reader scans first.
 
     @brief Serve a docstring once.
     @return The payload.
-    @version 1
+    @version 2
     """
     detail = payload.get("detail")
     body = payload.get("body")
     lines = body.get("lines") if isinstance(body, dict) else None
-    if not isinstance(detail, str) or not detail or not lines:
+    if not isinstance(detail, str) or not detail or not lines or body.get("truncated"):
         return payload
-    words = _WORD.findall(detail.lower())
-    carried = set(_WORD.findall(" ".join(lines).lower()))
-    if words and sum(w in carried for w in words) / len(words) >= _DOC_OVERLAP:
-        payload.pop("detail")
+    rest = _uncarried_sentences(detail, lines)
+    if rest is not None:
+        if rest:
+            payload["detail"] = ". ".join(rest)
+        else:
+            payload.pop("detail")
         payload["detail_in_body"] = True
     return payload
+
+
+## @brief The sentences of a text that a body does not carry, or None when it carries none.
+## @param text The documentation text.
+## @param lines The served body lines.
+## @return The uncarried sentences ([] when all are carried), or None when NO sentence is carried.
+## @version 1
+## @dg_internal
+def _uncarried_sentences(text: str, lines: list[str]) -> list[str] | None:
+    """ORDERED CONTAINMENT, NOT OVERLAP: a sentence is carried only when its words occur, as one
+    contiguous run, in the body's words — the words of a sentence that is not in the body can all
+    occur somewhere in it, and that was how text the agent never saw was dropped. None when nothing
+    is carried, so a detail that only shares vocabulary with its body is left exactly as it was.
+
+    @brief Sentence-wise containment.
+    @return Uncarried sentences or None.
+    """
+    haystack = " " + " ".join(_WORD.findall(" ".join(lines).lower())) + " "
+    parts = [p.strip() for p in _SENTENCE.split(text) if _WORD.findall(p.lower())]
+    rest = [p for p in parts if " " + " ".join(_WORD.findall(p.lower())) + " " not in haystack]
+    return None if len(rest) == len(parts) else rest

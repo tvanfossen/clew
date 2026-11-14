@@ -444,6 +444,28 @@ def test_chain_trace_direction_aliases_and_rejects_unknown(rich_db: Path) -> Non
             q.chain_trace(rich_db, "sensor_poll", direction=bogus)
 
 
+def test_every_direction_word_the_served_text_offers_is_accepted(rich_db: Path) -> None:
+    """1.4.0 GRID: the dossier `direction` description said "'back' for upstream" while the
+    walker refused `back` — 6 of the 14 direction-setting calls in the grid's index arms paid a
+    REFUSED reply and a retry (one mattermost cell then tried `downstream`, the WRONG way, before
+    `upstream`). A word the tool's own text offers must be one the tool accepts."""
+    import re
+
+    from clew.mcp_server import tools_query
+
+    source = Path(tools_query.__file__).read_text(encoding="utf-8")
+    match = re.search(r"Field\(description=\"([^\"]*for downstream[^\"]*)\"\)", source)
+    assert match, "the dossier `direction` parameter description was not found"
+    offered = re.findall(r"'([a-z]+)'", match.group(1))
+    assert offered, match.group(1)
+    for word in offered:
+        chain = q.chain_trace(rich_db, "telemetry_report", direction=word, max_depth=2)
+        assert chain.direction in ("forward", "backward"), word
+    back = q.chain_trace(rich_db, "telemetry_report", direction="back", max_depth=3)
+    assert back.direction == "backward"
+    assert "sensor_poll" in {n.name for n in back.nodes}
+
+
 ## @req REQ-DDB-QUERY-002
 def test_chain_trace_records_what_the_fanout_taper_dropped(tmp_path: Path) -> None:
     """#134. The taper halves the neighbour budget per level and floors it at 1 — which is

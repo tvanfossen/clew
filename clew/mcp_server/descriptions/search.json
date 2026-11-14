@@ -7,8 +7,8 @@
  ],
  "description": [
   "FIND THE NAME when you do not have one, then hand it to dossier. `corpus` picks what is read.",
-  "Every whitespace-separated token must appear in ONE unit, so give the two most distinctive words. An empty result is graded: it says what it did not read, and which token emptied a multi-token miss.",
+  "Every whitespace-separated token must appear in ONE unit, so give the two most distinctive words. An empty result is graded: it says what it did not read, claims certainty only when no corpus outside search's reach could hold a match, and names the token that emptied a multi-token miss.",
   "Pass each row's `kind` to dossier verbatim. A file, typedef or enumeration row is already everything the index holds.",
-  "'locks' and 'threads' list their whole layer and ignore `text`; 'files' and 'config' filter by it. Read `row_meaning`: a 'locks' row is one (name, scope, kind) identity, not one mutex. For ONE named lock, thread or config symbol, dossier is shorter."
+  "'locks' and 'threads' list their whole layer and ignore `text`; 'files' and 'config' filter by it. 'files' matches words in paths and lists only what THIS INDEX HOLDS — not a census of the tree, and no globs. Read `row_meaning`: a 'locks' row is one (name, scope, kind) identity, not one mutex. For ONE named lock, thread or config symbol, dossier is shorter."
  ]
 }

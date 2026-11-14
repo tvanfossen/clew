@@ -423,3 +423,23 @@ def test_every_top_level_dossier_list_is_budgeted_or_named_untrimmable() -> None
                 f"no budget can trim; add it to _DOSSIER_LISTS or to _UNTRIMMABLE with the "
                 f"reason trimming it would be wrong"
             )
+
+
+## The client persists a tool result larger than about 49 KB to a file and hands the model a
+## ~2 KB stub instead. Measured in the 1.4.0 grid (mattermost transcripts): a 48,502-char reply
+## arrived inline, 48.9 KB replies arrived as stubs. An index_only agent has no Read tool, so a
+## stub is a reply it cannot see — it re-asks, and the 1.4.0 `enhanced` cell did so three times.
+_CLIENT_PERSIST_THRESHOLD = 48_000
+
+
+def test_the_reply_cap_sits_below_the_clients_persist_threshold() -> None:
+    """1.4.0 GRID: with the cap at 65,536 bytes a reply could be 48–65 KB — over the client's
+    persist threshold, so never seen by an index_only agent — or just under it and carried inline
+    for every later turn (mattermost Q3 r1: one 48.5 KB batch, ~100k tokens over 5 turns). Owner
+    ruling 2026-11-14: 40 KB. The `_limited` disclosure then names what the cap dropped.
+
+    @brief The response cap is below what the client persists.
+    @return None.
+    @version 1
+    """
+    assert RESPONSE_BUDGET_BYTES <= 40 * 1024 < _CLIENT_PERSIST_THRESHOLD
