@@ -75,17 +75,25 @@ def test_the_build_still_accepts_a_wiki_section(site_repo: tuple[Path, Path]) ->
 
 
 def test_check_passes_a_valid_section_and_imports_no_sphinx(site_repo: tuple[Path, Path]) -> None:
-    """@brief A valid section checks clean, with Sphinx never imported.
+    """THE PURGED MODULES ARE RESTORED afterwards (fixture hygiene, 2026-11-15): popping `sphinx`
+    while `myst_parser` stayed loaded left MyST holding the old Sphinx classes, so every later
+    in-process build crashed in MyST's setup — an order-dependent failure, hidden while no Sphinx
+    build happened to run earlier in the session. The property asserted is unchanged.
+
+    @brief A valid section checks clean, with Sphinx never imported.
     @return None.
-    @version 1
+    @version 2
     """
     from clew.wiki.check import check_wiki
 
-    for mod in [m for m in sys.modules if m == "sphinx" or m.startswith("sphinx.")]:
-        sys.modules.pop(mod)
-    repo, out = site_repo
-    assert check_wiki(repo, out) == []
-    assert "sphinx" not in sys.modules
+    names = [m for m in sys.modules if m.split(".")[0] in ("sphinx", "myst_parser")]
+    saved = {m: sys.modules.pop(m) for m in names}
+    try:
+        repo, out = site_repo
+        assert check_wiki(repo, out) == []
+        assert "sphinx" not in sys.modules
+    finally:
+        sys.modules.update(saved)
 
 
 def test_check_names_every_problem(site_repo: tuple[Path, Path]) -> None:
@@ -157,3 +165,28 @@ def test_the_cli_check_exits_nonzero_on_a_problem(
     (repo / ".clew.yaml").write_text(_WIKI + "  colour: blue\n")
     assert wiki_main(args) == 1
     assert "colour" in capsys.readouterr().out
+
+
+def test_check_refresh_brings_the_index_current_first(
+    site_repo: tuple[Path, Path], tmp_path: Path
+) -> None:
+    """A PRE-COMMIT HOOK HAS NO INDEX in a fresh checkout: `--refresh` builds or refreshes it
+    (fast tier when it can) before checking, so the hook works without a prior `clew` run.
+
+    @brief `clew wiki check --refresh` creates a missing index.
+    """
+    from clew.wiki.command import wiki_main
+
+    repo, _out = site_repo
+    db = tmp_path / "fresh.db"
+    assert wiki_main(["check", "--repo-root", str(repo), "--index", str(db), "--refresh"]) == 0
+    assert db.is_file()
+
+
+def test_the_hook_manifest_offers_the_wiki_check() -> None:
+    """@brief `.pre-commit-hooks.yaml` publishes `clew-wiki-check`, running `check --refresh`."""
+    import yaml
+
+    hooks = {h["id"]: h for h in yaml.safe_load(Path(".pre-commit-hooks.yaml").read_text())}
+    hook = hooks["clew-wiki-check"]
+    assert hook["entry"] == "clew wiki check --refresh" and hook["pass_filenames"] is False

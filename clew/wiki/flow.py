@@ -93,8 +93,10 @@ class Flow:
 ## @param depth How many call levels to expand (1 = the entry's own calls).
 ## @param lanes One of LANES.
 ## @param stop_at Bare names whose calls are not expanded.
+## @param file Only the entry identity whose body is in this file (two `main`s share a name).
 ## @return The Flow.
-## @version 1
+## v2: `file` — select the entry by its file; its first hops use only that file's rowids.
+## @version 2
 ## @req REQ-DDB-WIKI-001
 def derive_flow(
     db: Path | str,
@@ -105,23 +107,28 @@ def derive_flow(
     depth: int = 3,
     lanes: str = "files",
     stop_at: tuple[str, ...] = (),
+    file: str | None = None,
 ) -> Flow:
     """REFUSES BY NAME an entry the index does not hold and a lane strategy it does not know, so a
     typo never yields an empty diagram that looks like a function with no calls.
 
     @brief Build a Flow.
     @return The flow.
-    @version 1
+    @version 2
     """
     if lanes not in LANES:
         raise ValueError(f"unknown lane strategy {lanes!r}; known: {', '.join(LANES)}")
     with connect(db) as conn:
         rowids = identity_rowids(conn, entry, qualified)
-        if not rowids:
-            raise ValueError(f"no function {entry!r} in this index (qualified={qualified!r})")
-        full = qualified_name_of(entry, _definition(conn, rowids[0]))
         walker = _Walker(conn, Path(repo_root), lanes, frozenset(stop_at))
-        walker.walk(entry, full, min(rowids), depth, 1, frozenset({full}))
+        if file:
+            rowids = [r for r in rowids if walker.file_of(r) == file]
+        if not rowids:
+            raise ValueError(
+                f"no function {entry!r} in this index (qualified={qualified!r}, file={file!r})"
+            )
+        full = qualified_name_of(entry, _definition(conn, rowids[0]))
+        walker.walk(entry, full, min(rowids), depth, 1, frozenset({full}), rowids if file else None)
         ordered = tuple(walker.lane_order)
         return Flow(
             entry=entry,
@@ -166,21 +173,34 @@ class _Walker:
     ## @param remaining Levels left to expand.
     ## @param level This caller's call level (1 for the entry).
     ## @param path Identities on the current path (cycle guard).
+    ## @param rowids The entry's selected rows, or None for the whole identity.
     ## @return None.
     ## v2: passes the caller's file to each step.
-    ## @version 2
+    ## v3: `rowids` (an entry selected by file).
+    ## @version 3
     ## @dg_internal
     def walk(
-        self, name: str, qual: str, rowid: int, remaining: int, level: int, path: frozenset[str]
+        self,
+        name: str,
+        qual: str,
+        rowid: int,
+        remaining: int,
+        level: int,
+        path: frozenset[str],
+        rowids: list[int] | None = None,
     ) -> None:
-        """@brief Walk one caller. @return None."""
+        """A SELECTED ENTRY (`rowids`) hops from exactly those rows: an identity shared by several
+        files (every `def main`) would otherwise merge their calls.
+
+        @brief Walk one caller.
+        @return None.
+        """
         self.expanded.add(qual)
         caller = (self.lane(rowid), self._file(rowid))
-        sequence = call_sequence(self.conn, self.repo_root, name, qual) or []
+        sequence = call_sequence(self.conn, self.repo_root, name, qual, rowids) or []
         targets: dict[str, list[tuple[str, int]]] = {}
-        for nname, nqual, nrowid, _hop in _identity_call_hops(
-            self.conn, name, identity_rowids(self.conn, name, qual), True
-        ):
+        hop_rows = rowids or identity_rowids(self.conn, name, qual)
+        for nname, nqual, nrowid, _hop in _identity_call_hops(self.conn, name, hop_rows, True):
             targets.setdefault(nname, []).append((nqual, nrowid))
         for site in sequence:
             found = targets.get(site.callee)
@@ -268,6 +288,15 @@ class _Walker:
         if self.lanes == "packages":
             return rel.split("/", 1)[0] if "/" in rel else "(root)"
         return rel or "(unknown file)"
+
+    ## @brief The file a function's body is in (public: the entry selection uses it).
+    ## @param rowid The function's rowid.
+    ## @return Repo-relative path, or "".
+    ## @version 1
+    ## @dg_internal
+    def file_of(self, rowid: int) -> str:
+        """@brief File of a function. @return Path or ""."""
+        return self._file(rowid)
 
     ## @brief The file a function's body is in.
     ## @param rowid The function's rowid.

@@ -219,6 +219,8 @@ def traced(tmp_path: Path) -> Path:
             priority TEXT);
         CREATE TABLE req_edges (memberdef_rowid INTEGER, req_id TEXT);
         CREATE TABLE req_test_edges (test_memberdef_rowid INTEGER, req_id TEXT);
+        -- FIXTURE FIDELITY (2026-11-15): the shipped memberdef carries `argsstring`, which the
+        -- trace now reads to name framework test cases.
         INSERT INTO path VALUES (1, 'src/a.c', 1), (2, 'tests/unit/test_a.py', 1);
         INSERT INTO memberdef VALUES
             (1, 'function', 'impl', 1, 1, 10, 13, 'int impl', '', ''),
@@ -226,6 +228,7 @@ def traced(tmp_path: Path) -> Path:
         INSERT INTO requirements VALUES
             ('R-A', '', 'a', '', ''), ('R-B', '', 'b', '', ''), ('R-C', '', 'c', '', ''),
             ('R-D', '', 'd', '', '');
+        ALTER TABLE memberdef ADD COLUMN argsstring TEXT DEFAULT '';
         INSERT INTO req_edges VALUES (1, 'R-A');
         INSERT INTO req_test_edges VALUES (2, 'R-A');
         """
@@ -330,3 +333,118 @@ def test_the_trace_cli_reads_imports_from_the_config(
     assert wiki_main(argv) == 0
     rows = {r["req_id"]: r for r in json.loads(capsys.readouterr().out)["requirements"]}
     assert rows["R-B"]["tier"] == "PASS" and rows["R-B"]["layers"] == [["cpp", 1]]
+
+
+def test_tests_named_by_the_catalog_evidence_field_are_linked(traced: Path, tmp_path: Path) -> None:
+    """THE CATALOG IS A SOURCE TOO (owner 2026-11-15: clew's own trace read 92 MISSING because its
+    tests carry no `@req` tags, while `requirements.yaml` names each requirement's test files in
+    `x-evidence`). A test file named there links every test function the index holds in it — a
+    FILE-LEVEL claim, so the row records which links came from the catalog.
+
+    @brief `x-evidence` test files link their tests, marked as declared.
+    """
+    (tmp_path / "requirements.yaml").write_text(
+        "- {id: R-D, title: d, x-evidence: 'src/a.c impl; tests/unit/test_a.py.'}\n"
+    )
+    (tmp_path / "r.json").write_text(
+        json.dumps({"tests": [{"nodeid": "t.py::test_ok", "outcome": "passed"}]})
+    )
+    inputs = EvidenceInputs(results=(("pytest-json", "r.json"),))
+    rows = {
+        r.req_id: r
+        for r in requirement_evidence(traced, junit=[], inputs=inputs, repo_root=tmp_path)
+    }
+    assert rows["R-D"].tests == (("test_ok", "passed"),) and rows["R-D"].tier == "PASS"
+    assert rows["R-D"].declared_tests == ("test_ok",)
+    assert rows["R-A"].declared_tests == ()
+    off = EvidenceInputs(results=inputs.results, evidence_fields=())
+    plain = requirement_evidence(traced, junit=[], inputs=off, repo_root=tmp_path)
+    assert next(r for r in plain if r.req_id == "R-D").tier == "MISSING"
+
+
+def _with_calls(traced: Path, tmp_path: Path) -> Path:
+    """@brief A copy of the index where test_infer → helper → impl (R-A) and test_far → a 3-hop chain."""
+    import shutil
+
+    db = tmp_path / "calls.db"
+    shutil.copyfile(traced, db)
+    conn = sqlite3.connect(str(db))
+    conn.executescript(
+        """
+        CREATE TABLE call_edges (caller_rowid INTEGER, callee_rowid INTEGER, source TEXT,
+            confidence TEXT, via_macro_rowid INTEGER);
+        INSERT INTO path VALUES (3, 'tests/unit/test_b.py', 1);
+        INSERT INTO memberdef VALUES
+            (3, 'function', 'test_infer', 3, 3, 1, 3, 'test_infer', '', '', ''),
+            (4, 'function', 'helper', 1, 1, 20, 22, 'helper', '', '', ''),
+            (5, 'function', 'test_far', 3, 3, 5, 7, 'test_far', '', '', ''),
+            (6, 'function', 'mid1', 1, 1, 30, 31, 'mid1', '', '', ''),
+            (7, 'function', 'mid2', 1, 1, 32, 33, 'mid2', '', '', ''),
+            (8, 'function', 'test_bound', 3, 3, 9, 10, 'test_bound', '', '', '');
+        INSERT INTO call_edges VALUES (3, 4, 'ast', 'resolved', NULL), (4, 1, 'ast', 'resolved', NULL),
+            (5, 6, 'ast', 'resolved', NULL), (6, 7, 'ast', 'resolved', NULL),
+            (7, 1, 'ast', 'resolved', NULL), (8, 1, 'binding', 'resolved', NULL);
+        """
+    )
+    conn.commit()
+    conn.close()
+    return db
+
+
+def test_tests_that_reach_an_implementer_are_inferred_within_the_depth(
+    traced: Path, tmp_path: Path
+) -> None:
+    """NO TAG NEEDED (owner 2026-11-15: "can't that be inferred?"): a test whose calls reach a
+    function tagged with a requirement, within `infer_depth` hops, is linked to it — and the row
+    says the link was INFERRED, because reaching code is weaker than verifying it. A deeper chain
+    is not linked, and a `binding` edge (a function value passed along) is not a call.
+
+    @brief Call-graph inference of test → requirement links.
+    """
+    db = _with_calls(traced, tmp_path)
+    rows = {
+        r.req_id: r
+        for r in requirement_evidence(
+            db, junit=[], inputs=EvidenceInputs(infer_depth=2), repo_root=tmp_path
+        )
+    }
+    assert rows["R-A"].inferred_tests == ("test_infer",)
+    assert {t for t, _s in rows["R-A"].tests} == {"test_ok", "test_infer"}
+    deeper = requirement_evidence(
+        db, junit=[], inputs=EvidenceInputs(infer_depth=3), repo_root=tmp_path
+    )
+    assert next(r for r in deeper if r.req_id == "R-A").inferred_tests == ("test_far", "test_infer")
+    off = requirement_evidence(
+        db, junit=[], inputs=EvidenceInputs(infer_depth=0), repo_root=tmp_path
+    )
+    assert next(r for r in off if r.req_id == "R-A").inferred_tests == ()
+
+
+def test_per_test_coverage_contexts_link_tests_by_measurement(traced: Path, tmp_path: Path) -> None:
+    """MEASURED, NOT INFERRED: coverage.py run with `--cov-context=test` records which test ran each
+    line; a test that ran a line inside an implementer's body is linked to its requirement.
+
+    @brief coverage.py JSON contexts → measured links.
+    """
+    report = tmp_path / "coverage.json"
+    report.write_text(
+        json.dumps(
+            {
+                "files": {
+                    "src/a.c": {
+                        "contexts": {
+                            "11": ["tests/unit/test_c.py::test_cov[1]|run", ""],
+                            "40": ["tests/unit/test_c.py::test_elsewhere|run"],
+                        }
+                    }
+                }
+            }
+        )
+    )
+    inputs = EvidenceInputs(contexts="coverage.json", infer_depth=0)
+    rows = {
+        r.req_id: r
+        for r in requirement_evidence(traced, junit=[], inputs=inputs, repo_root=tmp_path)
+    }
+    assert rows["R-A"].measured_tests == ("test_cov",)
+    assert "test_elsewhere" not in {t for t, _s in rows["R-A"].tests}

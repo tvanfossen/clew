@@ -85,6 +85,8 @@ def traced(tmp_path: Path) -> Path:
             priority TEXT);
         CREATE TABLE req_edges (memberdef_rowid INTEGER, req_id TEXT);
         CREATE TABLE req_test_edges (test_memberdef_rowid INTEGER, req_id TEXT);
+        -- FIXTURE FIDELITY (2026-11-15): the shipped memberdef carries `argsstring`, which the
+        -- trace now reads to name framework test cases.
         INSERT INTO path VALUES (1, 'src/a.c', 1), (2, 'tests/test_a.py', 1);
         INSERT INTO memberdef VALUES
             (1, 'function', 'impl', 1, 1, 10, 20, 'void impl'),
@@ -96,6 +98,7 @@ def traced(tmp_path: Path) -> Path:
         INSERT INTO requirements VALUES
             ('R-PASS', '', 'p', '', ''), ('R-GAP', '', 'g', '', ''), ('R-TARGET', '', 't', '', ''),
             ('R-NOTRUN', '', 'n', '', ''), ('R-MISSING', '', 'm', '', '');
+        ALTER TABLE memberdef ADD COLUMN argsstring TEXT DEFAULT '';
         INSERT INTO req_edges VALUES (1, 'R-PASS'), (6, 'R-MISSING');
         INSERT INTO req_test_edges VALUES (2, 'R-PASS'), (3, 'R-GAP'), (2, 'R-GAP'),
             (4, 'R-TARGET'), (5, 'R-NOTRUN');

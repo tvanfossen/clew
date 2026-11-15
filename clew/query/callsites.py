@@ -80,10 +80,17 @@ class CallSite:
 ## @param qualified Optional identity selector, as `dossier` takes it.
 ## @return The sites in line order; [] when the function calls nothing; None when the index
 ##         holds no such function, no body extent for it, or the source cannot be parsed.
-## @version 1
+## @param rowids Optional rows to read the body from (an identity several files share — every
+##        `def main` — would otherwise read whichever body is longest).
+## v2: `rowids` (additive).
+## @version 2
 ## @req REQ-DDB-QUERY-015
 def call_sequence(
-    db: DbSource, repo_root: Path | str, name: str, qualified: str | None = None
+    db: DbSource,
+    repo_root: Path | str,
+    name: str,
+    qualified: str | None = None,
+    rowids: list[int] | None = None,
 ) -> list[CallSite] | None:
     """NONE IS NOT EMPTY. "This function calls nothing" is a measured `[]`; an unknown function, a
     declaration with no body, or a file the parser cannot read is None — the sequence was never
@@ -91,10 +98,10 @@ def call_sequence(
 
     @brief Ordered call sites with frames.
     @return Sites or None.
-    @version 1
+    @version 2
     """
     with connect(db) as conn:
-        located = _body_of(conn, name, qualified)
+        located = _body_of(conn, name, qualified, rowids)
     if located is None:
         return None
     rel, start, end, nested = located
@@ -127,18 +134,20 @@ def call_sequence(
 ## @param conn Open connection.
 ## @param name Bare name.
 ## @param qualified Optional selector.
+## @param selected Optional rows to choose from instead of the whole identity.
 ## @return (repo-relative file, body start, body end, nested spans) or None.
-## @version 1
+## v2: `selected`.
+## @version 2
 ## @dg_internal
 def _body_of(
-    conn: sqlite3.Connection, name: str, qualified: str | None
+    conn: sqlite3.Connection, name: str, qualified: str | None, selected: list[int] | None = None
 ) -> tuple[str, int, int, list[tuple[int, int]]] | None:
     """THE DEFINITION ROW: the identity's row that carries a body extent.
 
     @brief Locate the body.
     @return Location or None.
     """
-    rowids = identity_rowids(conn, name, qualified)
+    rowids = selected or identity_rowids(conn, name, qualified)
     if not rowids:
         return None
     marks = ",".join("?" for _ in rowids)

@@ -43,7 +43,8 @@ WIKI_COMMAND = "wiki"
 ## v3: `check` and `build`.
 ## v4: `diff`, `--version`, `--config`, `--mutations`, `flow --svg --animate`.
 ## v5: `trace --config` (W15/W16 imports).
-## @version 5
+## v6: `check --refresh` / `build --refresh` (the pre-commit hook has no index yet).
+## @version 6
 ## @dg_internal
 def _parser() -> argparse.ArgumentParser:
     """@brief Build the parser. @return Parser."""
@@ -77,11 +78,13 @@ def _parser() -> argparse.ArgumentParser:
     check.add_argument("--index")
     check.add_argument("--repo-root")
     check.add_argument("--config", help="a file whose wiki: section applies")
+    check.add_argument("--refresh", action="store_true", help="bring the index current first")
     build = sub.add_parser("build", help="render the site (needs clew-trace[wiki])")
     build.add_argument("--out", required=True, help="output directory; the site is <out>/html")
     build.add_argument("--audience", help="an audience from wiki.audiences")
     build.add_argument("--version", help="a version key: the site goes to <out>/<key>/")
     build.add_argument("--config", help="a file whose wiki: section applies")
+    build.add_argument("--refresh", action="store_true", help="bring the index current first")
     build.add_argument("--index")
     build.add_argument("--repo-root")
     diff = sub.add_parser("diff", help="compare two version-keyed builds")
@@ -99,7 +102,8 @@ def _parser() -> argparse.ArgumentParser:
 ## v3: and `check` / `build`.
 ## v4: and `diff`, which needs no index.
 ## v5: `trace` gets the repository (for `--config` imports).
-## @version 5
+## v6: `--refresh` refreshes the index before `check` / `build`.
+## @version 6
 ## @req REQ-DDB-WIKI-001
 def wiki_main(argv: list[str]) -> int:
     """@brief Dispatch a wiki verb. @return Exit status."""
@@ -109,6 +113,10 @@ def wiki_main(argv: list[str]) -> int:
     if args.verb == "diff":
         return _diff(args)
     db, repo = _locate(args)
+    if getattr(args, "refresh", False):
+        from ..refresh_command import refresh_main
+
+        refresh_main(["--repo-root", str(repo or Path.cwd()), "--output", str(db)])
     if not db.is_file():
         sys.stderr.write(f"clew wiki: no index at {db} — build one with `clew --repo-root`\n")
         return 1

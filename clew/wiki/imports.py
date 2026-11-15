@@ -8,7 +8,8 @@ COVERAGE (W15). gcov's own outputs, read into the `{file: {line: hits}}` shape C
 A path is made repo-relative: an absolute one under the repository, or one relative to the
 report's directory or gcov's recorded working directory that resolves into it.
 
-RESULTS (W16). CTest `Test.xml`, TAP, Catch2's XML reporter and pytest-json-report, each DECLARED
+RESULTS (W16). CTest `Test.xml`, TAP, Catch2's XML reporter, pytest-json-report, Ceedling's XML
+report and Unity's text output, each DECLARED
 with its format (`RESULT_FORMATS`) — nothing is sniffed. Each folds like JUnit: one result per
 test name, the WORST case's status, pytest parameters dropped so the name is the function's.
 
@@ -36,7 +37,7 @@ from pathlib import Path
 from typing import Any
 
 ## Result formats `wiki.tests.results` may declare.
-RESULT_FORMATS = ("ctest", "tap", "catch2", "pytest-json")
+RESULT_FORMATS = ("ctest", "tap", "catch2", "pytest-json", "ceedling", "unity")
 ## Worst-first statuses (JUnit's rank).
 _RANK = {"error": 0, "failed": 1, "skipped": 2, "passed": 3}
 _PARAMS = re.compile(r"\[.*\]$")
@@ -45,6 +46,8 @@ _TAP_LINE = re.compile(r"^(not )?ok\b\s*\d*\s*(?:-\s*)?(.*?)(?:\s+#\s*(SKIP|TODO
 _SCENARIO = re.compile(r"^(Scenario(?: Outline| Template)?|Example):\s*(.*)$")
 _CTEST = {"passed": "passed", "failed": "failed", "notrun": "skipped", "disabled": "skipped"}
 _PYTEST = {"xfailed": "skipped", "xpassed": "passed"}
+_UNITY_LINE = re.compile(r"^[^:]+:\d+:(\w+):(PASS|FAIL|IGNORE)(?::\s*(.*))?$")
+_UNITY = {"PASS": "passed", "FAIL": "failed", "IGNORE": "skipped"}
 
 
 ## @brief One Gherkin scenario with its effective tags.
@@ -96,11 +99,19 @@ def fold_cases(cases: Iterable[tuple[str, str, str]]) -> dict[str, Any]:
 ## @param fmt One of RESULT_FORMATS.
 ## @param path The report.
 ## @return {test name: CaseResult}.
-## @version 1
+## v2: Ceedling's XML report and Unity's text output.
+## @version 2
 ## @req REQ-DDB-WIKI-010
 def parse_results(fmt: str, path: Path) -> dict[str, Any]:
     """@brief Parse a report. @return Results."""
-    readers = {"ctest": _ctest, "tap": _tap, "catch2": _catch2, "pytest-json": _pytest_json}
+    readers = {
+        "ctest": _ctest,
+        "tap": _tap,
+        "catch2": _catch2,
+        "pytest-json": _pytest_json,
+        "ceedling": _ceedling,
+        "unity": _unity,
+    }
     if fmt not in readers:
         raise ValueError(f"unknown result format {fmt!r} (known: {', '.join(RESULT_FORMATS)})")
     return fold_cases(readers[fmt](_text(path)))
@@ -148,6 +159,30 @@ def parse_mapping(path: Path) -> dict[str, tuple[str, ...]]:
         str(k): tuple(str(t) for t in (v if isinstance(v, list) else [v]) if t is not None)
         for k, v in doc.items()
     }
+
+
+## @brief Read coverage.py's per-test contexts: which tests ran each line.
+## @param path A coverage.py JSON report written with contexts (`--cov-context=test`,
+## `coverage json --show-contexts`).
+## @param repo_root The repository the files are made relative to.
+## @return {file: {line: test names}}; the empty (no-test) context is dropped.
+## @version 1
+## @req REQ-DDB-WIKI-016
+def parse_contexts(path: Path, repo_root: Path) -> dict[str, dict[int, set[str]]]:
+    """A CONTEXT IS `<nodeid>|<phase>`; the test is the nodeid's function, parameters dropped,
+    the same name JUnit folding gives.
+
+    @brief Parse contexts.
+    @return Tests per line.
+    """
+    root = Path(repo_root).resolve()
+    out: dict[str, dict[int, set[str]]] = {}
+    for name, data in (json.loads(_text(path)).get("files") or {}).items():
+        lines = out.setdefault(_relative(name, path.parent, root), {})
+        for line, contexts in ((data or {}).get("contexts") or {}).items():
+            tests = {_PARAMS.sub("", c.split("|", 1)[0].rsplit("::", 1)[-1]) for c in contexts}
+            lines.setdefault(int(line), set()).update(t for t in tests if t)
+    return out
 
 
 ## @brief Every scenario of the feature files the globs select.
@@ -260,6 +295,41 @@ def _catch2(text: str) -> list[tuple[str, str, str]]:
         else:
             status = "passed" if attrs.get("success") == "true" else "failed"
         out.append((case.get("name") or "", status, ""))
+    return out
+
+
+## @brief Ceedling's XML test report (`xml_tests_report`).
+## @param text The report.
+## @return Cases named by their test function.
+## @version 1
+## @dg_internal
+def _ceedling(text: str) -> list[tuple[str, str, str]]:
+    """@brief Read Ceedling. @return Cases."""
+    root = ET.fromstring(text)
+    out = []
+    for group, status in (
+        ("SuccessfulTests", "passed"),
+        ("FailedTests", "failed"),
+        ("IgnoredTests", "skipped"),
+    ):
+        for test in root.iter(group):
+            for case in test.iter("Test"):
+                out.append(((case.findtext("Name") or "").rsplit("::", 1)[-1], status, ""))
+    return out
+
+
+## @brief Unity's text output: `file:line:test:PASS|FAIL|IGNORE[:message]`.
+## @param text The output.
+## @return Cases.
+## @version 1
+## @dg_internal
+def _unity(text: str) -> list[tuple[str, str, str]]:
+    """@brief Read Unity. @return Cases."""
+    out = []
+    for line in text.splitlines():
+        match = _UNITY_LINE.match(line.strip())
+        if match:
+            out.append((match.group(1), _UNITY[match.group(2)], match.group(3) or ""))
     return out
 
 

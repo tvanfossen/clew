@@ -49,17 +49,24 @@ _OPERATOR = {
 }
 _STYLE = (
     "<style>.seq text{font-family:var(--sans,sans-serif);font-size:12px;fill:var(--ink,#2A2118)}"
-    ".seq .head{fill:var(--paper,#FAF1D9);stroke:var(--rule,#CFC0A0);rx:8}"
-    ".seq .lane{stroke:var(--faint,#998874);stroke-dasharray:4 4}"
-    ".seq .act{fill:var(--accbg,#DDE8C9);stroke:var(--acc,#3D6B2E)}"
-    ".seq .ca{stroke:var(--ink,#2A2118);fill:none;stroke-width:1.4}"
-    ".seq .tip{fill:var(--ink,#2A2118)}"
-    ".seq .ret{stroke:var(--ink2,#6A5B4D);fill:none;stroke-dasharray:5 4}"
-    ".seq .frame{fill:none;stroke:var(--root,#A6502C);stroke-width:1.2}"
-    ".seq .fl{fill:var(--rootbg,#F4DDCB);stroke:var(--root,#A6502C)}"
-    ".seq .flt{fill:var(--root,#A6502C);font-weight:600;font-size:11px}"
+    ".seq .head{fill:var(--paper,#FAF1D9);stroke:var(--acc,#3D6B2E);stroke-width:1.2}"
+    ".seq .head-t{font-weight:700;font-size:12px;fill:var(--accink,#1F3B16)}"
+    ".seq .lane{stroke:var(--rule,#CFC0A0);stroke-dasharray:3 5;stroke-width:1.2}"
+    ".seq .act{fill:var(--accbg,#DDE8C9);stroke:var(--acc,#3D6B2E);stroke-width:1}"
+    ".seq .ca{stroke:var(--acc,#3D6B2E);fill:none;stroke-width:1.6;stroke-linecap:round}"
+    ".seq .self .ca{stroke:var(--ink2,#6A5B4D)}.seq .tip{fill:var(--acc,#3D6B2E)}"
+    ".seq .self .tip{fill:var(--ink2,#6A5B4D)}"
+    ".seq .ret{stroke:var(--faint,#998874);fill:none;stroke-dasharray:4 4;stroke-width:1.2}"
+    ".seq .frame{fill:var(--rootbg,#F4DDCB);fill-opacity:.28;stroke:var(--root,#A6502C);"
+    "stroke-width:1;stroke-dasharray:6 3}"
+    ".seq .fl{fill:var(--root,#A6502C)}.seq .flt{fill:#fff;font-weight:700;font-size:10.5px;"
+    "letter-spacing:.04em}"
     ".seq .badge{fill:var(--acc,#3D6B2E)}.seq .num{fill:#fff;font-size:10px;font-weight:700}"
-    ".seq .lbl{paint-order:stroke;stroke:var(--surface,#F2E7CB);stroke-width:4px}</style>"
+    ".seq .pill{fill:var(--paper,#FAF1D9);stroke:var(--rule2,#E2D5B4)}"
+    ".seq .lbl{font-weight:600}"
+    ".seq .band{fill:var(--accbg,#DDE8C9);fill-opacity:0;transition:fill-opacity .15s}"
+    ".seq g[data-step]:hover .band{fill-opacity:.45}.seq g.sel .band{fill-opacity:.8}"
+    ".seq g.sel .pill{stroke:var(--acc,#3D6B2E);stroke-width:1.5}</style>"
 )
 _ANIMATION = (
     "<style>.cs{opacity:0;animation:cs-in .3s ease-out forwards}"
@@ -209,7 +216,8 @@ class _Layout:
 
     ## @brief Heads at top and bottom and the lifelines.
     ## @return SVG parts.
-    ## @version 1
+    ## v2: themed head labels, rounder heads.
+    ## @version 2
     ## @dg_internal
     def lanes_markup(self) -> list[str]:
         """@brief Draw lanes. @return Parts."""
@@ -217,7 +225,7 @@ class _Layout:
         for lane in self.lanes:
             x, w = self.x[lane], self._width[lane] - 24
             label = (
-                f'<text x="{x:.0f}" y="{{y}}" text-anchor="middle" font-weight="600">'
+                f'<text class="head-t" x="{x:.0f}" y="{{y}}" text-anchor="middle">'
                 f"{escape(_short(lane))}<title>{escape(lane)}</title></text>"
             )
             parts.append(
@@ -227,7 +235,7 @@ class _Layout:
             for top in (10, self.end_y):
                 parts.append(
                     f'<rect class="head" x="{x - w / 2:.0f}" y="{top:.0f}" width="{w:.0f}" '
-                    f'height="{_HEAD}" rx="8"/>' + label.replace("{y}", f"{top + 19:.0f}")
+                    f'height="{_HEAD}" rx="10"/>' + label.replace("{y}", f"{top + 19:.0f}")
                 )
         return parts
 
@@ -276,7 +284,8 @@ class _Layout:
     ## @brief One step's call arrow, badge, label and any returns it closes.
     ## @param i The step.
     ## @return SVG markup.
-    ## @version 1
+    ## v2: label pills, a full-width row band (hover / selected), self-calls grouped.
+    ## @version 2
     ## @dg_internal
     def step_markup(self, i: int) -> str:
         """@brief Draw a step. @return Markup."""
@@ -298,15 +307,24 @@ class _Layout:
                 f'<path class="tip" d="M{end:.0f} {y:.0f} l{-sign * 9} -4 v8 z"/>'
             )
             lx, anchor = (x1 + x2) / 2, "middle"
-        bx = lx - 2 if anchor == "start" else lx - _text_w(step.callee) / 2 - 12
+        tw = _text_w(step.callee)
+        left = lx + 12 if anchor == "start" else lx - tw / 2
+        bx = left - 14
         label = (
-            f'<circle class="badge" cx="{bx:.0f}" cy="{y - 10:.0f}" r="8"/>'
-            f'<text class="num" x="{bx:.0f}" y="{y - 6.5:.0f}" text-anchor="middle">{i + 1}</text>'
-            f'<text class="lbl" x="{lx + (12 if anchor == "start" else 0):.0f}" y="{y - 6:.0f}" '
-            f'text-anchor="{anchor}">{escape(step.callee)}</text>'
+            f'<rect class="pill" x="{bx - 11:.0f}" y="{y - 21:.0f}" width="{tw + 32:.0f}" '
+            f'height="18" rx="9"/>'
+            f'<circle class="badge" cx="{bx:.0f}" cy="{y - 12:.0f}" r="7.5"/>'
+            f'<text class="num" x="{bx:.0f}" y="{y - 8.5:.0f}" text-anchor="middle">{i + 1}</text>'
+            f'<text class="lbl" x="{left:.0f}" y="{y - 8:.0f}">{escape(step.callee)}</text>'
         )
+        band = (
+            f'<rect class="band" x="0" y="{y - _ROW / 2 - 6:.0f}" width="{self.width}" '
+            f'height="{_ROW:.0f}"/>'
+        )
+        if step.from_lane == step.to_lane:
+            arrow = f'<g class="self">{arrow}</g>'
         returns = "".join(self._return(j) for j in self.returns_in.get(i, ()))
-        return arrow + label + returns
+        return band + arrow + label + returns
 
     ## @brief A dashed return arrow for a cross-lane call.
     ## @param j The step returning.

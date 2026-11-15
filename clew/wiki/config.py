@@ -17,6 +17,9 @@ is silently ignored produces a site that looks complete and omits what the key a
           stop_at: [log]
           title: Loading
           animate: true               # W12: play the diagram in call order (default true)
+          file: src/store.py          # the entry's file, when its name is shared
+      entry_points: 2                 # every console script / main / thread entry gets a flow of
+                                      # this depth (0 = only the declared flows)
       tests:                          # CI evidence for the requirement trace (clew wiki trace)
         junit: [build/junit.xml]
         coverage: build/coverage.xml
@@ -31,6 +34,9 @@ is silently ignored produces a site that looks complete and omits what the key a
           unit: ["tests/unit/*"]
           bdd: ["tests/features/*"]
         min_layers: 2                 # flag a requirement tested in fewer layers
+        evidence_fields: [x-evidence, evidence]  # catalog fields naming test files ([] = off)
+        infer_depth: 2                # tests reaching an implementer within N calls (0 = off)
+        contexts: build/coverage.json # coverage.py JSON with --cov-context=test (measured links)
       links:
         template: "https://host/repo/blob/{commit}/{file}#L{line}"
       sources:                        # W7: external node sources (JSON / TOML / YAML)
@@ -62,6 +68,7 @@ is silently ignored produces a site that looks complete and omits what the key a
         logo: docs/logo.svg
         fonts: true                   # false: system fonts, no bundled font files
       roadmap: ROADMAP.md             # W17: headings naming a version are burndown milestones
+      impact: docs/generated/impact/impact.json  # default: <guard.output_dir>/impact/impact.json
 
 @brief Read and validate the `wiki:` section.
 @version 2
@@ -86,6 +93,8 @@ _TOP = {
     "rules",
     "theme",
     "roadmap",
+    "impact",
+    "entry_points",
 }
 _THEME = {"name", "palette", "css", "logo", "fonts"}
 ## The palette tokens of the default theme (the sassafras-class botanical palette).
@@ -109,7 +118,7 @@ THEME_TOKENS = (
     "warn",
     "warnbg",
 )
-_FLOW = {"entry", "qualified", "depth", "lanes", "stop_at", "title", "animate"}
+_FLOW = {"entry", "qualified", "depth", "lanes", "stop_at", "title", "animate", "file"}
 _TESTS = {
     "junit",
     "coverage",
@@ -121,6 +130,9 @@ _TESTS = {
     "features",
     "layers",
     "min_layers",
+    "evidence_fields",
+    "infer_depth",
+    "contexts",
 }
 _RESULT = {"format", "path"}
 _SOURCE = {"name", "path", "items", "id", "doc", "req"}
@@ -134,10 +146,11 @@ DEFAULT_DOCS = ("README.md", "docs/**/*.md", "docs/**/*.rst")
 
 ## @brief One flow the site derives.
 ## v2: `animate` (W12).
-## @version 2
+## v3: `file` — the entry's file, when its name is shared (every `def main`).
+## @version 3
 @dataclass(frozen=True)
 class FlowSpec:
-    """@brief Entry, selector, depth, lanes, stop names, title, animation. @version 2"""
+    """@brief Entry, selector, file, depth, lanes, stop names, title, animation. @version 3"""
 
     entry: str
     qualified: str | None = None
@@ -146,13 +159,16 @@ class FlowSpec:
     stop_at: tuple[str, ...] = ()
     title: str = ""
     animate: bool = True
+    file: str | None = None
 
 
 ## @brief The W15/W16 evidence imports of `wiki.tests`, as declared (paths relative to the repo).
-## @version 1
+## v2: `evidence_fields` — catalog fields whose test files link their tests; `infer_depth`
+## (call-graph inference) and `contexts` (per-test coverage) — tests need no tag.
+## @version 2
 @dataclass(frozen=True)
 class EvidenceInputs:
-    """@brief Result reports by format, gcov globs, mapping, features, layers. @version 1"""
+    """@brief Reports, gcov, mapping, features, layers, catalog, inference. @version 2"""
 
     results: tuple[tuple[str, str], ...] = ()
     gcov: tuple[str, ...] = ()
@@ -160,6 +176,9 @@ class EvidenceInputs:
     features: tuple[str, ...] = ()
     layers: tuple[tuple[str, tuple[str, ...]], ...] | None = None
     min_layers: int | None = None
+    evidence_fields: tuple[str, ...] = ("x-evidence", "evidence")
+    infer_depth: int = 2
+    contexts: str | None = None
 
 
 ## @brief The site's theme (W13).
@@ -227,7 +246,9 @@ class RuleSpec:
 ## @brief The parsed section.
 ## v3: evidence imports (W15/W16).
 ## v4: theme (W13) and roadmap (W17).
-## @version 4
+## v5: impact report path.
+## v6: entry_points (auto-derived entry-point flows, their depth).
+## @version 6
 @dataclass(frozen=True)
 class WikiConfig:
     """@brief The whole `wiki:` section. @version 4"""
@@ -247,6 +268,8 @@ class WikiConfig:
     inputs: EvidenceInputs = EvidenceInputs()
     theme: ThemeSpec = ThemeSpec()
     roadmap: str | None = None
+    impact: str | None = None
+    entry_points: int = 2
 
 
 ## @brief Read and validate a repository's `wiki:` section.
@@ -256,7 +279,9 @@ class WikiConfig:
 ## v2: `config_path` (document a repository without writing into it) and the W7–W9 sections.
 ## v3: the W15/W16 evidence imports.
 ## v4: theme and roadmap.
-## @version 4
+## v5: impact.
+## v6: entry_points.
+## @version 6
 ## @req REQ-DDB-WIKI-003
 def load_wiki_config(
     repo_root: Path, config_path: Path | None = None
@@ -266,7 +291,7 @@ def load_wiki_config(
 
     @brief Load the section.
     @return Config and problems.
-    @version 4
+    @version 6
     """
     raw, problems = _read_section(Path(config_path or Path(repo_root) / ".clew.yaml"))
     if problems:
@@ -293,6 +318,8 @@ def load_wiki_config(
         inputs=_inputs(tests, problems),
         theme=_theme(raw.get("theme") or {}, problems),
         roadmap=str(raw["roadmap"]) if raw.get("roadmap") else None,
+        impact=str(raw["impact"]) if raw.get("impact") else None,
+        entry_points=int(raw.get("entry_points", 2) or 0),
     )
     return config, problems
 
@@ -435,7 +462,8 @@ def _unknown(mapping: Any, allowed: set[str], where: str) -> list[str]:
 ## @param problems Accumulated problems; appended to.
 ## @return The FlowSpec or None.
 ## v2: `animate`.
-## @version 2
+## v3: `file`.
+## @version 3
 ## @dg_internal
 def _flow(raw: Any, index: int, problems: list[str]) -> FlowSpec | None:
     """@brief Parse one flow. @return Spec or None."""
@@ -452,6 +480,7 @@ def _flow(raw: Any, index: int, problems: list[str]) -> FlowSpec | None:
         stop_at=tuple(str(s) for s in raw.get("stop_at") or ()),
         title=str(raw.get("title") or ""),
         animate=bool(raw.get("animate", True)),
+        file=str(raw["file"]) if raw.get("file") else None,
     )
 
 
@@ -459,13 +488,15 @@ def _flow(raw: Any, index: int, problems: list[str]) -> FlowSpec | None:
 ## @param tests The block.
 ## @param problems Accumulated problems; appended to.
 ## @return The inputs.
-## @version 1
+## v2: evidence_fields.
+## @version 2
 ## @dg_internal
 def _inputs(tests: dict[str, Any], problems: list[str]) -> EvidenceInputs:
     """A RESULT FORMAT IS DECLARED, so an entry without one is a problem, never a sniffed guess.
 
     @brief Parse imports.
     @return Inputs.
+    @version 2
     """
     from .imports import RESULT_FORMATS
 
@@ -489,6 +520,11 @@ def _inputs(tests: dict[str, Any], problems: list[str]) -> EvidenceInputs:
         if layers is None
         else tuple((str(k), tuple(str(g) for g in v or ())) for k, v in layers.items()),
         min_layers=int(tests["min_layers"]) if tests.get("min_layers") else None,
+        evidence_fields=tuple(str(f) for f in tests["evidence_fields"] or ())
+        if "evidence_fields" in tests
+        else EvidenceInputs.evidence_fields,
+        infer_depth=int(tests.get("infer_depth", EvidenceInputs.infer_depth) or 0),
+        contexts=str(tests["contexts"]) if tests.get("contexts") else None,
     )
 
 

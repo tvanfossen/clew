@@ -520,7 +520,7 @@ requirements:
     x-evidence: clew/wiki/theme.py, themes/, config.py, build.py; tests/test_wiki_site.py.
   REQ-DDB-WIKI-012:
     subsystem: wiki
-    name: The trace is summarised with charts and per-group counts
+    name: The trace is one page, summarised with charts and per-group counts
     acceptance_criteria: >-
       The requirements and summary pages carry inline-SVG donuts of requirements by tier and
       distinct tests by status, each segment with `data-label` / `data-count`. The summary page
@@ -551,6 +551,61 @@ requirements:
     x-priority: P1
     x-status: implemented
     x-evidence: clew/wiki/flowpage.py, flow.py, svg.py; tests/test_wiki_site.py.
+  REQ-DDB-WIKI-015:
+    subsystem: wiki
+    name: The site is generated from every declared source
+    acceptance_criteria: >-
+      The requirements page reads the catalog through the index's own resolver
+      (`resolve_catalog_path`: declaration, then the `requirements.yaml` convention) and shows each
+      entry's title, acceptance criteria, declared status and priority; it reads clew-guard's
+      `impact.json` (`wiki.impact`, else `<guard.output_dir>/impact/impact.json`) into a change-
+      impact section, absent when there is no report. Prose may be Markdown, reStructuredText or
+      HTML. Tables drop a column no row fills and mark an empty cell. `clew wiki check --refresh`
+      (the `clew-wiki-check` pre-commit hook) brings the index current first.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/tracepages.py, catalogs.py, htmltable.py, build.py, command.py; .pre-commit-hooks.yaml; tests/test_wiki_site.py, test_wiki_build.py.
+  REQ-DDB-WIKI-016:
+    subsystem: wiki
+    name: Tests link to requirements without tags, and say how
+    acceptance_criteria: >-
+      Besides `@req` tags, a mapping file and Gherkin tags, a test links to a requirement when per-
+      test coverage (coverage.py contexts) ran a line of an implementer (measured), when the
+      catalog's evidence field names its file (catalog), or when its calls reach an implementer
+      within `infer_depth` hops over non-binding, non-fuzzy edges (inferred). A test keeps its
+      strongest kind; rows carry `measured_tests`, `declared_tests` and `inferred_tests`, the page
+      marks each, and the trace counts requirements linked only by each weaker kind.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/evidence.py, imports.py, config.py, tracepages.py; tests/test_wiki_imports.py, test_wiki_site.py.
+  REQ-DDB-WIKI-017:
+    subsystem: wiki
+    name: Standard test structures are recognised, whatever the framework
+    acceptance_criteria: >-
+      A test is recognised by its framework's shape: a `test*` function (pytest, Unity / Ceedling,
+      and the `test_` convention), a Catch2 / doctest `TEST_CASE` / `SCENARIO` (named by its first
+      string), a GoogleTest `TEST` / `TEST_F` (`Suite.Name`, filed under `Name` too) or a Boost
+      `BOOST_AUTO_TEST_CASE`; a macro row outside test code is not a test. Results are read from
+      Ceedling's XML report and Unity's text output as declared formats, and a GoogleTest `notrun`
+      case is a skip. Tag, catalog and inferred links all name a framework case by its framework
+      name.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/frameworks.py, evidence.py, imports.py; tests/test_wiki_frameworks.py.
+  REQ-DDB-WIKI-018:
+    subsystem: wiki
+    name: Every entry point is a flow without being declared
+    acceptance_criteria: >-
+      Without being declared, every entry point gets a flow of depth `wiki.entry_points` (0 =
+      declared flows only): each `[project.scripts]` console script resolved to its indexed
+      function, every `main` outside test code, and every thread entry from the thread layer —
+      skipping entries in test code and entries with no resolved call. An entry is selected by file
+      as well as name (`FlowSpec.file`, `derive_flow(file=)`, `call_sequence(rowids=)`), so
+      functions sharing a name and definition never merge; a declared flow for the same function
+      wins.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/entrypoints.py, flow.py, flowpage.py, build.py; clew/query/callsites.py; tests/test_wiki_site.py.
   REQ-DDB-SCHEMA-013:
     subsystem: schema
     name: Kconfig structure tables, created independently of the gating table

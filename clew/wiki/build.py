@@ -49,7 +49,10 @@ _CELL = str.maketrans({"|": "\\|", "\n": " "})
 ## @return The rendered site's directory.
 ## v2: nodes page, rules / catalogs / mutations on the trace, version-keyed output, config_path.
 ## v3: theme (W13), summary + charts (W14), burndown (W17), interactive flow pages (W18).
-## @version 3
+## v4: sections (Docs / Flows / Requirements / Model entries) instead of one page per top-bar
+## entry; the trace from every source (catalog, impact.json) on one requirements page.
+## v5: entry-point flows beside the declared ones.
+## @version 5
 ## @req REQ-DDB-WIKI-003
 def build_wiki(
     repo_root: Path,
@@ -64,10 +67,10 @@ def build_wiki(
 
     @brief Write and render the site.
     @return The HTML directory.
-    @version 3
+    @version 4
     """
     from .flowpage import flow_page
-    from .summary import summary_page
+    from .tracepages import Trace, nodes_page, requirements_page
     from .versions import record_version, valid_key
 
     repo_root, out_dir = Path(repo_root), Path(out_dir)
@@ -80,24 +83,54 @@ def build_wiki(
     if source.exists():
         shutil.rmtree(source)
     source.mkdir(parents=True)
-    trace = _Trace.gather(repo_root, db, config)
     commit = _commit(repo_root)
-    snapshot = trace.snapshot(version or "", commit)
+    trace = Trace.gather(repo_root, db, config, commit)
+    snapshot = trace.snapshot(version or "")
     milestones = _milestones(repo_root, config)
     burndown = _burndown(out_dir, version, snapshot, milestones) if version else ""
-    pages = _prose(repo_root, config, source)
-    pages.append(summary_page(trace.evidence, config.inputs.min_layers, source, burndown))
-    pages += [
-        flow_page(repo_root, db, spec, source, rules, config, commit) for spec in config.flows
+    flows = [
+        flow_page(repo_root, db, spec, source, rules, config, commit)
+        for spec in _all_flows(repo_root, db, config)
     ]
-    pages.append(_requirements_page(trace, config, source, rules))
-    if trace.nodes:
-        pages.append(_nodes_page(trace, source))
-    _write_index(source, config.title, pages)
+    sections = [
+        _section(source, "docs", "Docs", _prose(repo_root, config, source), _DOCS_LEAD),
+        _section(source, "flows", "Flows", flows, _FLOWS_LEAD),
+        requirements_page(trace, config, source, rules, burndown),
+    ]
+    if config.sources:
+        sections.append(nodes_page(trace, config, source))
+    _write_index(source, config, trace, [s for s in sections if s])
     html = _render(source, site_dir / "html", config, repo_root)
     if version:
         record_version(out_dir, version, snapshot, config.title, milestones)
     return html
+
+
+## @brief The declared flows, then every entry point's flow not already declared.
+## @param repo_root The repository.
+## @param db The index.
+## @param config The section.
+## @return Flow specs.
+## @version 1
+## @dg_internal
+def _all_flows(repo_root: Path, db: Path, config: WikiConfig) -> list:
+    """A DECLARED FLOW WINS for its function: its title, depth and lanes are the repository's
+    choice, so the derived one for the same entry is dropped.
+
+    @brief Declared + entry-point flows.
+    @return Specs.
+    """
+    from .entrypoints import entry_point_flows
+
+    specs = list(config.flows)
+    if config.entry_points > 0:
+        declared = {(s.entry, s.file) for s in specs} | {(s.entry, None) for s in specs}
+        specs += [
+            s
+            for s in entry_point_flows(db, repo_root, config.entry_points)
+            if (s.entry, s.file) not in declared and (s.entry, None) not in declared
+        ]
+    return specs
 
 
 ## @brief The roadmap's milestones, or none when no roadmap is declared.
@@ -129,85 +162,6 @@ def _burndown(out_dir: Path, version: str, snapshot: dict, milestones: list) -> 
     return burndown(series(out_dir, version, snapshot), milestones)
 
 
-## @brief Everything the trace page and the version snapshot are drawn from, gathered once.
-## @version 1
-class _Trace:
-    """@brief Evidence rows, nodes and their references, catalogs, rules. @version 1"""
-
-    ## @brief Hold the gathered parts.
-    ## @param evidence Requirement evidence rows.
-    ## @param nodes External nodes.
-    ## @param refs Node address → referencing functions.
-    ## @param catalogs Pinned catalog rows per catalog.
-    ## @param config The section (rules).
-    ## @dg_internal
-    ## @version 1
-    def __init__(self, evidence, nodes, refs, catalogs, config: WikiConfig) -> None:
-        """@brief Store. @return None."""
-        self.evidence = evidence
-        self.by_id = {r.req_id: r for r in evidence}
-        self.nodes = nodes
-        self.refs = refs
-        self.catalogs = catalogs
-        self.rules = config.rules
-
-    ## @brief Gather the trace for a repository.
-    ## @param repo_root The repository.
-    ## @param db The index.
-    ## @param config The section.
-    ## @return The trace.
-    ## v2: each catalog carries its pin problems, so the page states what `check` found.
-    ## v3: the W15/W16 evidence imports.
-    ## @dg_internal
-    ## @version 3
-    @classmethod
-    def gather(cls, repo_root: Path, db: Path, config: WikiConfig) -> _Trace:
-        """@brief Read evidence, nodes and catalogs. @return Trace."""
-        from .catalogs import catalog_requirements, pin_problems
-        from .evidence import requirement_evidence
-        from .sources import load_nodes, node_references
-
-        evidence = requirement_evidence(
-            db,
-            junit=[repo_root / j for j in config.junit],
-            coverage=(repo_root / config.coverage) if config.coverage else None,
-            target_only=config.target_only,
-            mutations=(repo_root / config.mutations) if config.mutations else None,
-            inputs=config.inputs,
-            repo_root=repo_root,
-        )
-        nodes, _ = load_nodes(repo_root, config.sources)
-        catalogs = [
-            (spec, catalog_requirements(repo_root, spec)[0], pin_problems(repo_root, spec))
-            for spec in config.catalogs
-        ]
-        return cls(evidence, nodes, node_references(db), catalogs, config)
-
-    ## @brief The nodes that serve a requirement.
-    ## @param req_id The requirement.
-    ## @return Node addresses.
-    ## @dg_internal
-    ## @version 1
-    def nodes_for(self, req_id: str) -> list[str]:
-        """@brief Look up. @return Addresses."""
-        return [n.ref for n in self.nodes if req_id in n.requirements]
-
-    ## @brief The snapshot a version-keyed build records.
-    ## @param key The version key.
-    ## @param commit The commit described.
-    ## @return Plain data.
-    ## @dg_internal
-    ## @version 1
-    def snapshot(self, key: str, commit: str) -> dict:
-        """@brief Snapshot. @return Data."""
-        return {
-            "key": key,
-            "commit": commit,
-            "requirements": {r.req_id: r.tier for r in self.evidence},
-            "nodes": sorted(n.ref for n in self.nodes),
-        }
-
-
 ## @brief The rules for the requested audience.
 ## @param config The section.
 ## @param audience The name, or None.
@@ -228,11 +182,13 @@ def _audience(config: WikiConfig, audience: str | None) -> Audience:
 ## @param repo_root The repository.
 ## @param config The section.
 ## @param source The Sphinx source directory.
-## @return Page names (without suffix) for the toctree.
-## @version 1
+## @return Page names, in configured order.
+## v2: `.html` prose — its body is embedded in a themed page (owner 2026-11-15: user-selected
+## html / md content).
+## @version 2
 ## @dg_internal
 def _prose(repo_root: Path, config: WikiConfig, source: Path) -> list[str]:
-    """AS WRITTEN: Markdown through MyST, reStructuredText natively.
+    """AS WRITTEN: Markdown through MyST, reStructuredText natively, HTML embedded as it is.
 
     @brief Copy prose.
     @return Page names.
@@ -240,170 +196,109 @@ def _prose(repo_root: Path, config: WikiConfig, source: Path) -> list[str]:
     pages: list[str] = []
     for pattern in config.docs:
         for path in sorted(repo_root.glob(pattern)):
-            if not path.is_file() or path.suffix.lower() not in (".md", ".rst"):
+            suffix = path.suffix.lower()
+            if not path.is_file() or suffix not in (".md", ".rst", ".html", ".htm"):
                 continue
             rel = path.relative_to(repo_root)
             target = source / "prose" / rel
             target.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copyfile(path, target)
+            if suffix in (".html", ".htm"):
+                target = target.with_suffix(".md")
+                target.write_text(_html_page(path), encoding="utf-8")
+            else:
+                shutil.copyfile(path, target)
             page = str(Path("prose") / rel.with_suffix(""))
             if page not in pages:
                 pages.append(page)
     return pages
 
 
-## @brief Write the requirement trace page.
-## @param trace The gathered trace.
-## @param config The section.
-## @param source The Sphinx source directory.
-## @param rules The audience rules.
-## @return The page name.
-## v2: nodes and mutations per requirement; rules; pinned catalogs.
-## v3: tier / test charts, status tags, test layers (W14/W16).
-## @version 3
-## @dg_internal
-def _requirements_page(trace: _Trace, config: WikiConfig, source: Path, rules: Audience) -> str:
-    """@brief Render the trace. @return Page name."""
-    from .summary import charts_block
-
-    lines = [
-        "# Requirements",
-        "",
-        "```{raw} html",
-        charts_block(trace.evidence),
-        "```",
-        "",
-        "| requirement | tier | title | tests | layers | nodes | mutations |",
-        "|---|---|---|---|---|---|---|",
-    ]
-    for row in trace.evidence:
-        title = "" if rules.exclude_requirement_text else _cell(row.title)
-        tests = ", ".join(f"`{_cell(t)}` {_tag(s)}" for t, s in row.tests)
-        layers = ", ".join(f"{k} {n}" for k, n in row.layers or ())
-        nodes = ", ".join(f"`{n}`" for n in trace.nodes_for(row.req_id))
-        mutations = ", ".join(f"`{m}`→`{t}` {o}" for m, t, o in row.mutations or ())
-        lines.append(
-            f"| {row.req_id} | {_tag(row.tier)} | {title} | {tests} | {layers} | {nodes} "
-            f"| {mutations} |"
-        )
-    lines += _rules_section(trace, rules)
-    lines += _catalogs_section(trace, rules)
-    (source / "requirements.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
-    return "requirements"
-
-
-## @brief The rule → requirement → function → test chain.
-## @param trace The gathered trace.
-## @param rules The audience rules.
-## @return Markdown lines; [] when no rule is declared.
+## @brief An HTML document as a page: its title as the heading, its body embedded.
+## @param path The document.
+## @return MyST text.
 ## @version 1
 ## @dg_internal
-def _rules_section(trace: _Trace, rules: Audience) -> list[str]:
-    """@brief Rules table. @return Lines."""
-    if not trace.rules:
-        return []
-    lines = [
-        "",
-        "## Rules",
-        "",
-        "| rule | status | title | requirement | tier | functions | tests |",
-        "|---|---|---|---|---|---|---|",
-    ]
-    for rule in trace.rules:
-        rule_id = f"[{rule.id}]({rule.url})" if rule.url else rule.id
-        title = "" if rules.exclude_requirement_text else _cell(rule.title)
-        for req_id in rule.requirements or ("",):
-            row = trace.by_id.get(req_id)
-            tier = row.tier if row else "MISSING"
-            impls = ", ".join(f"`{n}`" for n in (row.implementers if row else ()))
-            tests = ", ".join(f"`{t}` ({s})" for t, s in (row.tests if row else ()))
-            lines.append(
-                f"| {rule_id} | {rule.status} | {title} | {req_id} | **{tier}** | {impls} | {tests} |"
-            )
-    return lines
+def _html_page(path: Path) -> str:
+    """@brief Embed HTML. @return Page text."""
+    import re
+
+    doc = path.read_text(encoding="utf-8", errors="replace")
+    title = re.search(r"<title[^>]*>(.*?)</title>", doc, re.S | re.I)
+    body = re.search(r"<body[^>]*>(.*)</body>", doc, re.S | re.I)
+    heading = (title.group(1).strip() if title else "") or path.stem
+    return f"# {heading}\n\n```{{raw}} html\n{(body.group(1) if body else doc).strip()}\n```\n"
 
 
-## @brief Each pinned sub-catalog's rows, at their pin.
-## @param trace The gathered trace.
-## @param rules The audience rules.
-## @return Markdown lines; [] when no catalog is declared.
-## v2: states each catalog's pin problems.
+_DOCS_LEAD = "The repository's own documentation, as written."
+_FLOWS_LEAD = (
+    "Sequence diagrams derived from the index: every step is a call the index resolved, in the "
+    "caller's source order. Click a step for the data it carries."
+)
+
+
+## @brief A section page listing its children; nothing when it has none.
+## @param source The Sphinx source directory.
+## @param name The page name.
+## @param title The section title (the top-bar label).
+## @param children Child page names.
+## @param lead The section's one-line description.
+## @return The page name, or "" when there are no children.
+## @version 1
+## @dg_internal
+def _section(source: Path, name: str, title: str, children: list[str], lead: str) -> str:
+    """@brief Write a section page. @return Page name or ""."""
+    if not children:
+        return ""
+    text = [f"# {title}", "", lead, "", "```{toctree}", ":maxdepth: 1", "", *children, "```", ""]
+    (source / f"{name}.md").write_text("\n".join(text), encoding="utf-8")
+    return name
+
+
+## @brief Write the home page: a card per section, and the toctree the top bar is built from.
+## @param source The Sphinx source directory.
+## @param config The section (title).
+## @param trace The gathered trace (the requirements card's counts).
+## @param sections Section page names, in order.
+## @return None.
+## v2: section cards; the top bar names sections, not every page (owner 2026-11-15).
 ## @version 2
 ## @dg_internal
-def _catalogs_section(trace: _Trace, rules: Audience) -> list[str]:
-    """@brief Catalog tables. @return Lines."""
-    lines: list[str] = []
-    for spec, rows, problems in trace.catalogs:
-        lines += [
-            "",
-            f"## Catalog `{spec.name}` at `{spec.pin}`",
-            "",
-            f"Read from `{spec.repo}/{spec.catalog}` at the pin, not the sibling's working tree.",
-            "",
-            *[f"**Check failure:** {_cell(p)}" + "\n" for p in problems],
-            "| requirement | title | tier here | functions here |",
-            "|---|---|---|---|",
-        ]
-        for req in rows:
-            row = trace.by_id.get(req.req_id)
-            title = "" if rules.exclude_requirement_text else _cell(req.title)
-            impls = ", ".join(f"`{n}`" for n in (row.implementers if row else ()))
-            lines.append(f"| {req.req_id} | {title} | {row.tier if row else '—'} | {impls} |")
-    return lines
-
-
-## @brief Write the external nodes page.
-## @param trace The gathered trace.
-## @param source The Sphinx source directory.
-## @return The page name.
-## @version 1
-## @dg_internal
-def _nodes_page(trace: _Trace, source: Path) -> str:
-    """@brief Render nodes. @return Page name."""
-    lines = [
-        "# Model nodes",
-        "",
-        "| node | doc | file | functions | requirements |",
-        "|---|---|---|---|---|",
-    ]
-    for node in trace.nodes:
-        funcs = ", ".join(f"`{f}`" for f in trace.refs.get(node.ref, ()))
-        reqs = ", ".join(node.requirements)
-        lines.append(f"| `{node.ref}` | {_cell(node.doc)} | `{node.file}` | {funcs} | {reqs} |")
-    (source / "nodes.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
-    return "nodes"
-
-
-## @brief Text made safe for one Markdown table cell.
-## @param text The text.
-## @return Escaped text.
-## @version 1
-## @dg_internal
-def _cell(text: str) -> str:
-    """@brief Escape. @return Text."""
-    return text.translate(_CELL)
-
-
-## @brief A tier or status as a themed tag (MyST passes inline HTML through).
-## @param value The tier or status.
-## @return HTML.
-## @version 1
-## @dg_internal
-def _tag(value: str) -> str:
-    """@brief Tag. @return HTML."""
-    return f'<span class="tier t-{value}">{value}</span>'
-
-
-## @brief Write the root page with its toctree.
-## @param source The Sphinx source directory.
-## @param title The site title.
-## @param pages Page names in order.
-## @return None.
-## @version 1
-## @dg_internal
-def _write_index(source: Path, title: str, pages: list[str]) -> None:
+def _write_index(source: Path, config: WikiConfig, trace: object, sections: list[str]) -> None:
     """@brief Root page. @return None."""
-    text = [f"# {title}", "", "```{toctree}", ":maxdepth: 1", "", *pages, "```", ""]
+    from html import escape
+
+    ev = trace.evidence
+    blurbs = {
+        "docs": ("Docs", "The repository's own documentation."),
+        "flows": ("Flows", f"{len(config.flows)} sequence diagrams derived from the index."),
+        "requirements": (
+            "Requirements",
+            f"{len(ev)} requirements · {sum(1 for r in ev if r.implementers)} implemented · "
+            f"{sum(1 for r in ev if r.tests)} tested · {sum(1 for r in ev if r.tier == 'PASS')} "
+            "passing.",
+        ),
+        "nodes": ("Model entries", "Entries of declared model files and the code realising them."),
+    }
+    cards = "".join(
+        f'<a class="card-link" href="{name}.html"><h3>{escape(blurbs[name][0])}</h3>'
+        f"<p>{escape(blurbs[name][1])}</p></a>"
+        for name in sections
+    )
+    text = [
+        f"# {config.title}",
+        "",
+        "```{raw} html",
+        f'<div class="cards">{cards}</div>',
+        "```",
+        "",
+        "```{toctree}",
+        ":hidden:",
+        ":maxdepth: 1",
+        "",
+        *sections,
+        "```",
+        "",
+    ]
     (source / "index.md").write_text("\n".join(text), encoding="utf-8")
 
 

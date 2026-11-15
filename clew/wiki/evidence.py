@@ -48,6 +48,8 @@ MAX_REPORT_BYTES = 64 * 1024 * 1024
 _RANK = {"error": 0, "failed": 1, "skipped": 2, "passed": 3}
 ## A parametrized case's suffix: `test_x[a-1]` folds to `test_x`.
 _PARAMS = re.compile(r"\[.*\]$")
+## A path-shaped token in a catalog evidence field.
+_PATH_TOKEN = re.compile(r"[\w.-]+(?:/[\w.-]+)+\.\w+")
 
 
 ## @brief One test's folded result.
@@ -65,10 +67,13 @@ class CaseResult:
 ## @brief One requirement's graded evidence.
 ## v2: mutation outcomes (W9).
 ## v3: test counts per layer (W16), None when no layers are configured.
-## @version 3
+## v4: implementer sites (name, file, line), so a page can link each implementer to its source;
+## `declared_tests` (catalog evidence files), `measured_tests` (per-test coverage) and
+## `inferred_tests` (the call graph) — the tests linked by each weaker kind than a tag.
+## @version 4
 @dataclass(frozen=True)
 class RequirementEvidence:
-    """@brief Tier, linked tests, implementer coverage, mutations, layers. @version 3"""
+    """@brief Tier, tests, implementers and their sites, coverage, mutations, layers. @version 4"""
 
     req_id: str
     title: str
@@ -79,6 +84,10 @@ class RequirementEvidence:
     implementers_uncovered: tuple[str, ...] | None = None
     mutations: tuple[tuple[str, str, str], ...] | None = None
     layers: tuple[tuple[str, int], ...] | None = None
+    implementer_sites: tuple[tuple[str, str, int], ...] = ()
+    declared_tests: tuple[str, ...] = ()
+    measured_tests: tuple[str, ...] = ()
+    inferred_tests: tuple[str, ...] = ()
 
 
 ## @brief Read JUnit XML reports into one folded result per test.
@@ -158,7 +167,8 @@ def parse_mutations(path: Path) -> list[tuple[str, str, bool]]:
 ## @return One RequirementEvidence per requirement, ordered by id.
 ## v2: `mutations` (W9).
 ## v3: `inputs` / `repo_root` (W15/W16): more result formats, gcov, mapping, Gherkin, layers.
-## @version 3
+## v4: implementer sites.
+## @version 4
 ## @req REQ-DDB-WIKI-002
 def requirement_evidence(
     db: Path | str,
@@ -176,7 +186,7 @@ def requirement_evidence(
         out = []
         for req_id, title in _requirement_ids(conn):
             impls = _implementer_spans(conn, req_id)
-            linked = reports.linked_tests(conn, req_id)
+            linked, kinds = reports.linked_tests(conn, req_id, impls)
             statuses = tuple((t, reports.status(t, names)) for t, _where, names in linked)
             covered = uncovered = None
             if reports.hits is not None:
@@ -193,6 +203,10 @@ def requirement_evidence(
                     implementers_uncovered=uncovered,
                     mutations=_mutations_for(reports.records, impls),
                     layers=reports.layers_of(linked),
+                    implementer_sites=tuple((n, f, s) for n, f, s, _e in impls),
+                    declared_tests=_of_kind(kinds, "catalog"),
+                    measured_tests=_of_kind(kinds, "measured"),
+                    inferred_tests=_of_kind(kinds, "inferred"),
                 )
             )
     return out
@@ -210,10 +224,14 @@ class _Reports:
     ## @param mapping Requirement → tests from a mapping file.
     ## @param scenarios Gherkin scenarios.
     ## @param layers Layer name → globs, or None.
+    ## @param catalog Requirement → test files its catalog evidence field names.
+    ## @param infer (per-test coverage contexts, call-graph inference depth).
     ## @version 1
     ## @dg_internal
-    def __init__(self, results, hits, records, mapping, scenarios, layers) -> None:
+    def __init__(self, results, hits, records, mapping, scenarios, layers, catalog, infer) -> None:
         """@brief Store. @return None."""
+        self.catalog = catalog
+        self.contexts, self.infer_depth = infer
         self.results = results
         self.hits = hits
         self.records = records
@@ -228,7 +246,8 @@ class _Reports:
     ## @param inputs The W15/W16 imports, or None.
     ## @param repo_root The repository.
     ## @return The reports.
-    ## @version 1
+    ## v2: catalog evidence files, per-test coverage contexts and inference depth.
+    ## @version 2
     ## @dg_internal
     @classmethod
     def read(cls, junit, coverage, mutations, inputs, repo_root) -> _Reports:
@@ -238,7 +257,13 @@ class _Reports:
         @brief Parse.
         @return Reports.
         """
-        from .imports import parse_features, parse_gcov, parse_mapping, parse_results
+        from .imports import (
+            parse_contexts,
+            parse_features,
+            parse_gcov,
+            parse_mapping,
+            parse_results,
+        )
 
         inputs = inputs or EvidenceInputs()
         root = Path(repo_root or ".")
@@ -256,29 +281,64 @@ class _Reports:
             parse_mapping(root / inputs.mapping) if inputs.mapping else {},
             parse_features(root, inputs.features),
             inputs.layers,
+            _catalog_files(root, inputs.evidence_fields) if repo_root else {},
+            (
+                parse_contexts(root / inputs.contexts, root) if inputs.contexts else {},
+                inputs.infer_depth,
+            ),
         )
 
     ## @brief A requirement's tests: indexed, mapped and scenario, each once.
     ## @param conn Open connection.
     ## @param req_id The requirement.
-    ## @return (test id, where for layer globs, names to look results up by).
-    ## @version 1
+    ## @param impls Its implementers (name, file, start, end).
+    ## @return (tests, the kind of each link weaker than a tag).
+    ## v2: catalog evidence files, per-test coverage, call-graph inference.
+    ## @version 2
     ## @dg_internal
-    def linked_tests(self, conn, req_id: str) -> list[tuple[str, str, tuple[str, ...]]]:
-        """A SCENARIO'S RESULT is found under its own name (behave, cucumber) or its pytest-bdd
-        function name, `test_<name, snake-cased>`.
+    def linked_tests(self, conn, req_id: str, impls: list) -> tuple[list, dict[str, str]]:
+        """LINKS BY STRENGTH: a test tagged, mapped or a tagged scenario; else MEASURED (per-test
+        coverage ran a line of an implementer); else named by the CATALOG's evidence file; else
+        INFERRED (its calls reach an implementer within `infer_depth`). A test keeps its strongest
+        kind; the weaker kinds are returned so the page can say how each link was made.
+        A scenario's result is found under its own name or its pytest-bdd `test_<snake>` name.
 
         @brief Collect links.
-        @return Tests.
+        @return (tests as (id, where, lookup names), {test: catalog | measured | inferred}).
         """
-        out = {name: (name, file, (name,)) for name, file in _linked_tests(conn, req_id)}
+        out = {name: (name, file, names) for name, file, names in _linked_tests(conn, req_id)}
         for name in self.mapping.get(req_id, ()):
             out.setdefault(name, (name, name, (name,)))
         for sc in self.scenarios:
             if req_id in sc.tags:
                 slug = "test_" + re.sub(r"\W+", "_", sc.name.lower()).strip("_")
                 out.setdefault(sc.test_id, (sc.test_id, sc.test_id, (sc.name, slug)))
-        return sorted(out.values())
+        kinds: dict[str, str] = {}
+        weaker = (
+            ("measured", self._measured(impls)),
+            ("catalog", _tests_in_files(conn, self.catalog.get(req_id, ()))),
+            ("inferred", _reaching_tests(conn, req_id, self.infer_depth)),
+        )
+        for kind, found in weaker:
+            for name, file, names in found:
+                if name not in out:
+                    out[name] = (name, file, names)
+                    kinds[name] = kind
+        return sorted(out.values()), kinds
+
+    ## @brief Tests the per-test coverage saw run a line of an implementer.
+    ## @param impls (name, file, start, end) per implementer.
+    ## @return (test, file, lookup names).
+    ## @version 1
+    ## @dg_internal
+    def _measured(self, impls: list) -> list[tuple[str, str, tuple[str, ...]]]:
+        """@brief Measured tests. @return Pairs."""
+        found: set[str] = set()
+        for _n, rel, start, end in impls:
+            for line, tests in (self.contexts.get(rel) or {}).items():
+                if start <= line <= end:
+                    found |= tests
+        return [(t, t, (t,)) for t in sorted(found)]
 
     ## @brief One test's status: the first of its names a report holds, else "absent".
     ## @param test The test id.
@@ -386,10 +446,18 @@ def _tier(statuses: tuple[tuple[str, str], ...], target_only: tuple[str, ...]) -
 ## @brief The status and skip message of one JUnit testcase element.
 ## @param case The element.
 ## @return (status, message).
-## @version 1
+## v2: GoogleTest's notrun / suppressed / skipped attributes.
+## @version 2
 ## @dg_internal
 def _case_status(case: ET.Element) -> tuple[str, str]:
-    """@brief Classify a testcase. @return Status and message."""
+    """GOOGLETEST'S `status="notrun"` (a disabled test) has no child element: it is a skip, not a
+    pass.
+
+    @brief Classify a testcase.
+    @return Status and message.
+    """
+    if case.get("status") == "notrun" or case.get("result") in ("suppressed", "skipped"):
+        return "skipped", case.get("result") or "notrun"
     for tag, status in (("error", "error"), ("failure", "failed"), ("skipped", "skipped")):
         child = case.find(tag)
         if child is not None:
@@ -432,24 +500,168 @@ def _requirement_ids(conn: object) -> list[tuple[str, str]]:
     return sorted(ids.items())
 
 
+## @brief The test files each requirement's catalog evidence names.
+## @param root The repository.
+## @param fields The catalog fields to read (`x-evidence`, `evidence`).
+## @return {requirement: path-shaped tokens}.
+## @version 1
+## @dg_internal
+def _catalog_files(root: Path, fields: tuple[str, ...]) -> dict[str, tuple[str, ...]]:
+    """EVIDENCE TEXT IS PROSE ("src/a.c impl; tests/x.py."): every path-shaped token is kept,
+    and only a path the INDEX holds test functions in links anything (`_tests_in_files`).
+
+    @brief Read evidence fields.
+    @return Files per requirement.
+    """
+    if not fields:
+        return {}
+    from .catalogs import declared_catalog
+
+    out = {}
+    for req_id, entry in declared_catalog(root)[1].items():
+        text = " ".join(str(entry.get(f) or "") for f in fields)
+        files = _PATH_TOKEN.findall(text)
+        if files:
+            out[req_id] = tuple(dict.fromkeys(files))
+    return out
+
+
+## @brief The tests whose calls reach a requirement's implementers within a depth.
+## @param conn Open connection.
+## @param req_id The requirement.
+## @param depth Call hops (0 = off).
+## @return (test, file, lookup names).
+## v2: framework recognition (Catch2 / GoogleTest / Boost cases), one hop per `_callers_step`.
+## @version 2
+## @req REQ-DDB-WIKI-016
+def _reaching_tests(
+    conn: object, req_id: str, depth: int
+) -> list[tuple[str, str, tuple[str, ...]]]:
+    """WALKED BACKWARDS from the implementers over call edges, never through a `binding` edge (a
+    function value passed along is not a call) nor a fuzzy one, and never through a test: a test
+    found is recorded, not expanded. A test is whatever `frameworks.recognise_test` recognises —
+    a `test_*` function or a Catch2 / GoogleTest / Boost case.
+
+    @brief Infer reaching tests.
+    @return (test, file, lookup names).
+    """
+    if depth <= 0 or not table_exists(conn, "call_edges") or not table_exists(conn, "req_edges"):
+        return []
+    frontier = {
+        r
+        for (r,) in conn.execute(
+            "SELECT memberdef_rowid FROM req_edges WHERE req_id = ?", (req_id,)
+        )
+    }
+    seen, found = set(frontier), {}
+    for _hop in range(depth):
+        frontier = _callers_step(conn, frontier, seen, found)
+        if not frontier:
+            break
+    return sorted(found.values())
+
+
+## @brief One backward hop: callers of the frontier, tests recorded, others returned.
+## @param conn Open connection.
+## @param frontier Rowids to find callers of.
+## @param seen Rowids already visited; updated.
+## @param found Tests found by rowid; updated.
+## @return The next frontier.
+## @version 1
+## @dg_internal
+def _callers_step(conn: object, frontier: set, seen: set, found: dict) -> set:
+    """@brief Step back. @return Next frontier."""
+    from .frameworks import recognise_test
+
+    if not frontier:
+        return set()
+    marks = ",".join("?" * len(frontier))
+    rows = conn.execute(
+        "SELECT DISTINCT c.caller_rowid, m.name, COALESCE(m.argsstring, ''), COALESCE(p.name, '') "
+        "FROM call_edges c JOIN memberdef m ON m.rowid = c.caller_rowid "
+        "LEFT JOIN path p ON p.rowid = m.file_id "
+        f"WHERE c.callee_rowid IN ({marks}) AND c.source != 'binding' AND c.confidence != 'fuzzy'",
+        tuple(frontier),
+    ).fetchall()
+    nxt = set()
+    for rowid, name, args, rel in rows:
+        if rowid in seen:
+            continue
+        seen.add(rowid)
+        test = recognise_test(str(name), str(args), str(rel))
+        if test:
+            found[rowid] = (test[0], str(rel), test[1])
+        else:
+            nxt.add(rowid)
+    return nxt
+
+
+## @brief The links of one kind.
+## @param kinds {test: kind}.
+## @param kind The kind.
+## @return Tests, ordered.
+## @version 1
+## @dg_internal
+def _of_kind(kinds: dict[str, str], kind: str) -> tuple[str, ...]:
+    """@brief Filter. @return Tests."""
+    return tuple(sorted(t for t, k in kinds.items() if k == kind))
+
+
+## @brief The test functions the index holds in some files.
+## @param conn Open connection.
+## @param files Repo-relative paths.
+## @return (test, file, lookup names).
+## v2: framework recognition, not a `test_` name filter.
+## @version 2
+## @dg_internal
+def _tests_in_files(conn: object, files: tuple[str, ...]) -> list[tuple[str, str, tuple[str, ...]]]:
+    """@brief Tests per file, recognised by framework. @return (test, file, lookup names)."""
+    from .frameworks import recognise_test
+
+    out = []
+    for rel in files:
+        rows = conn.execute(
+            "SELECT DISTINCT m.name, COALESCE(m.argsstring, '') FROM memberdef m "
+            "JOIN path p ON p.rowid = m.file_id WHERE p.name = ? AND m.kind = 'function'",
+            (rel,),
+        )
+        for name, args in rows:
+            test = recognise_test(str(name), str(args), rel)
+            if test:
+                out.append((test[0], rel, test[1]))
+    return out
+
+
 ## @brief The indexed tests linked to a requirement, with their files.
 ## @param conn Open connection.
 ## @param req_id The requirement.
-## @return (name, file) pairs, ordered.
-## @version 1
+## @return (test, file, lookup names), ordered.
+## v2: framework names (a tagged `SCENARIO` row is its scenario).
+## @version 2
 ## @dg_internal
-def _linked_tests(conn: object, req_id: str) -> list[tuple[str, str]]:
-    """@brief Linked tests. @return Pairs."""
+def _linked_tests(conn: object, req_id: str) -> list[tuple[str, str, tuple[str, ...]]]:
+    """A FRAMEWORK CASE IS NAMED BY ITS FRAMEWORK: a tagged Catch2 `SCENARIO` row is the scenario's
+    own name, not "SCENARIO"; a row no framework recognises keeps its indexed name.
+
+    @brief Linked tests.
+    @return (test, file, lookup names).
+    """
+    from .frameworks import recognise_test
+
     if not table_exists(conn, "req_test_edges"):
         return []
     rows = conn.execute(
-        "SELECT DISTINCT m.name, COALESCE(p.name, '') FROM req_test_edges t "
-        "JOIN memberdef m ON m.rowid = t.test_memberdef_rowid "
+        "SELECT DISTINCT m.name, COALESCE(m.argsstring, ''), COALESCE(p.name, '') "
+        "FROM req_test_edges t JOIN memberdef m ON m.rowid = t.test_memberdef_rowid "
         "LEFT JOIN path p ON p.rowid = COALESCE(NULLIF(m.bodyfile_id, 0), m.file_id) "
         "WHERE t.req_id = ? ORDER BY m.name",
         (req_id,),
     )
-    return [(str(n), str(f)) for n, f in rows]
+    out = []
+    for name, args, rel in rows:
+        test = recognise_test(str(name), str(args), str(rel)) or (str(name), (str(name),))
+        out.append((test[0], str(rel), test[1]))
+    return out
 
 
 ## @brief Each implementer of a requirement with its file and body span.

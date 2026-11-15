@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: MIT
-"""The requirement summary: charts and per-group counts of implementation and evidence.
+"""The trace summary: charts and per-group counts of implementation and evidence (shown at the top of
+the requirements page — owner 2026-11-15: one page, not two).
 
 1.4.0 W14 (owner 2026-11-15: "summary page of requirements implementation", "requirements and
 test piegraph"). The summary groups requirements by their id with the trailing number dropped
@@ -10,7 +11,7 @@ so single-layer coverage is visible instead of reading as tested.
 
 Two donuts summarise the whole trace: requirements by tier, and distinct tests by status.
 
-@brief Summary page and the trace charts.
+@brief Trace charts and the per-group table.
 @version 1
 """
 
@@ -18,7 +19,6 @@ from __future__ import annotations
 
 import re
 from html import escape
-from pathlib import Path
 
 from .charts import donut
 
@@ -50,50 +50,13 @@ def charts_block(evidence: list) -> str:
     )
 
 
-## @brief Write the summary page.
-## @param evidence Requirement evidence rows.
-## @param min_layers The layer minimum, or None.
-## @param source The Sphinx source directory.
-## @param burndown A burndown SVG for a versioned site, or "".
-## @return The page name.
-## @version 1
-## @req REQ-DDB-WIKI-012
-def summary_page(evidence: list, min_layers: int | None, source: Path, burndown: str = "") -> str:
-    """@brief Render the summary. @return Page name."""
-    implemented = sum(1 for r in evidence if r.implementers)
-    tested = sum(1 for r in evidence if r.tests)
-    lines = [
-        "# Summary",
-        "",
-        f"{len(evidence)} requirements: {implemented} implemented, {tested} tested, "
-        f"{sum(1 for r in evidence if r.tier == 'PASS')} passing.",
-        "",
-        "```{raw} html",
-        charts_block(evidence),
-        "```",
-        "",
-    ]
-    if burndown:
-        lines += [
-            "## Burndown",
-            "",
-            "```{raw} html",
-            f'<div class="chart-card">{burndown}</div>',
-            "```",
-            "",
-        ]
-    lines += ["## By group", "", "```{raw} html", _group_table(evidence, min_layers), "```", ""]
-    (source / "summary.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
-    return "summary"
-
-
 ## @brief The per-group table.
 ## @param evidence Requirement evidence rows.
 ## @param min_layers The layer minimum, or None (no layer column).
 ## @return HTML.
 ## @version 1
-## @dg_internal
-def _group_table(evidence: list, min_layers: int | None) -> str:
+## @req REQ-DDB-WIKI-012
+def group_table(evidence: list, min_layers: int | None) -> str:
     """@brief Count per group. @return HTML."""
     groups: dict[str, list] = {}
     for row in evidence:
@@ -116,5 +79,11 @@ def _group_table(evidence: list, min_layers: int | None) -> str:
             + "".join(f'<td class="n">{c}</td>' for c in cells)
             + "</tr>"
         )
-    header = "".join(f"<th>{escape(h)}</th>" for h in head)
-    return f'<table class="clew"><thead><tr>{header}</tr></thead><tbody>{"".join(rows)}</tbody></table>'
+    header = "".join(
+        f'<th class="n">{escape(h)}</th>' if i else f"<th>{escape(h)}</th>"
+        for i, h in enumerate(head)
+    )
+    return (
+        f'<div class="table-wrap"><table class="clew groups"><thead><tr>{header}</tr></thead>'
+        f"<tbody>{''.join(rows)}</tbody></table></div>"
+    )

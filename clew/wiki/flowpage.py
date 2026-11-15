@@ -21,11 +21,13 @@ interface).
 from __future__ import annotations
 
 import json
+from html import escape
 from pathlib import Path
 from typing import Any
 
 from .config import Audience, FlowSpec, WikiConfig
 from .flow import Flow, derive_flow
+from .htmltable import code, source_url, table
 from .svg import flow_svg
 
 ## The most lines a call expression is read across.
@@ -39,7 +41,7 @@ document.querySelectorAll('.flow-block').forEach(function(block){
  function row(dl,k,v,code){if(!v)return;var dt=document.createElement('dt'),dd=document.createElement('dd');
   dt.textContent=k;var el=code?document.createElement('pre'):document.createElement('span');el.textContent=v;
   dd.appendChild(el);dl.appendChild(dt);dl.appendChild(dd);}
- function show(i){var s=data[i];dlg.querySelector('h3').textContent=(i+1)+'. '+s.caller+' \\u2192 '+s.callee;
+ function show(i){var s=data[i];groups.forEach(function(g){g.classList.remove('sel');});groups[i].classList.add('sel');dlg.querySelector('h3').textContent=(i+1)+'. '+s.caller+' \\u2192 '+s.callee;
   var dl=dlg.querySelector('dl');dl.textContent='';row(dl,'call',s.call,true);row(dl,'callee',s.callee_qualified);
   row(dl,'receives',s.signature,true);row(dl,'brief',s.brief);row(dl,'frames',s.frames);
   row(dl,'ambiguous',s.ambiguous);row(dl,'at',s.site);var a=dlg.querySelector('a.site');
@@ -72,7 +74,10 @@ _STYLE = (
 ## @param config The section (link template).
 ## @param commit The commit the site describes.
 ## @return The page name.
-## @version 1
+## v2: the step table through the shared table helper (empty columns dropped); `file` selects the
+## entry and names the page.
+## v3: passes the entry's file to the bodies.
+## @version 3
 ## @req REQ-DDB-WIKI-014
 def flow_page(
     repo_root: Path,
@@ -84,13 +89,11 @@ def flow_page(
     commit: str,
 ) -> str:
     """THE STEP TABLE LINKS THE CALL SITE — the caller's file at the call's line (`site_file`),
-    not the callee's file.
+    not the callee's file. The table drops a column no step fills.
 
     @brief Render one flow page.
     @return Page name.
     """
-    from .build import _link
-
     flow = derive_flow(
         db,
         repo_root,
@@ -99,8 +102,9 @@ def flow_page(
         depth=spec.depth,
         lanes=spec.lanes,
         stop_at=spec.stop_at,
+        file=spec.file,
     )
-    name = f"flow-{spec.entry}"
+    name = page_name(spec)
     data = step_data(db, repo_root, flow, rules, config.link_template, commit)
     lines = [
         f"# {spec.title or 'Flow: ' + spec.entry}",
@@ -109,17 +113,34 @@ def flow_page(
         _block(flow, data, spec.animate),
         "```",
         "",
-        "| # | caller | callee | frames | call site |",
-        "|---|---|---|---|---|",
     ]
-    for i, step in enumerate(flow.steps, start=1):
-        frames = " ".join(f.kind for f in step.frames)
-        where = _link(config.link_template, commit, step.site_file or step.file, step.line)
-        lines.append(f"| {i} | `{step.caller}` | `{step.callee}` | {frames} | {where} |")
+    rows = []
+    for i, (step, row) in enumerate(zip(flow.steps, data, strict=True), start=1):
+        site = (
+            f'<a href="{escape(row["link"])}">{escape(row["site"])}</a>'
+            if row["link"]
+            else code(row["site"])
+        )
+        rows.append([str(i), code(step.caller), code(step.callee), escape(row["frames"]), site])
+    head = ["#", "caller", "callee", "frames", "call site"]
+    lines += ["```{raw} html", table(head, rows, cls="steps", numeric=("#",)), "```", ""]
     if not rules.exclude_bodies:
-        lines += _bodies(db, repo_root, flow)
+        lines += _bodies(db, repo_root, flow, spec.file)
     (source / f"{name}.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
     return name
+
+
+## @brief A flow's page name: the entry, and its file when the flow selects one.
+## @param spec The flow.
+## @return The page name.
+## @version 1
+## @dg_internal
+def page_name(spec: FlowSpec) -> str:
+    """@brief Name a page. @return Name."""
+    import re
+
+    suffix = "-" + re.sub(r"[^A-Za-z0-9]+", "-", spec.file).strip("-") if spec.file else ""
+    return f"flow-{spec.entry}{suffix}"
 
 
 ## @brief The data each step carries, for its dialog.
@@ -130,19 +151,18 @@ def flow_page(
 ## @param template The source link template.
 ## @param commit The commit.
 ## @return One mapping per step.
-## @version 1
+## v2: links from the template directly (`source_url`).
+## @version 2
 ## @req REQ-DDB-WIKI-014
 def step_data(
     db: Path, repo_root: Path, flow: Flow, rules: Audience, template: str, commit: str
 ) -> list[dict[str, Any]]:
     """@brief Gather step data. @return Rows."""
-    from .build import _link
-
     signatures = _signatures(db, flow)
     out = []
     for step in flow.steps:
         site = step.site_file or step.file
-        link = _link(template, commit, site, step.line)
+        link = source_url(template, commit, site, step.line)
         sig, brief = signatures.get((step.callee, step.callee_qualified), ("", ""))
         out.append(
             {
@@ -155,7 +175,7 @@ def step_data(
                 "frames": ", ".join(f"{f.kind} (line {f.line})" for f in step.frames),
                 "ambiguous": ", ".join(step.ambiguous),
                 "site": f"{site}:{step.line}",
-                "link": link[link.index("(") + 1 : -1] if link.startswith("[") else "",
+                "link": link,
             }
         )
     return out
@@ -241,29 +261,95 @@ def _call_text(repo_root: Path, rel: str, line: int) -> str:
     return "\n".join(out).strip()
 
 
+## @brief The entry's own body: read from its file's span when the flow selected it by file.
+## @param db The index.
+## @param repo_root The repository.
+## @param flow The flow.
+## @param file The entry's file, or None.
+## @return Markdown lines.
+## @version 1
+## @dg_internal
+def _entry_body(db: Path, repo_root: Path, flow: Flow, file: str | None) -> list[str]:
+    """A NAME SEVERAL FILES SHARE (`main`) cannot be looked up by name: the entry's span is read
+    from its own file, so the page shows the function the diagram is of.
+
+    @brief Entry body.
+    @return Lines.
+    """
+    if not file:
+        return _dossier_body(db, repo_root, flow.entry, flow.entry_qualified)
+    from ..query._common import connect
+
+    with connect(db) as conn:
+        row = conn.execute(
+            "SELECT m.bodystart, m.bodyend FROM memberdef m JOIN path p ON p.rowid = m.file_id "
+            "WHERE m.kind = 'function' AND m.name = ? AND p.name = ? AND m.bodystart > 0",
+            (flow.entry, file),
+        ).fetchone()
+    try:
+        text = (Path(repo_root) / file).read_text(encoding="utf-8", errors="replace").splitlines()
+    except OSError:
+        return []
+    if not row:
+        return []
+    return [
+        f"### `{flow.entry}`",
+        "",
+        f"`{file}`",
+        "",
+        "```",
+        *text[row[0] - 1 : row[1]],
+        "```",
+        "",
+    ]
+
+
+## @brief One function's body section, as dossier excerpts it.
+## @param db The index.
+## @param repo_root The repository.
+## @param name The function.
+## @param qual Its qualified name.
+## @return Markdown lines; [] when the index has no body for it.
+## @version 1
+## @dg_internal
+def _dossier_body(db: Path, repo_root: Path, name: str, qual: str) -> list[str]:
+    """@brief Body section. @return Lines."""
+    from ..query import export_dossier
+
+    payload = export_dossier(db, name, qualified=qual or None, repo_root=repo_root)
+    body = payload.get("body") or {}
+    if not body.get("lines"):
+        return []
+    return [
+        f"### `{qual or name}`",
+        "",
+        f"`{body.get('file', '')}`",
+        "",
+        "```",
+        *body["lines"],
+        "```",
+        "",
+    ]
+
+
 ## @brief The source bodies of every function a flow reaches, as code blocks.
 ## @param db The index.
 ## @param repo_root The repository.
 ## @param flow The flow.
 ## @return Markdown lines.
-## @version 1
+## @param file The entry's file, when the flow selected it by file.
+## v2: the entry's body read from its own file when selected by file.
+## @version 2
 ## @dg_internal
-def _bodies(db: Path, repo_root: Path, flow: Flow) -> list[str]:
+def _bodies(db: Path, repo_root: Path, flow: Flow, file: str | None = None) -> list[str]:
     """THE INDEX'S OWN BODY EXCERPT (export_dossier), so a page shows what `dossier` shows.
 
     @brief Body sections.
     @return Lines.
     """
-    from ..query import export_dossier
-
-    seen: list[tuple[str, str]] = [(flow.entry, flow.entry_qualified)]
-    seen += [(s.callee, s.callee_qualified) for s in flow.steps if s.callee_qualified]
+    seen = [(s.callee, s.callee_qualified) for s in flow.steps if s.callee_qualified]
     out: list[str] = ["", "## Functions", ""]
+    out += _entry_body(db, repo_root, flow, file)
     for name, qual in dict.fromkeys(seen):
-        payload = export_dossier(db, name, qualified=qual or None, repo_root=repo_root)
-        body = payload.get("body") or {}
-        if not body.get("lines"):
-            continue
-        out += [f"### `{qual or name}`", "", f"`{body.get('file', '')}`", "", "```"]
-        out += [*body["lines"], "```", ""]
+        out += _dossier_body(db, repo_root, name, qual)
     return out

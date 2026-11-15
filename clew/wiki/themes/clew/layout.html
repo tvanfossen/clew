@@ -1,4 +1,5 @@
-{#- clew wiki theme (1.4.0 W13): a top bar with the site's pages, the page body, a footer.
+{#- clew wiki theme (1.4.0 W13): a top bar with the site's sections and search, the page body,
+    a footer.
     Everything is same-origin: the stylesheet and fonts ship in the site's _static. -#}
 {%- extends "basic/layout.html" %}
 {%- block relbar1 %}{% endblock %}
@@ -11,6 +12,9 @@
     <span>{{ project|e }}</span>
   </a>
   <nav class="nav">{{ toctree(maxdepth=1, collapse=True, includehidden=True, titles_only=True) }}</nav>
+  <form class="search" action="{{ pathto('search')|e }}" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the site" aria-label="Search the site">
+  </form>
 </header>
 {%- endblock %}
 {%- block footer %}

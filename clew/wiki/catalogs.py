@@ -16,8 +16,10 @@ requirements that realise them, so the trace reads rule → requirement → func
 
 Every git call goes through `gitenv.git_argv` — the sibling's own `.git/config` is never trusted.
 
-@brief Read pinned sub-catalogs; check their pins.
-@version 1
+`declared_catalog` reads THIS repository's own catalog, through the index's resolver.
+
+@brief Read this repository's catalog and pinned sub-catalogs; check their pins.
+@version 2
 """
 
 from __future__ import annotations
@@ -70,6 +72,40 @@ def catalog_requirements(
     if not rows:
         return [], [f"catalog {spec.name!r}: no `id` rows at pin {spec.pin}"]
     return rows, []
+
+
+## @brief The requirements catalog the index reads, as declared entries by id.
+## @param repo_root The repository.
+## @return (repo-relative path or "", {id: entry}).
+## @version 1
+## @req REQ-DDB-WIKI-015
+def declared_catalog(repo_root: Path) -> tuple[str, dict[str, dict]]:
+    """THE INDEX'S OWN RESOLVER (`resolve_catalog_path`), so the site and the index never read
+    different catalogs. Both shapes the index accepts — a flat `[{id, ...}]` list and the
+    `{requirements: {ID: {...}}}` mapping — are read; anything else is an empty catalog.
+
+    @brief Read the catalog.
+    @return Path and entries.
+    """
+    import yaml
+
+    from ..requirements import (
+        _is_flat_req_list,
+        _keyed_req_entries,
+        load_guard_config,
+        resolve_catalog_columns,
+        resolve_catalog_path,
+    )
+
+    guard = load_guard_config(repo_root)
+    path = resolve_catalog_path(guard, Path(repo_root))
+    if path is None or not path.is_file():
+        return "", {}
+    data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    id_col, _title = resolve_catalog_columns(guard)
+    entries = data if _is_flat_req_list(data, id_col) else _keyed_req_entries(data)
+    rel = path.resolve().relative_to(Path(repo_root).resolve()).as_posix()
+    return rel, {str(e.get(id_col) or e.get("id")): e for e in entries if isinstance(e, dict)}
 
 
 ## @brief Problems with one sub-catalog's pin.
