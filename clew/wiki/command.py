@@ -42,7 +42,8 @@ WIKI_COMMAND = "wiki"
 ## v2: the `trace` verb.
 ## v3: `check` and `build`.
 ## v4: `diff`, `--version`, `--config`, `--mutations`, `flow --svg --animate`.
-## @version 4
+## v5: `trace --config` (W15/W16 imports).
+## @version 5
 ## @dg_internal
 def _parser() -> argparse.ArgumentParser:
     """@brief Build the parser. @return Parser."""
@@ -68,6 +69,7 @@ def _parser() -> argparse.ArgumentParser:
         "--target-only", nargs="*", default=[], help="test-name globs needing hardware"
     )
     trace.add_argument("--mutations", help="a mutation record: [{mechanism, test, killed}]")
+    trace.add_argument("--config", help="a file whose wiki.tests imports (W15/W16) apply")
     trace.add_argument("--index")
     trace.add_argument("--repo-root")
     trace.add_argument("--indent", type=int, default=None)
@@ -96,7 +98,8 @@ def _parser() -> argparse.ArgumentParser:
 ## v2: dispatches `trace` too.
 ## v3: and `check` / `build`.
 ## v4: and `diff`, which needs no index.
-## @version 4
+## v5: `trace` gets the repository (for `--config` imports).
+## @version 5
 ## @req REQ-DDB-WIKI-001
 def wiki_main(argv: list[str]) -> int:
     """@brief Dispatch a wiki verb. @return Exit status."""
@@ -112,7 +115,7 @@ def wiki_main(argv: list[str]) -> int:
     if args.verb in ("check", "build"):
         return _site(args, db, repo or Path.cwd())
     try:
-        text = _flow(args, db, repo) if args.verb == "flow" else _json(_trace(args, db), args)
+        text = _flow(args, db, repo) if args.verb == "flow" else _json(_trace(args, db, repo), args)
     except (ValueError, OSError) as exc:
         sys.stderr.write(f"clew wiki: refused — {exc}\n")
         return 2
@@ -174,20 +177,37 @@ def _flow_object(args: argparse.Namespace, db: Path, repo: Path | None) -> Any:
 ## @brief The `trace` verb's payload.
 ## @param args Parsed arguments.
 ## @param db The index.
+## @param repo The repository (the imports' paths are relative to it).
 ## @return Evidence rows as plain data, stamped `trace_version`.
 ## v2: `--mutations` (rows gain `mutations`, additive: trace_version stays 1).
-## @version 2
+## v3: `--config` applies the section's W15/W16 imports (rows gain `layers`, additive).
+## @version 3
 ## @dg_internal
-def _trace(args: argparse.Namespace, db: Path) -> dict[str, Any]:
-    """@brief Grade the requirements. @return Plain data."""
+def _trace(args: argparse.Namespace, db: Path, repo: Path | None) -> dict[str, Any]:
+    """THE IMPORTS COME FROM A `wiki:` SECTION, never from a flag per format, so the trace a CLI
+    prints and the one a site shows read the same declaration.
+
+    @brief Grade the requirements.
+    @return Plain data.
+    """
+    from .config import EvidenceInputs, load_wiki_config
     from .evidence import requirement_evidence
 
+    root = repo or Path.cwd()
+    inputs = EvidenceInputs()
+    if args.config:
+        config, problems = load_wiki_config(root, Path(args.config))
+        if problems:
+            raise ValueError("wiki configuration problems: " + "; ".join(problems))
+        inputs = config.inputs
     rows = requirement_evidence(
         db,
         junit=[Path(p) for p in args.junit],
         coverage=Path(args.coverage) if args.coverage else None,
         target_only=tuple(args.target_only),
         mutations=Path(args.mutations) if args.mutations else None,
+        inputs=inputs,
+        repo_root=root,
     )
     return {"trace_version": 1, "requirements": [dataclasses.asdict(r) for r in rows]}
 

@@ -24,8 +24,11 @@ is ABSENT (None) when no record file was given — unmeasured is not "every muta
 Reports are read with the standard library's XML parser and capped at `MAX_REPORT_BYTES`; they are
 CI artifacts the operator chose, not repository content.
 
+Imports beyond these (W15/W16: gcov, CTest / TAP / Catch2 / pytest-json results, a mapping file,
+Gherkin scenarios, test layers) are parsed in `clew.wiki.imports` and joined here.
+
 @brief JUnit/Cobertura/mutation evidence per requirement.
-@version 2
+@version 3
 """
 
 from __future__ import annotations
@@ -37,6 +40,7 @@ from fnmatch import fnmatch
 from pathlib import Path
 
 from ..query._common import connect, table_exists
+from .config import EvidenceInputs
 
 ## A report larger than this is refused rather than parsed.
 MAX_REPORT_BYTES = 64 * 1024 * 1024
@@ -60,10 +64,11 @@ class CaseResult:
 
 ## @brief One requirement's graded evidence.
 ## v2: mutation outcomes (W9).
-## @version 2
+## v3: test counts per layer (W16), None when no layers are configured.
+## @version 3
 @dataclass(frozen=True)
 class RequirementEvidence:
-    """@brief Tier, linked tests, implementer coverage, mutation outcomes. @version 2"""
+    """@brief Tier, linked tests, implementer coverage, mutations, layers. @version 3"""
 
     req_id: str
     title: str
@@ -73,12 +78,14 @@ class RequirementEvidence:
     implementers_covered: tuple[str, ...] | None = None
     implementers_uncovered: tuple[str, ...] | None = None
     mutations: tuple[tuple[str, str, str], ...] | None = None
+    layers: tuple[tuple[str, int], ...] | None = None
 
 
 ## @brief Read JUnit XML reports into one folded result per test.
 ## @param paths JUnit report files.
 ## @return {test name: CaseResult}.
-## @version 1
+## v2: folding shared with the W16 formats (`imports.fold_cases`).
+## @version 2
 ## @req REQ-DDB-WIKI-002
 def parse_junit(paths: list[Path]) -> dict[str, CaseResult]:
     """THE TEST NAME IS THE CASE NAME WITH ITS PARAMETERS DROPPED, the name the index knows as a
@@ -86,23 +93,15 @@ def parse_junit(paths: list[Path]) -> dict[str, CaseResult]:
 
     @brief Parse JUnit.
     @return Results.
-    @version 1
+    @version 2
     """
-    folded: dict[str, list[tuple[str, str]]] = {}
-    for path in paths:
-        for case in _root(path).iter("testcase"):
-            name = _PARAMS.sub("", case.get("name") or "")
-            folded.setdefault(name, []).append(_case_status(case))
-    return {
-        name: CaseResult(
-            name=name,
-            status=min(statuses, key=lambda s: _RANK[s[0]])[0],
-            cases=len(statuses),
-            message=next((m for s, m in statuses if s == "skipped" and m), ""),
-        )
-        for name, statuses in folded.items()
-        if name
-    }
+    from .imports import fold_cases
+
+    return fold_cases(
+        (_PARAMS.sub("", case.get("name") or ""), *_case_status(case))
+        for path in paths
+        for case in _root(path).iter("testcase")
+    )
 
 
 ## @brief Read a Cobertura XML report into line hits per file.
@@ -154,9 +153,12 @@ def parse_mutations(path: Path) -> list[tuple[str, str, bool]]:
 ## @param coverage A Cobertura report, or None.
 ## @param target_only Test-name globs that need hardware (skipped on host by design).
 ## @param mutations A mutation record, or None.
+## @param inputs The W15/W16 imports (result formats, gcov, mapping, features, layers).
+## @param repo_root The repository the imports' paths are relative to (needed with `inputs`).
 ## @return One RequirementEvidence per requirement, ordered by id.
 ## v2: `mutations` (W9).
-## @version 2
+## v3: `inputs` / `repo_root` (W15/W16): more result formats, gcov, mapping, Gherkin, layers.
+## @version 3
 ## @req REQ-DDB-WIKI-002
 def requirement_evidence(
     db: Path | str,
@@ -165,22 +167,21 @@ def requirement_evidence(
     coverage: Path | None = None,
     target_only: tuple[str, ...] = (),
     mutations: Path | None = None,
+    inputs: EvidenceInputs | None = None,
+    repo_root: Path | None = None,
 ) -> list[RequirementEvidence]:
     """@brief Join reports to the trace. @return Evidence rows."""
-    results = parse_junit(junit)
-    hits = parse_cobertura(coverage) if coverage is not None else None
-    records = parse_mutations(mutations) if mutations is not None else None
+    reports = _Reports.read(junit, coverage, mutations, inputs, repo_root)
     with connect(db) as conn:
-        ids = _requirement_ids(conn)
         out = []
-        for req_id, title in ids:
-            tests = _linked(conn, "req_test_edges", "test_memberdef_rowid", req_id)
+        for req_id, title in _requirement_ids(conn):
             impls = _implementer_spans(conn, req_id)
-            statuses = tuple((t, _status_of(t, results)) for t in tests)
+            linked = reports.linked_tests(conn, req_id)
+            statuses = tuple((t, reports.status(t, names)) for t, _where, names in linked)
             covered = uncovered = None
-            if hits is not None:
-                covered = tuple(n for n, f, s, e in impls if _covered(hits, f, s, e))
-                uncovered = tuple(n for n, f, s, e in impls if not _covered(hits, f, s, e))
+            if reports.hits is not None:
+                covered = tuple(n for n, f, s, e in impls if _covered(reports.hits, f, s, e))
+                uncovered = tuple(n for n, f, s, e in impls if not _covered(reports.hits, f, s, e))
             out.append(
                 RequirementEvidence(
                     req_id=req_id,
@@ -190,9 +191,157 @@ def requirement_evidence(
                     implementers=tuple(n for n, _f, _s, _e in impls),
                     implementers_covered=covered,
                     implementers_uncovered=uncovered,
-                    mutations=_mutations_for(records, impls),
+                    mutations=_mutations_for(reports.records, impls),
+                    layers=reports.layers_of(linked),
                 )
             )
+    return out
+
+
+## @brief Every report a trace reads, parsed once.
+## @version 1
+class _Reports:
+    """@brief Results, coverage hits, mutation records, mapping, scenarios, layers. @version 1"""
+
+    ## @brief Hold the parsed reports.
+    ## @param results Folded results by test name.
+    ## @param hits Coverage hits, or None when unmeasured.
+    ## @param records Mutation records, or None.
+    ## @param mapping Requirement → tests from a mapping file.
+    ## @param scenarios Gherkin scenarios.
+    ## @param layers Layer name → globs, or None.
+    ## @version 1
+    ## @dg_internal
+    def __init__(self, results, hits, records, mapping, scenarios, layers) -> None:
+        """@brief Store. @return None."""
+        self.results = results
+        self.hits = hits
+        self.records = records
+        self.mapping = mapping
+        self.scenarios = scenarios
+        self.layers = layers
+
+    ## @brief Read every given report.
+    ## @param junit JUnit files.
+    ## @param coverage A Cobertura file, or None.
+    ## @param mutations A mutation record, or None.
+    ## @param inputs The W15/W16 imports, or None.
+    ## @param repo_root The repository.
+    ## @return The reports.
+    ## @version 1
+    ## @dg_internal
+    @classmethod
+    def read(cls, junit, coverage, mutations, inputs, repo_root) -> _Reports:
+        """COVERAGE IS None ONLY WHEN NO REPORT OF EITHER KIND WAS GIVEN; Cobertura and gcov hits
+        for the same line are summed.
+
+        @brief Parse.
+        @return Reports.
+        """
+        from .imports import parse_features, parse_gcov, parse_mapping, parse_results
+
+        inputs = inputs or EvidenceInputs()
+        root = Path(repo_root or ".")
+        results = parse_junit(junit)
+        for fmt, rel in inputs.results:
+            results = _merge(results, parse_results(fmt, root / rel))
+        hits = parse_cobertura(coverage) if coverage is not None else None
+        if inputs.gcov:
+            gcov = parse_gcov(sorted({p for g in inputs.gcov for p in root.glob(g)}), root)
+            hits = _sum_hits(hits or {}, gcov)
+        return cls(
+            results,
+            hits,
+            parse_mutations(mutations) if mutations is not None else None,
+            parse_mapping(root / inputs.mapping) if inputs.mapping else {},
+            parse_features(root, inputs.features),
+            inputs.layers,
+        )
+
+    ## @brief A requirement's tests: indexed, mapped and scenario, each once.
+    ## @param conn Open connection.
+    ## @param req_id The requirement.
+    ## @return (test id, where for layer globs, names to look results up by).
+    ## @version 1
+    ## @dg_internal
+    def linked_tests(self, conn, req_id: str) -> list[tuple[str, str, tuple[str, ...]]]:
+        """A SCENARIO'S RESULT is found under its own name (behave, cucumber) or its pytest-bdd
+        function name, `test_<name, snake-cased>`.
+
+        @brief Collect links.
+        @return Tests.
+        """
+        out = {name: (name, file, (name,)) for name, file in _linked_tests(conn, req_id)}
+        for name in self.mapping.get(req_id, ()):
+            out.setdefault(name, (name, name, (name,)))
+        for sc in self.scenarios:
+            if req_id in sc.tags:
+                slug = "test_" + re.sub(r"\W+", "_", sc.name.lower()).strip("_")
+                out.setdefault(sc.test_id, (sc.test_id, sc.test_id, (sc.name, slug)))
+        return sorted(out.values())
+
+    ## @brief One test's status: the first of its names a report holds, else "absent".
+    ## @param test The test id.
+    ## @param names The names to look up.
+    ## @return The status.
+    ## @version 1
+    ## @dg_internal
+    def status(self, test: str, names: tuple[str, ...]) -> str:
+        """@brief Look up. @return Status."""
+        found = next((self.results[n] for n in names if n in self.results), None)
+        return found.status if found is not None else "absent"
+
+    ## @brief Test counts per layer for one requirement's tests.
+    ## @param linked The requirement's linked tests.
+    ## @return (layer, count) pairs in layer order, or None when no layers are configured.
+    ## @version 1
+    ## @dg_internal
+    def layers_of(self, linked) -> tuple[tuple[str, int], ...] | None:
+        """A TEST MATCHING NO LAYER is counted in none — it is not a layer of its own.
+
+        @brief Count.
+        @return Pairs or None.
+        """
+        if self.layers is None:
+            return None
+        counts = {
+            layer: sum(1 for _t, where, _n in linked if any(fnmatch(where, g) for g in globs))
+            for layer, globs in self.layers
+        }
+        return tuple(sorted((k, v) for k, v in counts.items() if v))
+
+
+## @brief Two folded result sets merged; a test in both takes the worse status.
+## @param a Results.
+## @param b Results.
+## @return The merge.
+## @version 1
+## @dg_internal
+def _merge(a: dict[str, CaseResult], b: dict[str, CaseResult]) -> dict[str, CaseResult]:
+    """@brief Merge. @return Results."""
+    out = dict(a)
+    for name, result in b.items():
+        mine = out.get(name)
+        if mine is None or _RANK[result.status] < _RANK[mine.status]:
+            out[name] = result
+    return out
+
+
+## @brief Two coverage maps summed line by line.
+## @param a Hits.
+## @param b Hits.
+## @return The sum.
+## @version 1
+## @dg_internal
+def _sum_hits(
+    a: dict[str, dict[int, int]], b: dict[str, dict[int, int]]
+) -> dict[str, dict[int, int]]:
+    """@brief Sum. @return Hits."""
+    out = {f: dict(lines) for f, lines in a.items()}
+    for f, lines in b.items():
+        mine = out.setdefault(f, {})
+        for line, n in lines.items():
+            mine[line] = mine.get(line, 0) + n
     return out
 
 
@@ -232,18 +381,6 @@ def _tier(statuses: tuple[tuple[str, str], ...], target_only: tuple[str, ...]) -
     if all(s == "skipped" and any(fnmatch(t, g) for g in target_only) for t, s in statuses):
         return "TARGET"
     return "NOT_RUN"
-
-
-## @brief One test's status in the reports, or "absent".
-## @param test The test's function name.
-## @param results The folded JUnit results.
-## @return The status.
-## @version 1
-## @dg_internal
-def _status_of(test: str, results: dict[str, CaseResult]) -> str:
-    """@brief Look a test up. @return Status or "absent"."""
-    found = results.get(test)
-    return found.status if found is not None else "absent"
 
 
 ## @brief The status and skip message of one JUnit testcase element.
@@ -295,24 +432,24 @@ def _requirement_ids(conn: object) -> list[tuple[str, str]]:
     return sorted(ids.items())
 
 
-## @brief The function names linked to a requirement through one edge table.
+## @brief The indexed tests linked to a requirement, with their files.
 ## @param conn Open connection.
-## @param table Edge table.
-## @param column Its memberdef rowid column.
 ## @param req_id The requirement.
-## @return Names, ordered.
+## @return (name, file) pairs, ordered.
 ## @version 1
 ## @dg_internal
-def _linked(conn: object, table: str, column: str, req_id: str) -> tuple[str, ...]:
-    """@brief Linked function names. @return Names."""
-    if not table_exists(conn, table):
-        return ()
+def _linked_tests(conn: object, req_id: str) -> list[tuple[str, str]]:
+    """@brief Linked tests. @return Pairs."""
+    if not table_exists(conn, "req_test_edges"):
+        return []
     rows = conn.execute(
-        f"SELECT DISTINCT m.name FROM {table} t JOIN memberdef m ON m.rowid = t.{column} "
+        "SELECT DISTINCT m.name, COALESCE(p.name, '') FROM req_test_edges t "
+        "JOIN memberdef m ON m.rowid = t.test_memberdef_rowid "
+        "LEFT JOIN path p ON p.rowid = COALESCE(NULLIF(m.bodyfile_id, 0), m.file_id) "
         "WHERE t.req_id = ? ORDER BY m.name",
         (req_id,),
     )
-    return tuple(str(r[0]) for r in rows)
+    return [(str(n), str(f)) for n, f in rows]
 
 
 ## @brief Each implementer of a requirement with its file and body span.

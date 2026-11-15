@@ -13,13 +13,16 @@ no Sphinx import; `build` is a separate stage). Every problem is NAMED, one line
     declares (W7);
   * a sub-catalog pin that does not resolve, or a catalog that moved since its pin (W8);
   * a rule, or a node, naming a requirement nothing declares or tags (W8);
-  * a mutation record that cannot be read, or names a mechanism the index does not hold (W9).
+  * a mutation record that cannot be read, or names a mechanism the index does not hold (W9);
+  * a result report, mapping file, gcov or feature glob that is missing or matches nothing, an
+    undeclared result format, or a mapping row naming an unknown requirement (W15/W16);
+  * a theme stylesheet, logo or roadmap that does not exist, or an unknown palette token (W13/W17).
 
 An empty list is a clean check. This module imports nothing from Sphinx or MyST, and a test pins
 that.
 
 @brief Validate a repository's wiki configuration against its index.
-@version 2
+@version 3
 """
 
 from __future__ import annotations
@@ -35,7 +38,8 @@ from .config import WikiConfig, load_wiki_config
 ## @param config_path A file whose `wiki:` section applies instead of the repository's.
 ## @return Problems, one sentence each; [] when clean.
 ## v2: nodes, catalogs, rules, mutations; `config_path`.
-## @version 2
+## v3: theme files and the roadmap (W13/W17).
+## @version 3
 ## @req REQ-DDB-WIKI-003
 def check_wiki(repo_root: Path, db: Path, config_path: Path | None = None) -> list[str]:
     """@brief Run every check. @return Problems."""
@@ -47,7 +51,25 @@ def check_wiki(repo_root: Path, db: Path, config_path: Path | None = None) -> li
     if config.link_template and "{file}" not in config.link_template:
         problems.append("`wiki.links.template` has no `{file}` placeholder")
     problems += trace_problems(repo_root, db, config)
-    return problems
+    return problems + _site_problems(repo_root, config)
+
+
+## @brief A problem for each theme file or roadmap the section names that does not exist.
+## @param repo_root The repository.
+## @param config The section.
+## @return Problems.
+## @version 1
+## @dg_internal
+def _site_problems(repo_root: Path, config: WikiConfig) -> list[str]:
+    """@brief Check theme and roadmap paths. @return Problems."""
+    named = [
+        *(("stylesheet", c) for c in config.theme.css),
+        *((("logo", config.theme.logo),) if config.theme.logo else ()),
+        *((("roadmap", config.roadmap),) if config.roadmap else ()),
+    ]
+    return [
+        f"{what} {rel!r} does not exist" for what, rel in named if not (repo_root / rel).is_file()
+    ]
 
 
 ## @brief Problems with the trace targets: nodes, catalogs, rules and mutation records.
@@ -55,7 +77,8 @@ def check_wiki(repo_root: Path, db: Path, config_path: Path | None = None) -> li
 ## @param db Its index.
 ## @param config The section.
 ## @return Problems.
-## @version 1
+## v2: the mapping file's requirement ids (W16).
+## @version 2
 ## @req REQ-DDB-WIKI-005
 def trace_problems(repo_root: Path, db: Path, config: WikiConfig) -> list[str]:
     """@brief Check W7–W9 targets. @return Problems."""
@@ -87,7 +110,36 @@ def trace_problems(repo_root: Path, db: Path, config: WikiConfig) -> list[str]:
             for r in node.requirements
             if r not in known
         ]
-    return problems + _mutation_problems(repo_root, db, config)
+    return (
+        problems
+        + _mutation_problems(repo_root, db, config)
+        + _mapping_problems(repo_root, config, known)
+    )
+
+
+## @brief Problems with the requirement → test mapping file (W16).
+## @param repo_root The repository.
+## @param config The section.
+## @param known Every requirement id declared or tagged.
+## @return Problems; [] when no mapping is declared or it does not exist (reported elsewhere).
+## @version 1
+## @dg_internal
+def _mapping_problems(repo_root: Path, config: WikiConfig, known: set[str]) -> list[str]:
+    """@brief Check mapping ids. @return Problems."""
+    from .imports import parse_mapping
+
+    path = repo_root / config.inputs.mapping if config.inputs.mapping else None
+    if path is None or not path.is_file():
+        return []
+    try:
+        mapping = parse_mapping(path)
+    except (ValueError, OSError) as exc:
+        return [f"mapping file {config.inputs.mapping!r} cannot be read: {exc}"]
+    return [
+        f"mapping file {config.inputs.mapping!r} names requirement {r!r}, which nothing declares"
+        for r in mapping
+        if r not in known
+    ]
 
 
 ## @brief Every requirement id the index declares or tags.
@@ -180,13 +232,31 @@ def _flow_problems(db: Path, config: WikiConfig) -> list[str]:
 ## @param config The section.
 ## @return Problems.
 ## v2: the mutation record too.
-## @version 2
+## v3: the W15/W16 imports: result reports, gcov and feature globs, the mapping file.
+## @version 3
 ## @dg_internal
 def _evidence_problems(repo_root: Path, config: WikiConfig) -> list[str]:
-    """@brief Check report paths. @return Problems."""
+    """A GLOB THAT MATCHES NOTHING IS A PROBLEM: a misspelled gcov or feature glob would yield a
+    trace that reads as "nothing measured".
+
+    @brief Check report paths.
+    @return Problems.
+    """
+    inputs = config.inputs
     reports = [
         *config.junit,
         *([config.coverage] if config.coverage else []),
         *([config.mutations] if config.mutations else []),
+        *(path for _fmt, path in inputs.results),
+        *([inputs.mapping] if inputs.mapping else []),
     ]
-    return [f"test report {r!r} does not exist" for r in reports if not (repo_root / r).is_file()]
+    problems = [
+        f"test report {r!r} does not exist" for r in reports if not (repo_root / r).is_file()
+    ]
+    for key, globs in (("gcov", inputs.gcov), ("features", inputs.features)):
+        problems += [
+            f"`wiki.tests.{key}` glob {g!r} matches no file"
+            for g in globs
+            if not any(p.is_file() for p in repo_root.glob(g))
+        ]
+    return problems

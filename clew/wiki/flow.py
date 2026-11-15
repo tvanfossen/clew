@@ -48,10 +48,12 @@ class Lane:
 
 
 ## @brief One message: a call from one function to another, with its frames.
-## @version 1
+## v2: `site_file` — the file the call is IN (the caller's), which `line` is a line of; `file`
+## stays the callee's file. A link built from `file` and `line` pointed into the wrong file.
+## @version 2
 @dataclass(frozen=True)
 class Step:
-    """@brief A call step in diagram order. @version 1"""
+    """@brief A call step in diagram order. @version 2"""
 
     caller: str
     caller_qualified: str
@@ -65,6 +67,7 @@ class Step:
     frames: tuple[Frame, ...] = ()
     ambiguous: tuple[str, ...] = ()
     expanded_above: bool = False
+    site_file: str = ""
 
 
 ## @brief A derived flow.
@@ -164,14 +167,15 @@ class _Walker:
     ## @param level This caller's call level (1 for the entry).
     ## @param path Identities on the current path (cycle guard).
     ## @return None.
-    ## @version 1
+    ## v2: passes the caller's file to each step.
+    ## @version 2
     ## @dg_internal
     def walk(
         self, name: str, qual: str, rowid: int, remaining: int, level: int, path: frozenset[str]
     ) -> None:
         """@brief Walk one caller. @return None."""
         self.expanded.add(qual)
-        caller_lane = self.lane(rowid)
+        caller = (self.lane(rowid), self._file(rowid))
         sequence = call_sequence(self.conn, self.repo_root, name, qual) or []
         targets: dict[str, list[tuple[str, int]]] = {}
         for nname, nqual, nrowid, _hop in _identity_call_hops(
@@ -182,23 +186,24 @@ class _Walker:
             found = targets.get(site.callee)
             if not found:
                 continue
-            self._emit(name, qual, caller_lane, site, found, (remaining, level, path))
+            self._emit(name, qual, caller, site, found, (remaining, level, path))
 
     ## @brief Emit one step and, when it may, expand the callee.
     ## @param name Caller name.
     ## @param qual Caller qualified.
-    ## @param caller_lane Caller lane.
+    ## @param caller (lane, file) of the caller.
     ## @param site The call site.
     ## @param found The callee identities the caller's edges name for this site's callee.
     ## @param walk_state (remaining, level, path).
     ## @return None.
-    ## @version 1
+    ## v2: records the call site's file.
+    ## @version 2
     ## @dg_internal
     def _emit(
         self,
         name: str,
         qual: str,
-        caller_lane: str,
+        caller: tuple[str, str],
         site: object,
         found: list[tuple[str, int]],
         walk_state: tuple[int, int, frozenset[str]],
@@ -215,7 +220,7 @@ class _Walker:
                 caller_qualified=qual,
                 callee=site.callee,
                 callee_qualified=callee_qual,
-                from_lane=caller_lane,
+                from_lane=caller[0],
                 to_lane=self.lane(nrowid),
                 file=self._file(nrowid),
                 line=site.line,
@@ -223,6 +228,7 @@ class _Walker:
                 frames=site.frames,
                 ambiguous=ambiguous,
                 expanded_above=already and not ambiguous,
+                site_file=caller[1],
             )
         )
         if ambiguous or already or remaining <= 1 or site.callee in self.stop_at or nqual in path:

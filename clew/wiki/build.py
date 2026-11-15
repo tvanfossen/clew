@@ -33,9 +33,7 @@ import shutil
 import subprocess
 from pathlib import Path
 
-from .config import Audience, FlowSpec, WikiConfig, load_wiki_config
-from .flow import Flow, derive_flow
-from .svg import flow_svg
+from .config import Audience, WikiConfig, load_wiki_config
 
 ## Markdown table cells may not carry a bare pipe or newline.
 _CELL = str.maketrans({"|": "\\|", "\n": " "})
@@ -50,7 +48,8 @@ _CELL = str.maketrans({"|": "\\|", "\n": " "})
 ## @param config_path A file whose `wiki:` section applies instead of the repository's.
 ## @return The rendered site's directory.
 ## v2: nodes page, rules / catalogs / mutations on the trace, version-keyed output, config_path.
-## @version 2
+## v3: theme (W13), summary + charts (W14), burndown (W17), interactive flow pages (W18).
+## @version 3
 ## @req REQ-DDB-WIKI-003
 def build_wiki(
     repo_root: Path,
@@ -65,8 +64,10 @@ def build_wiki(
 
     @brief Write and render the site.
     @return The HTML directory.
-    @version 2
+    @version 3
     """
+    from .flowpage import flow_page
+    from .summary import summary_page
     from .versions import record_version, valid_key
 
     repo_root, out_dir = Path(repo_root), Path(out_dir)
@@ -80,16 +81,52 @@ def build_wiki(
         shutil.rmtree(source)
     source.mkdir(parents=True)
     trace = _Trace.gather(repo_root, db, config)
+    commit = _commit(repo_root)
+    snapshot = trace.snapshot(version or "", commit)
+    milestones = _milestones(repo_root, config)
+    burndown = _burndown(out_dir, version, snapshot, milestones) if version else ""
     pages = _prose(repo_root, config, source)
-    pages += [_flow_page(repo_root, db, spec, source, rules, config) for spec in config.flows]
+    pages.append(summary_page(trace.evidence, config.inputs.min_layers, source, burndown))
+    pages += [
+        flow_page(repo_root, db, spec, source, rules, config, commit) for spec in config.flows
+    ]
     pages.append(_requirements_page(trace, config, source, rules))
     if trace.nodes:
         pages.append(_nodes_page(trace, source))
     _write_index(source, config.title, pages)
-    html = _render(source, site_dir / "html", config.title)
+    html = _render(source, site_dir / "html", config, repo_root)
     if version:
-        record_version(out_dir, version, trace.snapshot(version, _commit(repo_root)), config.title)
+        record_version(out_dir, version, snapshot, config.title, milestones)
     return html
+
+
+## @brief The roadmap's milestones, or none when no roadmap is declared.
+## @param repo_root The repository.
+## @param config The section.
+## @return (version, heading) pairs.
+## @version 1
+## @dg_internal
+def _milestones(repo_root: Path, config: WikiConfig) -> list[tuple[str, str]]:
+    """@brief Read milestones. @return Pairs."""
+    from .charts import roadmap_milestones
+
+    return roadmap_milestones(repo_root / config.roadmap) if config.roadmap else []
+
+
+## @brief The burndown for a versioned build: earlier recorded versions, then this one.
+## @param out_dir The versioned output root.
+## @param version This build's key.
+## @param snapshot This build's snapshot.
+## @param milestones Roadmap milestones.
+## @return SVG markup.
+## @version 1
+## @dg_internal
+def _burndown(out_dir: Path, version: str, snapshot: dict, milestones: list) -> str:
+    """@brief Draw the burndown. @return SVG."""
+    from .charts import burndown
+    from .versions import series
+
+    return burndown(series(out_dir, version, snapshot), milestones)
 
 
 ## @brief Everything the trace page and the version snapshot are drawn from, gathered once.
@@ -120,8 +157,9 @@ class _Trace:
     ## @param config The section.
     ## @return The trace.
     ## v2: each catalog carries its pin problems, so the page states what `check` found.
+    ## v3: the W15/W16 evidence imports.
     ## @dg_internal
-    ## @version 2
+    ## @version 3
     @classmethod
     def gather(cls, repo_root: Path, db: Path, config: WikiConfig) -> _Trace:
         """@brief Read evidence, nodes and catalogs. @return Trace."""
@@ -135,6 +173,8 @@ class _Trace:
             coverage=(repo_root / config.coverage) if config.coverage else None,
             target_only=config.target_only,
             mutations=(repo_root / config.mutations) if config.mutations else None,
+            inputs=config.inputs,
+            repo_root=repo_root,
         )
         nodes, _ = load_nodes(repo_root, config.sources)
         catalogs = [
@@ -212,88 +252,6 @@ def _prose(repo_root: Path, config: WikiConfig, source: Path) -> list[str]:
     return pages
 
 
-## @brief Write one flow page: diagram, steps, and the bodies the flow reaches.
-## @param repo_root The repository.
-## @param db The index.
-## @param spec The flow.
-## @param source The Sphinx source directory.
-## @param rules The audience rules.
-## @param config The section (for the link template).
-## @return The page name.
-## v2: the diagram animates unless the flow opts out (W12).
-## @version 2
-## @dg_internal
-def _flow_page(
-    repo_root: Path, db: Path, spec: FlowSpec, source: Path, rules: Audience, config: WikiConfig
-) -> str:
-    """@brief Render one flow page. @return Page name."""
-    flow = derive_flow(
-        db,
-        repo_root,
-        spec.entry,
-        qualified=spec.qualified,
-        depth=spec.depth,
-        lanes=spec.lanes,
-        stop_at=spec.stop_at,
-    )
-    name = f"flow-{spec.entry}"
-    lines = [
-        f"# {spec.title or 'Flow: ' + spec.entry}",
-        "",
-        "```{raw} html",
-        flow_svg(flow, animate=spec.animate),
-        "```",
-        "",
-        "| # | caller | callee | frames | where |",
-        "|---|---|---|---|---|",
-    ]
-    commit = _commit(repo_root)
-    for i, step in enumerate(flow.steps, start=1):
-        frames = " ".join(f.kind for f in step.frames)
-        where = _link(config.link_template, commit, step.file, step.line)
-        lines.append(f"| {i} | `{step.caller}` | `{step.callee}` | {frames} | {where} |")
-    if not rules.exclude_bodies:
-        lines += _bodies(db, repo_root, flow)
-    (source / f"{name}.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
-    return name
-
-
-## @brief The source bodies of every function a flow reaches, as code blocks.
-## @param db The index.
-## @param repo_root The repository.
-## @param flow The flow.
-## @return Markdown lines.
-## @version 1
-## @dg_internal
-def _bodies(db: Path, repo_root: Path, flow: Flow) -> list[str]:
-    """THE INDEX'S OWN BODY EXCERPT (export_dossier), so a page shows what `dossier` shows.
-
-    @brief Body sections.
-    @return Lines.
-    """
-    from ..query import export_dossier
-
-    seen: list[tuple[str, str]] = [(flow.entry, flow.entry_qualified)]
-    seen += [(s.callee, s.callee_qualified) for s in flow.steps if s.callee_qualified]
-    out: list[str] = ["", "## Functions", ""]
-    for name, qual in dict.fromkeys(seen):
-        payload = export_dossier(db, name, qualified=qual or None, repo_root=repo_root)
-        body = payload.get("body") or {}
-        if not body.get("lines"):
-            continue
-        out += [
-            f"### `{qual or name}`",
-            "",
-            f"`{body.get('file', '')}`",
-            "",
-            "```",
-            *body["lines"],
-            "```",
-            "",
-        ]
-    return out
-
-
 ## @brief Write the requirement trace page.
 ## @param trace The gathered trace.
 ## @param config The section.
@@ -301,23 +259,32 @@ def _bodies(db: Path, repo_root: Path, flow: Flow) -> list[str]:
 ## @param rules The audience rules.
 ## @return The page name.
 ## v2: nodes and mutations per requirement; rules; pinned catalogs.
-## @version 2
+## v3: tier / test charts, status tags, test layers (W14/W16).
+## @version 3
 ## @dg_internal
 def _requirements_page(trace: _Trace, config: WikiConfig, source: Path, rules: Audience) -> str:
     """@brief Render the trace. @return Page name."""
+    from .summary import charts_block
+
     lines = [
         "# Requirements",
         "",
-        "| requirement | tier | title | tests | nodes | mutations |",
-        "|---|---|---|---|---|---|",
+        "```{raw} html",
+        charts_block(trace.evidence),
+        "```",
+        "",
+        "| requirement | tier | title | tests | layers | nodes | mutations |",
+        "|---|---|---|---|---|---|---|",
     ]
     for row in trace.evidence:
         title = "" if rules.exclude_requirement_text else _cell(row.title)
-        tests = ", ".join(f"`{t}` ({s})" for t, s in row.tests)
+        tests = ", ".join(f"`{_cell(t)}` {_tag(s)}" for t, s in row.tests)
+        layers = ", ".join(f"{k} {n}" for k, n in row.layers or ())
         nodes = ", ".join(f"`{n}`" for n in trace.nodes_for(row.req_id))
         mutations = ", ".join(f"`{m}`→`{t}` {o}" for m, t, o in row.mutations or ())
         lines.append(
-            f"| {row.req_id} | **{row.tier}** | {title} | {tests} | {nodes} | {mutations} |"
+            f"| {row.req_id} | {_tag(row.tier)} | {title} | {tests} | {layers} | {nodes} "
+            f"| {mutations} |"
         )
     lines += _rules_section(trace, rules)
     lines += _catalogs_section(trace, rules)
@@ -417,6 +384,16 @@ def _cell(text: str) -> str:
     return text.translate(_CELL)
 
 
+## @brief A tier or status as a themed tag (MyST passes inline HTML through).
+## @param value The tier or status.
+## @return HTML.
+## @version 1
+## @dg_internal
+def _tag(value: str) -> str:
+    """@brief Tag. @return HTML."""
+    return f'<span class="tier t-{value}">{value}</span>'
+
+
 ## @brief Write the root page with its toctree.
 ## @param source The Sphinx source directory.
 ## @param title The site title.
@@ -476,29 +453,35 @@ def _commit(repo_root: Path) -> str:
 ## @brief Render the source tree to HTML with Sphinx.
 ## @param source The Sphinx source directory.
 ## @param html The output directory.
-## @param title The project title.
+## @param config The section (title, theme).
+## @param repo_root The repository (theme files are relative to it).
 ## @return The output directory.
-## @version 1
+## v2: the configured theme (W13), clew's own by default.
+## @version 2
 ## @dg_internal
-def _render(source: Path, html: Path, title: str) -> Path:
+def _render(source: Path, html: Path, config: WikiConfig, repo_root: Path) -> Path:
     """THE ONLY SPHINX IMPORT, so everything else runs without the extra.
 
     @brief Run sphinx-build.
     @return HTML dir.
     """
+    from .theme import sphinx_settings
+
     try:
         from sphinx.cmd.build import build_main
     except ImportError as exc:
         raise ValueError(
             "clew wiki build needs the wiki extra: pip install 'clew-trace[wiki]'"
         ) from exc
+    settings = {
+        "project": config.title,
+        "extensions": ["myst_parser"],
+        "source_suffix": {".rst": "restructuredtext", ".md": "markdown"},
+        "exclude_patterns": ["_build"],
+        **sphinx_settings(config.theme, repo_root, source),
+    }
     (source / "conf.py").write_text(
-        f"project = {title!r}\n"
-        "extensions = ['myst_parser']\n"
-        "source_suffix = {'.rst': 'restructuredtext', '.md': 'markdown'}\n"
-        "html_theme = 'alabaster'\n"
-        "exclude_patterns = ['_build']\n",
-        encoding="utf-8",
+        "".join(f"{k} = {v!r}\n" for k, v in settings.items()), encoding="utf-8"
     )
     if build_main(["-q", "-b", "html", str(source), str(html)]) != 0:
         raise ValueError(f"sphinx-build failed for {source}")

@@ -483,6 +483,74 @@ requirements:
     x-priority: P1
     x-status: implemented
     x-evidence: clew/wiki/svg.py, config.py, build.py, command.py; tests/test_wiki_flow.py.
+  REQ-DDB-WIKI-009:
+    subsystem: wiki
+    name: gcov coverage is read like Cobertura
+    acceptance_criteria: >-
+      `wiki.tests.gcov` globs select `.gcov` text files or gcov / gcovr JSON (`.json`, `.json.gz`);
+      their line hits join any Cobertura hits per repo-relative file (summed). A `-` line is non-
+      executable and absent, `#####` / `=====` are zero. Paths are made repo-relative (absolute
+      under the root, or relative resolving into it). A glob matching no file is a `check` problem.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/imports.py, evidence.py, check.py; tests/test_wiki_imports.py.
+  REQ-DDB-WIKI-010:
+    subsystem: wiki
+    name: Test results, links and layers are imported from declared sources
+    acceptance_criteria: >-
+      `wiki.tests.results` declares CTest, TAP, Catch2 or pytest-json reports by format (an unknown
+      format is a problem, never sniffed); each folds like JUnit, worst case winning. A mapping file
+      (YAML or CSV) and Gherkin `.feature` scenario tags (`@ID`, `@req:ID`, feature and rule tags
+      inherited) link requirements to tests the index cannot see. `layers` counts each requirement's
+      tests per layer by glob; `layers` is absent (None) when none are configured.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/imports.py, evidence.py, config.py, check.py, command.py; tests/test_wiki_imports.py.
+  REQ-DDB-WIKI-011:
+    subsystem: wiki
+    name: The site has a default theme, overridable per repository, with nothing remote
+    acceptance_criteria: >-
+      The default Sphinx theme `clew` (sassafras-class palette, Manrope / Newsreader / JetBrains
+      Mono under the OFL with their licences) is copied into the site's `_static`. `wiki.theme`
+      overrides palette tokens (an unknown token is a problem), adds stylesheets and a logo,
+      disables bundled fonts, or names another installed theme, which then gets no clew palette or
+      fonts. No page references a CDN or font service.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/theme.py, themes/, config.py, build.py; tests/test_wiki_site.py.
+  REQ-DDB-WIKI-012:
+    subsystem: wiki
+    name: The trace is summarised with charts and per-group counts
+    acceptance_criteria: >-
+      The requirements and summary pages carry inline-SVG donuts of requirements by tier and
+      distinct tests by status, each segment with `data-label` / `data-count`. The summary page
+      counts, per requirement group (id without its trailing number): requirements, implemented,
+      tested, each tier, and, with `min_layers`, tested requirements spanning fewer layers.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/charts.py, summary.py, build.py; tests/test_wiki_site.py.
+  REQ-DDB-WIKI-013:
+    subsystem: wiki
+    name: Versioned sites burn down open requirements toward roadmap milestones
+    acceptance_criteria: >-
+      Open requirements (every tier but PASS and TARGET) are plotted per recorded version, in
+      recording order, on the versions index and each versioned summary. Headings of `wiki.roadmap`
+      that name a version are milestones; one not yet recorded is drawn ahead with an ideal line to
+      zero. A recorded version whose snapshot is gone is omitted, never drawn as zero.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/charts.py, versions.py, build.py; tests/test_wiki_site.py.
+  REQ-DDB-WIKI-014:
+    subsystem: wiki
+    name: A flow page is interactive and shows what each step carries
+    acceptance_criteria: >-
+      Flow pages carry play / pause / step controls and a dialog per step holding the call
+      expression at the call site, the callee's signature and brief, its frames and a call-site
+      link, read from JSON with `textContent` only. An audience excluding bodies gets no call text.
+      Step links use the call site's file (`site_file`), not the callee's.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/flowpage.py, flow.py, svg.py; tests/test_wiki_site.py.
   REQ-DDB-SCHEMA-013:
     subsystem: schema
     name: Kconfig structure tables, created independently of the gating table

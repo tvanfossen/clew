@@ -1,0 +1,80 @@
+/* clew wiki — the default theme (1.4.0 W13, owner 2026-11-15).
+ *
+ * The look is sassafras-class's (its portal stylesheet): the botanical palette below, Manrope for
+ * text, Newsreader for headings, JetBrains Mono for code. A repository overrides any token through
+ * `wiki.theme.palette`, adds rules through `wiki.theme.css`, or names another Sphinx theme.
+ * Charts and the sequence diagram are inline SVG styled by these same tokens.
+ */
+:root{--surface:#F2E7CB;--paper:#FAF1D9;--muted:#E9DDBE;--inset:#DDCFAB;--ink:#2A2118;--ink2:#6A5B4D;--faint:#998874;--rule:#CFC0A0;--rule2:#E2D5B4;--acc:#3D6B2E;--accbg:#DDE8C9;--accink:#1F3B16;--root:#A6502C;--rootbg:#F4DDCB;--err:#A03A26;--errbg:#F4DCD0;--warn:#D9A23A;--warnbg:#F6E9CE;
+  --sans:Manrope,system-ui,sans-serif;--serif:Newsreader,Georgia,serif;--mono:'JetBrains Mono',ui-monospace,monospace}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--surface:#1E1A14;--paper:#26211A;--muted:#332C22;--inset:#3D3528;--ink:#EFE6D2;--ink2:#C2B49C;--faint:#8F8270;--rule:#4A4033;--rule2:#3A3228;--acc:#8DBE72;--accbg:#2E3D24;--accink:#CFE6BE;--root:#E08A5E;--rootbg:#46291B;--err:#E4826B;--errbg:#4A231A;--warn:#E6B95A;--warnbg:#45361A}}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--surface);color:var(--ink);font:400 16px/1.55 var(--sans)}
+a{color:var(--acc)}a:hover{color:var(--accink)}
+/* The top bar: brand and the site's pages. */
+.top{display:flex;align-items:center;gap:20px;padding:10px 32px;min-height:64px;border-bottom:1px solid var(--rule2);background:var(--surface);flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;font:600 18px var(--sans);color:var(--ink);text-decoration:none}
+.brand .logo{height:32px;width:auto}
+.nav{margin-left:auto}.nav ul{display:flex;gap:4px;flex-wrap:wrap;list-style:none;margin:0;padding:0}
+.nav li{margin:0}.nav ul ul{display:none}
+.nav a{display:flex;align-items:center;height:36px;padding:0 14px;border-radius:999px;font:500 14px var(--sans);color:var(--ink);text-decoration:none}
+.nav a:hover{background:var(--muted)}.nav li.current>a,.nav a.current{background:var(--accbg);color:var(--accink)}
+/* Body and sidebar (Sphinx basic markup). */
+div.document{display:flex;gap:32px;max-width:1240px;margin:0 auto;padding:36px 32px 56px}
+div.documentwrapper{float:none;flex:1;min-width:0;order:2}div.bodywrapper{margin:0!important}
+div.sphinxsidebar{float:none;order:1;width:220px!important;flex:0 0 220px;margin:0;font-size:14px;color:var(--ink2);position:sticky;top:16px;align-self:flex-start}
+div.sphinxsidebar h3,div.sphinxsidebar h4{font:600 13px var(--sans);text-transform:uppercase;letter-spacing:.04em;color:var(--faint);margin:0 0 8px}
+div.sphinxsidebar ul{list-style:none;padding-left:12px;margin:0}div.sphinxsidebar>div>ul{padding-left:0}
+div.sphinxsidebar li{margin:4px 0}div.sphinxsidebar a{color:var(--ink2);text-decoration:none}div.sphinxsidebar a:hover{color:var(--acc)}
+div.sphinxsidebar input[type=text]{width:100%;height:36px;border:1px solid var(--rule);border-radius:8px;background:var(--paper);color:var(--ink);padding:0 10px;font:400 14px var(--sans)}
+div.sphinxsidebar input[type=submit]{display:none}
+div.body{background:var(--paper);border:1px solid var(--rule);border-radius:16px;padding:32px 36px;max-width:none;min-width:0;overflow-wrap:anywhere}
+div.body h1{font:500 34px/1.15 var(--serif);margin:0 0 16px}
+div.body h2{font:600 20px var(--sans);margin:32px 0 12px;padding-top:12px;border-top:1px solid var(--rule2)}
+div.body h3{font:500 20px var(--serif);margin:24px 0 8px}
+a.headerlink{visibility:hidden;color:var(--faint);text-decoration:none;margin-left:6px}h1:hover>a.headerlink,h2:hover>a.headerlink,h3:hover>a.headerlink{visibility:visible}
+/* Tables: the requirement trace, step lists, the summary. */
+table.docutils,table.clew{border-collapse:collapse;width:100%;margin:12px 0 20px;font-size:14px;display:block;overflow-x:auto}
+table.docutils th,table.docutils td,table.clew th,table.clew td{border:0;border-bottom:1px solid var(--rule2);padding:8px 10px;text-align:left;vertical-align:top}
+table.docutils th,table.clew th{white-space:nowrap;font:600 12px var(--sans);text-transform:uppercase;letter-spacing:.04em;color:var(--ink2);background:var(--muted)}
+table.docutils tr:hover td,table.clew tr:hover td{background:var(--surface)}
+table.clew td:first-child{white-space:nowrap}table.clew td.n{text-align:right;font-variant-numeric:tabular-nums}
+/* Code. */
+code,pre,tt,kbd{font-family:var(--mono);font-size:13px}
+code.literal,code.docutils{background:var(--muted);border-radius:5px;padding:1px 5px;color:var(--ink)}
+div.highlight,pre{background:var(--surface)!important;border:1px solid var(--rule2);border-radius:10px}
+pre{padding:12px 14px;overflow:auto;line-height:1.5;margin:0 0 16px}
+/* Tier and status tags. */
+strong.tier,span.tier{display:inline-block;padding:1px 9px;border-radius:999px;font:600 12px var(--sans)}
+.t-PASS,.t-passed{background:var(--accbg);color:var(--accink)}
+.t-GAP,.t-failed,.t-error{background:var(--errbg);color:var(--err)}
+.t-TARGET{background:var(--rootbg);color:var(--root)}
+.t-NOT_RUN,.t-skipped{background:var(--warnbg);color:var(--ink)}
+.t-MISSING,.t-absent{background:var(--muted);color:var(--ink2)}
+/* Charts (W14, W17). */
+.charts{display:flex;gap:24px;flex-wrap:wrap;margin:8px 0 24px}
+.chart-card{background:var(--surface);border:1px solid var(--rule2);border-radius:14px;padding:16px 18px}
+.chart-card h4{margin:0 0 8px;font:600 13px var(--sans);color:var(--ink2);text-transform:uppercase;letter-spacing:.04em}
+svg.donut text,svg.burndown text{fill:var(--ink);font-family:var(--sans)}
+.c-PASS,.c-passed{--c:var(--acc)}.c-GAP,.c-failed{--c:var(--err)}.c-error,.c-TARGET{--c:var(--root)}
+.c-NOT_RUN,.c-skipped{--c:var(--warn)}.c-MISSING,.c-absent{--c:var(--inset)}
+svg.donut path,svg.donut circle{stroke:var(--c)}svg.donut rect{fill:var(--c)}
+svg.burndown .axis{stroke:var(--rule);fill:none}svg.burndown .open{stroke:var(--err);stroke-width:2.5;fill:none}
+svg.burndown .ideal{stroke:var(--faint);stroke-dasharray:5 4;fill:none}svg.burndown .pt{fill:var(--err)}
+svg.burndown .milestone{stroke:var(--acc);stroke-dasharray:2 3}svg.burndown .ms-label{fill:var(--acc);font-weight:600}
+/* The sequence diagram (W18). */
+.flow-wrap{overflow-x:auto;background:var(--surface);border:1px solid var(--rule2);border-radius:14px;padding:10px;margin:8px 0 12px}
+.flow-controls{display:flex;gap:8px;margin:8px 0}
+.flow-controls button,dialog.flow-step button{height:34px;padding:0 14px;border-radius:9px;border:1px solid var(--rule);background:var(--paper);color:var(--ink);font:600 13px var(--sans);cursor:pointer}
+.flow-controls button:hover{background:var(--muted)}
+svg.seq g.cs{cursor:pointer}svg.seq g.cs:hover text{fill:var(--acc)}
+dialog.flow-step{border:1px solid var(--rule);border-radius:16px;background:var(--paper);color:var(--ink);max-width:min(720px,92vw);padding:22px 24px}
+dialog.flow-step::backdrop{background:rgba(42,33,24,.35)}
+dialog.flow-step h3{font:500 22px var(--serif);margin:0 0 10px}
+dialog.flow-step dl{display:grid;grid-template-columns:max-content 1fr;gap:6px 14px;margin:0 0 14px;font-size:14px}
+dialog.flow-step dt{color:var(--ink2);font-weight:600}dialog.flow-step dd{margin:0;min-width:0}
+dialog.flow-step pre{white-space:pre-wrap}
+/* Footer. */
+.foot{max-width:1240px;margin:0 auto;padding:18px 32px 32px;font-size:13px;color:var(--faint);display:flex;gap:18px;flex-wrap:wrap}
+div.footer{display:none}
+@media(max-width:860px){div.document{flex-direction:column;padding:20px 16px}div.sphinxsidebar{position:static;width:auto!important;flex:none}div.body{padding:20px 18px}.top{padding:10px 16px}}

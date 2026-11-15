@@ -15,8 +15,11 @@ each — a plain, self-contained page.
 A diff is computed from snapshots, never by rebuilding an old tag: the site recorded what it
 traced when it was built, which is the claim a reader of that version saw.
 
+The index page and each versioned site's summary carry a BURNDOWN (W17) of open requirements
+across the recorded versions, toward the roadmap's milestones.
+
 @brief Record version-keyed sites and diff two of them.
-@version 1
+@version 2
 """
 
 from __future__ import annotations
@@ -30,9 +33,16 @@ from typing import Any
 ## A version key becomes a directory name: no separators, no leading dot.
 _KEY = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._+-]*$")
 _STYLE = (
-    "body{font-family:system-ui,sans-serif;max-width:60rem;margin:2rem auto;padding:0 1rem}"
-    "table{border-collapse:collapse}td,th{border:1px solid #bbb;padding:.25rem .5rem}"
-    ".add{color:#176f2c}.rm{color:#a1261b}"
+    "body{font-family:system-ui,sans-serif;max-width:60rem;margin:2rem auto;padding:0 1rem;"
+    "background:#F2E7CB;color:#2A2118}"
+    "table{border-collapse:collapse}td,th{border:1px solid #CFC0A0;padding:.25rem .5rem}"
+    ".add{color:#3D6B2E}.rm{color:#A03A26}"
+    "svg.burndown text{fill:#2A2118;font-family:system-ui,sans-serif}"
+    "svg.burndown .axis{stroke:#CFC0A0;fill:none}"
+    "svg.burndown .open{stroke:#A03A26;stroke-width:2.5;fill:none}"
+    "svg.burndown .ideal{stroke:#998874;stroke-dasharray:5 4;fill:none}svg.burndown .pt{fill:#A03A26}"
+    "svg.burndown .milestone{stroke:#3D6B2E;stroke-dasharray:2 3}"
+    "svg.burndown .ms-label{fill:#3D6B2E;font-weight:600}"
 )
 
 
@@ -53,15 +63,25 @@ def valid_key(key: str) -> str:
 ## @param key The version key.
 ## @param snapshot What the build traced.
 ## @param title The site title.
+## @param milestones Roadmap milestones (version, heading) for the burndown (W17).
 ## @return The snapshot path.
-## @version 1
+## v2: the index page carries the burndown across every recorded version.
+## @version 2
 ## @req REQ-DDB-WIKI-007
-def record_version(out: Path, key: str, snapshot: dict[str, Any], title: str) -> Path:
+def record_version(
+    out: Path,
+    key: str,
+    snapshot: dict[str, Any],
+    title: str,
+    milestones: list[tuple[str, str]] | tuple = (),
+) -> Path:
     """REBUILDING A KEY REPLACES ITS ENTRY in place; a new key is appended.
 
     @brief Record a version.
     @return Snapshot path.
     """
+    from .charts import burndown
+
     out = Path(out)
     path = out / valid_key(key) / "site.json"
     path.write_text(json.dumps(snapshot, indent=1, sort_keys=True) + "\n", encoding="utf-8")
@@ -78,8 +98,50 @@ def record_version(out: Path, key: str, snapshot: dict[str, Any], title: str) ->
         f" <code>{html.escape(v['commit'][:12])}</code></li>"
         for v in listing
     )
-    _page(out / "index.html", f"{title} — versions", f"<ul>{rows}</ul>")
+    chart = burndown(series(out, key, snapshot), list(milestones))
+    _page(out / "index.html", f"{title} — versions", f"<ul>{rows}</ul><h2>Burndown</h2>{chart}")
     return path
+
+
+## @brief Tier counts per recorded version, in recording order, with one version's snapshot
+## taken from the build in hand (it may not be recorded yet).
+## @param out The versioned output root.
+## @param key The current key.
+## @param snapshot The current snapshot.
+## @return (key, {tier: count}) pairs.
+## @version 1
+## @req REQ-DDB-WIKI-013
+def series(out: Path, key: str, snapshot: dict[str, Any]) -> list[tuple[str, dict[str, int]]]:
+    """A RECORDED VERSION WHOSE SNAPSHOT IS GONE is left out, not drawn as zero open.
+
+    @brief Build the series.
+    @return Pairs.
+    """
+    keys = [v["key"] for v in _versions(Path(out))]
+    if key not in keys:
+        keys.append(key)
+    out_series = []
+    for k in keys:
+        snap = snapshot if k == key else _maybe_snapshot(Path(out), k)
+        if snap is None:
+            continue
+        counts: dict[str, int] = {}
+        for tier in (snap.get("requirements") or {}).values():
+            counts[tier] = counts.get(tier, 0) + 1
+        out_series.append((k, counts))
+    return out_series
+
+
+## @brief A recorded snapshot, or None when its file is gone.
+## @param out The versioned output root.
+## @param key The key.
+## @return The snapshot or None.
+## @version 1
+## @dg_internal
+def _maybe_snapshot(out: Path, key: str) -> dict[str, Any] | None:
+    """@brief Read if present. @return Snapshot or None."""
+    path = out / key / "site.json"
+    return json.loads(path.read_text(encoding="utf-8")) if path.is_file() else None
 
 
 ## @brief Compare two recorded versions and write the diff page.

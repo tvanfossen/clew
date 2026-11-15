@@ -21,9 +21,18 @@ is silently ignored produces a site that looks complete and omits what the key a
         junit: [build/junit.xml]
         coverage: build/coverage.xml
         target_only: ["test_hw_*"]
+        mutations: build/mutations.yaml   # W9: [{mechanism, test, killed}]
+        results:                      # W16: other result formats, each DECLARED
+          - {format: ctest, path: build/Testing/Test.xml}   # ctest | tap | catch2 | pytest-json
+        gcov: ["build/**/*.gcov", build/cov.json.gz]       # W15: .gcov text or gcov/gcovr JSON
+        mapping: docs/req_tests.yaml  # W16: {REQ: [test, ...]} or a `req,test` CSV
+        features: ["tests/features/**/*.feature"]          # W16: Gherkin; tags name requirements
+        layers:                       # W16: test layers by path / test-id glob
+          unit: ["tests/unit/*"]
+          bdd: ["tests/features/*"]
+        min_layers: 2                 # flag a requirement tested in fewer layers
       links:
         template: "https://host/repo/blob/{commit}/{file}#L{line}"
-        mutations: build/mutations.yaml   # W9: [{mechanism, test, killed}]
       sources:                        # W7: external node sources (JSON / TOML / YAML)
         - name: keys
           path: model/keys.toml
@@ -46,6 +55,13 @@ is silently ignored produces a site that looks complete and omits what the key a
         partner:
           exclude_bodies: true
           exclude_requirement_text: true
+      theme:                          # W13: the default is clew's own (sassafras-class look)
+        name: clew                    # or any installed Sphinx theme (then nothing below applies)
+        palette: {acc: "#3D6B2E"}     # override any token of THEME_TOKENS
+        css: [docs/wiki.css]          # extra stylesheets, copied into the site
+        logo: docs/logo.svg
+        fonts: true                   # false: system fonts, no bundled font files
+      roadmap: ROADMAP.md             # W17: headings naming a version are burndown milestones
 
 @brief Read and validate the `wiki:` section.
 @version 2
@@ -58,9 +74,55 @@ from pathlib import Path
 from typing import Any
 
 ## Every key the section, a flow, the tests block and an audience may carry.
-_TOP = {"title", "docs", "flows", "tests", "links", "audiences", "sources", "catalogs", "rules"}
+_TOP = {
+    "title",
+    "docs",
+    "flows",
+    "tests",
+    "links",
+    "audiences",
+    "sources",
+    "catalogs",
+    "rules",
+    "theme",
+    "roadmap",
+}
+_THEME = {"name", "palette", "css", "logo", "fonts"}
+## The palette tokens of the default theme (the sassafras-class botanical palette).
+THEME_TOKENS = (
+    "surface",
+    "paper",
+    "muted",
+    "inset",
+    "ink",
+    "ink2",
+    "faint",
+    "rule",
+    "rule2",
+    "acc",
+    "accbg",
+    "accink",
+    "root",
+    "rootbg",
+    "err",
+    "errbg",
+    "warn",
+    "warnbg",
+)
 _FLOW = {"entry", "qualified", "depth", "lanes", "stop_at", "title", "animate"}
-_TESTS = {"junit", "coverage", "target_only", "mutations"}
+_TESTS = {
+    "junit",
+    "coverage",
+    "target_only",
+    "mutations",
+    "results",
+    "gcov",
+    "mapping",
+    "features",
+    "layers",
+    "min_layers",
+}
+_RESULT = {"format", "path"}
 _SOURCE = {"name", "path", "items", "id", "doc", "req"}
 _CATALOG = {"name", "repo", "pin", "catalog"}
 _RULE = {"id", "title", "status", "url", "requirements"}
@@ -84,6 +146,33 @@ class FlowSpec:
     stop_at: tuple[str, ...] = ()
     title: str = ""
     animate: bool = True
+
+
+## @brief The W15/W16 evidence imports of `wiki.tests`, as declared (paths relative to the repo).
+## @version 1
+@dataclass(frozen=True)
+class EvidenceInputs:
+    """@brief Result reports by format, gcov globs, mapping, features, layers. @version 1"""
+
+    results: tuple[tuple[str, str], ...] = ()
+    gcov: tuple[str, ...] = ()
+    mapping: str | None = None
+    features: tuple[str, ...] = ()
+    layers: tuple[tuple[str, tuple[str, ...]], ...] | None = None
+    min_layers: int | None = None
+
+
+## @brief The site's theme (W13).
+## @version 1
+@dataclass(frozen=True)
+class ThemeSpec:
+    """@brief Sphinx theme name, palette overrides, extra CSS, logo, bundled fonts. @version 1"""
+
+    name: str = "clew"
+    palette: tuple[tuple[str, str], ...] = ()
+    css: tuple[str, ...] = ()
+    logo: str | None = None
+    fonts: bool = True
 
 
 ## @brief One audience's redaction rules.
@@ -136,11 +225,12 @@ class RuleSpec:
 
 
 ## @brief The parsed section.
-## v2: sources, catalogs, rules, mutations (W7–W9).
-## @version 2
+## v3: evidence imports (W15/W16).
+## v4: theme (W13) and roadmap (W17).
+## @version 4
 @dataclass(frozen=True)
 class WikiConfig:
-    """@brief The whole `wiki:` section. @version 2"""
+    """@brief The whole `wiki:` section. @version 4"""
 
     title: str = "Wiki"
     docs: tuple[str, ...] = DEFAULT_DOCS
@@ -154,6 +244,9 @@ class WikiConfig:
     sources: tuple[SourceSpec, ...] = ()
     catalogs: tuple[CatalogSpec, ...] = ()
     rules: tuple[RuleSpec, ...] = ()
+    inputs: EvidenceInputs = EvidenceInputs()
+    theme: ThemeSpec = ThemeSpec()
+    roadmap: str | None = None
 
 
 ## @brief Read and validate a repository's `wiki:` section.
@@ -161,7 +254,9 @@ class WikiConfig:
 ## @param config_path A file whose `wiki:` section applies instead of `<repo>/.clew.yaml`.
 ## @return (config, problems); problems is empty when the section is valid.
 ## v2: `config_path` (document a repository without writing into it) and the W7–W9 sections.
-## @version 2
+## v3: the W15/W16 evidence imports.
+## v4: theme and roadmap.
+## @version 4
 ## @req REQ-DDB-WIKI-003
 def load_wiki_config(
     repo_root: Path, config_path: Path | None = None
@@ -171,7 +266,7 @@ def load_wiki_config(
 
     @brief Load the section.
     @return Config and problems.
-    @version 2
+    @version 4
     """
     raw, problems = _read_section(Path(config_path or Path(repo_root) / ".clew.yaml"))
     if problems:
@@ -195,6 +290,9 @@ def load_wiki_config(
         sources=_entries(raw, "sources", _SOURCE, ("name", "path"), _source, problems),
         catalogs=_entries(raw, "catalogs", _CATALOG, tuple(sorted(_CATALOG)), _catalog, problems),
         rules=_entries(raw, "rules", _RULE, ("id",), _rule, problems),
+        inputs=_inputs(tests, problems),
+        theme=_theme(raw.get("theme") or {}, problems),
+        roadmap=str(raw["roadmap"]) if raw.get("roadmap") else None,
     )
     return config, problems
 
@@ -354,4 +452,94 @@ def _flow(raw: Any, index: int, problems: list[str]) -> FlowSpec | None:
         stop_at=tuple(str(s) for s in raw.get("stop_at") or ()),
         title=str(raw.get("title") or ""),
         animate=bool(raw.get("animate", True)),
+    )
+
+
+## @brief The evidence imports of a `tests` block.
+## @param tests The block.
+## @param problems Accumulated problems; appended to.
+## @return The inputs.
+## @version 1
+## @dg_internal
+def _inputs(tests: dict[str, Any], problems: list[str]) -> EvidenceInputs:
+    """A RESULT FORMAT IS DECLARED, so an entry without one is a problem, never a sniffed guess.
+
+    @brief Parse imports.
+    @return Inputs.
+    """
+    from .imports import RESULT_FORMATS
+
+    results = _entries(tests, "results", _RESULT, ("format", "path"), _result, problems)
+    problems += [
+        f"`wiki.tests.results`: format {fmt!r} is not known ({', '.join(RESULT_FORMATS)})"
+        for fmt, _path in results
+        if fmt not in RESULT_FORMATS
+    ]
+    layers = tests.get("layers")
+    if layers is not None and not isinstance(layers, dict):
+        problems.append("`wiki.tests.layers` must map a layer name to path globs")
+        layers = None
+    gcov = tests.get("gcov") or ()
+    return EvidenceInputs(
+        results=results,
+        gcov=(str(gcov),) if isinstance(gcov, str) else tuple(str(g) for g in gcov),
+        mapping=str(tests["mapping"]) if tests.get("mapping") else None,
+        features=tuple(str(f) for f in tests.get("features") or ()),
+        layers=None
+        if layers is None
+        else tuple((str(k), tuple(str(g) for g in v or ())) for k, v in layers.items()),
+        min_layers=int(tests["min_layers"]) if tests.get("min_layers") else None,
+    )
+
+
+## @brief A (format, path) pair from a validated `results` entry.
+## @param e The entry.
+## @return The pair.
+## @version 1
+## @dg_internal
+def _result(e: dict[str, Any]) -> tuple[str, str]:
+    """@brief Build. @return Pair."""
+    return (str(e["format"]), str(e["path"]))
+
+
+## @brief The theme block.
+## @param raw The `theme` mapping.
+## @param problems Accumulated problems; appended to.
+## @return The spec.
+## @version 1
+## @dg_internal
+def _theme(raw: Any, problems: list[str]) -> ThemeSpec:
+    """A PALETTE TOKEN THE THEME DOES NOT DEFINE is a problem: it would be a silent no-op.
+
+    @brief Parse the theme.
+    @return Spec.
+    """
+    problems += _unknown(raw, _THEME, "wiki.theme")
+    if not isinstance(raw, dict):
+        return ThemeSpec()
+    palette = raw.get("palette") or {}
+    if not isinstance(palette, dict):
+        problems.append("`wiki.theme.palette` must map a token to a colour")
+        palette = {}
+    problems += [
+        f"`wiki.theme.palette`: token {k!r} is not a theme token ({', '.join(THEME_TOKENS)})"
+        for k in palette
+        if k not in THEME_TOKENS
+    ]
+    problems += [
+        f"`wiki.theme.palette.{k}`: {v!r} is not a colour value"
+        for k, v in palette.items()
+        if any(c in str(v) for c in ";{}<>")
+    ]
+    css = raw.get("css") or ()
+    return ThemeSpec(
+        name=str(raw.get("name") or "clew"),
+        palette=tuple(
+            (str(k), str(v))
+            for k, v in palette.items()
+            if k in THEME_TOKENS and not any(c in str(v) for c in ";{}<>")
+        ),
+        css=(str(css),) if isinstance(css, str) else tuple(str(c) for c in css),
+        logo=str(raw["logo"]) if raw.get("logo") else None,
+        fonts=bool(raw.get("fonts", True)),
     )

@@ -1,0 +1,332 @@
+# SPDX-License-Identifier: MIT
+"""Evidence imports beyond JUnit and Cobertura (1.4.0 W15, W16; owner 2026-11-15).
+
+  * gcov — the `.gcov` text files gcov writes, and gcov's / gcovr's JSON (`.json`, `.json.gz`),
+    read into the same per-file line hits a Cobertura report gives;
+  * test result formats — CTest's `Test.xml`, TAP, Catch2's XML reporter, pytest-json-report —
+    each DECLARED with its format, never sniffed, and folded like JUnit (worst case wins);
+  * a requirement → test MAPPING file, for tests the index cannot see a `@req` tag on;
+  * Gherkin `.feature` scenarios whose tags name a requirement;
+  * test LAYERS (path globs), so a requirement tested in one layer only can be flagged.
+
+Every import is optional and ABSENT when not given: no layers configured means `layers is None`,
+not "no layer".
+
+@brief Tests for clew.wiki.imports.
+@version 1
+"""
+
+from __future__ import annotations
+
+import gzip
+import json
+import sqlite3
+from pathlib import Path
+
+import pytest
+
+from clew.wiki.config import EvidenceInputs
+from clew.wiki.evidence import requirement_evidence
+from clew.wiki.imports import (
+    parse_features,
+    parse_gcov,
+    parse_mapping,
+    parse_results,
+)
+
+_GCOV = """        -:    0:Source:src/a.c
+        -:    0:Graph:a.gcno
+        -:    1:#include <a.h>
+        5:   10:int impl(void) {
+    #####:   11:  if (x) return 1;
+       2*:   12:  return 0;
+    =====:   13:  never();
+        -:   14:}
+"""
+
+
+def test_gcov_text_reads_hits_and_skips_non_executable_lines(tmp_path: Path) -> None:
+    """`#####` and `=====` are executable lines with no hits; `-` is not executable at all, so it
+    is not a line with zero hits.
+
+    @brief .gcov text → hits.
+    """
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "a.c").write_text("x\n")
+    report = tmp_path / "build" / "a.c.gcov"
+    report.parent.mkdir()
+    report.write_text(_GCOV)
+    assert parse_gcov([report], tmp_path) == {"src/a.c": {10: 5, 11: 0, 12: 2, 13: 0}}
+
+
+def test_gcov_json_gz_relativises_absolute_paths(tmp_path: Path) -> None:
+    """@brief gcov --json-format output (gzipped) with an absolute file path."""
+    doc = {
+        "current_working_directory": str(tmp_path / "build"),
+        "files": [
+            {
+                "file": str(tmp_path / "src" / "a.c"),
+                "lines": [{"line_number": 10, "count": 4}, {"line_number": 11, "count": 0}],
+            }
+        ],
+    }
+    report = tmp_path / "a.gcov.json.gz"
+    report.write_bytes(gzip.compress(json.dumps(doc).encode()))
+    assert parse_gcov([report], tmp_path) == {"src/a.c": {10: 4, 11: 0}}
+
+
+_CTEST = """<?xml version="1.0"?>
+<Site><Testing>
+  <Test Status="passed"><Name>store_loads</Name></Test>
+  <Test Status="failed"><Name>store_saves</Name></Test>
+  <Test Status="notrun"><Name>store_flash</Name></Test>
+</Testing></Site>
+"""
+
+_CATCH2 = """<?xml version="1.0"?>
+<Catch2TestRun>
+  <Group>
+    <TestCase name="Store loads"><OverallResult success="true" skips="0"/></TestCase>
+    <TestCase name="Store saves"><OverallResult success="false"/></TestCase>
+    <TestCase name="Store flash"><OverallResult success="true" skips="1"/></TestCase>
+  </Group>
+</Catch2TestRun>
+"""
+
+_TAP = """TAP version 13
+1..4
+ok 1 - parses keys
+not ok 2 - writes keys
+ok 3 - flashes # SKIP no device
+not ok 4 - later # TODO not built
+"""
+
+_PYTEST_JSON = {
+    "tests": [
+        {"nodeid": "tests/test_a.py::test_ok[one]", "outcome": "passed"},
+        {"nodeid": "tests/test_a.py::test_ok[two]", "outcome": "failed"},
+        {"nodeid": "tests/test_a.py::test_skip", "outcome": "skipped"},
+        {"nodeid": "tests/test_a.py::test_err", "outcome": "error"},
+    ]
+}
+
+
+@pytest.mark.parametrize(
+    ("fmt", "text", "expected"),
+    [
+        (
+            "ctest",
+            _CTEST,
+            {"store_loads": "passed", "store_saves": "failed", "store_flash": "skipped"},
+        ),
+        (
+            "catch2",
+            _CATCH2,
+            {"Store loads": "passed", "Store saves": "failed", "Store flash": "skipped"},
+        ),
+        (
+            "tap",
+            _TAP,
+            {
+                "parses keys": "passed",
+                "writes keys": "failed",
+                "flashes": "skipped",
+                "later": "skipped",
+            },
+        ),
+        (
+            "pytest-json",
+            json.dumps(_PYTEST_JSON),
+            {"test_ok": "failed", "test_skip": "skipped", "test_err": "error"},
+        ),
+    ],
+)
+def test_each_declared_result_format_folds_to_statuses(
+    tmp_path: Path, fmt: str, text: str, expected: dict[str, str]
+) -> None:
+    """A parametrized pytest node folds to its function and takes its WORST case.
+
+    @brief CTest, Catch2, TAP and pytest-json-report results.
+    """
+    report = tmp_path / "report"
+    report.write_text(text)
+    assert {k: v.status for k, v in parse_results(fmt, report).items()} == expected
+
+
+def test_an_unknown_result_format_is_refused(tmp_path: Path) -> None:
+    """@brief A format is declared, never guessed."""
+    report = tmp_path / "r.xml"
+    report.write_text("<x/>")
+    with pytest.raises(ValueError, match="unknown"):
+        parse_results("nunit", report)
+
+
+def test_a_mapping_file_reads_yaml_and_csv(tmp_path: Path) -> None:
+    """@brief {REQ: [tests]} YAML, or a `req,test` CSV."""
+    yml = tmp_path / "map.yaml"
+    yml.write_text("R-A: [Store loads, Store saves]\nR-B: store_loads\n")
+    csv = tmp_path / "map.csv"
+    csv.write_text("req,test\nR-A,Store loads\nR-C,flashes\n")
+    assert parse_mapping(yml) == {"R-A": ("Store loads", "Store saves"), "R-B": ("store_loads",)}
+    assert parse_mapping(csv) == {"R-A": ("Store loads",), "R-C": ("flashes",)}
+
+
+_FEATURE = """@R-FEAT
+Feature: Pairing
+  # a comment
+  @R-B @smoke
+  Scenario: A tablet pairs
+    Given a tablet
+    Then it pairs
+
+  Rule: failures are named
+    @req:R-C
+    Scenario Outline: A pairing fails
+      When <x>
+      Examples:
+        | x |
+        | 1 |
+"""
+
+
+def test_gherkin_scenarios_carry_their_own_and_inherited_tags(tmp_path: Path) -> None:
+    """A feature's tags apply to each of its scenarios; `@req:ID` and `@ID` both name one.
+
+    @brief Parse .feature scenarios.
+    """
+    feat = tmp_path / "tests" / "features" / "pair.feature"
+    feat.parent.mkdir(parents=True)
+    feat.write_text(_FEATURE)
+    scenarios = parse_features(tmp_path, ("tests/features/**/*.feature",))
+    assert [(s.file, s.line, s.name, s.tags) for s in scenarios] == [
+        ("tests/features/pair.feature", 5, "A tablet pairs", ("R-FEAT", "R-B", "smoke")),
+        ("tests/features/pair.feature", 11, "A pairing fails", ("R-FEAT", "R-C")),
+    ]
+
+
+@pytest.fixture()
+def traced(tmp_path: Path) -> Path:
+    """@brief An index: R-A linked to an indexed test, R-B/R-C/R-D only via imports. @return DB."""
+    db = tmp_path / "clew.db"
+    conn = sqlite3.connect(str(db))
+    conn.executescript(
+        """
+        CREATE TABLE path (rowid INTEGER PRIMARY KEY, name TEXT, type INTEGER);
+        CREATE TABLE memberdef (rowid INTEGER PRIMARY KEY, kind TEXT, name TEXT, file_id INTEGER,
+            bodyfile_id INTEGER, bodystart INTEGER, bodyend INTEGER, definition TEXT,
+            briefdescription TEXT, detaileddescription TEXT);
+        CREATE TABLE requirements (id TEXT PRIMARY KEY, block TEXT, title TEXT, acceptance TEXT,
+            priority TEXT);
+        CREATE TABLE req_edges (memberdef_rowid INTEGER, req_id TEXT);
+        CREATE TABLE req_test_edges (test_memberdef_rowid INTEGER, req_id TEXT);
+        INSERT INTO path VALUES (1, 'src/a.c', 1), (2, 'tests/unit/test_a.py', 1);
+        INSERT INTO memberdef VALUES
+            (1, 'function', 'impl', 1, 1, 10, 13, 'int impl', '', ''),
+            (2, 'function', 'test_ok', 2, 2, 1, 2, 'test_ok', '', '');
+        INSERT INTO requirements VALUES
+            ('R-A', '', 'a', '', ''), ('R-B', '', 'b', '', ''), ('R-C', '', 'c', '', ''),
+            ('R-D', '', 'd', '', '');
+        INSERT INTO req_edges VALUES (1, 'R-A');
+        INSERT INTO req_test_edges VALUES (2, 'R-A');
+        """
+    )
+    conn.commit()
+    conn.close()
+    return db
+
+
+def test_imports_join_the_trace(traced: Path, tmp_path: Path) -> None:
+    """ONE TRACE FROM EVERY SOURCE: an indexed test with a pytest-json result, a scenario with a
+    JUnit result under its own name, a Catch2 case linked by the mapping file, and gcov coverage.
+    Layers count each requirement's tests by layer; R-D, tested nowhere, has no layers.
+
+    @brief Imported results, mapping, scenarios, gcov and layers in requirement_evidence.
+    """
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "a.c").write_text("x\n")
+    (tmp_path / "a.c.gcov").write_text(_GCOV)
+    (tmp_path / "r.json").write_text(
+        json.dumps({"tests": [{"nodeid": "t.py::test_ok", "outcome": "passed"}]})
+    )
+    (tmp_path / "c.xml").write_text(_CATCH2)
+    (tmp_path / "j.xml").write_text(
+        '<testsuite><testcase name="A tablet pairs"/><testcase name="A pairing fails">'
+        '<failure message="x"/></testcase></testsuite>'
+    )
+    (tmp_path / "map.yaml").write_text("R-C: [Store loads]\n")
+    feat = tmp_path / "tests" / "features" / "pair.feature"
+    feat.parent.mkdir(parents=True)
+    feat.write_text(_FEATURE)
+    inputs = EvidenceInputs(
+        results=(("pytest-json", "r.json"), ("catch2", "c.xml")),
+        gcov=("*.gcov",),
+        mapping="map.yaml",
+        features=("tests/features/*.feature",),
+        layers=(("unit", ("tests/unit/*",)), ("bdd", ("tests/features/*",)), ("cpp", ("Store *",))),
+        min_layers=2,
+    )
+    rows = {
+        r.req_id: r
+        for r in requirement_evidence(
+            traced, junit=[tmp_path / "j.xml"], inputs=inputs, repo_root=tmp_path
+        )
+    }
+    assert rows["R-A"].tier == "PASS" and rows["R-A"].implementers_covered == ("impl",)
+    assert rows["R-A"].layers == (("unit", 1),)
+    assert rows["R-B"].tests == (("tests/features/pair.feature::A tablet pairs", "passed"),)
+    assert rows["R-B"].tier == "PASS" and rows["R-B"].layers == (("bdd", 1),)
+    assert {t for t, _s in rows["R-C"].tests} == {
+        "Store loads",
+        "tests/features/pair.feature::A pairing fails",
+    }
+    assert rows["R-C"].tier == "GAP"
+    assert rows["R-C"].layers == (("bdd", 1), ("cpp", 1))
+    assert rows["R-D"].tier == "MISSING" and rows["R-D"].layers == ()
+
+
+def test_without_layers_the_field_is_absent(traced: Path) -> None:
+    """@brief No layers configured → `layers is None`, not ()."""
+    row = next(r for r in requirement_evidence(traced, junit=[]) if r.req_id == "R-A")
+    assert row.layers is None
+
+
+def test_check_names_every_missing_import(traced: Path, tmp_path: Path) -> None:
+    """A GLOB THAT MATCHES NOTHING is a problem: a misspelled gcov or feature glob would otherwise
+    yield a trace that reads as "no coverage measured" or "no scenarios".
+
+    @brief `clew wiki check` covers the W15/W16 inputs.
+    """
+    from clew.wiki.check import check_wiki
+
+    (tmp_path / "map.yaml").write_text("R-A: [x]\nR-NOPE: [y]\n")
+    (tmp_path / ".clew.yaml").write_text(
+        "wiki:\n  docs: []\n  tests:\n"
+        "    results: [{format: tap, path: missing.tap}, {format: nunit, path: n.xml}]\n"
+        "    gcov: ['build/*.gcov']\n    features: ['features/*.feature']\n"
+        "    mapping: map.yaml\n"
+    )
+    problems = "\n".join(check_wiki(tmp_path, traced))
+    assert "'missing.tap' does not exist" in problems
+    assert "'nunit' is not known" in problems
+    assert "'build/*.gcov' matches no file" in problems
+    assert "'features/*.feature' matches no file" in problems
+    assert "R-NOPE" in problems and "R-A" not in problems.replace("R-A:", "")
+
+
+def test_the_trace_cli_reads_imports_from_the_config(
+    traced: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """@brief `clew wiki trace --config FILE` applies the section's imports."""
+    from clew.wiki.command import wiki_main
+
+    (tmp_path / "r.tap").write_text("ok 1 - Store loads\n")
+    (tmp_path / "map.yaml").write_text("R-B: [Store loads]\n")
+    cfg = tmp_path / "wiki.yaml"
+    cfg.write_text(
+        "wiki:\n  tests:\n    results: [{format: tap, path: r.tap}]\n    mapping: map.yaml\n"
+        "    layers: {cpp: ['Store *']}\n"
+    )
+    argv = ["trace", "--index", str(traced), "--repo-root", str(tmp_path), "--config", str(cfg)]
+    assert wiki_main(argv) == 0
+    rows = {r["req_id"]: r for r in json.loads(capsys.readouterr().out)["requirements"]}
+    assert rows["R-B"]["tier"] == "PASS" and rows["R-B"]["layers"] == [["cpp", 1]]

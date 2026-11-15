@@ -97,12 +97,12 @@ clew-guard = "clew.guard.main:cli_main"
 ## dependency: the index, the MCP server and `clew wiki check` never import it. Capped at the next
 ## major, as the runtime set is.
 wiki = [
-    "sphinx>=7,<9",
+    "sphinx>=7.3,<9",
     "myst-parser>=3,<5",
 ]
 dev = [
     # The wiki renderer is exercised by the gate (tests/test_wiki_build.py), so dev pulls it in.
-    "sphinx>=7,<9",
+    "sphinx>=7.3,<9",
     "myst-parser>=3,<5",
     # BOUNDED LIKE THE RUNTIME SET, and for a reason that is not merely tidiness: these four
     # ARE the release gate. A pytest or pre-commit major landing unreviewed changes what

@@ -425,6 +425,10 @@ search("clew.db", "retry backoff")    # find the name when you do not have one
 requirement or Kconfig symbol — and its reply names which kind resolved. `function_dossier` is
 the narrower form that describes a function or macro and returns `None` for anything else.
 
+`clew wiki` turns the same index into a static documentation site — derived sequence
+diagrams, the requirement trace with CI evidence, charts and a burndown. See
+[WIKI.md](WIKI.md).
+
 ## Layout
 
 | Path | What |
