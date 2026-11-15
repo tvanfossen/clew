@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A manual retry runs `retryFailedPost`, which re-sends the same post.\nVERDICT: HIT\nWHY: The answer says there's no automatic retry, that a manual retry runs `retryFailedPost`, and that it is triggered from the failed-post UI's `Failed.onPress`. This covers the user-initiated-only retry and the function name, though it never uses the literal \"Try Again\" label."
+}

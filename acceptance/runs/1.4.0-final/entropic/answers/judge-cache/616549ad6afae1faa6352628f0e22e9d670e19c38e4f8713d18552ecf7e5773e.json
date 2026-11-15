@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Buffers the engine will free, such as a hook's `modified_json` | Allocate with `entropic_alloc()`. The engine frees them. | `python/src/entropic/hooks.py` `_trampoline` writes via `entropic_alloc`.\nVERDICT: HIT\nWHY: The answer states that buffers the engine will free must be allocated with entropic_alloc and points to the Python hooks.py trampoline as where that happens."
+}

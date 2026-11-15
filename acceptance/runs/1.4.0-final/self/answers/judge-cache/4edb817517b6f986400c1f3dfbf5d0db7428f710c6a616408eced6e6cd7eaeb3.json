@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `--declare FILE` (or the `options` argument of `build_index` / MCP `index(action=\"refresh\")`) | 1, explicit\nVERDICT: HIT\nWHY: The answer states that tier 1 (explicit) is reachable via both the `--declare` CLI flag and the structured `options` argument, which covers embedding callers with no shell."
+}

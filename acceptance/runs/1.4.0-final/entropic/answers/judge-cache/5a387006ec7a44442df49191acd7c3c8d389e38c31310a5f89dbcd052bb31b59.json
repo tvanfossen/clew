@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Every trampoline wraps the user function in `try/except`, prints the traceback, and returns a safe code (`hooks.py` returns 0 on error).\nVERDICT: HIT\nWHY: The answer says trampolines catch all exceptions so none escape into C, and that a failure returns 0 (a pass-through code)."
+}

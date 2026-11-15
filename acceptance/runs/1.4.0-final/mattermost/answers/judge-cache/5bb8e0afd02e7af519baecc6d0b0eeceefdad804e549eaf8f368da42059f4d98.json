@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It sends a new `client.createPost` request built from the post's API form, with a new `create_at`/`update_at` and an empty `id`, so the server assigns a new post ID. On success, the response replaces the local record. On a server error it re-marks the post as failed, or removes it for the three non-retryable error IDs above.\nVERDICT: HIT\nWHY: The answer says `retryFailedPost` sends a single new createPost request (with `noRetry`, so one attempt, no loop or backoff), and on failure re-marks the post as failed or removes it for the three errors."
+}

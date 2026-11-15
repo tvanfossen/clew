@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The two `switch` tables are wrapped in `#if defined(MBEDTLS_<MODULE>_C)` blocks, so a string only exists when its module is compiled in.\nVERDICT: MISS\nWHY: The answer never says MBEDTLS_ERROR_C is enabled in the shipped config; it only describes per-module gating generically."
+}

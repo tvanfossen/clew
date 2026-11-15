@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says a rebuild can't fix the code axis and that the automatic path never rebuilds when matches_source is false because an old process could drop layers and re-stamp the index. It never states that reads stay current because query tools open the database per call, so the read/write asymmetry is absent."
+}

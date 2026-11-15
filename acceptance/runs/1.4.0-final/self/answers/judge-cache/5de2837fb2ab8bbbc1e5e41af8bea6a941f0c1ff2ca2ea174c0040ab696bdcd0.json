@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The automatic path never rebuilds when `matches_source` is false, because an old process running the pipeline could drop layers and re-stamp the index with the damage.\" Also: \"| `code` | ... | No. Only restarting the MCP client clears it |\"\nVERDICT: MISS\nWHY: The answer says a stale-code process shouldn't rebuild because it could re-stamp damage, but it never states that reads stay current because query tools open the database per call, so the read/write asymmetry is absent."
+}

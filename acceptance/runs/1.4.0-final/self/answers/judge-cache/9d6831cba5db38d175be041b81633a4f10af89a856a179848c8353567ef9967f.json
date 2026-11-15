@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A bad declaration does not fall back silently in the CLI. `cli.py` (around line 807) calls `declared_scope_rejection` and exits 1, because a silent fall-back would give the widest scope for the narrowest request.\n\nVERDICT: MISS\n\nWHY: The answer says a declared scope is preferred and an absent one gives whole-repo. But it says a bad declaration exits 1 in the CLI and does not fall back. That contradicts the item's claim that every failure to find one falls through to whole-repo indexing."
+}

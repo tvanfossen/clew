@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The raw-assembly paths are only used when `MBEDTLS_CT_ASM` is defined. That macro requires `MBEDTLS_HAVE_ASM` and either GCC-style or ARMCC compiler detection\nVERDICT: HIT\nWHY: The answer says MBEDTLS_CT_ASM is defined only when MBEDTLS_HAVE_ASM plus compiler detection hold, so it is derived. It never mentions mbedtls_config.h, but the derivation mechanism is stated."
+}

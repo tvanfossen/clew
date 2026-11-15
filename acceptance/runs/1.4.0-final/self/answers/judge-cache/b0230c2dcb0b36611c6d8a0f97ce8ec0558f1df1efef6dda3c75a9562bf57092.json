@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says unknown keys in `index_scope` or an inline `options` manifest are refused. It never describes a correctly-spelled derived key inside a well-named section being refused with its reason rather than as unknown."
+}

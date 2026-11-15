@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `do_count_tokens` (line 825-827) returns `0`. The C API `entropic_inference_count_tokens` (`inference_c_api.cpp:556-558`) returns that `0` directly. A failed tokenization therefore looks like empty input to C callers.\nVERDICT: HIT\nWHY: The answer states that the token-count path returns 0 on failed tokenization, indistinguishable from empty input, rather than signalling an error."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Lazy import (`__init__.py`): a PEP 562 `__getattr__` loads `_bindings` only on first use. The export list comes from `_bindings_manifest.py`, which does not load the `.so`. ... `load()` raises `OSError` with a hint to run `entropic install-engine`.\nVERDICT: MISS\nWHY: The answer describes the lazy import and mentions install-engine, but never concludes that the split exists so `import entropic` works before the engine is installed, which is what makes install-engine shippable in the same package."
+}

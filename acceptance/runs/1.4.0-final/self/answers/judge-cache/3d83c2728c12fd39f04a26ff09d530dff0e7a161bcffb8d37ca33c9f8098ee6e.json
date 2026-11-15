@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer admits it did not trace the index tool's refusal path (`stale_code_refusal`). It never states that the write path refuses rather than warns, or that the refusal sits ahead of the build decision so `force` cannot override it."
+}

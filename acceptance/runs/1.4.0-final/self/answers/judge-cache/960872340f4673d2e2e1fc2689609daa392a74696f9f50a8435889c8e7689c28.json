@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The `code` axis came from a real incident (gh#348). A build-30 process rebuilt a build-32 index at version 30, dropped the `external` stage, and then `status` reported it healthy. The fix made `build_or_refresh` refuse via `stale_code_refusal`...\nVERDICT: MISS\nWHY: The answer describes the code-stale build refusal but never states that reads stay current because query tools open the database per call, so the read/write asymmetry is absent."
+}

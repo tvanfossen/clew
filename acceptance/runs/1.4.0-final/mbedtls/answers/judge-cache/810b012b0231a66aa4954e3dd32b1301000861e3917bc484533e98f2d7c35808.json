@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says the macro is used at many hundreds of sites in public headers; it notes only two referenced_by callers and says the index is not a complete census."
+}

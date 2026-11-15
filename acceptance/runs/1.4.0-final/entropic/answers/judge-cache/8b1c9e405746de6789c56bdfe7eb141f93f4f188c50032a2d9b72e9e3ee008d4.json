@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Facade entry points take `HandleApiLock` (`src/facade/engine_handle.h:172`), which acquires `api_mutex` and installs the per-handle log scope. The log scope is thread-local, so logs from a worker thread still route to the right session.\nVERDICT: MISS\nWHY: The answer ties the log scope to facade entry points (the API lock), not to every thread body installing one as its first statement. It never says worker threads install their own scope."
+}

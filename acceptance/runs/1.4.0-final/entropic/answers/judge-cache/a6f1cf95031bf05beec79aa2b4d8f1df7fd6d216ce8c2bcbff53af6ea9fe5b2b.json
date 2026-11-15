@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"if not approved and on_tool_call callback set \u2192 approved = true\" and \"a call with no allow match and a callback set still gets through step 3. The deny check in step 4 is then the only real stop.\"\nVERDICT: HIT\nWHY: The answer concludes that a tool matching no list still passes the approval gate and runs unless a deny entry matches, which is the default-allow posture, though it hedges that this needs runtime confirmation."
+}

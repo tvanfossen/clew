@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer explicitly says it only saw the last step (`ctypes.util.find_library`) and does not describe the env override, user directory, or two-layout resolution order."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Multi-token query, each token matched alone | \"NOT definitive\", retry with fewer tokens | Low; the conjunction emptied it, not absence\nVERDICT: MISS\nWHY: The answer describes the current graded behavior, but never says that a single no-match token was previously treated as proof of absence, or that this conflated \"nothing exists\" with \"I did not look there.\""
+}

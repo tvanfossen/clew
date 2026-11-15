@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Replay: the winning tier is stored in `build_meta`. A declaration is re-read on a later build, not replayed from a frozen copy.\nVERDICT: MISS\nWHY: The answer says the winning tier is stored in build_meta, but it never says the record is derived from the stored rows rather than stamped as a separate summary."
+}

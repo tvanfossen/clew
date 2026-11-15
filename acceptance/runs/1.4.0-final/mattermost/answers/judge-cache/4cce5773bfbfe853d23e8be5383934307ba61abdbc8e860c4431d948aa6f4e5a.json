@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"When `hasSearch` is true it renders `<NavigationSearch {...searchProps} hideHeader theme topStyle ref={ref} />`.\" and \"The `ref` is only attached when `hasSearch` is true. For the other seven callers it is never attached to anything.\"\nVERDICT: HIT\nWHY: The answer states NavigationHeader forwards its ref to NavigationSearch, which renders only when `hasSearch` is true, and that otherwise the ref is attached to nothing."
+}

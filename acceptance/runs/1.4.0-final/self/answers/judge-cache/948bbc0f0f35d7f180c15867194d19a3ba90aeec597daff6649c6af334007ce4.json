@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"+ JS/TS via parse-built front end\" and \"The one content filter is `_drop_binary_files` (`filetypes.py`), which removes files that look binary from the first 8 KiB.\"\nVERDICT: MISS\nWHY: The answer names the binary filter, but it describes it as classifying by content (first 8 KiB), not as dropping files whose extension lies about them. It also doesn't say that the scope isn't the whole answer or that a file reaches the index only if something can read it. The parse-built front end appears only as a diagram label and isn't described as claiming file types doxygen can't read."
+}

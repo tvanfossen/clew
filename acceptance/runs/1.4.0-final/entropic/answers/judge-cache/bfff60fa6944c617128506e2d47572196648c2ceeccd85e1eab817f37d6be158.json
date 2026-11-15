@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "ITEMS:\nsrc/facade/external_bridge.cpp\nsrc/mcp/health_monitor.cpp\nsrc/mcp/transport_sse.cpp\nsrc/inference/interface_factory.cpp\nsrc/core/response_generator.cpp\nEND\n\nTwo of the paths above are inferred rather than written. The answer writes `transport_sse.cpp` and `inference_c_api.cpp` as bare or partial paths in some places, so I used the full forms where it gave them. `inference_c_api.cpp:385` appears with no directory, so I left it off. It names `StdioTransport::open` (`:164`) with no path at all."
+}

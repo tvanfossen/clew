@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"$ENTROPIC_LIB \u2192 $ENTROPIC_HOME \u2192 ~/.entropic \u2192 ldconfig\" and \"`find()` checks several install layouts, then falls back to `ctypes.util.find_library`\"\nVERDICT: MISS\nWHY: The answer gives the resolution order (env overrides, then ~/.entropic, then ldconfig). It only says \"several install layouts\" and never says two directory layouts are tried per root."
+}

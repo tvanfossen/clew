@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The arg value comes from `args_to_pattern` (`server_manager.cpp:426`), which takes only the first key of the args object if that value is a string. Otherwise it is `*`.\"\nVERDICT: HIT\nWHY: The answer states that only one argument (the first key's value) reaches the pattern, and that a non-string value becomes `*`. It never mentions unparseable arguments, but the item's core substance is present."
+}

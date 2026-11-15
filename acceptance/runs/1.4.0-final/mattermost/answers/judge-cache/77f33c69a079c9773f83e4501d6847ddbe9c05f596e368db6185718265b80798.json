@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `archiveChannel`) | After `deleteChannel`, sets `delete_at` locally, so the channel stays visible as archived | Calls `removeCurrentUserFromChannel` locally and does not set `delete_at` | ... `app/actions/websocket/channel.ts:463` ... | Does nothing extra | If the channel is the current one, `handleKickFromChannel(... Events.CHANNEL_ARCHIVED)`, then `removeCurrentUserFromChannel`\n\nVERDICT: HIT\nWHY: The answer states that with viewing off, the user is removed from the channel and kicked out if it's the current channel. With viewing on, the channel is kept and `delete_at` is set locally, which marks it deleted."
+}

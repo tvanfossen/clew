@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Confined to `src/inference/`: `llama_cpp_backend.{h,cpp}`, `llama_cpp_sampler.{h,cpp}`, and `llama_cpp_tokenizer.{h,cpp}` are the only first-party files that call llama.cpp types and functions\nVERDICT: MISS\nWHY: The answer says the dependency is fully confined to src/inference, which contradicts the item's conclusion that a minority of reaching files sit outside it."
+}

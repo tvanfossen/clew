@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`MBEDTLS_THREADING_C` defaults off... by default, nothing inside the library runs concurrently and no mutex is taken... None of these are in `library/`. The library itself spawns nothing.\"\nVERDICT: MISS\nWHY: The answer says the library spawns no threads by default, but it never says the pthread example compiles to a stub main under that condition, and it lists the pthread server as a thread-spawning site."
+}

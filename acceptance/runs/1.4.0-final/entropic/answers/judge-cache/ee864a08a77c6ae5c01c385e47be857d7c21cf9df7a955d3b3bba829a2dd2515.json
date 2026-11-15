@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"because `check_approval` sets `approved = true` after calling `on_tool_call`. That callback returns `void` (`engine_types.h:370`), so it can notify the host but cannot veto.\"\nVERDICT: HIT\nWHY: The answer states the callback returns void and approved is set to true unconditionally after it fires, so it cannot refuse."
+}

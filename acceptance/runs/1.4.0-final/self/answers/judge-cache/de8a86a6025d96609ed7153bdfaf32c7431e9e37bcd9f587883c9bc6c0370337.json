@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The router in `clew/harvest.py:203-225` returns no grammar for `.sh` and CMake, so no tree is parsed and no `memberdef` rows are written. Nothing raises.\"\nVERDICT: MISS\nWHY: The answer says nothing raises, but it explicitly denies that the not-indexed report names those types and says the files get path rows, so it never states that they are reported as not indexed."
+}

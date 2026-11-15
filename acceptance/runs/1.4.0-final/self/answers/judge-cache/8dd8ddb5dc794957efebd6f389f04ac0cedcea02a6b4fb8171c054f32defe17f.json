@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Refusals: write paths return `REFUSED: \u2026` with the remedy when the process is stale (`stale_code_refusal`, freshness.py ~531).\nVERDICT: MISS\nWHY: The answer says writes are refused when the process is stale, but never states that reads stay current because query tools open the database per call, and it doesn't state the build-writes-old-logic rationale."
+}

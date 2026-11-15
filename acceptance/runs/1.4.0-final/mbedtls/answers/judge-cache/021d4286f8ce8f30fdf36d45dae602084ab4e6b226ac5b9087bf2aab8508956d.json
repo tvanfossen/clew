@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Only `mbedtls_ct_memcmp` is public (`include/mbedtls/constant_time.h`). The rest is internal, so applications cannot rely on the masks directly.\nVERDICT: HIT\nWHY: The answer explicitly states that the public API is only mbedtls_ct_memcmp and that the other primitives are internal."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: With that callback wired, the only calls refused at approval are the ones that hit the deny list later. This contradicts the header's \"default-deny\" wording\n\nVERDICT: MISS\nWHY: The answer says the callback always approves and contradicts \"default-deny\" at the approval stage, but it never concludes that a tool matching neither list simply runs. The default-allow posture is only implied, and only when the callback is wired."
+}

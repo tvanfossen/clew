@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Two opt-in test-only settings exist: `MBEDTLS_TEST_CONSTANT_FLOW_VALGRIND` and `MBEDTLS_TEST_CONSTANT_FLOW_MEMSAN` ... They mark secret inputs as undefined and let the test run under valgrind memcheck or clang MSan ... These are explicitly not part of the public API.\nVERDICT: HIT\nWHY: The answer says constant-flow is verified by opt-in test-only facilities built on valgrind/MSan and that they are explicitly not part of the public API."
+}

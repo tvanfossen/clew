@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: By default a struct field is renamed to `private_<name>`. Code outside the library that writes `ctx->state` fails to compile, and code that writes `ctx->MBEDTLS_PRIVATE(state)` also fails, because the real name is `private_state`. The point is to keep the field layout and names free to change between releases.\nVERDICT: MISS\nWHY: The answer describes renaming fields to `private_<name>` and compile errors, but never says the struct layout stays visible and sized, so it doesn't draw the contrast with hiding the layout."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes \"an uninitialized stub that always returns NULL\" only for the NO_STD_FUNCTIONS case. It never says the runtime pointers' defaults fail (calloc returns NULL, free does nothing) rather than fall back. It says they start as libc calloc/free."
+}

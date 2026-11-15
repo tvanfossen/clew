@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"How many automatic retries: zero.\" and \"`createPost` in `app/client/rest/posts.ts:43-47` passes `noRetry: true`.\"\nVERDICT: HIT\nWHY: The answer explicitly states the create-post request is sent once with no automatic retries, naming the noRetry mechanism."
+}

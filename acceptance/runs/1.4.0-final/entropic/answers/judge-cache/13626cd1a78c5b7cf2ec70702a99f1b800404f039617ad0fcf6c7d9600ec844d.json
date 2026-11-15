@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The first `llama_tokenize(..., nullptr, 0, ...)` passes no buffer. llama.cpp answers with a negative count, which is the required size. The code negates it, allocates that many `int32_t`, and calls `llama_tokenize` again to fill the buffer.\"\nVERDICT: HIT\nWHY: The answer states the first call returns a negative count that is the required size, and that the code negates it to allocate the buffer for the second call."
+}

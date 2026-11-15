@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`MBEDTLS_PLATFORM_MEMORY` defaults to off (`include/mbedtls/mbedtls_config.h:208`).\"\nVERDICT: HIT\nWHY: The answer names MBEDTLS_PLATFORM_MEMORY as the gate between macro and function-pointer paths, and it says the symbol is off by default in the shipped mbedtls_config.h at line 208. That matches \"commented out\" in substance."
+}

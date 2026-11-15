@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: JS/TS come through the parse front end instead\nVERDICT: MISS\nWHY: The answer mentions the parse front end for JS/TS only in passing and never names it as a filter that claims the file types doxygen cannot read. It does name the binary filter, but describes it as \"dropped by content, not extension\" without the \"extension lies\" framing the item requires. Because the item is one atomic fact and the answer only gestures at it, the verdict is MISS."
+}

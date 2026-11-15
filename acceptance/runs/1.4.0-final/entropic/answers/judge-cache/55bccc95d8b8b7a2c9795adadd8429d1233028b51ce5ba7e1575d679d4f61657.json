@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Both calls always run; nothing is retried.\nVERDICT: MISS\nWHY: The answer says nothing is retried and that a negative sized call yields an empty vector, but it never states that a negative result from the second call is terminal. The empty-return-on-negative-second-call claim is only implied."
+}

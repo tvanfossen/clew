@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"A failed tokenization therefore looks like empty input to C callers.\" and \"tokenize doesn't throw, so it never covers this failure\"; also \"Only the speculative and MTP paths check for it\" with other paths having \"No check.\"\nVERDICT: HIT\nWHY: The answer states that failure returns an empty vector, which is identical to empty input, and that most callers do not check it (only the speculative and MTP paths do, via a length guard that misreports the cause)."
+}

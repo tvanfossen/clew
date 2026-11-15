@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 24486,
+  "stop_reason": "end_turn",
+  "session_id": "4402c9d1-adb0-436b-a5f9-897d9aee4b69",
+  "total_cost_usd": 0.00969944,
+  "usage": {
+    "input_tokens": 6,
+    "cache_creation_input_tokens": 29481,
+    "cache_read_input_tokens": 115514,
+    "output_tokens": 5295,
+    "output_tokens_details": {
+      "thinking_tokens": 3211
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 29481,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 4652,
+        "cache_read_input_tokens": 41838,
+        "cache_creation_input_tokens": 24481,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 24481
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 6,
+      "outputTokens": 5295,
+      "cacheReadInputTokens": 115514,
+      "cacheCreationInputTokens": 29481,
+      "webSearchRequests": 0,
+      "costUSD": 0.00969944,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 3211,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 29481,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 7,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** library code never calls `calloc`/`free` directly. It calls `mbedtls_calloc`/`mbedtls_free`, and what those resolve to depends on two config switches. The default build calls libc. With `MBEDTLS_PLATFORM_MEMORY` on, they dispatch through function pointers that a project can replace at runtime. I read this from the index's symbol and gate data, not from the full source, so the conditional details are worth confirming in `include/mbedtls/platform.h` and `library/platform.c`.\n\n**What gets called, by configuration**\n\n| Config | `mbedtls_calloc` / `mbedtls_free` resolve to |\n|---|---|\n| Default (`MBEDTLS_PLATFORM_MEMORY` off) | Macros to libc `calloc` / `free` (`platform.h:167`, `:166`). No indirection. |\n| `MBEDTLS_PLATFORM_MEMORY` on, no custom macros | Real functions in `platform.c:47` and `:52`. Each calls through a static pointer, `mbedtls_calloc_func` / `mbedtls_free_func` (`platform.c:44`). |\n| `MBEDTLS_PLATFORM_CALLOC_MACRO` / `FREE_MACRO` defined | Macros expanding to the project's own names (`platform.h:143`, `:144`). |\n\nThe static pointer defaults to `MBEDTLS_PLATFORM_STD_CALLOC`. That macro is off in the shipped config (`mbedtls_config.h:4124`). If it is undefined, `platform.c:32` falls back to `platform_calloc_uninit`, which always returns NULL. So a memory-hook build that never installs an allocator fails every allocation. This is inferred from the gate data, so verify it before relying on it.\n\n**How a project substitutes its allocator**\n\nTwo routes, both shown in the index:\n\n1. **Compile-time macros.** Enable `MBEDTLS_PLATFORM_MEMORY` and define `MBEDTLS_PLATFORM_CALLOC_MACRO` and `MBEDTLS_PLATFORM_FREE_MACRO` in the user config. Those names then replace calloc/free everywhere. The shipped headers do not define these macros, so the project must supply them.\n2. **Runtime hooks.** Enable `MBEDTLS_PLATFORM_MEMORY` and call `mbedtls_platform_set_calloc_free(calloc_fn, free_fn)` (`platform.c:57`). It just stores the two pointers. The repository's own test config, `tests/configs/user-config-malloc-0-null.h`, does this via `MBEDTLS_PLATFORM_STD_CALLOC` = `custom_calloc`.\n\n**What the library does with the facility**\n\n- **Everything routes through the wrapper.** Callers include the cipher context allocators in `cipher_wrap.c`, the MD context macro `ALLOC` in `md.c`, `pk_wrap.c`, `ecp.c`, `pem.c`, `pkcs7.c`, `asn1parse.c`, and the SSL free paths in `ssl_tls.c`. The `ALLOC` macro in `md.c` maps a NULL return to `MBEDTLS_ERR_MD_ALLOC_FAILED`.\n- **It ships its own allocator.** `mbedtls_memory_buffer_alloc_init` (`memory_buffer_alloc.c:566`) takes a caller-supplied buffer and carves it into blocks with headers. It installs its own calloc/free through `mbedtls_platform_set_calloc_free`. With `MBEDTLS_THREADING_C` it uses mutex-wrapped variants. This makes a fixed-heap, no-libc-heap configuration possible.\n- **Its failure modes differ.** On exhaustion, `buffer_alloc_calloc` returns NULL. On corruption, double free, or a pointer outside the managed buffer, `buffer_alloc_free` calls `mbedtls_exit(1)` rather than returning an error. The allocator also has verify, status, max-usage and self-test helpers, and an optional backtrace.\n\nCaveat: the index shows that `mbedtls_memory_buffer_alloc_init` installs these hooks through the same `set_calloc_free` path a project would use. It does not show whether the library itself checks which allocator is active.",
+  "ttft_ms": 1402,
+  "type": "result",
+  "duration_ms": 27463,
+  "uuid": "8deeb577-017b-400d-ae29-65dbcfd20f3e",
+  "ttft_stream_ms": 1126,
+  "time_to_request_ms": 86,
+  "first_content_frame_ms": 1126,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

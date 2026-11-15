@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: | **data** | ... | **schema** | ... | **code** | ... (table of three axes: data, schema, code) and \"Each call to `db_status` ... computes ... three independent signals\"\nVERDICT: HIT\nWHY: The answer explicitly presents staleness as three independent axes (data, schema, code), each with its own measurement and remedy."
+}

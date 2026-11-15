@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer doesn't name any file as storing, collapsing or filtering call edges, or as deciding what a neighbour reply contains. Its only paths are `clew/gitenv.py` (where `git_argv` is defined) and `scope.py` (which holds two callers).\n\nITEMS:\nNONE\nEND"
+}

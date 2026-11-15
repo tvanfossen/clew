@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: MBEDTLS_CT_ASM  <=  MBEDTLS_HAVE_ASM && __GNUC__ && (not armcc5)\n   + one of: ARM / AArch64 / x86-64 / x86 (by __arm__, __aarch64__, __x86_64__, __i386__)\nVERDICT: HIT\nWHY: The answer says the selection is a preprocessor decision, with MBEDTLS_CT_ASM computed from MBEDTLS_HAVE_ASM and compiler predefined macros (__GNUC__, __arm__, and so on). It does not say outright that no config entry sets it, but the derivation is clear."
+}

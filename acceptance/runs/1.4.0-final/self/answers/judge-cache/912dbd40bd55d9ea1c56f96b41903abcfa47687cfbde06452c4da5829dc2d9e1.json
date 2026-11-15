@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `--declare FILE`, or the `options` argument of `build_index()` / MCP `index(action=\"refresh\")` | 1 (explicit) | Stated for one build.\nVERDICT: HIT\nWHY: The answer places both the CLI flag (`--declare`) and the structured `options` argument of `build_index()`/MCP at tier 1, and says the vocabulary matches `.clew.yaml` so it works for repos you can't edit. That covers both entry points reaching tier 1."
+}

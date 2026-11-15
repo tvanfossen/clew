@@ -1,0 +1,93 @@
+{
+  "cell": "Q2_claude-haiku-5-5_baseline_r2",
+  "arm": "baseline",
+  "rubric_version": "5.0.0",
+  "rubric_digest": "d8447c7b18eafbf5",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.19047619047619047,
+  "unmarked_pct": 0.0,
+  "split_decisions": 0,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "locates the grading in clew/mcp_server/emptiness.py",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: `clew/mcp_server/tools_query.py` `_many`, `clew/mcp_server/emptiness.py` `search_emptiness` | WHY: The answer explicitly names clew/mcp_server/emptiness.py (with `search_emptiness` and `_verdict`) as where the empty-result grading lives. || QUOTE: `clew/mcp_server/emptiness.py` `search_emptiness` | WHY: The answer explicitly names clew/mcp_server/emptiness.py as the location of the emptiness/verdict grading logic (`search_emptiness`, `_verdict`).",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the strong wording is EARNED PER CALL by querying which corpora the search did not read, rather than being attached to a result shape",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer's own verdict ladder shows strong wording gated on a mix of conditions (unread-corpus hits, file_docs presence), and it says `_verdict` never reads `not_indexed`; it never says the wording is earned per call by querying unsearched corpora instead of being tied to a result shape. || QUOTE: NONE | WHY: The answer describes a verdict ladder tied to result shape and explicitly notes `_verdict` never reads `not_indexed`; it does not say the strong wording is earned per call by querying which corpora the search did not read. || QUOTE: NONE | WHY: The answer's table keys the \"definitive\" wording to conditions (unread-corpus hits, `file_docs` presence). It then says `_verdict` never reads `not_indexed`, and that is presented as a gap. It never says the wording is earned per call by querying which corpora were not read, as opposed to being tied to a result shape.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "explains that a single token matching nothing was previously treated as proof of absence, and that this confuses \"nothing exists\" with \"I did not look there\"",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: Multi-token query, one token matches nothing | \"NOT definitive\". Names the dead token, says retry without it | Only that the conjunction was over-specified | WHY: The answer describes the current verdict ladder, but never says a single token matching nothing was previously treated as proof of absence, nor frames it as confusing \"nothing exists\" with \"I did not look there.\" || QUOTE: Multi-token query, one token matches nothing | \"NOT definitive\". Names the dead token, says retry without it | Only that the conjunction was over-specified | WHY: The answer describes the current verdict ladder and the single-token \"definitive\" case. It never says that a single token matching nothing was previously treated as proof of absence, or that this confused \"nothing exists\" with \"I did not look there\". || QUOTE: NONE | WHY: The answer describes the current verdict ladder and a gap about `not_indexed`, but never says that a single token matching nothing was formerly treated as proof of absence or that this conflated \"nothing exists\" with \"I did not look there\".",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the downgrades are ORDERED most-specific first, and explains why \u2014 a matching row in an unread corpus is a statement about THIS query and outranks statements about the index as a whole",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer says the ladder is \"most specific first\" but never explains why an unread-corpus match outranks index-wide statements. || QUOTE: **The verdict ladder** (most specific first) | WHY: The answer says the ladder is ordered most-specific first but gives no reason why a matching row in an unread corpus outranks index-wide statements, and the item requires both. || QUOTE: \"**The verdict ladder** (most specific first)\" | WHY: The answer labels the ladder \"most specific first\" but never explains why a matching unread-corpus row, which is about this query, outranks index-wide statements.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "conveys that there is exactly ONE absent-corpus downgrade and that keeping it to one is deliberate, because downgrading on every absent layer turns the grading into a blanket hedge",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never states that there is exactly one absent-corpus downgrade or that limiting it to one is deliberate to avoid blanket hedging. It only says absent layers are reported separately and that gh#393 tried repeating them and was reverted. || QUOTE: NONE | WHY: The answer never says there is exactly one absent-corpus downgrade or that keeping it to one is deliberate. It says only that absent layers are a separate fact and that gh#393 tried to repeat them and was reverted. || QUOTE: NONE | WHY: The answer never states that there is exactly one absent-corpus downgrade or that limiting it to one is deliberate to avoid blanket hedging; it only notes layer absence is reported separately and not repeated in search replies.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "conveys the general rule the module leaves behind \u2014 fix the corpus, not the sentence about the corpus",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: The fix would be to add a `not_indexed` check to `_verdict` that downgrades to \"NOT definitive\" and names the uncovered extensions. | WHY: The answer proposes a specific code fix to `_verdict`, but it never states the general rule that the corpus should be fixed rather than the wording of the claim about it. || QUOTE: The fix would be to add a `not_indexed` check to `_verdict` that downgrades to \"NOT definitive\" and names the uncovered extensions. | WHY: The answer proposes a specific code fix to the verdict wording. It never states the general rule \"fix the corpus, not the sentence about the corpus.\" || QUOTE: NONE | WHY: The answer describes the verdict ladder and a gap in `_verdict`. It never states the general rule of fixing the corpus rather than the sentence about the corpus.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "distinguishes all three grades an empty reply can receive: definitive for the scope, definitive for a reason that is not absence, and not definitive",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer describes only two grades, \"definitive\" and \"NOT definitive\". It labels the unread-corpus case \"NOT definitive\" and never describes a \"definitive for a reason other than absence\" grade. || QUOTE: NONE | WHY: The answer describes only two grades, \"definitive\" and \"NOT definitive\". It never names a third grade of \"definitive for a reason that is not absence\". || QUOTE: NONE | WHY: The answer separates only \"definitive\" (nothing in the searched corpora) from \"NOT definitive\". It never names a third grade, which would be a definitive empty reply whose reason is something other than absence.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the reply also names the file types that WERE in scope and produced no rows, so \"this repository does not contain that\" and \"that file type is not indexed here\" are distinguishable rather than the same empty answer",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: `not_indexed` / `not_indexed_count`: in-scope file types that produced no rows, e.g. `.py=53`. These keys are present only if the build recorded them. A missing key means \"not recorded\", not \"nothing was missed\". | WHY: The answer states that the empty-search reply names in-scope file types that produced no rows (`not_indexed`), which separates \"not present\" from \"not indexed here\". || QUOTE: `not_indexed` / `not_indexed_count`: in-scope file types that produced no rows, e.g. `.py=53`. These keys are present only if the build recorded them. A missing key means \"not recorded\", not \"nothing was missed\". | WHY: The answer states that the empty reply names in-scope file types that produced no rows (`not_indexed`), which makes \"not in repo\" distinguishable from \"file type not indexed\". || QUOTE: `not_indexed` / `not_indexed_count`: in-scope file types that produced no rows, e.g. `.py=53`. These keys are present only if the build recorded them. A missing key means \"not recorded\", not \"nothing was missed\". | WHY: The answer states the empty reply also names in-scope file types that produced no rows (`not_indexed`), distinguishing \"not indexed\" from \"nothing was missed\".",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    }
+  ]
+}

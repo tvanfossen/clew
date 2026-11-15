@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Add the define** in the module's header, for example `include/mbedtls/pk.h`: ... **Regenerate** with `make -C library error.c` ... **Commit the regenerated `library/error.c`**.\"\nVERDICT: HIT\nWHY: The answer says to add the Doxygen-documented #define to the module header and regenerate error.c via the generator, so error.c is generated output rather than hand-edited."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"If the index is *newer* than the server, a rebuild re-stamps the same newer version, so the flag can never clear.\" and \"Not clearable by a rebuild in that case\"\nVERDICT: HIT\nWHY: The answer states the schema axis is unresolvable when the index is newer than the server because rebuilding re-stamps the same newer version."
+}

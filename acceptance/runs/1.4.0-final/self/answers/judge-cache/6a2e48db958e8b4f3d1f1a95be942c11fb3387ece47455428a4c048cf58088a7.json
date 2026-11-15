@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says that when several layers find the same edge \"the strongest one wins\", but it never says a ranking in the vocabulary module decides this rather than SQL."
+}

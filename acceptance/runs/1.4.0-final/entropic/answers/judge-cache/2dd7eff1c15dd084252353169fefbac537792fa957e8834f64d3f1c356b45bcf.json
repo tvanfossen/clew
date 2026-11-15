@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Converts the C-ABI `int*` cancel flag into an `atomic<bool>` every 10 ms\nVERDICT: HIT\nWHY: The answer describes cancel pollers bridging the C-ABI `int*` flag into an `atomic<bool>`, which is the substance of the item. It names the C ABI as the reason a plain int is used, and it flags the plain `int` shared across threads at `response_generator.cpp:416`."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `*.sh`, `*.bash` | `memberdef` per `name() {}` or `function name {}`; args empty; doc from the `#` block directly above\nVERDICT: MISS\nWHY: The answer says shell args are empty but never states that the function has no return or that the language lacks both argument list and return, so the item's mechanism is absent."
+}

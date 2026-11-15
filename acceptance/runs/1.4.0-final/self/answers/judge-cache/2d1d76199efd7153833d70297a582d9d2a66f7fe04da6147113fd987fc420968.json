@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`not_indexed` (file types the index skips, such as `.rs`, `.toml`, `.sql`, and extensionless files)\" and \"the file types where the thing would live appear in `scope.extensions`\"\nVERDICT: MISS\nWHY: The answer lists file types that are not indexed and the extensions that are in scope. It never says the reply names in-scope file types that produced no rows, so it doesn't separate \"absent\" from \"not indexed\" in the way the item requires."
+}

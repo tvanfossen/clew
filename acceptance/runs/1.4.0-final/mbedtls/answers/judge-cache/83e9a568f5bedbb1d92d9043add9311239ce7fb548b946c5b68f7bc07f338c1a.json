@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The function splits the code into a module part and a low-level part, looks each part up in a `switch` table... If both parts are present, the two strings are joined with `\" : \"`.\nVERDICT: HIT\nWHY: The answer states the two-layer high-level/low-level split and that mbedtls_strerror joins both strings when both are present."
+}

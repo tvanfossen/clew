@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `platform.h:139-144` then maps `mbedtls_calloc`/`mbedtls_free` to your macros, and `platform.c:20-22` omits its runtime code.\nVERDICT: MISS\nWHY: The answer says the platform.c runtime code is omitted on the macro path. It never says that `mbedtls_platform_set_calloc_free` is neither declared nor compiled there."
+}

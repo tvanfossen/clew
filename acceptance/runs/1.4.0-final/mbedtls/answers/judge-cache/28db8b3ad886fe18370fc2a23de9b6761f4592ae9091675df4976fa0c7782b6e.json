@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says the macro is applied at many hundreds of sites or that those are mostly in public headers; it only says \"Every struct member in the public headers is written as `MBEDTLS_PRIVATE(foo)`,\" with no scale and no contrast against the library implementation."
+}

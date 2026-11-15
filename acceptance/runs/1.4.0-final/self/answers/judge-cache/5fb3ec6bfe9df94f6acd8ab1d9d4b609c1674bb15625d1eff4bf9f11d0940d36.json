@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The schema notice's direction matters. If the index is newer than the server, a rebuild re-stamps the same newer version and never clears the flag.\nVERDICT: HIT\nWHY: The answer explicitly states that when the index is newer than the server, rebuilding re-stamps the same newer version and never clears the schema flag."
+}

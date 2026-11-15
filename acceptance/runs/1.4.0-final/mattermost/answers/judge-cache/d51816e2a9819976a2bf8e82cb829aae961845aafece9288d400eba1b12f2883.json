@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Without it, `sanitizeReactions` would also return every stored reaction on the post that is absent from `rawReactions` as `deleteReactions`. Since `rawReactions` holds only the one new reaction, every other reaction on the post would be deleted.\"\nVERDICT: HIT\nWHY: The answer explains that skipSync prevents the single incoming reaction from being treated as the full set, which would delete all other reactions on the post."
+}

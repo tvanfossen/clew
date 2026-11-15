@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says a single-token miss was previously treated as proof of absence; it describes the current reply's scope fields instead of the prior conflation of \"nothing exists\" and \"didn't look\"."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `AppDataOperator` also extends `BaseDataOperator`, so the app database shares the same write path.\nVERDICT: HIT\nWHY: The answer names AppDataOperator as another BaseDataOperator subclass sharing the write path for the app database."
+}

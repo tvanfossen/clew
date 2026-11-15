@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Otherwise, if an `on_tool_call` callback is registered, it is invoked and `approved` is set to `true` unconditionally.\"\nVERDICT: MISS\nWHY: The answer says a registered callback never denies, but it never concludes that a tool matching neither list runs. It also says that with no callback the call is denied, which is the opposite of default-allow."
+}

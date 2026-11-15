@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The REST call is marked `noRetry: true` (`app/client/rest/posts.ts:43-48`), which sets `retryPolicyConfiguration = {retryLimit: 0}`\nVERDICT: MISS\nWHY: The answer states that posting opts out of retries but never says requests in general retry with exponential backoff, limit 3, set by the network manager."
+}

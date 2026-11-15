@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `find() searches candidate paths, then ctypes.util.find_library` and \"if missing: OSError telling the user to run `entropic install-engine` or set $ENTROPIC_LIB\"\nVERDICT: MISS\nWHY: The answer only vaguely mentions candidate paths, `$ENTROPIC_LIB`, and `find_library`. It does not give the order of environment override, default user directory, then system cache, and it does not mention two directory layouts per root."
+}

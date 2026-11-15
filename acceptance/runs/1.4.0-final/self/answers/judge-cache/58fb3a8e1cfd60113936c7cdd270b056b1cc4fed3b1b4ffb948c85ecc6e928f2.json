@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: At depth 1 the `callers` field is call-only. At depth 2 and above, `chain` walks both call edges and shared-key (dataflow) edges.\nVERDICT: MISS\nWHY: The answer says depth-1 callers are call-only and mentions `edge_class: call` only as a default, so it never says callers/callees mix direct calls and dataflow in one list distinguished by `edge_class`."
+}

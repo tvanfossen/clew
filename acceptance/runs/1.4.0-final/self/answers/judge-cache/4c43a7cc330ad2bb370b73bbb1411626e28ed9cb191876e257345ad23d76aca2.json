@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Reads are live because each query opens the db, so data is current. The process's logic is what is stale. Writes are the hazard, because a stale process rebuilding would stamp the index with old logic.\"\nVERDICT: HIT\nWHY: The answer states that reads stay current because each query opens the db, while a build through a stale process would stamp the index with old logic."
+}

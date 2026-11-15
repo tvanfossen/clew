@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Makes a fresh `client.createPost` call, with the same retry-free policy. ... On failure, applies the same handling as the first attempt: removes the post for the three permanent errors, otherwise sets `failed: true` again.\nVERDICT: HIT\nWHY: The answer states that retryFailedPost makes a single new createPost attempt with no retries and, on failure, removes the post for the three errors or marks it failed again."
+}

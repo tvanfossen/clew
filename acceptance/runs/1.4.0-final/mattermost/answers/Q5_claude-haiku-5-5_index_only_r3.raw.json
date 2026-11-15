@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 17499,
+  "stop_reason": "end_turn",
+  "session_id": "e0e88b54-f87f-4f70-b2ac-4ea9bdb1f3c2",
+  "total_cost_usd": 0.00642597,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 12204,
+    "cache_read_input_tokens": 233067,
+    "output_tokens": 3307,
+    "output_tokens_details": {
+      "thinking_tokens": 1210
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 12204,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2199,
+        "cache_read_input_tokens": 52163,
+        "cache_creation_input_tokens": 3404,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 3404
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 3307,
+      "cacheReadInputTokens": 233067,
+      "cacheCreationInputTokens": 12204,
+      "webSearchRequests": 0,
+      "costUSD": 0.00642597,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1210,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 12204,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 7,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Class composition.** `ServerDataOperator` (`app/database/operator/server_data_operator/index.ts:40`) is `class ServerDataOperator extends mix(ServerDataOperatorBase).with(...)`. The base is `ServerDataOperatorBase`, which extends `BaseDataOperator`. It mixes in 13 handler mixins, and the interface at `index.ts:23` declares matching `*HandlerMix` types so the methods type-check.\n\n**Where the handlers live:**\n\n| Handler | Location |\n|---|---|\n| `CategoryHandler`, `ChannelHandler`, `CustomProfileHandler`, `GroupHandler`, `PostHandler`, `PropertiesHandler`, `TeamHandler`, `TeamThreadsSyncHandler`, `ThreadHandler`, `UserHandler` | `app/database/operator/server_data_operator/handlers/*.ts` (same folder as `index.ts`) |\n| `ServerDataOperatorBase` | `app/database/operator/server_data_operator/handlers/index.ts:31` (same folder, shared base with `handleRole`, `handleCustomEmojis`, `handleReactions`, `handleFiles`, `execute`, etc.) |\n| `AgentsHandler` | `app/products/agents/database/operators/handlers/index.ts` |\n| `BoardsHandler` | `app/products/boards/database/operators/handlers/index.ts` |\n| `PlaybookHandler` | `app/products/playbooks/database/operators/handlers/index.ts` |\n\nSo three product handlers (agents, boards, playbooks) are defined outside the server operator folder, under their own `products/*/database/operators/handlers` directories.\n\n**The actual database write.** Handlers don't write directly. The path is:\n\n1. A handler method, e.g. `PostHandler.handlePosts`, builds raw input.\n2. It calls `ServerDataOperatorBase.execute` (`handlers/index.ts:234`) or `BaseDataOperator.handleRecords`. These call `prepareRecords`, which produces WatermelonDB `prepareCreate`/`prepareUpdate` models.\n3. `BaseDataOperator.batchRecords` (`app/database/operator/base_data_operator/index.ts:191`) performs the write: `this.database.write(async (writer) => writer.batch(...models), description)`.\n\nThat `batchRecords` body is the only place the write happens. It also:\n- Catches errors and logs them with `logWarning`. It rethrows only when `propagateError` is true.\n- Emits `Events.DATABASE_CORRUPTION_DETECTED` if the error is a corruption error.\n\nHandlers called with `prepareRecordsOnly` return the prepared models without calling `batchRecords`, so the caller batches them later.\n\n**What else shares it.**\n- `AppDataOperator` also extends `BaseDataOperator`, so the app-level database uses the same write path.\n- All server handlers reach it through `execute`, `handleRecords` or `handleFiles`/`handleReactions`. Those cover `PostHandler`, `ChannelHandler`, `GroupHandler`, `ThreadHandler`, `UserHandler`, `PropertiesHandler`, and `TeamThreadsSyncHandler`.\n- The product handlers `AgentsHandler` (`handleAIBots`, `handleAIThreads`) and `PlaybookHandler` (`handlePlaybookRun`, `handlePlaybookChecklist`, `handlePlaybookChecklistItem`) call it directly.\n\nThe index also lists `cleanupAiThreads`, `cleanupPlaybookRuns` and `autoCacheCleanup` in `app/actions/local/ephemeral_mode/cleanup.ts` as `batchRecords` candidates. I did not verify whether they call it, because the index marks them as name matches without bodies. The caller list for `batchRecords` is also incomplete: the index reports 232 unresolved callers, so there may be more than the ones above.",
+  "ttft_ms": 1708,
+  "type": "result",
+  "duration_ms": 18924,
+  "uuid": "3bbac054-cef4-410e-886f-4de3d9a1aee7",
+  "ttft_stream_ms": 1158,
+  "time_to_request_ms": 66,
+  "first_content_frame_ms": 1158,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

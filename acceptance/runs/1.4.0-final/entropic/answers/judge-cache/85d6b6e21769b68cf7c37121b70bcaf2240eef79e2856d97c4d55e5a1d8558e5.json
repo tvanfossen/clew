@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"When the second `llama_tokenize` returns a negative value (line 64), `LlamaCppTokenizer::tokenize` logs an error containing only the text length and returns `{}`, an empty vector.\" and \"`do_count_tokens` ... Returns `0` | ... so the API cannot distinguish failure from empty text.\"\nVERDICT: HIT\nWHY: The answer states that a failed tokenization yields an empty result, so the count path returns 0 with no error signal. It says this cannot be told apart from empty input."
+}

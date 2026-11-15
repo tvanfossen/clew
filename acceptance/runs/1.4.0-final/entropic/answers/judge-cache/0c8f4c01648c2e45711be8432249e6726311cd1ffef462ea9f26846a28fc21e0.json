@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: An empty result is also what valid empty input produces when `add_special=false`, so the two cases can't be told apart by the return value.\nVERDICT: MISS\nWHY: The answer states the indistinguishability but then lists per-caller behavior, with most callers continuing and no caller checking for failure. It never says outright that no caller checks for it, and the speculative and MTP guards are presented as partial handling, so that half of the item is not stated."
+}

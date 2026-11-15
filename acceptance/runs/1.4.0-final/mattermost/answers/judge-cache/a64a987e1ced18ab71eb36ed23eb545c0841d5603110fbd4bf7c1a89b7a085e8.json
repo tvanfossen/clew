@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: event.ts:163 switch(msg.event) \u2192 WebsocketEvents.REACTION_ADDED handleReactionAddedToPostEvent(serverUrl, msg)\nVERDICT: MISS\nWHY: The answer names the switch in `event.ts` and `handleReactionAddedToPostEvent`, but never names `handleWebSocketEvent` as the dispatcher function."
+}

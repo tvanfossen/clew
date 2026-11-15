@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Direct `#include <llama.h>` appears in about 15 `.cpp`/`.h` files, almost all under `src/`\nVERDICT: HIT\nWHY: The answer states that llama.cpp reaches about 15 of entropic's own source files, listed across many areas rather than a single wrapper, which matches \"roughly a dozen files, not one wrapper.\""
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`mbedtls_memory_buffer_alloc_init` (`memory_buffer_alloc.c:566`) ... installs its own calloc/free through `mbedtls_platform_set_calloc_free`.\"\nVERDICT: MISS\nWHY: The answer says the buffer allocator's init function installs itself through the setter. It never says this is the only in-tree caller, and it implies a project test config also installs hooks."
+}

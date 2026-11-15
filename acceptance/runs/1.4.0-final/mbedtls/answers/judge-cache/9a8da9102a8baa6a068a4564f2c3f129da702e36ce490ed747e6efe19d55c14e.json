@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The two options are mutually exclusive: when both macros are defined, the runtime setter is compiled out.\nVERDICT: HIT\nWHY: The answer states that on the macro path the runtime setter is compiled out, so it is not present. That matches \"neither declared nor compiled\", though it doesn't use the word \"declared\"."
+}

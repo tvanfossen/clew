@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: JS/TS come through the parse front end instead\nVERDICT: MISS\nWHY: The answer mentions JS/TS going through the parse front end and a binary filter, but never states that the resolved scope is not the whole answer. It also doesn't say the front end claims the file types doxygen can't read. The binary filter is described as content-based, but not as dropping files whose extension lies about them. That is a gesture at the item, not the specific mechanism it requires."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The spawn sites are all in the MCP transports, the external bridge, and the inference cancel path.\nVERDICT: HIT\nWHY: The answer names thread spawns across the external bridge, the MCP transports, the health monitor (`HealthMonitor::start` \u2192 `monitor_loop`) and the inference path, and the table shows them spread across subsystems rather than centralised. The opening sentence omits the health monitor, but the table lists it."
+}

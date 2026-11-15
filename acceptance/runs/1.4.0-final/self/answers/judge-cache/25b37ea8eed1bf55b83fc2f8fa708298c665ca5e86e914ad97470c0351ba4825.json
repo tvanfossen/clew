@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The repo's `.clew.yaml` | 2 (declared) | Standing declaration, read from the repo root. Holds `index_scope:` (`roots`, `excludes`) plus per-option sections like `entry_patterns`, `preprocessor`, `thread_patterns`.\nVERDICT: MISS\nWHY: The answer names `.clew.yaml` as tier 2 and read from the repo root, but never says both entry points (CLI and build_index/MCP) discover it rather than it being plumbed per section."
+}

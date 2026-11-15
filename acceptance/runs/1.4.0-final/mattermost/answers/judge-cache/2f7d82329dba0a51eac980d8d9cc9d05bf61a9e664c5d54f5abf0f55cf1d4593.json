@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `app/actions/websocket/channel.ts:463` | Nothing extra | If the user is viewing this channel, kick them out with `CHANNEL_ARCHIVED`; then remove the current user from the channel locally.\nVERDICT: HIT\nWHY: The table says that when archived channels are not viewable and the user is viewing the channel, they are kicked out and removed from it locally. The `archiveChannel` row says that when channels are viewable, `delete_at` is set locally so the channel stays visible as archived, which matches \"kept and marked deleted\"."
+}

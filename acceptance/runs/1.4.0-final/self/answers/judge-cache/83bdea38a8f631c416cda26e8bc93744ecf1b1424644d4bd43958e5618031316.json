@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: QueryTools._staleness (tools_query.py ~1884) attaches the notices as a `staleness` key on every reply, including not-found replies. ... The notices are empty when the index is current, and the `staleness` key is omitted entirely in that case.\nVERDICT: HIT\nWHY: The answer says the staleness annotation is attached to every query reply and is absent/empty when the index is current."
+}

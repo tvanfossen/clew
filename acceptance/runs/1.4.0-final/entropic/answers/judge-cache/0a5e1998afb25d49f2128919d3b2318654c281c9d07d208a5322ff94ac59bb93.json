@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Runtime \"Always Allow/Deny\" choices are written back to the project YAML by `PermissionPersister` (`permission_persister.cpp:232`).\nVERDICT: MISS\nWHY: The answer says choices are persisted to project YAML by PermissionPersister, but it never names config.local.yaml or separates persistence from the in-memory add_permission call."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `code` | process predates the source tree | restart the MCP client; rebuilding will not help | no, a restart (and data row: \"`index(action='refresh')`... yes, a rebuild\")\nVERDICT: MISS\nWHY: The answer lists different remedies per axis (rebuild vs. restart) but never states that this is why a single flag would not have been enough."
+}

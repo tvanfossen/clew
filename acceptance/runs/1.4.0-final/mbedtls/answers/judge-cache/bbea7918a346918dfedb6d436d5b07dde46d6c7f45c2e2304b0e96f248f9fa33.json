@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the library creates no threads and takes no locks in a default build. It never says the pthread example compiles to a stub main under that condition, and it describes the example as spawning a thread per client."
+}

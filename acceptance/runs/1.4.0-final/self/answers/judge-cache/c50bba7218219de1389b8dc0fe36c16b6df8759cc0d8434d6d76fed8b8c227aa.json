@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **How the code grades it** (`clew/mcp_server/emptiness.py`). The module's own comments describe three outcomes:\nVERDICT: HIT\nWHY: The answer explicitly names clew/mcp_server/emptiness.py as the location of the empty-result grading logic."
+}

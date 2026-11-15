@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Each file gets a `path` row and nothing else. It is in the file set and findable by name, and its `symbol_count` is 0. This repo has 16 YAML files (...) and 16 JSON files, all with zero symbols.\nVERDICT: HIT\nWHY: The answer states that YAML and JSON files are in the file set with zero symbols. It contrasts them with shell and CMake, which do get function and macro symbols, so the two groups are treated differently."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer mentions `PermissionManager::is_allowed` and `ServerManager::is_explicitly_allowed`, but it never says the allow and deny lists come from the PermissionsConfig that ServerManager is constructed with. It only cites config keys in `src/config/loader.cpp`."
+}

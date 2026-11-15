@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The outer `try/catch` in `handleReactionAddedToPostEvent` is empty, so parse or lookup failures are dropped silently. ... Failures inside the `try` are swallowed silently by the empty `catch`, with no log.\nVERDICT: HIT\nWHY: The answer states that both the add and remove handlers have empty catch blocks that silently swallow errors."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: One leak above the inference layer. `src/inference/orchestrator.cpp:458` (`stage_active_tools`) does `dynamic_cast<LlamaCppBackend*>`, so the orchestrator knows the concrete backend type.\nVERDICT: MISS\nWHY: The answer's one \"leak\" is inside src/inference/ (orchestrator.cpp), and it says only the inference layer uses the API. It does not say that a minority of the reaching files sit outside src/inference."
+}

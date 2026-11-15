@@ -1,0 +1,103 @@
+{
+  "cell": "Q1_claude-haiku-5-5_index_only_r3",
+  "arm": "index_only",
+  "rubric_version": "3.1.0",
+  "rubric_digest": "bbf6195f605be452",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.25,
+  "unmarked_pct": 0.0,
+  "split_decisions": 0,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "names MBEDTLS_THREADING_C and MBEDTLS_THREADING_PTHREAD as the gating macros",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: `MBEDTLS_THREADING_C` defaults off (`include/mbedtls/mbedtls_config.h:3787`). `library/threading.c` is wholly gated on it (lines 18\u2013193), so every lock site in the library is `#if`'d out. - `MBEDTLS_THREADING_PTHREAD` and `MBEDTLS_THREADING_ALT` also default off | WHY: The answer names MBEDTLS_THREADING_C as the gate for threading.c and also names MBEDTLS_THREADING_PTHREAD alongside it. It states MBEDTLS_THREADING_C gates the mutex code, which is the substance of the item. || QUOTE: `MBEDTLS_THREADING_C` defaults off (`include/mbedtls/mbedtls_config.h:3787`). `library/threading.c` is wholly gated on it (lines 18\u2013193), so every lock site in the library is `#if`'d out. ... `MBEDTLS_THREADING_PTHREAD` and `MBEDTLS_THREADING_ALT` also default off | WHY: The answer names MBEDTLS_THREADING_C as the gate for threading.c, and it names MBEDTLS_THREADING_PTHREAD alongside it as a related threading macro. The mutex code is described as compiled out when these are off. || QUOTE: `MBEDTLS_THREADING_C` defaults off (`include/mbedtls/mbedtls_config.h:3787`). `library/threading.c` is wholly gated on it (lines 18\u2013193), so every lock site in the library is `#if`'d out. / `MBEDTLS_THREADING_PTHREAD` and `MBEDTLS_THREADING_ALT` also default off | WHY: The answer names MBEDTLS_THREADING_C as the gate on threading.c and mentions MBEDTLS_THREADING_PTHREAD as a threading flag, so both macros are named. It is a loose HIT, since it does not explicitly call PTHREAD a gating macro.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the shipped mbedtls_config.h leaves BOTH threading macros undefined, so a default build defines neither",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: `MBEDTLS_THREADING_C` defaults off (`include/mbedtls/mbedtls_config.h:3787`). ... `MBEDTLS_THREADING_PTHREAD` and `MBEDTLS_THREADING_ALT` also default off (`mbedtls_config.h:2196`, `:2185`). | WHY: The answer says the threading macros \"default off\", but ties that to the header gate definitions, not to the shipped config leaving them undefined. It also names three macros rather than the two in the item, and says the index was built with both THREADING flags set, which muddies the claim that a default build defines neither. || QUOTE: `MBEDTLS_THREADING_C` defaults off (`include/mbedtls/mbedtls_config.h:3787`). ... `MBEDTLS_THREADING_PTHREAD` and `MBEDTLS_THREADING_ALT` also default off (`mbedtls_config.h:2196`, `:2185`). | WHY: The answer says the threading macros \"default off\" but also says the index was built with both flags set and that it did not verify a build. It never states that the shipped config header leaves them undefined, so a default build defines neither. || QUOTE: `MBEDTLS_THREADING_C` defaults off (`include/mbedtls/mbedtls_config.h:3787`). ... `MBEDTLS_THREADING_PTHREAD` and `MBEDTLS_THREADING_ALT` also default off (`mbedtls_config.h:2196`, `:2185`). | WHY: The answer says the threading macros \"default off\" in the header but never states that the shipped config leaves them undefined. Its note that \"the index was built with both THREADING flags set\" muddies whether a default build defines neither.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that a default build of mbedtls creates no threads at all, and that the pthread example compiles to a stub main under that condition",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: \"`MBEDTLS_THREADING_C` defaults off... by default, nothing inside the library runs concurrently and no mutex is taken... None of these are in `library/`. The library itself spawns nothing.\" | WHY: The answer says the library spawns no threads by default, but it never says the pthread example compiles to a stub main under that condition, and it lists the pthread server as a thread-spawning site. || QUOTE: \"`MBEDTLS_THREADING_C` defaults off ... by default, nothing inside the library runs concurrently and no mutex is taken.\" and \"The library itself spawns nothing.\" | WHY: The answer says the library spawns no threads by default, but it lists the pthread example as a thread-spawning site and never says that it compiles to a stub main under a default build. || QUOTE: \"`MBEDTLS_THREADING_C` defaults off ... so every lock site in the library is `#if`'d out.\" and \"The library itself spawns nothing.\" | WHY: The answer says the library spawns no threads by default, but it lists the pthread example's `handle_ssl_connection` thread as a thread site and never says the pthread example compiles to a stub main under the default build.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states BOTH halves of the contrast: that nothing in library/ creates a thread, AND that library/ nonetheless supplies the mutex abstraction used by threaded callers",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: \"None of these are in `library/`. The library itself spawns nothing.\" and \"Per-object locks... `library/threading.c`\" with \"`mbedtls_threading_key_slot_mutex` (`threading.c:188`)\" | WHY: The answer says the library spawns no threads, but it frames the mutex code as compiled out by default and never says that library/ supplies the mutex abstraction for threaded callers. It describes the locks as internal protections, not as an abstraction offered to callers. || QUOTE: None of these are in `library/`. The library itself spawns nothing. | WHY: The answer says the library spawns no threads, but it describes the mutex code as compiled out by default and never states that library/ supplies the mutex abstraction for threaded callers, so the contrast's second half is not stated. || QUOTE: \"None of these are in `library/`. The library itself spawns nothing.\" and \"Every lock goes through one identity, `mutex->mutex` (`threading.c:81`)\" / \"`library/threading.c` is wholly gated on it\" | WHY: The answer says the library spawns no threads, but it never states that library/ supplies the mutex abstraction for threaded callers. It frames the mutex code as compiled out by default and lists the lock sites instead, so the contrast is not stated.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "every source file containing a thread-creation site \u2014 programs/ssl/ssl_pthread_server.c",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every source file containing a thread-creation site \u2014 programs/test/benchmark.c",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every source file containing a thread-creation site \u2014 precision",
+      "kind": "set_precision",
+      "weight": 2,
+      "hit": false,
+      "detail": "named 1 not in the set: ['programs/ssl/ssl_server2.c']",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "identifies the benchmark timer thread as Windows-only, gated on a platform condition rather than on the threading config",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: `TimerProc` (Win32) | `programs/test/benchmark.c:430` | Windows timer callback | WHY: The answer labels TimerProc as a Win32/Windows timer callback but never says it is gated on a platform condition rather than the threading config. || QUOTE: `TimerProc` (Win32) | `programs/test/benchmark.c:430` | Windows timer callback | WHY: The answer labels TimerProc as a Win32/Windows callback but never says it is gated on a platform condition (e.g. _WIN32) rather than the threading config. || QUOTE: `TimerProc` (Win32) | `programs/test/benchmark.c:430` | Windows timer callback | WHY: The answer labels TimerProc as a Win32/Windows callback but never says it is gated on a platform condition rather than the threading config.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies debug_mutex as serialising debug output so that concurrent connections do not interleave their logging",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never mentions debug_mutex or serialising debug output across connections; it lists other mutexes (key slot, gmtime, entropy, heap) but not this one. || QUOTE: NONE | WHY: The answer never mentions debug_mutex or serialising debug output across concurrent connections; it lists other mutexes only. || QUOTE: NONE | WHY: The answer never mentions debug_mutex or serialising debug output across connections; it lists other mutexes only.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    }
+  ]
+}

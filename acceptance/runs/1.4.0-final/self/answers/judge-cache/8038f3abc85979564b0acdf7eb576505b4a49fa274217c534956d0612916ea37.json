@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Single token, but rows exist in a corpus `search` does not read (e.g. typedefs) | \"NOT DEFINITIVE\", names the rows and their count, points to `dossier`\"\nVERDICT: MISS\nWHY: The answer separates \"definitive\" from several \"NOT DEFINITIVE\" cases. It never names a distinct grade that is definitive for a reason other than absence. The typedef case is labeled NOT DEFINITIVE."
+}

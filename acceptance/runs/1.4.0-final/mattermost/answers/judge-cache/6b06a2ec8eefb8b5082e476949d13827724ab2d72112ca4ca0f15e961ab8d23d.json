@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"When `hasSearch` is true, it renders `<NavigationSearch {...searchProps} ref={ref} />` (`index.tsx:128-135`).\" and \"If `hasSearch` is false, `NavigationSearch` is never rendered, so a ref passed to `NavigationHeader` stays `null`.\"\nVERDICT: HIT\nWHY: The answer says the ref is forwarded to NavigationSearch, which renders only when `hasSearch` is true, and that otherwise the ref stays null, attached to nothing."
+}

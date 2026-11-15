@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The App database uses `AppDataOperator`, which extends `BaseDataOperator` directly and does not get these handlers.\nVERDICT: HIT\nWHY: The answer names AppDataOperator as the app-database operator extending BaseDataOperator directly, which is the other subclass. It also describes the shared write path through `BaseDataOperator.batchRecords`."
+}

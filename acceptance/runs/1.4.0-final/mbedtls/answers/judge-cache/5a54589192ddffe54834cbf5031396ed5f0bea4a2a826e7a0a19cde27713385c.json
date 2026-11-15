@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_ct_compiler_opaque(x)` is an empty `asm volatile` with `\"+r\"(x)` when assembly is enabled. Otherwise it returns `x ^ mbedtls_ct_zero`... (`constant_time_impl.h:85`, `constant_time.c:29`). Its purpose is to stop the compiler from knowing a condition's value\nVERDICT: HIT\nWHY: The answer names mbedtls_ct_compiler_opaque, states it stops the compiler from knowing a value, and locates it in constant_time_impl.h."
+}

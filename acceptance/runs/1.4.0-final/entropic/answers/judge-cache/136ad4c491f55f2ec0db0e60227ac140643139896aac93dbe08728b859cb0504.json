@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer discusses headers, includes, and raw `llama_model*`/`llama_context*` pointers, but never identifies llama.cpp's C API (llama_-prefixed free functions) as the seam versus C++ classes."
+}

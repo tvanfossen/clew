@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Without `MBEDTLS_PLATFORM_MEMORY`, `include/mbedtls/platform.h:163-167` makes them plain macros... With `MBEDTLS_PLATFORM_MEMORY`, there are two ways to choose the allocator\"\nVERDICT: MISS\nWHY: The answer names MBEDTLS_PLATFORM_MEMORY as the gating option but never says it is commented out (disabled by default) in the shipped mbedtls_config.h."
+}

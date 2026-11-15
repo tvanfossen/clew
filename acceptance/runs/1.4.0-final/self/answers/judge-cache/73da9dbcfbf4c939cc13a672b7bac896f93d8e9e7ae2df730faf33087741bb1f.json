@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says callers are grouped by enclosing function (a function calling twice appears once), but never states that the query surface returns one row per neighbour rather than one per layer, or that variants are collapsed to the strongest evidence."
+}

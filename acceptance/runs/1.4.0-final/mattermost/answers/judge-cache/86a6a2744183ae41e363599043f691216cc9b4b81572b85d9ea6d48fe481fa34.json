@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Archive removes the current user from the channel locally. ... If the current channel is archived, the app kicks the user out (`Events.CHANNEL_ARCHIVED`) and removes the membership. ... Archive sets `delete_at` locally and keeps the channel in the DB as archived.\nVERDICT: HIT\nWHY: The answer states that with the setting off, archiving removes the user from the channel and kicks them out of the current channel. With the setting on, the channel is kept with `delete_at` set, which marks it deleted."
+}

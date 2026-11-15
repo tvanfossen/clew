@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "ITEMS:\nscripts/generate_errors.pl\nthe module's public header\ninclude/mbedtls/aes.h\nthe generator's input data (data files, data_dir)\ninclude_dir\nEND"
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**code** | `code_identity()` ... | the two fingerprints differ | restart the client only\" and \"READS\" asymmetry? The answer says \"Refusals: write paths return `REFUSED: \u2026` with the remedy when the process is stale\", and \"It refuses outright when the process predates its source.\"\nVERDICT: MISS\nWHY: The answer mentions that writes/refresh are refused when the process is stale, but never states the asymmetry that reads stay current because query tools open the database per call, nor that a stale-process build would write old pipeline logic."
+}

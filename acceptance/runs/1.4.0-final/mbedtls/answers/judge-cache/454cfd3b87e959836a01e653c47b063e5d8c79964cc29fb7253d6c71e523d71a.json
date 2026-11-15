@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `include/mbedtls/constant_time.h` exposes only `mbedtls_ct_memcmp`. The wider set (`mbedtls_ct_uint_eq`, `_lt`, `_if`, `_memcpy_if`, `_bool_or`, and so on) is internal, in `library/constant_time_internal.h`.\nVERDICT: HIT\nWHY: The answer says the public header exposes only mbedtls_ct_memcmp and the other primitives are internal."
+}

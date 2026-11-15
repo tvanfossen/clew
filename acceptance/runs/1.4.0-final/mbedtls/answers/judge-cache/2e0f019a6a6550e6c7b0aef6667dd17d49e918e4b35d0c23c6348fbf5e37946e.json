@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The library creates no threads. The only pthread wiring is in `programs/Makefile` (`THREADING=pthread`), which affects the sample programs, not the library.\"\nVERDICT: MISS\nWHY: The answer says the library creates no threads, but it doesn't say that library/ supplies the mutex abstraction (threading.c) for threaded callers. It describes threading.c only as disabled by default and makes no mention of that abstraction."
+}

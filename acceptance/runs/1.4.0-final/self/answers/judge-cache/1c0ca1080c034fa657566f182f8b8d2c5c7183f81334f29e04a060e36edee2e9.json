@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: This is from reading `clew/mcp_server/emptiness.py`, `clew/query/models.py` and `clew/query/corpus.py`.\nVERDICT: HIT\nWHY: The answer names `clew/mcp_server/emptiness.py` as the file it read for the empty-result grading, and its later discussion of `search_emptiness` and `prose_emptiness` matches that module."
+}

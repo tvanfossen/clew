@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `app/actions/remote/search.ts:62,73` (post search) | Sends `include_deleted_channels` to the server.\nVERDICT: HIT\nWHY: The answer states that post search sends `include_deleted_channels` to the server."
+}

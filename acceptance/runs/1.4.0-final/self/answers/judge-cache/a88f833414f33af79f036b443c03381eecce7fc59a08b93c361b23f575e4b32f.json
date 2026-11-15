@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `force=True` skips the freshness check but never the source-staleness refusal (`stale_code_refusal`), and it reports `duration_ms` for the call.\nVERDICT: HIT\nWHY: The answer says the write path refuses on stale code and that force skips the freshness check but never this refusal. It also says that \"a build through it is REFUSED\". That conveys the refusal-over-warning behavior and that a force flag can't override it."
+}

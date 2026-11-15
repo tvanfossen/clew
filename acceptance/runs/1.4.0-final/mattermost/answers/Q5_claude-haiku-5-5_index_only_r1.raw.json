@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 25046,
+  "stop_reason": "end_turn",
+  "session_id": "087d9629-9a71-4495-8937-e646c90f6d26",
+  "total_cost_usd": 0.01372598,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 45944,
+    "cache_read_input_tokens": 207968,
+    "output_tokens": 4913,
+    "output_tokens_details": {
+      "thinking_tokens": 2405
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 45944,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3015,
+        "cache_read_input_tokens": 55184,
+        "cache_creation_input_tokens": 5493,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 5493
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 4913,
+      "cacheReadInputTokens": 207968,
+      "cacheCreationInputTokens": 45944,
+      "webSearchRequests": 0,
+      "costUSD": 0.01372598,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2405,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 45944,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 10,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**How the class is built**\n\n`ServerDataOperator` (`app/database/operator/server_data_operator/index.ts:40`) is `mix(ServerDataOperatorBase).with(...)`, a mixin composition. Its base is `ServerDataOperatorBase`, which extends `BaseDataOperator`. The index's `interface ServerDataOperator extends ...Mix` declaration (line 23) merges in the matching `*Mix` interface types so the mixed-in methods are typed. The constructor is `constructor(database: Database, serverUrl?: string)` (line 55). The index reports 14 bases in total.\n\n**Handlers defined next to it** (`app/database/operator/server_data_operator/handlers/`):\n\n- `category`, `channel`, `custom_profile`, `group`, `post`, `properties`, `team`, `team_threads_sync`, `thread`, `user`\n- The base itself, `ServerDataOperatorBase`, is in `handlers/index.ts:31`. It provides the shared helpers: `handleRole`, `handleCustomEmojis`, `handleSystem`, `handleConfigs`, `handleReactions`, `handleFiles`, and `execute`.\n\n**Handlers defined elsewhere:**\n\n- `AgentsHandler`: `app/products/agents/database/operators/handlers/index.ts`\n- `BoardsHandler`: `app/products/boards/database/operators/handlers/index.ts`\n- `PlaybookHandler`: `app/products/playbooks/database/operators/handlers/index.ts`\n\nThe paths for the last two are inferred from their qualified names; I did not confirm the file contents of those two.\n\n**Who performs the database write**\n\nThe write has three layers:\n\n1. **Handler (product or core):** builds the raw input. `handleAIBots` (`app/products/agents/database/operators/handlers/index.ts:43`) is typical. It fetches existing rows, diffs them against incoming raws, and calls `handleRecords` to prepare create/update models. It also marks stale rows with `prepareDestroyPermanently()`. It calls `batchRecords` only when `prepareRecordsOnly` is false.\n2. **`ServerDataOperatorBase.execute`** (`handlers/index.ts:234`) is a thin wrapper. It calls `prepareRecords`, then `batchRecords` if there are models.\n3. **`BaseDataOperator`** (`app/database/operator/base_data_operator/index.ts`) does the actual work:\n   - `prepareRecords` (line 134) runs the transformer for each create/update raw and appends `prepareDestroyPermanently()` results for deletes.\n   - `batchRecords` (line 191) is the real write. It calls `this.database.write(async (writer) => writer.batch(...models))`. On error it logs with `logWarning`, emits `Events.DATABASE_CORRUPTION_DETECTED` if the error is a corruption error, and rethrows only when `propagateError` is set.\n\nSo every handler's write ends in `BaseDataOperator.batchRecords`.\n\n**What else shares it**\n\n- **Inside the server operator:** the base `execute`, `handleFiles`, and `handleReactions`. Also `PostHandler` (many methods, including `handlePosts`, `handleReceivedPostsInChannel*`, and scheduled-post handlers), `ChannelHandler.handleChannelBookmark`, `GroupHandler` (three methods), `UserHandler.handlePreferences`, `PropertiesHandler` (fields and values), `ThreadHandler`, `TeamThreadsSyncHandler.handleTeamThreadsSync`, and `AgentsHandler` (`handleAIBots`, `handleAIThreads`) and `PlaybookHandler` (run, checklist, checklist item).\n- **Across the app:** `AppDataOperator` also extends `BaseDataOperator`, so the app database shares the same write path. The index also lists callers in `app/actions/local/ephemeral_mode/cleanup.ts` (`cleanupAiThreads`, `cleanupPlaybookRuns`, `autoCacheCleanup`). Those entries have no resolved body, so I could not confirm whether they reach this same method.\n\n**Caveats**\n\n- The `ServerDataOperator` declaration is truncated in the index at 8 lines. The list of 14 bases comes from the index's base list, not from reading the full `with(...)` argument list.\n- `batchRecords` has about 232 unresolved callers, so the caller list above may be incomplete.",
+  "ttft_ms": 1811,
+  "type": "result",
+  "duration_ms": 28655,
+  "uuid": "41194b00-82c7-42b3-b3f5-28cb738b8d45",
+  "ttft_stream_ms": 1288,
+  "time_to_request_ms": 144,
+  "first_content_frame_ms": 1288,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 45232,
+  "stop_reason": "end_turn",
+  "session_id": "0753f138-0e5d-49ba-baf7-e1ca165138ba",
+  "total_cost_usd": 0.023425690000000002,
+  "usage": {
+    "input_tokens": 26,
+    "cache_creation_input_tokens": 61484,
+    "cache_read_input_tokens": 733079,
+    "output_tokens": 7591,
+    "output_tokens_details": {
+      "thinking_tokens": 2496
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 61484,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3170,
+        "cache_read_input_tokens": 76034,
+        "cache_creation_input_tokens": 1069,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1069
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 26,
+      "outputTokens": 7591,
+      "cacheReadInputTokens": 733079,
+      "cacheCreationInputTokens": 61484,
+      "webSearchRequests": 0,
+      "costUSD": 0.023425690000000002,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2496,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 61484,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 23,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** A \"reaction added\" event goes through the generic `handleReactions` operator, with `skipSync: true` so it never deletes other reactions. A \"reaction removed\" event does not use that operator at all. It queries the database directly and destroys the matching row. The two paths share only the websocket switch and the swallowed-error `try/catch` pattern.\n\n## Added path\n\n```\nwebsocket_manager.ts:112  client.setEventCallback \u2192 handleWebSocketEvent(serverUrl, evt)\n  \u2502  (gated by isCurrentClient())\nevent.ts:163              case REACTION_ADDED \u2192 handleReactionAddedToPostEvent(serverUrl, msg)   [not awaited]\nreactions.ts:21           JSON.parse(msg.data.reaction) \u2192 Reaction\n                          operator.handleReactions({prepareRecordsOnly:false, skipSync:true,\n                                                    postsReactions:[{post_id, reactions:[reaction]}]})\nhandlers/index.ts:124     handleReactions \u2192 sanitizeReactions(...)  per post\nutils/reaction.ts:22      load all REACTION rows where post_id = X\n                          map key \"userId-emojiName\"; if the incoming one exists \u2192 no-op\n                          else createReactions.push({raw})\n                          skipSync \u2192 return {createReactions, deleteReactions: []}   (line 49)\nhandlers/index.ts:146     prepareRecords(createRaws, transformReactionRecord)\ntransformers/reaction.ts:19  id = raw.id; userId, postId, emojiName, createAt set\nhandlers/index.ts:166     prepareRecordsOnly false \u2192 batchRecords()\nbase_data_operator:191    database.write(writer.batch(...))  \u2192 row stored in the server DB\n```\n\nAn existing row with the same user and emoji is skipped, not updated. Adding the same reaction twice is therefore idempotent, and the stored row keeps its original `create_at`.\n\n## Removed path\n\n```\nevent.ts:166        case REACTION_REMOVED \u2192 handleReactionRemovedFromPostEvent(serverUrl, msg)\nreactions.ts:39    JSON.parse(msg.data.reaction)\n                   queryReaction(db, emoji_name, post_id, user_id).fetch()   (queries/servers/reaction.ts:12)\n                   if length \u2192 database.write(() => reaction[0].destroyPermanently())\n```\n\nIt does not call `handleReactions`, `sanitizeReactions`, `batchRecords`, or any transformer. It uses the same natural key as the add path (emoji, post, user). It also does not check the reaction `id`. If no row matches, it does nothing.\n\n## Flags that change what gets written\n\n| Flag | Where | Effect |\n|---|---|---|\n| `skipSync: true` | add path, `reactions.ts:28` | `sanitizeReactions` returns `deleteReactions: []` before the diff (`utils/reaction.ts:49`). The one-reaction payload is not treated as the full reaction set, so the handler does not delete every other reaction on the post. |\n| `skipSync` (undefined) | `handlePosts` \u2192 `handleReactions`, `post.ts:564` | Full-sync mode. The reactions in a post's metadata are treated as the complete set, and stale rows are destroyed (`index.ts:156`). |\n| `prepareRecordsOnly: false` | add path | The batch is committed inside `handleReactions`. |\n| `prepareRecordsOnly: true` | `handlePosts`, `post.ts:564` | Returns models so the caller can batch them with posts and files. |\n\nReaction-added events are not the only way reactions reach the table. Post payloads that carry `metadata.reactions` go through `handlePosts` and into the full-sync path above.\n\n## Does removal take the same path?\n\nNo. It shares the switch dispatch and the empty `catch`. It does not use the `handleReactions` operator, the sync diff, or the `skipSync` flag. It also bypasses `batchRecords`, so the corruption-event handling in `base_data_operator/index.ts:198-206` does not run for removals.\n\n## Observations\n\n- Both handlers swallow every error in an empty `catch` (`reactions.ts:16`, `:34`, `:51`). A failed add or remove leaves no log. CLAUDE.md requires `logError` in handlers, so these are the places to add it.\n- Both handlers are fire-and-forget in the switch (`event.ts:164`, `:167`), so ordering between an add and a remove for the same reaction is not guaranteed.\n- I did not read `prepareRecords` or `processRecords` internals. The create path is inferred from `handleReactions`, and I did not run tests.",
+  "ttft_ms": 2272,
+  "type": "result",
+  "duration_ms": 46362,
+  "uuid": "a8adf8e7-90c8-4e41-89c1-47ba77fe81ad",
+  "ttft_stream_ms": 1970,
+  "time_to_request_ms": 122,
+  "first_content_frame_ms": 1970,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

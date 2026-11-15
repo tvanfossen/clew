@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Fuzzy edges are kept.** `callers` deliberately does not filter `fuzzy`. The code cites 21.3% of clew's own call edges and 79.8% on a large C++ target (entropic) as fuzzy. `chain_trace` filters them because it expands each hop.\"\nVERDICT: HIT\nWHY: The answer says callers (flat) keeps fuzzy edges while chain_trace (traversal) filters them because it expands each hop, which is the item's mechanism."
+}

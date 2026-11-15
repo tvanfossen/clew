@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: This is what a repo gets by saying nothing, whether or not it ships a Doxyfile (the Doxyfile INPUT tier was removed in gh#333). ... its `INPUT` and `EXCLUDE` are replaced by the scope.\nVERDICT: MISS\nWHY: The answer says the Doxyfile INPUT tier was removed and is replaced by the scope, but never explains the rationale that a Doxyfile would otherwise yield only a documented subset versus the whole tree for repos without one."
+}

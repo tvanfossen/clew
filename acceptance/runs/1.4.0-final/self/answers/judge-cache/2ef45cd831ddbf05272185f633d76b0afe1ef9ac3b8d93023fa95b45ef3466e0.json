@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Arguments are empty by design, since shell functions take `$1`/`$@`.\nVERDICT: MISS\nWHY: The answer says arguments are empty because shell takes `$1`/`$@`, but it never says there is no return recorded or that the language has neither an argument list nor a return."
+}

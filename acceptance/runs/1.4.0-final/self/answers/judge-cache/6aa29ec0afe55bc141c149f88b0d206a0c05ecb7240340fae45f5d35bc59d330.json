@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Inline document via `--declare`, or the structured `options` argument for embedding callers | Same validation as a file.\nVERDICT: MISS\nWHY: The answer mentions the `options` argument but never says its option names are the same words as the declaration file's section names or the diagnostics' wording."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Tier-3 and tier-4 values survive every stated tier. A declaration cannot remove a macro that the Doxyfile defines. Heuristics (tier 5) are the only layer a stated value displaces.\nVERDICT: MISS\nWHY: The answer gives the combination formula, where tiers 3 and 4 appear as \u222a tier3 \u222a tier4. It never says the two combine identically, that the tier 3/4 distinction is inert, or that fact-versus-guess is the load-bearing line."
+}

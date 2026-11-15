@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: On an install without the grammars, shell and CMake degrade without an error, but the miss report does not flag them, which contradicts its own design docs.\nVERDICT: MISS\nWHY: The answer says that without the grammars shell and CMake degrade silently, but it says the miss report does not name those file types as not indexed. The item requires them to be reported as not indexed, so the answer contradicts it."
+}

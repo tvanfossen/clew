@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The spawn sites are all in the MCP transports, the external bridge, and the inference cancel path.\nVERDICT: HIT\nWHY: The answer's table lists spawn sites across the external bridge, the MCP transports (stdio and SSE), the health monitor and the inference cancel path, which shows creation is spread out and not centralised."
+}

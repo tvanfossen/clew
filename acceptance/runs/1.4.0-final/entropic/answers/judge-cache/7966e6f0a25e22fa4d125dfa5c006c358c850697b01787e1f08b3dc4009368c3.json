@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"So \"no vocab\", \"no tokenizer\", \"llama failed\", and \"empty input\" all look the same to callers.\" and \"the API cannot distinguish failure from empty text\"\nVERDICT: HIT\nWHY: The answer says tokenization failure is indistinguishable from legitimately empty input; callers' lack of checks is stated too (\"No check\", \"most generation paths don't check for empty input\")."
+}

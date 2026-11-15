@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It refuses outright when the process predates its source, and `force` cannot override that.\nVERDICT: HIT\nWHY: The answer states that the write path (explicit refresh) refuses, with `REFUSED:` replies, and that `force` cannot override the refusal. That covers the refusal and the non-overridable force flag. It does not say the check runs ahead of the build decision, but \"force cannot override\" carries that substance."
+}

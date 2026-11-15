@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`mbedtls_memory_buffer_alloc_init(buf, len)` (memory_buffer_alloc.c:566\u2013600) ... installs its own `buffer_alloc_calloc` / `buffer_alloc_free` through the same setter. With `MBEDTLS_THREADING_C` it installs the `_mutexed` wrappers, which lock a mutex around each call\"\nVERDICT: HIT\nWHY: The answer says the init function installs mutexed wrappers under MBEDTLS_THREADING_C and, by implication, the plain pair otherwise. It doesn't say the choice is made at compile time."
+}

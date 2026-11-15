@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `_loader.find()` checks `$ENTROPIC_LIB`, then `$ENTROPIC_HOME`, then `~/.entropic/entropic/lib/` and `~/.entropic/lib/`, and finally falls back to `ctypes.util.find_library`.\nVERDICT: HIT\nWHY: The answer gives the resolution order of environment overrides, then a default user directory with two layouts (`~/.entropic/entropic/lib/` and `~/.entropic/lib/`), then the system library lookup via `find_library`. This is close enough to the item's \"two layouts per root\" and \"system library cache\"."
+}

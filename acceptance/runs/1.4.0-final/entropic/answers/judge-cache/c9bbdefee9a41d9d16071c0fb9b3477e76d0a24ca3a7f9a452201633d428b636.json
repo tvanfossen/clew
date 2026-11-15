@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"An empty vector means \"failed\" and \"legitimately zero tokens\" at the same time. Empty text with `add_special=false` is a valid zero-token result, so the caller cannot tell them apart.\"\nVERDICT: HIT\nWHY: The answer says failure and a legitimate empty result are indistinguishable. Its caller trace shows no caller checks: counting returns 0, and generation proceeds with an empty prompt and no error."
+}

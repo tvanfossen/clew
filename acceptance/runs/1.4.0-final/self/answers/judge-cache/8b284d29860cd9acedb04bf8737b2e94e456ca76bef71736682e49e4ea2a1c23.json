@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `QueryTools._staleness()` attaches those notices to every query reply, sized to fit the payload.\nVERDICT: MISS\nWHY: The answer says notices are \"sized to fit the payload\" but never states that this is done by degrading the wording rather than dropping the warning."
+}

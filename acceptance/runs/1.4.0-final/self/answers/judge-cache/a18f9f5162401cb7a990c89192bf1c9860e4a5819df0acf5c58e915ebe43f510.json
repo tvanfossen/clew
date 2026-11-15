@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Tier 3 and 4 facts.** These accumulate and no stated tier removes them. A Doxyfile's aliases survive a `.clew.yaml` that says otherwise.\nVERDICT: HIT\nWHY: The answer states that stated tiers replace each other per section while discovered tier 3/4 facts accumulate and survive any stated tier."
+}

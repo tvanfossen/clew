@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer separates \"definitive\" from \"NOT definitive\" (unread corpus, conjunction, missing tables), but never describes a distinct grade for \"definitive for a reason that is not absence\" (e.g. the name exists elsewhere, so the empty result is definitive about the corpus searched). The three-way split the item requires is not laid out. Its \"definitive\" and \"NOT DEFINITIVE\" categories also don't map onto definitive-for-scope vs definitive-for-another-reason vs not-definitive."
+}

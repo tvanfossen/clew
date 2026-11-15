@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer covers scope resolution only; it never mentions the parse-built front end for file types doxygen can't read or binary classification, and it admits it didn't verify which extensions reach doxygen."
+}

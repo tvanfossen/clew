@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`build_or_refresh` refuses on the code axis before taking the lock. `force=True` does not get past that refusal.\"\nVERDICT: HIT\nWHY: The answer says the write path refuses (not warns) and that the refusal comes before the lock/build, so `force=True` cannot override it."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says fuzzy edges are kept with a confidence tag and should be filtered, but it never contrasts a flat surface with a traversal surface that excludes them. It also never says that a walk multiplies one fuzzy edge into a wrong subtree."
+}

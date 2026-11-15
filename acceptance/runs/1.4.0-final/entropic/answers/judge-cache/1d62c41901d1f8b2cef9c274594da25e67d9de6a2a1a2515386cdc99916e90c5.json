@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Calling it \"retry\" would be wrong for two reasons. The second call never repeats a failed input; it uses different arguments derived from the first call's answer. And if the second call fails, the code does not try again.\"\nVERDICT: HIT\nWHY: The answer concludes this is size-probe-then-fill rather than retry, noting the second call uses the size from the first and that there is no further attempt on failure. It never says \"no backoff\" or \"no attempt counter\" in so many words, but it states the substance."
+}

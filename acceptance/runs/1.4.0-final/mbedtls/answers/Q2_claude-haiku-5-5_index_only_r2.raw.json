@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 18774,
+  "stop_reason": "end_turn",
+  "session_id": "ba46bb05-8c0a-47b1-bedb-2a325432b58c",
+  "total_cost_usd": 0.00605253,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 12817,
+    "cache_read_input_tokens": 164683,
+    "output_tokens": 3683,
+    "output_tokens_details": {
+      "thinking_tokens": 1498
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 12817,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2510,
+        "cache_read_input_tokens": 46380,
+        "cache_creation_input_tokens": 3311,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 3311
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 8,
+      "outputTokens": 3683,
+      "cacheReadInputTokens": 164683,
+      "cacheCreationInputTokens": 12817,
+      "webSearchRequests": 0,
+      "costUSD": 0.00605253,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1498,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 12817,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 11,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**What it does.** `MBEDTLS_PRIVATE(member)` is a macro in `include/mbedtls/private_access.h:15`. In the default configuration it expands to `private_##member`, so a public struct field is renamed. Writing `ctx->MBEDTLS_PRIVATE(cipher_info)` compiles to `ctx->private_cipher_info`. The field is still in the header, but its name is changed, so code that reaches into it by the plain name fails to compile. C has no access control, so this rename is the only barrier. The header's file doc calls it a \"Macro wrapper for struct's members,\" and `library/common.h:132` says the members \"are private and should not be accessed by the user.\"\n\n**The gate.** `private_access.h:14-18` selects the expansion on `MBEDTLS_ALLOW_PRIVATE_ACCESS`:\n\n```\n#ifndef MBEDTLS_ALLOW_PRIVATE_ACCESS   -> MBEDTLS_PRIVATE(m) = private_##m   (renamed)\n#ifdef  MBEDTLS_ALLOW_PRIVATE_ACCESS   -> MBEDTLS_PRIVATE(m) = m             (plain name)\n```\n\n**For whom.**\n\n- **Default (no define):** external applications that include mbedtls headers. They cannot use the field names. They must go through the accessor functions, such as `mbedtls_ssl_get_hostname`, `mbedtls_ssl_conf_get_endpoint` and `mbedtls_ssl_is_handshake_over`. Those accessors are in the index, and their bodies use `MBEDTLS_PRIVATE` internally.\n- **Opt-out:** the library itself and its own sample programs. Inside that code the field is accessed by its real name.\n\n**Where the opt-out is turned on in this tree.** It is a hard-coded `#define`, not a build option. It has no Kconfig or config-header entry, and the index reports its origin as undeclared.\n\n| Location | Scope |\n|---|---|\n| `library/common.h:132` | Library-internal header. Any library `.c` that includes it gets direct member access. |\n| `programs/ssl/ssl_client2.c:8` | Sample client, defined at the top of the file. |\n| `programs/ssl/ssl_server2.c:8` | Sample server, defined at the top of the file. |\n\nFor those files, `conf->max_tls_version`-style accesses are plain field accesses. The sample programs can reach the internals of the SSL structs, which is the point of the opt-out.\n\n**What this means for the code in those places.**\n\n1. The library's own `.c` files see the real field names. They can change internal layout without breaking an accessor layer, and they are not held to the public surface.\n2. Opting out is a per-translation-unit decision, so it is only as broad as the `.c` file that defines it. Public headers are still expanded under whatever definition was in effect when they were first included. If a library `.c` includes an mbedtls header before `common.h`, the header's inline accessors expand with the renaming. I did not verify the include order in each file, so treat that as a check to run.\n3. The sample programs are not an example for applications. They reach into `ssl` and `conf` internals, so they break if the layout changes and are not a supported API.\n\n**Limits of what I could confirm.** The index has no record of the default configuration header, so I could not check whether anything else enables the opt-out. The `ssl.h:5163` comment that mentions defining `MBEDTLS_ALLOW_PRIVATE_ACCESS` was cut off in the search snippet, so I have not read its full text.",
+  "ttft_ms": 1600,
+  "type": "result",
+  "duration_ms": 19476,
+  "uuid": "b7d06daa-9baa-4c4f-b19c-d293b7fefca5",
+  "ttft_stream_ms": 1204,
+  "time_to_request_ms": 82,
+  "first_content_frame_ms": 1204,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

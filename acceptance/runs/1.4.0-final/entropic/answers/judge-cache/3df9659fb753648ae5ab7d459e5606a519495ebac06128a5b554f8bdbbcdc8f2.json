@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The two `llama_tokenize` calls are in one function, `entropic::LlamaCppTokenizer::tokenize` (`src/inference/llama_cpp_tokenizer.cpp:49-71`), at lines 55 and 61.\nVERDICT: HIT\nWHY: The answer names the file, function and lines, and describes the two-call size-probe then fill pattern."
+}

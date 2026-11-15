@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "ITEMS:\nscope.py\nsynth.py\nharvest.py\ncli.py\nsubstrate.py\nquery/models.py\ndocs/languages/SCRIPT_INTEGRATION.md\ntest_substrate_capability.py\nEND"
+}

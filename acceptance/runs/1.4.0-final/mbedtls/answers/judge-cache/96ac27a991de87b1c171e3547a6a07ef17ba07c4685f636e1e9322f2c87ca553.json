@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Internal users (grep counts of `mbedtls_ct_`): `rsa.c` (about 37 sites...), `cipher.c` (about 30...), `ssl_msg.c` (about 33...), `bignum_core.c` (about 39), `base64.c` (about 21), `psa_crypto*.c`, `ssl_tls12_server.c`, `nist_kw.c`, and `ccm.c`, `gcm.c`, `chachapoly.c`\nVERDICT: MISS\nWHY: The answer lists about 10 modules, so it conveys use beyond one or two. It never says usage spans roughly twenty modules, and it also says \"Not everywhere\", so the breadth claim is not stated."
+}

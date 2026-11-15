@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`LlamaCppTokenizer::tokenize` (`src/inference/llama_cpp_tokenizer.cpp:55-63`) follows llama.cpp's two-phase API. The first `llama_tokenize` call passes a null buffer and size 0, so llama.cpp returns the negative of the required token count. The code negates it (line 58), allocates a vector of that size, and makes the second call to fill it.\"\nVERDICT: HIT\nWHY: The answer names the file and function with line numbers and describes the two-call size-probe-then-fill pattern."
+}

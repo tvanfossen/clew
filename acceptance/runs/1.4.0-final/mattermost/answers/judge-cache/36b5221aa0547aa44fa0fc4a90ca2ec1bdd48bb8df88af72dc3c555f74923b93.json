@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`sanitizeReactions` returns before computing `deleteReactions`. Rows that are missing from the payload are never deleted. This is correct for a single-reaction event, because the payload describes one reaction, not the full set on the post.\"\nVERDICT: HIT\nWHY: The answer says skipSync prevents deleting rows absent from the payload, because a single-reaction event isn't the post's full set, which is the item's mechanism."
+}

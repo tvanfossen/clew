@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: In `check_approval` (`tool_executor.cpp:168-173`), if a callback is set the code invokes it and then sets `approved = true` unconditionally. `on_tool_call` returns `void` (`engine_types.h:370`), so the engine never reads a user's DENY back.\nVERDICT: HIT\nWHY: The answer states the callback returns void and approved is set to true unconditionally after invoking it, so it cannot refuse."
+}

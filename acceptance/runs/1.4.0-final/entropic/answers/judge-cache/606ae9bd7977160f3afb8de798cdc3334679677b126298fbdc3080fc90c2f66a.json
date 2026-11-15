@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes the MCP health monitor but never says its shutdown is an atomic flag exchange plus a condition variable wake, nor that stop() joins the monitor thread (it only says generally that long-lived threads are joined in stop())."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: the post is written to the local database before the network call, with a temporary `pending_post_id`. If `client.createPost` throws, the code takes one of two paths: - **Post is kept (the usual case):** the record is rewritten with `props.failed = true`\nVERDICT: HIT\nWHY: The answer states the post is written locally before sending and, on failure, is kept and marked `props.failed = true`."
+}

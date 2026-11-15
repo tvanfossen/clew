@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Buffers the engine will free (hook `modified_json`) | Must come from `entropic_alloc()` | Allocate with `entropic_alloc`, never ctypes buffers\" and \"**Hook output** (`hooks.py`, `_build_trampoline`): the modified JSON is written through `entropic_alloc`, so the engine's `free()` is valid.\"\nVERDICT: HIT\nWHY: The answer states that buffers the engine will free must come from `entropic_alloc`. It also names where Python does this, in `hooks.py` `_build_trampoline` for the hook `modified_json`."
+}

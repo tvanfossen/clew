@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"a rejected declaration falls back to the whole repo with a logged warning (`scope.py:612\u2013675`)\" and \"An `index_scope:` section in `.clew.yaml` with at least one existing `roots:` entry replaces the whole-repo scope.\" and \"otherwise \u2192 whole_repo_scope(root)\"\nVERDICT: MISS\nWHY: The answer says a declaration is used, and that a rejected declaration falls back to the whole repo. It does not state that every failure to find one (absent, unreadable, or invalid) falls through to the whole repo. It covers the no-declaration and rejected cases only, not the full set of failure modes."
+}

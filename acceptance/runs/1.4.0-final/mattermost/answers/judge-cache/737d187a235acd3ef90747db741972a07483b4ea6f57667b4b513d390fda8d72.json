@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never mentions the separate `Header` component or says that its renderers (the navigation hook and the thread route) are excluded. It only says `Header` and `NavigationHeaderLargeTitle` don't receive the ref."
+}

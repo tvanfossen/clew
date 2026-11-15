@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"When viewable, the local channel gets `delete_at = now` and stays in the DB. When not, the current user is removed from the channel locally instead.\" The channel-archived WebSocket row adds: \"If the current user is in the channel, they are kicked out with `CHANNEL_ARCHIVED`.\"\nVERDICT: HIT\nWHY: The answer says that with archived channels not viewable the user is removed from the channel and kicked out if they are in it. It also says that when they are viewable the channel is kept and marked with `delete_at`."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The worker is detached (`external_bridge.cpp:1222`) and captures `this` and `handle_`. `stop()` (`:826`) does not wait for it. It joins the accept thread and the per-client threads only.\nVERDICT: HIT\nWHY: The answer identifies the `run_async_ask` worker as the detached thread, notes `stop()` doesn't wait for it, and so it outlives its scope with no join. The \"ONE\" uniqueness is implied, since all the other threads are listed as joined."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes the failure being stored as props.failed on the post, but never says createPost returns `{data: true}` (success) to its caller, so the failure is visible only in the stored post."
+}

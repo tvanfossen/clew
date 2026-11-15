@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says library/ has no thread spawn and lists mutex uses, but never says library/ supplies the mutex abstraction (threading.c layer) for threaded callers. It only says the lock layer reports \"mutex->mutex\" from threading.c, which doesn't state that contrast."
+}

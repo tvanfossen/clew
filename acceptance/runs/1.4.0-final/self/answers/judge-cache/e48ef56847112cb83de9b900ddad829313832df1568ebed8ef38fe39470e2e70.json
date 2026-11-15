@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Tier 2, declared:** the repository's `.clew.yaml`. Its `index_scope:` key is the only tier in `scope.py` that is a decision about the index.\"\nVERDICT: MISS\nWHY: The answer names `.clew.yaml` as tier 2, but it never says the file is discovered from the repo root by both entry points (CLI and MCP) instead of being plumbed per section. It even says tier 1 is the only tier an MCP caller can reach."
+}

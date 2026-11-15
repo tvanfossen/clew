@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: There is no indirection, and the runtime setter is compiled out (`platform.c:20-22`).\nVERDICT: MISS\nWHY: The answer's no-indirection point applies only to the opt-in `MBEDTLS_PLATFORM_CALLOC_MACRO` path. For the default build it says `mbedtls_calloc` goes through function pointers, not macros expanding directly to `calloc` and `free`."
+}

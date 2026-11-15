@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**`code`:** reads are unaffected, since they open the db per call. Writes are refused, and `force` does not override the refusal. The fix is to restart the MCP client, then run `index(action='refresh', force=True)`. A rebuild alone does not clear it.\" and \"`data`: queries normally refresh first... call `index(action='refresh')`\"\nVERDICT: HIT\nWHY: The answer states that data is cleared by a refresh/rebuild while code requires a client restart (a rebuild alone doesn't clear it), which shows the axes need different remedies. It never says outright that this is why one flag wouldn't suffice, but the differing actions per axis are stated."
+}

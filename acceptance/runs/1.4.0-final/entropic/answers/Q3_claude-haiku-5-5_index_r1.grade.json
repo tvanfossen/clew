@@ -1,0 +1,143 @@
+{
+  "cell": "Q3_claude-haiku-5-5_index_r1",
+  "arm": "index",
+  "rubric_version": "3.1.1",
+  "rubric_digest": "705c131e354e5c22",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.7666666666666667,
+  "unmarked_pct": 0.0,
+  "split_decisions": 4,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "names PermissionManager and locates the allow and deny lists as coming from the PermissionsConfig the ServerManager is constructed with",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: `ServerManager` builds its `PermissionManager` from the allow and deny lists (`server_manager.cpp:35`). Config is read in `parse_permissions_config` (`loader.cpp:365`) into `PermissionsConfig` (`types/config.h:589`). | WHY: The answer names PermissionManager, says ServerManager builds it from the allow/deny lists, and says those lists come from PermissionsConfig. It does not say the config is passed to the ServerManager constructor, but the substance is there. || QUOTE: `ServerManager` builds its `PermissionManager` from the allow and deny lists (`server_manager.cpp:35`). Config is read in `parse_permissions_config` (`loader.cpp:365`) into `PermissionsConfig` (`types/config.h:589`). | WHY: The answer names PermissionManager, says ServerManager builds it from the allow and deny lists, and says those lists come from PermissionsConfig. It doesn't say outright that ServerManager is constructed with the PermissionsConfig, but the mechanism and location are stated.",
+      "agreement": 0.6666666666666666,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that the DENY list is the only one that blocks execution \u2014 ServerManager's execute path consults is_denied and nothing else before routing the call",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"ServerManager::execute ... is_denied(deny list)? \u2192 \"Error: Permission denied for <tool>\" result\" and \"Denial happens only at `ServerManager::execute`.\" | WHY: The answer says denial happens only at ServerManager::execute via is_denied. It also says the allow list only skips the prompt and that the approval callback never denies, so the deny list is the sole blocker. || QUOTE: \"ServerManager::execute ... is_denied(deny list)? \u2192 \"Error: Permission denied for <tool>\" result\" and \"Denial happens only at `ServerManager::execute`.\" | WHY: The answer states that denial happens only at ServerManager::execute via is_denied, while the allow list only skips the prompt and the approval callback never denies, so the deny list is the sole blocker.",
+      "agreement": 0.6666666666666666,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the ALLOW list does not grant execution but suppresses the approval step \u2014 it is consulted only from ToolExecutor::check_approval, in a different file",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: The allow list only skips the prompt. ... `auto_ok = loop.auto_approve  OR  ServerManager::is_explicitly_allowed(allow list)` under `ToolExecutor::check_approval tool_executor.cpp:161`, with the deny list enforced in `ServerManager::execute server_manager.cpp:153`. | WHY: The answer states the allow list only skips the prompt and is consulted in `check_approval` (tool_executor.cpp), while `ServerManager::execute` is in server_manager.cpp, a different file. || QUOTE: The allow list only skips the prompt.; \"auto_ok = loop.auto_approve  OR  ServerManager::is_explicitly_allowed(allow list)\" in ToolExecutor::check_approval at tool_executor.cpp, with deny enforced in ServerManager::execute at server_manager.cpp | WHY: The answer says the allow list only skips the prompt. It also places the allow-list check in check_approval (tool_executor.cpp), and the deny enforcement in a different file (server_manager.cpp).",
+      "agreement": 0.6666666666666666,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that the effective posture is default-ALLOW at the blocking gate \u2014 a tool matching neither list is not denied and runs",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: \"The allow list only skips the prompt.\" and \"a wired prompt cannot reject a call. Denial happens only at `ServerManager::execute`.\" | WHY: The answer implies that only the deny list blocks a call, but it never states that a tool matching neither list is not denied and runs, so the default-allow conclusion is left implicit. || QUOTE: NONE | WHY: The answer says the approval callback never denies and that denial happens only via the deny list at execute. It never concludes that a tool matching neither list is allowed to run, which leaves default-allow implied and not stated. || QUOTE: NONE | WHY: The answer says the allow list only skips the prompt and that denial happens only through the deny list at execute. It never states that a tool matching neither list is not denied and runs, so default-allow is implied but not concluded.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies that the approval callback CANNOT refuse \u2014 it returns void, and the code sets approved to true unconditionally after firing it",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"`check_approval` sets `approved = true` right after calling `on_tool_call`, and the callback returns `void`. ... a wired prompt cannot reject a call.\" | WHY: The answer states the callback returns void and approved is set to true unconditionally after it fires, so it cannot refuse. || QUOTE: \"`check_approval` sets `approved = true` right after calling `on_tool_call`, and the callback returns `void`. ... a wired prompt cannot reject a call.\" | WHY: The answer states the callback returns void and approved is set true unconditionally after it fires, so it cannot refuse. || QUOTE: \"`check_approval` sets `approved = true` right after calling `on_tool_call`, and the callback returns `void`. The header comment says tools are \\\"approved via callback\\\" (`permission_manager.h:6`), but a wired prompt cannot reject a call.\" | WHY: The answer states the callback returns void, approved is set to true right after firing it, and so the callback cannot refuse.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "explains that a pattern is matched with fnmatch, split at the first colon into a tool part and an argument part, and that a pattern with no colon matches on the tool name alone",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: \"Format is `tool` or `tool:arg`. Matching uses `fnmatch` with no flags... **No colon** (`filesystem.*`, `git.status`): matches on the fully-qualified tool name only. **With colon** (`bash.execute:python*`): the tool part must match, then the arg part is matched against `tool:<first string argument>`.\" | WHY: The answer states fnmatch matching, the tool/arg split on the colon, and that a pattern without a colon matches the tool name alone. It never says the split happens at the *first* colon, but the rest of the item is there. || QUOTE: \"Matching uses `fnmatch` with no flags... **No colon** (`filesystem.*`, `git.status`): matches on the fully-qualified tool name only. **With colon** (`bash.execute:python*`): the tool part must match, then the arg part is matched against `tool:<first string argument>`.\" | WHY: The answer states that fnmatch is used, that a colon separates a tool part from an argument part, and that a pattern with no colon matches on the tool name alone. It never says \"first colon\" explicitly, but the split into a tool part and an argument part is clear. || QUOTE: \"Matching uses `fnmatch` with no flags... **No colon** (`filesystem.*`, `git.status`): matches on the fully-qualified tool name only. **With colon** (`bash.execute:python*`): the tool part must match, then the arg part is matched against...\" | WHY: The answer names fnmatch, describes the tool-part and arg-part split on the colon, and says a pattern with no colon matches on the tool name alone. It never says \"first colon\" explicitly, but the substance is there.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that only ONE argument value ever reaches the pattern \u2014 the rest of the call's arguments are invisible to permission matching, and a non-string or unparseable argument collapses to a wildcard",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: the arg part is matched against `tool:<first string argument>`. Calls with no args, or a non-string first arg, present `*`. | WHY: The answer states that only the first string argument is matched and that a no-arg or non-string first arg becomes `*`. The \"rest of the arguments are invisible\" point is implied by \"first string argument\", and the unparseable case is not mentioned. || QUOTE: the arg part is matched against `tool:<first string argument>`. Calls with no args, or a non-string first arg, present `*`. | WHY: The answer states that only the first string argument reaches the pattern and that a non-string or missing argument presents as `*`. It does not mention unparseable arguments, but that is a minor omission.",
+      "agreement": 0.6666666666666666,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies that a decision can be PERSISTED for future sessions by appending to config.local.yaml, separately from the in-memory add_permission call",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer mentions `permission_persist_` and `get_permission_pattern` but says persistence isn't wired; it never states that decisions can be persisted by appending to config.local.yaml separately from add_permission. || QUOTE: NONE | WHY: The answer mentions `permission_persist_` and says persistence is not wired in, but never identifies appending to config.local.yaml as the way to persist decisions separately from in-memory add_permission. || QUOTE: NONE | WHY: The answer says persistence is not wired in and never mentions appending decisions to config.local.yaml, separate from the in-memory add_permission call.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "the files a permission decision passes through \u2014 src/mcp/permission_manager.cpp",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the files a permission decision passes through \u2014 src/mcp/server_manager.cpp",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the files a permission decision passes through \u2014 src/mcp/tool_executor.cpp",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the files a permission decision passes through \u2014 include/entropic/types/config.h",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the files a permission decision passes through \u2014 precision",
+      "kind": "set_precision",
+      "weight": 2,
+      "hit": false,
+      "detail": "named 6 not in the set: ['data/schemas/config_schema.json', 'facade/entropic.cpp', 'loader.cpp', 'mcp_authorization.cpp', 'permission_manager.h', 'tests/data/comprehensive_config.yaml']",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    }
+  ]
+}

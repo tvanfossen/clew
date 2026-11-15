@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Two exceptions remove the post instead of marking it failed: `DELETED_ROOT_POST_ERROR`, `TOWN_SQUARE_READ_ONLY_ERROR`, and `PLUGIN_DISMISSED_POST_ERROR`.\nVERDICT: HIT\nWHY: The answer names the three server errors (deleted root post, read-only town square, plugin-dismissed post) that cause the post to be removed rather than marked failed."
+}

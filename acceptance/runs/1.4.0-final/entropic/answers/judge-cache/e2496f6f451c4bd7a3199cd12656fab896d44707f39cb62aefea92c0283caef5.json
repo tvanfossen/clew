@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Pushes events to a queue. `process_events()` runs callbacks on the engine thread\nVERDICT: HIT\nWHY: The answer says health events are queued and callbacks run on the engine thread via `process_events()`, never on the monitor thread. It also names `event_mutex_` as one of the health monitor's locks."
+}

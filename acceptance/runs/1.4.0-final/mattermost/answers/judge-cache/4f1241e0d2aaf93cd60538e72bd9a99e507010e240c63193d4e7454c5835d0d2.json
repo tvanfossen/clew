@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Row 1 (`handleChannelDeletedEvent`): \"Channel stays in the local DB and the user stays a member\" when viewable; \"If the user is viewing it, kick them with `Events.CHANNEL_ARCHIVED`; then `removeCurrentUserFromChannel`\" when 'false'.\nVERDICT: HIT\nWHY: The answer says that when viewing is off, the user is removed and kicked out if they're viewing the channel. When viewing is on, the channel stays. Row 2 adds that it sets `delete_at`, which covers the \"marked deleted\" part."
+}

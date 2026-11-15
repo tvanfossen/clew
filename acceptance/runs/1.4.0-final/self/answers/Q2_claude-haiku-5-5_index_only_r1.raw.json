@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 10710,
+  "stop_reason": "end_turn",
+  "session_id": "45a16f0a-7b16-463f-9e32-7a76b7e271be",
+  "total_cost_usd": 0.00608296,
+  "usage": {
+    "input_tokens": 4,
+    "cache_creation_input_tokens": 23256,
+    "cache_read_input_tokens": 51586,
+    "output_tokens": 1831,
+    "output_tokens_details": {
+      "thinking_tokens": 893
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 23256,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1448,
+        "cache_read_input_tokens": 36853,
+        "cache_creation_input_tokens": 1136,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1136
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 4,
+      "outputTokens": 1831,
+      "cacheReadInputTokens": 51586,
+      "cacheCreationInputTokens": 23256,
+      "webSearchRequests": 0,
+      "costUSD": 0.00608296,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 893,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 23256,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 3,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** the reply separates the two cases by what it says about the places it read. Its confidence is strong for \"no such name in the indexed symbol layer\" and weak for \"the repository does not contain it.\"\n\nI checked this by searching for a made-up name, `zzqxnonexistentsymbol`, with both `search` and `dossier`. Both came back empty, and the replies show the distinction:\n\n| Field | What it tells you |\n|---|---|\n| `count: 0` / `found: false` | The lookup ran and matched nothing. |\n| `note` | Says the empty result is \"definitive from the database, NOT an error.\" It also lists what was and was not searched. |\n| `scope` (search only) | Gives the coverage: `source: whole-repo`, `file_count: 426`, `top_levels`, `extensions`, and `not_indexed`, which lists file kinds that were never read. |\n| `target` | The repository that answered. Check it is the one you meant. |\n| `staleness` | Present only when the index is stale. Its absence means the index is current. |\n| `not_searched` | Documented for split indexes (`sub_index`). It did not appear here because this repo is not split. |\n\n**What each answer is entitled to:**\n\n- **\"No symbol by that name\" (high confidence).** The replies say this covers names, `@brief` text, macros, typedefs, enums, classes, config symbols and file docs, in the `target` repo, with no staleness block. This is a real negative within that scope.\n- **\"Not in the repo\" (low confidence).** Several places are outside the search:\n  - **Function bodies.** A literal, key or property is only found with `search(corpus='code')`.\n  - **Prose.** Markdown and Kconfig prose need `search(corpus='prose')`, where a conceptual phrase often matches.\n  - **Unindexed file kinds.** `scope.not_indexed` lists extensions that were never read: `.rs=2`, `.toml=2`, `.csv=3`, `.sql=1`, `.lock=1`, `.jsonl=1`, `.motor=1`, and 3 extensionless files. A miss in those is \"never looked,\" not \"absent,\" even though the note calls it definitive.\n\n**Practical rule:** a miss is trustworthy only after you have checked `target`, confirmed no `staleness` block, and, for text-like questions, retried in the layer the note names (`code` or `prose`). Otherwise, treat it as \"not in the symbol layer\" and read the source for the rest.",
+  "ttft_ms": 2157,
+  "type": "result",
+  "duration_ms": 11214,
+  "uuid": "aabf1fe3-8f32-404d-978e-e38c29bb656a",
+  "ttft_stream_ms": 1065,
+  "time_to_request_ms": 91,
+  "first_content_frame_ms": 1066,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The failure becomes an **empty `std::vector<int32_t>`**. The same empty vector also means \"empty input\" and \"vocab is null\"... `do_count_tokens` | returns `size()` | returns **0**, same as a real zero-token string\"\nVERDICT: MISS\nWHY: The answer shows failure is indistinguishable from empty, but it lists callers that propagate the empty result and says \"no error set on this path\". It never concludes that no caller checks for failure, and it admits it didn't verify callers above the C API."
+}

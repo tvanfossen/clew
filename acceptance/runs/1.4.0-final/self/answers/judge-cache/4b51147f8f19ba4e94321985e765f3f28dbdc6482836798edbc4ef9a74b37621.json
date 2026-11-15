@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer mentions `extensions` and `not_indexed_count` in the scope block and notes the gap, but never says the reply names the file types that were in scope and produced no rows."
+}

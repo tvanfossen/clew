@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Its `reason` string says that no `index_scope` was declared and names where it looked, and it adds advice to declare one in `.clew.yaml`. ... The point of that reason string is that a fallback scope says the boundary was not chosen.\nVERDICT: HIT\nWHY: The answer says the whole-repo fallback carries a reason string stating that no scope was declared, and that the string exists to show the boundary was not chosen, so the scope is not silently guessed."
+}

@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 31896,
+  "stop_reason": "end_turn",
+  "session_id": "762fe495-3e91-434d-8a30-60e2b9ff8707",
+  "total_cost_usd": 0.013298599999999999,
+  "usage": {
+    "input_tokens": 16,
+    "cache_creation_input_tokens": 28862,
+    "cache_read_input_tokens": 455410,
+    "output_tokens": 5941,
+    "output_tokens_details": {
+      "thinking_tokens": 2191
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 28862,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3075,
+        "cache_read_input_tokens": 72978,
+        "cache_creation_input_tokens": 861,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 861
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 16,
+      "outputTokens": 5941,
+      "cacheReadInputTokens": 455410,
+      "cacheCreationInputTokens": 28862,
+      "webSearchRequests": 0,
+      "costUSD": 0.013298599999999999,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2191,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 28862,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 13,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "## How `ServerDataOperator` is built\n\n`ServerDataOperator` is a class produced by mixin composition, not inheritance from one large class. It is defined at `app/database/operator/server_data_operator/index.ts:40`:\n\n```ts\nclass ServerDataOperator extends mix(ServerDataOperatorBase).with(\n    AgentsHandler, BoardsHandler, CategoryHandler, ChannelHandler, CustomProfileHandler,\n    GroupHandler, PlaybookHandler, PostHandler, PropertiesHandler, TeamHandler,\n    ThreadHandler, TeamThreadsSyncHandler, UserHandler,\n) { constructor(database, serverUrl?) { super(database); this.serverUrl = serverUrl; } }\n```\n\n- **Root:** `ServerDataOperatorBase` (`handlers/index.ts:31`) extends `BaseDataOperator` (`app/database/operator/base_data_operator/index.ts:33`). It holds the generic handlers: roles, custom emojis, system, configs, reactions, files, and `execute`.\n- **Mixins:** `mix()` (`app/utils/mix.ts`) reduces the list of mixin factories over the base class. Each handler is a factory of the form `const XHandler = <TBase extends Constructor<ServerDataOperatorBase>>(superclass) => class extends superclass {...}`.\n- **Typing:** `mix()` is untyped (`any[]`), so `index.ts:23` declares `interface ServerDataOperator extends ...HandlerMix {}`. Each `XHandlerMix` interface supplies the method signatures for TypeScript.\n\n## Where the handlers live\n\n**Defined in `app/database/operator/server_data_operator/handlers/`** (next to the class): category, channel, custom_profile, group, post, properties, team, team_threads_sync, thread, user, plus the base in `index.ts`.\n\n**Defined elsewhere (product modules):**\n\n| Handler | File |\n|---|---|\n| `AgentsHandler` | `app/products/agents/database/operators/handlers/index.ts` |\n| `BoardsHandler` | `app/products/boards/database/operators/handlers/index.ts` |\n| `PlaybookHandler` | `app/products/playbooks/database/operators/handlers/index.ts` |\n\nThey are imported through the `@agents`, `@boards`, and `@playbooks` path aliases and follow the same mixin shape, extending `ServerDataOperatorBase`.\n\n## Who performs the database write\n\nHandlers don't write directly. The path is:\n\n1. **Diff and prepare.** Handlers call `handleRecords` (`base_data_operator/index.ts:224`), which calls `processRecords` (line 51) to decide creates, updates, and deletes against existing rows. It then calls `prepareRecords` (line 134), which runs the transformer for each raw value to build WatermelonDB models. Deletes become `prepareDestroyPermanently()`.\n2. **Commit.** If `prepareRecordsOnly` is false, the models go to `batchRecords` (`base_data_operator/index.ts:191`). That method calls `this.database.write(async (writer) => writer.batch(...models), description)`. This is the actual database write.\n3. **Error handling.** `batchRecords` catches errors and logs them. If the error is a corruption error, it emits `DATABASE_CORRUPTION_DETECTED`. It rethrows only when `propagateError` is set.\n\nNote that `prepareRecordsOnly` defaults to `true` in `handleRecords` and in most handlers. Nothing is written unless the caller passes `false`, or collects prepared models and commits them in one batch.\n\n**What else shares the write path:**\n- `batchRecords` is the common write point for every `BaseDataOperator` subclass. That includes `ServerDataOperatorBase.execute`, `handleReactions`, and `handleFiles`, the generic `handleRecords`, the agents, playbooks, and boards handlers, and many methods in `post.ts` and `thread.ts`.\n- `AppDataOperator` (`app/database/operator/app_data_operator/index.ts:15`) extends `BaseDataOperator` directly. It shares `batchRecords`, `prepareRecords`, and `processRecords`, but has none of the handler mixins. It operates on the global app database.\n\n**Two exceptions bypass `batchRecords`:**\n- `post.ts:516` calls `database.write` directly to destroy deleted posts.\n- `thread.ts:74` calls `database.write` directly to destroy deleted threads and their `threadsInTeam` and `participants` children.\n\nThose writes skip the logging and corruption-event handling in `batchRecords`.\n\nThe operator is constructed in `app/database/manager/index.ts:184`, which also sets `serverUrl`.",
+  "ttft_ms": 1419,
+  "type": "result",
+  "duration_ms": 33323,
+  "uuid": "f226c49f-44d2-4dc2-a542-4bb67e066599",
+  "ttft_stream_ms": 1223,
+  "time_to_request_ms": 70,
+  "first_content_frame_ms": 1223,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

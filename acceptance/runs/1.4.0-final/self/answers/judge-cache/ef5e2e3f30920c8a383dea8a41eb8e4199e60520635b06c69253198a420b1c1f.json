@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Tier 1, a declaration. The repo's `.clew.yaml` can carry `index_scope:` ... unusable \u2192 `_Rejected` (warning logged) \u2192 whole-repo tier ... absent/empty \u2192 None\" and \"`index_scope: {roots: []}` falls through to the whole repo rather than producing an empty index.\"\nVERDICT: HIT\nWHY: The answer says a declared index_scope is preferred (tier 1), and that rejected, absent or empty declarations all fall through to whole-repo indexing."
+}

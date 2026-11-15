@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names these top-level directories as containing uses of MBEDTLS_PRIVATE:\n\n- `library` appears in the opt-out table and in the list of 5 library files that write `MBEDTLS_PRIVATE(...)` explicitly.\n- `programs` appears for `ssl_context_info.c` and `fuzz_dtlsserver.c`.\n- `tests` appears for `tests/suites/*.function`.\n- `include` appears for `ssl.h`, which has 209 `MBEDTLS_PRIVATE(` occurrences, and for `private_access.h`, which defines the macro.\n\nITEMS:\nlibrary\nprograms\ntests\ninclude\nEND"
+}

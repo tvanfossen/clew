@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: By default that renames the member to `private_foo`, so `ctx->foo` no longer compiles from application code. ... `library/common.h:132` defines `MBEDTLS_ALLOW_PRIVATE_ACCESS` unconditionally ... inside the library `MBEDTLS_PRIVATE(x)` expands to plain `x`. ... Application code that does not define the macro gets a compile error on any direct field access\nVERDICT: HIT\nWHY: The answer contrasts code that defines the macro, which gets plain member names, with ordinary application code, which gets the renamed `private_` members."
+}

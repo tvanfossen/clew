@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Event queue is guarded by `event_mutex_`. `process_events()` swaps the queue out under the lock, then runs callbacks on the engine thread with the lock released.\nVERDICT: HIT\nWHY: The answer states that the monitor queues events under a mutex and that process_events() runs callbacks on the engine (caller) thread, which matches the item."
+}

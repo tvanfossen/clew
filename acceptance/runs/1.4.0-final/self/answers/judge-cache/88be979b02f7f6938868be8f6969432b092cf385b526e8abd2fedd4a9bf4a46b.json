@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `.sh`, `.bash` ... `CMakeLists.txt`, `.cmake`\nVERDICT: HIT\nWHY: The answer's table lists the `.sh`/`.bash` and `.cmake` extensions and names `CMakeLists.txt` separately from the extensions. It never says the file is matched by name rather than by extension. Still, `CMakeLists.txt` is listed as its own entry beside `.cmake`, which is the substance of the item."
+}

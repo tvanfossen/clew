@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: where `argvalue` is the first string-valued argument (`ServerManager::args_to_pattern`). Empty args, `{}`, or unparseable JSON become `*`.\nVERDICT: HIT\nWHY: The answer says only the first string-valued argument is used for the pattern and that unparseable or empty args become `*`. The other arguments being invisible is implied but not stated outright, and a non-string argument collapsing to a wildcard is not stated explicitly either. I am counting the core mechanism as stated."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer only mentions a vague \"file-extension filter\" it could not confirm, and never names the parse-built front end for doxygen-unreadable types or binary classification as filters on what reaches the index."
+}

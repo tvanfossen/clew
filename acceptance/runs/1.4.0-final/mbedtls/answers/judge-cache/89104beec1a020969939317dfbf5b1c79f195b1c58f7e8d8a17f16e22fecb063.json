@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `#ifndef MBEDTLS_ALLOW_PRIVATE_ACCESS #define MBEDTLS_PRIVATE(member) private_##member #else #define MBEDTLS_PRIVATE(member) member`; \"By default a member such as `ssl->state` is declared as `private_state`. Application code that writes `ssl->state` fails to compile\"; \"Every library translation unit sees real member names. `common.h` is internal and not installed under `include/`, so this does not leak to applications.\"\nVERDICT: HIT\nWHY: The answer shows both macro branches and explains that code defining the opt-out sees real member names, while ordinary application consumers see `private_` names."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Python never touches the C++ classes. It loads `librentropic.so` with `ctypes` and calls the flat C ABI in `include/entropic/entropic.h`.\nVERDICT: HIT\nWHY: The answer states that ctypes loads librentropic.so and calls the flat C ABI. The item's \"no compiled extension module\" part is implied by that, since all binding is done through ctypes and `_bindings.py`."
+}

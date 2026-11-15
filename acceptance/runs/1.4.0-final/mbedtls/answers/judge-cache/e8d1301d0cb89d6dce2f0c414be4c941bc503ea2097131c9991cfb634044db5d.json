@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: platform.c:20-22 then omits the runtime code entirely\nVERDICT: MISS\nWHY: The answer says the runtime code is omitted in macro mode, but never states that mbedtls_platform_set_calloc_free is neither declared nor compiled. That claim is a different, weaker one."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Define it** in the module's public header, e.g. `include/mbedtls/asn1.h`: ... **Regenerate** `library/error.c`. ... `library/error.c` is therefore generated. Editing it by hand will be overwritten.\nVERDICT: HIT\nWHY: The answer says to add the Doxygen-documented #define to the public header, regenerate error.c, and that hand-editing the generated file is wrong."
+}

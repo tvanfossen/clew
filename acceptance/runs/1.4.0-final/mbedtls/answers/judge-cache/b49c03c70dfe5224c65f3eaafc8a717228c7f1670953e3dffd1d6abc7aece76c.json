@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Compile-time macros.** Enable `MBEDTLS_PLATFORM_MEMORY` and define `MBEDTLS_PLATFORM_CALLOC_MACRO` and `MBEDTLS_PLATFORM_FREE_MACRO` in the user config.\" and \"**Runtime hooks.** Enable `MBEDTLS_PLATFORM_MEMORY` and call `mbedtls_platform_set_calloc_free(calloc_fn, free_fn)`\"\nVERDICT: MISS\nWHY: The answer separates the compile-time macro pair from the runtime function-pointer pair. It never says they are mutually exclusive, and it presents the macros as just another row in the config table."
+}

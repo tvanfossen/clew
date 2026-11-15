@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: On an installation without the bash and cmake grammars, shell and CMake fall back to file-set entries with no symbols and nothing raises. My reading of the code says the not-indexed report then fails to name those files, which contradicts the docs.\nVERDICT: MISS\nWHY: The answer says installs without grammars degrade without raising, but it does not say a capability gate is consulted before routing, and it claims the not-indexed report does not list those files. That contradicts the item's \"reported as not indexed\"."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"| `code` | ... | No. Only restarting the MCP client clears it |\" and \"`data` ... Can a rebuild fix it? Yes\" and \"If the index is newer, a rebuild re-stamps the same newer version and cannot clear it\"\nVERDICT: MISS\nWHY: The answer describes which axes a rebuild can or cannot fix, but never states that separate axes need different actions and that this is why a single flag would not have sufficed."
+}

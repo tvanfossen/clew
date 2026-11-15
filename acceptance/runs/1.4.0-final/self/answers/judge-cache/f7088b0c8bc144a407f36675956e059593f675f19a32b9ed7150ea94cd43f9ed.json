@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: | `data` | The database is older than the source files. ... | `code` | The running server process imported its modules at launch... | `schema` | `build_version` differs from `expected_build_version`.\nVERDICT: HIT\nWHY: The answer opens with \"three separate axes\" and names data, code, and schema, each with its own meaning and remedy."
+}

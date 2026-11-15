@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Tiers 3 and 4 accumulate under every stated tier. You can correct a guess; you cannot un-discover a fact.\nVERDICT: MISS\nWHY: The answer says tiers 3 and 4 both accumulate (union), but never states that they combine identically or that the distinction between them is deliberately inert. The fact-versus-guess line is only implied."
+}

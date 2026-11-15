@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The reason string names the file it looked in and says the whole repository was used.\nVERDICT: HIT\nWHY: The answer states that the whole-repo fallback carries a reason string naming the file consulted and the scope used, so the scope isn't silently guessed."
+}

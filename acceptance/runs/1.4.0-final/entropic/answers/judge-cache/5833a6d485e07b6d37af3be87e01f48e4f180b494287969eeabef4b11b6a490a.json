@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `inv gen-bindings --check` runs in pre-commit and fails if the committed `_bindings.py` drifts from the header.\nVERDICT: HIT\nWHY: The answer states a pre-commit check (`gen-bindings --check`) that fails when the committed bindings drift from the header, which is the item's substance. It does not spell out \"re-run and diff\", but a `--check` on a generator implies it."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never lists shell or CMake file extensions (e.g. .sh, .cmake) or says CMakeLists.txt is matched by file name. It only says no CMakeLists.txt is indexed and that the index can't say whether one exists."
+}

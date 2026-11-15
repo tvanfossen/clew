@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the stored row is `(caller_rowid, callee_rowid, source, confidence)` and that \"when several layers found the same edge, the strongest one wins.\" That says duplicates collapse, not that one row is stored per layer, so the item's substance is absent."
+}

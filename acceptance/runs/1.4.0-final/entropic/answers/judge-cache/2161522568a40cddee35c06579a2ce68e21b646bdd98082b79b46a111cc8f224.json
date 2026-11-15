@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Anything Python hands the engine that the engine will later free (for example, a hook's `modified_json`) must come from `entropic_alloc()`, which is a plain `malloc()`. `python/src/entropic/hooks.py` `_alloc_c_string` does this\"\nVERDICT: HIT\nWHY: The answer states the rule that engine-freed buffers must be allocated with entropic_alloc and names the Python location (`_alloc_c_string` in hooks.py)."
+}

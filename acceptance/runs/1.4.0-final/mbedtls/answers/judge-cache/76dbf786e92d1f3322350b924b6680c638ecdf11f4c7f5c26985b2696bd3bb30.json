@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The index finds four thread or signal-handler spawn sites, all in `programs/`, none in `library/`\nVERDICT: HIT\nWHY: The answer states that no thread creation occurs in library/ and that library/ code supplies the mutex layer (`threading.c`, with `mbedtls_threading_*_mutex` objects) used by threaded callers like the pthread server."
+}

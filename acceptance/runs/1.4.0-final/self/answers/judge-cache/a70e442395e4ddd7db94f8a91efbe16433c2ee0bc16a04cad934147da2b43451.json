@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`chain_trace` and `traversal._call_hops` drop fuzzy edges and cap depth and fan-out (`clew/query/traversal.py:124-148`). The two can disagree about the same function.\"\nVERDICT: MISS\nWHY: The answer says the dossier and traversal surfaces can disagree, which is the opposite of the item's claim that one shared collapse function keeps them consistent."
+}

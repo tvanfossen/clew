@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 21355,
+  "stop_reason": "end_turn",
+  "session_id": "3b55a48c-6ae5-4b9c-bf40-02ec5ab5c54b",
+  "total_cost_usd": 0.00795477,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 19199,
+    "cache_read_input_tokens": 230147,
+    "output_tokens": 3625,
+    "output_tokens_details": {
+      "thinking_tokens": 1383
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 19199,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1684,
+        "cache_read_input_tokens": 55497,
+        "cache_creation_input_tokens": 1459,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1459
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 3625,
+      "cacheReadInputTokens": 230147,
+      "cacheCreationInputTokens": 19199,
+      "webSearchRequests": 0,
+      "costUSD": 0.00795477,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1383,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 19199,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 6,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "Ten spawn sites in first-party code run off the caller's thread. Each one is a `std::thread` or pthread the index resolved to a file and line. Most are in the MCP bridge and transports, plus a few cancellation pollers in inference. Safety rests on three mechanisms: mutexes guarding shared state, atomics for flags, and join-before-return for scoped helpers. One path does not join and needs a check.\n\n**Background threads (the spawn sites)**\n\n| Thread | Where | Why it runs off-thread | What keeps it safe |\n|---|---|---|---|\n| `ExternalBridge::accept_loop` | `src/facade/external_bridge.cpp:796` (`start`) | Blocks on `accept` for MCP clients | Polls with a 500ms timeout and checks `running_`. `stop()` joins it. Each accepted fd is checked with `SO_PEERCRED`, so a cross-uid connection is closed before a thread is spawned. |\n| Per-client `serve_client` thread | `external_bridge.cpp:945` | One per connected client | Registered in `client_threads_` under `client_threads_mutex_`. Finished threads are reaped. `stop()` calls `shutdown(SHUT_RDWR)` to wake blocked reads, then joins. |\n| `run_async_ask` worker | `external_bridge.cpp:1158`, detached at `:1222` | Runs `entropic_run` for `entropic.ask` | Task map is guarded by `tasks_mutex_`. The sentinel file is written under that lock, before the completion notification fires. |\n| `HealthMonitor::monitor_loop` | `src/mcp/health_monitor.cpp:92` | Periodic MCP server health checks | `stop()` joins it at `:108`. Shared state sits behind `event_mutex_`, `watched_mutex_` and `wake_mutex_`. |\n| `StdioTransport::stderr_reader_loop` | `src/mcp/transport_stdio.cpp:164` | Drains child-process stderr | Joined in `close` at `:219`. Writes to the stdio channel go through `io_mutex_`. |\n| `SSETransport::sse_reader_loop` | `src/mcp/transport_sse.cpp:107` | Reads the SSE stream | Joined at `:139`. Pending requests are guarded by `pending_mutex_`. |\n| Cancel pollers | `inference_c_api.cpp:385` (`CancelFlagBridge`), `interface_factory.cpp:246` (`iface_generate_with_cancel`), `response_generator.cpp:413` (`dispatch_batch_generate`) | Turn a int or atomic cancel flag into a value the backend polls, roughly every 10ms | Each is a scoped helper with a `done` atomic and is joined before the function returns. The observer captures locals by reference, which is safe only because of that join. |\n\n**The unsafe-looking path: the detached `run_async_ask` worker**\n\n- The worker is detached (`external_bridge.cpp:1222`) and captures `this` and `handle_`.\n- `stop()` (`:826`) does not wait for it. It joins the accept thread and the per-client threads only.\n- So if the bridge is destroyed while an async ask is still running, the worker can use freed memory. I did not verify whether the destructor or `entropic_destroy` waits on in-flight tasks; I only read `stop()`. This is the one place where \"what keeps it safe\" is not confirmed. Check the destructor and `entropic_destroy` before relying on it.\n\n**Other things I noticed**\n\n- **Plain `int` cancel flag.** `dispatch_batch_generate` writes `cancel_int` from its observer thread. `iface_generate_with_cancel`'s poller reads it through a pointer, with no atomic. That is a data race under the C++ memory model, even if benign in practice. I did not check how the backend reads it.\n- **Exception safety of pollers.** In `iface_generate_with_cancel` and `dispatch_batch_generate`, if `generate` throws, the joinable poller or observer is never joined. Destroying a joinable `std::thread` calls `std::terminate`. I did not check whether `generate` can throw.\n- **Lock ordering.** The index reports three two-lock nestings. None is taken in opposite orders, so it flags no deadlock. But all three have unresolved receivers, so I would not call them confirmed. The pairs are `event_mutex_` \u2192 `adapter_mutex_`, and `auth_mutex_` \u2192 `key_mutex_`.\n\nThe index counts 10 first-party spawn sites and 45 distinct lock identities. The count covers only the spawn primitives this build's patterns match.",
+  "ttft_ms": 1561,
+  "type": "result",
+  "duration_ms": 23302,
+  "uuid": "b3dd51cf-7f2c-431c-8cd9-fb54224fa6e5",
+  "ttft_stream_ms": 1286,
+  "time_to_request_ms": 105,
+  "first_content_frame_ms": 1287,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

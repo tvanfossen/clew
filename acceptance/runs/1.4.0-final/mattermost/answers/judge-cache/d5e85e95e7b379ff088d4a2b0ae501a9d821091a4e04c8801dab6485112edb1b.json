@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"So the actual database write is `database.write` plus `writer.batch(...)` inside `BaseDataOperator.batchRecords`. It is the only place these handlers touch the write API.\"\nVERDICT: MISS\nWHY: The answer says writes are centralized in `BaseDataOperator.batchRecords`. It never gives the reason the item requires, that each mixin is constrained to extend ServerDataOperatorBase. It says only that handlers are `(superclass) => class extends superclass`."
+}

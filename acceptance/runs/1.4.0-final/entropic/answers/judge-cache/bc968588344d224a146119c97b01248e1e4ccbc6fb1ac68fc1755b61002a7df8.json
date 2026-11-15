@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`run_async_ask` is a detached thread that captures `this` and `handle_`. Its safety depends on the bridge and handle outliving the worker. The index doesn't show that shutdown waits for in-flight async asks\"\nVERDICT: HIT\nWHY: The answer identifies the async-ask worker as a detached thread (the table also says \"detached lambda\", the only one listed as detached) and notes that nothing joins it or waits for it at shutdown, so it outlives its caller."
+}

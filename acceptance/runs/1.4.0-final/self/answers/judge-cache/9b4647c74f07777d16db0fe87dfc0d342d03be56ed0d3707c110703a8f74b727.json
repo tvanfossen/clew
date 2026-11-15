@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: derive_scope ... `_declared_index_scope` ... \"returns a DerivedScope, or None if no index_scope key\" / \"None \u2192 whole_repo_scope()\" and \"It absorbs a rejected declaration into the whole-repo tier.\"\nVERDICT: HIT\nWHY: The answer states that the declared index_scope is preferred (\"Declaration first\"), and that when none is found, or the declaration is rejected, derive_scope falls through to whole-repo indexing."
+}

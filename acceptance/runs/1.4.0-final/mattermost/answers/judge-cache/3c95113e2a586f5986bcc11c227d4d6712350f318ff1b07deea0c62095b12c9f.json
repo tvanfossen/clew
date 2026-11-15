@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Without the flag, the handler would treat the one-reaction payload as the complete reaction list for the post and destroy every other reaction on it. The flag is there because the event carries only one reaction.\nVERDICT: HIT\nWHY: The answer explicitly states that without skipSync the single incoming reaction would be treated as the complete set and all other reactions would be deleted."
+}

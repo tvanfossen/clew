@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Detached async-ask worker | `external_bridge.cpp:1158-1222` (`.detach()`) | Runs `entropic_run` for `entropic.ask(async=true)`; and \"`stop()` joins the accept and client threads but not the detached async worker.\"\nVERDICT: HIT\nWHY: The answer identifies the async-ask worker as the detached thread and notes that stop() never joins it, so it can outlive the handle and bridge."
+}

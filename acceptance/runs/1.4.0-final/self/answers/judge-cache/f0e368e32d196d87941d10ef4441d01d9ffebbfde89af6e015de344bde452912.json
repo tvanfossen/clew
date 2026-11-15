@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: (the Doxyfile INPUT tier was removed in gh#333)\nVERDICT: HIT\nWHY: The answer says the Doxyfile INPUT tier was removed (gh#333), and its description of the decision flow shows only the declared and whole-repo tiers, so the tier is gone entirely rather than left in place with its callers dropped."
+}

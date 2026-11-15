@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: JS/TS come through the parse front end instead\nVERDICT: MISS\nWHY: The answer mentions JS/TS going through the parse front end only in passing. It never says that a file reaches the index only if something can read it, or that this is a filter claiming the file types doxygen cannot read. It does describe binary classification, but as dropping files \"by content, not extension\", without saying that it targets files whose extension lies about them."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says user code gets `private_*` names when the macro is undefined and plain names when defined, and names who defines it (library, programs), but it never states the two-views point in those terms. It does say users who define the gate macro get direct access, and the library's inline accessors resolve to `private_*` names in user code. Even so, it doesn't frame the two branches as giving different consumers different views, so the item resolves to MISS."
+}

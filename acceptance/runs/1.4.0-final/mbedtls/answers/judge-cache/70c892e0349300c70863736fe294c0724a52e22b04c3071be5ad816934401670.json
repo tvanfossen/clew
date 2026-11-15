@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Two routes, both shown in the index: 1. **Compile-time macros.** Enable `MBEDTLS_PLATFORM_MEMORY` and define `MBEDTLS_PLATFORM_CALLOC_MACRO` and `MBEDTLS_PLATFORM_FREE_MACRO`... 2. **Runtime hooks.** ... call `mbedtls_platform_set_calloc_free(calloc_fn, free_fn)`\"\nVERDICT: MISS\nWHY: The answer distinguishes the compile-time macro pair from the runtime function-pointer pair. It never says they are mutually exclusive, and it presents both as routes under the same `MBEDTLS_PLATFORM_MEMORY` switch."
+}

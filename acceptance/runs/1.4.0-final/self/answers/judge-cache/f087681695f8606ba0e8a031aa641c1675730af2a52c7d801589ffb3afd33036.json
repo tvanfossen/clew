@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `options` is keyed by the `.clew.yaml` section names, and an unknown key is refused by name.\nVERDICT: HIT\nWHY: The answer states that the caller-supplied `options` keys are the `.clew.yaml` section names, and that an unknown key is refused by name. That covers the item's core claim and gestures at the diagnostics. It does not say outright that the diagnostics use the same words."
+}

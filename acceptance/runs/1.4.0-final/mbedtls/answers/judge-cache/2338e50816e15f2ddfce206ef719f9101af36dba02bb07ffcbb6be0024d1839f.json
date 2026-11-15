@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`library/common.h:132` | Library-internal header. Any library `.c` that includes it gets direct member access.\"\nVERDICT: HIT\nWHY: The answer states that the library-internal header common.h defines the opt-out, so library translation units that include it see plain member names."
+}

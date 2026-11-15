@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"My reading of the code says the not-indexed report then fails to name those files, which contradicts the docs.\"\nVERDICT: MISS\nWHY: The answer agrees that nothing raises without the grammars, but it concludes those files are not reported as not indexed. The item requires the opposite, and the answer also never describes a router consulting a capability gate before routing."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`ssl.h` has 209 `MBEDTLS_PRIVATE(` occurrences, which is the public API surface the guard covers.\"\nVERDICT: MISS\nWHY: The answer gives one header's count (209) and describes the macro as guarding public-header members, but it never states a scale of many hundreds of sites overall, nor that usage is overwhelmingly in public headers rather than library implementation. It actually notes library files use it explicitly in only 5 places."
+}

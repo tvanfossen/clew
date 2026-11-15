@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Dossier is depth 1 and keeps fuzzy rows. `chain_trace` and `traversal._call_hops` drop fuzzy edges and cap depth and fan-out (`clew/query/traversal.py:124-148`). The two can disagree about the same function.\nVERDICT: MISS\nWHY: The answer contrasts fuzzy-edge filtering between the surfaces, but never says the flat surface selects the focal side by resolved identity while traversal matches the bare name."
+}

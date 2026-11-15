@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The resolved value is `(tier1 or tier2 or tier5) \u222a tier3 \u222a tier4`. Facts and ecosystem entries are never discarded. Guesses are discarded as soon as anyone states something.\nVERDICT: HIT\nWHY: The answer states that stated tiers replace one another while facts and ecosystem layers accumulate and are never discarded."
+}

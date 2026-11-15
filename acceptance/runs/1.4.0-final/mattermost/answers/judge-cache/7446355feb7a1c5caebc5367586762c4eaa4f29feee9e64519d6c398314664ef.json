@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `buildRequestOptions` (`app/client/rest/tracking.ts:378`) turns that into `retryPolicyConfiguration = {retryLimit: 0}`.\nVERDICT: MISS\nWHY: The answer covers the post's opt-out (noRetry) but never says that requests in general retry with exponential backoff, limit 3, set by the network manager."
+}

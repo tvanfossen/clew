@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Default (no define):** external applications that include mbedtls headers. They cannot use the field names.\" and \"**Opt-out:** the library itself and its own sample programs. Inside that code the field is accessed by its real name.\"\nVERDICT: HIT\nWHY: The answer states that code defining MBEDTLS_ALLOW_PRIVATE_ACCESS sees plain names while ordinary consumers of the public headers see the renamed private_ members."
+}

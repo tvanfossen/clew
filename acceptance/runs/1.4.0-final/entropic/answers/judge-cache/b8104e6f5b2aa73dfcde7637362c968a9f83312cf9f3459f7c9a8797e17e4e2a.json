@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The wrapper has no tokenizer wired. `LlamaCppBackend::tokenize` returns `{}` (`llama_cpp_backend.cpp:796`).\nVERDICT: HIT\nWHY: The answer lists the backend wrapper returning `{}` (an empty vector) when no tokenizer is wired as one of the failure signals. It also says a failed sized call yields an empty vector that `LlamaCppBackend::tokenize` passes through as `{}`. So both cases give the same empty value."
+}

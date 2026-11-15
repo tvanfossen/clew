@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer mentions `.sh` and `CMakeLists.txt` in passing as search terms, but it never states the shell and CMake extensions that are harvested or that CMakeLists.txt is matched by file name rather than by extension."
+}

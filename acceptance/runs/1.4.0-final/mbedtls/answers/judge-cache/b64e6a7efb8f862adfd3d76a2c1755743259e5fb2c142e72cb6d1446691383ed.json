@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"| Applications linking libmbedtls (default) | No | Direct member access is a compile error. They must use the public API. |\" and \"| Library sources (`library/*.c`) | Yes, via `library/common.h:132` | Plain member names.\" and \"By default a struct field is renamed to `private_<name>`.\"\nVERDICT: HIT\nWHY: The answer states that code defining the macro (library sources, ssl_*2.c programs) sees plain member names, while ordinary consumers get the renamed `private_` names."
+}

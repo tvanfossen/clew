@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"it expands to `private_##member`, so the public struct field is really named `private_member`. Code that writes `ctx->state` by its plain name fails to compile.\" and \"The macro only renames fields, so struct layout is identical whether or not the opt-in is on.\"\nVERDICT: HIT\nWHY: The answer states opacity is enforced at compile time via renaming the member, with layout unchanged (fields still present and sized)."
+}

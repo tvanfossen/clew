@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Whether the miss report flags that is an inference I could not confirm from the index\"\nVERDICT: MISS\nWHY: The answer says that without the grammars the files get no symbols and don't crash, so it covers the degrade part. It explicitly leaves the not-indexed report unconfirmed and never states that a capability gate leads to those types being reported as not indexed."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer concludes the opposite: on a no-grammar install the not-indexed report fails to name the shell/CMake files, contradicting the docs. It doesn't conclude that the router consults a capability gate and reports those types as not indexed."
+}

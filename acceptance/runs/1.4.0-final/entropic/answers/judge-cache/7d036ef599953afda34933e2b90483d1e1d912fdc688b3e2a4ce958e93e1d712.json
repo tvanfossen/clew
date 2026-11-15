@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The allow list only skips the prompt.\nVERDICT: MISS\nWHY: The answer says allow only skips the prompt, but it never states that the allow list is consulted only from ToolExecutor::check_approval in a different file. It also doesn't say that allow grants no execution."
+}

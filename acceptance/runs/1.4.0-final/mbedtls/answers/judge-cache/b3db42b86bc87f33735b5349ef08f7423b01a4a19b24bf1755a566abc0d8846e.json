@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"MBEDTLS_PLATFORM_MEMORY off (the default)\" and \"enable `MBEDTLS_PLATFORM_MEMORY` and define both `MBEDTLS_PLATFORM_CALLOC_MACRO`...\"\nVERDICT: MISS\nWHY: The answer says MBEDTLS_PLATFORM_MEMORY is off by default and must be enabled. It never says it is commented out in the shipped mbedtls_config.h. \"Off (the default)\" is a gesture at that fact, not the statement the item asks for."
+}

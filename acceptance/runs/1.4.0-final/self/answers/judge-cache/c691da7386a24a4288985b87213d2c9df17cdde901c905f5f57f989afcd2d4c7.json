@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Explicit: CLI flag, or the `options` mapping an embedding caller passes (`clew/buildoptions.py`)\" and \"`options` mapping is how an MCP or embedding caller states tier 1, since the MCP server passes no CLI flags.\"\nVERDICT: HIT\nWHY: The answer states tier 1 is reachable via both a CLI flag and an options mapping, and that embedding/MCP callers use the mapping because they have no CLI flags."
+}

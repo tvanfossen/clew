@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Nested git trees are indexed by design, and `external.py` tags their rows so they can be told apart from the first-party code.\nVERDICT: HIT\nWHY: The answer explicitly states nested git trees are indexed (not excluded) and that their rows are tagged as external."
+}

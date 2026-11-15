@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: There are zero automatic retries. ... `ClientPosts.createPost` (`app/client/rest/posts.ts:43`) passes `noRetry: true`. ... `retryLimit: 0` ... A failed send is not retried by the network layer.\nVERDICT: HIT\nWHY: The answer states the create-post request is never automatically retried, with the noRetry/retryLimit 0 mechanism."
+}

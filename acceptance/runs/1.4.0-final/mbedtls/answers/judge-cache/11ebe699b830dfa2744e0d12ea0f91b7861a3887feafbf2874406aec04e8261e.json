@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`MBEDTLS_THREADING_C` (line 3787), `MBEDTLS_THREADING_PTHREAD` (2196) and `MBEDTLS_THREADING_ALT` (2185) are all commented out.\"\nVERDICT: HIT\nWHY: The answer states the shipped mbedtls_config.h has the threading macros (THREADING_C, PTHREAD, ALT) commented out, so a default build defines none of them."
+}

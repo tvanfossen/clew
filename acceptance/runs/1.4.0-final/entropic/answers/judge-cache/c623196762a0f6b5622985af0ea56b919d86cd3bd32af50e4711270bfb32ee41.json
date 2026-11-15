@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Python does not use a C extension, pybind11, or cffi. It loads the shared library with `ctypes` and calls the `extern \"C\"` ABI directly.\nVERDICT: HIT\nWHY: The answer names ctypes loading the shared library (`librentropic.so` is the library the loader finds) and explicitly says no C extension module is used."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"By default that renames the member to `private_foo`, so `ctx->foo` no longer compiles from application code. It is a soft encapsulation boundary. C has no `private`, so the structs stay visible in the header, but the names change and ordinary access breaks at build time.\"\nVERDICT: HIT\nWHY: The answer says the mechanism is renaming members, which breaks access at build time, and that the structs stay visible in the header, so the layout is not hidden."
+}

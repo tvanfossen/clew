@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Enable the layer. Define `MBEDTLS_PLATFORM_MEMORY` in the user config. It is off by default... `MBEDTLS_PLATFORM_C` must also be on, which is the default.\"\nVERDICT: MISS\nWHY: The answer says PLATFORM_MEMORY plus PLATFORM_C is needed for the platform layer, but it never says the buffer allocator itself requires MBEDTLS_PLATFORM_MEMORY or that enabling it alone is not enough to route the library's allocations through the buffer allocator."
+}

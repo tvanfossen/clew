@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The code defends the \"definitive\" wording by checking the unread corpora first.\"\nVERDICT: HIT\nWHY: The answer says the \"definitive\" wording depends on checking the unread corpora for that call, and that the same empty result gets \"NOT DEFINITIVE\" when rows exist there. That is a per-call grade rather than one fixed sentence for every empty result."
+}

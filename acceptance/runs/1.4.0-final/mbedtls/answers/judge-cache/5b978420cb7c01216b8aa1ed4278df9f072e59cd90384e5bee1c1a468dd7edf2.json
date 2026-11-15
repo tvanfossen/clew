@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Code outside the library that writes `ctx->state` fails to compile, and code that writes `ctx->MBEDTLS_PRIVATE(state)` also fails, because the real name is `private_state`. The point is to keep the field layout and names free to change between releases.\nVERDICT: MISS\nWHY: The answer says the member is renamed to `private_<name>` so access fails to compile, but it never states that the struct layout stays visible and sized (not hidden/opaque), which is the contrast the item requires."
+}

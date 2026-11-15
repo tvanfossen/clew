@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `clew/scope.py` resolves scope in two tiers. `derive_scope` (line 639) tries them in order\nVERDICT: HIT\nWHY: The answer names `derive_scope` in `clew/scope.py` as the place where the scope decision is resolved."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`do_count_tokens` (~825) | Returns `0`. A caller doing context budgeting would treat that as \"fits\".\"\nVERDICT: HIT\nWHY: The answer states that a tokenization failure becomes an empty vector with no error signal, and that the count-tokens path then returns 0, which a caller would read as \"fits\"."
+}

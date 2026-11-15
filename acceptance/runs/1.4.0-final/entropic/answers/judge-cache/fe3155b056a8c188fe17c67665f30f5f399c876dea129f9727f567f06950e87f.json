@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"This is a size probe, not retry logic. Nothing loops, and nothing re-runs after a failure. The first call only measures, and the second call is the real work.\"\nVERDICT: HIT\nWHY: The answer concludes it is size negotiation (probe) rather than retry, noting no loop and exactly two calls (one second call). Backoff and counter are not named explicitly, but \"nothing loops\" and \"nothing re-runs\" cover the substance."
+}

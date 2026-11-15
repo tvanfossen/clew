@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never mentions persisting decisions to config.local.yaml or any separate persistence from the in-memory add_permission call."
+}

@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 17651,
+  "stop_reason": "end_turn",
+  "session_id": "92dd827a-03ca-4597-83c9-ae099d45b7f4",
+  "total_cost_usd": 0.01273632,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 43077,
+    "cache_read_input_tokens": 273272,
+    "output_tokens": 2774,
+    "output_tokens_details": {
+      "thinking_tokens": 795
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 43077,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1225,
+        "cache_read_input_tokens": 57600,
+        "cache_creation_input_tokens": 1096,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1096
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 2774,
+      "cacheReadInputTokens": 273272,
+      "cacheCreationInputTokens": 43077,
+      "webSearchRequests": 0,
+      "costUSD": 0.01273632,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 795,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 43077,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 7,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** the post is kept locally and marked failed, the app does not retry it automatically (one send attempt, zero automatic retries), and \"Try Again\" re-sends it as a fresh request with a new timestamp.\n\n**What happens on failure** (`app/actions/remote/post.ts`, `createPost`, around lines 152\u2013199):\n\n- The post is written to the local DB before the network call, so it shows in the list while pending.\n- `client.createPost` is called once. If it throws, the code logs the error and builds an error post with `props.failed = true`. That post keeps its pending ID and is saved with `handlePosts`.\n- Three server errors are exceptions: `DELETED_ROOT_POST_ERROR`, `TOWN_SQUARE_READ_ONLY_ERROR` and `PLUGIN_DISMISSED_POST_ERROR`. For these the post is removed (`removePost`) instead of kept as failed.\n- `BOR_DENIED_BY_POLICY_ERROR` also expires the cached render-permission entry for the channel, and the post is still kept as failed.\n\n**Automatic retries:** none. `createPost` makes one call and has no loop or backoff. I found no caller that re-invokes it on failure or on reconnect. The `handle_send_message.ts` callers (lines 163 and 176) fire it once. The network client library may have its own transport-level retries; I did not check that dependency.\n\n**What \"Try Again\" does** (`retryFailedPost`, lines 228\u2013307):\n\n- It is triggered only by the user, from the failed-post bottom sheet (`app/components/post_list/post/body/failed/index.tsx`, \"Try Again\", testID `post.failed.retry`).\n- It rebuilds the payload from the stored post with `failed: false`, a new `create_at` and `update_at` set to now, and an empty `id`.\n- It updates the existing local record to the pending state, then calls `client.createPost` again. On success it upserts the server's post. On failure it marks the post failed again, or removes it for the three error types above.\n- The same post record is reused, so the user sees the same message move back to pending.\n\n**UI nuance:** `isPostFailed` (`app/utils/post/index.ts`, line 97) also treats a post as failed when it has been pending for more than `POST_TIME_TO_FAIL` (10 seconds, `app/constants/post.ts`), even without a `failed` prop. A slow send can therefore show the failed icon before the request has actually failed.",
+  "ttft_ms": 1686,
+  "type": "result",
+  "duration_ms": 18296,
+  "uuid": "b5526805-41fa-46e8-8cb7-012598ecaeac",
+  "ttft_stream_ms": 1249,
+  "time_to_request_ms": 110,
+  "first_content_frame_ms": 1249,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

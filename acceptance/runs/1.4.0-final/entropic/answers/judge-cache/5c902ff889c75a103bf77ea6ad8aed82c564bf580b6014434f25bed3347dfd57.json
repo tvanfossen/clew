@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never mentions a two-part generated surface (a names-only manifest with no ctypes import versus the bindings module that loads the library); it only describes `_bindings.py` and `_loader.py`."
+}

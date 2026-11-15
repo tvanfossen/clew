@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"calls `mbedtls_platform_set_calloc_free` on its own functions (`memory_buffer_alloc.c:572-575`). The threaded variant wraps them in a mutex.\"\nVERDICT: MISS\nWHY: The answer only says a threaded variant wraps them in a mutex. It never says the MUTEXED pair versus plain pair is chosen at compile time by MBEDTLS_THREADING_C inside the init function."
+}

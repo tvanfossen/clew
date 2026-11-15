@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Indistinguishable from an empty string, and a budget check would treat it as \"fits\".\" and \"On tokenize failure, the empty vector travels up with no error code. Only the speculative and MTP paths check for it\"\nVERDICT: MISS\nWHY: The answer says the empty result is indistinguishable and shows some callers don't check, but it also says some callers (speculative/MTP paths) do check for it, which contradicts the item's claim that no caller checks."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The only failure path is the second call returning a negative count (line 64), which gives up immediately.\nVERDICT: HIT\nWHY: The answer says a negative result from the second call gives up immediately, and that the function returns empty (\"logs an error... and returns an empty vector\") with no retry."
+}

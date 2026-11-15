@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `code` | process predates the source tree | restart the MCP client; rebuilding will not help | no, a restart (and the `data` row: `index(action='refresh')` ... yes, a rebuild)\nVERDICT: HIT\nWHY: The answer's table states data is cleared by a rebuild and code by a client restart (rebuilding will not help), which is the different-remedy-per-axis substance. It never says one flag would not have sufficed, but the item's mechanism is stated."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**\\\"Always Allow/Deny\\\"** writes through `PermissionPersister::save_permission`, which inserts `- <pattern>` under `permissions.allow` or `permissions.deny` in the project YAML.\"\nVERDICT: MISS\nWHY: The answer describes persisting to the \"project YAML\" via PermissionPersister but never names config.local.yaml, and it doesn't contrast persistence with the in-memory add_permission call."
+}

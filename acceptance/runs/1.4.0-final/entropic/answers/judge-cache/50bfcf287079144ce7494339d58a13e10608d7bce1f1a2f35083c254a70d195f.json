@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"It is a size-then-fill pattern, not retry logic.\" and \"Nothing is repeated on failure: no loop, no backoff, no second attempt with the same arguments.\"\nVERDICT: HIT\nWHY: The answer concludes this is size negotiation (size-then-fill) rather than retry, noting no backoff, no loop, and the second call is the expected step."
+}

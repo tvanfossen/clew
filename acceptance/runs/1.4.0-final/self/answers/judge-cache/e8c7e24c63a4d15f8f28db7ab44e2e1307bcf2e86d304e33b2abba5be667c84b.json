@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says a code-axis rebuild can't fix it and that the automatic path never rebuilds because an old process could re-stamp the index with damage. It never states that reads stay current because query tools open the database per call."
+}

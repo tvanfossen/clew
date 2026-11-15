@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the second call fills the vector and that the sized call returning negative yields an empty vector, but it never states that a non-positive result from the second call is terminal and not attempted again. It only says \"nothing is retried\" in general terms."
+}

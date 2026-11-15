@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`mbedtls_memory_buffer_alloc_init` (`memory_buffer_alloc.c:566`) takes a caller-supplied buffer and carves it into blocks with headers. It installs its own calloc/free through `mbedtls_platform_set_calloc_free`.\"\nVERDICT: MISS\nWHY: The answer says the buffer allocator's init installs itself via the setter. It never says it is the only in-tree user, and it hedges that the library might check which allocator is active. The \"only\" claim is missing."
+}

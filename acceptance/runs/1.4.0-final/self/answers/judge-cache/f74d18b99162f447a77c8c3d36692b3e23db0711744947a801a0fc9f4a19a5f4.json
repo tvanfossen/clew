@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says each row has a `source` layer field and that rows are collapsed to one per caller function, but never says the same logical edge found by two detectors is stored twice in call_edges."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the prose corpus is markdown only but never states that markdown is deliberately not given a path row, or that a path row would inflate indexed-source coverage figures."
+}

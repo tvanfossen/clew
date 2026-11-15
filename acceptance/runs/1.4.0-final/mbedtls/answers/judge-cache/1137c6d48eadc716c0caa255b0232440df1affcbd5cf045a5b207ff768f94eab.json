@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says that a default build has no indirection with the macros expanding straight to calloc/free. It claims every allocation goes through function pointers, and it says the default calloc pointer returns NULL, which is the opposite of the item."
+}

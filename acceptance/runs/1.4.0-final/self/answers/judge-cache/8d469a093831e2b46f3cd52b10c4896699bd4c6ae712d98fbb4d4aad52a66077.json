@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Stated value vs tier 3 or 4 fact:** both apply. The fact is never discarded. Tiers 3 and 4 combine the same way\" and \"Tiers 3 and 4 ... Accumulate. Nothing stated can remove them.\" alongside \"Any stated value replaces them\" and \"it replaces the declared value for that option as a whole. It does not merge.\"\nVERDICT: HIT\nWHY: The answer contrasts stated tiers that replace one another (flag replaces declared value, stated value replaces tier-5 guesses) with discovered facts that accumulate and cannot be removed by any statement."
+}

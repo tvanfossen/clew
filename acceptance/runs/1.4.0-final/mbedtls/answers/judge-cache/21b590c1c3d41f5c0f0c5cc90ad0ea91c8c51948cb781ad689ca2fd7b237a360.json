@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`MBEDTLS_TEST_CONSTANT_FLOW_MEMSAN` builds with Clang MemorySanitizer... `MBEDTLS_TEST_CONSTANT_FLOW_VALGRIND` runs `make memcheck`... The tests are the only way the claim is verified\"\nVERDICT: MISS\nWHY: The answer names MSan/Valgrind verification but never says the facility is off-by-default or explicitly not part of the library API."
+}

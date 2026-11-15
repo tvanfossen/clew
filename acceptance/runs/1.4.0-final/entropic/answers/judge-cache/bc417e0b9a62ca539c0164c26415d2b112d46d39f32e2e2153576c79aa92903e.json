@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Async `entropic.ask` worker | `external_bridge.cpp:1158`, `.detach()` at `:1222` | Runs `entropic_run` for `async=true` calls | Writes under `tasks_mutex_`, then broadcasts a notification. **Never joined**\"\nVERDICT: HIT\nWHY: The answer identifies the async-ask worker as detached and never joined, and its Gaps section says it outlives its owner. It calls the worker one of several threads and says \"Every long-lived thread is a member joined in `stop()` or a destructor\". That implies it is the only detached one, so the item is stated."
+}

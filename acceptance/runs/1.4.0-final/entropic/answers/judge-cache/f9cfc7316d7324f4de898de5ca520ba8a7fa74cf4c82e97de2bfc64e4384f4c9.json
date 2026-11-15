@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Core and config | `src/core/response_generator.cpp`, `src/config/loader.cpp` | Name hits only in the grep; I did not check whether they include any llama headers.\nVERDICT: MISS\nWHY: The answer says the reach is limited to inference and the facade, and it leaves the core and config hits unverified. It never concludes that a minority of reaching files sit outside src/inference."
+}

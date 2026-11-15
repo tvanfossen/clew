@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: One entry per calling function. Five calls from one function is one caller.\nVERDICT: HIT\n\nWHY: The answer says dossier builds one CallEdge per endpoint identity (not per call), and that when several layers found the same edge \"the strongest one wins\". That is one row per neighbour, with the layer variants collapsed to the strongest evidence."
+}

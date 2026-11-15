@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer discusses only tokenize's two-call size-then-fill pattern; it says nothing about detokenize's 256-byte stack buffer or heap fallback."
+}

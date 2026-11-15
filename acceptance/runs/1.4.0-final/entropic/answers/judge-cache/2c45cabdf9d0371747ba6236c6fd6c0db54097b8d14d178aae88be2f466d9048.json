@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer lists the async-ask worker as one of many threads, and says the body was truncated before any join() or detach() and that this is unverified. It never identifies it as the one detached thread that outlives its caller with no join."
+}

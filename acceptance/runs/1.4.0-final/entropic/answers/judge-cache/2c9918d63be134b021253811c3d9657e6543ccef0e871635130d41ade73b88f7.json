@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Seven indexed files touch it: `llama_cpp_backend.{h,cpp}`, `llama_cpp_sampler.{h,cpp}`, `llama_cpp_tokenizer.{h,cpp}`, and `adapter_manager.cpp`\nVERDICT: MISS\nWHY: The answer says seven files in src/inference/ use the API (plus an orchestrator leak and tests), which is not \"roughly a dozen\" files and frames it as a layered/thin wrapper pattern."
+}

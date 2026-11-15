@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says that staleness measurement never raises or that a failed measurement degrades to no annotation instead of erroring. Its closest point is that an unreadable tree is treated as current, which covers only the code-identity case and not the general rule."
+}

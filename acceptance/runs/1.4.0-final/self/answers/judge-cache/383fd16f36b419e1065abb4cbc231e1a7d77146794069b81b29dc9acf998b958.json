@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: On an installation without the bash and cmake grammars, shell and CMake fall back to path-only rows with no error. The docs say the miss report names those types, but the code I read does not support that.\nVERDICT: MISS\nWHY: The answer says degradation happens without errors but explicitly disputes that those file types are reported as not indexed, and it never describes a capability gate consulted by the router."
+}

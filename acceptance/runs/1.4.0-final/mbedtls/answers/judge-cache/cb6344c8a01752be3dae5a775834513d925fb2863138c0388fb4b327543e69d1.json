@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: In `include/mbedtls/mbedtls_config.h`, `MBEDTLS_THREADING_C` (line 3787), `MBEDTLS_THREADING_PTHREAD` (2196) and `MBEDTLS_THREADING_ALT` (2185) are all commented out.\nVERDICT: HIT\nWHY: The answer states that the shipped mbedtls_config.h leaves the threading macros commented out (undefined), so none is compiled in by default."
+}

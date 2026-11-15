@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 53892,
+  "stop_reason": "end_turn",
+  "session_id": "ac1fc560-fa8d-4a9d-a230-69debe052118",
+  "total_cost_usd": 0.023710480000000003,
+  "usage": {
+    "input_tokens": 24,
+    "cache_creation_input_tokens": 61333,
+    "cache_read_input_tokens": 664198,
+    "output_tokens": 9599,
+    "output_tokens_details": {
+      "thinking_tokens": 4534
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 61333,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3314,
+        "cache_read_input_tokens": 76117,
+        "cache_creation_input_tokens": 832,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 832
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 24,
+      "outputTokens": 9599,
+      "cacheReadInputTokens": 664198,
+      "cacheCreationInputTokens": 61333,
+      "webSearchRequests": 0,
+      "costUSD": 0.023710480000000003,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 4534,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 61333,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 15,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** For shell and CMake, the index holds one row per function or macro definition, with its name, doc block and (for CMake) parameters. For YAML and JSON it holds only a `path` row, so the file is known to exist and nothing inside it is searchable. On an install whose substrate lacks the bash or cmake grammar, shell and CMake degrade to path-only rows. The docs say the not-indexed report then names those types, but in a real build it does not. I checked that in code.\n\n**What the index holds, by file type**\n\n| File | Rows written | Source |\n|---|---|---|\n| `*.sh`, `*.bash` | `memberdef` per `name() {}` or `function name {}`; args empty; doc from the `#` block directly above | `clew/shast.py`, `clew/synth.py` |\n| `CMakeLists.txt`, `*.cmake` | `memberdef` per `function()`, with `argsstring`; `macro()` gets `kind = 'macro definition'` | `clew/cmakeast.py` |\n| `*.yaml`, `*.yml`, `*.json` | `path` row only | `clew/synth.py:80`, `register_paths` |\n\nMatching is by whole path component for `CMakeLists.txt`, so `.txt` in general is not claimed. Definition rows are stamped `dg_source='parse'`.\n\n**What it does not hold**\n\n- Shell top-level commands, call edges out of scripts, and variables. Only definitions are harvested.\n- YAML or JSON keys and values. A YAML key is a `block_mapping_pair` and is deliberately not a symbol, to keep `steps:` out of the function namespace.\n- Any file-level doc for shell or YAML. `filedocs.py` has no extractor for `.sh` or `.yaml`, so the `#` header is used only for per-function docs.\n- `.github/workflows/*.yml`, because the scope walk prunes dot directories.\n- YAML as indexed content. clew reads `.clew.yaml` and data-model manifests as configuration, so the index holds facts derived from them, not the files.\n\n**On an install without the grammars**\n\n- YAML and JSON are never routed to a grammar in `_TS_GRAMMARS` (`clew/harvest.py`), so they behave the same with or without the substrate's `yaml`/`json` keys.\n- `bash` and `cmake` are gated by `_OPTIONAL_KEYS`. With them absent, `_ts_language_for` returns None, so `.sh` and CMake files get path rows and no symbols. I confirmed this by stubbing `has_language` to False: `deploy.sh`, `CMakeLists.txt`, `x.cmake` route to None, and `a.c` still routes.\n- Nothing raises, and the rest of the build proceeds.\n\n**The finding: the not-indexed report misses these files in a real build**\n\n`docs/languages/SCRIPT_INTEGRATION.md` says that with a lacking substrate, \"the not-indexed report \u2026 names those file types.\" The code does not do that:\n\n1. `cli.py:1909` calls `register_synth_paths` unconditionally, before `_not_indexed_scope` (`cli.py:2263`).\n2. `register_paths` writes a `path` row for every claimed file, including `.sh`, `.cmake`, `.yaml`, `.yml`, `.json`, whether or not a grammar exists.\n3. `_not_indexed_scope` treats \"has a `path` row\" as \"indexed\", so these files are never counted as missing.\n\nI reproduced this in a temp DB with the venv's `clew` code. Scanned files `deploy.sh`, `x.cmake`, `CMakeLists.txt`, `app.yaml`, `app.json`, `a.c`, `notes.md` produced `not_indexed = \".c=1, .md=1\"`. The shell, CMake and data files were not reported.\n\nThe tests do not catch this. `tests/test_not_indexed_report.py` builds its DB with explicit path rows and never runs `register_paths`, so its `.sh=3` expectation is not exercised through the real build order.\n\nThe consequence is that a query about a deploy script on a degraded install returns empty with no signal that the file was in scope but unread. That is the case the report was meant to prevent.\n\n**Caveats**\n\n- I did not run a full `clew index` on a degraded substrate. The findings come from reading the code and from the two simulations above.\n- The venv's substrate has all five keys (`bash`, `cmake`, `yaml`, `json`, `markdown`). The module docstring says the published wheel lacks them. I did not check the published wheel.\n- I did not verify that the other harvest stages leave bash trees alone once the bash grammar is routed.",
+  "ttft_ms": 1480,
+  "type": "result",
+  "duration_ms": 55886,
+  "uuid": "175ee516-a52a-4b66-9d59-2c94d14ff09b",
+  "ttft_stream_ms": 1134,
+  "time_to_request_ms": 139,
+  "first_content_frame_ms": 1134,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

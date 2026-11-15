@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says the option names an embedding caller states match the `.clew.yaml` section names or the diagnostics' wording. It only says the per-run options have no `.clew.yaml` section."
+}

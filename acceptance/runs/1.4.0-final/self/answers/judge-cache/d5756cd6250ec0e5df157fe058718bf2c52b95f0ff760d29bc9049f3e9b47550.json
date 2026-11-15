@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `not_indexed` (file types the index skips, such as `.rs`, `.toml`, `.sql`, and extensionless files)... \"the file types where the thing would live appear in `scope.extensions`\"\nVERDICT: MISS\nWHY: The answer names file types that are NOT indexed and says to check `scope.extensions`. It never says the reply names in-scope file types that produced no rows, so the item's distinction is not stated."
+}

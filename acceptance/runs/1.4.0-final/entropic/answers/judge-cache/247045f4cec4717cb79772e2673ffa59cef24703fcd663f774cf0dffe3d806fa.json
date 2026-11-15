@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Observer in `dispatch_batch_generate` | Copies the engine's `interrupt_flag_` into the C-ABI int cancel flag | `observer_done` is an atomic... and \"the observer writes `cancel_int` as a plain `int`, and the backend poller reads it through `int*`. Only `observer_done` is atomic.\"\nVERDICT: MISS\nWHY: The answer describes the observer copying an atomic flag into a plain int for the C ABI, but never states the reason the thread exists (the C ABI cannot carry an atomic). It instead treats the plain int as a data race to fix."
+}

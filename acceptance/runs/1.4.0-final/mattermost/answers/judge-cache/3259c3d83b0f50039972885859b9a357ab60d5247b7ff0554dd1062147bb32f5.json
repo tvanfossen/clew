@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The app's network client defaults to `retryLimit: 3` with exponential backoff (`app/managers/network_manager.ts:68-73`). But `createPost` in `app/client/rest/posts.ts:43-47` passes `noRetry: true`.\nVERDICT: HIT\nWHY: The answer states the default retry (exponential, limit 3, in network manager) and that createPost opts out via noRetry."
+}

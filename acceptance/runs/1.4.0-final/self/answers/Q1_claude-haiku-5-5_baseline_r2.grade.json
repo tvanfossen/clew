@@ -1,0 +1,83 @@
+{
+  "cell": "Q1_claude-haiku-5-5_baseline_r2",
+  "arm": "baseline",
+  "rubric_version": "5.0.0",
+  "rubric_digest": "d8447c7b18eafbf5",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.5625,
+  "unmarked_pct": 0.0,
+  "split_decisions": 0,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "names derive_scope in clew/scope.py as where the decision is resolved",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: **1. Choosing the root scope (`clew/scope.py`, `derive_scope`)** | WHY: The answer explicitly names `derive_scope` in `clew/scope.py` as where the root scope decision is resolved. || QUOTE: **1. Choosing the root scope (`clew/scope.py`, `derive_scope`)** | WHY: The answer names derive_scope in clew/scope.py as where the root scope decision (declared vs. whole-repo) is resolved. || QUOTE: **1. Choosing the root scope (`clew/scope.py`, `derive_scope`)** | WHY: The answer names `derive_scope` in `clew/scope.py` as where the root scope is chosen, i.e. where the scope decision is resolved.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that a repository's own declared index_scope is preferred, and that every failure to find one falls through to indexing the whole repository",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: A rejected section logs a WARNING, and the build falls back to the whole-repo tier with the rejection stated as the reason. An absent section falls back silently with a reason saying none was declared. | WHY: The answer says a declared `.clew.yaml` `index_scope:` is preferred, and that both a rejected section and an absent one fall back to whole-repo indexing. || QUOTE: A rejected section logs a WARNING, and the build falls back to the whole-repo tier with the rejection stated as the reason. An absent section falls back silently with a reason saying none was declared. | WHY: The answer states that a declared `.clew.yaml` index_scope is preferred, and that both a rejected section and an absent one fall back to whole-repo indexing. It does not say that nonexistent roots also fall through, but it covers the main failure modes. || QUOTE: A rejected section logs a WARNING, and the build falls back to the whole-repo tier with the rejection stated as the reason. An absent section falls back silently with a reason saying none was declared. | WHY: The answer states that a declared `.clew.yaml` `index_scope` is preferred (it wins over the whole-repo tier). It also says that both a rejected section and an absent one fall back to whole-repo indexing.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "conveys that the fallback carries a REASON explaining which scope was used and why, so an unstated scope is never silently guessed",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: A rejected section logs a WARNING, and the build falls back to the whole-repo tier with the rejection stated as the reason. An absent section falls back silently with a reason saying none was declared. | WHY: The answer states the fallback to the whole-repo tier carries a reason (rejection or none declared), so the scope used and why is explicit rather than guessed. || QUOTE: A rejected section logs a WARNING, and the build falls back to the whole-repo tier with the rejection stated as the reason. An absent section falls back silently with a reason saying none was declared. | WHY: The answer states the whole-repo fallback carries a reason (rejection stated, or none declared), so the unstated scope is explained rather than silently guessed. || QUOTE: A rejected section logs a WARNING, and the build falls back to the whole-repo tier with the rejection stated as the reason. An absent section falls back silently with a reason saying none was declared. | WHY: The answer says the whole-repo fallback carries a stated reason (rejection or none declared), so the scope used is explained rather than silently guessed.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that a Doxyfile's own INPUT is deliberately NOT used to decide the indexed tree, and explains why \u2014 a repository that ships one would get only its documented subset while a repository that ships none gets its whole tree",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: The repo's Doxyfile no longer sets the INPUT; it supplies only aliases and predefined macros. | WHY: The answer says the Doxyfile doesn't set INPUT but never explains the deliberate rationale (a repo with a Doxyfile would get only its documented subset while one without gets the whole tree). || QUOTE: The repo's Doxyfile no longer sets the INPUT; it supplies only aliases and predefined macros. | WHY: The answer says the Doxyfile doesn't set INPUT but never gives the reason: a repo shipping a Doxyfile would otherwise get only its documented subset, while one shipping none gets its whole tree. || QUOTE: The repo's Doxyfile no longer sets the INPUT; it supplies only aliases and predefined macros. | WHY: The answer says the Doxyfile no longer sets INPUT but never explains the rationale (a repo with a Doxyfile would get only its documented subset while one without gets the whole tree).",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that nested git trees are INDEXED and tagged rather than excluded from the scope",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: Nested git trees (submodules, vendored clones) are included, not excluded (gh#333). `external.py` tags their rows after the build so answers can tell the codebases apart. | WHY: The answer explicitly says nested git trees are included rather than excluded and that external.py tags their rows. || QUOTE: Nested git trees (submodules, vendored clones) are included, not excluded (gh#333). `external.py` tags their rows after the build so answers can tell the codebases apart. | WHY: The answer states nested git trees are included rather than excluded and that external.py tags their rows.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "conveys that the containment call was REMOVED rather than left in place with its callers dropped",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never mentions a containment call being removed; it describes scope and filtering without that fact. || QUOTE: NONE | WHY: The answer never mentions a containment call being removed; it only describes the current scope and filter mechanics. || QUOTE: NONE | WHY: The answer never mentions a containment call being removed. It describes the current scope and filtering pipeline and says nothing about a removal or about dropped callers.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the resolved scope is not the whole answer \u2014 within it, a file reaches the index only if something can read it, and names at least one of the two filters: the parse-built front end claiming the file types doxygen cannot read, or binary classification dropping files whose extension lies about them",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: JS/TS come through the parse front end instead | WHY: The answer mentions JS/TS going through the parse front end and a binary filter, but never states that the resolved scope is not the whole answer. It also doesn't say the front end claims the file types doxygen can't read. The binary filter is described as content-based, but not as dropping files whose extension lies about them. That is a gesture at the item, not the specific mechanism it requires. || QUOTE: JS/TS come through the parse front end instead | WHY: The answer mentions JS/TS going through the parse front end only in passing. It never says that a file reaches the index only if something can read it, or that this is a filter claiming the file types doxygen cannot read. It does describe binary classification, but as dropping files \"by content, not extension\", without saying that it targets files whose extension lies about them. || QUOTE: JS/TS come through the parse front end instead | WHY: The answer mentions the parse front end for JS/TS only in passing and never names it as a filter that claims the file types doxygen cannot read. It does name the binary filter, but describes it as \"dropped by content, not extension\" without the \"extension lies\" framing the item requires. Because the item is one atomic fact and the answer only gestures at it, the verdict is MISS.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    }
+  ]
+}

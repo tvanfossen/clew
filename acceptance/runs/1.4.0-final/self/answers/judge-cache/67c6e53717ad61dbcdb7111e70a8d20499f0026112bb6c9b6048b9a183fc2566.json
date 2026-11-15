@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Whether the miss report flags that is an inference I could not confirm from the index\nVERDICT: MISS\nWHY: The answer says shell/CMake files degrade (no symbols, no raise, `_grammar_available` gate), but it explicitly leaves unresolved whether those types are reported as not indexed, and it argues the report might be empty. It does not conclude that they are reported as not indexed."
+}

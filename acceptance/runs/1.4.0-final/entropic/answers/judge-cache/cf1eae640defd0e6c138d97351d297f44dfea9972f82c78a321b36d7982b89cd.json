@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says llama.cpp is confined to a few files in src/inference/ (three class pairs plus a C-API file and adapter_manager.cpp), which is the opposite of a dependency reaching about a dozen files of entropic's own source."
+}

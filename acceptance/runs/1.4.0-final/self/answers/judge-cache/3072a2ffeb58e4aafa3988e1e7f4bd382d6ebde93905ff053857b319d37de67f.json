@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"A repo's own Doxyfile no longer supplies INPUT. It still supplies aliases and predefined macros.\"\nVERDICT: MISS\nWHY: The answer says the Doxyfile no longer supplies INPUT but never explains why (documented-subset vs whole-tree inconsistency between repos with and without a Doxyfile)."
+}

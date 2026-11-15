@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "ITEMS:\nexternal_bridge.cpp\nhealth_monitor.cpp\nresponse_generator.cpp\ninterface_factory.cpp\ninference_c_api.cpp\nEND\n\nNote: the answer also names a stderr reader spawn (`StdioTransport::open` \u2192 `stderr_reader_loop`) and an SSE reader spawn (`SSETransport::open` \u2192 `sse_reader_loop`), but it gives no file path for either. They are left out because only paths are listed."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: the interface at `index.ts:23` declares matching `*HandlerMix` types so the methods type-check.\nVERDICT: HIT\nWHY: The answer states that an interface in index.ts declares matching handler Mix types so the mixed-in methods type-check, which is the declaration-merging mechanism the item describes."
+}

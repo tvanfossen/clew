@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says dossier takes only the call half (not the merged form) or that merging would double-report dataflow edges; it only notes key edges are kept out of `callers`."
+}

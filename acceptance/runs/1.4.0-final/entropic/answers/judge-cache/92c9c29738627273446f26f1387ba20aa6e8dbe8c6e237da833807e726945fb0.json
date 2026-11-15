@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Without a callback and without an allow match, calls are denied\" and \"with a callback installed, the only things that stop a call are: deny-list matches\"\nVERDICT: MISS\nWHY: The answer says a call matching no list is denied when there is no callback, and when a callback exists it is approved. It never concludes that unlisted tools are not denied and run by default as the effective posture."
+}

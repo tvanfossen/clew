@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The error is only logged at debug level (`logDebug`). The function returns `{data: true}` either way, so the caller is not told the send failed.\nVERDICT: HIT\nWHY: The answer states that `createPost` returns `{data: true}` even on failure, and that the failure shows only in the locally stored post (`props.failed = true`)."
+}

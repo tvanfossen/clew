@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Both lists can be extended at runtime with `add_permission`. `ALWAYS_ALLOW`/`ALWAYS_DENY` are persisted through `PermissionPersister`.\nVERDICT: MISS\nWHY: The answer mentions persistence via PermissionPersister but never names config.local.yaml or the append-to-file mechanism."
+}

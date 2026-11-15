@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It takes the first JSON value of the arguments if that value is a string, and `*` otherwise.\nVERDICT: HIT\nWHY: The answer states that `args_to_pattern` uses only the first argument value, and that a non-string value collapses to `*`. Unparseable input is not mentioned, but the single-value and wildcard-collapse substance is there."
+}

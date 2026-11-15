@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `_bindings.py   \u2190 generated from entropic.h by scripts/gen_bindings.py (\"do not edit\")`\nVERDICT: HIT\nWHY: The answer states that `_bindings.py` is generated from the C header `entropic.h` by `scripts/gen_bindings.py` and is marked \"do not edit\"."
+}

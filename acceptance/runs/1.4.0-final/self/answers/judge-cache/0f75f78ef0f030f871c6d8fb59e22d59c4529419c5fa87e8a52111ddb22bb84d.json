@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"present but rejected \u2500\u2500\u25ba whole_repo_scope(rejected=<reason>)\" and \"**2. Nothing declared.** `derive_scope` falls through to `whole_repo_scope`\"\nVERDICT: HIT\nWHY: The answer states that a declared index_scope takes precedence and that both absent and rejected declarations fall through to whole-repo indexing. It adds that the CLI `--scope from-guard` refuses instead, but that does not remove the stated fall-through for the other callers."
+}

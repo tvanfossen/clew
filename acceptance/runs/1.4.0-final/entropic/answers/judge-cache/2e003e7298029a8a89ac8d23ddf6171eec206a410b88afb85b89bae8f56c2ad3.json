@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Outside `src/inference/`, only `src/facade/entropic.cpp` (via `llama_cpp_backend.h`) touches it.\nVERDICT: HIT\nWHY: The answer says most direct includes are in src/inference but at least one file (src/facade/entropic.cpp) outside it also reaches llama, with tests also listed, so it is concentrated but not fully contained."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `AppDataOperator.handleGlobal` and `handleInfo`, which write to the app database\nVERDICT: MISS\nWHY: The answer mentions AppDataOperator as a caller of handleRecords, but never says it is the other subclass of BaseDataOperator sharing the write path."
+}

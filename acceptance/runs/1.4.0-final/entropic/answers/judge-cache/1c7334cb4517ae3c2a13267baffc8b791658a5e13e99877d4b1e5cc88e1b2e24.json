@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer lists the async-ask worker as one of many threads and says join/detach was unverified. It never identifies it as the sole detached thread that outlives its caller with no join."
+}

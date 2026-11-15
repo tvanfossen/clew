@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Enable `MBEDTLS_PLATFORM_MEMORY` and define `MBEDTLS_PLATFORM_CALLOC_MACRO` / `MBEDTLS_PLATFORM_FREE_MACRO` in a user config.\nVERDICT: MISS\nWHY: The answer never says the buffer allocator itself requires MBEDTLS_PLATFORM_MEMORY, so enabling that option alone would not be enough. It only discusses MBEDTLS_PLATFORM_MEMORY in the context of compile-time macro replacement."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The `note` lists what was searched and what was not.\"\nVERDICT: MISS\nWHY: The answer ties strong versus weak wording to the shape of the result (a multi-token symbols miss versus a `code` corpus miss). It never says the strong wording is earned per call by checking which corpora were not read."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Dossier is depth 1 and keeps fuzzy rows. `chain_trace` and `traversal._call_hops` drop fuzzy edges and cap depth and fan-out\nVERDICT: MISS\nWHY: The answer states the flat surface keeps fuzzy edges and traversal drops them, but gives no reason about a walk multiplying one fuzzy edge into a wrong subtree."
+}

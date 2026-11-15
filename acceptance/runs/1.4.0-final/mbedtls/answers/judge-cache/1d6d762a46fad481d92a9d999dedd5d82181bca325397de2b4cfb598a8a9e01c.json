@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_THREADING_C` and `MBEDTLS_THREADING_PTHREAD` are both commented out in `include/mbedtls/mbedtls_config.h`\nVERDICT: HIT\nWHY: The answer explicitly names both macros as the gating switches for threading, noting they're disabled by default and must be enabled to compile in the locks."
+}

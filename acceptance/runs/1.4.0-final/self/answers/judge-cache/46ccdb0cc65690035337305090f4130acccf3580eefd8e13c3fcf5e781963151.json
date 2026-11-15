@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"4. **Tier 4, ecosystem:** a known-ecosystem signature (UDM, ingot).\\n5. **Tier 5, heuristic:** name-pattern guesses, the floor, explicitly provisional.\" along with \"Tier 1, explicit\", \"Tier 2, declared\", \"Tier 3, target-fact\"\nVERDICT: HIT\nWHY: The answer enumerates five named tiers (explicit, declared, target-fact, ecosystem, heuristic) and explains the layered resolution rule, despite an inconsistent \"four ways\" intro line."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Option A: compile time (no runtime indirection)... MBEDTLS_PLATFORM_CALLOC_MACRO... Option B: runtime. Define only `MBEDTLS_PLATFORM_MEMORY`, then call this before any Mbed TLS allocation: mbedtls_platform_set_calloc_free(my_calloc, my_free)\"\nVERDICT: MISS\nWHY: The answer describes the compile-time macro pair and the runtime function-pointer setter. It never says the two are mutually exclusive. Its table even shows the macros being layered on top of `MBEDTLS_PLATFORM_MEMORY`, and the answer doesn't say that setting the macros disables the runtime setter."
+}

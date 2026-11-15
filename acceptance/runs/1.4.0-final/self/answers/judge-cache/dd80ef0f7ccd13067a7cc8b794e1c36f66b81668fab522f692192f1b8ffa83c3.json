@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Failure degrades, never errors.** If the refresh fails or times out, the query answers from the existing index and the reply still carries the notice.\nVERDICT: MISS\nWHY: The answer says refresh failure degrades, but not that measuring staleness itself never raises and degrades to no annotation."
+}

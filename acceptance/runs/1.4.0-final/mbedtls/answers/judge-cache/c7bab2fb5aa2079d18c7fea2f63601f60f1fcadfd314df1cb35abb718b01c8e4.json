@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Inside the library: nothing. The index finds no thread spawn in `library/`. Its four spawn sites are all in `programs/`\" and \"the default build does not compile it.\"\nVERDICT: MISS\nWHY: The answer says the library spawns no threads and the pthread server isn't compiled by default, but it never says the default build creates no threads at all, and it never says the example becomes a stub main."
+}

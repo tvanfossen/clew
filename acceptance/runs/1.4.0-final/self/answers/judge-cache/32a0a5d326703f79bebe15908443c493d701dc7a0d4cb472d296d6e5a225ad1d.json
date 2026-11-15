@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Markdown** is deliberately left out of the file set; prose goes to the FTS index.\nVERDICT: MISS\nWHY: The answer says markdown is deliberately excluded from the file set and goes to the FTS index. It never says a path row would count it as indexed source in coverage figures, so the item's specific reasoning is absent."
+}

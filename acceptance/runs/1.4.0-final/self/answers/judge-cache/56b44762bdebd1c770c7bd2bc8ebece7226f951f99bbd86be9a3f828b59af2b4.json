@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Binaries are dropped by content sniffing. Parsing is then decided per consumer: doxygen by its FILE_PATTERNS list, tree-sitter by grammar extension.\nVERDICT: HIT\nWHY: The answer says that within the scope, binary classification drops files by content and not by extension. It also says that doxygen reads only files matching its patterns and that tree-sitter picks up the other languages. That names both filters."
+}

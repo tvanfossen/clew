@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The index's `interface ServerDataOperator extends ...Mix` declaration (line 23) merges in the matching `*Mix` interface types so the mixed-in methods are typed.\nVERDICT: HIT\nWHY: The answer states that a same-named interface extends the `*Mix` types, merging them so the mixed-in methods are typed."
+}

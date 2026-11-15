@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes the failure path (marks the post failed, removes it for certain errors) but never says `createPost` returns `{data: true}` to its caller on a failed send."
+}

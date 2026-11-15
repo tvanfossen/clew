@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Tests mock the C API. `tests/unit/inference/adapter_manager_test.cpp`... define stand-ins for `llama_adapter_lora_*` and `llama_vocab_*`.\nVERDICT: MISS\nWHY: The answer mentions llama_-prefixed functions and says \"C API\" in the tests, but it never identifies the seam as llama.cpp's C API of free functions. It frames the seam as a C++ subclass pattern (`LlamaCppBackend_b8420`)."
+}

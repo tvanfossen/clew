@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Unknown sub-index names are refused rather than ignored, and only `excludes` is accepted.\nVERDICT: MISS\nWHY: The answer mentions a refusal for unknown sub-index names and some index_scope rejections. It does not describe an unknown key inside a well-named section, and it does not say that a correctly-spelled derived key is refused with its reason rather than as unknown."
+}

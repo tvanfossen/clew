@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Try Again** (`post.failed.retry`) calls `retryFailedPost`.\" and \"The app makes zero automatic retries. The user retries by hand from the failed post's menu.\"\nVERDICT: HIT\nWHY: The answer says no automatic retries occur, the user retries manually via the \"Try Again\" action on the failed post, and that action calls `retryFailedPost`."
+}

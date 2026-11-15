@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The cancel flag crosses the C ABI as a plain `int*` and is bridged to an `atomic<bool>` on the other side, so no C++ atomics cross the `.so` boundary.\nVERDICT: HIT\nWHY: The answer states that the cancel flag crosses the C ABI as a plain int* and is bridged to an atomic, so no atomics cross the boundary. It also describes the observer/poller threads as cancel/interrupt mirrors, which covers the item's substance."
+}

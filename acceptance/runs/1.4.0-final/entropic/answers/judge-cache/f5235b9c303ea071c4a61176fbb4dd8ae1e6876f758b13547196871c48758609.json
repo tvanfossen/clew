@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: If the second call returns negative, the tokenizer logs one `error` line (`llama_cpp_tokenizer.cpp:65`) and returns an empty `std::vector<int32_t>`.\nVERDICT: HIT\nWHY: The answer states that a negative second-call result is terminal: it logs an error and returns an empty vector, with no retry (\"the second one has no retry loop, backoff, or fallback\")."
+}

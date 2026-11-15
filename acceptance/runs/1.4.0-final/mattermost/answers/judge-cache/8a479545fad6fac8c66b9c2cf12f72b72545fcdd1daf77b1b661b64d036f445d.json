@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"reaction = queryReaction(database, emoji_name, post_id, user_id).fetch() ... if reaction.length: database.write(() => reaction[0].destroyPermanently())\" and \"The remove path does not go through `handleReactions`, `sanitizeReactions`, or any transformer... a direct query-and-destroy with no operator involvement.\"\nVERDICT: HIT\nWHY: The answer states that removal bypasses the operator, queries the reaction, and destroys it via a direct `database.write`."
+}

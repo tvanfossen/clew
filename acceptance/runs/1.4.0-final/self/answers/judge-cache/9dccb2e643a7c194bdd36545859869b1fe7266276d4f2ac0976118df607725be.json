@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer lists fields (note, scope, not_searched) a caller should read, but never states that the strong wording is earned per call by querying which corpora weren't read rather than attached to a result shape."
+}

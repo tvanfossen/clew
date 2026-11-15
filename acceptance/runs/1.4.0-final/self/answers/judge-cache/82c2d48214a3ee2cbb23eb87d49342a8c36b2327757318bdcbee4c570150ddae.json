@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: On an install whose substrate lacks the bash or cmake grammar, shell and CMake degrade to path-only rows. ... \"Nothing raises, and the rest of the build proceeds.\" ... \"`bash` and `cmake` are gated by `_OPTIONAL_KEYS`. With them absent, `_ts_language_for` returns None\"\nVERDICT: MISS\nWHY: The answer says the install degrades (path-only rows, nothing raises) via a capability gate, but it concludes the not-indexed report does NOT list those types in a real build, contradicting the item's conclusion that they are reported as not indexed."
+}

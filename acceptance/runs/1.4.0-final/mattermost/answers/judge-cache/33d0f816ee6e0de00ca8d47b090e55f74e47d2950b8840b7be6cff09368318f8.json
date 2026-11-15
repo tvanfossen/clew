@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mix()` is untyped (`any[]`), so `index.ts:23` declares `interface ServerDataOperator extends ...HandlerMix {}`. Each `XHandlerMix` interface supplies the method signatures for TypeScript.\nVERDICT: HIT\nWHY: The answer says a same-named interface `ServerDataOperator` extends each handler's `...Mix` type, which gives the class typed method signatures."
+}

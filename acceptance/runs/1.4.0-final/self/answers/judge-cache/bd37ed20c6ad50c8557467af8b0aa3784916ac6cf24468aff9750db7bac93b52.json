@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer covers only scope resolution (index_scope, whole-repo, excludes). It never says that files within scope must be readable, and it names neither the parse-built front end for file types doxygen can't read nor binary classification of files whose extensions lie."
+}

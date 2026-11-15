@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The reason string recorded in the build log says that no declaration was found and the whole repository was used. It also suggests how to declare a narrower scope.\nVERDICT: HIT\nWHY: The answer states the fallback scope carries a reason string explaining that no declaration was found and the whole repo was used, so the scope is never silently guessed."
+}

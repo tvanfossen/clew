@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The deny list is checked again in `ServerManager::execute`, after approval. It wins over `auto_approve` and over the allow list, so a denied tool never reaches the server.\nVERDICT: MISS\nWHY: The answer says deny is checked in ServerManager::execute, but it describes a separate approval layer in preconditions and never concludes that deny is the only list consulted before routing."
+}

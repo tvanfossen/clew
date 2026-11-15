@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"4. **Tier 4, ecosystem:** a known-ecosystem signature (UDM, ingot).\\n5. **Tier 5, heuristic:** name-pattern guesses, the floor, explicitly provisional.\" along with \"1. **Tier 1, explicit:**\", \"2. **Tier 2, declared:**\", \"3. **Tier 3, target-fact:**\"\nVERDICT: HIT\nWHY: The answer enumerates five named precedence tiers (explicit, declared, target-fact, ecosystem, heuristic) and the resolution rule, not a single override. Its opening line says \"four ways\", but the body lists five."
+}

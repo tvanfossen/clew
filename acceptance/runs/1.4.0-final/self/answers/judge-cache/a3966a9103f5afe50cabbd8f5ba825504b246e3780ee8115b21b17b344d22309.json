@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: No `.clew.yaml`, or no `index_scope:` section: `_declared_index_scope` returns `None` and `derive_scope` returns `whole_repo_scope`. The reason string names the file it looked in and says the whole repository was used.\nVERDICT: MISS\nWHY: The answer says a declared scope wins and that a missing declaration falls to the whole repo. But it also says an unusable declaration is a refusal, \"not a fallback\", which contradicts \"every failure to find one falls through\". It does not state that every failure falls through."
+}

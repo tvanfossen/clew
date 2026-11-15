@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: And if the second call fails, the code does not try again. In `tokenize` it logs and returns empty. In `detokenize` it returns an empty string.\nVERDICT: HIT\nWHY: The answer states that a failure of the second call is terminal and returns empty, with no further attempt."
+}

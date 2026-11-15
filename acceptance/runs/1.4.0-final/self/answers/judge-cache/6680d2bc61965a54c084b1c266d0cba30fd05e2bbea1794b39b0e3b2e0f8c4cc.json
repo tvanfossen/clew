@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The fix made `build_or_refresh` refuse via `stale_code_refusal`, which runs before the build decision so `force` can't override it.\nVERDICT: HIT\nWHY: The answer states that the write path refuses (not warns) and that the refusal is placed ahead of the build decision so `force` cannot override it."
+}

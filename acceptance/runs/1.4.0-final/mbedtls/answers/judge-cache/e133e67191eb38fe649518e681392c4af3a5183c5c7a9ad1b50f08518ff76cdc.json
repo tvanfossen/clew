@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"By default that renames the member to `private_foo`, so `ctx->foo` no longer compiles from application code.\" and \"#ifndef MBEDTLS_ALLOW_PRIVATE_ACCESS\\n#define MBEDTLS_PRIVATE(member) private_##member\\n#else\\n#define MBEDTLS_PRIVATE(member) member\"\nVERDICT: HIT\nWHY: The answer shows the macro definition and states that by default the member is renamed to private_foo, and that with the opt-out defined, `MBEDTLS_PRIVATE(x)` expands to plain `x`."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Same vocabulary as `.clew.yaml`, so it works for repos you cannot edit.\nVERDICT: HIT\nWHY: The answer states that the embedding caller's `options` argument uses the same vocabulary as the `.clew.yaml` declaration file. It says nothing about the diagnostics using the same words, so the item is only partly covered.\n\nReading the item again, it requires three things: caller option names, declaration section names, and diagnostics. The quote supplies only the first two. The \"same words the diagnostics use\" part is absent. An answer that gets only part of an atomic item resolves to MISS, so the verdict above is wrong.\n\nQUOTE: Same vocabulary as `.clew.yaml`, so it works for repos you cannot edit.\nVERDICT: MISS\nWHY: The answer says the options share vocabulary with `.clew.yaml`, but it never says the diagnostics use those same words."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `allow` is checked only in `check_approval`. Neither list is checked in the other place.\nVERDICT: HIT\nWHY: The answer says allow is consulted only in check_approval (tool_executor.cpp) while deny is in ServerManager::execute (a different file). It also shows allow only sets auto_ok, which skips the approval step and is not an execution grant, since deny still blocks at execute."
+}

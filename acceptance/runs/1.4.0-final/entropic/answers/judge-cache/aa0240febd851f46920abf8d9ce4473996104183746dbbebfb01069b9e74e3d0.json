@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `wake_cv_` lets `stop()` wake it immediately\nVERDICT: MISS\nWHY: The answer says the health monitor is joined in `stop()` and that `wake_cv_` wakes it, but it never mentions an atomic flag exchange as the shutdown mechanism, so the item's full mechanism is absent."
+}

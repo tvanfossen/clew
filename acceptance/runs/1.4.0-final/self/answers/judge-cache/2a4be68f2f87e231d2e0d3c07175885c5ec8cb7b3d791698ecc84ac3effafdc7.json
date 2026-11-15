@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: each query reply carries `staleness` only when there is something to report. ... A current index gets no notice at all.\nVERDICT: HIT\nWHY: The answer says the annotation is attached to every query reply and is absent when the index is current, which matches the item's substance."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer covers scope resolution and excludes, but never says that within scope a file only reaches the index if readable, nor names the parse-built front end or binary classification as filters. It explicitly says it could not confirm which extensions doxygen keeps."
+}

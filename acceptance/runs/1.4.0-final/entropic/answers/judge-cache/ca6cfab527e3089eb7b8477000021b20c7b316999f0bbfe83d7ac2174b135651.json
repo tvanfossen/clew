@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says HealthMonitor::monitor_loop exists and uses an event queue under a mutex. It never says that shutdown is an atomic flag exchange plus a condition variable wake, and it never says that stop() joins the thread."
+}

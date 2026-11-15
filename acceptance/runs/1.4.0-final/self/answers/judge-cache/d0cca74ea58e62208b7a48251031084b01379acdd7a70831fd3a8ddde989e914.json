@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It calls `derive_scope_logged`, which calls `derive_scope` (`clew/scope.py:639`). That returns a `DerivedScope` with `roots` (what doxygen gets as INPUT) and `excludes`.\nVERDICT: HIT\nWHY: The answer names `derive_scope` in `clew/scope.py` as the function that resolves the scope decision."
+}

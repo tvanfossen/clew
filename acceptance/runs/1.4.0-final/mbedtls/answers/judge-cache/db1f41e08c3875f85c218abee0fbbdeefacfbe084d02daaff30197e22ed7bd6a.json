@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: about 889 occurrences across 74 files, e.g. `ssl.h` has 210\nVERDICT: HIT\nWHY: The answer states the scale (about 889 occurrences) and that the field declarations live in the public headers (`ssl.h`, \"Struct declarations in the public headers wrap their fields in it\"), which covers the item's substance."
+}

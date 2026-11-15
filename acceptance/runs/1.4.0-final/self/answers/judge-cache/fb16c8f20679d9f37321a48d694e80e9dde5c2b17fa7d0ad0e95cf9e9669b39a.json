@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: | 1 | CLI flags ... | 2 | `.clew.yaml` ... | 3 | Facts the target already states ... | 4 | Known-ecosystem signatures ... | 5 | Built-in name-shape guesses | The floor.\nVERDICT: HIT\nWHY: The answer lays out five numbered precedence tiers (CLI/inline, .clew.yaml, target facts, ecosystem signatures, built-in guesses) with named channels, rather than a single override. The opening line says \"three layers\", but the table gives five tiers."
+}

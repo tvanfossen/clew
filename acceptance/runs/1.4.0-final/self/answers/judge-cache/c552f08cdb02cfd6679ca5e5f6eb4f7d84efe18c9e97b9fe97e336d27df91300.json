@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"absent/empty \u2192 None\" and \"A test (`test_empty_or_absent_index_scope_falls_back_to_the_whole_repo`) confirms that `index_scope: {roots: []}` falls through to the whole repo\" and \"unusable \u2192 _Rejected (warning logged) \u2192 whole-repo tier\"\nVERDICT: HIT\nWHY: The answer states a declared index_scope is tier 1 and that absent, empty, or unusable declarations all fall through to the whole-repo tier."
+}

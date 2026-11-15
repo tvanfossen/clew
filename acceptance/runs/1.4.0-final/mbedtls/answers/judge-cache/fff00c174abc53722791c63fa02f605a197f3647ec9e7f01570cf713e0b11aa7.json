@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: There is no indirection, and the runtime setter is compiled out (`platform.c:20-22`).\nVERDICT: HIT\nWHY: The answer says that on the macro path the runtime setter `mbedtls_platform_set_calloc_free` is compiled out. That means it does not exist in the build, which is the item's claim."
+}

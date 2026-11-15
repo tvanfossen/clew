@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Unless `MBEDTLS_ALLOW_PRIVATE_ACCESS` is defined, it expands to `private_##member`, so the public struct field is really named `private_member`. ... Inside the library, `MBEDTLS_PRIVATE(x)` is just `x`.\nVERDICT: HIT\nWHY: The answer says that code defining the opt-in (the library, some programs) gets plain names, while ordinary consumers of the public headers get `private_` names, and that two translation units compiled with different settings \"see different field names\"."
+}

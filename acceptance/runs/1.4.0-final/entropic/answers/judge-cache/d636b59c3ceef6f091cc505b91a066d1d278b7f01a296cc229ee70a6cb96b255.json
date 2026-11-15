@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Polls the listen socket, accepts clients ... | Per-client `serve_client` thread | Inside `accept_loop` (`:945`) | Serves one MCP client | Owns its fd and closes it on exit.\nVERDICT: HIT\nWHY: The answer states that `accept_loop` is a thread that accepts clients and spawns a separate `serve_client` thread for each one, which is the two-level structure."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It never rebuilds on a `schema` or `code` axis. `_data_stale` returns false if `matches_source` is false, because a build through an old process would re-stamp the index with old pipeline logic.\nVERDICT: MISS\nWHY: The answer states that builds through a stale process would re-stamp old logic, but it never says that reads stay current because query tools open the database per call. The read half of the asymmetry is missing."
+}

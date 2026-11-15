@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"It refuses outright when the process predates its source, and `force` cannot override that.\"\nVERDICT: HIT\nWHY: The answer says the explicit refresh path refuses (not warns) when the code is stale and that `force` cannot override it, which is the refuse-before-build-decision mechanism."
+}

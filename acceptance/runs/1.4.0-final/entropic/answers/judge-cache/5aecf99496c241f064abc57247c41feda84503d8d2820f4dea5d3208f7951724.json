@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "Paths the answer names as taking part in the decision or its recording:\n\nITEMS:\ntool_executor.cpp\nserver_manager.cpp\nloader.cpp\ntypes/config.h\nfacade/entropic.cpp\npermission_manager.cpp\npermission_manager.h\ntests/data/comprehensive_config.yaml\ndata/schemas/config_schema.json\nmcp_authorization.cpp\nEND"
+}

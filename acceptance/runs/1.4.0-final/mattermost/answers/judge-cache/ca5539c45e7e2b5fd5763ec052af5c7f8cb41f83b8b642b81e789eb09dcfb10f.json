@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`ServerDataOperatorBase` (`handlers/index.ts`) holds the shared logic... and it extends `BaseDataOperator`\" and \"Shared by: every `this.batchRecords(...)` call in the handlers (for example `post.ts`, `thread.ts`, `group.ts`, `properties.ts`, `user.ts`, and the three product mixins).\"\nVERDICT: MISS\nWHY: The answer says handlers call the inherited `batchRecords`. It never says each mixin is constrained to extend ServerDataOperatorBase, which is the reason all writes share it. It also says some writes bypass `batchRecords`, which contradicts \"every handler's writes.\""
+}

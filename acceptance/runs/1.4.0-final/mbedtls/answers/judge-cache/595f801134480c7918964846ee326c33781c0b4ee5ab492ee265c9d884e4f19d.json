@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Dynamic only. `test_with_valgrind_constant_time` runs the `tests/suites/*constant_time*.data` suites under Valgrind ... \"Valgrind memory poisoning is already used for constant-flow testing, and that MSan is considered as an alternative.\"\nVERDICT: MISS\nWHY: The answer mentions Valgrind testing of constant-time suites, but never says the facility is off-by-default or explicitly outside the library API."
+}

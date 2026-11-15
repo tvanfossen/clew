@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer mentions `add_permission()` changing runtime state but never mentions persisting decisions to config.local.yaml."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Don't hand-edit `library/error.c`. Its switch blocks sit between the `/* Begin Auto-Generated Code. */` markers. The build regenerates the file: `library/CMakeLists.txt:134` runs `scripts/generate_errors.pl` over `include/mbedtls` with `scripts/data_files/error.fmt`.\nVERDICT: HIT\nWHY: The answer says to add the error macro to the module's public header, not hand-edit error.c, and to rebuild so the generator regenerates it. It never mentions the /** */ doc-comment format, but the item's core fact (header plus generator, not error.c) is stated."
+}

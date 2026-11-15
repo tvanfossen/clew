@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`_declared_index_scope` reads `index_scope:` from `.clew.yaml`... returns a DerivedScope, or None if no index_scope key\" and \"`derive_scope` itself never refuses. It absorbs a rejected declaration into the whole-repo tier.\"\nVERDICT: MISS\nWHY: The answer says declared scope comes first and whole-repo is the default when none is declared. It also says a rejected declaration is absorbed into the whole-repo tier. But it says unusable declarations in the CLI cause a hard error with \"no silent fallback\". It never states that every failure to find a declaration falls through to whole-repo indexing."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says dossier and chain_trace/traversal can disagree about the same function, because one keeps fuzzy rows and the other drops them. That is the opposite of the item. It never says one collapse function serves both surfaces."
+}

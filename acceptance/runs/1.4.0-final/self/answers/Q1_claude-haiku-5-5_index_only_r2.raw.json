@@ -1,0 +1,110 @@
+{
+  "duration_api_ms": 15053,
+  "stop_reason": "end_turn",
+  "session_id": "0eabc00f-ba70-487d-8eb6-1cb5a5270531",
+  "total_cost_usd": 0.006764600000000001,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 19222,
+    "cache_read_input_tokens": 161440,
+    "output_tokens": 2610,
+    "output_tokens_details": {
+      "thinking_tokens": 759
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 19222,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1671,
+        "cache_read_input_tokens": 48059,
+        "cache_creation_input_tokens": 7997,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 7997
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 8,
+      "outputTokens": 2610,
+      "cacheReadInputTokens": 161440,
+      "cacheCreationInputTokens": 19222,
+      "webSearchRequests": 0,
+      "costUSD": 0.006764600000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 759,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 19222,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [
+    {
+      "tool_name": "mcp__clew__propose_declaration",
+      "tool_use_id": "toolu_01Ch1hcxUXD5g7mS1UzjRm6b",
+      "tool_input": {
+        "ignore_declaration": true
+      }
+    }
+  ],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 6,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The index scope is decided by a declaration if one exists, and otherwise by the whole repository minus what git ignores. The Doxyfile and the doxygen-guard gate no longer decide anything. I answered from the index only; the source bodies were read through the index, not the files.\n\n**How the decision is made**\n\n`derive_scope` in `clew/scope.py` is the single entry point. It resolves to one of two tiers:\n\n```\nderive_scope(repo_root)\n \u251c\u2500 _declared_index_scope(root)      tier 1: .clew.yaml  index_scope:\n \u2502    usable roots \u2192 SOURCE_DECLARED\n \u2502    unusable    \u2192 _Rejected (warning logged) \u2192 whole-repo tier, reason names the rejection\n \u2502    absent/empty \u2192 None\n \u2514\u2500 whole_repo_scope(root)           tier 2: SOURCE_WHOLE_REPO\n```\n\n- **Tier 1, a declaration.** The repo's `.clew.yaml` can carry `index_scope:` with `roots:` and `excludes:`. The roots are repo-relative. A declared root is taken at its word and never walked. A root that does not exist on disk is dropped with a warning. `roots` is required: `excludes` alone does nothing. A misspelled key inside the block (for example `exclude:` for `excludes:`) refuses the whole declaration by name rather than being silently ignored. A `sub_index` block can further trim a named sub-index. This is the only tier that is a decision about the index.\n- **Tier 2, the whole repository.** Its single root is the repo root. Excludes come from `git ls-files --others --ignored --exclude-standard --directory`, run through `git_argv`/`git_env` so a cloned repo's own config cannot execute code. The nested git trees found by the walk are included, and their own `.gitignore` files are honoured too. Dot and cache directories are pruned as well.\n\n**What is deliberately not an input**\n\n- **The Doxyfile `INPUT`** is not used for scope since gh#333. The rationale is that it is a documentation target, not a reasoning boundary. A repo that ships a Doxyfile still has its `ALIASES` and `PREDEFINED` read, but its `INPUT` is replaced. The docstring cites Mbed-TLS, whose Doxyfile indexes 1,571 header declarations and none of the 108 `library/*.c` implementations.\n- **The doxygen-guard `files:` pattern** is the gate's boundary: it says what must be documented. A test (`test_a_gate_pattern_alone_derives_no_index_scope`) asserts that it supplies no roots.\n- **Nested git trees** are not excluded. They are indexed, and `external.py` tags their rows so that two codebases in one index can be told apart in an answer.\n\n**When nothing is declared**\n\nNothing is declared means the whole-repo tier applies, and the reason string records it. The `_declaration_note` text says why nothing was found. A test (`test_empty_or_absent_index_scope_falls_back_to_the_whole_repo`) confirms that `index_scope: {roots: []}` falls through to the whole repo rather than producing an empty index. Those are the zero-config defaults, and they make a repo with no config fully indexable.\n\n**What the index reports about what it left out**\n\n`_not_indexed_scope` in `clew/cli.py` counts scanned files whose type the build holds no rows for, stamps them as `not_indexed` and `not_indexed_count`, and names the top extensions. This distinguishes \"the symbol does not exist\" from \"this file type is not indexed\" from \"this path is outside the declared scope.\" An index with nothing missed, or one built without walking the tree, gets no such stamp.\n\n**What I could not confirm**\n\n- `propose_declaration` was denied permission in this session, so I could not see its proposed defaults.\n- The source of the file-extension filter (the `scope.extensions` the docstring refers to) is not in the indexed symbols I read. I do not know how it chooses extensions.\n- `_SKIP_DIR_NAMES` is the list of directory names pruned in the whole-repo tier, but I did not read its contents.",
+  "ttft_ms": 2126,
+  "type": "result",
+  "duration_ms": 16492,
+  "uuid": "2b472045-cba5-4586-9d24-fb542aba2b5d",
+  "ttft_stream_ms": 1098,
+  "time_to_request_ms": 94,
+  "first_content_frame_ms": 1098,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

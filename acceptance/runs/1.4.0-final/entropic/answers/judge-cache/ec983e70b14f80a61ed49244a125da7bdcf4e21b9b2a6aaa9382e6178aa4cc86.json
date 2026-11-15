@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The deny list is the only thing that can block an approved call.\nVERDICT: HIT\nWHY: The answer states that the deny check in `ServerManager::execute` (`is_denied`) is the only blocking mechanism for an approved call. It does say the upstream checks (schema, MCP key, tier, duplicate) also stop calls, but it names deny as the only list that blocks."
+}

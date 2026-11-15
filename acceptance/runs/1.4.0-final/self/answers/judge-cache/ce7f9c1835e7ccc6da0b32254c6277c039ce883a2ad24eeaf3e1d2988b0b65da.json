@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`not_indexed`, which names the file types the index never read (for example `.rs=2`, `.toml=2`, `.sql=1`, and files with no extension)\"\nVERDICT: MISS\nWHY: The answer names file types that were NOT indexed, not file types that were in scope and produced no rows. It never states the in-scope-but-empty case that the item requires."
+}

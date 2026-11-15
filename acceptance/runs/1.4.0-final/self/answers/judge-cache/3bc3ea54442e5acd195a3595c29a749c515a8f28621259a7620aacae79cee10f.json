@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `options` is keyed by the `.clew.yaml` section names, and an unknown key is refused by name.\nVERDICT: HIT\nWHY: The answer states that the call-time `options` keys are the same as the `.clew.yaml` section names. It does not say the diagnostics use those words, but the item's substance is the call-time option names matching the declaration file's section names, and that is stated."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says dossier uses call-only edges rather than a merged form, nor mentions dataflow composed separately or double-reporting of edges."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "Paths where the answer names a thread-creation site:\n\n- `src/facade/external_bridge.cpp` is named for the accept loop, the per-client serve threads, and the async worker.\n- `src/mcp/transport_stdio.cpp` is named for the stderr forwarder.\n- `src/mcp/transport_sse.cpp` is named for the SSE reader.\n- `src/mcp/health_monitor.cpp` is named for the health monitor.\n- `src/inference/inference_c_api.cpp` is named for the backend cancel poller.\n- `src/inference/interface_factory.cpp` is named for the interface cancel poller.\n- `src/core/response_generator.cpp` is named for the interrupt observer.\n\nITEMS:\nsrc/facade/external_bridge.cpp\nsrc/mcp/transport_stdio.cpp\nsrc/mcp/transport_sse.cpp\nsrc/mcp/health_monitor.cpp\nsrc/inference/inference_c_api.cpp\nsrc/inference/interface_factory.cpp\nsrc/core/response_generator.cpp\nEND"
+}

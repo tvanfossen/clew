@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`check_approval` sets `approved = true` right after calling `on_tool_call`, and the callback returns `void`. ... a wired prompt cannot reject a call.\"\nVERDICT: HIT\nWHY: The answer states the callback returns void and approved is set true unconditionally after it fires, so it cannot refuse."
+}

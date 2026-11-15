@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says callers/callees carry `source` and `confidence`, but never mentions two neighbour kinds (direct calls vs shared-key dataflow) or an `edge_class` field."
+}

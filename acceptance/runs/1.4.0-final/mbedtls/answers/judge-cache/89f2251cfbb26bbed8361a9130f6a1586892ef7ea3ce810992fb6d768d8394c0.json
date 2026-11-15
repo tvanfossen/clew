@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer lists several areas that use the primitives (RSA, TLS, cipher, bignum, cmac, nist_kw), but it never says they are consumed broadly across about twenty modules, and it frames the facility as opt-in per function."
+}

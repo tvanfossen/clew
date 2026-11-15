@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 16032,
+  "stop_reason": "end_turn",
+  "session_id": "a1e3db5b-a77e-4616-8ab7-d81a3da32b44",
+  "total_cost_usd": 0.010161680000000001,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 32387,
+    "cache_read_input_tokens": 241228,
+    "output_tokens": 2542,
+    "output_tokens_details": {
+      "thinking_tokens": 476
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 32387,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1459,
+        "cache_read_input_tokens": 65374,
+        "cache_creation_input_tokens": 5453,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 5453
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 2542,
+      "cacheReadInputTokens": 241228,
+      "cacheCreationInputTokens": 32387,
+      "webSearchRequests": 0,
+      "costUSD": 0.010161680000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 476,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 32387,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 8,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "A clew index can be out of date on three separate axes, and the tool checks all three on every query. It tells the caller in two ways, and it fixes the data axis itself before answering in most cases.\n\n**How it knows** (`clew/mcp_server/state.py:db_status`, `clew/mcp_server/freshness.py`)\n\n| Axis | Detected by | Meaning | Can a rebuild fix it? |\n|---|---|---|---|\n| `data` | `source_changed_files > 0` (`_source_drift` on the indexed files) | Sources changed since the build | Yes |\n| `schema` | `build_version` (stamped in the db) \u2260 `CLEW_BUILD_VERSION` | Index and server were built by different pipeline versions | Only if the index is older. If the index is newer, a rebuild re-stamps the same newer version and cannot clear it |\n| `code` | `code_identity()`: the running process's source fingerprint vs. the fingerprint of the tree on disk | The server loaded old code at launch and the package source has moved since | No. Only restarting the MCP client clears it |\n\n`db_status` sets `stale` to true if any axis trips. `freshness.notices()` turns each tripped axis into a `{axis, message}` pair. It returns an empty list when the index is current, so a current index adds nothing to a reply.\n\n**What it tells the caller**\n\n- Every query reply carries a `staleness` block when any axis is tripped. `_staleness_within_budget` sizes it to the room left in the payload: full prose first, then a compact form, then a minimal form. The block is never dropped silently.\n- The `status` reply (`index(action='status')`) reports the same thing in full: `stale`, `source_changed_files`, `build_version` against `expected_build_version`, `code`, and `refresh` cost. The data notice quotes the measured refresh cost so the caller can decide with a number.\n- The `code` and `schema` messages carry explicit remedies. The `schema` message says a rebuild cannot help when the server predates the index, and the `code` message says a rebuild cannot help at all. Both tell the caller to restart the client.\n\n**What the caller does about it**\n\n1. **Automatic refresh before answering.** `_answering_with_refresh` wraps each synchronous query tool. Before the query runs, `_auto_refresh` resolves the same database the query will read, including `sub_index`. If `_data_stale` is true, meaning the `data` axis is stale and `matches_source` is true, `_refresh_stale` rebuilds it. The rebuild runs under the per-repository build lock, with a bounded wait, and re-checks staleness inside the lock so concurrent sessions deduplicate to one build. A failed refresh is logged and the query answers from the existing index, with the staleness notice still attached. The query never errors because of a failed refresh.\n2. **Background refresh.** `keep_current` runs on a timer and calls `refresh_touched`, which refreshes only the indexes this session has used. The aim is that the next query after an edit usually finds nothing to do.\n3. **Explicit refresh.** The caller can call `index(action='refresh')`, or `force=True` for a schema mismatch in the older-index direction. It should not rebuild for `schema` when the server is the older side, or for `code`. Restarting the client is the fix for those.\n\nThe automatic path never rebuilds when `matches_source` is false, because an old process running the pipeline could drop layers and re-stamp the index with the damage. The `code` notice says so explicitly.\n\n**Caveats from the index itself**\n\n- I did not trace the `index` tool's refusal path (`stale_code_refusal`) or the `status` handler in full. The description above of how the tool refuses those cases comes from the dossiers, not from reading those bodies.\n- Several dossiers (`_staleness`, `_staleness_within_budget`, `notices`) came back with `anchor_mismatch: true`, meaning their recorded line numbers no longer match the source. The index is itself slightly behind the code it describes. Its bodies are still the ones it has recorded.",
+  "ttft_ms": 1608,
+  "type": "result",
+  "duration_ms": 18744,
+  "uuid": "5e70c306-ed50-4f7c-9fda-6aece0a4d15d",
+  "ttft_stream_ms": 1209,
+  "time_to_request_ms": 103,
+  "first_content_frame_ms": 1210,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

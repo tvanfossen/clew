@@ -1,0 +1,83 @@
+{
+  "cell": "Q1_claude-haiku-5-5_index_r1",
+  "arm": "index",
+  "rubric_version": "5.0.0",
+  "rubric_digest": "d8447c7b18eafbf5",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.5625,
+  "unmarked_pct": 0.0,
+  "split_decisions": 0,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "names derive_scope in clew/scope.py as where the decision is resolved",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: `clew/scope.py:derive_scope` picks from a declaration in `.clew.yaml` | WHY: The answer names derive_scope in clew/scope.py (line 639) as the function that resolves the scope decision. || QUOTE: `clew/scope.py:derive_scope` picks from a declaration in `.clew.yaml` | WHY: The answer names derive_scope in clew/scope.py (line 639) as the function where the scope decision is resolved.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that a repository's own declared index_scope is preferred, and that every failure to find one falls through to indexing the whole repository",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"It is used when there is no `index_scope:`, or when the declared one is rejected.\" and \"If nothing usable is declared, the whole repository becomes the scope\" | WHY: The answer states that a declared index_scope is preferred and that no declaration or a rejected one falls through to whole-repo indexing. || QUOTE: \"It is used when there is no `index_scope:`, or when the declared one is rejected.\" and \"`.clew.yaml` ... may carry an `index_scope:` ... If nothing usable is declared, the whole repository becomes the scope\" | WHY: The answer says a declared index_scope is tried first and that both absence and rejection of it fall through to whole-repo indexing. || QUOTE: \"It is used when there is no `index_scope:`, or when the declared one is rejected.\" and \"`.clew.yaml` ... may carry an `index_scope:` ... If nothing usable is declared, the whole repository becomes the scope\" | WHY: The answer states that a declared index_scope is tried first and that both absence and rejection of it fall through to whole-repo indexing.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "conveys that the fallback carries a REASON explaining which scope was used and why, so an unstated scope is never silently guessed",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: Its `reason` string says that no `index_scope` was declared and names where it looked, and it adds advice to declare one in `.clew.yaml`. ... The point of that reason string is that a fallback scope says the boundary was not chosen. | WHY: The answer says the whole-repo fallback carries a reason string stating that no scope was declared, and that the string exists to show the boundary was not chosen, so the scope is not silently guessed. || QUOTE: Its `reason` string says that no `index_scope` was declared and names where it looked, and it adds advice to declare one in `.clew.yaml`. ... The point of that reason string is that a fallback scope says the boundary was not chosen. | WHY: The answer states the fallback scope carries a reason string explaining that no scope was declared and where it looked, so the fallback is not a silent guess. || QUOTE: Its `reason` string says that no `index_scope` was declared and names where it looked, and it adds advice to declare one in `.clew.yaml`. ... The point of that reason string is that a fallback scope says the boundary was not chosen. | WHY: The answer states that the fallback scope carries a reason string explaining that no scope was declared and where it looked, so the boundary is not silently guessed.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that a Doxyfile's own INPUT is deliberately NOT used to decide the indexed tree, and explains why \u2014 a repository that ships one would get only its documented subset while a repository that ships none gets its whole tree",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: A Doxyfile's `INPUT` no longer supplies the roots (`clew/scope.py:683` docstring; `clew/declaration.py:205`). | WHY: The answer says the Doxyfile INPUT no longer decides the set but never explains the rationale (documented subset for repos with a Doxyfile versus whole tree for repos without). || QUOTE: A Doxyfile's `INPUT` no longer supplies the roots (`clew/scope.py:683` docstring; `clew/declaration.py:205`). | WHY: The answer says Doxyfile INPUT no longer decides the set, but gives no reason (documented subset for repos with a Doxyfile vs whole tree for those without). || QUOTE: A Doxyfile's `INPUT` no longer supplies the roots (`clew/scope.py:683` docstring; `clew/declaration.py:205`). | WHY: The answer says Doxyfile INPUT no longer decides the roots but never explains the reasoning (documented subset for repos shipping a Doxyfile vs whole tree for repos without).",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that nested git trees are INDEXED and tagged rather than excluded from the scope",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: Nested git trees are indexed, not excluded. | WHY: The answer states outright that nested git trees are indexed, and it notes that `external.py` tags their rows so the codebases can be told apart. || QUOTE: \"Nested git trees are indexed, not excluded.\" and \"A declared root that contains a nested git clone gets that clone indexed too, and `external.py` tags its rows so the two codebases can be told apart in answers.\" | WHY: The answer explicitly says nested git trees are indexed and that their rows are tagged, rather than excluded. || QUOTE: \"A declared root that contains a nested git clone gets that clone indexed too, and `external.py` tags its rows so the two codebases can be told apart in answers.\" and \"Nested git trees are indexed, not excluded.\" | WHY: The answer says nested git trees are indexed rather than excluded, and that their rows are tagged.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "conveys that the containment call was REMOVED rather than left in place with its callers dropped",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never mentions a containment call being removed; it only describes the scope derivation and no removal of such a call. || QUOTE: NONE | WHY: The answer never mentions a containment call being removed; it only describes how scope is derived. || QUOTE: NONE | WHY: The answer never mentions any containment call being removed; it describes scope derivation only and has nothing about removal versus dropped callers.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the resolved scope is not the whole answer \u2014 within it, a file reaches the index only if something can read it, and names at least one of the two filters: the parse-built front end claiming the file types doxygen cannot read, or binary classification dropping files whose extension lies about them",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer covers only scope derivation (roots/excludes, git-ignore, dot dirs) and never says that files within scope must also be readable, nor names the parse-built front end or binary classification filters. || QUOTE: NONE | WHY: The answer covers scope derivation and explicitly says FILE_PATTERNS are replaced by clew's own list, but never states that files reach the index only if readable, and names neither the parse-built front end nor binary classification. || QUOTE: NONE | WHY: The answer describes scope derivation (declared roots, whole-repo default, excludes) but never says that files within scope must still be readable, nor names the parse-built front end or binary classification filters.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    }
+  ]
+}

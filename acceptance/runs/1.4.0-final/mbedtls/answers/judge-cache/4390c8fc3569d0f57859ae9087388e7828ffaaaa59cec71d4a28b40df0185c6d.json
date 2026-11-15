@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: They are enabled only when `MBEDTLS_HAVE_ASM` is defined, the compiler is GNU-compatible (GCC or Clang, or ARMCC 6+), and the target matches one of those architectures. `MBEDTLS_HAVE_ASM` is on by default in `mbedtls_config.h:52`. ... `MBEDTLS_CT_ASM` simply stays undefined and the C fallback is used.\n\nVERDICT: MISS\n\nWHY: The answer says the asm path depends on MBEDTLS_HAVE_ASM plus compiler and architecture, and that MBEDTLS_CT_ASM \"stays undefined\". It never says MBEDTLS_CT_ASM is derived rather than configured, and it never says it is not a mbedtls_config.h option."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `#ifndef MBEDTLS_ALLOW_PRIVATE_ACCESS #define MBEDTLS_PRIVATE(member) private_##member #else #define MBEDTLS_PRIVATE(member) member` and \"By default a member such as `ssl->state` is declared as `private_state`. Application code that writes `ssl->state` fails to compile\"; \"Every library translation unit sees real member names... this does not leak to applications.\"\nVERDICT: HIT\nWHY: The answer shows both branches and explains that code defining the opt-out sees real names, while ordinary application consumers of the public headers see the `private_` renamed members."
+}

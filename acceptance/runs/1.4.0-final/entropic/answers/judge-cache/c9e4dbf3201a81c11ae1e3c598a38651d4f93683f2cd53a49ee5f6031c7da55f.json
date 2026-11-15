@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer covers the tokenize size-probe/fill pattern, but it never says that detokenize tries a fixed 256-byte stack buffer first and heap-allocates only when the token doesn't fit. It mentions detokenize only for returning `\"\"` on failure."
+}

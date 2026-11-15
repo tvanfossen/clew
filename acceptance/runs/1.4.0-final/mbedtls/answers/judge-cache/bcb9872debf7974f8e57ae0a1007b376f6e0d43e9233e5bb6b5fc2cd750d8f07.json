@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Under the shipped config, `MBEDTLS_PLATFORM_STD_CALLOC` is off (`include/mbedtls/mbedtls_config.h:4124`). In that case the calloc pointer starts as `platform_calloc_uninit` (`library/platform.c:25-30`), which always returns `NULL`. So any allocation fails until something installs an allocator.\nVERDICT: MISS\nWHY: The answer says the uninitialised calloc returns NULL, but it never says that the uninitialised free does nothing, and the item needs both halves."
+}

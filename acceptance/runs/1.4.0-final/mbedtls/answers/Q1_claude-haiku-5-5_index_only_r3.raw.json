@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 24120,
+  "stop_reason": "end_turn",
+  "session_id": "bc7ae418-fde1-4e94-9a41-8c6298100b16",
+  "total_cost_usd": 0.009831949999999999,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 29131,
+    "cache_read_input_tokens": 164845,
+    "output_tokens": 4713,
+    "output_tokens_details": {
+      "thinking_tokens": 2558
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 29131,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3338,
+        "cache_read_input_tokens": 51154,
+        "cache_creation_input_tokens": 14808,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 14808
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 8,
+      "outputTokens": 4713,
+      "cacheReadInputTokens": 164845,
+      "cacheCreationInputTokens": 29131,
+      "webSearchRequests": 0,
+      "costUSD": 0.009831949999999999,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2558,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 29131,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 9,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** by default, nothing inside the library runs concurrently and no mutex is taken. The mutex code is compiled out. What runs concurrently is whatever your application does with the library, and the only threads the index sees are in demo programs.\n\n**Default configuration (as the index reads the shipped headers)**\n\n- `MBEDTLS_THREADING_C` defaults off (`include/mbedtls/mbedtls_config.h:3787`). `library/threading.c` is wholly gated on it (lines 18\u2013193), so every lock site in the library is `#if`'d out.\n- `MBEDTLS_THREADING_PTHREAD` and `MBEDTLS_THREADING_ALT` also default off (`mbedtls_config.h:2196`, `:2185`).\n- The index was built with both THREADING flags set on the command line, so these defaults come from the header gate definitions, not from a declared config header. Treat \"off\" as the header's stated default, not a build I ran.\n\n**What spawns threads (4 sites, all in `programs/`)**\n\n| Thread entry | Site | Notes |\n|---|---|---|\n| `handle_ssl_connection` (pthread) | `programs/ssl/ssl_pthread_server.c:277` | One thread per accepted connection; the only one that reaches library code in the index |\n| `sighandler` (ISR) | `programs/test/benchmark.c:444` | Alarm signal handler |\n| `TimerProc` (Win32) | `programs/test/benchmark.c:430` | Windows timer callback |\n| `term_handler` (ISR) | `programs/ssl/ssl_server2.c:1699` | Termination signal handler |\n\nNone of these are in `library/`. The library itself spawns nothing.\n\n**What the mutexes protect when threading is enabled**\n\n- **PSA key slot table**, `mbedtls_threading_key_slot_mutex` (`threading.c:188`). Taken in `psa_get_and_lock_key_slot` (`psa_crypto_slot_management.c:804`) and `psa_unregister_read_under_mutex` (`:931`). The lock is held across loading a persistent key so another thread cannot load and destroy it in between (comment at `:820`).\n- **PSA global data** and **PSA RNG data**, `mbedtls_threading_psa_globaldata_mutex` and `mbedtls_threading_psa_rngdata_mutex` (`threading.c:189\u2013190`). They are initialised in `mbedtls_threading_set_alt`, but the index returned no lock sites for them, so I cannot name what they guard.\n- **Readdir**, `mbedtls_threading_readdir_mutex` (`threading.c:182`, built only with `MBEDTLS_FS_IO`).\n- **gmtime**, `mbedtls_threading_gmtime_mutex` (`threading.c:185`). `mbedtls_platform_gmtime_r` (`platform_util.c:173`) locks around `gmtime()`, which returns shared static storage, and only when the non-reentrant path is in use.\n- **Per-object locks.** `mbedtls_entropy_gather` locks `ctx->mutex` (`entropy.c:249`). The buffer allocator locks `heap.mutex` in `buffer_alloc_calloc_mutexed` and `buffer_alloc_free_mutexed` (`memory_buffer_alloc.c:541`). The index also lists DRBG, RSA, SSL cache, cookie and ticket code as callers of the lock wrapper, but a caller list is not a list of lock sites, so I have not confirmed which of their state is guarded.\n\n**Caveats**\n\n- Every lock goes through one identity, `mutex->mutex` (`threading.c:81`), with scope unknown and low confidence. Individual globals are not distinguished in the lock layer.\n- The index shows no two-lock nesting. That is not a proof of deadlock freedom.\n- `threading_mutex_init_pthread` (`threading.c:51`) notes that locking an uninitialised pthread mutex is undefined behaviour. The library does not check this at runtime; it relies on tests.\n- I found no lock protecting per-connection SSL context state. In the demo server each connection has its own thread, so connections do not share SSL contexts. An application that shares a context across threads gets no protection from the library.",
+  "ttft_ms": 1824,
+  "type": "result",
+  "duration_ms": 27026,
+  "uuid": "a433164f-f726-4102-bc6e-1bc5f44fb8fd",
+  "ttft_stream_ms": 1526,
+  "time_to_request_ms": 166,
+  "first_content_frame_ms": 1526,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

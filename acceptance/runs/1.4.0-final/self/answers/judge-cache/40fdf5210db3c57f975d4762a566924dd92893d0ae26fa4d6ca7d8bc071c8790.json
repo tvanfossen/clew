@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It shrinks the prose to fit the response budget but keeps the axis tokens.\nVERDICT: HIT\nWHY: The answer states the staleness annotation is shrunk (wording degraded) to fit the response budget while the axis tokens (the warning) are retained, rather than dropped."
+}

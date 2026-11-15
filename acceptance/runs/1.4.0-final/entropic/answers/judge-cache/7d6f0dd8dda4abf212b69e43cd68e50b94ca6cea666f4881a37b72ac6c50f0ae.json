@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `src/inference/inference_c_api.cpp` (33 hits); \"Direct `#include <llama.h>` appears in about 15 `.cpp`/`.h` files\"\nVERDICT: MISS\nWHY: The answer describes how llama.cpp is linked and where `llama.h` is included, but never states that the seam is llama.cpp's C API of `llama_`-prefixed free functions rather than C++ classes."
+}

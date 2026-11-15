@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_ct_compiler_opaque` (line 85) hides the value from the compiler. With assembly it is `asm volatile(\"\" : \"+r\"(x))`. Without it, it XORs with `mbedtls_ct_zero`, a `volatile` global, so the compiler cannot prove the value is constant.\nVERDICT: HIT\nWHY: The answer names mbedtls_ct_compiler_opaque as the barrier hiding the value from the compiler and places it in the `library/constant_time_impl.h` discussion (line 85)."
+}

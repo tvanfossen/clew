@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Otherwise it returns `x ^ mbedtls_ct_zero`, where `mbedtls_ct_zero` is a `volatile` global (`constant_time_impl.h:85`, `constant_time.c:29`).\nVERDICT: HIT\nWHY: The answer states that `mbedtls_ct_compiler_opaque` uses an empty asm when assembly is enabled, and otherwise returns `x ^ mbedtls_ct_zero`. It names `mbedtls_ct_zero` as the volatile global. The \"extern\" qualifier is not stated, but the global is identified, so the substance is there."
+}

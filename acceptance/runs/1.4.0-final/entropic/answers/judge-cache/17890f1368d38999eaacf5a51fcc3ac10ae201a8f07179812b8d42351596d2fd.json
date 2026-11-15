@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The file is marked auto-generated and a pre-commit `--check` fails on drift from the header.\nVERDICT: HIT\nWHY: The answer states that a pre-commit `--check` of the generator-produced bindings fails on drift from the header, which is the re-run-and-diff mechanism."
+}

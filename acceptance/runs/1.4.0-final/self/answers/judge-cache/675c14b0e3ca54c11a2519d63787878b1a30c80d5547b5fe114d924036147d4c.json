@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Refresh with `force=True` if the index is older. If the index is *newer* than the server, a rebuild cannot clear it. Restart the MCP client.\nVERDICT: HIT\nWHY: The answer states the schema axis can be unresolvable when the index is newer than the server, so a rebuild cannot clear it. It doesn't mention the re-stamping mechanism, but the substance of the item is there."
+}

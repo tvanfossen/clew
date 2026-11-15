@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The user taps the failed post, which opens a bottom sheet (`app/components/post_list/post/body/failed/index.tsx`). \\\"Try Again\\\" calls `retryFailedPost(serverUrl, post)`.\"\nVERDICT: HIT\nWHY: The answer states that retry occurs only via the user choosing \"Try Again\" on the failed post (no automatic retries, each tap is one attempt) and names `retryFailedPost`."
+}

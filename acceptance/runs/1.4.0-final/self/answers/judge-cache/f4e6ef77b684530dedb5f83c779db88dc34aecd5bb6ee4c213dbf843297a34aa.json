@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `*.cmake`, `CMakeLists.txt` | `path` row, plus `memberdef` per `function()`...\nVERDICT: HIT\nWHY: The answer names shell extensions (`*.sh`, `*.bash`) and CMake's `*.cmake` plus `CMakeLists.txt`. `CMakeLists.txt` appears as a file name, listed separately from the `*.cmake` extension."
+}

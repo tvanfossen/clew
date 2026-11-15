@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 37905,
+  "stop_reason": "end_turn",
+  "session_id": "047def8c-528a-45c5-884e-2f63b84494c2",
+  "total_cost_usd": 0.010126590000000001,
+  "usage": {
+    "input_tokens": 14,
+    "cache_creation_input_tokens": 17574,
+    "cache_read_input_tokens": 292889,
+    "output_tokens": 7363,
+    "output_tokens_details": {
+      "thinking_tokens": 3967
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 17574,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3417,
+        "cache_read_input_tokens": 50119,
+        "cache_creation_input_tokens": 1844,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1844
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 14,
+      "outputTokens": 7363,
+      "cacheReadInputTokens": 292889,
+      "cacheCreationInputTokens": 17574,
+      "webSearchRequests": 0,
+      "costUSD": 0.010126590000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 3967,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 17574,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 9,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "## How a negative code becomes a string\n\nThe path runs through `mbedtls_strerror()` in `library/error.c:792`:\n\n```\nret = -0x40A0\n \u2514\u2500 mbedtls_strerror(ret, buf, buflen)\n     \u251c\u2500 zero buf; negate ret \u2192 0x40A0\n     \u251c\u2500 high = 0x40A0 & 0xFF80 = 0x4080\n     \u2502    \u2514\u2500 mbedtls_high_level_strerr() \u2192 \"RSA - Bad input parameters to function\"\n     \u2502       (fatal SSL alert 0x7780: return here, skip low-level)\n     \u251c\u2500 low  = 0x40A0 & ~0xFF80 = 0x0020\n     \u2502    \u2514\u2500 mbedtls_low_level_strerr()  \u2192 \"AES - Invalid key length\"\n     \u2514\u2500 join with \" : \"\n        \u2192 \"RSA - Bad input parameters to function : AES - Invalid key length\"\n```\n\n- The code is split into a high part (mask `0xFF80`, which identifies the module that reported it) and a low part (mask `~0xFF80`, which identifies the specific error). Either part that has no match prints `UNKNOWN ERROR CODE (XXXX)`.\n- `tests/suites/test_suite_error.data` lines 3\u201320 pin this behaviour: single low, single high, combined, and unknown cases.\n\nThe two lookup functions are generated, not hand-written. Each is a `switch` with `case -(MBEDTLS_ERR_X):` entries between `Begin/End Auto-Generated Code` markers. The source of each string is the Doxygen comment next to the `#define` in `include/mbedtls/*.h`.\n\n`scripts/generate_errors.pl` does the work. It scans every header for `#define MBEDTLS_ERR_\u2026 -0x\u2026` with a `/**` comment before it or `/**<` after it, groups the entries by module, and writes `library/error.c` from `scripts/data_files/error.fmt`. The Makefile (`library/Makefile:355`) and CMake (`library/CMakeLists.txt:130`) both invoke it. `library/error.c` is tracked in git, but it is generated, so a hand edit is overwritten on the next build.\n\n## Adding a new error code\n\n1. **Define the code** in the module's header as `#define MBEDTLS_ERR_<MODULE>_<NAME> -0x00XX`. Give it exactly one description comment, either before or after. The generator dies if both or neither are present.\n2. **Use a known module prefix.** The generator exits with \"Do not know how to handle\" unless `<MODULE>` appears in `@low_level_modules` or `@high_level_modules` in `scripts/generate_errors.pl`. A brand-new module must be added to one of those lists, and its `#if` guard must be mapped there if it isn't simply `MBEDTLS_<MODULE>_C`.\n3. **Name the header after the module.** The generator derives the include filename from the lowercased module name (`NET` is the one special case). A mismatch fails with \"has not been included\".\n4. **Keep the value in the right range.** A low-level code must fit in `0x007F`, because that is all `~0xFF80` keeps. The generator checks for duplicate values but not for range. A value that spills into the high bits will be looked up in the wrong switch with no error. The range table in the header of `scripts/data_files/error.fmt` lists the allocations.\n5. **Regenerate** with the normal build (`make` in `library/`, or the CMake build). Do not edit `library/error.c`.\n6. **Add a test row** to `tests/suites/test_suite_error.data`, in the form `error_strerror:-0x\u2026:\"MODULE - description\"` with a `depends_on:MBEDTLS_<X>_C` line. Per the project's test rules, write it first and watch it fail.\n7. **Decide on a changelog entry.** `ChangeLog.d/00README.md` requires one for user-visible changes. A new error string is arguably user-visible, so this is a judgement call.\n\nI read these files and did not build or run the test suite, so the steps above are from source inspection, not a run. One note: a hook message attached to a tool result suggested `dossier`/`search` tools that aren't available in this session. I ignored it.",
+  "ttft_ms": 1979,
+  "type": "result",
+  "duration_ms": 38704,
+  "uuid": "170c9d41-8544-4a48-9393-b87dd2052f1e",
+  "ttft_stream_ms": 1234,
+  "time_to_request_ms": 158,
+  "first_content_frame_ms": 1235,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

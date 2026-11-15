@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The event therefore only creates. It never prunes reactions that the server no longer reports for that post. A full sync would prune, but a single-event update must not, because the event carries only one reaction.\"\nVERDICT: HIT\nWHY: The answer explains that skipSync prevents deletion of other reactions since the event carries only one reaction, which matches the item's substance."
+}

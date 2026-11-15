@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `.yaml` `.yml` `.json` | `path` row only | Findable by name in `search(corpus='files')`. Zero symbols, by design.\nVERDICT: HIT\nWHY: The answer states YAML/JSON are registered as file-set entries with zero symbols, while shell/CMake get definition rows, so the two groups are treated differently."
+}

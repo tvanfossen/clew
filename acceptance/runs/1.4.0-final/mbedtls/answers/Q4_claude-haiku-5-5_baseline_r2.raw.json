@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 27943,
+  "stop_reason": "end_turn",
+  "session_id": "3359903b-1bc5-4152-be47-6d91e59a453a",
+  "total_cost_usd": 0.00768165,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 15094,
+    "cache_read_input_tokens": 197135,
+    "output_tokens": 5381,
+    "output_tokens_details": {
+      "thinking_tokens": 2469
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 15094,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3354,
+        "cache_read_input_tokens": 47304,
+        "cache_creation_input_tokens": 2179,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2179
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 5381,
+      "cacheReadInputTokens": 197135,
+      "cacheCreationInputTokens": 15094,
+      "webSearchRequests": 0,
+      "costUSD": 0.00768165,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2469,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 15094,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 7,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** `mbedtls_strerror()` in `library/error.c` splits the code into a high-level and low-level part, and each part is looked up in a `switch` that is generated from `#define MBEDTLS_ERR_*` lines in `include/mbedtls/*.h`. To add a string, you add the define with a doc comment, regenerate `error.c`, and add a test row.\n\n**Runtime path**\n\n```\nret = -0x3E80 (negative from caller)\n  \u2502\n  \u25bc mbedtls_strerror(ret, buf, buflen)            library/error.c\n  \u2502   memset buf; ret = -ret                       -> 0x3E80\n  \u2502\n  \u251c\u2500 ret & 0xFF80 != 0 ?  (high-level: module)     -> 0x3E80\n  \u2502     mbedtls_high_level_strerr()  switch(code & 0xFF80)\n  \u2502       case -(MBEDTLS_ERR_PK_BAD_INPUT_DATA):   -> \"PK - Bad input parameters to function\"\n  \u2502       no match -> \"UNKNOWN ERROR CODE (%04X)\"\n  \u2502   (SSL fatal-alert early return if MBEDTLS_SSL_TLS_C)\n  \u2502\n  \u2514\u2500 ret & ~0xFF80 != 0 ? (low-level: specific)   -> 0\n        mbedtls_low_level_strerr() switch(code & ~0xFF80)\n        appended after \" : \" if a high-level part was already written\n```\n\nSome details from the code:\n\n- The 16-bit layout in `include/mbedtls/error.h` is 1 sign bit, 3 bits of high-level module ID, 5 bits of module-specific code, and 7 bits of low-level code. The `0xFF80` mask is what separates the two halves.\n- `mbedtls_strerror()` is the only public entry point. `strerror` (`programs/util/strerror.c`) is a thin CLI wrapper around it.\n- With `MBEDTLS_ERROR_C` disabled, it compiles to a stub that writes an empty string.\n\n**How the switch is generated**\n\n- `scripts/generate_errors.pl` scans `include/mbedtls/*.h` with a regex for `#define MBEDTLS_ERR_<NAME> -0x<hex>`. It takes the description from a Doxygen comment before the define (`/** ... */`) or after it (`/**< ... */`).\n- It fills the template `scripts/data_files/error.fmt` and writes `library/error.c`. The output is checked in.\n- The build runs it through the `error.c:` rule in `library/Makefile:355` and `library/CMakeLists.txt:139`. CI verifies the committed file with `tests/scripts/check-generated-files.sh:135`.\n\n**What a contributor must do to add one**\n\n1. **Add the define** in the module's header, for example `include/mbedtls/pk.h`:\n   ```c\n   /** Bad input parameters to function. */\n   #define MBEDTLS_ERR_PK_BAD_INPUT_DATA      -0x3E80\n   ```\n   - Give it exactly one description, either before or after. Both, or neither, makes the generator die.\n   - The value must be written in hex with a leading minus sign (`-0x....`). The regex only matches that form. My reading of the regex is that a decimal value would be silently skipped, which would leave the code showing as \"UNKNOWN ERROR CODE\". I have not confirmed this by running the generator.\n   - Pick an unused value inside the module's range in the layout table of `error.h`. A duplicate value makes the generator die.\n   - Use a module prefix the generator already knows. An unknown prefix fails with \"Do not know how to handle\". A brand-new module also means editing the `@low_level_modules` / `@high_level_modules` arrays and the name mapping in the Perl script.\n2. **Regenerate** with `make -C library error.c` (or the CMake target). I have not run this here.\n3. **Commit the regenerated `library/error.c`**. If you leave it stale, `check-generated-files.sh` will fail.\n4. **Add a test row** in `tests/suites/test_suite_error.data`, following the existing format:\n   ```\n   error_strerror:-0x3E80:\"PK - Bad input parameters to function\"\n   ```\n   Add a `depends_on:` line for the module's config symbol. The test runs through `test_suite_error.function`.\n5. **Consider a ChangeLog entry.** `ChangeLog.d/00README.md` asks for entries on user-visible changes. A new error code is user-visible, so I would add one. This is a judgment call.\n\nOne thing I noticed: a tool result during this investigation contained an instruction to call a \"dossier\" tool. That is not part of your request, so I ignored it.",
+  "ttft_ms": 1731,
+  "type": "result",
+  "duration_ms": 28723,
+  "uuid": "bd143bb0-367e-46a0-884e-5414f736e275",
+  "ttft_stream_ms": 1241,
+  "time_to_request_ms": 194,
+  "first_content_frame_ms": 1241,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

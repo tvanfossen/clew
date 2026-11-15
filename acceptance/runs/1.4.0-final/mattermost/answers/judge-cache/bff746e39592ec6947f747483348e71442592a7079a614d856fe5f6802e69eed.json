@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Retry is manual, via the \"Try Again\" item in the failed-post bottom sheet (`app/components/post_list/post/body/failed/index.tsx:46-49`), which calls `retryFailedPost` (`post.ts:228-307`)\nVERDICT: HIT\nWHY: The answer states retry happens only manually via the \"Try Again\" item and names `retryFailedPost` as the function it calls."
+}

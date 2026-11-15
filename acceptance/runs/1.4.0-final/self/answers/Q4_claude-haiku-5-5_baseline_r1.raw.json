@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 30009,
+  "stop_reason": "end_turn",
+  "session_id": "b94e330c-d8a3-44a9-ab5b-e4b328a15f11",
+  "total_cost_usd": 0.012995729999999999,
+  "usage": {
+    "input_tokens": 16,
+    "cache_creation_input_tokens": 37861,
+    "cache_read_input_tokens": 299093,
+    "output_tokens": 4862,
+    "output_tokens_details": {
+      "thinking_tokens": 2380
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 37861,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2475,
+        "cache_read_input_tokens": 50838,
+        "cache_creation_input_tokens": 2639,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2639
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 16,
+      "outputTokens": 4862,
+      "cacheReadInputTokens": 299093,
+      "cacheCreationInputTokens": 37861,
+      "webSearchRequests": 0,
+      "costUSD": 0.012995729999999999,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2380,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 37861,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 8,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** the callers answer is a list of *functions that have an edge into the focal function*, each tagged with how that edge was found. It is not a list of call sites. Several things in it can make a reader wrong about how many calls exist, whether each one is real, and whether an empty list means anything. I read the source here and did not run clew against an index, so the rendered JSON shape is unverified.\n\n**What one caller entry carries**\n\nThe stored `call_edges` row is `(caller_rowid, callee_rowid, source, confidence)` (`clew/call_edges.py:1-30`). Dossier builds one `CallEdge` per endpoint identity, not per call (`clew/query/symbols.py`, `_direct_call_edges`). Each entry has:\n\n- `name`, `definition`, `rowid`, and whether it has a body.\n- `source`: which layer found it. `doxygen_sqlite` is exact. `ast` is a bare-identifier callee. `ast_member` is a member, qualified or template callee reduced to its tail name. `fnptr` is a call through a registered function pointer. `binding` is a function handed to a framework as a keyword argument, not called. `macro_hop` comes from a call inside a macro expansion.\n- `confidence`: `exact`, `resolved` or `fuzzy`. When several layers found the same edge, the strongest one wins.\n- `implementors`, when doxygen's override relation names concrete overrides. This is an annotation, not extra edges.\n\n**Ways to misread it as a call-site list**\n\n| Reading | What is actually true |\n|---|---|\n| \"N callers = N calls\" | One entry per calling function. Five calls from one function is one caller. |\n| \"Each caller really calls this\" | Fuzzy rows are not filtered on this surface. 21.3% of this repo's edges and 79.8% of the C++ corpus measured were fuzzy. An `ast_member` edge matches by unqualified tail, so `obj.close()` can attach to every `close`. |\n| \"Same name = same function\" | Identity is keyed by bare name plus qualified name. A `name_ambiguity` block flags when one name matches several signatures, and the shared rows belong to all of them. |\n| \"Every entry is a direct call\" | `fnptr` and `binding` edges are indirect or handed-off references. `macro_hop` edges sit inside a macro body. |\n| \"Empty `callers` means nothing calls it\" | Refused inbound sites are counted separately (`callers_unresolved`, `clew/query/dossier.py:640`). A class name often shows `callers: []` because constructor edges are missing. An index older than the refusal measurement reports `None`, not zero. |\n| \"The graph is complete\" | Coverage depends on the layers that ran. Doxygen gives the exact layer. The AST layers cover what tree-sitter parses. Calls through unknown pointers, runtime dispatch and non-indexed code are invisible. |\n| \"Transitive callers\" | Dossier is depth 1 and keeps fuzzy rows. `chain_trace` and `traversal._call_hops` drop fuzzy edges and cap depth and fan-out (`clew/query/traversal.py:124-148`). The two can disagree about the same function. |\n| \"Self-edges are real\" | The self-edge guard prunes fabricated ones at build time, so a missing self-edge can be deliberate. |\n\n**Bottom line:** treat the answer as \"these functions have an edge into this one, found by these layers, at this confidence, and here is what the build could not resolve.\" Use `confidence` and `source` to decide whether an edge is real. Use the refusal count before trusting an empty list. Don't count entries as call sites.",
+  "ttft_ms": 1925,
+  "type": "result",
+  "duration_ms": 31063,
+  "uuid": "7c3766a7-263c-4d79-b573-1304b817aac7",
+  "ttft_stream_ms": 1263,
+  "time_to_request_ms": 205,
+  "first_content_frame_ms": 1263,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

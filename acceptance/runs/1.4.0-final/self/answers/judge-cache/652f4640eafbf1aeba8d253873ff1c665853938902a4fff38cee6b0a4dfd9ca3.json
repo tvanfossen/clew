@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer's table covers only two empty-reply grades, \"NOT a definitive negative\" and \"A definitive empty result from the database\". It never states a separate grade that is definitive for a reason other than absence."
+}

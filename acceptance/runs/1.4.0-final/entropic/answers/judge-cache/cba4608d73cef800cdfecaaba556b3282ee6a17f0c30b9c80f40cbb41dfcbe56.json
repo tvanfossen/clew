@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The deny list is the only thing that can block an approved call.\nVERDICT: HIT\nWHY: The answer states that the deny check in ServerManager::execute (is_denied) is the sole blocker, with allow only skipping the prompt, though it notes other upstream checks (schema, tier, etc.)."
+}

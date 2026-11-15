@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: ret & 0xFF80 \u2192 mbedtls_high_level_strerr(ret) ... ret & ~0xFF80 \u2192 mbedtls_low_level_strerr(ret) ... join: \"HIGH : LOW\" (or just one part if the other is zero)\nVERDICT: HIT\nWHY: The answer says a code is split into high-level and low-level parts, each looked up separately, and joined as \"HIGH : LOW\" when both are present."
+}

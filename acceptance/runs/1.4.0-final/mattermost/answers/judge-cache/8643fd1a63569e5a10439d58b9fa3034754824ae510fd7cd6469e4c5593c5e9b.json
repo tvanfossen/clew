@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes failure being stored as a failed post and retried by the user, but never says `createPost` returns `{data: true}` to its caller, so the failure is visible only in the stored post."
+}

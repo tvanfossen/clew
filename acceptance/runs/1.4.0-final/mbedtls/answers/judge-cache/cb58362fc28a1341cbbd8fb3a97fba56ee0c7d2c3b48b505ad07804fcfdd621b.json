@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the library creates no threads and that mutexes are compiled out by default. It never states that library/ supplies the mutex abstraction (the threading layer) for threaded callers. It mentions only the optional `MBEDTLS_THREADING_PTHREAD` and `MBEDTLS_THREADING_ALT` implementations."
+}

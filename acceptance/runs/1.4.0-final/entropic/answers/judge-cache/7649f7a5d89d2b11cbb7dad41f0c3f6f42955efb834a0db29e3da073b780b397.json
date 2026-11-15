@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The two calls in `LlamaCppTokenizer::tokenize` ... are a size query followed by the real call. ... Both calls always run; nothing is retried. ... Neither is retry logic. Neither retries on error, and there is no backoff, no attempt counter, and no retry on a transient failure.\nVERDICT: HIT\nWHY: The answer identifies the two calls as a size query then a fill call, and explicitly says there is no retry, backoff or attempt counter."
+}

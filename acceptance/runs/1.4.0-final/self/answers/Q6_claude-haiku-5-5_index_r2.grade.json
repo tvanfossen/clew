@@ -1,0 +1,143 @@
+{
+  "cell": "Q6_claude-haiku-5-5_index_r2",
+  "arm": "index",
+  "rubric_version": "5.0.0",
+  "rubric_digest": "d8447c7b18eafbf5",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.3333333333333333,
+  "unmarked_pct": 0.0,
+  "split_decisions": 0,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "names the shell and CMake extensions, including CMakeLists.txt matched by file name rather than by extension",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: `.sh`, `.bash` ... `CMakeLists.txt`, `.cmake` | WHY: The answer's table lists the `.sh`/`.bash` and `.cmake` extensions and names `CMakeLists.txt` separately from the extensions. It never says the file is matched by name rather than by extension. Still, `CMakeLists.txt` is listed as its own entry beside `.cmake`, which is the substance of the item. || QUOTE: `.sh`, `.bash` ... `CMakeLists.txt`, `.cmake` | WHY: The answer's table names the shell extensions (`.sh`, `.bash`) and the CMake entries, `CMakeLists.txt` by file name and `.cmake` by extension. || QUOTE: `.sh`, `.bash` ... `CMakeLists.txt`, `.cmake` | WHY: The table names the shell extensions (`.sh`, `.bash`) and the CMake extension (`.cmake`). It also names `CMakeLists.txt` as a file name alongside the extensions, so the file-name match is stated.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that YAML and JSON are registered in the file set but carry NO symbols, so the two file groups are treated differently rather than alike",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \".yaml, .yml, .json | yes | none, by design\" and \"YAML and JSON: they are in the file set so they can be found by name and named in the miss report. Their keys are never symbols\" | WHY: The answer says YAML/JSON are registered in the file set (path row) with no definitions/symbols, contrasted with shell/CMake which do carry definitions. || QUOTE: \".yaml, .yml, .json | yes | none, by design\" and \"YAML and JSON: they are in the file set so they can be found by name and named in the miss report. Their keys are never symbols\" | WHY: The answer states that YAML and JSON are registered as file-level path rows but carry no definitions/symbols, contrasted with shell and CMake which do have definitions. || QUOTE: `.yaml`, `.yml`, `.json` | yes | none, by design; \"They are in the file set so they can be found by name and named in the miss report. Their keys are never symbols\" | WHY: The answer says YAML/JSON have path rows (registered in the file set) but no definitions/symbols, and contrasts this with shell/CMake which do have symbols.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that markdown is deliberately NOT given a path row, because it is prose and a path row would also count it as indexed source in coverage figures",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: Markdown** is deliberately left out of the file set; prose goes to the FTS index. | WHY: The answer says markdown is deliberately excluded from the file set, but it never gives the reason the item requires: a path row would count it as indexed source in coverage figures. || QUOTE: **Markdown** is deliberately left out of the file set; prose goes to the FTS index. | WHY: The answer says markdown is deliberately excluded from the file set and goes to the FTS index. It never says a path row would count it as indexed source in coverage figures, and the item requires that reason. || QUOTE: **Markdown** is deliberately left out of the file set; prose goes to the FTS index. | WHY: The answer says markdown is deliberately excluded from the file set and goes to the FTS index. It never says a path row would count it as indexed source in coverage figures, so the item's specific reasoning is absent.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that an installation lacking the grammars DEGRADES rather than failing \u2014 the router consults a capability gate before routing, and those file types are then reported as not indexed",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: On an install without the grammars, shell and CMake degrade without an error, but the miss report does not flag them, which contradicts its own design docs. | WHY: The answer says the install degrades without error, but it explicitly claims the miss report does not report those types as not indexed. It also says nothing about a router capability gate. That contradicts the item's second half. || QUOTE: \"This is a silent, no-exception degrade\" and \"a `.sh` file is never reported as not indexed.\" | WHY: The answer says missing grammars degrade without an error, but it says the miss report does not name those file types as not indexed. That contradicts the item's second half, so the item is not stated. || QUOTE: On an install without the grammars, shell and CMake degrade without an error, but the miss report does not flag them, which contradicts its own design docs. | WHY: The answer says that without the grammars shell and CMake degrade silently, but it says the miss report does not name those file types as not indexed. The item requires them to be reported as not indexed, so the answer contradicts it.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the root node type cannot be the discriminator, because shell shares its root with JavaScript and CMake shares its root with Rust",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never mentions root node types as a discriminator or that shell shares a root with JavaScript and CMake with Rust. || QUOTE: NONE | WHY: The answer never discusses root node type as a discriminator or that shell shares a root with JavaScript and CMake with Rust. || QUOTE: NONE | WHY: The answer never discusses root node types as a discriminator, nor that shell shares its root with JavaScript or CMake with Rust.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that CMake's definition name is an ARGUMENT of the command rather than a named field of the node",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never says CMake's definition name is an argument of the command rather than a named field of the node; it only mentions that function and macro definitions are captured and that named parameters are kept. || QUOTE: NONE | WHY: The answer never says that CMake's definition name is an argument of the command rather than a named field of the node. || QUOTE: NONE | WHY: The answer never states that CMake's definition name is an argument of the command node rather than a named field; it only mentions function/macro definitions and parameters.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that a shell function is recorded with no argument list and no return, because the language has neither",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": false,
+      "detail": "QUOTE: **Shell:** the function's `args` are always empty, since bash has no parameter list. | WHY: The answer says args are empty because bash has no parameter list, but never says there is no return recorded because the language has neither, so only half the item is stated. || QUOTE: **Shell:** the function's `args` are always empty, since bash has no parameter list. | WHY: The answer says args are empty because bash has no parameter list, but it never says the return is also absent or recorded as empty. || QUOTE: **Shell:** the function's `args` are always empty, since bash has no parameter list. | WHY: The answer says shell functions have empty args because bash has no parameter list, but never mentions the missing return, so it only covers half of the item.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that both languages share ONE harvest partition, and gives the reason \u2014 a second partition would write an empty payload row per file per index",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never says shell and CMake share one harvest partition or that a second partition would write an empty payload row per file per index. || QUOTE: NONE | WHY: The answer never says shell and CMake share one harvest partition, nor that a second partition would write an empty payload row per file per index. || QUOTE: NONE | WHY: The answer never states that shell and CMake share one harvest partition or that a second partition would write an empty payload row per file per index.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide how a non-C file type is read \u2014 clew/synth.py",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide how a non-C file type is read \u2014 clew/shast.py",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide how a non-C file type is read \u2014 clew/cmakeast.py",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide how a non-C file type is read \u2014 clew/substrate.py",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": false,
+      "detail": "not named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide how a non-C file type is read \u2014 precision",
+      "kind": "set_precision",
+      "weight": 1,
+      "hit": false,
+      "detail": "named 2 not in the set: ['clew/cli.py', 'clew/harvest.py']",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    }
+  ]
+}

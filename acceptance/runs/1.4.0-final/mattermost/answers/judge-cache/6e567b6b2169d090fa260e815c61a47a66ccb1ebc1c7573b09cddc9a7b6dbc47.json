@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `getConfigValue` returns `undefined` when there is no row, and `undefined !== 'false'` is `true`. So an absent key means archived channels are viewable.\nVERDICT: HIT\nWHY: The answer states that an absent setting leaves archived channels viewable and that only the exact string 'false' disables them."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Facade (`src/facade/entropic.cpp`) | Includes `llama_cpp_backend.h`, so `llama.h` reaches it transitively. | Indirect. Also: \"Core and config | `src/core/response_generator.cpp`, `src/config/loader.cpp` | Name hits only in the grep\"\nVERDICT: MISS\nWHY: The answer says reach is mostly in src/inference, with the facade only indirect and core/config as unverified name hits. It never concludes that the dependency is concentrated in inference but not contained by it, with a minority of reaching files outside src/inference."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Submodules and vendored clones are indexed, not excluded (gh#333/335). `external.py` tags their rows afterward so two codebases can still be told apart in an answer.\nVERDICT: HIT\nWHY: The answer explicitly states nested git trees are indexed rather than excluded and that their rows are tagged afterward."
+}

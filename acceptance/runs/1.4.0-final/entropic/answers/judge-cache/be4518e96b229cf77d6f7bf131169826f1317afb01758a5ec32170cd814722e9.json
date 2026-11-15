@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer mentions the lazy import and the `install-engine` hint in the loader error. It never concludes that the split exists so `import entropic` works before the engine is on disk, or that this is what lets an install-engine subcommand ship in the same package."
+}

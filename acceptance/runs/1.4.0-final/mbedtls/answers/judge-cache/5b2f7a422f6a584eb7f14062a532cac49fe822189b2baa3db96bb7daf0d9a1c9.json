@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"a new string is added by defining the error macro and regenerating the table, not by hand-editing `error.c`\"\nVERDICT: MISS\nWHY: The answer gets the header define, regeneration and no hand-edit of `error.c`. It never says the string comes from the `/** */` doc comment on the `#define`. Step 2 instead has the user add the description to separate generator \"data files\", which is a different mechanism."
+}

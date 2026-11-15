@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"When `hasSearch` is true, it renders `<NavigationSearch {...searchProps} ref={ref} />`\" and \"the ref is attached only inside the `hasSearch &&` branch. For the other seven callers it is never attached, so a ref passed to them would be silently ignored.\"\nVERDICT: HIT\nWHY: The answer says NavigationHeader forwards its ref to NavigationSearch only when `hasSearch` is true, and that otherwise the ref is never attached."
+}

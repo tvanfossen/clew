@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Retry means running the same operation again because the first attempt failed. Here the second call runs unconditionally after the probe succeeds. It is a two-pass size-then-fill pattern, and a failure on the second pass is final.\"\nVERDICT: HIT\nWHY: The answer concludes this is size negotiation (probe, then fill) rather than retry, and notes the second call is a single unconditional call. It never says \"no backoff\", \"no delay\" or \"no attempt counter\", but it states the core distinction and that exactly one second call follows."
+}

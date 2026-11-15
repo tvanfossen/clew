@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`ExperimentalViewArchivedChannels` is a single boolean gate, and only an explicit `'false'` turns it off. When the server omits the setting, the app treats archived channels as viewable, the same as `'true'`.\"\nVERDICT: HIT\nWHY: The answer directly states that a missing setting yields viewable archived channels and only an explicit 'false' disables it, backed by `value !== 'false'`."
+}

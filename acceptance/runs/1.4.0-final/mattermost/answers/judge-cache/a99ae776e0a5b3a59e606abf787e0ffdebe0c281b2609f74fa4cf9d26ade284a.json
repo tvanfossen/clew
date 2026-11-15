@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"It goes straight to the database, finds the matching row, and calls `destroyPermanently()` in its own write transaction.\" and \"database.get(REACTION).query(emoji_name, post_id, user_id) ... database.write(() => reaction[0].destroyPermanently())\" and \"It does not use the operator\"\nVERDICT: HIT\nWHY: The answer states the removed-reaction handler bypasses the operator, queries the reaction, and destroys it via a direct database.write."
+}

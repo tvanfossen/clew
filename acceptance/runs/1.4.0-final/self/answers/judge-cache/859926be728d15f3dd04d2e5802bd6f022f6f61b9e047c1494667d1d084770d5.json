@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"If the index is *newer*, no rebuild clears it\" and \"**schema:** nothing the caller can do through this process clears it. Auto-refresh skips it, because a rebuild re-stamps the same newer version.\"\nVERDICT: HIT\nWHY: The answer states that a newer index on the schema axis cannot be cleared by a rebuild because the rebuild re-stamps the same newer version."
+}

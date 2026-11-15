@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 11031,
+  "stop_reason": "end_turn",
+  "session_id": "14c7ef33-facf-4d71-879b-9b403a64f98a",
+  "total_cost_usd": 0.00682513,
+  "usage": {
+    "input_tokens": 6,
+    "cache_creation_input_tokens": 23399,
+    "cache_read_input_tokens": 117673,
+    "output_tokens": 1936,
+    "output_tokens_details": {
+      "thinking_tokens": 334
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 23399,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1318,
+        "cache_read_input_tokens": 44021,
+        "cache_creation_input_tokens": 16204,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 16204
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 6,
+      "outputTokens": 1936,
+      "cacheReadInputTokens": 117673,
+      "cacheCreationInputTokens": 23399,
+      "webSearchRequests": 0,
+      "costUSD": 0.00682513,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 334,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 23399,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 6,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "A clew index can go stale on three separate axes, and the tool both reports them and, for queries, usually fixes the data axis before answering.\n\n**How it knows (`clew/mcp_server/freshness.py`, the `AXIS_*` constants)**\n\n| Axis | Meaning | Cleared by |\n|---|---|---|\n| `data` | The database is older than the source files. Reported by `db_status` as `source_changed_files`. | A rebuild |\n| `code` | The running server process imported its modules at launch, so a committed fix isn't in its logic yet. | Restarting the client only |\n| `schema` | `build_version` differs from `expected_build_version`. If the index is *newer* than the server, a rebuild re-stamps the same newer version, so the flag can never clear. | Not clearable by a rebuild in that case |\n\nThe `data` check is the one the server acts on: `_data_stale` is compared on each query. The `code` axis came from a real incident (gh#348). A build-30 process rebuilt a build-32 index at version 30, dropped the `external` stage, and then `status` reported it healthy. The fix made `build_or_refresh` refuse via `stale_code_refusal`, which runs before the build decision so `force` can't override it.\n\n**What it tells the caller**\n\n- `DocsDbServer.staleness_notices()` (`server.py`) turns `db_status` into `{axis, message}` pairs. It never raises; any failure yields no annotation.\n- `QueryTools._staleness()` attaches those notices to every query reply, sized to fit the payload. Routed replies are annotated only for the repository they actually read.\n- `_withdraw_definitive` (`tools_query.py`) removes an unearned \"this is a definitive empty result\" claim when the schema axis is stale, because a missing layer could make an empty answer false. For the data axis it only does this on a subject miss, since the symbol may postdate the build.\n- The messages say which action clears each axis, and the code notice says that only restarting the client helps.\n- `status` reports `stale` unconditionally. Its interpretation block appears only when there is something to interpret.\n\n**What the caller does**\n\nThe caller usually does nothing. `_answering_with_refresh` wraps each query tool. Before answering, `_auto_refresh` does this:\n\n1. If the data axis is stale, it calls `_refresh_stale`. That takes the per-target build lock with a bounded wait, re-checks staleness inside the lock so concurrent callers produce one build, and runs an incremental build with `skip_if_fresh=True`.\n2. If the database is missing entirely, it starts a background first build (`_await_first_build`).\n3. On failure, or if the lock wait times out, it answers from the existing index and the staleness notice still rides along.\n\nThe explicit `index(action='refresh')` (`build_or_refresh`) is the manual path. It returns a measured `duration_ms`, honours `force`, and refuses on a code-stale process. The remedy for a `code` or `schema` notice is outside the index: restart the client, or rebuild against a matching server.\n\n**Caveats**\n\n- A query-triggered refresh is incremental and deduplicated. It is not guaranteed to be instant, and a slow build can leave the reply answered from the old index, with the notice attached.\n- I read the `build_or_refresh` and `_staleness` bodies through the index. Both carry an anchor mismatch or truncation, so the exact lines may have drifted since the index was built.",
+  "ttft_ms": 1877,
+  "type": "result",
+  "duration_ms": 12760,
+  "uuid": "7b9008ef-1d3f-4ca3-8f1e-966fac6beaf4",
+  "ttft_stream_ms": 1051,
+  "time_to_request_ms": 104,
+  "first_content_frame_ms": 1051,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

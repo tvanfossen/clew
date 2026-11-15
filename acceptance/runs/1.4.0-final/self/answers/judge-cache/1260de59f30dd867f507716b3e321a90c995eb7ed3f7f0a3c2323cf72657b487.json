@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The docs say the answer is \"registered in the file set, no symbols, no error, and the not-indexed report names the types.\" ... The third part fails.\"\nVERDICT: MISS\nWHY: The answer confirms the no-error degradation but concludes the not-indexed report does NOT name the types, which contradicts the item's claim; it also never mentions a router capability gate."
+}

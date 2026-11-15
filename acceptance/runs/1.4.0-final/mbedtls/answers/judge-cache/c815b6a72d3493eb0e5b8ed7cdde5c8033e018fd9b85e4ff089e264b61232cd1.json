@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The index was built with `MBEDTLS_THREADING_C` and `MBEDTLS_THREADING_PTHREAD` set as flags... `MBEDTLS_THREADING_C` defaults to off... `MBEDTLS_THREADING_PTHREAD` and `MBEDTLS_THREADING_ALT` also default to off.\nVERDICT: HIT\nWHY: The answer names both MBEDTLS_THREADING_C and MBEDTLS_THREADING_PTHREAD as the macros controlling the mutex/threading code, and says the mutex code only activates when MBEDTLS_THREADING_C is enabled."
+}

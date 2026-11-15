@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Empty is also returned when `vocab_` is null, and `LlamaCppBackend::tokenize` returns empty when `tokenizer_` is unset. So \"no vocab\", \"no tokenizer\", \"llama failed\", and \"empty input\" all look the same to callers.\nVERDICT: HIT\nWHY: The answer says failed tokenization returns an empty vector, the same as when the tokenizer is unset, so the two are indistinguishable."
+}

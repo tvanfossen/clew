@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: | 1 | Explicit: CLI flag, or the `options` mapping an embedding caller passes | ... | 5 | Heuristics: name-pattern guesses | Floor; displaced by any stated tier |\nVERDICT: HIT\nWHY: The answer lays out five named precedence tiers (explicit, declared, target facts, ecosystem signatures, heuristics) and the resolution formula across them."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says threading is off by default and the library has no internal concurrency or locks, but it never mentions that the pthread example compiles to a stub main."
+}

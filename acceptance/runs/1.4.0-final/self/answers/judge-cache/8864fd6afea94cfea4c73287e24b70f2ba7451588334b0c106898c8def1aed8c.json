@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Nested git trees (submodules, vendored clones) are included, not excluded (gh#333). `external.py` tags their rows after the build so answers can tell the codebases apart.\nVERDICT: HIT\nWHY: The answer states nested git trees are included rather than excluded and that external.py tags their rows."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: On the asm path it is `asm volatile(\"\" : \"+r\"(x))`.\nVERDICT: HIT\nWHY: The answer shows the empty asm volatile with \"+r\"(x) input-output operand, used to stop the compiler from proving the value (an optimisation barrier), which covers the item's substance."
+}

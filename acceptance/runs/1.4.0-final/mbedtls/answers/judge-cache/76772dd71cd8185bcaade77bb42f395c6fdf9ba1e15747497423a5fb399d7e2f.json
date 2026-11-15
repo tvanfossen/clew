@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: By default every field is therefore named `private_<name>`. Code outside the library that writes `ctx->state` gets a compile error... Applications have to define the macro themselves before including any Mbed TLS header.\nVERDICT: HIT\nWHY: The answer shows the two macro branches and states that code defining MBEDTLS_ALLOW_PRIVATE_ACCESS (library, ssl_*2.c) uses real field names, while ordinary consumers get `private_`-prefixed names."
+}

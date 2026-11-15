@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says dataflow `key` edges are kept out of `callers`, but it never states that the causal polarity is inverted, so a reader's \"callers\" would be the functions whose writes it observes."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `skipSync: true`: skips the delete computation entirely, so an add can never remove other reactions on the post.\nVERDICT: HIT\nWHY: The answer states that skipSync prevents the delete computation, so adding one reaction can't remove the post's other reactions. That matches the item's mechanism."
+}

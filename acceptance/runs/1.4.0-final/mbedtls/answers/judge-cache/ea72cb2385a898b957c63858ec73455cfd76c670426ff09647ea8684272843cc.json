@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names these files as holding the constant-time implementation itself:\n\n- `library/constant_time_impl.h` is where the primitives live, for example `mbedtls_ct_bool` and `mbedtls_ct_if`.\n- `library/constant_time.c` holds `mbedtls_ct_memcmp`, `mbedtls_ct_memcpy_if` and `mbedtls_ct_memcpy_offset`.\n- `constant_time_internal.h` is cited for the C fallback header comment. It is cited as a documentation source, not as the file that defines the primitives, so I've left it out.\n- The answer also mentions \"the three `constant_time*` files\" and the `constant_time.h` doc, but gives no paths for those. `constant_time.h` is written without a `library/` prefix.\n\nITEMS:\nlibrary/constant_time_impl.h\nlibrary/constant_time.c\nEND"
+}

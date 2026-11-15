@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"doxygen reads FILE_PATTERNS-matching files only + JS/TS via parse-built front end\" and \"The one content filter is `_drop_binary_files` (`filetypes.py`), which removes files that look binary from the first 8 KiB. Those paths are added to the exclude list so doxygen never opens them.\"\nVERDICT: HIT\nWHY: The answer says the scope is further filtered after resolution, naming the parse-built front end for JS/TS and the binary-file drop. The item needs only one of the two filters, and the answer states both."
+}

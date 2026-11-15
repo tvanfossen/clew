@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 43464,
+  "stop_reason": "end_turn",
+  "session_id": "40c81fb7-4a6e-4a7c-a727-f5a949c4f397",
+  "total_cost_usd": 0.014038989999999998,
+  "usage": {
+    "input_tokens": 18,
+    "cache_creation_input_tokens": 25099,
+    "cache_read_input_tokens": 483039,
+    "output_tokens": 8374,
+    "output_tokens_details": {
+      "thinking_tokens": 3206
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 25099,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3341,
+        "cache_read_input_tokens": 69416,
+        "cache_creation_input_tokens": 1665,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1665
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 18,
+      "outputTokens": 8374,
+      "cacheReadInputTokens": 483039,
+      "cacheCreationInputTokens": 25099,
+      "webSearchRequests": 0,
+      "costUSD": 0.014038989999999998,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 3206,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 25099,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 26,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** The two calls are both `llama_tokenize` inside `LlamaCppTokenizer::tokenize` (`src/inference/llama_cpp_tokenizer.cpp:55` and `:61`). It is a size-then-fill pattern, not retry logic. On failure, the caller gets an empty token vector, and most callers never check for it.\n\n**Why it calls twice**\n\nllama.cpp's `llama_tokenize` takes an output buffer and its capacity. If the buffer is too small, it returns a negative number whose magnitude is the required token count. The code uses this:\n\n1. First call passes `nullptr, 0`. It always fails with a negative return, which carries the needed size. The code negates it to get `n`.\n2. It allocates `std::vector<int32_t>(n)`.\n3. Second call passes the buffer. A non-negative `actual` is the real count; the vector is resized to it.\n\nTwo things make this not retry:\n- The second call is not conditional on the first failing. It is the expected step.\n- Nothing is repeated on failure: no loop, no backoff, no second attempt with the same arguments.\n\nOne wrinkle: a genuine llama.cpp error also returns negative, so the first call cannot tell \"needs N\" from \"broke.\" The code treats both as a size. A real error then surfaces when the second call returns negative, which is the only place it is logged.\n\n**Where the other llama.cpp call is**\n\nThe only other llama.cpp tokenization is `mtmd_tokenize` at `src/inference/llama_cpp_backend.cpp:2407`, in `mtmd_prefill`. It is a single call, and its failure is handled properly: it returns `ENTROPIC_ERROR_GENERATE_FAILED` with an error message. That is the contrast to the text path below.\n\n**What the caller receives on failure**\n\n`LlamaCppTokenizer::tokenize` logs at ERROR (text length only) and returns `{}`. Nothing else is signalled. The chain upward:\n\n| Caller | On failure it gets | What it does |\n|---|---|---|\n| `LlamaCppBackend::tokenize` (`llama_cpp_backend.cpp:788`) | `{}` (also `{}` if no tokenizer is wired, with no log) | Passes it through |\n| `do_count_tokens` (`:825`) | `0` | Returns 0 |\n| `InferenceBackend::count_tokens` \u2192 `entropic_inference_count_tokens` (`inference_c_api.cpp:548`) | `0` | Returns 0 to the C caller |\n| `tokenize_text` (`:837`) | empty vector | Passes it through |\n| `do_generate_text_only` (`:2561`), cancellable (`:2643`), streaming (`:2728`), `do_complete` (`:3947`), batch (`:1911`) | empty `tokens` | No empty check. Logs \"0 input tokens\" and continues into `decode_loop`/`run_prefill` |\n| `run_prefill` (`:1484`) | returns `true` with zero tokens decoded | The loop does not run |\n| Speculative (`:3594`) and MTP (`:3922`) | `ENTROPIC_ERROR_GENERATE_FAILED` | Only callers that check, via `tokens.size() < 2`. The message says \"must have at least 2 tokens\" and hides the real cause |\n| System-prompt prefix count (`:2066`) | `0` | Returns 0 |\n\n**What this means**\n\n- **Count callers cannot tell failure from an empty input.** A failed tokenization and an empty string both return `0`. The C header's Doxygen says \"estimate on error\" (`len/4`), but that only happens if an exception is thrown. A tokenize failure returns `0`, so the docs are wrong here.\n- **Generation callers continue silently.** The plain generate, cancellable, streaming, and complete paths have no empty-token guard. Prefill then decodes nothing and reports success, so sampling runs without having processed a prompt. I did not verify what `generate_after_prefill` does with no logits. It is the likely source of garbage output or a confusing failure, and it needs a test that passes an unencodable prompt through `do_complete` or `do_generate_text_only` to confirm.\n- **The fix is small.** Check `tokens.empty()` right after each `tokenize` call in the generation paths and return `ENTROPIC_ERROR_GENERATE_FAILED` with a clear message. The count path should either return an error code or document that `0` means failure. The mtmd path already shows the pattern.\n\nI did not open the llama.cpp header in this repo to confirm the negative-return contract. It is taken from llama.cpp's documented behaviour and matches how the code uses it.",
+  "ttft_ms": 1466,
+  "type": "result",
+  "duration_ms": 45788,
+  "uuid": "ca271ec0-29f4-4bf0-9fcc-d1309d1d624a",
+  "ttft_stream_ms": 1220,
+  "time_to_request_ms": 149,
+  "first_content_frame_ms": 1221,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

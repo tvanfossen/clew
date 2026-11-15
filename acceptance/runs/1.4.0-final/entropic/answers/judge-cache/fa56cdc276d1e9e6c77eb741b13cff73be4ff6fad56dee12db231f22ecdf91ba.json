@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer mentions \"the C API\" only loosely and never identifies the seam as llama_-prefixed free functions versus C++ classes or inheritance."
+}

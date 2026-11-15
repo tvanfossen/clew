@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: By default the member is renamed to `private_nr`. Code that reaches into `ctx.nr` or `ctx->nr` then fails to compile, which tells the user the field is not part of the API.\nVERDICT: HIT\nWHY: The answer states that the compile-time enforcement comes from renaming the member (`private_` prefix), so accesses by the original name fail to compile. It also shows the fields written openly in the public header, so the layout is not hidden. It never says outright that the fields remain visible and sized, but the rename-based mechanism is stated."
+}

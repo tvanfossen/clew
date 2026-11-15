@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The Doxyfile is not a tier.** Its `INPUT` used to be the fallback. That inverted the tool: a repo that shipped a Doxyfile got only its published-API headers, and a repo without one got everything.\"\nVERDICT: HIT\nWHY: The answer states that the Doxyfile's INPUT is no longer used to decide scope, and gives the reason: repos shipping a Doxyfile got only a documented subset while repos without one got the whole tree."
+}

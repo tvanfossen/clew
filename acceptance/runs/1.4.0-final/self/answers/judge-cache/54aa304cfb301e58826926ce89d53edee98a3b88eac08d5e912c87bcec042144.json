@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `.sh` `.bash` | ... `CMakeLists.txt` `.cmake`\nVERDICT: HIT\nWHY: The table names the shell extensions (.sh, .bash) and the CMake extension (.cmake), and it lists CMakeLists.txt separately by file name. The answer also says `register_paths` claims files \"by extension and name\", which confirms the name-based match."
+}

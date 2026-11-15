@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes the catch block keeping the post with `failed = true`, but never says `createPost` returns `{data: true}` (success) to its caller on failure, so the failure shows only in the stored post."
+}

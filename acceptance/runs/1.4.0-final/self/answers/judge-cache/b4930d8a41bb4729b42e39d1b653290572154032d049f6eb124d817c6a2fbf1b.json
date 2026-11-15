@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"If it declares nothing, the whole repository is the index\" and \"No `index_scope:` means `derive_scope` falls through to `whole_repo_scope`.\"\nVERDICT: MISS\nWHY: The answer gives declared-first, then whole-repo when nothing is declared. It does not say that every failure to find one falls through to whole-repo. It says a present-but-empty section is \"rejected with a reason, not treated as absent\", and it never covers missing, unreadable or invalid declarations."
+}

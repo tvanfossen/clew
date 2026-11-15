@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer only says unknown sub-index names are refused. It never says an unknown `.clew.yaml` section is refused by name against the allowed set, and it gives no reason about builds silently using defaults."
+}

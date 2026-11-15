@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It refuses outright when the process predates its source, and `force` cannot override that.\nVERDICT: HIT\nWHY: The answer states that the write/refresh path refuses (rather than warns) on stale code and that `force` cannot override it, which matches the item's substance of a refusal placed ahead of the build decision."
+}

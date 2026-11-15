@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes how empty results are graded and scoped but never states the general rule \"fix the corpus, not the sentence about the corpus\". It doesn't say the right fix for an empty result is to make the corpus cover what's missing rather than rewording the reply."
+}

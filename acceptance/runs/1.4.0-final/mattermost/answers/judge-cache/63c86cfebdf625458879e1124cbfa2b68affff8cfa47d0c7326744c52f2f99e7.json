@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A manual retry runs `retryFailedPost`, which re-sends the same post.\nVERDICT: MISS\nWHY: The answer names `retryFailedPost` and says it is manual and called from the failed-post UI. It never says the retry happens only when the user chooses \"Try Again\", and it never names that option."
+}

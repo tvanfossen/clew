@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Bindings are generated from `include/entropic/entropic.h` by `scripts/gen_bindings.py` (`inv gen-bindings`, drift-checked in pre-commit).\nVERDICT: HIT\nWHY: The answer states the bindings are generated from the header by a script and that drift is checked in pre-commit, which is the item's mechanism. It doesn't spell out the \"re-run and diff\" step, but the drift check in pre-commit covers the substance."
+}

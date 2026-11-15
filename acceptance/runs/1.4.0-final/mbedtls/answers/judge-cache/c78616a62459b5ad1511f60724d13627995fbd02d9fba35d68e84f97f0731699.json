@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"None of these are in `library/`. The library itself spawns nothing.\" and \"Per-object locks... `library/threading.c`\" with \"`mbedtls_threading_key_slot_mutex` (`threading.c:188`)\"\nVERDICT: MISS\nWHY: The answer says the library spawns no threads, but it frames the mutex code as compiled out by default and never says that library/ supplies the mutex abstraction for threaded callers. It describes the locks as internal protections, not as an abstraction offered to callers."
+}

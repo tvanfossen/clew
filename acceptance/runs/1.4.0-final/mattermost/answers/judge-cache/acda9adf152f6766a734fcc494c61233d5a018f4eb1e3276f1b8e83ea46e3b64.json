@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**`skipSync: true` (add path).** Inside `sanitizeReactions`, `skipSync` returns early with `deleteReactions: []`. Inside `handleReactions`, the delete branch is also guarded by `!skipSync`. The event therefore only creates. It never prunes reactions that the server no longer reports for that post. A full sync would prune, but a single-event update must not, because the event carries only one reaction.\"\nVERDICT: HIT\nWHY: The answer states that skipSync prevents deletion/pruning of other reactions because the event carries only one reaction, not the post's full set."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the dependency reaches \"narrowly, and mostly in one directory,\" and lists about 8 files across several categories. It never states that roughly a dozen files of entropic's own source use it, so it fails the item."
+}

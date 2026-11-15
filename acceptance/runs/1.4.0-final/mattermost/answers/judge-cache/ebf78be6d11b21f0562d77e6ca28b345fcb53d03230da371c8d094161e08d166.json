@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Automatic retries:** none. `createPost` makes one call and has no loop or backoff. I found no caller that re-invokes it on failure or on reconnect. The `handle_send_message.ts` callers (lines 163 and 176) fire it once.\"\nVERDICT: HIT\nWHY: The answer states that createPost is called once with no automatic retries, which matches the item."
+}

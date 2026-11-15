@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"if a callback is set the code invokes it and then sets `approved = true` unconditionally.\" and \"Without a callback and without an allow match, calls are denied\"\nVERDICT: MISS\nWHY: The answer says that unlisted tools are denied without a callback and are gated only by the deny list with one. It never concludes that a tool matching neither list simply runs."
+}

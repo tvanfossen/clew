@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The only in-library caller is `mbedtls_memory_buffer_alloc_init` (`library/memory_buffer_alloc.c:566-600`). That is the library's bundled allocator... It sets the allocator pointers to its own `buffer_alloc_calloc`/`buffer_alloc_free`.\nVERDICT: HIT\nWHY: The answer says the buffer allocator's init function is the only in-library caller of the runtime setter and that it installs its own calloc/free over the pointers. It doesn't name the MBEDTLS_MEMORY_BUFFER_ALLOC_C macro, but the substance is there."
+}

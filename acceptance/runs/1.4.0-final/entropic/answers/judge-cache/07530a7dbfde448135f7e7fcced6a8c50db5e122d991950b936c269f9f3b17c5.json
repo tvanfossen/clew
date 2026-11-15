@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Tool name matches the part before `:`, and `tool:<value>` matches the full pattern.\nVERDICT: MISS\nWHY: The answer mentions fnmatch and splitting on `:`, but never states that a pattern with no colon matches on the tool name alone. The table row for `filesystem.*` implies it, but only as a glob example. It never states the rule outright, and the split at the first colon is only loosely described."
+}

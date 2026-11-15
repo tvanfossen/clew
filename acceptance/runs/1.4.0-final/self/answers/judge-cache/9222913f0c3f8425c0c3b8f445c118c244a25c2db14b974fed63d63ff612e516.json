@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says flags are recorded in `build_meta` and replayed, but never states that the winning tier is recorded with the index or that the record is derived from stored rows rather than stamped separately."
+}

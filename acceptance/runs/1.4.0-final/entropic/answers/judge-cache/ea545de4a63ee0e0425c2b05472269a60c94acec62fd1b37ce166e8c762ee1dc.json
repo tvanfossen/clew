@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Ten spawn sites in first-party code... `ExternalBridge::start` (`external_bridge.cpp:796`) | `HealthMonitor::start` (`health_monitor.cpp:92`) | `StdioTransport::open` (`transport_stdio.cpp:164`) | `SSETransport::open` (`transport_sse.cpp:107`) | `ResponseGenerator::dispatch_batch_generate` (`response_generator.cpp:413`)\nVERDICT: HIT\nWHY: The answer's table lists thread spawn sites across the external bridge, health monitor, MCP transports (stdio/SSE) and inference path, and its lead sentence frames them as distributed spawn sites."
+}

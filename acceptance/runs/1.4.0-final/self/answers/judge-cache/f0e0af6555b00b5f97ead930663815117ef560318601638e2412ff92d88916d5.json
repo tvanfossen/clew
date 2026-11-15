@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: the module docstring says the Doxyfile's INPUT is \"a documentation target, not a reasoning boundary\", and the Mbed-TLS example in that docstring shows why it was dropped.\nVERDICT: MISS\nWHY: The answer says the Doxyfile's INPUT was dropped, but it never gives the stated reason: that a repo shipping a Doxyfile would get only its documented subset while a repo with none gets the whole tree."
+}

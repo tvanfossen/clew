@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It then calls `client.createPost` once. ... On failure it applies the same logic as the first attempt: the two error IDs above remove the post, and any other error sets `failed: true` again.\nVERDICT: HIT\nWHY: The answer states that retryFailedPost makes a single createPost call (no loop or backoff) and on failure either marks the post failed again or removes it for the specific error IDs."
+}

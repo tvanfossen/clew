@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Default build (`MBEDTLS_PLATFORM_MEMORY` off, the shipped default)\nVERDICT: HIT\nWHY: The answer says `MBEDTLS_PLATFORM_MEMORY` gates the runtime hook and is off in the shipped default. That implies it is commented out in the config. It doesn't literally say \"commented out in mbedtls_config.h\", but it states that it is off by default."
+}

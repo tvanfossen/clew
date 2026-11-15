@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: On a subject miss with a `data` notice, the reply withdraws its \"definitive\" wording. With a `schema` notice it says a layer may be missing rather than empty.\nVERDICT: MISS\nWHY: The answer describes wording changes on misses, but never says the staleness annotation is fitted to the response budget by degrading its wording instead of being dropped."
+}

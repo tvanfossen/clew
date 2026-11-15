@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The intended checks are Valgrind memcheck (`components-configuration-crypto.sh`, with `MBEDTLS_TEST_CONSTANT_FLOW_VALGRIND`) and MemSan (`components-sanitizers.sh`, C path only).\nVERDICT: MISS\nWHY: The answer names Valgrind/MemSan checks and says the module is internal apart from `mbedtls_ct_memcmp`. It never says the constant-flow property is verified by a separate, off-by-default testing facility, and it never says that facility is not part of the library API."
+}

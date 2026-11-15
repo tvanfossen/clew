@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says that a tool matching neither list runs. It says the call is denied when no approval callback is registered, and that a registered callback approves unconditionally. It does not conclude the posture is default-allow."
+}

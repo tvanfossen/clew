@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Its `_mutexed` variants take the library mutex when `MBEDTLS_THREADING_C` is on.\nVERDICT: MISS\nWHY: The answer says that `_mutexed` variants take the mutex when threading is on. It never says that `mbedtls_memory_buffer_alloc_init()` installs a mutexed pair or a plain pair of calloc/free functions, chosen at compile time inside the init function."
+}

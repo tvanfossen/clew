@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"appended after \\\" : \\\" if a high-level part was already written\"\nVERDICT: HIT\nWHY: The answer describes a high-level (module) part and a low-level part, each looked up separately, with the low-level string appended after \" : \" when a high-level part was already written. That is the joined rendering of both layers."
+}

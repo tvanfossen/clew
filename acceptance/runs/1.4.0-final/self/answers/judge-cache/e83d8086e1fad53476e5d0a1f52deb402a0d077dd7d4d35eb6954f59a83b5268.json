@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never names the shell or CMake file extensions (e.g. `.sh`, `.cmake`) or says CMakeLists.txt is matched by file name rather than extension."
+}

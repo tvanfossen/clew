@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: | `data` | ... | `schema` | ... | `code` | ... (table of three axes) and \"A clew index knows it is out of date on three separate axes\"\nVERDICT: HIT\nWHY: The answer explicitly says staleness is three separate axes and names them data, schema, and code."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `if found: database.write(() => reaction[0].destroyPermanently())` and \"The removal path does not take the same route. It never calls `handleReactions`, `sanitizeReactions`, `transformReactionRecord` or `batchRecords`\"\nVERDICT: HIT\nWHY: The answer states the remove handler uses only `database`, queries the reaction, and destroys it via a direct `database.write`, bypassing the operator's `handleReactions` path."
+}

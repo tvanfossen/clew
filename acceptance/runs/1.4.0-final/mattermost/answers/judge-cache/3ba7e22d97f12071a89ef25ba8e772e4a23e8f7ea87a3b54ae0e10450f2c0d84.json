@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `useAppNavigationHeader` (`app/hooks/navigation_header.tsx`) also takes `hasSearch`, but it renders the lower-level `Header` component, not `NavigationHeader`, so it is not a render site for this question.\nVERDICT: MISS\nWHY: The answer excludes the navigation hook's `Header` render, but it says it did not confirm which component the thread route renders. The item requires excluding both the hook and the thread route."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It calls `client.createPost` again, still with no retry. On failure, it applies the same split: the three server errors above remove the post, anything else sets `failed = true` again.\nVERDICT: HIT\nWHY: The answer says retryFailedPost makes a single new createPost call with no retry, and on failure it removes the post for the same three errors or marks it failed again."
+}

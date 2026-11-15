@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Only the exact string `'false'` turns the feature off. If the server does not send the key, the value is `undefined`, the predicate returns `true`, and the app behaves as if archived channels are viewable.\nVERDICT: HIT\nWHY: The answer states that a missing setting yields viewable archived channels and that only the explicit string 'false' disables the feature."
+}

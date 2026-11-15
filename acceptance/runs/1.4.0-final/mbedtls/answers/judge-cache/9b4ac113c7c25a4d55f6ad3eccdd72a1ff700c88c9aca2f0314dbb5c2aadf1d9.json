@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer mentions a second mbedtls_strerror under the MBEDTLS_ERROR_STRERROR_DUMMY gate but admits it did not read the body. It never says the switch keeps the function linkable with the table compiled out, and it never says the switch is enabled by default."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer explains the macro's two branches, but it never says that the same struct is seen with plain names by code that defines the opt-out and with renamed `private_` names by ordinary consumers. It only says the library and two programs get real names and that applications \"have to define the macro themselves\", so it never contrasts the two views."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `stop()` joins (`:102`).\nVERDICT: MISS\nWHY: The answer says HealthMonitor stop() joins, but it never describes the atomic flag exchange plus condition-variable wake. It only mentions in gap 5 that stop() sets `running_` and notifies, and that is framed as a lost-wakeup flaw, not as the shutdown mechanism."
+}

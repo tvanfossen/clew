@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Facts and ecosystem entries are never discarded. Guesses are discarded as soon as anyone states something.\nVERDICT: MISS\nWHY: The answer lists tiers 3 and 4 as both \"Accumulates\" and gives a fact-versus-guess framing. It never states that the distinction between tiers 3 and 4 is deliberately inert, so that part of the item is absent."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Single token, matches nothing in any corpus, index has file docs | \"definitive\u2026 do not retry or fall back to guessing\" | Strong, but only about this index's read corpora, not the repository\"\nVERDICT: MISS\nWHY: The answer describes the current graded emptiness behavior but never says that a single non-matching token was previously treated as proof of absence, or that this conflated \"nothing exists\" with \"I did not look there\"."
+}

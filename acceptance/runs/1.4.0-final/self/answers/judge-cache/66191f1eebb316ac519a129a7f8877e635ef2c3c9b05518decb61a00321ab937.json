@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer's tiered confidence table is keyed to the reply's note and scope fields and to a name's kind, not to a per-call query of which corpora were not read. It also says the `not_searched` field was not seen on this search reply."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The code is split into a high part (mask `0xFF80`, which identifies the module that reported it) and a low part (mask `~0xFF80`, which identifies the specific error). ... join with \" : \" \u2192 \"RSA - Bad input parameters to function : AES - Invalid key length\"\nVERDICT: HIT\nWHY: The answer states the two-layer high-level module/low-level split and shows mbedtls_strerror rendering both joined with \" : \"."
+}

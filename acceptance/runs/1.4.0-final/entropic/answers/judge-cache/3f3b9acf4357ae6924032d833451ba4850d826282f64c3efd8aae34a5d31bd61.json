@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`do_count_tokens` | returns `size()` | returns **0**, same as a real zero-token string\"\nVERDICT: HIT\nWHY: The answer says a failed tokenization yields an empty vector, so the token-counting path (`do_count_tokens`) returns 0, and that nothing is thrown and no error code is set."
+}

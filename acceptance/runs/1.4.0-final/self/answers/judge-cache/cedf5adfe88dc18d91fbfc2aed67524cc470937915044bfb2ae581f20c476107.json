@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A clew index can go stale on three separate axes, and the tool both reports them... | `data` | ... | `code` | ... | `schema` | ...\nVERDICT: HIT\nWHY: The answer explicitly states three separate staleness axes and names them data, code, and schema, with distinct meanings and remedies."
+}

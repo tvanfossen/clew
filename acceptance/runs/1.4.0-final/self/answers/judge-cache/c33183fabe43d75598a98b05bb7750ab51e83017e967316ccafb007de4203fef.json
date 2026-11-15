@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says fuzzy edges are kept and tagged with confidence, but never contrasts a traversal surface that excludes them or explains that a walk multiplies one fuzzy edge into a wrong subtree."
+}

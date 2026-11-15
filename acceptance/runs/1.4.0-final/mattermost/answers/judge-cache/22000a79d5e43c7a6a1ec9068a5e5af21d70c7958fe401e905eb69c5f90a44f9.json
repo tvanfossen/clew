@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The `?.` on the focus call matters: when `hasSearch` is false, the ref is never attached, so `current` stays `null`.\nVERDICT: HIT\nWHY: The answer says NavigationHeader forwards the ref to NavigationSearch, which mounts only when `hasSearch` is true, and that otherwise the ref is never attached."
+}

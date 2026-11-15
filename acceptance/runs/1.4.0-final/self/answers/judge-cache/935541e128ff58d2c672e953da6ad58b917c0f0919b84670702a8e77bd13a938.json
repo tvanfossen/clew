@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Built-in defaults | 5 (heuristic)\", \"The repo's `.clew.yaml` | 2 (declared)\", \"Tier 3 and 4 facts. These accumulate\"\nVERDICT: MISS\nWHY: The answer numbers tiers 1, 2, 3, 4 and 5 and names only three of them (explicit, declared, heuristic). It never names tiers 3 and 4, and it frames the config as \"four places, plus a fallback\". That gestures at the five-tier scheme without stating it."
+}

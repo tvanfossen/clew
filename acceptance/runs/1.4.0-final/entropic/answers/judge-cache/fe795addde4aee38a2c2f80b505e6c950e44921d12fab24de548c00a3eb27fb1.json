@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The `Tokenizer::tokenize` doc says \"empty on failure or empty input\", so an empty vector cannot be told apart from an empty prompt.\nVERDICT: HIT\nWHY: The answer states that failure is indistinguishable from empty input, and that callers don't check (only `generate_mtp` does, and for a different reason), with the callers laid out in the table."
+}

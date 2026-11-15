@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"If the buffer is too small, it returns a negative number whose magnitude is the required token count. ... First call passes `nullptr, 0`. It always fails with a negative return, which carries the needed size. The code negates it to get `n`.\"\nVERDICT: HIT\nWHY: The answer states the first call returns a negative number carrying the required size and that the code negates it to get `n` for the buffer allocation."
+}

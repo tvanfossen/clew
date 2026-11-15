@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The index's thread layer finds four spawn sites, all in `programs/` (`ssl_pthread_server.c:277`, `ssl_server2.c:1699`, `benchmark.c:430/444`). None is in `library/`.\nVERDICT: MISS\nWHY: The answer states no thread is created in library/, but never says library/ supplies the mutex abstraction for threaded callers. It says the layer is opt-in and off by default, and it describes `threading.c` only as a gated backend."
+}

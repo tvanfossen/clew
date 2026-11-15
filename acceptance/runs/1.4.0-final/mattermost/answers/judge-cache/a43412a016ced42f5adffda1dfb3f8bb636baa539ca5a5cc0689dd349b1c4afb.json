@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Calls `client.createPost` again, sending a new post built from the local record.\" and \"Retry is manual, one attempt per tap. Nothing re-sends in the background.\" and \"On failure, sets `failed: true` again, unless it is one of the three removal errors above, in which case the post is deleted.\"\nVERDICT: HIT\nWHY: The answer says `retryFailedPost` makes one attempt per tap with no background resend, and on failure marks the post failed again or deletes it for the same three errors. It never says \"no backoff\" in those words, but the single-attempt, no-resend description covers that."
+}

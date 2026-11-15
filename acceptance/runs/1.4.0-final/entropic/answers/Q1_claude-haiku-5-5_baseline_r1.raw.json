@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 33767,
+  "stop_reason": "end_turn",
+  "session_id": "cb2677ba-bea0-46bf-b6fd-471af57eb8bc",
+  "total_cost_usd": 0.012853779999999999,
+  "usage": {
+    "input_tokens": 16,
+    "cache_creation_input_tokens": 33944,
+    "cache_read_input_tokens": 314838,
+    "output_tokens": 5830,
+    "output_tokens_details": {
+      "thinking_tokens": 2401
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 33944,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2520,
+        "cache_read_input_tokens": 48839,
+        "cache_creation_input_tokens": 723,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 723
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 16,
+      "outputTokens": 5830,
+      "cacheReadInputTokens": 314838,
+      "cacheCreationInputTokens": 33944,
+      "webSearchRequests": 0,
+      "costUSD": 0.012853779999999999,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2401,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 33944,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 10,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** neither place is retry logic. Both are the standard llama.cpp \"ask for the size, then fill the buffer\" pattern. The failure path does not retry at all, and the caller gets an empty result that it can't tell apart from a legitimate empty input.\n\n## Why it calls twice\n\nThere are two sites, and they follow the same pattern.\n\n**Tokenize** (`src/inference/llama_cpp_tokenizer.cpp:55-63`): The first `llama_tokenize` call passes a null buffer and a size of 0. llama.cpp answers with a negative number whose magnitude is the required token count. The code negates it (line 58), allocates a vector of that size, and calls again to fill it. The second call's return value is the real token count, and the vector is resized to match (line 69).\n\n**Detokenize** (`llama_cpp_tokenizer.cpp:93-104`): Same idea with a 256-byte stack buffer. If the piece doesn't fit, the function returns the negated required size, and the code retries once with an exact-size heap buffer.\n\nThe second call is not a retry of a failed call. It is the call that does the work, made with the size the first call reported. Calling it again with identical arguments would not change the outcome, so calling it \"retry logic\" would be inaccurate.\n\n## What the caller receives on failure\n\nWhen the second `llama_tokenize` returns a negative value (line 64), `LlamaCppTokenizer::tokenize` logs an error containing only the text length and returns `{}`, an empty vector. The llama.cpp return code is discarded and the text itself is not logged.\n\nEmpty is also returned when `vocab_` is null, and `LlamaCppBackend::tokenize` returns empty when `tokenizer_` is unset. So \"no vocab\", \"no tokenizer\", \"llama failed\", and \"empty input\" all look the same to callers.\n\n## What the callers do with it\n\n| Caller | Behaviour on empty | Notes |\n|---|---|---|\n| `do_count_tokens` (`llama_cpp_backend.cpp:825`) \u2192 `entropic_inference_count_tokens` (`inference_c_api.cpp:548`) | Returns `0` | The C header says \"text_len/4 estimate on error\", but no exception is thrown on this path, so the `catch(...)` fallback never runs. The `Tokenizer::count_tokens` doc says 0 means empty input, so the API cannot distinguish failure from empty text. |\n| `tokenize_text` (`:837`) | Passes empty through | No check. |\n| Speculative path (`~:3593`) and MTP path (`~:3921`) | Checks `tokens.size() < 2` and returns `ENTROPIC_ERROR_GENERATE_FAILED` with \"must have at least 2 tokens\" | The real cause (tokenization failure) is reported as a prompt-length problem. |\n| Plain generate, cancellable generate, and stream (`~:2561`, `:2643`, `:2728`) | No check | Empty tokens go into `run_prefill`. With zero tokens the loop body never runs and the function returns `true` (`:1500-1503`). Generation then proceeds with nothing prefilled. I did not trace what sampling does with no logits; it is likely to produce garbage or an llama.cpp error, but I haven't verified that. |\n| `complete` (`:3942-3947`) | No check | Same as above. `tokenize(prompt, false)` is passed straight into `decode_loop` (`:3952`). |\n| Prefix/system-prompt count (`:2066`) and batch path (`:1911`) | Returns 0 / empty | I did not trace how these feed the prompt-cache and batching logic, so I can't say what they do on failure. |\n\n## Assessment\n\n- The double call is the documented llama.cpp sizing protocol and is correct as written.\n- The failure contract is weak. Errors are collapsed into an empty vector, the llama return code is dropped, and most generation paths don't check for empty input. Only the speculative and MTP paths guard against it, and they misreport the cause.\n- The C API's documented \"estimate on error\" behaviour does not match the code.\n\nPossible fixes, if you want them: have the tokenizer return a status alongside the vector (or throw and catch at the seam), log the llama return code and the first bytes of the input, reject empty token sequences in the plain generate, stream and complete paths, and either fix the header comment or implement the estimate fallback for the count path. I have not changed anything in the repo.",
+  "ttft_ms": 1915,
+  "type": "result",
+  "duration_ms": 35257,
+  "uuid": "7ebb6689-abe9-47fc-9def-4a9a5735c64f",
+  "ttft_stream_ms": 1628,
+  "time_to_request_ms": 297,
+  "first_content_frame_ms": 1628,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

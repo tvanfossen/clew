@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The failure becomes an **empty `std::vector<int32_t>`**. The same empty vector also means \"empty input\" and \"vocab is null\"... the interface itself does not separate the two cases.\" and \"`do_count_tokens` | returns `size()` | returns **0**, same as a real zero-token string\"\nVERDICT: MISS\nWHY: The answer says failure is indistinguishable from an empty result, but it doesn't conclude that no caller checks for it. It says only that callers don't set an error, and it admits it did not verify whether any caller checks for an empty prompt."
+}

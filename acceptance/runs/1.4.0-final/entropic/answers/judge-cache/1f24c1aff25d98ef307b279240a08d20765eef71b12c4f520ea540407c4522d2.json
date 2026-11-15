@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: imports are lazy (PEP 562) so `install-engine` can run before the `.so` exists.\nVERDICT: HIT\nWHY: The answer states the package imports lazily so the install-engine subcommand can run before the engine .so is on disk, which is the item's substance."
+}

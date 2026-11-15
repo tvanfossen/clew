@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The setting has one effective meaning: archived channels are viewable unless the server explicitly sends `\"false\"`. ... If the server omits the key, the value is `undefined`, the helper returns `true`\nVERDICT: HIT\nWHY: The answer states that a missing setting yields viewable archived channels and only an explicit \"false\" disables them."
+}

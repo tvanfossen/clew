@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **`AppDataOperator`** (`app/database/operator/app_data_operator/index.ts`) extends `BaseDataOperator`, so it shares `handleRecords`, `prepareRecords`, `processRecords`, and `batchRecords` against the app database.\nVERDICT: HIT\nWHY: The answer names AppDataOperator as extending BaseDataOperator and sharing the same write-path methods for the app database."
+}

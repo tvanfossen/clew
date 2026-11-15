@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the library creates no threads and mentions the mutex lock usage, but it never says that library/ supplies the threading/mutex abstraction (e.g., threading.c with pthread/alt) for threaded callers; it frames the mutexes as compiled out."
+}

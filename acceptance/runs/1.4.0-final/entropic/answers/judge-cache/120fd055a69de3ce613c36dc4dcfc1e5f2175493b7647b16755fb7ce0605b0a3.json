@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: That is the first string-valued argument in the JSON args, or `*` if there are no args, the first value isn't a string, or parsing fails.\nVERDICT: HIT\nWHY: The answer states that only the first string argument value feeds the pattern, and that non-string or parse failure collapses to `*`."
+}

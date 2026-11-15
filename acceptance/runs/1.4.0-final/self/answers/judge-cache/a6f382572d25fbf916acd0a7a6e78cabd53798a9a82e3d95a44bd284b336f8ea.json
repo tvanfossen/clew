@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `code` | process predates the source tree | restart the MCP client; rebuilding will not help | no, a restart; also \"`data` | sources changed | `index(action='refresh')` ... | yes, a rebuild\"\nVERDICT: MISS\nWHY: The answer states that data is cleared by a rebuild and code by a restart, but never says this is why one flag would not have been enough."
+}

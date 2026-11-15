@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"A real error then surfaces when the second call returns negative, which is the only place it is logged.\" and \"`LlamaCppTokenizer::tokenize` logs at ERROR (text length only) and returns `{}`.\"\nVERDICT: HIT\nWHY: The answer states the second call returning negative is logged as an error and the function returns an empty vector, with no retry (\"Nothing is repeated on failure\")."
+}

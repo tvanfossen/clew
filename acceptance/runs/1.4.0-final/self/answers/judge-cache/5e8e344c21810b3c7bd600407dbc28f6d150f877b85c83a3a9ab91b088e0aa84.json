@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The authors chose not to downgrade every reply on missing layers, because most test fixtures lack them and that would hedge almost every honest answer.\nVERDICT: HIT\nWHY: The answer states that the authors deliberately avoided downgrading on every absent layer because it would hedge nearly every answer. It also names the single absent-corpus case, \"Index has no file-doc or markdown corpus\", which gets the \"NOT definitive\" wording."
+}

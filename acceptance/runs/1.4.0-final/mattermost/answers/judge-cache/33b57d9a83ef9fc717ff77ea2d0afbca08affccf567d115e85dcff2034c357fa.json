@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Calls `operator.handleReactions({ prepareRecordsOnly: false, skipSync: true, postsReactions: [...] })`... `prepareRecords` (`base_data_operator/index.ts:134-183`) runs `transformReactionRecord` with `action: CREATE`... `batchRecords` (`base_data_operator/index.ts:191-211`) runs `database.write(writer => writer.batch(...))`\nVERDICT: HIT\nWHY: The answer says the add is stored via the operator's `handleReactions`, which prepares Reaction records (`prepareRecords` with the reaction transformer) and writes them with `batchRecords`."
+}

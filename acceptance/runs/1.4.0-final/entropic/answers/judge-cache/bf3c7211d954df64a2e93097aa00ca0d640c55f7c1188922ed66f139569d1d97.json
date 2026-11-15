@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Most are in the MCP bridge and transports, plus a few cancellation pollers in inference. ... `ExternalBridge::accept_loop` ... `HealthMonitor::monitor_loop` ... `StdioTransport::stderr_reader_loop` ... `SSETransport::sse_reader_loop` ... Cancel pollers ... `inference_c_api.cpp:385`\nVERDICT: HIT\nWHY: The answer lists thread spawn sites across the external bridge, MCP transports, health monitor and inference cancel pollers, showing creation is distributed across subsystems."
+}

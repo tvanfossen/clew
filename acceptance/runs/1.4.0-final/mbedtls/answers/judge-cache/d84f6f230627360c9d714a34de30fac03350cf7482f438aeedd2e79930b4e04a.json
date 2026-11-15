@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: On the asm path it is `asm volatile(\"\" : \"+r\"(x))`.\nVERDICT: HIT\nWHY: The answer gives the empty asm volatile with a \"+r\" in-out register operand, as an opacity primitive that stops the compiler proving the value, i.e. an optimisation barrier."
+}

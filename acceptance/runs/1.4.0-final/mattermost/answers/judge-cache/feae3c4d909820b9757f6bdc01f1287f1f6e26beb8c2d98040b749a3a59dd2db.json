@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The `hooks/navigation_header` route hooks don't render the component. They set Stack header options, so they're not in the table.\nVERDICT: MISS\nWHY: The answer never mentions `Header` from `navigation_header/header.tsx` or its renderers (the thread route) as excluded. It only says the hooks set Stack header options, which is a different claim."
+}

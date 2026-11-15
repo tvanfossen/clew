@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The allow list only skips the prompt. ... `auto_ok = loop.auto_approve  OR  ServerManager::is_explicitly_allowed(allow list)` under `ToolExecutor::check_approval tool_executor.cpp:161`, with the deny list enforced in `ServerManager::execute server_manager.cpp:153`.\nVERDICT: HIT\nWHY: The answer states the allow list only skips the prompt and is consulted in `check_approval` (tool_executor.cpp), while `ServerManager::execute` is in server_manager.cpp, a different file."
+}

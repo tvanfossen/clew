@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Default build (`MBEDTLS_PLATFORM_MEMORY` off, the shipped default):** `include/mbedtls/platform.h:166-167` defines `mbedtls_calloc` as `calloc` and `mbedtls_free` as `free`. The call is libc `calloc`, resolved at compile time.\"\nVERDICT: HIT\nWHY: The answer states that in the default build mbedtls_calloc/mbedtls_free are compile-time defines to calloc/free, resolved at compile time with no runtime hook."
+}

@@ -1,0 +1,143 @@
+{
+  "cell": "Q3_claude-haiku-5-5_baseline_r2",
+  "arm": "baseline",
+  "rubric_version": "3.1.0",
+  "rubric_digest": "bbf6195f605be452",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.7241379310344828,
+  "unmarked_pct": 0.0,
+  "split_decisions": 0,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "states that MBEDTLS_PLATFORM_MEMORY is the gate, and that it is commented out in the shipped mbedtls_config.h",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": false,
+      "detail": "QUOTE: Enable `MBEDTLS_PLATFORM_MEMORY` in its config. | WHY: The answer says to enable MBEDTLS_PLATFORM_MEMORY as the gate but never states it is commented out in the shipped mbedtls_config.h. || QUOTE: Enable `MBEDTLS_PLATFORM_MEMORY` in its config. | WHY: The answer says to enable MBEDTLS_PLATFORM_MEMORY as a gate but never states it is commented out in the shipped mbedtls_config.h. || QUOTE: Enable `MBEDTLS_PLATFORM_MEMORY` in its config. | WHY: The answer says to enable MBEDTLS_PLATFORM_MEMORY and calls it the gate, but never states that it is commented out in the shipped mbedtls_config.h. \"Default (off)\" is not the same fact.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that in a DEFAULT build there is no indirection at all \u2014 mbedtls_calloc and mbedtls_free are preprocessor macros expanding directly to calloc and free",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: **Default (`MBEDTLS_PLATFORM_MEMORY` off):** `include/mbedtls/platform.h:163-167` defines `mbedtls_calloc` as `calloc` and `mbedtls_free` as `free` as plain macros. There is no indirection. | WHY: The answer says that in the default build, `mbedtls_calloc` and `mbedtls_free` are plain macros expanding to `calloc` and `free`, with no indirection. || QUOTE: **Default (`MBEDTLS_PLATFORM_MEMORY` off):** `include/mbedtls/platform.h:163-167` defines `mbedtls_calloc` as `calloc` and `mbedtls_free` as `free` as plain macros. There is no indirection. | WHY: The answer states that in the default build `mbedtls_calloc` and `mbedtls_free` are plain macros expanding directly to `calloc` and `free`, with no indirection. || QUOTE: **Default (`MBEDTLS_PLATFORM_MEMORY` off):** `include/mbedtls/platform.h:163-167` defines `mbedtls_calloc` as `calloc` and `mbedtls_free` as `free` as plain macros. There is no indirection. | WHY: The answer states that in the default build, `mbedtls_calloc` and `mbedtls_free` are plain macros expanding directly to `calloc` and `free`, with no indirection.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "distinguishes the two ways to substitute an allocator \u2014 a COMPILE-time pair of macros versus a RUNTIME pair of function pointers \u2014 and states that they are mutually exclusive",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"The two options are mutually exclusive: when both macros are defined, the runtime setter is compiled out.\" | WHY: The answer separates the compile-time macro pair (CALLOC_MACRO/FREE_MACRO) from the runtime function-pointer setter and explicitly says the two options are mutually exclusive. || QUOTE: \"The two options are mutually exclusive: when both macros are defined, the runtime setter is compiled out.\" | WHY: The answer separates the compile-time macro pair from the runtime function-pointer setter and states that the two are mutually exclusive. || QUOTE: \"The two options are mutually exclusive: when both macros are defined, the runtime setter is compiled out.\" | WHY: The answer separates the compile-time macro pair (CALLOC_MACRO/FREE_MACRO) from the runtime function-pointer setter, and it states they are mutually exclusive.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that on the macro path mbedtls_platform_set_calloc_free does not exist at all \u2014 it is neither declared nor compiled, rather than being present and ignored",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"the runtime setter is compiled out\" | WHY: The answer says that on the macro path (both macros defined) `platform.c` \"compiles out its runtime machinery\" and the runtime setter is compiled out. That matches \"not compiled\". It doesn't say \"not declared\", but it conveys the setter is absent on the macro path rather than present and ignored. || QUOTE: The two options are mutually exclusive: when both macros are defined, the runtime setter is compiled out. | WHY: The answer states that on the macro path the runtime setter is compiled out, so it is not present. That matches \"neither declared nor compiled\", though it doesn't use the word \"declared\". || QUOTE: \"`platform.h:138-145` then aliases `mbedtls_calloc`/`mbedtls_free` to those macros, and `platform.c` compiles out its runtime machinery.\" and \"when both macros are defined, the runtime setter is compiled out.\" | WHY: The answer states that on the macro path the runtime setter is compiled out, meaning it is not compiled or available, rather than present and ignored.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies that the pointers' defaults FAIL rather than fall back \u2014 an uninitialised calloc returns NULL and an uninitialised free does nothing",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: the defaults become `platform_calloc_uninit` (always returns NULL) and `platform_free_uninit` (does nothing), so an unconfigured build fails allocations cleanly rather than linking against `calloc`. | WHY: The answer states that under NO_STD_FUNCTIONS the default pointers are an uninit calloc that always returns NULL and an uninit free that does nothing, so they fail instead of falling back. || QUOTE: the defaults become `platform_calloc_uninit` (always returns NULL) and `platform_free_uninit` (does nothing), so an unconfigured build fails allocations cleanly rather than linking against `calloc`. | WHY: The answer states that under NO_STD_FUNCTIONS the default pointers are an uninit calloc that always returns NULL and an uninit free that does nothing, so allocations fail instead of falling back.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies the buffer allocator (MBEDTLS_MEMORY_BUFFER_ALLOC_C) as the only in-tree user of the runtime setter, installing itself over the pointers from its init function",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: A built-in allocator plugs into the same hook. `library/memory_buffer_alloc.c:566-576`, `mbedtls_memory_buffer_alloc_init()`, carves allocations out of a caller-supplied static buffer. It does this by calling `mbedtls_platform_set_calloc_free()` itself, so it is one more client of the same substitution mechanism. | WHY: The answer says the buffer allocator's init function calls the setter, but it never says it is the only in-tree user. It calls it \"one more client\", and it also doesn't name MBEDTLS_MEMORY_BUFFER_ALLOC_C. || QUOTE: A built-in allocator plugs into the same hook. `library/memory_buffer_alloc.c:566-576`, `mbedtls_memory_buffer_alloc_init()`, carves allocations out of a caller-supplied static buffer. It does this by calling `mbedtls_platform_set_calloc_free()` itself, so it is one more client of the same substitution mechanism. | WHY: The answer says the buffer allocator calls the setter from its init function. It never says it is the only in-tree user, and it names MBEDTLS_MEMORY_BUFFER_ALLOC_C nowhere. \"One more client\" implies other users may exist. || QUOTE: A built-in allocator plugs into the same hook. `library/memory_buffer_alloc.c:566-576`, `mbedtls_memory_buffer_alloc_init()`, carves allocations out of a caller-supplied static buffer. It does this by calling `mbedtls_platform_set_calloc_free()` itself, so it is one more client of the same substitution mechanism. | WHY: The answer says the buffer allocator's init calls the setter, but it calls it \"one more client\" and never says it is the only in-tree user. It also doesn't name MBEDTLS_MEMORY_BUFFER_ALLOC_C.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the buffer allocator installs a MUTEXED pair when MBEDTLS_THREADING_C is on and a plain pair otherwise, chosen at compile time inside its init function",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: Its `_mutexed` variants take the library mutex when `MBEDTLS_THREADING_C` is on. | WHY: The answer says that `_mutexed` variants take the mutex when threading is on. It never says that `mbedtls_memory_buffer_alloc_init()` installs a mutexed pair or a plain pair of calloc/free functions, chosen at compile time inside the init function. || QUOTE: Its `_mutexed` variants take the library mutex when `MBEDTLS_THREADING_C` is on. | WHY: The answer mentions mutexed variants and MBEDTLS_THREADING_C but doesn't say the init function installs a mutexed pair versus a plain pair, chosen at compile time inside it. || QUOTE: Its `_mutexed` variants take the library mutex when `MBEDTLS_THREADING_C` is on. | WHY: The answer mentions mutexed variants under MBEDTLS_THREADING_C but doesn't say that a mutexed pair versus a plain pair is installed by the init function through a compile-time choice.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the buffer allocator itself requires MBEDTLS_PLATFORM_MEMORY, so enabling it alone is not enough to route the library's allocations through it",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never says the buffer allocator itself requires MBEDTLS_PLATFORM_MEMORY. It says only that the allocator calls mbedtls_platform_set_calloc_free(), and that MBEDTLS_PLATFORM_MEMORY is a prerequisite for runtime substitution. || QUOTE: NONE | WHY: The answer never says the buffer allocator itself requires MBEDTLS_PLATFORM_MEMORY. It only says the allocator calls the setter and is a client of the substitution mechanism. || QUOTE: NONE | WHY: The answer never says the buffer allocator (memory_buffer_alloc) itself requires MBEDTLS_PLATFORM_MEMORY. It only says the allocator calls `mbedtls_platform_set_calloc_free()`, so the dependency is left implicit.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "the files that participate in choosing what mbedtls_calloc resolves to \u2014 include/mbedtls/platform.h",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the files that participate in choosing what mbedtls_calloc resolves to \u2014 library/platform.c",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the files that participate in choosing what mbedtls_calloc resolves to \u2014 library/memory_buffer_alloc.c",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the files that participate in choosing what mbedtls_calloc resolves to \u2014 include/mbedtls/mbedtls_config.h",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the files that participate in choosing what mbedtls_calloc resolves to \u2014 precision",
+      "kind": "set_precision",
+      "weight": 2,
+      "hit": true,
+      "detail": "clean",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    }
+  ]
+}

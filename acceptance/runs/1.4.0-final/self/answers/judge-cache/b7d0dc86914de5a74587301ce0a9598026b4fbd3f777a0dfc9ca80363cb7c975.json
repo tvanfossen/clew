@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Tier 1, explicit:** ... **Tier 2, declared:** ... **Tier 3, target-fact:** ... **Tier 4, ecosystem:** ... **Tier 5, heuristic:**\"\nVERDICT: HIT\nWHY: The answer lists five named precedence tiers (explicit, declared, target-fact, ecosystem, heuristic) and explains how they resolve, rather than a single override. Its opening line says \"four ways\", which contradicts the five it then lists, but the substance is stated."
+}

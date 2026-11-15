@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The intended checks are Valgrind memcheck (`components-configuration-crypto.sh`, with `MBEDTLS_TEST_CONSTANT_FLOW_VALGRIND`) and MemSan (`components-sanitizers.sh`, C path only).\nVERDICT: MISS\nWHY: The answer names Valgrind and MemSan as the checks and places them in the test suites. It never says the facility is off by default or that it is explicitly not part of the library API."
+}

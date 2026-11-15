@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never mentions a split generated surface (names-only manifest with no ctypes import vs. the bindings module that loads the library); it only describes `_bindings.py` and `_loader.py` and the memory-ownership rules."
+}

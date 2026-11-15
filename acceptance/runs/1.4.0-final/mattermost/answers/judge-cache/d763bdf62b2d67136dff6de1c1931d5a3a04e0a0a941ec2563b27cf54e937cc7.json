@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"It updates the existing local record to the pending state, then calls `client.createPost` again. On success it upserts the server's post. On failure it marks the post failed again, or removes it for the three error types above.\"\nVERDICT: HIT\nWHY: The answer says retryFailedPost calls createPost once more and, on failure, marks the post failed again or removes it for the same three errors. The \"no loop or backoff\" wording is stated only for `createPost`, but `retryFailedPost` itself is described as a single re-call, which carries the substance."
+}

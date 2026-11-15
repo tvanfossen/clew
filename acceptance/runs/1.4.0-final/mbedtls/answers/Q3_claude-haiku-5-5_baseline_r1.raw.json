@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 37189,
+  "stop_reason": "end_turn",
+  "session_id": "0a8f75ab-30e6-4673-b42b-ad76b170eca2",
+  "total_cost_usd": 0.01814542,
+  "usage": {
+    "input_tokens": 16,
+    "cache_creation_input_tokens": 51633,
+    "cache_read_input_tokens": 400772,
+    "output_tokens": 7619,
+    "output_tokens_details": {
+      "thinking_tokens": 2708
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 51633,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3728,
+        "cache_read_input_tokens": 65491,
+        "cache_creation_input_tokens": 1762,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1762
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 16,
+      "outputTokens": 7619,
+      "cacheReadInputTokens": 400772,
+      "cacheCreationInputTokens": 51633,
+      "webSearchRequests": 0,
+      "costUSD": 0.01814542,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2708,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 51633,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 17,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** the library never calls `malloc`, `calloc` or `free` directly. Every allocation goes through `mbedtls_calloc(n, size)` and every release through `mbedtls_free(ptr)`. What those two names resolve to is decided at build time by the platform layer.\n\n**What gets called**\n\n- Without `MBEDTLS_PLATFORM_MEMORY`, `include/mbedtls/platform.h:163-167` makes them plain macros: `mbedtls_calloc` \u2192 `calloc`, `mbedtls_free` \u2192 `free`. There is no indirection.\n- With `MBEDTLS_PLATFORM_MEMORY`, there are two ways to choose the allocator:\n  1. **Compile time:** define both `MBEDTLS_PLATFORM_CALLOC_MACRO` and `MBEDTLS_PLATFORM_FREE_MACRO`. `platform.h:139-144` then maps `mbedtls_calloc`/`mbedtls_free` straight to your functions. `check_config.h:558-573` requires the two to be defined together.\n  2. **Run time:** leave the macros undefined. `platform.h:145-160` declares `mbedtls_calloc()`/`mbedtls_free()` as real functions and `mbedtls_platform_set_calloc_free(calloc_fn, free_fn)`. In `library/platform.c:44-63`, those functions are thin wrappers around two function pointers. The pointers start at `MBEDTLS_PLATFORM_STD_CALLOC`/`STD_FREE`, which default to `calloc`/`free`. If `MBEDTLS_PLATFORM_NO_STD_FUNCTIONS` is set, they start as stubs: calloc returns NULL and free does nothing.\n\nIf both macros are defined, `platform.c:20-22` compiles out the whole runtime mechanism, so `mbedtls_platform_set_calloc_free` is not declared or available.\n\n**How a project substitutes its allocator**\n\n- Compile-time, the simplest route: in the config header, define `MBEDTLS_PLATFORM_MEMORY`, `MBEDTLS_PLATFORM_CALLOC_MACRO=my_calloc` and `MBEDTLS_PLATFORM_FREE_MACRO=my_free`. Make sure those functions are visible to every translation unit.\n- Runtime: define `MBEDTLS_PLATFORM_MEMORY` only. Early in startup, before any Mbed TLS call that allocates, call `mbedtls_platform_set_calloc_free(my_calloc, my_free)`. The setter writes two unsynchronised globals (`platform.c:60-61`), so it should run once, single-threaded.\n- Changing only the default target: `MBEDTLS_PLATFORM_STD_CALLOC` and `MBEDTLS_PLATFORM_STD_FREE` set what the runtime pointers start as. The repo's own example, `tests/configs/user-config-malloc-0-null.h`, does this: it defines `MBEDTLS_PLATFORM_MEMORY` and `MBEDTLS_PLATFORM_STD_CALLOC=custom_calloc`, where `custom_calloc` returns NULL for zero-sized requests. It is a test config, not a template for production allocators.\n\n**What the library itself does with the facility**\n\n- **Allocation sites:** these are spread through the code. For example, `psa_crypto.c` calls `mbedtls_calloc(1, ...)` for key buffers, HKDF info and PRF seeds, and the matching `mbedtls_free` calls follow.\n- **Zeroing is the library's job.** The hook only supplies memory. The library calls `mbedtls_platform_zeroize` before freeing secrets; for example, `ssl_msg.c` wipes MAC buffers at lines 1109, 1450, 1815 and 2081\u20132082. Any replacement allocator is not expected to scrub memory.\n- **Built-in allocator as a client:** `library/memory_buffer_alloc.c` is an allocator the library ships. `mbedtls_memory_buffer_alloc_init(buf, len)` (line 566) calls `mbedtls_platform_set_calloc_free` with its own functions, locking them if threading is enabled. The global allocator is therefore replaced at init, and `mbedtls_memory_buffer_alloc_free` (line 602) zeroes its heap context. Because it overwrites the same global pointers, it conflicts with an application's own `set_calloc_free` call.\n- **Zero-size requests:** `base64.c` and `psa_crypto.c` have comments noting that `malloc(0)` may return NULL. The library avoids zero-size calls, and the `user-config-malloc-0-null.h` test checks that it tolerates NULL from calloc.\n- **Same pattern elsewhere:** `platform.c` uses the identical `XXX_ALT` plus function-pointer approach for printf, snprintf, time, exit, NV seed and others. `docs/architecture/alternative-implementations.md:80-91` describes it.\n\n**One detail I did not verify:** whether every call site in the library genuinely depends on calloc's zeroed result, rather than just happening to be zeroed. The signature is calloc-shaped, so a replacement should return zeroed memory, but I did not audit each site.",
+  "ttft_ms": 1602,
+  "type": "result",
+  "duration_ms": 38141,
+  "uuid": "b74dbdd0-115f-49dd-b959-353d7d1a154d",
+  "ttft_stream_ms": 1308,
+  "time_to_request_ms": 245,
+  "first_content_frame_ms": 1308,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

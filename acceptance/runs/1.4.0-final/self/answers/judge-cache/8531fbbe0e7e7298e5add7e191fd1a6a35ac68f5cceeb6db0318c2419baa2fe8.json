@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer's own verdict ladder shows strong wording gated on a mix of conditions (unread-corpus hits, file_docs presence), and it says `_verdict` never reads `not_indexed`; it never says the wording is earned per call by querying unsearched corpora instead of being tied to a result shape."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Add the define** in `include/mbedtls/<module>.h`, with a doxygen description: ... **Regenerate**: run `make` in `library/`, or `perl scripts/generate_errors.pl` from the repo root. Commit the regenerated `library/error.c` with the header change.\nVERDICT: HIT\nWHY: The answer says to add a doxygen-documented #define to the module header and regenerate. It also says \"Nothing in `error.c` is hand-edited.\""
+}

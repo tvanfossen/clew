@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A failed refresh is logged and the query answers from the existing index, with the staleness notice still attached. The query never errors because of a failed refresh.\nVERDICT: MISS\nWHY: The answer says a failed refresh doesn't error the query, but never says that measuring staleness itself never raises and degrades to no annotation."
+}

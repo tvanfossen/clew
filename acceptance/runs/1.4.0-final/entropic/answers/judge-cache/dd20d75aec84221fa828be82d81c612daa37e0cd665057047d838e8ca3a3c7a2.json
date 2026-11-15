@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Health monitor | `src/mcp/health_monitor.cpp:92` | Detects connection loss and schedules reconnects | Pushes events to a queue. `process_events()` runs callbacks on the engine thread; and \"Event queue instead of cross-thread callbacks. Health events are queued, and the engine thread drains them. Callbacks never run on the monitor thread.\" and \"The health monitor uses `watched_mutex_` and `event_mutex_`.\"\nVERDICT: HIT\nWHY: The answer states callbacks never run on the monitor thread, events are queued, the engine thread drains them, and names an event mutex."
+}

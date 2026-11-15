@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `QueryTools._staleness()` attaches those notices to every query reply, sized to fit the payload.\nVERDICT: MISS\nWHY: The answer says notices are attached to every query reply, but it never says the annotation is absent or empty when the tool is current. \"Any failure yields no annotation\" refers to errors, not to a current index."
+}

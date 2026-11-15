@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `CMakeLists.txt`, `.cmake` | Yes | ... The name matches the whole filename, so a plain `.txt` is not claimed\nVERDICT: HIT\nWHY: The answer names the shell extensions (`.sh`, `.bash`) and the CMake extension (`.cmake`). It also says CMakeLists.txt is matched by whole file name, not by the `.txt` extension."
+}

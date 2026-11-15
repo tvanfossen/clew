@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 34242,
+  "stop_reason": "end_turn",
+  "session_id": "0c052e87-0dd1-4cf8-bcf2-88ef654be3d8",
+  "total_cost_usd": 0.014025880000000001,
+  "usage": {
+    "input_tokens": 20,
+    "cache_creation_input_tokens": 31734,
+    "cache_read_input_tokens": 475208,
+    "output_tokens": 5850,
+    "output_tokens_details": {
+      "thinking_tokens": 1980
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 31734,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2467,
+        "cache_read_input_tokens": 63976,
+        "cache_creation_input_tokens": 2138,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2138
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 20,
+      "outputTokens": 5850,
+      "cacheReadInputTokens": 475208,
+      "cacheCreationInputTokens": 31734,
+      "webSearchRequests": 0,
+      "costUSD": 0.014025880000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1980,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 31734,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 14,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** the index scope is decided by `derive_scope` in `clew/scope.py`. If the repo declares an `index_scope:` in its `.clew.yaml`, that declaration sets the roots. If nothing is declared, the whole repository is the root, minus what git ignores and a fixed set of dot and cache directories. Doxygen then filters by a forced extension list, not by anything the repo declares.\n\n**Decision flow**\n\n```\ncli.py build  \u2500\u2500\u25ba derive_scope_logged(repo_root, stated?)\n                        \u2502\n          \u250c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2534\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510\n  .clew.yaml index_scope:?          (absent)\n   roots (required) + excludes         \u2502\n   usable? \u2500\u2500 no \u2500\u25ba CLI: exit 1         \u2502\n        \u2502 yes                          \u2502\n        \u25bc                              \u25bc\n  DECLARED scope              WHOLE-REPO scope\n  roots = declared dirs       roots = repo root\n  excludes = declared         excludes = git-ignored paths\n                                + dot dirs, __pycache__, node_modules\n        \u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2518\n                       \u25bc\n          enumerate_tree(roots, excludes)   (walk, prune excludes)\n                       \u25bc\n          _drop_binary_files                (classify first 8 KiB)\n                       \u25bc\n          doxygen reads FILE_PATTERNS-matching files only\n          + JS/TS via parse-built front end\n```\n\n**Tier 1: declared.** The `index_scope:` section in `.clew.yaml` accepts only `roots` and `excludes`, both repo-relative (`scope.py`, `_declared_index_scope`, `_existing_paths`). Several rules apply:\n- `roots` is required. `excludes` alone is rejected, because it does nothing on its own.\n- Absolute paths and `../` entries are refused, and paths that don't exist are dropped with a warning.\n- A bad declaration does not fall back silently in the CLI. `cli.py` (around line 807) calls `declared_scope_rejection` and exits 1, because a silent fall-back would give the widest scope for the narrowest request.\n\n**Tier 2: whole-repo (the default).** This is what a repo gets by saying nothing, whether or not it ships a Doxyfile (the Doxyfile INPUT tier was removed in gh#333). Its exclusions are:\n- Everything `git ls-files --ignored --exclude-standard --directory` reports, run through `git_argv` and `git_env` so a cloned repo's config can't execute code. This runs once for the top repo and once for each nested git tree, so a submodule's own `.gitignore` applies.\n- Dot directories (including `.git`, `.venv`) and `__pycache__`/`node_modules`, found by `_pruned_dirs`.\n- Nested git trees are not excluded. They are indexed and tagged as external in `external.py`.\n- If the directory isn't a git repo, or git is missing, nothing is ignored and a warning says so. The scope is then wider than the repo asked for.\n- Walks go deeper than 16 levels are taken whole and logged rather than scanned.\n\n**Enumeration and filtering.** `enumerate_tree` walks the roots and prunes excluded subtrees during the walk. It is deliberately not filtered by extension, because the incremental cache hashes every file under the roots and any change should invalidate. The one content filter is `_drop_binary_files` (`filetypes.py`), which removes files that look binary from the first 8 KiB. Those paths are added to the exclude list so doxygen never opens them. There is no size limit.\n\n**What doxygen reads.** The build forces `FILE_PATTERNS` to doxygen's default list (`DOXYGEN_DEFAULT_FILE_PATTERNS`, since gh#340). A repo's own `FILE_PATTERNS` only produces a report, not a filter. The repo's Doxyfile still supplies `ALIASES` and `PREDEFINED`, but its `INPUT` and `EXCLUDE` are replaced by the scope. Markdown is handled separately by `prose.py`, which reads a curated list (README, `docs/*.md`, and so on) rather than `**/*.md`.\n\n**This repo.** The clew repo's own `.clew.yaml` declares only a `guard:` section, with no `index_scope:`. Its comment says the index \"builds this repo on its defaults,\" so it gets the whole-repo tier.\n\nI worked from reading the code and did not run an index build, so the exact counts for this tree are unverified.",
+  "ttft_ms": 1608,
+  "type": "result",
+  "duration_ms": 35248,
+  "uuid": "a666f542-6fd9-4833-8c46-72564b1c6623",
+  "ttft_stream_ms": 1211,
+  "time_to_request_ms": 141,
+  "first_content_frame_ms": 1211,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

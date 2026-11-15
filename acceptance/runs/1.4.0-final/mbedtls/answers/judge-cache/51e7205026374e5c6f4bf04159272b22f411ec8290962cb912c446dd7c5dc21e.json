@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The intended checks are Valgrind memcheck (`components-configuration-crypto.sh`, with `MBEDTLS_TEST_CONSTANT_FLOW_VALGRIND`) and MemSan (`components-sanitizers.sh`, C path only). Both are taint-style checks for secret-dependent branches and addresses on the tested paths.\nVERDICT: MISS\nWHY: The answer names Valgrind/MemSan test checks, but it never says this is a separate, off-by-default testing facility or that it is explicitly not part of the library API, so the item's full claim is absent."
+}

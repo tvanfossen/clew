@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `synth.py` says the router is capability-gated. `parse_tree` raises `ValueError: unknown language key` for a grammar the installed wheel lacks, and the router catches that case. The route resolves to no grammar, so: ... The not-indexed report, which is stamped at build time, names the file types that were in scope but held no rows.\nVERDICT: HIT\nWHY: The answer states the router is capability-gated, that missing grammars lead to degraded handling (files registered but no symbols) instead of failure, and that the not-indexed report names those file types."
+}

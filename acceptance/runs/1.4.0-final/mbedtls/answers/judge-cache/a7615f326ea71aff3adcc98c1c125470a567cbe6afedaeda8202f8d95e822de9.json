@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the default has no internal concurrency and threading.c compiles to nothing, but it never says the pthread example compiles to a stub main."
+}

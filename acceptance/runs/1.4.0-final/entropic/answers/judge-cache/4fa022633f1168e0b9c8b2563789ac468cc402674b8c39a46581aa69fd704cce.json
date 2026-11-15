@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"if not approved and on_tool_call callback set \u2192 approved = true\" and \"a call with no allow match and a callback set still gets through step 3. The deny check in step 4 is then the only real stop.\"\nVERDICT: MISS\nWHY: The answer says unmatched calls pass approval only when a callback is set, and without a callback they get \"Permission denied\". It never concludes that a tool matching neither list simply runs, so default-allow is not stated."
+}

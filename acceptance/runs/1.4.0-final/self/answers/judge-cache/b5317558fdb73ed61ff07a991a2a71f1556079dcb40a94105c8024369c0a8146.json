@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: shell functions have empty `argsstring`, because the language has no parameter list.\nVERDICT: MISS\nWHY: The answer says shell functions have an empty argument list because the language has no parameter list, but it never says they are recorded with no return, so half of the item is missing."
+}

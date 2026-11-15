@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The library itself: `library/common.h:132` has `#define MBEDTLS_ALLOW_PRIVATE_ACCESS`. That header is internal, not installed under `include/`. The library's `.c` files and internal headers include it ... so inside the library every field is accessed by its real name.\nVERDICT: HIT\nWHY: The answer states that library-internal code defines the opt-out in the shared internal header `common.h`, so library translation units see plain member names."
+}

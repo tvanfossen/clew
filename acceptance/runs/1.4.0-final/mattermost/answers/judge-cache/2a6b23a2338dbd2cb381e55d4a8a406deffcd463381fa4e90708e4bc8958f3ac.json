@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `createPost` (`app/actions/remote/post.ts:74`) first writes the post locally as a pending record, keyed by `pending_post_id`. It then calls the server. If that call throws, the catch block: ... Otherwise keeps the post with `props.failed = true`\n\nVERDICT: HIT\nWHY: The answer states the post is written locally before the server call and is kept with `failed = true` on failure."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Gives a `scope` block: `source: whole-repo`, 426 files, the top-level directories, the extensions that were read, and `not_indexed`, which names the file types the index never read (for example `.rs=2`, `.toml=2`, `.sql=1`, and files with no extension).\nVERDICT: MISS\nWHY: The answer describes the extensions that were read and `not_indexed` (types never read), but never says the reply names in-scope file types that were read and yielded zero rows, which is the specific distinction the item requires."
+}

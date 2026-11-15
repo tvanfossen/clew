@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer explains what a miss does and doesn't prove, but never says a single non-matching token was previously treated as proof of absence, and it doesn't describe a past behaviour change."
+}

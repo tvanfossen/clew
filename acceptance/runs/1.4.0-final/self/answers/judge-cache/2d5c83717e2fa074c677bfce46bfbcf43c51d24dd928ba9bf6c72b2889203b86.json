@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **The verdict ladder** (most specific first)\nVERDICT: HIT\nWHY: The answer labels its downgrade ladder \"most specific first\", but it gives no reason that a match in an unread corpus outranks index-wide statements. A bare ordering claim is the whole of the item's first half, so this is borderline, but I am not resolving it to MISS.\n\nRe-reading the item: it needs the ordering AND the explanation. The answer has no explanation, so the item is not fully stated. Resolving the torn judgment as the rules instruct:\n\nQUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the ladder is \"most specific first\" but never explains why an unread-corpus match outranks index-wide statements."
+}

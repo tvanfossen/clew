@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The first call passes a null output buffer and size 0. Per the body's comment, a negative return is the required token count, so the code negates it (`n = -n`).\"\nVERDICT: HIT\nWHY: The answer states the first call returns a negative required count and that the code negates it before allocating the vector for the second call."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Turn a int or atomic cancel flag into a value the backend polls, roughly every 10ms\nVERDICT: MISS\nWHY: The answer says pollers convert an int or atomic cancel flag but never states the observer exists because the C ABI boundary cannot carry an atomic. It even notes the plain-int race without giving this rationale."
+}

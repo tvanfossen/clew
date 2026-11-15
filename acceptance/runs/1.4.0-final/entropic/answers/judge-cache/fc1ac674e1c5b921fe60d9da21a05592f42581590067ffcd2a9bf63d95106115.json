@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"a tokenization failure is silent to every caller... The caller sees an empty token list or a count of zero, and downstream code does not check for either.\" and \"the caller can't distinguish failure from empty input.\"\nVERDICT: HIT\nWHY: The answer states that failure returns the same empty result as legitimately empty input, and that no caller checks for it."
+}

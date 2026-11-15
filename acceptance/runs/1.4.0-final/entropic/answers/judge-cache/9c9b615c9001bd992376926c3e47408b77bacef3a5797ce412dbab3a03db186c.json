@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The second call is not a retry of a failed call. It is the call that does the work, made with the size the first call reported. Calling it again with identical arguments would not change the outcome, so calling it \"retry logic\" would be inaccurate.\nVERDICT: HIT\nWHY: The answer concludes this is size negotiation (ask for the size, then fill the buffer) rather than retry, and says there is one retry-free second call. It does not name backoff, delay or an attempt counter explicitly, but \"retries once with an exact-size heap buffer\" and \"the failure path does not retry at all\" cover the substance."
+}

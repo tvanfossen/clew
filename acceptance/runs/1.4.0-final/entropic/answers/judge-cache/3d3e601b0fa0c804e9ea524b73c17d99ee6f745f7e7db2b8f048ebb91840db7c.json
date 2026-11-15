@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: if missing: OSError telling the user to run `entropic install-engine` or set $ENTROPIC_LIB\nVERDICT: MISS\nWHY: The answer mentions install-engine as an error hint but never concludes the split exists so `import entropic` succeeds before the engine is on disk, enabling an install-engine subcommand in the same package."
+}

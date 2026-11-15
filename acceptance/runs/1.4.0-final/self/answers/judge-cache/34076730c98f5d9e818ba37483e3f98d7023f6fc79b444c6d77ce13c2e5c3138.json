@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Tiers 3 and 4 combine the same way; only the label differs.\nVERDICT: MISS\nWHY: The answer says tiers 3 and 4 combine the same way and differ only in label, but it never states that the distinction is deliberately inert or that the load-bearing line is fact-versus-guess."
+}

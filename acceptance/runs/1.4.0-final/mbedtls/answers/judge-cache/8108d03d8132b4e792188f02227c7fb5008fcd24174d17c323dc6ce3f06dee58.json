@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"refuses to build unless `MBEDTLS_THREADING_C` and `MBEDTLS_THREADING_PTHREAD` are set (line 24)\"\nVERDICT: HIT\nWHY: The answer names both MBEDTLS_THREADING_C and MBEDTLS_THREADING_PTHREAD as the macros gating the pthread server program's build, and states that mutexes sit behind MBEDTLS_THREADING_C."
+}

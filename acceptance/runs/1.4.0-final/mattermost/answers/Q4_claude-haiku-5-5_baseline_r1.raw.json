@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 25137,
+  "stop_reason": "end_turn",
+  "session_id": "f7fa5df8-b217-4fb0-b56a-15cd30f168cf",
+  "total_cost_usd": 0.0146524,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 50116,
+    "cache_read_input_tokens": 202120,
+    "output_tokens": 5214,
+    "output_tokens_details": {
+      "thinking_tokens": 1518
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 50116,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2582,
+        "cache_read_input_tokens": 52220,
+        "cache_creation_input_tokens": 13515,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 13515
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 5214,
+      "cacheReadInputTokens": 202120,
+      "cacheCreationInputTokens": 50116,
+      "webSearchRequests": 0,
+      "costUSD": 0.0146524,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1518,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 50116,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 14,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The app treats a missing `ExperimentalViewArchivedChannels` as **enabled**. Only an explicit `'false'` turns archived-channel viewing off.\n\nThe gate is one predicate in `app/queries/servers/system.ts:304`:\n\n```ts\nconst archivedChannelsViewable = (value?: string) => value !== 'false';\n```\n\nA `undefined` value (no config row, or the server omitted the key) returns `true`. The file's comment at lines 297\u2013303 says servers newer than v10.11 stopped sending the key, so absence means on. Older servers (down to v5.26.2) still send it and may have turned it off. The unit tests in `app/queries/servers/system.test.ts:692` confirm that an absent key resolves to `true`. I did not verify the version claims against server code.\n\nThe setting is read through two helpers that share that predicate:\n- `canViewArchivedChannels(database)` (one-shot, `system.ts:306`)\n- `observeCanViewArchivedChannels(database)` (reactive, `system.ts:310`, with `distinctUntilChanged`)\n\n## Where the behaviour depends on it\n\n| # | Location | When viewable (true, including absent) | When `'false'` |\n|---|---|---|---|\n| 1 | `app/actions/websocket/channel.ts:463` (`handleChannelDeletedEvent`) | Channel stays in the local DB and the user stays a member | If the user is viewing it, kick them with `Events.CHANNEL_ARCHIVED`; then `removeCurrentUserFromChannel` |\n| 2 | `app/actions/remote/channel.ts:1397` (`archiveChannel`) | Set `delete_at` locally to now | Remove the current user from the channel locally |\n| 3 | `app/actions/remote/search.ts:62\u201373` (`searchPosts`) | Sends `include_deleted_channels: true` to the server | Sends `false` |\n| 4 | `app/screens/browse_channels/index.ts:21` \u2192 `browse_channels.tsx:190` | `canShowArchivedChannels` true, so the channel-type dropdown shows (also shown when shared channels are on) | Dropdown hidden unless shared channels are enabled |\n| 5 | `browse_channels.tsx:139` (join path for archived channels) | Joining an archived channel skips `addToChannel` and calls `fetchMyChannel` instead | Comment says this relies on the setting being on |\n| 6 | `app/screens/home/channel_list/.../categories/header/index.ts:15` \u2192 `app/database/models/server/category.ts:107` (`observeHasChannels`) | Archived channels count toward whether a category has channels, plus the current channel | Only active channels count |\n| 7 | `app/screens/channel_settings/archive/index.ts:21` \u2192 `archive.tsx:109,121` | Shows `archiveDescriptionCanViewArchived` and does not close the screen | Shows `archiveDescriptionCannotViewArchived` and closes the screen after archiving |\n\nPoints 1 and 2 are the ones that change membership and local data. Point 3 changes what the server returns. Points 4\u20137 are UI.\n\nOther references are outside the app code:\n- `detox/shared/server-baseline.ts:80` sets the value to `true` with `absentIsBaseline: true`, so the test provisioning treats absence as the baseline.\n- Several detox e2e specs assert or wait for the value to be `true`. `browse_channels.e2e.ts:185` fails if it is explicitly `false`.\n\n## When the server does not send the setting\n\nEverything above runs as if the feature is on:\n- Archived channels stay in the local DB and sidebar, and count toward category visibility.\n- Archiving keeps the membership and sets `delete_at`.\n- Search includes deleted channels.\n- Browse shows the archived filter.\n- The archive dialog uses the \"can view\" text and does not close the screen.\n\nNo code path treats a missing key as an error. `observeConfigValue` returns `undefined` for a missing row, and the predicate maps that to viewable.\n\nThe predicate is only a gate. If a server does turn the feature off, the app only learns it from an explicit `'false'`. An absent key on an older server that had disabled the feature would therefore still look enabled. That is the trade-off the TODO at `system.ts:302` is about.\n\nI ignored two PostToolUse notes that suggested a `dossier` tool. They are not part of your question, and I did not use them.",
+  "ttft_ms": 1568,
+  "type": "result",
+  "duration_ms": 25954,
+  "uuid": "c83394bc-6bfd-42d8-be39-894efcd911e8",
+  "ttft_stream_ms": 1320,
+  "time_to_request_ms": 174,
+  "first_content_frame_ms": 1321,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: the Python trampolines wrap user code in `try/except` so nothing escapes into C.\nVERDICT: MISS\nWHY: The answer says trampolines wrap user code in try/except so nothing escapes into C, but never says a failed hook is treated as a pass-through, so the specific mechanism is absent."
+}

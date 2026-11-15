@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Async ask worker (`entropic.ask`) | `external_bridge.cpp:1158`, `.detach()` at 1222 | Detached, runs `entropic_run` for the task\" and \"Most are joined before their owner returns, and the one detached worker has no join at all.\" and \"`stop()` does not wait for it, so the bridge or the engine handle could be destroyed while `entropic_run` is still executing.\"\nVERDICT: HIT\nWHY: The answer names the async-ask worker as the sole detached thread with no join and explains it can outlive its owner."
+}

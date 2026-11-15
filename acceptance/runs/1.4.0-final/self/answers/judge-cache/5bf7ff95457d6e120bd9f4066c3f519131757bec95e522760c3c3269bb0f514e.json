@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer covers scope derivation (git-ignore, dot dirs) but never says a file must be readable to reach the index, nor names the parse-built front end or binary classification filters; it explicitly says it did not verify which extensions reach doxygen."
+}

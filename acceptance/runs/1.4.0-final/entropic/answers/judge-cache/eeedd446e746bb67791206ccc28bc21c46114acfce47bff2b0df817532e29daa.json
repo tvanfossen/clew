@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer lists HealthMonitor::monitor_loop as a thread and mentions `event_mutex_` only in lock ordering. It never says the status callback is not invoked from the monitor thread, that events are queued, or that the caller drains them."
+}

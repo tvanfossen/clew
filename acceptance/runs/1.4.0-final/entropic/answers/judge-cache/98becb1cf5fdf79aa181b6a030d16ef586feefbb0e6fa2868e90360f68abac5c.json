@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"called with a null buffer, it returns the negative of the token count it needs. So the code does: 1. **Probe:** `llama_tokenize(vocab, text, nullptr, 0, ...)`. A negative result is flipped to a positive size `n`. 2. **Fill:** allocate `n` slots and call `llama_tokenize` again with the buffer.\"\nVERDICT: HIT\nWHY: The answer states the first call returns a negative required size, that the code flips it positive, and that this sizes the buffer for the second call."
+}

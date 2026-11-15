@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Applications outside the tree get the renamed members, and the inline getters in the public headers compile to the same field either way.\nVERDICT: HIT\nWHY: The answer says code defining MBEDTLS_ALLOW_PRIVATE_ACCESS gets plain `member` names, while applications outside the tree get the renamed `private_` members."
+}

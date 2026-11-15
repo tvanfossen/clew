@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `library/common.h:132` | Unconditionally `#define MBEDTLS_ALLOW_PRIVATE_ACCESS`. Library `.c` files include `common.h` first (e.g. `ecdh.c:15`, `md.c:12`, `x509_crt.c:20`), so their struct accesses use the real member names.\nVERDICT: HIT\nWHY: The answer says library-internal common.h defines the opt-out, and library .c files include it first, so they see the real member names."
+}

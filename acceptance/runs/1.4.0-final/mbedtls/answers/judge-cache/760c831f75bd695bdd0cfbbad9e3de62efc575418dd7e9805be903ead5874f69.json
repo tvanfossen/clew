@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_THREADING_C` (line 3787), `MBEDTLS_THREADING_PTHREAD` (2196) and `MBEDTLS_THREADING_ALT` (2185) are all commented out. Every lock call in the library sits behind `#if defined(MBEDTLS_THREADING_C)`\nVERDICT: HIT\nWHY: The answer names both MBEDTLS_THREADING_C and MBEDTLS_THREADING_PTHREAD as the opt-in config macros that gate the locking layer."
+}

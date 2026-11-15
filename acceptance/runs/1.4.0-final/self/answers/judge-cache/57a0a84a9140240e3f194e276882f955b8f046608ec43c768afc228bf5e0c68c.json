@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The scope is the whole repository, including nested git trees (gh#333). Those trees are tagged by `external.py` so their rows can be told apart in answers.\nVERDICT: HIT\nWHY: The answer states nested git trees are included in the scope and tagged by external.py rather than excluded."
+}

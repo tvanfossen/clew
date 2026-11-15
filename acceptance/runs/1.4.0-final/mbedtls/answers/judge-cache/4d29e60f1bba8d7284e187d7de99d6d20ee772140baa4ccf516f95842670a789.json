@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The two opt-in switches, `MBEDTLS_TEST_CONSTANT_FLOW_MEMSAN` and `MBEDTLS_TEST_CONSTANT_FLOW_VALGRIND`, are off by default in `mbedtls_config.h`.\" and \"Tests in `tests/suites/test_suite_constant_time.function` use `TEST_CF_SECRET` and `TEST_CF_PUBLIC` annotations. Under Valgrind or MSan...\"\nVERDICT: MISS\nWHY: The answer covers the off-by-default MSan/Valgrind verification, but it never says the facility is explicitly not part of the library API, which this item requires."
+}

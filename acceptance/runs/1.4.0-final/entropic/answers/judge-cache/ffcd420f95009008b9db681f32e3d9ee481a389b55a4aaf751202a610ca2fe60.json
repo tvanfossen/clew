@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `_loader.py` finds librentropic.so (env var, ~/.entropic, then ldconfig)\nVERDICT: MISS\nWHY: It names the three sources in order but omits the two directory layouts tried per root, so the item's full mechanism is not stated."
+}

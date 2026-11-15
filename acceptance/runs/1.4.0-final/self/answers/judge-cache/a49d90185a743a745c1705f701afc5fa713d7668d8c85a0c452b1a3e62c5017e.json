@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"No `.clew.yaml`, or no `index_scope:` section: `_declared_index_scope` returns `None` and `derive_scope` returns `whole_repo_scope`.\" and \"a declared `index_scope:` decides, and when nothing is declared the whole repository is indexed\"\nVERDICT: HIT\nWHY: The answer states that a declared index_scope takes precedence and that the absence of a declaration, whether no file, no section, or no Doxyfile, falls through to whole-repo indexing."
+}

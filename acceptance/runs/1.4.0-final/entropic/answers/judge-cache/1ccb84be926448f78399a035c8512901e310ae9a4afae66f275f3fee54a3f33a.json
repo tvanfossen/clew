@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Consumer-provided buffers that the engine will free must come from `entropic_alloc()`.** This applies to things like a hook's `modified_json`. ... `hooks.py` follows this in `_alloc_c_string` and in `_build_trampoline`, which copies the JSON into an `entropic_alloc` buffer and writes the pointer into `*mod_out`.\nVERDICT: HIT\nWHY: The answer states the rule that engine-freed caller buffers must come from entropic_alloc and names the Python locations (`_alloc_c_string`, `_build_trampoline` in hooks.py) that do it."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Short answer:** with the default `mbedtls_config.h`, the library starts no threads and takes no locks.\" and \"Nothing inside mbedtls. There is no thread creation in the library.\"\nVERDICT: MISS\nWHY: The answer says that no threads are created by default, but it never says the pthread example compiles to a stub main. It instead says the example \"needs the threading layer enabled to be safe.\""
+}

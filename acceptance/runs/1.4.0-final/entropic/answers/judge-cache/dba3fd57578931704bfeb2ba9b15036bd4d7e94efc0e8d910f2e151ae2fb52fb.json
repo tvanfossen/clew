@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The only failure path is the second call returning a negative count (line 64), which gives up immediately.\nVERDICT: HIT\nWHY: The answer says a negative second-call result gives up immediately and the tokenizer returns an empty vector, so it is terminal with no further attempt."
+}

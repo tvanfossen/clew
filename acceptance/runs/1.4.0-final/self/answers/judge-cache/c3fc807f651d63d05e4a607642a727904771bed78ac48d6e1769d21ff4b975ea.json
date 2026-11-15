@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It is sized against the real payload and compacted rather than dropped when space is tight, so a large answer still carries the warning.\nVERDICT: HIT\nWHY: The answer says the annotation is compacted rather than dropped to fit the payload, so the warning is kept. It doesn't spell out \"wording\", but \"compacted rather than dropped\" covers the same mechanism."
+}

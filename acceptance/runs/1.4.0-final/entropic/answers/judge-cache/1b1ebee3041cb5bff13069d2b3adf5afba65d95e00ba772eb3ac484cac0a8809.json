@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`do_count_tokens` | `0` | `llama_cpp_backend.cpp:825-828`\" and \"a tokenization failure is silent to every caller. ... The caller sees an empty token list or a count of zero\"\nVERDICT: HIT\nWHY: The answer states that the count-tokens path returns 0 on tokenization failure with no error signalled to callers."
+}

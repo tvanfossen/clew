@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Calls `client.createPost` once more. This is a single attempt, with no retry loop.\nVERDICT: HIT\nWHY: The answer states retryFailedPost makes one attempt with no loop, and that on failure the three removal errors delete the post while others mark it failed again. It does not mention backoff explicitly, but the single attempt with no retry loop carries the substance."
+}

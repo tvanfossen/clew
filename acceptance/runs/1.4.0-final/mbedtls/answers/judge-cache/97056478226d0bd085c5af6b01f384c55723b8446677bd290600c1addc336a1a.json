@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The helpers are used in the padding, MAC, tag and bignum code paths... `mbedtls_ct_memcmp` is called from CCM, GCM, ChaCha20-Poly1305, NIST KW, PSA MAC/hash verify, and TLS Finished and PSK-binder checks\nVERDICT: MISS\nWHY: The answer lists several areas and call sites but never conveys breadth on the order of twenty modules; it doesn't state a count or an equivalent claim of library-wide consumption."
+}

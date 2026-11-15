@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `.clew.yaml` (index_scope:) `derive_scope()  clew/scope.py:639` ... \"`derive_scope` falls through to `whole_repo_scope` (`scope.py:683`)\"\nVERDICT: HIT\nWHY: The answer names derive_scope at clew/scope.py:639 as the function resolving the scope decision."
+}

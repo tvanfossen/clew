@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: the Doxyfile INPUT tier was removed in gh#333\nVERDICT: HIT\nWHY: The answer states that the Doxyfile INPUT tier was removed (not left with callers dropped), conveying removal of the mechanism."
+}

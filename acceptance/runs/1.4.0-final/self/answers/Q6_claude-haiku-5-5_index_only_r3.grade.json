@@ -1,0 +1,143 @@
+{
+  "cell": "Q6_claude-haiku-5-5_index_only_r3",
+  "arm": "index_only",
+  "rubric_version": "5.0.0",
+  "rubric_digest": "d8447c7b18eafbf5",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.47619047619047616,
+  "unmarked_pct": 0.0,
+  "split_decisions": 0,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "names the shell and CMake extensions, including CMakeLists.txt matched by file name rather than by extension",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: **Shell (`.sh`, `.bash`):** ... **CMake (`CMakeLists.txt`, `.cmake`):** | WHY: The answer names the shell extensions (.sh, .bash) and the CMake extension (.cmake) alongside CMakeLists.txt, which is a file name rather than an extension. || QUOTE: **CMake (`CMakeLists.txt`, `.cmake`):** | WHY: The answer names shell extensions (`.sh`, `.bash`) and CMake as `CMakeLists.txt` (by file name) plus `.cmake`, covering the item. || QUOTE: **Shell (`.sh`, `.bash`):** ... **CMake (`CMakeLists.txt`, `.cmake`):** | WHY: The answer names the shell extensions (.sh, .bash) and the CMake extension (.cmake) and also lists CMakeLists.txt separately, which covers the file-name match.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that YAML and JSON are registered in the file set but carry NO symbols, so the two file groups are treated differently rather than alike",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"**YAML and JSON:** a `path` row only. Their grammars offer `block_mapping_pair` and `pair`, and those were deliberately not written as symbols\" and \"No symbols at all for any YAML or JSON file\" | WHY: The answer states YAML and JSON are registered by path but carry no symbols, in contrast to shell and CMake, which do carry definitions. || QUOTE: \"**YAML and JSON:** a `path` row only. Their grammars offer `block_mapping_pair` and `pair`, and those were deliberately not written as symbols\" and \"No symbols at all for any YAML or JSON file\" | WHY: The answer says YAML and JSON are registered by path/name but carry no symbols, and contrasts them with shell/CMake, which do have symbols. || QUOTE: \"**YAML and JSON:** a `path` row only. Their grammars offer `block_mapping_pair` and `pair`, and those were deliberately not written as symbols\" and \"No symbols at all for any YAML or JSON file\" | WHY: The answer states YAML and JSON are registered by path only with no symbols, contrasted with shell and CMake, which do carry symbols.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that markdown is deliberately NOT given a path row, because it is prose and a path row would also count it as indexed source in coverage figures",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never mentions markdown being deliberately denied a path row or the coverage-counting rationale. || QUOTE: NONE | WHY: The answer never mentions markdown being deliberately excluded from path rows or the coverage-count rationale. || QUOTE: NONE | WHY: The answer never mentions markdown or says it is deliberately excluded from path rows to avoid counting prose as indexed source in coverage figures.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that an installation lacking the grammars DEGRADES rather than failing \u2014 the router consults a capability gate before routing, and those file types are then reported as not indexed",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: `synth.py` says the router is capability-gated. `parse_tree` raises `ValueError: unknown language key` for a grammar the installed wheel lacks, and the router catches that case. The route resolves to no grammar, so: ... The not-indexed report, which is stamped at build time, names the file types that were in scope but held no rows. | WHY: The answer states that the capability-gated router handles missing grammars by degrading (the files are registered but get no symbols) rather than failing, and that the file types are then reported as not indexed. || QUOTE: `synth.py` says the router is capability-gated. `parse_tree` raises `ValueError: unknown language key` for a grammar the installed wheel lacks, and the router catches that case. The route resolves to no grammar, so: ... The not-indexed report, which is stamped at build time, names the file types that were in scope but held no rows. | WHY: The answer says the router is capability-gated, that missing grammars cause no-grammar routing (degrade, no failure), and that those file types are then named in the not-indexed report. || QUOTE: `synth.py` says the router is capability-gated. `parse_tree` raises `ValueError: unknown language key` for a grammar the installed wheel lacks, and the router catches that case. The route resolves to no grammar, so: ... The not-indexed report, which is stamped at build time, names the file types that were in scope but held no rows. | WHY: The answer states the router is capability-gated, that missing grammars lead to degraded handling (files registered but no symbols) instead of failure, and that the not-indexed report names those file types.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the root node type cannot be the discriminator, because shell shares its root with JavaScript and CMake shares its root with Rust",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never says the root node type cannot discriminate languages (shell sharing a root with JavaScript, CMake with Rust); it only discusses grammar gating and capability routing. || QUOTE: NONE | WHY: The answer never says the root node type cannot discriminate languages, nor that shell shares a root with JavaScript or CMake with Rust.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that CMake's definition name is an ARGUMENT of the command rather than a named field of the node",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never says that CMake's definition name is an argument of the command rather than a named field of the node; it only says parameters are the signature.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that a shell function is recorded with no argument list and no return, because the language has neither",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": false,
+      "detail": "QUOTE: Arguments are empty by design, since shell functions take `$1`/`$@`. | WHY: The answer says arguments are empty because shell takes `$1`/`$@`, but it never says there is no return recorded or that the language has neither an argument list nor a return. || QUOTE: Arguments are empty by design, since shell functions take `$1`/`$@`. | WHY: The answer says arguments are empty because shell functions take positional params, but never states that no return is recorded because the language has none. || QUOTE: Arguments are empty by design, since shell functions take `$1`/`$@`. | WHY: The answer says arguments are empty because shell functions take `$1`/`$@`, but it never says there is no return recorded or that the language has neither an argument list nor a return.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that both languages share ONE harvest partition, and gives the reason \u2014 a second partition would write an empty payload row per file per index",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never says shell and CMake share one harvest partition, nor that a second partition would write empty payload rows per file per index. || QUOTE: NONE | WHY: The answer never says shell and CMake share one harvest partition, nor that a second partition would write an empty payload row per file per index.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide how a non-C file type is read \u2014 clew/synth.py",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide how a non-C file type is read \u2014 clew/shast.py",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide how a non-C file type is read \u2014 clew/cmakeast.py",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide how a non-C file type is read \u2014 clew/substrate.py",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": false,
+      "detail": "not named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide how a non-C file type is read \u2014 precision",
+      "kind": "set_precision",
+      "weight": 1,
+      "hit": false,
+      "detail": "named 3 not in the set: ['tests/test_cmakeast.py', 'tests/test_script_front_end.py', 'tests/test_shast.py']",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    }
+  ]
+}

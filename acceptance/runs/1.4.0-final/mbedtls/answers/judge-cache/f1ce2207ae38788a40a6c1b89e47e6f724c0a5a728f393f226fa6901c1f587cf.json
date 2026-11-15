@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer mentions a second mbedtls_strerror under the MBEDTLS_ERROR_STRERROR_DUMMY gate. It says it didn't read the body and only guesses \"presumably it is the build variant with no string table\". It never states that the dummy keeps the function linkable, and it never says the switch is enabled by default."
+}

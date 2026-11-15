@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The two calls are both `llama_tokenize` inside `LlamaCppTokenizer::tokenize` (`src/inference/llama_cpp_tokenizer.cpp:55` and `:61`). It is a size-then-fill pattern\nVERDICT: HIT\nWHY: The answer names the file, function, line numbers, and the size-then-fill two-call mechanism."
+}

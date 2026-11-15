@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Not defined (the default for users): `MBEDTLS_PRIVATE(member)` expands to `private_##member`... Defined: it expands to plain `member`, and the field is accessible by its real name. Also: \"The default is for application code. The opt-out is for the library itself and for a few bundled programs.\"\nVERDICT: HIT\nWHY: The answer states that code defining MBEDTLS_ALLOW_PRIVATE_ACCESS (library, programs) sees plain names while ordinary consumers of the public headers see private_-prefixed names."
+}

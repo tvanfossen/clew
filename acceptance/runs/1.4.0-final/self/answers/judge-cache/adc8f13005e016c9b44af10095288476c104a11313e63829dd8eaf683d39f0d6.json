@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes how empty results are graded now and notes \"definitive\" wording only covers indexed corpora. It never states that a single non-matching token was previously treated as proof of absence, nor that this confused \"nothing exists\" with \"I did not look there.\""
+}

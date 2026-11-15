@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `detokenize` (lines 92-104) tries a 256-byte buffer and, only if that is too small, retries at the exact size llama.cpp reported.\nVERDICT: HIT\nWHY: The answer says detokenize tries a 256-byte buffer first and only retries at an exact size if too small, and that tokenize sizes first by probing with a null buffer. It does not say the 256-byte buffer is on the stack, but the try-small-then-resize contrast with tokenize is stated."
+}

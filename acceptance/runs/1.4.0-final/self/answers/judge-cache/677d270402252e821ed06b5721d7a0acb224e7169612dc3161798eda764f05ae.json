@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer mentions `_not_indexed_scope` and says it couldn't confirm the extension filter, but never names the parse-built front end claiming file types doxygen can't read, nor binary classification dropping files whose extension lies about them."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says default mbedtls takes no locks and that THREADING_C is off, but it never concludes that the pthread example compiles to a stub main. It instead lists `handle_ssl_connection` as a real multi-threaded example server."
+}

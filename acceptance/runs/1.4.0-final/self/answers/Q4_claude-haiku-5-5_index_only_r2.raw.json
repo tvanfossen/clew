@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 16944,
+  "stop_reason": "end_turn",
+  "session_id": "9bc831bd-ff2c-4508-8c7f-d284f81e8793",
+  "total_cost_usd": 0.00390895,
+  "usage": {
+    "input_tokens": 6,
+    "cache_creation_input_tokens": 6487,
+    "cache_read_input_tokens": 115295,
+    "output_tokens": 2916,
+    "output_tokens_details": {
+      "thinking_tokens": 1626
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 6487,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2378,
+        "cache_read_input_tokens": 41635,
+        "cache_creation_input_tokens": 1682,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1682
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 6,
+      "outputTokens": 2916,
+      "cacheReadInputTokens": 115295,
+      "cacheCreationInputTokens": 6487,
+      "webSearchRequests": 0,
+      "costUSD": 0.00390895,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1626,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 6487,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 3,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**What's in the answer.** For `git_argv` (clew/gitenv.py:89), the dossier returned:\n\n- **`callers`**, grouped by file: six enclosing functions, including `_detect_git_version`, `run_git`, `_gitignored_paths` and a test, `test_the_disarmed_key_list_reaches_the_argv`. These are the functions that contain a call, not the call expressions.\n- **`callees`**: empty. Calls to things clew doesn't index, such as stdlib or `subprocess`, aren't listed here.\n- **Edge metadata**: `edge_class: call`, `source: ast`, `confidence: resolved`. Other symbols can carry `doxygen_sqlite` edges with `exact` confidence instead.\n- **Context around the call**: the function's `threads` entry (here a spawned worker, `clew-first-build-`, with 72 members), `requirements` (REQ-DDB-CONFIG-001), `covering_tests`, `overrides`/`overridden_by`, `reads`/`writes`, and the verbatim `body`.\n\n**What makes it wrong to read that as a list of call sites:**\n\n1. **Callers are enclosing functions, one hop up.** They don't say where in the caller the call happens, how many times, or under which condition. Transitive callers need `depth \u2265 2` with `direction='back'`.\n2. **Truncation is capped and visible only through `_limited`.** The default is 25 neighbours at depth 1 and 8 per hop deeper. A caller list that looks complete may be cut.\n3. **Static edges miss indirect calls.** A function passed as a pointer is a variable, and the dossier says so: `mbedtls_mutex_lock` in the mbedtls example answers as a variable, not a function. Callbacks, dispatch tables and reflection also don't produce edges. An empty caller list therefore doesn't mean unused.\n4. **Brace-initialised construction isn't modelled.** On `dossier` itself, `callers` came back empty, and the reply added a `callers_note` saying the name also resolves to a class and is probably a constructor. Ask for `kind='class'` before concluding that nothing constructs a type.\n5. **Bare names can merge namesakes.** `dossier` resolves to two candidates, `QueryTools.dossier` and `query/subject.py:dossier`. A bare-name caller list can mix them, so pass `qualified` or `kind` to pick one identity.\n6. **Some fields are reachability, not authorship.** `threads` means the function is reachable from a thread's entry through the graph, not that it is the entry. `covering_tests` is a coverage link and can be indirect; the `git_argv` entry is an MQTT dispatch test, which is a surprising match and needs checking before you rely on it.\n7. **Edges can be stale.** `anchor_mismatch: true` means the lines changed since the last build, so the caller rows and body may not match the current source.\n\nI checked two symbols, so these points come from what the replies showed, not from a full survey of clew's behaviour. Treat the caller list as a set of resolved static edges to start from. Confirm the call site and its conditions by reading the caller's body.",
+  "ttft_ms": 2119,
+  "type": "result",
+  "duration_ms": 17713,
+  "uuid": "3e1e2979-b340-45eb-bad6-98d2c23da597",
+  "ttft_stream_ms": 1132,
+  "time_to_request_ms": 111,
+  "first_content_frame_ms": 1132,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

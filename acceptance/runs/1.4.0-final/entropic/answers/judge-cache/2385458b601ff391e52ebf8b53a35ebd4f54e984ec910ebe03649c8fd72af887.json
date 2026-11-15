@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the dependency is confined to three file pairs in `src/inference/` plus a couple of touchpoints, which is the opposite of reaching roughly a dozen files of entropic's own source."
+}

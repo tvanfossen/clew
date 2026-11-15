@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The client default in `app/managers/network_manager.ts:68` is exponential retry with `retryLimit: 3`, but the post path overrides it.\nVERDICT: HIT\nWHY: The answer states the default is exponential retry with limit 3 in the network manager and that `createPost` opts out via `noRetry: true`."
+}

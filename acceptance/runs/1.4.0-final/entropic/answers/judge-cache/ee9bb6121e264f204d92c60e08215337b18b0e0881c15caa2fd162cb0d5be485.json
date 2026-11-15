@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `PermissionPersister` writes `allow:`/`deny:` entries to `config.local.yaml`; I did not trace which UI path calls it.\nVERDICT: HIT\nWHY: The answer states that PermissionPersister writes allow/deny entries to config.local.yaml, which is the persistence mechanism, and it separates this from the in-memory permission lists."
+}

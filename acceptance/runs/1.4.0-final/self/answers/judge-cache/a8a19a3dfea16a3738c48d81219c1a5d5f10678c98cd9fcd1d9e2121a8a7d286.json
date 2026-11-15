@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`freshness.notices()` turns each tripped axis into a `{axis, message}` pair. It returns an empty list when the index is current, so a current index adds nothing to a reply.\" and \"Every query reply carries a `staleness` block when any axis is tripped.\"\n\nVERDICT: MISS\n\nWHY: The answer says every query reply carries the block only when an axis is tripped, and that a current index adds nothing. It never says the annotation rides on every reply without being asked for."
+}

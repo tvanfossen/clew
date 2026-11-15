@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Handlers don't write directly. The path is: ... If `prepareRecordsOnly` is false, `batchRecords` runs.\nVERDICT: MISS\nWHY: The answer says handlers reach `batchRecords` through a shared base. It never says each mixin is constrained to extend `ServerDataOperatorBase`, which is the reason the item gives. It also lists handlers that bypass `batchRecords` and call `database.write` directly, so it doesn't conclude that every handler's writes go through it."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `force=True` skips the freshness check but never the source-staleness refusal (`stale_code_refusal`), and it reports `duration_ms` for the call.\nVERDICT: HIT\nWHY: The answer says the write path refuses on stale code (\"A rebuild is refused\") and that force skips the freshness check but never the stale-code refusal. That means a force flag cannot override the refusal. It also notes that auto-refresh is blocked when the process predates its source."
+}

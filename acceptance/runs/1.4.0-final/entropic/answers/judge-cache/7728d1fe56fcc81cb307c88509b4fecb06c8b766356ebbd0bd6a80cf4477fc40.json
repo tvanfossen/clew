@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The two `llama_tokenize` calls are a size-probe followed by a fill, not a retry. ... Both calls are unconditional, and the second one has no retry loop, backoff, or fallback.\"\nVERDICT: HIT\nWHY: The answer says the calls are size negotiation (probe then fill), not a retry, and notes there's no retry loop, backoff, or fallback. It also describes exactly one second call."
+}

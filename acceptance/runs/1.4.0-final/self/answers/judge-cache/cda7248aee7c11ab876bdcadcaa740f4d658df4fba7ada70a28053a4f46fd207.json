@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: | **data** | ... | rebuild |; | **code** | ... | restart the client only |\nVERDICT: HIT\nWHY: The table states data is cleared by a rebuild and code by a client restart only, which are different remedies per axis. The answer never says this is why one flag would not have been enough, but it does state the different actions the item turns on."
+}

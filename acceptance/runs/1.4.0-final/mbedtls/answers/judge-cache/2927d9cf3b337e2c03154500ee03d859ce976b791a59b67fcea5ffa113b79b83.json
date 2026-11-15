@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Otherwise they expand to plain `calloc` / `free`.\" (but this is under `MBEDTLS_PLATFORM_MEMORY` on, and the answer says \"`MBEDTLS_PLATFORM_MEMORY` defaults to off\", with the default path going through function pointers)\nVERDICT: MISS\nWHY: The answer says the default build uses function-pointer dispatch (platform.c) and concludes there is indirection, which contradicts the item's claim that the default build has direct macros to calloc/free."
+}

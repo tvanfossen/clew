@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"None of these are in `library/`. The library itself spawns nothing.\" and \"Every lock goes through one identity, `mutex->mutex` (`threading.c:81`)\" / \"`library/threading.c` is wholly gated on it\"\nVERDICT: MISS\nWHY: The answer says the library spawns no threads, but it never states that library/ supplies the mutex abstraction for threaded callers. It frames the mutex code as compiled out by default and lists the lock sites instead, so the contrast is not stated."
+}

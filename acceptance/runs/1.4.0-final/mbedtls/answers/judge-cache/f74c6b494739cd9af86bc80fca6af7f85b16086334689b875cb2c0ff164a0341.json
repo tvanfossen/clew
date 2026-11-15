@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"a new string is added by defining the error macro and regenerating the table, not by hand-editing `error.c`\"\nVERDICT: HIT\nWHY: The answer concludes that you define the macro in the module's public header and regenerate, and that you don't hand-edit `error.c`. It never mentions the `/** */` doc comment. Step 2 also wrongly adds a separate data-file step, but the core conclusion is stated."
+}

@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 27410,
+  "stop_reason": "end_turn",
+  "session_id": "d0857e3c-58cd-43a9-96e3-35b54e64fa95",
+  "total_cost_usd": 0.01617533,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 51831,
+    "cache_read_input_tokens": 331693,
+    "output_tokens": 4982,
+    "output_tokens_details": {
+      "thinking_tokens": 2227
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 51831,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2031,
+        "cache_read_input_tokens": 80652,
+        "cache_creation_input_tokens": 8058,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 8058
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 4982,
+      "cacheReadInputTokens": 331693,
+      "cacheCreationInputTokens": 51831,
+      "webSearchRequests": 0,
+      "costUSD": 0.01617533,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2227,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 51831,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 14,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** for shell, CMake, YAML and JSON, the index holds the file's existence and location, plus symbol rows for shell functions and CMake functions/macros when the grammars are present. It holds nothing for YAML or JSON content, and it holds no call edges for any of them. On an install without the grammars, the index still registers the files, but the shell and CMake symbols disappear. Whether the miss report flags that is an inference I could not confirm from the index (details below).\n\n**What the index holds**\n\n| File type | Registered as a file (`path` row) | Symbols | Notes |\n|---|---|---|---|\n| `.sh`, `.bash` | Yes | Function definitions (`name() {}` and `function name {}`), with the `#` block above as the brief | Routed to the bash grammar (`clew/shast.py`) |\n| `CMakeLists.txt`, `.cmake` | Yes | `function` and `macro` definitions, with `kind` recorded so a macro is not flattened into a function | Routed to the cmake grammar (`clew/cmakeast.py`). The name matches the whole filename, so a plain `.txt` is not claimed |\n| `.yaml`, `.yml`, `.json` | Yes | None, by design | `DATA_EXTS` is \"registered, never harvested\" (`clew/synth.py`) |\n\nShell and CMake rows are written by `clew/synth.py` in doxygen's shape, so the query layer reads them like C rows. The stated reason YAML and JSON get no symbols is that their grammar nodes are keys (`block_mapping_pair`, `pair`). Writing them as `memberdef` rows would put every `steps:` key into the namespace that answers `dossier(\"my_function\")`. They are findable by name and count toward the not-indexed report, but nothing about their contents enters the function namespace.\n\nSeparately from the front end, the index reads some YAML and JSON semantically. `.clew.yaml` is loaded as the repository's declaration, and its `guard:` section is read. `requirements.yaml` is ingested as a requirements catalog, and the `datamodel.py` manifests are read as key catalogs. These paths are distinct from the shell/CMake/YAML/JSON front end.\n\n**What it does not hold**\n\n- No symbols for YAML or JSON content, including workflow `jobs:`, `steps:` and JSON config keys.\n- No call edges from or to shell or CMake, so the index cannot answer \"what does `deploy.sh` call\" or \"which target links this library\" as graph queries. The CMake dependency and flag content is also not parsed beyond definitions.\n- No shell variables, sourced files, or CMake `set()`/`target_link_libraries()` facts. Only definitions are harvested.\n\n**Installation without the grammars**\n\nThe published `lang-parsing-substrate` wheel lacks the five configuration keys, because the grammars are in an unreleased fork that reports the same version string. `clew/substrate.py` therefore asks what is compiled in, not what version is installed.\n\n- `_OPTIONAL_KEYS` is `{bash, cmake}`. Those two routes check `_grammar_available` before parsing. If absent, `_ts_language_for` returns `None` and the file gets no symbols. It does not raise. Without this, `parse_tree` would raise `ValueError` mid-parse.\n- A substrate that cannot be imported yields an empty language set and logs an error. It is not a crash.\n- Shell and CMake files are still registered as files, so `dossier` and `search` can find them by name, but they have no `memberdef` rows.\n\n**Open question: does the miss report fire?**\n\nThe substrate module's documentation says the miss report names shell, CMake, YAML and JSON as not indexed on a published wheel. But `claims()` is purely extension-based, and `register_paths` does not check the substrate, so those files would get `path` rows (`type=1`). `_not_indexed_scope` counts scanned files with no `path` row, so under that reading the report would be empty for these types. Either the report misses them on the published wheel, or `register_synth_paths` is gated somewhere the index did not show me. I could not settle this from the index. A build against the published wheel, followed by a check of the stamped `not_indexed` value, would settle it.",
+  "ttft_ms": 1799,
+  "type": "result",
+  "duration_ms": 30973,
+  "uuid": "cd5545a3-ef6d-42c2-998c-320512de2226",
+  "ttft_stream_ms": 1343,
+  "time_to_request_ms": 159,
+  "first_content_frame_ms": 1343,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

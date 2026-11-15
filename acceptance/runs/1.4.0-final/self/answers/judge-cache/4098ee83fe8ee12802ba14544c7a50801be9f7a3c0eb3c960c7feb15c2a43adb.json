@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Invalid input is all-or-nothing. `apply_options` validates the whole mapping before assigning anything. One bad or unknown key refuses the entire document.\nVERDICT: MISS\nWHY: The answer mentions unknown-key refusal at the document level only; it never describes a second refusal for unknown keys inside a named section, nor derived keys refused with a reason."
+}

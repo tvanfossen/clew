@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The Python package has no native code of its own. It is a ctypes layer over the C ABI in `librentropic.so`\nVERDICT: HIT\nWHY: The answer explicitly states ctypes over librentropic.so with no native code of its own, so no compiled extension module is involved."
+}

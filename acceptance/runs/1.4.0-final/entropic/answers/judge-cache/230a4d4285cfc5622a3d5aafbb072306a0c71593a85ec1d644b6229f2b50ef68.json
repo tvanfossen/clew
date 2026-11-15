@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The only failure branch is the second call returning negative, which logs an error and returns empty.\"\nVERDICT: HIT\nWHY: The answer states that a negative result from the second call logs an error and returns empty, with nothing re-attempted (\"Nothing is re-attempted after a failure\")."
+}

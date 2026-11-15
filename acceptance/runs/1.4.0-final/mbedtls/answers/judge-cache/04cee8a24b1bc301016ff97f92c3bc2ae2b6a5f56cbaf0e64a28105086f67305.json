@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `library/common.h:132` | Library-internal code that includes this header | Raw member access in library sources\nVERDICT: HIT\nWHY: The answer states the opt-out macro is defined in the shared header library/common.h, which library-internal code includes, giving plain member access across library sources."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says the setter is undeclared and uncompiled on the macro path. It describes the setter only as a runtime route and says nothing about its absence when macros are used."
+}

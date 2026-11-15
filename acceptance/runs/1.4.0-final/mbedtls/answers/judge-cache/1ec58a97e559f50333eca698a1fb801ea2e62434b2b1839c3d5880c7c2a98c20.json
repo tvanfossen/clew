@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `scripts/config.py` has an `MBEDTLS_TEST_CONSTANT_FLOW_MEMSAN` option that needs clang with MemorySanitizer, as a second checker.\nVERDICT: MISS\nWHY: The answer says constant-flow is checked under Valgrind and MemSan, but it never says the facility is off-by-default or that it is explicitly not part of the library API."
+}

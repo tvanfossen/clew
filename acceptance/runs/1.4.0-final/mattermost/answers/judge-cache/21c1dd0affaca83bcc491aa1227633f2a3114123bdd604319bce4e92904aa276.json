@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`app/actions/remote/channel.ts:1397` (`archiveChannel`) | When viewable, the local channel gets `delete_at = now` and stays in the DB. When not, the current user is removed from the channel locally instead.\" and \"If the current user is in the channel, they are kicked out with `CHANNEL_ARCHIVED`.\"\nVERDICT: HIT\nWHY: The answer says that when archived channels are not viewable, the user is removed from the channel. It also says the channel is kept with `delete_at` set when they are viewable, and that the user is kicked out of the current channel on the archive event."
+}

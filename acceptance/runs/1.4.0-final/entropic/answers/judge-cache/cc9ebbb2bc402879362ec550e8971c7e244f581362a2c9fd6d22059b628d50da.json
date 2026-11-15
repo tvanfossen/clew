@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `stop()` joins it at `:108`. Shared state sits behind `event_mutex_`, `watched_mutex_` and `wake_mutex_`.\nVERDICT: MISS\nWHY: The answer says HealthMonitor::stop() joins, but it never describes the shutdown as an atomic flag exchange plus a condition variable wake, so the specific mechanism is absent."
+}

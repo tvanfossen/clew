@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 31125,
+  "stop_reason": "end_turn",
+  "session_id": "e08b681d-474b-4050-b911-12d11445c4a3",
+  "total_cost_usd": 0.013881370000000002,
+  "usage": {
+    "input_tokens": 16,
+    "cache_creation_input_tokens": 34119,
+    "cache_read_input_tokens": 415997,
+    "output_tokens": 5792,
+    "output_tokens_details": {
+      "thinking_tokens": 2379
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 34119,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3023,
+        "cache_read_input_tokens": 69745,
+        "cache_creation_input_tokens": 537,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 537
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 16,
+      "outputTokens": 5792,
+      "cacheReadInputTokens": 415997,
+      "cacheCreationInputTokens": 34119,
+      "webSearchRequests": 0,
+      "costUSD": 0.013881370000000002,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2379,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 34119,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 26,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** the call runs only if it clears a fixed sequence of checks in `ToolExecutor`. The permission lists are consulted at two points in that sequence, and the deny list is enforced at the second one, not the first.\n\n## Order of decision\n\n```\nmodel emits ToolCall\n  \u2502\n  \u25bc ToolExecutor::process_single_call\n  1. PRE_TOOL_CALL hook \u2500\u2500 can cancel (\"Cancelled by hook\")\n  \u2502\n  \u25bc check_call_preconditions (first failure wins)\n  2. anti-spiral hard block      (consecutive same-tool count)\n  3. schema check\n  4. MCP key authorization       check_mcp_authorization \u2192 access level\n  5. tier allowed_tools          check_tier_allowed\n  6. duplicate-call check\n  7. approval                    check_approval_pc \u2192 check_approval\n  \u2502\n  \u25bc execute_tool\n  8. ServerManager::execute\n       is_denied(tool, \"tool:argpattern\") \u2500\u2500 yes \u2192 \"Error: Permission denied\"\n       else route_tool_call\n```\n\nSteps 2\u20136 are not governed by the lists, so an allow entry cannot bypass the tier or MCP-key checks.\n\n**Step 7, `check_approval`:**\n- Auto-approved if `LoopConfig.auto_approve_tools` is true, or if `ServerManager::is_explicitly_allowed` finds a match in the allow list.\n- Otherwise, if an `on_tool_call` callback is registered, it is invoked and `approved` is set to `true` unconditionally. Its return type is void, so it cannot say no.\n- With no callback, the call is denied (\"No approval callback \u2014 denying\").\n\n**Step 8, `ServerManager::execute`:** this is the only place `is_denied` runs. A matching deny pattern returns a `Permission denied` result without dispatching. Because `check_approval` runs first, a call can be prompted or allowed, then blocked here.\n\n## What a pattern means\n\nPatterns are strings matched with `fnmatch` (flags 0, so `*` also crosses `/`). Each has the form `tool` or `tool:argpattern`.\n\n- **`tool` with no colon** (`filesystem.read_file`): matches the tool name only, for any arguments. `filesystem.*` matches every tool in that server.\n- **`tool:argpattern`** (`filesystem.read_file:/etc/*`): the tool part must match, then the full `tool:argvalue` string must match.\n- **The argvalue** comes from `args_to_pattern`. It is the value of the first key of the arguments object, or `*` if the arguments are empty or unparseable. Nlohmann objects iterate in key order, so \"first\" is alphabetically first key, not the first argument written. I did not verify this at runtime.\n- **Bash override:** `BashServer::get_permission_pattern` builds `bash.execute:<base_cmd> *`. So `bash.execute:git *` matches `git status` and `git log`. The base command is the text before the first space.\n- **Persistence:** \"Always Allow/Deny\" writes the pattern into `permissions.allow` or `permissions.deny` in the project YAML through `PermissionPersister` (read-modify-write).\n\n## Things that look wrong\n\n1. **The approval callback never denies.** The header says tools are \"approved via callback\", but `check_approval` sets `approved = true` after calling the callback. As indexed, a registered callback is a notification, not a gate.\n2. **The header's \"deny takes precedence\" is true only at step 8.** A denied tool that matches an allow entry is still approved at step 7, so the user may be prompted for a call that will be blocked anyway.\n3. **`permissions.auto_approve` may not reach the loop.** `PermissionsConfig.auto_approve` is parsed by `parse_permissions_config`, but the index shows no site that copies it into `LoopConfig.auto_approve_tools`. I could not confirm the wiring from the index; check it by reading the config-to-engine code.",
+  "ttft_ms": 1544,
+  "type": "result",
+  "duration_ms": 37527,
+  "uuid": "308f0613-a5a8-4246-acd2-08ba54162da5",
+  "ttft_stream_ms": 1253,
+  "time_to_request_ms": 121,
+  "first_content_frame_ms": 1254,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"| `code` | ... | Restarting the client only |\" and \"| `data` | ... | A rebuild |\"; also \"The messages say which action clears each axis, and the code notice says that only restarting the client helps.\"\nVERDICT: MISS\nWHY: The answer lists a different remedy per axis, but never explains that this difference is why a single flag would not have sufficed."
+}

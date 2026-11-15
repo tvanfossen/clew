@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"READS ARE UNAFFECTED\" \u2014 not present; closest: \"write paths return `REFUSED: \u2026` with the remedy when the process is stale\" and \"`code` ... restart the client only\"\nVERDICT: MISS\nWHY: The answer says write paths are refused when the process code is stale, but never states that reads stay current because query tools open the database per call, so the read/write asymmetry is absent."
+}

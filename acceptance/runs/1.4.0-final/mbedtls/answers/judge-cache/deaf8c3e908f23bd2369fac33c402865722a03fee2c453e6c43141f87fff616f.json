@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Counting `mbedtls_ct_\\w+(` occurrences in `library/` gives 286 across 29 files.\nVERDICT: HIT\nWHY: The answer states the primitives reach roughly 29 library files (about twenty-plus modules), showing broad consumption rather than one or two modules."
+}

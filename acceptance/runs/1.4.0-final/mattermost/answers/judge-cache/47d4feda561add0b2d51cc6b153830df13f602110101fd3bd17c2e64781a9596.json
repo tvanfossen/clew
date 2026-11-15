@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The user taps the failed icon (`app/components/post_list/post/body/failed/index.tsx`), which opens a sheet with \"Try Again\" and \"Delete Message\". \"Try Again\" calls `retryFailedPost`.\"\nVERDICT: HIT\nWHY: The answer says retry is manual via the user choosing \"Try Again\", which calls `retryFailedPost`, and that there are no automatic retries."
+}

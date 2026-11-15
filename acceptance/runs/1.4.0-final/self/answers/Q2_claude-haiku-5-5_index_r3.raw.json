@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 12728,
+  "stop_reason": "end_turn",
+  "session_id": "b2c3cbdb-e471-45b1-8a7b-96bb553af0aa",
+  "total_cost_usd": 0.00213354,
+  "usage": {
+    "input_tokens": 4,
+    "cache_creation_input_tokens": 1159,
+    "cache_read_input_tokens": 76934,
+    "output_tokens": 2264,
+    "output_tokens_details": {
+      "thinking_tokens": 1048
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 1159,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1774,
+        "cache_read_input_tokens": 38467,
+        "cache_creation_input_tokens": 1159,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1159
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 4,
+      "outputTokens": 2264,
+      "cacheReadInputTokens": 76934,
+      "cacheCreationInputTokens": 1159,
+      "webSearchRequests": 0,
+      "costUSD": 0.00213354,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1048,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 1159,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 3,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "An empty `search` reply is not a bare \"no rows.\" It is built to separate \"looked and found nothing\" from \"did not look,\" but the second case is spread across several fields, so you have to read them.\n\n**What the reply says on a miss**\n\nFor my probe (`zzqxnonexistentsymbol`) the reply had `count: 0` and `results: []`, plus:\n\n- **`note`**: states this is a definitive empty result, not an error or a malformed call, and tells the caller not to retry or guess. It also lists what was searched (names, `@brief`s, macros, typedefs, enums, classes, config symbols, file docs) and what was not: markdown/Kconfig prose, which needs `corpus='prose'`, and function bodies, which need `corpus='code'`.\n- **`scope`**: `source: whole-repo`, 426 indexed files, the top-level directories, the extensions that were indexed, and `not_indexed`, which lists extensions the index skipped with counts (`.rs=2`, `.toml=2`, `.sql=1`, `.lock=1`, `.csv=3`, no-extension=3, and others).\n- **`target`**: the repository that answered. An empty result from the wrong repository tells you nothing.\n\n**Reading the two cases**\n\n| Situation | How the reply shows it | Confidence in \"not present\" |\n|---|---|---|\n| Name absent from indexed symbol names and docs, in an indexed extension | `count: 0`, `note` says definitive | High, for the symbols corpus only |\n| Term only in prose, or only in a function body | Same empty result; the `note` names the corpus it did not search | None until you run `prose` or `code` |\n| Term in a file whose extension is in `not_indexed` | Same empty result; `scope.not_indexed` is the only hint | None; the file was never read |\n| Wrong or unrelated `target` | `target` shows which repo answered | Not applicable; the answer is about a different repo |\n| Split repository, with some parts not read | `not_searched` names the parts | None for the unread parts |\n\n**How much confidence each answer gets**\n\n- A zero from the symbols corpus over indexed extensions is strong evidence the repository has no such named thing. The `note` is written as a definitive database answer.\n- The word \"whole-repo\" in `scope` overstates coverage. This repository has files in extensions the index does not read, so a symbol in a `.rs` or `.toml` file would also return zero with no error.\n- The tool does not claim the miss is global. It only claims the searched corpus was searched. Before you conclude \"not in this repository,\" check the `note`'s NOT-searched list, `scope.not_indexed`, `target`, and `not_searched`, then run the other corpora or read the uncovered files directly.\n\nThis matches the repo's own rule in AGENTS.md, \"Absence is not emptiness\": an empty result means \"we looked,\" while a missing key or layer means \"this never ran.\" Reading the `scope` and `note` fields is how you tell which one you have.",
+  "ttft_ms": 2290,
+  "type": "result",
+  "duration_ms": 12840,
+  "uuid": "689e59b4-bb7e-47c8-a599-e112ae6088bc",
+  "ttft_stream_ms": 1186,
+  "time_to_request_ms": 97,
+  "first_content_frame_ms": 1186,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

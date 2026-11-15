@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Defining that macro before the Mbed TLS headers are included makes `MBEDTLS_PRIVATE(member)` expand to plain `member`, so the code gets raw field access. ... Applications outside the tree get the renamed members\nVERDICT: HIT\nWHY: The answer says code defining MBEDTLS_ALLOW_PRIVATE_ACCESS sees plain member names, while outside applications get the renamed `private_` members."
+}

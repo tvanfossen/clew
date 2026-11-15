@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Tapping a failed post opens a bottom sheet ... with two actions: - **Try Again** (`post.failed.retry`) calls `retryFailedPost`.\" and \"The app makes zero automatic retries. The user retries by hand from the failed post's menu.\"\nVERDICT: HIT\nWHY: The answer states there are no automatic retries, retry is manual via the \"Try Again\" action, and names `retryFailedPost`."
+}

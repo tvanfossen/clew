@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Every resolved option stamps `options.<name>.tier` into `build_meta`, so you can check which layer won for a given database.\nVERDICT: MISS\nWHY: The answer says the tier is stamped into build_meta per option, but never says it is derived from stored rows rather than stamped as a separate summary \u2014 it actually describes the opposite (stamping)."
+}

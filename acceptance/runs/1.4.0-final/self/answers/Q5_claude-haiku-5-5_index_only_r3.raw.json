@@ -1,0 +1,108 @@
+{
+  "duration_api_ms": 14038,
+  "stop_reason": "end_turn",
+  "session_id": "1294e888-a27e-4d56-beba-c424de0b21f2",
+  "total_cost_usd": 0.00538051,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 13198,
+    "cache_read_input_tokens": 159361,
+    "output_tokens": 2293,
+    "output_tokens_details": {
+      "thinking_tokens": 602
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 13198,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1433,
+        "cache_read_input_tokens": 45284,
+        "cache_creation_input_tokens": 4743,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 4743
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 8,
+      "outputTokens": 2293,
+      "cacheReadInputTokens": 159361,
+      "cacheCreationInputTokens": 13198,
+      "webSearchRequests": 0,
+      "costUSD": 0.00538051,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 602,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 13198,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [
+    {
+      "tool_name": "mcp__clew__propose_declaration",
+      "tool_use_id": "toolu_01653ebBrx6nnHqmqeGMFAtq",
+      "tool_input": {}
+    }
+  ],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 10,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The index has four ways to say what to index, and they don't all combine the same way. Declarations and explicit values replace the guesses, but facts that someone else already wrote accumulate and are never discarded.\n\n**The ways to say so**\n\n1. **Tier 1, explicit:** a value stated at call time, such as a CLI flag or an option passed through the MCP `build_or_refresh` / `build_index` calls. `buildoptions.py` documents this as the top tier, and it is the only tier an MCP caller can reach. Its per-run mechanics (`--scope`, `--index-cache`, `--rebuild`) are not declarations and have no `.clew.yaml` section.\n2. **Tier 2, declared:** the repository's `.clew.yaml`. Its `index_scope:` key is the only tier in `scope.py` that is a decision about the index. Its other sections (including `doxyfile:`, `kconfig:` and the `guard:` section) are documented in `buildoptions.py` and `docs/GUARD.md`.\n3. **Tier 3, target-fact:** facts the repository already wrote, such as a Doxyfile's `ALIASES` and `PREDEFINED`, a generator manifest, or a language or platform entry point. The Doxyfile is still read for these, but its `INPUT`, `EXCLUDE*` and `FILE_PATTERNS` no longer set scope (gh#333). The reason is that a Doxyfile's `INPUT` is a documentation target, not a reasoning boundary; honouring it would have made a repo that documents itself get a smaller index.\n4. **Tier 4, ecosystem:** a known-ecosystem signature (UDM, ingot).\n5. **Tier 5, heuristic:** name-pattern guesses, the floor, explicitly provisional.\n\nScope itself has two tiers: the declared `index_scope:`, and otherwise the whole repository minus what git ignores. Nested git trees are indexed and tagged, not excluded.\n\n**When two of them disagree**\n\n`tiers.py` defines one rule: `resolved = (tier1 or tier2 or tier5) \u222a tier3 \u222a tier4`.\n\n- **Stated tiers displace guesses.** A flag beats a declaration, and a declaration beats heuristics. The highest stated tier present wins, and it is recorded in `build_meta` so the winning tier is visible and replayable.\n- **Facts and ecosystem signatures always survive.** Tiers 3 and 4 accumulate under every stated tier. You can correct a guess; you cannot un-discover a fact.\n- **An empty explicit list is a withdrawal, not a statement.** `[]` falls through to the declaration and then to the guesses. That lets an operator undo a recorded flag without deleting the database.\n- **Scope has no conflict between Doxyfile and declaration.** Since gh#333 the Doxyfile does not set scope at all, so `index_scope:` is the only decision.\n\nThe motivating bug explains the design: passing `--entry-patterns` once replaced the default entry points, so `main` dropped out and reachability collapsed with no report. Under the current rule a stated value cannot remove a fact-derived entry.\n\nCaveat: the `resolve_layered` body was flagged as an anchor mismatch, so its line numbers may be stale. The rule itself matches the module documentation.",
+  "ttft_ms": 2193,
+  "type": "result",
+  "duration_ms": 14876,
+  "uuid": "5069b423-7498-4368-b687-1a5c23583783",
+  "ttft_stream_ms": 1389,
+  "time_to_request_ms": 97,
+  "first_content_frame_ms": 1390,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

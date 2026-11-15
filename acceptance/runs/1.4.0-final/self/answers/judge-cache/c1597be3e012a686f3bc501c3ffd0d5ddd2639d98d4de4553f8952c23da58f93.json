@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Shell:** the function's `args` are always empty, since bash has no parameter list.\nVERDICT: MISS\nWHY: The answer says shell functions have empty args because bash has no parameter list, but never mentions the missing return, so it only covers half of the item."
+}

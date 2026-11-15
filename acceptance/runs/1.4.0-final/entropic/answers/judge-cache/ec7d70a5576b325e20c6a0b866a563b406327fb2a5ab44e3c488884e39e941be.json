@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer discusses CMake wiring and `#include <llama.h>` usage but never identifies the seam as llama.cpp's C API of `llama_`-prefixed free functions, as opposed to C++ classes or inheritance."
+}

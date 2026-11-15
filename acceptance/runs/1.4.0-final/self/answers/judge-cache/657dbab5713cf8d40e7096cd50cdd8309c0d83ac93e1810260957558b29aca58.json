@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: On an install without the grammars, shell and CMake degrade without an error, but the miss report does not flag them, which contradicts its own design docs.\nVERDICT: MISS\nWHY: The answer says the install degrades without error, but it explicitly claims the miss report does not report those types as not indexed. It also says nothing about a router capability gate. That contradicts the item's second half."
+}

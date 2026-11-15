@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Files that include `llama.h`, `common.h`, `chat.h`, `sampling.h` or `mtmd.h` are `llama_cpp_backend.{h,cpp}`, `llama_cpp_sampler.{h,cpp}`, `llama_cpp_tokenizer.{h,cpp}`, `orchestrator.cpp`, `adapter_manager.cpp`, `speculative_compat.cpp`, `grammar_registry.cpp`, and `tool_call_markers.h`.\nVERDICT: MISS\nWHY: The answer lists about 8 specific files (about 12 counting .h/.cpp pairs) and says the dependency is \"contained in one layer\". That points away from a roughly-dozen-file reach, and the answer never states one."
+}

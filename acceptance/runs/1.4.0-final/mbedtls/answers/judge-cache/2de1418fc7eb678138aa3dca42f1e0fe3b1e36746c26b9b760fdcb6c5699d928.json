@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`library/error.c` is generated, not hand-written. `scripts/data_files/error.fmt` is the template, and `scripts/generate_errors.pl` fills it in.\"\nVERDICT: HIT\nWHY: The answer states error.c is generated from the public headers by generate_errors.pl using error.fmt as the template."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Allow (`is_allowed`) only sets `auto_ok` in `check_approval`. It does not bypass the later deny check. / \"The allow list only skips the prompt.\"\nVERDICT: HIT\nWHY: The answer says the allow list only skips the prompt (suppresses approval) and is consulted in `check_approval` (tool_executor.cpp), with the allow match coming from `ServerManager::is_explicitly_allowed` in server_manager.cpp. It also notes that deny still runs afterward in `execute`."
+}

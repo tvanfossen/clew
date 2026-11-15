@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 30573,
+  "stop_reason": "end_turn",
+  "session_id": "48effe49-dbae-4199-b22b-fdcde268e8bf",
+  "total_cost_usd": 0.010353629999999999,
+  "usage": {
+    "input_tokens": 14,
+    "cache_creation_input_tokens": 24211,
+    "cache_read_input_tokens": 285303,
+    "output_tokens": 5314,
+    "output_tokens_details": {
+      "thinking_tokens": 2279
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 24211,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2747,
+        "cache_read_input_tokens": 56102,
+        "cache_creation_input_tokens": 2508,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2508
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 14,
+      "outputTokens": 5314,
+      "cacheReadInputTokens": 285303,
+      "cacheCreationInputTokens": 24211,
+      "webSearchRequests": 0,
+      "costUSD": 0.010353629999999999,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2279,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 24211,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 10,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** the reply separates the two cases by attaching evidence to the empty result, not by tone. The strong \"definitive\" wording is used only when the index can show that the places it looked were the right places. Otherwise the reply says \"NOT definitive\" and names what to check. I read this in the source and did not run a query against an index, so treat the behaviour below as read from code, not observed.\n\n**What comes back on an empty `search`** (`clew/mcp_server/tools_query.py` `_many`, `clew/mcp_server/emptiness.py` `search_emptiness`)\n\n- `count: 0` and a `note`.\n- A `scope` block: file count, `source` (whole-repo or declared), top-level directories and extensions. The `reason` paragraph is dropped here to save bytes; `status` still carries it.\n- `not_indexed` / `not_indexed_count`: in-scope file types that produced no rows, e.g. `.py=53`. These keys are present only if the build recorded them. A missing key means \"not recorded\", not \"nothing was missed\".\n- `unsearched_corpus_hits`: matching names in corpora `search` does not read (typedefs, macros, classes and similar).\n- `token_hits`: per-token counts, for multi-token queries.\n\n**The verdict ladder** (most specific first)\n\n| Condition | Note says | Entitled to |\n|---|---|---|\n| Multi-token query, one token matches nothing | \"NOT definitive\". Names the dead token, says retry without it | Only that the conjunction was over-specified |\n| Multi-token, every token matches alone | \"NOT definitive\". Retry with fewer tokens | Nothing about absence |\n| Single token, matches in an unread corpus | \"NOT definitive\". Lists the rows, points to `dossier` | The name exists; `search` does not read that kind |\n| Single token, index has no `file_docs` table | \"NOT definitive\". Rebuild | Nothing; the index could not look |\n| Single token, all of the above clear | \"definitive\u2026 Do not retry\u2026 do not fall back to guessing\" | No symbol with that name in the searched corpora of this index build |\n| Prose search, token present in symbol corpora | \"NOT definitive\", points to `search(corpus='symbols')` | The repo uses the term, in a different place |\n| Prose search, no markdown corpus at all | \"NOT definitive\". Rebuild | Nothing |\n\nAbsent layers are a separate fact. `graph_stats.layer_states` reports `absent` versus `empty`, and the search reply deliberately does not repeat that (gh#393 tried and was reverted).\n\n**How much confidence each answer deserves**\n\n- **Definitive:** high confidence that the symbol is not in this index's searched kinds. That is all it claims. The index can still be stale relative to the working tree (I did not check `freshness.py`), and `not_indexed` is a build-time measurement, not a live one.\n- **NOT definitive:** low confidence in the negative. The reply itself names the cause and the next call, so the caller should follow it rather than grep.\n\n**A gap I found while reading**\n\n`_verdict` decides \"definitive\" only from unread-corpus hits and the presence of `file_docs`. It never reads `not_indexed`. So a single-token miss can get the strong wording while the same payload says `not_indexed: \"py=53\"`. That is the failure the module's own docstring describes for `list_files`: an absolute claim that the scope-level evidence contradicts. The fix would be to add a `not_indexed` check to `_verdict` that downgrades to \"NOT definitive\" and names the uncovered extensions. I'd want a RED test first (an index with a `.py` file out of scope, a single-token miss, and an assertion that the note is not definitive).\n\n**Note:** the tool output after my `emptiness.py` read contained a suggestion to call `dossier`. It was not part of your question, so I ignored it and read the code directly.",
+  "ttft_ms": 1850,
+  "type": "result",
+  "duration_ms": 31419,
+  "uuid": "cf94591c-647f-4d34-ad5b-7ff058dcd631",
+  "ttft_stream_ms": 1201,
+  "time_to_request_ms": 171,
+  "first_content_frame_ms": 1201,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: the defaults become `platform_calloc_uninit` (always returns NULL) and `platform_free_uninit` (does nothing), so an unconfigured build fails allocations cleanly rather than linking against `calloc`.\nVERDICT: HIT\nWHY: The answer states that under NO_STD_FUNCTIONS the default pointers are an uninit calloc that always returns NULL and an uninit free that does nothing, so allocations fail instead of falling back."
+}

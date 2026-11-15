@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 22765,
+  "stop_reason": "end_turn",
+  "session_id": "591e27b1-8025-490f-949e-5804bce0eb49",
+  "total_cost_usd": 0.0086508,
+  "usage": {
+    "input_tokens": 16,
+    "cache_creation_input_tokens": 15014,
+    "cache_read_input_tokens": 383340,
+    "output_tokens": 3626,
+    "output_tokens_details": {
+      "thinking_tokens": 859
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 15014,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 999,
+        "cache_read_input_tokens": 54960,
+        "cache_creation_input_tokens": 924,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 924
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 16,
+      "outputTokens": 3626,
+      "cacheReadInputTokens": 383340,
+      "cacheCreationInputTokens": 15014,
+      "webSearchRequests": 0,
+      "costUSD": 0.0086508,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 859,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 15014,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 11,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** the post is kept locally and marked failed. It is not retried automatically at all. \"Try Again\" is a manual retry that sends a fresh create request.\n\n**1. What happens to the post on failure**\n\nIn `createPost` (`app/actions/remote/post.ts:74-226`), the post is written to the local database before the network call, with a temporary `pending_post_id`. If `client.createPost` throws, the code takes one of two paths:\n\n- **Post is kept (the usual case):** the record is rewritten with `props.failed = true` and `update_at = now`, and it stays visible in the channel. The UI shows an error icon (`post.failed.button`, `app/components/post_list/post/body/failed/index.tsx`).\n- **Post is removed:** if the server error is `DELETED_ROOT_POST_ERROR`, `TOWN_SQUARE_READ_ONLY_ERROR`, or `PLUGIN_DISMISSED_POST_ERROR`, the post is deleted locally instead, since retrying could never succeed.\n\nAlso, `app/utils/post/index.ts:98` treats a pending post as failed once it has been pending longer than `POST_TIME_TO_FAIL` (10 seconds, `app/constants/post.ts:57`), even without the `failed` flag.\n\n**2. Automatic retries: none at the app level**\n\nThe client's default retry policy is exponential with `retryLimit: 3` (`app/managers/network_manager.ts:68-73`). But `createPost` in `app/client/rest/posts.ts:43-47` passes `noRetry: true`, which `app/client/rest/tracking.ts:383-385` turns into `retryPolicyConfiguration: {retryLimit: 0}`. So a failed post send is attempted exactly once. The Android native layer sets its own retry defaults (`android/.../Network.java:58-63`), but that only applies to the client's default policy, and the `noRetry` override on this request still applies.\n\n**3. What \"Try Again\" does**\n\n`retryFailedPost` (`app/actions/remote/post.ts:228-301`) runs when the user picks \"Try Again\" in the bottom sheet (`post/body/failed/index.tsx:46-49`):\n\n1. It clears `props.failed` and sets `update_at` to now, so the post shows as pending again.\n2. It sends a new `client.createPost` request built from the post's API form, with a new `create_at`/`update_at` and an empty `id`, so the server assigns a new post ID.\n3. On success, the response replaces the local record. On a server error it re-marks the post as failed, or removes it for the three non-retryable error IDs above.\n\nCaveat: I did not confirm whether `toApi()` carries the original `pending_post_id` through to the server or how the local record is swapped on success. Check `PostModel.toApi` and the `handlePosts` pending-ID matching if that matters for your change.",
+  "ttft_ms": 2072,
+  "type": "result",
+  "duration_ms": 23942,
+  "uuid": "ecfc0dd4-f9e1-4439-833e-4c6101839143",
+  "ttft_stream_ms": 1680,
+  "time_to_request_ms": 182,
+  "first_content_frame_ms": 1680,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

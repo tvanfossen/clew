@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The architecture doc lists it as an external dependency with \"Submodule\" type and \"Direct C API\" usage\nVERDICT: MISS\nWHY: The answer mentions \"Direct C API\" and \"the llama C API\" but never identifies the seam as free functions with the `llama_` prefix versus C++ classes. It names `llama_tokenize` and `llama_sampler` only in passing and does not make the contrast."
+}

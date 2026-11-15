@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The architecture doc lists it as an external dependency with \"Submodule\" type and \"Direct C API\" usage ... `LlamaCppTokenizer` forwards to `llama_tokenize` and `llama_token_to_piece`\nVERDICT: HIT\nWHY: The answer identifies the seam as llama.cpp's direct C API, naming prefixed free functions like `llama_tokenize` and `llama_token_to_piece`, and not a C++ class hierarchy."
+}

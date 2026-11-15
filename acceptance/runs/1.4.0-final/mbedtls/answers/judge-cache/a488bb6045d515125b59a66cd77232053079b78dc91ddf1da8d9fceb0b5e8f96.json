@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_memory_buffer_alloc_init(buf, len)` (memory_buffer_alloc.c:566\u2013600) is the library's own allocator. It makes a heap out of a caller-supplied buffer and installs its own `buffer_alloc_calloc` / `buffer_alloc_free` through the same setter.\nVERDICT: HIT\nWHY: The answer says the buffer allocator's init function installs its own calloc/free via the runtime setter. It never says \"only in-tree user\", but it does name the allocator as the library's own user of the setter, and that is enough."
+}

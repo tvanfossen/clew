@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Dataflow is not a call. `key` edges, where a function writes a value another reads with no call between them, are kept out of the dossier's `callers`. Where they appear, `edge_class='key'` marks them.\"\nVERDICT: MISS\nWHY: The answer says key edges are kept out of the dossier's callers, which contradicts the item's claim that callers/callees return both kinds in one list. It does not present them as two kinds in one list that the consumer must distinguish by reading `edge_class`."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: About 25 files in `src/` touch llama, ggml, or common symbols, roughly 677 occurrences in total\nVERDICT: MISS\nWHY: The answer says about 25 files, not roughly a dozen, and doesn't convey the dozen-file reach the item requires."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The two calls in `LlamaCppTokenizer::tokenize` ... are a size query followed by the real call. ... the first call passes `nullptr, 0` to learn `n`, the code sizes a `std::vector`, and the second call fills it. Both calls always run; nothing is retried. ... Neither is retry logic. Neither retries on error, and there is no backoff, no attempt counter, and no retry on a transient failure.\nVERDICT: HIT\nWHY: The answer concludes the two calls are size negotiation rather than retry, noting no backoff, no attempt counter, and exactly two calls that always run."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Runs `entropic_run` for an async ask in a detached thread\nVERDICT: HIT\nWHY: The answer identifies the `run_async_ask` worker as running in a detached thread. It stays implicit that a detached thread has no join and outlives its caller, but it also lists the other helpers as joined, which sets this one apart."
+}

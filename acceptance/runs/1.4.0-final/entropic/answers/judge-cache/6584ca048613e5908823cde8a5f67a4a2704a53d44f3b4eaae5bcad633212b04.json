@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: This one uses a 256-byte stack buffer. Only if `llama_token_to_piece` returns negative (the piece is larger than 256 bytes) does it allocate the exact size and call again.\nVERDICT: HIT\nWHY: The answer states that detokenize tries a 256-byte stack buffer first and heap-allocates only on overflow. It also says tokenize always probes the size first, with a null buffer, before filling."
+}

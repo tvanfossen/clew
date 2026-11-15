@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: If the reply is large, the notice is compacted, and then reduced to \"stale \u2014 call status\" as a last resort.\nVERDICT: MISS\nWHY: It says the notice is compacted and then reduced to a short pointer, but it never says the wording is degraded to fit the budget while the warning is kept; that is a gesture, not the stated mechanism."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`MBEDTLS_THREADING_C` defaults off ... so every lock site in the library is `#if`'d out.\" and \"The library itself spawns nothing.\"\nVERDICT: MISS\nWHY: The answer says the library spawns no threads by default, but it lists the pthread example's `handle_ssl_connection` thread as a thread site and never says the pthread example compiles to a stub main under the default build."
+}

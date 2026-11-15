@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the library has no internal concurrency by default and describes the optional mutex layer. It never says that nothing in library/ creates a thread, and it never frames the mutex abstraction as something the library supplies for threaded callers."
+}

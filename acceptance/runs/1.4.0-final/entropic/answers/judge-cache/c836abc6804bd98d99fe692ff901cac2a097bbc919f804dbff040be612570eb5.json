@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"pinned against llama.cpp submodule b8420\", so the pin is a git submodule. The docs also cite `extern/llama.cpp/common/chat-peg-parser.cpp:442-443` ... which places the source at `extern/llama.cpp`.\nVERDICT: HIT\nWHY: The answer states llama.cpp is a git submodule located at extern/llama.cpp, though its opening line oddly says \"vendored source tree\"."
+}

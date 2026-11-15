@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: One entry per calling function. Five calls from one function is one caller.\nVERDICT: HIT\nWHY: The answer states that the surface returns one entry per neighbour (calling function), and that when several layers found the same edge the strongest one wins, which is the collapse to the strongest evidence the item asks for."
+}

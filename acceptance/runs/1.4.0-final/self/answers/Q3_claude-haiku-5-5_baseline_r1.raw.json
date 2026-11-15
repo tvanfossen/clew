@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 35497,
+  "stop_reason": "end_turn",
+  "session_id": "32d3b196-adab-469d-a149-017a7ad3668a",
+  "total_cost_usd": 0.0253321,
+  "usage": {
+    "input_tokens": 22,
+    "cache_creation_input_tokens": 77133,
+    "cache_read_input_tokens": 706080,
+    "output_tokens": 5685,
+    "output_tokens_details": {
+      "thinking_tokens": 1657
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 77133,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2677,
+        "cache_read_input_tokens": 91728,
+        "cache_creation_input_tokens": 1021,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1021
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 22,
+      "outputTokens": 5685,
+      "cacheReadInputTokens": 706080,
+      "cacheCreationInputTokens": 77133,
+      "webSearchRequests": 0,
+      "costUSD": 0.0253321,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1657,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 77133,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 16,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** the index does not track its own currency. Each `db_status` call re-measures it from scratch against three independent signals. Each signal is turned into a notice with a named remedy. The server then acts on that differently for each axis: it auto-refreshes for data drift, refuses writes when its own code is stale, and leaves schema mismatches to the caller.\n\n## How it knows\n\nEach call to `db_status` (`clew/mcp_server/state.py`, ~1140) computes:\n\n| Axis | Measured by | Stale when | Cleared by |\n|---|---|---|---|\n| **data** | `_source_drift` (state.py ~823): stats each indexed source file (`path` rows with `type=1`) and compares its mtime to the db's mtime | any indexed file is newer than the db | rebuild |\n| **schema** | `build_version` vs `CLEW_BUILD_VERSION` | stamped version \u2260 expected | rebuild if the index is older; **restart the client** if the index is newer (a rebuild re-stamps the same newer version) |\n| **code** | `code_identity()` (freshness.py ~221): content hash of the package's `.py` files now vs. the hash taken at process import | the two fingerprints differ | restart the client only |\n\n`stale` is true if the db is missing, the version differs, or `changed > 0`. Each axis is interpreted into a `{axis, message}` notice in `freshness.notices()` (freshness.py ~573), ordered data \u2192 schema \u2192 code. The notices are empty when the index is current, and the `staleness` key is omitted entirely in that case.\n\n## What it tells the caller\n\n- **Query replies:** `QueryTools._staleness` (tools_query.py ~1884) attaches the notices as a `staleness` key on every reply, including not-found replies. It shrinks the prose to fit the response budget but keeps the axis tokens. When data or schema staleness is present, `_withdraw_definitive` (tools_query.py ~257) removes the \"definitely absent\" claim, because a miss may just mean the index predates the code.\n- **`status`:** the same fields are exposed directly, with a `refresh` block giving the measured cost of the last refresh, so the data notice can quote a real duration.\n- **Refusals:** write paths return `REFUSED: \u2026` with the remedy when the process is stale (`stale_code_refusal`, freshness.py ~531).\n\n## What the caller does about it\n\nThe server does most of the work itself:\n\n1. **Before each query** (`_auto_refresh`, server.py ~1242): if the data axis is stale and the process matches its source, it runs a rebuild under a per-repo lock. The lock wait is bounded at 120 s, and the build re-checks staleness inside the lock so concurrent queries deduplicate into one build. A failed build degrades to answering from the stale index, with the notice attached.\n2. **Between queries** (`keep_current` \u2192 `refresh_touched`, server.py ~1506\u20131538): every 15 s (`CLEW_REFRESH_INTERVAL`, 0 disables) it re-checks the session's touched indexes and rebuilds any that are data-stale. This moves the refresh cost off the next query.\n3. **Explicit** `index(action='refresh')` (server.py ~2196): skips if fresh unless `force=True`. It refuses outright when the process predates its source, and `force` cannot override that.\n\nThe agent's job is therefore mostly to read the `staleness` block and, for `schema` or `code`, do what the message says: restart the MCP client, or call `refresh(force=True)` for an older index.\n\n## Gaps I found reading the code (not run)\n\n- **Schema-older indexes are not auto-refreshed.** `_data_stale` only looks at the data axis, so an older-version index with no source edits is flagged but never rebuilt automatically. The caller must call `refresh(force=True)`.\n- **Deleted and new files are invisible to the data axis.** `_source_drift` iterates only paths already in the index, and it skips files it cannot stat (`except OSError: continue`). A file added to the tree is never counted, and a deleted file doesn't raise staleness.\n- **The data axis still uses mtime, while the code axis uses content.** `freshness.source_fingerprint` was changed to hash content because mtime fires on `git checkout` and `touch`. `_source_drift` still compares mtimes, so a checkout that rewrites a file with identical bytes can flag the index stale and trigger a rebuild. The rebuild is incremental, so the cost is small, but the inconsistency is there.",
+  "ttft_ms": 1573,
+  "type": "result",
+  "duration_ms": 36868,
+  "uuid": "311ae3f5-948f-425a-9666-e69a4e28ad09",
+  "ttft_stream_ms": 1239,
+  "time_to_request_ms": 149,
+  "first_content_frame_ms": 1239,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

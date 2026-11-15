@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the dependency reaches \"narrowly, and mostly in one directory,\" which contradicts the item's claim that it reaches roughly a dozen of entropic's own files. It never gives a count near a dozen, and the files it lists are fewer and framed as narrow."
+}

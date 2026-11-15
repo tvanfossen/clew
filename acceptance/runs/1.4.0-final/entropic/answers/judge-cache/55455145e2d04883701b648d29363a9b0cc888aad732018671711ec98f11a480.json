@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"run via `inv gen-bindings`; a pre-commit `gen-bindings-check` hook fails on drift\"\nVERDICT: HIT\nWHY: The answer states a pre-commit hook (`gen-bindings-check`) catches drift between the generated bindings and the header. It does not say outright that the hook re-runs the generator and diffs. That is the clear implication of a check on the output of `scripts/gen_bindings.py`, so I treat the substance as stated."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer ties the confidence wording to the corpus and result shape (symbols vs code). It never says the strong wording is earned per call by checking which corpora went unread."
+}

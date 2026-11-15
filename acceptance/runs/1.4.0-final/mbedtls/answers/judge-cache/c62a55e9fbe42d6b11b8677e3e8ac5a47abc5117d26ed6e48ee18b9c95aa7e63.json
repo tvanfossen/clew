@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "ITEMS:\nscripts/generate_errors.pl\ninclude_dir\ndata_dir\nlibrary/error.c\ninclude/mbedtls/aes.h\nEND"
+}

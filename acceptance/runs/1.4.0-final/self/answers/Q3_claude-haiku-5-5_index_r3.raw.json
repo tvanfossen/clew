@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 18729,
+  "stop_reason": "end_turn",
+  "session_id": "c847fa49-74c0-4ba1-944d-0bea42842c58",
+  "total_cost_usd": 0.010887620000000002,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 33257,
+    "cache_read_input_tokens": 283302,
+    "output_tokens": 2804,
+    "output_tokens_details": {
+      "thinking_tokens": 824
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 33257,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1767,
+        "cache_read_input_tokens": 65777,
+        "cache_creation_input_tokens": 5920,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 5920
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 2804,
+      "cacheReadInputTokens": 283302,
+      "cacheCreationInputTokens": 33257,
+      "webSearchRequests": 0,
+      "costUSD": 0.010887620000000002,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 824,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 33257,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 8,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The index knows it is stale by comparing three independent facts, reports each one as its own \"axis\" with a remedy, and the query path refreshes on its own in the common case. Nothing in the query path makes the caller act on a notice unless it is a rebuild the server cannot perform.\n\n**How it knows.** `db_status` in `clew/mcp_server/state.py` (`db_status`, ~L1140) computes `stale = not exists OR build_version != CLEW_BUILD_VERSION OR source_changed_files > 0`. The three inputs are:\n\n- **Data:** `_source_drift` compares the indexed sources against the working tree, giving `source_changed_files` and `newest_changed_source`.\n- **Schema:** the build version stamped in the database versus the pipeline version in this process.\n- **Code:** `code_identity()` in `freshness.py` compares the process's import-time `PROCESS_SOURCE_FINGERPRINT` against the source fingerprint on disk. This catches the server running old logic after a fix, a case the index cannot see by looking at its own data.\n\n**What it tells the caller.** `notices()` (`freshness.py:575`) turns those into a list of `{axis, message}`, ordered data, schema, code. Each message says what to do:\n\n| Axis | Trigger | Message's advice | Clears it? |\n|---|---|---|---|\n| `data` | sources changed | `index(action='refresh')`, with the measured cost from the last build | yes, a rebuild |\n| `schema` | index built by a newer pipeline than this process | rebuild, *unless* the index is newer than the server | only if the index is older than the server |\n| `code` | process predates the source tree | restart the MCP client; rebuilding will not help | no, a restart |\n\nThe schema notice's direction matters. If the index is newer than the server, a rebuild re-stamps the same newer version and never clears the flag. The code notice says the query data is current even though the logic is old.\n\nThe annotation is attached to replies by `_staleness` / `answering` in `server.py` and `tools_query.py`, so each query reply carries `staleness` only when there is something to report. `status` also reports `stale` and the interpretation fields. A current index gets no notice at all.\n\n**What the caller does.** The tool does most of the work itself:\n\n- `_auto_refresh` (`server.py:1242`) runs before a query. If `_data_stale` is true it calls `_refresh_stale`, which takes a bounded per-repository build lock and re-checks inside it, so concurrent queries produce one build. If the index does not exist, it starts a background build.\n- `_data_stale` returns false if the process predates its source, so an auto-refresh never writes an index with old logic.\n- If the refresh fails or the lock wait times out, the query answers from the existing index and the `staleness` notice stays attached. The design goal is that a stale answer with a warning beats an error.\n- `build_or_refresh` (`server.py:2199`) is the explicit path. It skips when the index is already current (unless `force=True`), and it returns a measured `duration_ms`. `stale_code_refusal` blocks writes from a stale process and ignores `force`. The remedy is a client restart, then `index(action='refresh', force=True)`.\n\nA caller that ignores the notices still gets correct data for the data axis, because the query refreshes first. For the schema and code axes, the caller must act: restart the client, or rebuild only when the schema direction is \"server older than index\" is not the case.\n\n**Current state here.** `index(action='status')` on this repository reports `stale: false`, `source_changed_files: 0`, build version 9 matching expected 9, and `matches_source: true`, so no notices are attached right now. One oddity I did not resolve: dossier flags `anchor_mismatch: true` on several symbols (`notices`, `check_version_staleness`, `build_or_refresh`, `_staleness`), meaning their recorded line ranges no longer match the source even though the index reports no drift. I did not verify whether that is a line-range bookkeeping issue or something else.",
+  "ttft_ms": 1546,
+  "type": "result",
+  "duration_ms": 21635,
+  "uuid": "10fe2704-5b2d-4fb0-b021-5386f8b14ddb",
+  "ttft_stream_ms": 1204,
+  "time_to_request_ms": 91,
+  "first_content_frame_ms": 1204,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

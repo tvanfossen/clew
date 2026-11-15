@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"It is the only thing that writes the pointers, and the only caller in the library is the memory-buffer allocator.\" and \"`mbedtls_memory_buffer_alloc_init(buf, len)` ... installs its own `buffer_alloc_calloc` / `buffer_alloc_free`, or the `_mutexed` variants when `MBEDTLS_THREADING_C` is on, through `mbedtls_platform_set_calloc_free`.\"\nVERDICT: HIT\nWHY: The answer says the memory-buffer allocator is the only in-library caller of the setter and that its init function installs its own calloc/free through it."
+}

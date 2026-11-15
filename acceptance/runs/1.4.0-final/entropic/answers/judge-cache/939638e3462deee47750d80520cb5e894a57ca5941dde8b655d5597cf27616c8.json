@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The allow list only skips the prompt. It doesn't grant anything by itself beyond skipping the callback.\nVERDICT: HIT\nWHY: The answer states the allow list suppresses the approval prompt without granting execution, and shows it is consulted only within check_approval (tool_executor.cpp), with deny enforced separately in server_manager.cpp."
+}

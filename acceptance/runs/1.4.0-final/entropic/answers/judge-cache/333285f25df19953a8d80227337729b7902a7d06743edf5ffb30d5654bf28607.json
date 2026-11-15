@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says a registered callback always approves, but it also says a call is denied when no callback is registered. It never concludes that a tool matching neither list simply runs, so default-allow is not stated."
+}

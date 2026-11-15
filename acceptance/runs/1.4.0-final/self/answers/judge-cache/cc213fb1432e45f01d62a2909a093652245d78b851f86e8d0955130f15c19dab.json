@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says a containment call was removed; it only notes that Nested git trees are \"indexed, not excluded\" and a stale docstring, with no removal-versus-dropped-callers statement."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Turn a int or atomic cancel flag into a value the backend polls, roughly every 10ms\nVERDICT: MISS\nWHY: The answer mentions pollers converting an atomic/int flag but never states that the thread exists because the C ABI boundary cannot carry an atomic."
+}

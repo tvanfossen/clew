@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`programs/ssl/ssl_pthread_server.c:277` (`pthread_create`) | one thread per TLS connection | refuses to build unless `MBEDTLS_THREADING_C` and `MBEDTLS_THREADING_PTHREAD` are set (line 24)\"\nVERDICT: HIT\nWHY: The answer names both MBEDTLS_THREADING_C and MBEDTLS_THREADING_PTHREAD as the macros that gate the pthread server build, and also describes THREADING_C as gating all mutexes."
+}

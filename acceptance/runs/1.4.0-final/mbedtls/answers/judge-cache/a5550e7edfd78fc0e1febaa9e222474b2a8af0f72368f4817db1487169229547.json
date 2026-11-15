@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never states that the macro is used at hundreds of sites, mostly in public headers. It says the index shows only two callers and that the library's .c files use it."
+}

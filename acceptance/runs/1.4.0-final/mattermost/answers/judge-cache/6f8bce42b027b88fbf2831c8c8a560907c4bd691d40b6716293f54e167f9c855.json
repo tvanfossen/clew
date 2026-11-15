@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Each one also exports a `XHandlerMix` interface. The `interface ServerDataOperator extends ...Mix` block merges those types in so TypeScript sees the methods on the final class.\nVERDICT: HIT\nWHY: The answer states that a same-named `ServerDataOperator` interface extends each handler's Mix type, so TypeScript sees the mixed-in methods on the class."
+}

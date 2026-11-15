@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `HandleLogScope` is carried into the worker and per-client threads (gh#59), so their logs land in the owning handle's session log.\nVERDICT: MISS\nWHY: The answer says the scope is carried into some threads, but it doesn't say that every thread body installs it as its first statement."
+}

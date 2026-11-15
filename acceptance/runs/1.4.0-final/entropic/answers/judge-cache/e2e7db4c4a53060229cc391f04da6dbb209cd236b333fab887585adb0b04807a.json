@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"|      |- do_count_tokens       -> 0\\n      |   -> InferenceBackend::count_tokens -> 0\\n      |   -> entropic_inference_count_tokens -> 0   (C API: no error signal)\" and \"Counting returns 0 to the C API caller, which is indistinguishable from a real empty count.\"\nVERDICT: HIT\nWHY: The answer states that the token-counting path returns 0 on failed tokenization with no error signal, matching the item."
+}

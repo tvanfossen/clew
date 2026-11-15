@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_ct_compiler_opaque(x)` is `asm volatile(\"\" : \"+r\"(x))` where assembly is available. Otherwise it is `x ^ mbedtls_ct_zero`, where `mbedtls_ct_zero` is a `volatile` zero, so the optimiser cannot prove the value.\nVERDICT: HIT\nWHY: The answer gives the empty `asm volatile(\"\" : \"+r\"(x))` with an input-output register operand and says it is an opacity barrier against optimiser reasoning, which covers the item's substance."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: For YAML and JSON it holds only a file-set entry: the file can be named, but nothing inside it is indexed. ... `.yaml` `.yml` `.json` | `path` row only ... `dossier('requirements.yaml')` returns the file with `symbol_count: 0`. Keys are not symbols, by design.\nVERDICT: HIT\nWHY: The answer says YAML/JSON are registered as file-set path rows with zero symbols, in contrast to shell/CMake, which get function and macro rows."
+}

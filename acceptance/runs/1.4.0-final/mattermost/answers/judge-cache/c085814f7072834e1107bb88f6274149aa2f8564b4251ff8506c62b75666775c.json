@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never mentions `Header` from `navigation_header/header.tsx` or says its renderers are excluded. Its list includes `app/screens/channel/header/header.tsx`, which is a different file, and it doesn't separate the two components."
+}

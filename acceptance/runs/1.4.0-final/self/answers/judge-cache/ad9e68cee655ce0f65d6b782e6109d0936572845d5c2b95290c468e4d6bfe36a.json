@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `enumerate_tree` (`treescan.py:203`) is deliberately not extension-filtered. It hashes every file under the roots so that any change forces a re-run.\nVERDICT: MISS\nWHY: The answer says nothing is extension-filtered and never names the parse-built front end for doxygen-unreadable types or binary classification dropping files with misleading extensions."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"because the callback sets `approved = true` unconditionally, the default-deny described in `permission_manager.h` only holds for consumers with no `on_tool_call` callback. For any consumer that wires one, the allow list has no effect on approval, and only the deny list gates execution.\"\nVERDICT: HIT\nWHY: The answer says that when a callback is registered, only the deny list blocks a call, so a tool on neither list runs. It states this for callback consumers rather than as the universal posture, and I graded that as enough for the item."
+}

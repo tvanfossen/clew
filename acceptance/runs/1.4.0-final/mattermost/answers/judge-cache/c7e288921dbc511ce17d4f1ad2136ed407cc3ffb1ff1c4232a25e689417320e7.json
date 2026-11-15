@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **`AppDataOperator`**, which also extends `BaseDataOperator` (the app database, not the server database).\nVERDICT: HIT\nWHY: The answer names AppDataOperator as another BaseDataOperator subclass for the app database, listed among the users of the shared `batchRecords` write path."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: In `include/mbedtls/private_access.h:15`, the default expansion is `private_##member`\nVERDICT: HIT\nWHY: The answer places the MBEDTLS_PRIVATE definition in include/mbedtls/private_access.h, citing the file and line and describing the mechanism."
+}

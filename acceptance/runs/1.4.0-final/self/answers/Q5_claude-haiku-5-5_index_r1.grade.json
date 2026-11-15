@@ -1,0 +1,143 @@
+{
+  "cell": "Q5_claude-haiku-5-5_index_r1",
+  "arm": "index",
+  "rubric_version": "5.0.0",
+  "rubric_digest": "d8447c7b18eafbf5",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.4074074074074074,
+  "unmarked_pct": 0.0,
+  "split_decisions": 0,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "identifies that layered build options resolve through FIVE named precedence tiers, rather than a single override",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: | 1 | Explicit: CLI flag, or the `options` mapping an embedding caller passes | ... | 5 | Heuristics: name-pattern guesses | Floor; displaced by any stated tier | | WHY: The answer lays out five named precedence tiers (explicit, declared, target facts, ecosystem signatures, heuristics) and the resolution formula across them. || QUOTE: | 1 | Explicit: CLI flag, or the `options` mapping an embedding caller passes | ... | 5 | Heuristics: name-pattern guesses | Floor; displaced by any stated tier | | WHY: The answer lays out five named precedence tiers (explicit, declared, target facts, ecosystem signatures, heuristics) with a resolution formula, not a single override.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that the rule is ASYMMETRIC \u2014 the stated tiers REPLACE one another while the discovered layers ACCUMULATE and survive whatever anyone states",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: The resolved value is `(tier1 or tier2 or tier5) \u222a tier3 \u222a tier4`. Facts and ecosystem entries are never discarded. Guesses are discarded as soon as anyone states something. | WHY: The answer states that stated tiers replace each other while the target-fact and ecosystem layers accumulate and are never discarded. || QUOTE: The resolved value is `(tier1 or tier2 or tier5) \u222a tier3 \u222a tier4`. Facts and ecosystem entries are never discarded. Guesses are discarded as soon as anyone states something. | WHY: The answer states that stated tiers replace one another while facts and ecosystem layers accumulate and are never discarded. || QUOTE: The resolved value is `(tier1 or tier2 or tier5) \u222a tier3 \u222a tier4`. Facts and ecosystem entries are never discarded. Guesses are discarded as soon as anyone states something. | WHY: The answer states that stated tiers replace each other while the discovered layers (target facts, ecosystem signatures) accumulate and are never discarded.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that tiers 3 and 4 combine IDENTICALLY, so the distinction between them is deliberately inert, and that the load-bearing line is fact-versus-guess",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: Facts and ecosystem entries are never discarded. Guesses are discarded as soon as anyone states something. | WHY: The answer gives both tiers 3 and 4 the same \"Accumulates\" combine rule and the formula, but never states that the distinction between them is deliberately inert, nor frames the load-bearing line as fact-versus-guess. || QUOTE: Facts and ecosystem entries are never discarded. Guesses are discarded as soon as anyone states something. | WHY: The answer lists tiers 3 and 4 as both \"Accumulates\" and gives a fact-versus-guess framing. It never states that the distinction between tiers 3 and 4 is deliberately inert, so that part of the item is absent. || QUOTE: Facts and ecosystem entries are never discarded. Guesses are discarded as soon as anyone states something. | WHY: The answer gives tiers 3 and 4 the same \"Accumulates\" treatment, but it never says the distinction between them is deliberately inert, and it never names fact-versus-guess as the load-bearing line (it only hints at it).",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies `.clew.yaml` as the repository's own standing declaration \u2014 tier 2, discovered from the repo root by BOTH entry points rather than plumbed per section",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: \"**`.clew.yaml`** is the repo's standing statement. Each section name is also the option name, so a section can be moved verbatim into an `options` mapping.\" and \"| 2 | Declared: the repo's `.clew.yaml` | Replaces the guesses |\" | WHY: The answer identifies `.clew.yaml` as tier 2 and the repo's standing declaration. It never says it is discovered from the repo root by both entry points (CLI and MCP/embedding), which the item requires. || QUOTE: \"**`.clew.yaml`** is the repo's standing statement. Each section name is also the option name, so a section can be moved verbatim into an `options` mapping.\" | WHY: The answer identifies `.clew.yaml` as the tier-2 standing declaration, but never says it is discovered from the repo root by both entry points (CLI and MCP/embedding) rather than plumbed per section. || QUOTE: \"**`.clew.yaml`** is the repo's standing statement. Each section name is also the option name, so a section can be moved verbatim into an `options` mapping.\" and \"| 2 | Declared: the repo's `.clew.yaml` | Replaces the guesses |\" | WHY: The answer identifies `.clew.yaml` as the tier 2 standing declaration but never states that it is discovered from the repo root by both entry points (CLI and MCP/embedding) rather than plumbed per section.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that tier 1 is reachable from BOTH entry points \u2014 a CLI flag and a structured options argument \u2014 so an embedding caller with no shell can still state the top tier",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"Explicit: CLI flag, or the `options` mapping an embedding caller passes (`clew/buildoptions.py`)\" and \"`options` mapping is how an MCP or embedding caller states tier 1, since the MCP server passes no CLI flags.\" | WHY: The answer states tier 1 is reachable via both a CLI flag and an options mapping, and that embedding/MCP callers use the mapping because they have no CLI flags. || QUOTE: \"Explicit: CLI flag, or the `options` mapping an embedding caller passes (`clew/buildoptions.py`)\" and \"`options` mapping is how an MCP or embedding caller states tier 1, since the MCP server passes no CLI flags.\" | WHY: The answer says tier 1 is reachable via a CLI flag or the structured options mapping, which lets an embedding or MCP caller with no shell state it. || QUOTE: \"Explicit: CLI flag, or the `options` mapping an embedding caller passes (`clew/buildoptions.py`)\" and \"`options` mapping is how an MCP or embedding caller states tier 1, since the MCP server passes no CLI flags.\" | WHY: The answer states tier 1 is reachable via both a CLI flag and an options mapping, with the options mapping serving embedding callers that have no CLI.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "notes that the option names an embedding caller states are the SAME WORDS as the declaration file's section names, and the same words the diagnostics use",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: Each section name is also the option name, so a section can be moved verbatim into an `options` mapping. | WHY: The answer states that the declaration file's section names are the same as the option names used in the embedding caller's `options` mapping. It does not say the diagnostics use the same words, but the item is judged HIT on the core substance. || QUOTE: Each section name is also the option name, so a section can be moved verbatim into an `options` mapping. | WHY: The answer states that the declaration file's section names are the same as the option names an embedding caller passes. It does not mention the diagnostics. The item's core point, that the names match, is stated. || QUOTE: Each section name is also the option name, so a section can be moved verbatim into an `options` mapping. | WHY: The answer states that the `.clew.yaml` section names are the same as the option names used in the embedding caller's `options` mapping, but it never says that the diagnostics use the same words. The item has two parts, and only the first is covered, so this is a borderline call. The \"section = option name\" substance is explicit, and I am grading it as the core of the item.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies that an unknown SECTION is refused by name against the allowed set rather than ignored, and gives the reason \u2014 an ignored section builds with defaults while reporting the declaration was honoured",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: A repo whose `.clew.yaml` uses a section unknown to the installed clew is refused outright. The refusal names the allowed set but not the likely cause | WHY: The answer says an unknown section is refused and names the allowed set, but it never gives the reason: an ignored section would build with defaults while reporting the declaration was honoured. || QUOTE: A repo whose `.clew.yaml` uses a section unknown to the installed clew is refused outright. The refusal names the allowed set but not the likely cause | WHY: The answer says an unknown section is refused with the allowed set named, but it never gives the reason (ignoring it would build with defaults while reporting the declaration was honoured). It gives that reasoning only for the `--scope` conflict. || QUOTE: A repo whose `.clew.yaml` uses a section unknown to the installed clew is refused outright. The refusal names the allowed set but not the likely cause | WHY: The answer says an unknown section is refused and names the allowed set, but it gives no reason that ignoring it would build with defaults while reporting the declaration honoured. It states that reason only for the `--scope` conflict.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies a SECOND refusal one level down \u2014 an unknown key INSIDE a well-named section \u2014 and that a correctly-spelled derived key is refused with its reason rather than as unknown",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: A repo whose `.clew.yaml` uses a section unknown to the installed clew is refused outright. | WHY: The answer only covers refusal of an unknown section name; it never mentions a second refusal for an unknown key inside a valid section, nor a correctly-spelled derived key refused with its reason. || QUOTE: A repo whose `.clew.yaml` uses a section unknown to the installed clew is refused outright. | WHY: The answer covers only an unknown top-level section being refused. It never describes a second refusal for an unknown key inside a well-named section, or a correctly-spelled derived key refused with its reason. || QUOTE: A repo whose `.clew.yaml` uses a section unknown to the installed clew is refused outright. | WHY: The answer only covers refusal of an unknown section, not an unknown key inside a valid section, nor a correctly-spelled derived key refused with its reason.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the winning tier is RECORDED with the index, and that the record is derived from the stored rows rather than stamped as a separate summary",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: The winning tier is recorded in `build_meta`, and only tier-1 statements are recorded for replay. | WHY: The answer says the winning tier is recorded in `build_meta`, but never says the record is derived from the stored rows instead of being stamped as a separate summary. || QUOTE: The winning tier is recorded in `build_meta`, and only tier-1 statements are recorded for replay. | WHY: The answer says the winning tier is recorded in build_meta but never says the record is derived from stored rows rather than stamped as a separate summary. || QUOTE: The winning tier is recorded in `build_meta`, and only tier-1 statements are recorded for replay. | WHY: The answer says the winning tier is recorded in `build_meta` but never says the record is derived from the stored rows rather than stamped as a separate summary.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide a build option's value \u2014 clew/tiers.py",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide a build option's value \u2014 clew/declaration.py",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": false,
+      "detail": "not named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide a build option's value \u2014 clew/buildoptions.py",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide a build option's value \u2014 precision",
+      "kind": "set_precision",
+      "weight": 1,
+      "hit": false,
+      "detail": "named 4 not in the set: ['.clew.yaml', 'clew/cli.py', 'clew/scope.py', 'tests/test_declaration.py']",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    }
+  ]
+}

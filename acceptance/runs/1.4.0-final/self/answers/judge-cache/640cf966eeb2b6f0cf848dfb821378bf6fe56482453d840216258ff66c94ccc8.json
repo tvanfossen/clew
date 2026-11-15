@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Unknown keys in an inline `options` manifest.** Refused. Silently ignoring them would report a statement as honoured when it was not.\nVERDICT: MISS\nWHY: The answer says unknown keys in the inline options manifest are refused, but not that unknown sections are refused by name against the allowed set, and it doesn't say that an ignored section would build with defaults."
+}

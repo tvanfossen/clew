@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the row is (caller, callee, source, confidence) and that the strongest layer wins when several found the same edge, but it never states that one row is stored per extraction layer, so the same edge is stored twice."
+}

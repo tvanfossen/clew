@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Compile-time, through the config. Define `MBEDTLS_PLATFORM_MEMORY` and point `MBEDTLS_PLATFORM_CALLOC_MACRO` / `MBEDTLS_PLATFORM_FREE_MACRO` at your functions... 2. **Runtime, through the setter.** Call `mbedtls_platform_set_calloc_free(calloc_func, free_func)`\"\nVERDICT: MISS\nWHY: The answer describes both a compile-time macro route and a runtime function-pointer setter, but it never says they are mutually exclusive. It also presents a muddled mix that includes the setter used with the memory-buffer allocator."
+}

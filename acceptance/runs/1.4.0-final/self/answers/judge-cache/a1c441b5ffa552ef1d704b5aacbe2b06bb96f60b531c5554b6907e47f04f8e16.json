@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says declared `index_scope` wins and an undeclared repo gets the whole repo, but it never says that every failure to find one (e.g., unusable or empty declaration) falls through to whole-repo indexing. It states the opposite for a declared section that yields no roots: \"rejected with a reason, not treated as absent.\""
+}

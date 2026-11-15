@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: derive_scope(root)                      clew/scope.py:639\n \u251c\u2500 declared index_scope: in .clew.yaml?  \u2192 use its roots, minus its excludes\n \u2502    (roots are taken at their word, never walked)\n \u2514\u2500 otherwise \u2192 whole_repo_scope(root)   clew/scope.py:683\n\nVERDICT: HIT\nWHY: The answer names derive_scope in clew/scope.py as the entry point that resolves the scope (declared vs whole-repo)."
+}

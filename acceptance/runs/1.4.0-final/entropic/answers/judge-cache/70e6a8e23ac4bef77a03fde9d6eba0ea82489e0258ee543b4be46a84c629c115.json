@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"12 files under `src/` and `tests/` include `<llama.h>`, `<common.h>`, `<chat.h>`, `<sampling.h>`, `<speculative.h>`, `<mtmd.h>`, or `<mtmd-helper.h>`.\"\nVERDICT: HIT\nWHY: The answer states that 12 files of entropic's own source/tests include llama headers, and it lists many users rather than a single wrapper."
+}

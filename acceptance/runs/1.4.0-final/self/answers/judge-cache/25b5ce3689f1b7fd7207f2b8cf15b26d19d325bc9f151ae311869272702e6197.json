@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE on unknown sections. The closest line is \"Unknown sub-index names are refused rather than ignored, and only `excludes` is accepted.\"\nVERDICT: MISS\nWHY: The answer covers refusal of unknown sub-index names, not unknown `.clew.yaml` sections refused against the allowed set. It also gives no reason about building with defaults while reporting the declaration was honoured."
+}

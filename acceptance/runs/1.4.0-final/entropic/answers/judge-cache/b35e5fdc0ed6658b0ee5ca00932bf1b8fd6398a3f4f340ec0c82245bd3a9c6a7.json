@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The allow list (or `auto_approve`) skips the prompt.\nVERDICT: MISS\nWHY: The answer says the allow list skips the prompt and puts the check in `check_approval`, but it never says the allow list does not grant execution. It also describes the deny check in `ServerManager::execute` and doesn't say that the allow list is consulted only from `check_approval`."
+}
