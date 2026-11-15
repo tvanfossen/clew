@@ -6,8 +6,14 @@ network). One column per lane with a lifeline, one arrow per step in order, the 
 written as a `[loop]`/`[if]` prefix on its label. Deliberately plain: a picture a browser renders
 offline from the HTML file alone.
 
-@brief Render a Flow as SVG.
-@version 1
+ANIMATED (W12): `animate=True` plays the diagram in call order — each step's arrow draws itself
+and its label fades in, one step after another, then the diagram holds complete. It is CSS inside
+the SVG (`stroke-dashoffset` over a `pathLength="1"` path, `animation-delay` per step): no script,
+no library, nothing fetched. `prefers-reduced-motion` shows the finished diagram at once, and the
+final frame IS the static diagram, so nothing is lost where animation does not run.
+
+@brief Render a Flow as SVG, optionally animated.
+@version 2
 """
 
 from __future__ import annotations
@@ -19,14 +25,26 @@ from .flow import Flow
 _COL = 200
 _ROW = 30
 _TOP = 60
+## Seconds between two steps of an animated diagram.
+STEP_SECONDS = 0.7
+_ANIMATION = (
+    "<style>.cs{opacity:0;animation:cs-in .3s ease-out forwards}"
+    ".cs .ca{stroke-dasharray:1;stroke-dashoffset:1;animation:cs-draw .45s ease-in-out forwards;"
+    "animation-delay:inherit}"
+    "@keyframes cs-in{to{opacity:1}}@keyframes cs-draw{to{stroke-dashoffset:0}}"
+    "@media (prefers-reduced-motion:reduce){.cs,.cs .ca{animation:none;opacity:1;"
+    "stroke-dashoffset:0}}</style>"
+)
 
 
 ## @brief The flow as an SVG document fragment.
 ## @param flow A derived flow.
+## @param animate Play the steps in call order (CSS only), holding the complete diagram at the end.
 ## @return SVG markup.
-## @version 1
-## @req REQ-DDB-WIKI-003
-def flow_svg(flow: Flow) -> str:
+## v2: `animate` (W12).
+## @version 2
+## @req REQ-DDB-WIKI-008
+def flow_svg(flow: Flow, animate: bool = False) -> str:
     """@brief Draw lanes, lifelines and one arrow per step. @return SVG text."""
     lanes = [lane.id for lane in flow.lanes]
     x = {lane: _COL // 2 + i * _COL for i, lane in enumerate(lanes)}
@@ -36,6 +54,8 @@ def flow_svg(flow: Flow) -> str:
         f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
         f'font-family="sans-serif" font-size="12">'
     ]
+    if animate:
+        parts.append(_ANIMATION)
     for lane in lanes:
         parts.append(
             f'<rect x="{x[lane] - 90}" y="10" width="180" height="26" fill="#eef" stroke="#557"/>'
@@ -49,19 +69,37 @@ def flow_svg(flow: Flow) -> str:
         frames = "".join(f"[{f.kind}]" for f in step.frames)
         label = escape(f"{frames} {step.callee}".strip())
         if x1 == x2:
-            parts.append(
-                f'<path d="M{x1} {y} h40 v12 h-40" fill="none" stroke="#333"/>'
-                f'<text x="{x1 + 46}" y="{y + 10}">{label}</text>'
+            shape = (
+                f'<path class="ca" pathLength="1" d="M{x1} {y} h40 v12 h-40" fill="none" '
+                f'stroke="#333"/><text x="{x1 + 46}" y="{y + 10}">{label}</text>'
             )
         else:
-            mid = (x1 + x2) // 2
-            parts.append(
-                f'<line x1="{x1}" y1="{y}" x2="{x2}" y2="{y}" stroke="#333"/>'
+            shape = (
+                f'<path class="ca" pathLength="1" d="M{x1} {y} H{x2}" stroke="#333"/>'
                 f'<circle cx="{x2}" cy="{y}" r="3" fill="#333"/>'
-                f'<text x="{mid}" y="{y - 4}" text-anchor="middle">{label}</text>'
+                f'<text x="{(x1 + x2) // 2}" y="{y - 4}" text-anchor="middle">{label}</text>'
             )
+        parts.append(_step_group(i, step.caller, step.callee, shape, animate))
     parts.append("</svg>")
     return "".join(parts)
+
+
+## @brief One step's group: titled for hover, delayed by its position when animated.
+## @param index The step's position.
+## @param caller The caller's name.
+## @param callee The callee's name.
+## @param shape The step's arrow and label markup.
+## @param animate Whether the diagram is animated.
+## @return SVG markup.
+## @version 1
+## @dg_internal
+def _step_group(index: int, caller: str, callee: str, shape: str, animate: bool) -> str:
+    """@brief Wrap a step. @return SVG text."""
+    title = f"<title>{index + 1}. {escape(caller)} → {escape(callee)}</title>"
+    if not animate:
+        return f"<g>{title}{shape}</g>"
+    delay = f"{index * STEP_SECONDS:.2f}s"
+    return f'<g class="cs" style="animation-delay:{delay}">{title}{shape}</g>'
 
 
 ## @brief A lane label short enough for its box.

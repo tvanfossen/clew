@@ -21,6 +21,7 @@ from .checks import (
     check_duplicate_tags,
     check_file_presence,
     check_presence,
+    check_bus_tags,
     check_req_coverage,
     check_req_exists,
     check_return_presence,
@@ -161,7 +162,8 @@ def _add_files_parser(subparsers: argparse._SubParsersAction) -> None:
 #  caller can report what it did not check. A `validate.exclude` match is NOT recorded:
 #  that pattern is stated in the gate's own config, in front of the owner reading it,
 #  where `toolchain.toml` is a statement made for every tool in the repo.
-#  @version 1.14
+#  @details v1.15: runs the bus-tag rule (W10).
+#  @version 1.15
 #  @req REQ-DDB-GUARD-001
 def validate_file(
     file_path: str,
@@ -207,6 +209,8 @@ def validate_file(
         violations.extend(check_return_presence(functions, file_path, config, content))
     violations.extend(check_tags(functions, file_path, config))
     violations.extend(check_req_coverage(functions, file_path, config))
+    if content is not None:
+        violations.extend(check_bus_tags(functions, file_path, config, content.splitlines()))
     for func in functions:
         violations.extend(check_unknown_tags(func, file_path, config))
         violations.extend(check_duplicate_tags(func, file_path, config))

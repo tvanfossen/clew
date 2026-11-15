@@ -218,6 +218,7 @@ CONFIG_SCHEMA: dict[str, Any] = {
         "known_tags_warn": bool,
         "duplicate_tags_error": bool,
         "version_gate": {"current_version": str, "version_field": str},
+        "bus": {"tags": list, "vocabulary": list, "handlers": list, "senders": list},
     },
     "impact": {
         "requirements": {

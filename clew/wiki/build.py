@@ -11,11 +11,20 @@ AUDIENCES ARE A PROPERTY OF THE BUILD (W6). `--audience NAME` applies that audie
 `wiki.audiences`: `exclude_bodies` writes no function body anywhere, `exclude_requirement_text`
 no requirement titles. The tests assert redaction on the rendered HTML, not on a flag.
 
+The trace page carries the W7–W9 targets: the nodes a requirement's model entries name, the
+external rules that map onto requirements (rule → requirement → function → test), each pinned
+sub-catalog's rows at their pin, and mutation outcomes. A `nodes` page lists every external node
+with the functions that realise it.
+
+VERSION-KEYED SITES (W11): `version=KEY` writes the site to `<out>/<KEY>/html`, records a snapshot
+of what it traced (`<out>/<KEY>/site.json`), and refreshes `<out>/versions.json` and the
+`<out>/index.html` that lists every version — see `clew.wiki.versions`.
+
 Sphinx is imported only inside `_render`, so the rest of `clew.wiki` — `check` above all — runs
 without the extra installed.
 
 @brief Generate and render the wiki site.
-@version 1
+@version 2
 """
 
 from __future__ import annotations
@@ -28,37 +37,135 @@ from .config import Audience, FlowSpec, WikiConfig, load_wiki_config
 from .flow import Flow, derive_flow
 from .svg import flow_svg
 
+## Markdown table cells may not carry a bare pipe or newline.
+_CELL = str.maketrans({"|": "\\|", "\n": " "})
+
 
 ## @brief Build the site for a repository.
 ## @param repo_root The repository.
 ## @param db Its index.
 ## @param out_dir Output directory; `<out_dir>/html` is the site.
 ## @param audience An audience name from `wiki.audiences`, or None for the full site.
+## @param version A version key: the site goes to `<out>/<key>/` and is listed in `<out>`.
+## @param config_path A file whose `wiki:` section applies instead of the repository's.
 ## @return The rendered site's directory.
-## @version 1
+## v2: nodes page, rules / catalogs / mutations on the trace, version-keyed output, config_path.
+## @version 2
 ## @req REQ-DDB-WIKI-003
-def build_wiki(repo_root: Path, db: Path, out_dir: Path, audience: str | None = None) -> Path:
+def build_wiki(
+    repo_root: Path,
+    db: Path,
+    out_dir: Path,
+    audience: str | None = None,
+    version: str | None = None,
+    config_path: Path | None = None,
+) -> Path:
     """REFUSES rather than degrades: an invalid section, an unknown audience or a missing extra is
     an error naming itself, never a partial site that looks complete.
 
     @brief Write and render the site.
     @return The HTML directory.
-    @version 1
+    @version 2
     """
+    from .versions import record_version, valid_key
+
     repo_root, out_dir = Path(repo_root), Path(out_dir)
-    config, problems = load_wiki_config(repo_root)
+    config, problems = load_wiki_config(repo_root, config_path)
     if problems:
         raise ValueError("wiki configuration problems: " + "; ".join(problems))
     rules = _audience(config, audience)
-    source = out_dir / "_source"
+    site_dir = out_dir / valid_key(version) if version else out_dir
+    source = site_dir / "_source"
     if source.exists():
         shutil.rmtree(source)
     source.mkdir(parents=True)
+    trace = _Trace.gather(repo_root, db, config)
     pages = _prose(repo_root, config, source)
     pages += [_flow_page(repo_root, db, spec, source, rules, config) for spec in config.flows]
-    pages.append(_requirements_page(repo_root, db, config, source, rules))
+    pages.append(_requirements_page(trace, config, source, rules))
+    if trace.nodes:
+        pages.append(_nodes_page(trace, source))
     _write_index(source, config.title, pages)
-    return _render(source, out_dir / "html", config.title)
+    html = _render(source, site_dir / "html", config.title)
+    if version:
+        record_version(out_dir, version, trace.snapshot(version, _commit(repo_root)), config.title)
+    return html
+
+
+## @brief Everything the trace page and the version snapshot are drawn from, gathered once.
+## @version 1
+class _Trace:
+    """@brief Evidence rows, nodes and their references, catalogs, rules. @version 1"""
+
+    ## @brief Hold the gathered parts.
+    ## @param evidence Requirement evidence rows.
+    ## @param nodes External nodes.
+    ## @param refs Node address → referencing functions.
+    ## @param catalogs Pinned catalog rows per catalog.
+    ## @param config The section (rules).
+    ## @dg_internal
+    ## @version 1
+    def __init__(self, evidence, nodes, refs, catalogs, config: WikiConfig) -> None:
+        """@brief Store. @return None."""
+        self.evidence = evidence
+        self.by_id = {r.req_id: r for r in evidence}
+        self.nodes = nodes
+        self.refs = refs
+        self.catalogs = catalogs
+        self.rules = config.rules
+
+    ## @brief Gather the trace for a repository.
+    ## @param repo_root The repository.
+    ## @param db The index.
+    ## @param config The section.
+    ## @return The trace.
+    ## v2: each catalog carries its pin problems, so the page states what `check` found.
+    ## @dg_internal
+    ## @version 2
+    @classmethod
+    def gather(cls, repo_root: Path, db: Path, config: WikiConfig) -> _Trace:
+        """@brief Read evidence, nodes and catalogs. @return Trace."""
+        from .catalogs import catalog_requirements, pin_problems
+        from .evidence import requirement_evidence
+        from .sources import load_nodes, node_references
+
+        evidence = requirement_evidence(
+            db,
+            junit=[repo_root / j for j in config.junit],
+            coverage=(repo_root / config.coverage) if config.coverage else None,
+            target_only=config.target_only,
+            mutations=(repo_root / config.mutations) if config.mutations else None,
+        )
+        nodes, _ = load_nodes(repo_root, config.sources)
+        catalogs = [
+            (spec, catalog_requirements(repo_root, spec)[0], pin_problems(repo_root, spec))
+            for spec in config.catalogs
+        ]
+        return cls(evidence, nodes, node_references(db), catalogs, config)
+
+    ## @brief The nodes that serve a requirement.
+    ## @param req_id The requirement.
+    ## @return Node addresses.
+    ## @dg_internal
+    ## @version 1
+    def nodes_for(self, req_id: str) -> list[str]:
+        """@brief Look up. @return Addresses."""
+        return [n.ref for n in self.nodes if req_id in n.requirements]
+
+    ## @brief The snapshot a version-keyed build records.
+    ## @param key The version key.
+    ## @param commit The commit described.
+    ## @return Plain data.
+    ## @dg_internal
+    ## @version 1
+    def snapshot(self, key: str, commit: str) -> dict:
+        """@brief Snapshot. @return Data."""
+        return {
+            "key": key,
+            "commit": commit,
+            "requirements": {r.req_id: r.tier for r in self.evidence},
+            "nodes": sorted(n.ref for n in self.nodes),
+        }
 
 
 ## @brief The rules for the requested audience.
@@ -113,7 +220,8 @@ def _prose(repo_root: Path, config: WikiConfig, source: Path) -> list[str]:
 ## @param rules The audience rules.
 ## @param config The section (for the link template).
 ## @return The page name.
-## @version 1
+## v2: the diagram animates unless the flow opts out (W12).
+## @version 2
 ## @dg_internal
 def _flow_page(
     repo_root: Path, db: Path, spec: FlowSpec, source: Path, rules: Audience, config: WikiConfig
@@ -133,7 +241,7 @@ def _flow_page(
         f"# {spec.title or 'Flow: ' + spec.entry}",
         "",
         "```{raw} html",
-        flow_svg(flow),
+        flow_svg(flow, animate=spec.animate),
         "```",
         "",
         "| # | caller | callee | frames | where |",
@@ -187,33 +295,126 @@ def _bodies(db: Path, repo_root: Path, flow: Flow) -> list[str]:
 
 
 ## @brief Write the requirement trace page.
-## @param repo_root The repository.
-## @param db The index.
+## @param trace The gathered trace.
 ## @param config The section.
 ## @param source The Sphinx source directory.
 ## @param rules The audience rules.
 ## @return The page name.
-## @version 1
+## v2: nodes and mutations per requirement; rules; pinned catalogs.
+## @version 2
 ## @dg_internal
-def _requirements_page(
-    repo_root: Path, db: Path, config: WikiConfig, source: Path, rules: Audience
-) -> str:
+def _requirements_page(trace: _Trace, config: WikiConfig, source: Path, rules: Audience) -> str:
     """@brief Render the trace. @return Page name."""
-    from .evidence import requirement_evidence
-
-    rows = requirement_evidence(
-        db,
-        junit=[repo_root / j for j in config.junit],
-        coverage=(repo_root / config.coverage) if config.coverage else None,
-        target_only=config.target_only,
-    )
-    lines = ["# Requirements", "", "| requirement | tier | title | tests |", "|---|---|---|---|"]
-    for row in rows:
-        title = "" if rules.exclude_requirement_text else row.title
+    lines = [
+        "# Requirements",
+        "",
+        "| requirement | tier | title | tests | nodes | mutations |",
+        "|---|---|---|---|---|---|",
+    ]
+    for row in trace.evidence:
+        title = "" if rules.exclude_requirement_text else _cell(row.title)
         tests = ", ".join(f"`{t}` ({s})" for t, s in row.tests)
-        lines.append(f"| {row.req_id} | **{row.tier}** | {title} | {tests} |")
+        nodes = ", ".join(f"`{n}`" for n in trace.nodes_for(row.req_id))
+        mutations = ", ".join(f"`{m}`→`{t}` {o}" for m, t, o in row.mutations or ())
+        lines.append(
+            f"| {row.req_id} | **{row.tier}** | {title} | {tests} | {nodes} | {mutations} |"
+        )
+    lines += _rules_section(trace, rules)
+    lines += _catalogs_section(trace, rules)
     (source / "requirements.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
     return "requirements"
+
+
+## @brief The rule → requirement → function → test chain.
+## @param trace The gathered trace.
+## @param rules The audience rules.
+## @return Markdown lines; [] when no rule is declared.
+## @version 1
+## @dg_internal
+def _rules_section(trace: _Trace, rules: Audience) -> list[str]:
+    """@brief Rules table. @return Lines."""
+    if not trace.rules:
+        return []
+    lines = [
+        "",
+        "## Rules",
+        "",
+        "| rule | status | title | requirement | tier | functions | tests |",
+        "|---|---|---|---|---|---|---|",
+    ]
+    for rule in trace.rules:
+        rule_id = f"[{rule.id}]({rule.url})" if rule.url else rule.id
+        title = "" if rules.exclude_requirement_text else _cell(rule.title)
+        for req_id in rule.requirements or ("",):
+            row = trace.by_id.get(req_id)
+            tier = row.tier if row else "MISSING"
+            impls = ", ".join(f"`{n}`" for n in (row.implementers if row else ()))
+            tests = ", ".join(f"`{t}` ({s})" for t, s in (row.tests if row else ()))
+            lines.append(
+                f"| {rule_id} | {rule.status} | {title} | {req_id} | **{tier}** | {impls} | {tests} |"
+            )
+    return lines
+
+
+## @brief Each pinned sub-catalog's rows, at their pin.
+## @param trace The gathered trace.
+## @param rules The audience rules.
+## @return Markdown lines; [] when no catalog is declared.
+## v2: states each catalog's pin problems.
+## @version 2
+## @dg_internal
+def _catalogs_section(trace: _Trace, rules: Audience) -> list[str]:
+    """@brief Catalog tables. @return Lines."""
+    lines: list[str] = []
+    for spec, rows, problems in trace.catalogs:
+        lines += [
+            "",
+            f"## Catalog `{spec.name}` at `{spec.pin}`",
+            "",
+            f"Read from `{spec.repo}/{spec.catalog}` at the pin, not the sibling's working tree.",
+            "",
+            *[f"**Check failure:** {_cell(p)}" + "\n" for p in problems],
+            "| requirement | title | tier here | functions here |",
+            "|---|---|---|---|",
+        ]
+        for req in rows:
+            row = trace.by_id.get(req.req_id)
+            title = "" if rules.exclude_requirement_text else _cell(req.title)
+            impls = ", ".join(f"`{n}`" for n in (row.implementers if row else ()))
+            lines.append(f"| {req.req_id} | {title} | {row.tier if row else '—'} | {impls} |")
+    return lines
+
+
+## @brief Write the external nodes page.
+## @param trace The gathered trace.
+## @param source The Sphinx source directory.
+## @return The page name.
+## @version 1
+## @dg_internal
+def _nodes_page(trace: _Trace, source: Path) -> str:
+    """@brief Render nodes. @return Page name."""
+    lines = [
+        "# Model nodes",
+        "",
+        "| node | doc | file | functions | requirements |",
+        "|---|---|---|---|---|",
+    ]
+    for node in trace.nodes:
+        funcs = ", ".join(f"`{f}`" for f in trace.refs.get(node.ref, ()))
+        reqs = ", ".join(node.requirements)
+        lines.append(f"| `{node.ref}` | {_cell(node.doc)} | `{node.file}` | {funcs} | {reqs} |")
+    (source / "nodes.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return "nodes"
+
+
+## @brief Text made safe for one Markdown table cell.
+## @param text The text.
+## @return Escaped text.
+## @version 1
+## @dg_internal
+def _cell(text: str) -> str:
+    """@brief Escape. @return Text."""
+    return text.translate(_CELL)
 
 
 ## @brief Write the root page with its toctree.

@@ -419,6 +419,70 @@ requirements:
     x-status: implemented
     x-evidence: clew/wiki/config.py, check.py, build.py, svg.py, command.py; clew/declaration.py
       SECTION_WIKI; tests/test_wiki_build.py (incl. redaction asserted on the rendered HTML).
+  REQ-DDB-WIKI-004:
+    subsystem: wiki
+    name: External model files are trace targets
+    acceptance_criteria: >-
+      `wiki.sources` declares JSON, TOML or YAML files by path, the dotted path to their items, and
+      the id, doc and requirement fields; a mapping's keys are its ids and a list names its id field.
+      Each entry is a node addressed `<source>:<id>` (clew.wiki.sources.load_nodes). A function
+      names the node it realises with `@node <source>:<id>`, read from the index (node_references).
+      A missing file, unknown format, unresolved items path or duplicated id is a named problem;
+      `clew wiki check` names a `@node` tag no source declares. The site lists every node with its
+      doc, the functions that reference it and the requirements it serves.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/sources.py, check.py, build.py; tests/test_wiki_trace_extensions.py.
+  REQ-DDB-WIKI-005:
+    subsystem: wiki
+    name: Sub-catalogs are traced at their pin, and external rules map onto requirements
+    acceptance_criteria: >-
+      `wiki.catalogs` names a sibling checkout, a pin and a catalog path; the catalog is read with
+      `git show <pin>:<path>` through the hardened git environment, never from the working tree.
+      `clew wiki check` names a pin that does not resolve and a catalog whose content at the
+      sibling's HEAD differs from the pin's (moved since the pin). `wiki.rules` maps external rule
+      ids onto requirements; a rule or a node naming a requirement nothing declares or tags is a
+      problem. The trace page shows rule -> requirement -> function -> test and each catalog's rows
+      at their pin.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/catalogs.py, check.py, build.py; tests/test_wiki_trace_extensions.py.
+  REQ-DDB-WIKI-006:
+    subsystem: wiki
+    name: Mutation records are reported per requirement
+    acceptance_criteria: >-
+      A mutation record (`wiki.tests.mutations`, `clew wiki trace --mutations`) is a list of
+      {mechanism, test, killed}; an entry missing a field is refused. Each record attaches to every
+      requirement its mechanism implements as (mechanism, test, killed|survived); the field is None
+      when no record was given. `clew wiki check` names a mechanism the index does not hold.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/evidence.py, check.py; tests/test_wiki_trace_extensions.py.
+  REQ-DDB-WIKI-007:
+    subsystem: wiki
+    name: Version-keyed sites and a diff between two versions
+    acceptance_criteria: >-
+      `clew wiki build --version KEY` writes the site to `<out>/<KEY>/html`, a snapshot of the
+      requirement tiers and node addresses to `<out>/<KEY>/site.json`, and refreshes
+      `<out>/versions.json` and a self-contained `<out>/index.html` listing every key. `clew wiki
+      diff --out DIR A B` prints nodes added and removed, requirements added and removed, and tier
+      changes as JSON, and writes `<out>/diff-A-B.html`. A key that cannot be a directory name, or
+      one never recorded, is refused.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/versions.py, build.py, command.py; tests/test_wiki_trace_extensions.py.
+  REQ-DDB-WIKI-008:
+    subsystem: wiki
+    name: A derived sequence diagram can play in call order, with no script or dependency
+    acceptance_criteria: >-
+      `flow_svg(flow, animate=True)` (and `clew wiki flow ENTRY --svg --animate`, and a site flow
+      unless `animate: false`) delays each step's group by its position in call order, draws its
+      arrow and fades in its label with CSS inside the SVG; it carries no script and references
+      nothing remote. `prefers-reduced-motion` shows the finished diagram at once, and the final
+      frame holds the same steps the static render draws.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/svg.py, config.py, build.py, command.py; tests/test_wiki_flow.py.
   REQ-DDB-SCHEMA-013:
     subsystem: schema
     name: Kconfig structure tables, created independently of the gating table
@@ -1394,6 +1458,18 @@ requirements:
       _is_rust_test_item, parser.py apply_autobrief, checks.py _require_return /
       _is_rust_unit_fn / _RUST_FILE_DOC_STARTS, config.py OPT_IN_LANGUAGE_DEFAULTS.
       tests/guard/test_guard_rust.py.'
+  REQ-DDB-GUARD-026:
+    subsystem: guard
+    name: Functions crossing a bus carry a bus tag, scoped by a configured vocabulary
+    acceptance_criteria: >-
+      With `validate.bus` declared, a documented function whose name matches a `handlers` glob or
+      whose body calls a `senders` name must carry one of the bus tags (`tags`, default emits /
+      handles / receives) or an exemption (@callback, @utility, @dg_internal); a sender itself is
+      not in scope. A bus tag whose first word is not in `vocabulary` is a violation. Configured
+      bus tags are known tags. Without `validate.bus` nothing is checked.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/guard/checks.py check_bus_tags; tests/guard/test_guard_bus.py.
   REQ-DDB-GUARD-025:
     subsystem: guard
     name: JavaScript and TypeScript (JSDoc) functions are gated when a repo declares them

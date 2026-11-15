@@ -5,8 +5,15 @@
                          [--stop-at NAME ...] [--index DB | --repo-root DIR]
 
     clew wiki trace [--junit X.xml ...] [--coverage cov.xml] [--target-only GLOB ...]
-    clew wiki check                      # validate the `wiki:` section; no Sphinx import
-    clew wiki build --out DIR [--audience NAME]   # render the site (needs clew-trace[wiki])
+    clew wiki trace ... [--mutations M.yaml]
+    clew wiki check [--config FILE]      # validate the `wiki:` section; no Sphinx import
+    clew wiki build --out DIR [--audience NAME] [--version KEY] [--config FILE]
+    clew wiki diff --out DIR FROM TO     # compare two version-keyed builds
+
+`--config FILE` reads that file's `wiki:` section instead of `<repo>/.clew.yaml`, so a repository
+can be documented without writing into it. `--version KEY` writes `<out>/<KEY>/` and lists it in
+`<out>/index.html`; `diff` prints the changes between two keys as JSON and writes
+`<out>/diff-FROM-TO.html`.
 
 `flow` prints the derived sequence flow (clew.wiki.flow) as JSON on stdout, stamped with
 `flow_version`; `trace` prints every requirement's evidence tier (clew.wiki.evidence), stamped
@@ -14,7 +21,7 @@
 (unknown entry or lane strategy; the reason on stderr).
 
 @brief The `clew wiki` subcommand.
-@version 3
+@version 4
 """
 
 from __future__ import annotations
@@ -34,7 +41,8 @@ WIKI_COMMAND = "wiki"
 ## @return The parser.
 ## v2: the `trace` verb.
 ## v3: `check` and `build`.
-## @version 3
+## v4: `diff`, `--version`, `--config`, `--mutations`, `flow --svg --animate`.
+## @version 4
 ## @dg_internal
 def _parser() -> argparse.ArgumentParser:
     """@brief Build the parser. @return Parser."""
@@ -51,23 +59,34 @@ def _parser() -> argparse.ArgumentParser:
     flow.add_argument("--index")
     flow.add_argument("--repo-root")
     flow.add_argument("--indent", type=int, default=None)
+    flow.add_argument("--svg", action="store_true", help="print the SVG diagram, not JSON")
+    flow.add_argument("--animate", action="store_true", help="with --svg: play the steps in order")
     trace = sub.add_parser("trace", help="requirement evidence from JUnit and Cobertura, as JSON")
     trace.add_argument("--junit", nargs="*", default=[], help="JUnit XML report(s)")
     trace.add_argument("--coverage", help="a Cobertura XML report")
     trace.add_argument(
         "--target-only", nargs="*", default=[], help="test-name globs needing hardware"
     )
+    trace.add_argument("--mutations", help="a mutation record: [{mechanism, test, killed}]")
     trace.add_argument("--index")
     trace.add_argument("--repo-root")
     trace.add_argument("--indent", type=int, default=None)
     check = sub.add_parser("check", help="validate the wiki: section against the index (no Sphinx)")
     check.add_argument("--index")
     check.add_argument("--repo-root")
+    check.add_argument("--config", help="a file whose wiki: section applies")
     build = sub.add_parser("build", help="render the site (needs clew-trace[wiki])")
     build.add_argument("--out", required=True, help="output directory; the site is <out>/html")
     build.add_argument("--audience", help="an audience from wiki.audiences")
+    build.add_argument("--version", help="a version key: the site goes to <out>/<key>/")
+    build.add_argument("--config", help="a file whose wiki: section applies")
     build.add_argument("--index")
     build.add_argument("--repo-root")
+    diff = sub.add_parser("diff", help="compare two version-keyed builds")
+    diff.add_argument("--out", required=True, help="the versioned output root")
+    diff.add_argument("old")
+    diff.add_argument("new")
+    diff.add_argument("--indent", type=int, default=None)
     return parser
 
 
@@ -76,13 +95,16 @@ def _parser() -> argparse.ArgumentParser:
 ## @return Exit status.
 ## v2: dispatches `trace` too.
 ## v3: and `check` / `build`.
-## @version 3
+## v4: and `diff`, which needs no index.
+## @version 4
 ## @req REQ-DDB-WIKI-001
 def wiki_main(argv: list[str]) -> int:
     """@brief Dispatch a wiki verb. @return Exit status."""
     from ..query_command import _locate
 
     args = _parser().parse_args(argv)
+    if args.verb == "diff":
+        return _diff(args)
     db, repo = _locate(args)
     if not db.is_file():
         sys.stderr.write(f"clew wiki: no index at {db} — build one with `clew --repo-root`\n")
@@ -90,26 +112,55 @@ def wiki_main(argv: list[str]) -> int:
     if args.verb in ("check", "build"):
         return _site(args, db, repo or Path.cwd())
     try:
-        payload = _flow(args, db, repo) if args.verb == "flow" else _trace(args, db)
+        text = _flow(args, db, repo) if args.verb == "flow" else _json(_trace(args, db), args)
     except (ValueError, OSError) as exc:
         sys.stderr.write(f"clew wiki: refused — {exc}\n")
         return 2
-    sys.stdout.write(json.dumps(payload, indent=args.indent) + "\n")
+    sys.stdout.write(text + "\n")
     return 0
 
 
-## @brief The `flow` verb's payload.
+## @brief A payload as JSON text.
+## @param payload Plain data.
+## @param args Parsed arguments (for `--indent`).
+## @return JSON text.
+## @version 1
+## @dg_internal
+def _json(payload: dict[str, Any], args: argparse.Namespace) -> str:
+    """@brief Serialise. @return Text."""
+    return json.dumps(payload, indent=args.indent)
+
+
+## @brief The `flow` verb's output: JSON, or the SVG diagram with `--svg`.
 ## @param args Parsed arguments.
 ## @param db The index.
 ## @param repo The working tree, or None.
-## @return The flow as plain data.
+## @return The text to print.
+## v2: `--svg` / `--animate` (W12).
+## @version 2
+## @dg_internal
+def _flow(args: argparse.Namespace, db: Path, repo: Path | None) -> str:
+    """@brief Derive and render the flow. @return Text."""
+    flow = _flow_object(args, db, repo)
+    if args.svg:
+        from .svg import flow_svg
+
+        return flow_svg(flow, animate=args.animate)
+    return _json(dataclasses.asdict(flow), args)
+
+
+## @brief Derive the flow the arguments name.
+## @param args Parsed arguments.
+## @param db The index.
+## @param repo The working tree, or None.
+## @return The Flow.
 ## @version 1
 ## @dg_internal
-def _flow(args: argparse.Namespace, db: Path, repo: Path | None) -> dict[str, Any]:
-    """@brief Derive the flow. @return Plain data."""
+def _flow_object(args: argparse.Namespace, db: Path, repo: Path | None) -> Any:
+    """@brief Derive the flow. @return Flow."""
     from .flow import derive_flow
 
-    flow = derive_flow(
+    return derive_flow(
         db,
         repo or db.parent,
         args.entry,
@@ -118,14 +169,14 @@ def _flow(args: argparse.Namespace, db: Path, repo: Path | None) -> dict[str, An
         lanes=args.lanes,
         stop_at=tuple(args.stop_at),
     )
-    return dataclasses.asdict(flow)
 
 
 ## @brief The `trace` verb's payload.
 ## @param args Parsed arguments.
 ## @param db The index.
 ## @return Evidence rows as plain data, stamped `trace_version`.
-## @version 1
+## v2: `--mutations` (rows gain `mutations`, additive: trace_version stays 1).
+## @version 2
 ## @dg_internal
 def _trace(args: argparse.Namespace, db: Path) -> dict[str, Any]:
     """@brief Grade the requirements. @return Plain data."""
@@ -136,6 +187,7 @@ def _trace(args: argparse.Namespace, db: Path) -> dict[str, Any]:
         junit=[Path(p) for p in args.junit],
         coverage=Path(args.coverage) if args.coverage else None,
         target_only=tuple(args.target_only),
+        mutations=Path(args.mutations) if args.mutations else None,
     )
     return {"trace_version": 1, "requirements": [dataclasses.asdict(r) for r in rows]}
 
@@ -145,7 +197,8 @@ def _trace(args: argparse.Namespace, db: Path) -> dict[str, Any]:
 ## @param db The index.
 ## @param repo The repository.
 ## @return Exit status: 0 clean / built, 1 problems found, 2 refused.
-## @version 1
+## v2: `--config` and `--version`.
+## @version 2
 ## @dg_internal
 def _site(args: argparse.Namespace, db: Path, repo: Path) -> int:
     """`check` PRINTS EVERY PROBLEM, one per line on stdout, and exits 1 when there is any — the
@@ -153,21 +206,47 @@ def _site(args: argparse.Namespace, db: Path, repo: Path) -> int:
 
     @brief Check or build the site.
     @return Exit status.
-    @version 1
+    @version 2
     """
+    config = Path(args.config) if args.config else None
     if args.verb == "check":
         from .check import check_wiki
 
-        problems = check_wiki(repo, db)
+        problems = check_wiki(repo, db, config)
         for problem in problems:
             sys.stdout.write(f"{problem}\n")
         return 1 if problems else 0
     from .build import build_wiki
 
     try:
-        site = build_wiki(repo, db, Path(args.out), audience=args.audience)
+        site = build_wiki(
+            repo,
+            db,
+            Path(args.out),
+            audience=args.audience,
+            version=args.version,
+            config_path=config,
+        )
     except ValueError as exc:
         sys.stderr.write(f"clew wiki: refused — {exc}\n")
         return 2
     sys.stdout.write(f"{site}\n")
+    return 0
+
+
+## @brief The `diff` verb: compare two version-keyed builds.
+## @param args Parsed arguments.
+## @return Exit status: 0 printed, 2 refused (a key never recorded).
+## @version 1
+## @dg_internal
+def _diff(args: argparse.Namespace) -> int:
+    """@brief Diff two versions. @return Exit status."""
+    from .versions import diff_versions
+
+    try:
+        diff = diff_versions(Path(args.out), args.old, args.new)
+    except (ValueError, OSError) as exc:
+        sys.stderr.write(f"clew wiki: refused — {exc}\n")
+        return 2
+    sys.stdout.write(json.dumps(diff, indent=args.indent) + "\n")
     return 0

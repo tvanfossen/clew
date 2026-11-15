@@ -676,7 +676,8 @@ _KNOWN_TAGS: frozenset[str] = EXEMPTION_TAGS | frozenset(
 
 
 ## @brief Check for unknown tags with Levenshtein-based suggestions.
-#  @version 1.0
+#  @details v1.1: a configured bus tag (`validate.bus.tags`) is a known tag.
+#  @version 1.1
 #  @req REQ-DDB-GUARD-001
 def check_unknown_tags(
     func: Function,
@@ -691,7 +692,7 @@ def check_unknown_tags(
         return []
 
     extra = set(validate_config.get("extra_tags", []))
-    known = _KNOWN_TAGS | extra | set(validate_config.get("tags", {}).keys())
+    known = _KNOWN_TAGS | extra | set(validate_config.get("tags", {}).keys()) | _bus_tags(config)
 
     violations: list[Violation] = []
     for tag_name in func.doxygen.tags:
@@ -961,3 +962,111 @@ def _first_code_line(lines: list[str]) -> int:
         if line.strip():
             return i + 1
     return 1
+
+
+## Bus tags read when `validate.bus.tags` names none.
+_DEFAULT_BUS_TAGS: tuple[str, ...] = ("emits", "handles", "receives")
+
+
+## @brief The bus tags a configuration declares; empty when no `validate.bus` section exists.
+#  @version 1.0
+#  @dg_internal
+#  @return Tag names
+def _bus_tags(config: dict[str, Any]) -> set[str]:
+    bus = get_validate(config).get("bus")
+    if not bus:
+        return set()
+    return set(bus.get("tags") or _DEFAULT_BUS_TAGS)
+
+
+## @brief Verify that functions crossing a bus carry a bus tag naming a known bus.
+#  @details 1.4.0 W10 (#67's fifth consumer). SCOPED, NEVER BLANKET: a function is in scope
+#  when its name matches a `validate.bus.handlers` glob or its body calls a
+#  `validate.bus.senders` name — the caller that chooses the topic is the crossing, not only a
+#  named handler. A sender itself is the transport and is out of scope. The existing exemptions
+#  (@callback, @utility, @dg_internal) are honoured: a blanket rule pushes repositories to add
+#  exemptions, which hides the very gap the rule exists to expose. Every bus tag's first word
+#  must be in `validate.bus.vocabulary` when one is given. With no `validate.bus` section the
+#  rule checks nothing.
+#  @version 1.0
+#  @req REQ-DDB-GUARD-026
+#  @return Violations
+def check_bus_tags(
+    functions: list[Function],
+    file_path: str,
+    config: dict[str, Any],
+    lines: list[str],
+) -> list[Violation]:
+    bus = get_validate(config).get("bus")
+    if not bus:
+        return []
+    tags = _bus_tags(config)
+    vocabulary = set(bus.get("vocabulary") or ())
+    handlers = tuple(bus.get("handlers") or ())
+    senders = tuple(bus.get("senders") or ())
+    call = re.compile(r"\b(?:%s)\s*\(" % "|".join(map(re.escape, senders))) if senders else None
+    violations: list[Violation] = []
+    for func in functions:
+        if func.doxygen is None or func.name in senders:
+            continue
+        present = {t: v for t, v in func.doxygen.tags.items() if t in tags}
+        violations.extend(_bus_vocabulary(func, file_path, present, vocabulary))
+        if present or EXEMPTION_TAGS & set(func.doxygen.tags):
+            continue
+        if _crosses_bus(func, lines, handlers, call):
+            violations.append(
+                Violation(
+                    file=file_path,
+                    line=func.def_line + 1,
+                    check="bus",
+                    message=(
+                        f"Function '{func.name}' crosses a bus but carries no bus tag "
+                        f"({', '.join(f'@{t}' for t in sorted(tags))}) and no exemption "
+                        f"({_exemption_hint()})"
+                    ),
+                )
+            )
+    return violations
+
+
+## @brief Whether a function is in the bus rule's scope.
+#  @version 1.0
+#  @dg_internal
+#  @return True for a handler-glob name or a body calling a sender
+def _crosses_bus(
+    func: Function, lines: list[str], handlers: tuple[str, ...], call: re.Pattern[str] | None
+) -> bool:
+    from fnmatch import fnmatchcase
+
+    if any(fnmatchcase(func.name, g) for g in handlers):
+        return True
+    if call is None:
+        return False
+    body = "\n".join(lines[func.def_line + 1 : func.body_end + 1])
+    return call.search(body) is not None
+
+
+## @brief Violations for bus tags naming a bus outside the vocabulary.
+#  @version 1.0
+#  @dg_internal
+#  @return Violations
+def _bus_vocabulary(
+    func: Function, file_path: str, present: dict[str, list[str]], vocabulary: set[str]
+) -> list[Violation]:
+    if not vocabulary:
+        return []
+    line = func.doxygen.start_line + 1 if func.doxygen else func.def_line + 1
+    return [
+        Violation(
+            file=file_path,
+            line=line,
+            check="bus",
+            message=(
+                f"@{tag} {value!r} in {func.name}() names bus {value.split()[0] if value.split() else ''!r}, "
+                f"not in validate.bus.vocabulary ({', '.join(sorted(vocabulary))})"
+            ),
+        )
+        for tag, values in present.items()
+        for value in values
+        if not value.split() or value.split()[0] not in vocabulary
+    ]

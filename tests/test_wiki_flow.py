@@ -123,3 +123,86 @@ def test_the_cli_prints_the_flow_as_json(
     data = json.loads(capsys.readouterr().out)
     assert code == 0 and data["flow_version"] == 1 and data["entry"] == "main"
     assert [s["callee"] for s in data["steps"]][:2] == ["load", "parse"]
+
+
+# --- W12: animated sequence diagrams --------------------------------------------------------------
+
+
+## @brief A two-lane flow of three steps, built directly (no index needed).
+## @return The Flow.
+## @version 1
+def _three_steps():
+    """@brief Build a flow. @return Flow."""
+    from clew.wiki.flow import Flow, Lane, Step
+
+    steps = tuple(
+        Step(
+            caller="a",
+            caller_qualified="a",
+            callee=f"f{i}",
+            callee_qualified=f"f{i}",
+            from_lane="x.py",
+            to_lane="y.py" if i % 2 else "x.py",
+            file="x.py",
+            line=i,
+            depth=1,
+        )
+        for i in range(3)
+    )
+    lanes = (Lane(id="x.py", label="x.py"), Lane(id="y.py", label="y.py"))
+    return Flow(
+        entry="a", entry_qualified="a", depth=1, lane_strategy="files", lanes=lanes, steps=steps
+    )
+
+
+def test_an_animated_diagram_plays_the_steps_in_order_with_no_script() -> None:
+    """THE ANIMATION IS CSS INSIDE THE SVG: each step is delayed by its position, there is no
+    script and nothing remote, reduced motion shows the finished diagram, and the static render is
+    unchanged in content.
+
+    @brief `animate=True` staggers steps in call order, script-free.
+    @return None.
+    """
+    import re
+
+    from clew.wiki.svg import STEP_SECONDS, flow_svg
+
+    flow = _three_steps()
+    animated = flow_svg(flow, animate=True)
+    delays = [float(d) for d in re.findall(r"animation-delay:([\d.]+)s", animated)]
+    assert delays == [0.0, STEP_SECONDS, 2 * STEP_SECONDS]
+    assert "<script" not in animated and "http" not in animated.replace(
+        'xmlns="http://www.w3.org/2000/svg"', ""
+    )
+    assert "prefers-reduced-motion" in animated
+    static = flow_svg(flow)
+    assert "animation" not in static
+    assert re.findall(r">(f\d)<", static) == re.findall(r">(f\d)<", animated) == ["f0", "f1", "f2"]
+
+
+def test_a_flow_spec_animates_by_default_and_can_opt_out(tmp_path) -> None:
+    """@brief `animate:` in a flow entry is a known key; absent means animated.
+    @return None.
+    """
+    from clew.wiki.config import load_wiki_config
+
+    (tmp_path / ".clew.yaml").write_text(
+        "wiki:\n  flows:\n    - entry: a\n    - entry: b\n      animate: false\n"
+    )
+    config, problems = load_wiki_config(tmp_path)
+    assert problems == []
+    assert [f.animate for f in config.flows] == [True, False]
+
+
+def test_the_flow_verb_prints_svg(tmp_path, capsys, monkeypatch) -> None:
+    """@brief `clew wiki flow ENTRY --svg --animate` prints the animated diagram itself.
+    @return None.
+    """
+    from clew.wiki import command
+
+    monkeypatch.setattr(command, "_flow_object", lambda args, db, repo: _three_steps())
+    db = tmp_path / "clew.db"
+    db.write_bytes(b"")
+    assert command.wiki_main(["flow", "a", "--index", str(db), "--svg", "--animate"]) == 0
+    out = capsys.readouterr().out
+    assert out.startswith("<svg") and "animation-delay" in out

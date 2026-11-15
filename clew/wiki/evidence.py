@@ -16,11 +16,16 @@ as GAP or MISSING is the false gap #67's consumers asked to stop seeing. Coverag
 implementer — covered, uncovered — and is ABSENT (None) when no Cobertura report was given:
 unmeasured is not uncovered.
 
+MUTATION RECORDS (W9) are the strongest requirement → test link: a record names a MECHANISM (a
+function), the TEST that should catch its removal, and whether it did (`killed`). A record attaches
+to every requirement its mechanism implements, as (mechanism, test, killed | survived). The field
+is ABSENT (None) when no record file was given — unmeasured is not "every mutant was killed".
+
 Reports are read with the standard library's XML parser and capped at `MAX_REPORT_BYTES`; they are
 CI artifacts the operator chose, not repository content.
 
-@brief JUnit/Cobertura evidence per requirement.
-@version 1
+@brief JUnit/Cobertura/mutation evidence per requirement.
+@version 2
 """
 
 from __future__ import annotations
@@ -54,10 +59,11 @@ class CaseResult:
 
 
 ## @brief One requirement's graded evidence.
-## @version 1
+## v2: mutation outcomes (W9).
+## @version 2
 @dataclass(frozen=True)
 class RequirementEvidence:
-    """@brief Tier, linked tests with their statuses, implementer coverage. @version 1"""
+    """@brief Tier, linked tests, implementer coverage, mutation outcomes. @version 2"""
 
     req_id: str
     title: str
@@ -66,6 +72,7 @@ class RequirementEvidence:
     implementers: tuple[str, ...]
     implementers_covered: tuple[str, ...] | None = None
     implementers_uncovered: tuple[str, ...] | None = None
+    mutations: tuple[tuple[str, str, str], ...] | None = None
 
 
 ## @brief Read JUnit XML reports into one folded result per test.
@@ -113,13 +120,43 @@ def parse_cobertura(path: Path) -> dict[str, dict[int, int]]:
     return hits
 
 
+## @brief Read a mutation record: (mechanism, test, killed) per entry.
+## @param path A YAML or JSON list of `{mechanism, test, killed}`.
+## @return Records, in file order.
+## @version 1
+## @req REQ-DDB-WIKI-006
+def parse_mutations(path: Path) -> list[tuple[str, str, bool]]:
+    """AN ENTRY MISSING A FIELD IS REFUSED, never defaulted: a record that does not say whether
+    the mutant was killed is not evidence either way.
+
+    @brief Parse mutation records.
+    @return Records.
+    @version 1
+    """
+    import yaml
+
+    if path.stat().st_size > MAX_REPORT_BYTES:
+        raise ValueError(f"{path} is larger than {MAX_REPORT_BYTES} bytes; refusing to parse it")
+    doc = yaml.safe_load(path.read_text(encoding="utf-8")) or []
+    if not isinstance(doc, list):
+        raise ValueError(f"{path}: a mutation record is a list of {{mechanism, test, killed}}")
+    out = []
+    for i, entry in enumerate(doc):
+        if not isinstance(entry, dict) or not {"mechanism", "test", "killed"} <= set(entry):
+            raise ValueError(f"{path}: entry {i} needs `mechanism`, `test` and `killed`")
+        out.append((str(entry["mechanism"]), str(entry["test"]), bool(entry["killed"])))
+    return out
+
+
 ## @brief Grade every requirement the index knows against the given reports.
 ## @param db The index.
 ## @param junit JUnit report files.
 ## @param coverage A Cobertura report, or None.
 ## @param target_only Test-name globs that need hardware (skipped on host by design).
+## @param mutations A mutation record, or None.
 ## @return One RequirementEvidence per requirement, ordered by id.
-## @version 1
+## v2: `mutations` (W9).
+## @version 2
 ## @req REQ-DDB-WIKI-002
 def requirement_evidence(
     db: Path | str,
@@ -127,10 +164,12 @@ def requirement_evidence(
     junit: list[Path],
     coverage: Path | None = None,
     target_only: tuple[str, ...] = (),
+    mutations: Path | None = None,
 ) -> list[RequirementEvidence]:
     """@brief Join reports to the trace. @return Evidence rows."""
     results = parse_junit(junit)
     hits = parse_cobertura(coverage) if coverage is not None else None
+    records = parse_mutations(mutations) if mutations is not None else None
     with connect(db) as conn:
         ids = _requirement_ids(conn)
         out = []
@@ -151,9 +190,28 @@ def requirement_evidence(
                     implementers=tuple(n for n, _f, _s, _e in impls),
                     implementers_covered=covered,
                     implementers_uncovered=uncovered,
+                    mutations=_mutations_for(records, impls),
                 )
             )
     return out
+
+
+## @brief The mutation outcomes whose mechanism implements a requirement.
+## @param records All records, or None when none were given.
+## @param impls The requirement's implementers.
+## @return (mechanism, test, killed|survived) tuples, or None.
+## @version 1
+## @dg_internal
+def _mutations_for(
+    records: list[tuple[str, str, bool]] | None, impls: list[tuple[str, str, int, int]]
+) -> tuple[tuple[str, str, str], ...] | None:
+    """@brief Attach records. @return Outcomes or None."""
+    if records is None:
+        return None
+    names = {n for n, _f, _s, _e in impls}
+    return tuple(
+        (m, t, "killed" if killed else "survived") for m, t, killed in records if m in names
+    )
 
 
 ## @brief Grade one requirement from its linked tests' statuses.
