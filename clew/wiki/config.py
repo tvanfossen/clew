@@ -101,6 +101,7 @@ _TOP = {
     "components",
     "issues",
     "tooling",
+    "test_flows",
 }
 _THEME = {"name", "palette", "css", "logo", "fonts"}
 ## The palette tokens of the default theme (the sassafras-class botanical palette).
@@ -126,7 +127,7 @@ THEME_TOKENS = (
 )
 _FLOW = {"entry", "qualified", "depth", "lanes", "stop_at", "title", "animate", "file", "role"}
 ## The roles a flow is grouped under on the Flows page (round 3, P1e).
-FLOW_ROLES = ("product", "threads", "tooling")
+FLOW_ROLES = ("product", "threads", "tooling", "tests")
 ## Paths whose entry points are tooling, unless `wiki.tooling` says otherwise.
 DEFAULT_TOOLING = ("scripts/*", "acceptance/*", "tools/*", "benchmarks/*", "examples/*")
 _TESTS = {
@@ -263,7 +264,8 @@ class RuleSpec:
 ## v7: components (the map's declared groupings).
 ## v8: issues (the tracker prefilled issue links open).
 ## v9: tooling (paths whose entry points group under Tooling).
-## @version 9
+## v10: test_flows (how many directly linked tests are drawn as flows).
+## @version 10
 @dataclass(frozen=True)
 class WikiConfig:
     """@brief The whole `wiki:` section. @version 4"""
@@ -292,6 +294,8 @@ class WikiConfig:
     issues_enabled: bool = True
     ## Path globs whose entry points are tooling flows.
     tooling: tuple[str, ...] = DEFAULT_TOOLING
+    ## The most directly linked tests drawn as flows.
+    test_flows: int = 50
 
 
 ## @brief Read and validate a repository's `wiki:` section.
@@ -306,7 +310,8 @@ class WikiConfig:
 ## v7: components.
 ## v8: issues.
 ## v9: tooling.
-## @version 9
+## v10: test_flows.
+## @version 10
 ## @req REQ-DDB-WIKI-003
 def load_wiki_config(
     repo_root: Path, config_path: Path | None = None
@@ -316,7 +321,7 @@ def load_wiki_config(
 
     @brief Load the section.
     @return Config and problems.
-    @version 9
+    @version 10
     """
     raw, problems = _read_section(Path(config_path or Path(repo_root) / ".clew.yaml"))
     if problems:
@@ -349,6 +354,7 @@ def load_wiki_config(
         issues=_issues(raw.get("issues"), problems),
         issues_enabled=raw.get("issues") is not False,
         tooling=tuple(str(g) for g in raw.get("tooling", DEFAULT_TOOLING) or ()),
+        test_flows=int(raw.get("test_flows", 50) or 0),
     )
     return config, problems
 

@@ -113,7 +113,9 @@ _STYLE = (
 ## v6: with its functions (P1d).
 ## v7: a requirements column — each step's callee's requirements, linked (P1e); `req_of`.
 ## v8: each callee links to its symbol section (P1f).
-## @version 8
+## v9: the functions section links symbol sections instead of repeating each body (P2b: the
+## repeated dossiers were 37 of 86 s of clew's build).
+## @version 9
 ## @req REQ-DDB-WIKI-014
 def flow_page(
     repo_root: Path,
@@ -163,14 +165,13 @@ def flow_page(
         rows.append([str(i), code(step.caller), callee, reqs, escape(row["frames"]), site])
     head = ["#", "caller", "callee", "requirements", "frames", "call site"]
     lines += ["```{raw} html", table(head, rows, cls="steps", numeric=("#",)), "```", ""]
-    if not rules.exclude_bodies:
-        lines += _bodies(db, repo_root, flow, spec.file)
-    (source / f"{name}.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
     files = {s.file for s in flow.steps} | {s.site_file for s in flow.steps if s.site_file}
     hops = tuple((s.site_file, s.file) for s in flow.steps if s.site_file)
     functions = {(s.callee, s.file) for s in flow.steps} | {
         (s.caller, s.site_file) for s in flow.steps if s.site_file
     }
+    lines += _functions(functions)
+    (source / f"{name}.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
     title = spec.title or "Flow: " + spec.entry
     reqs = frozenset(r for f in functions for r in (req_of or {}).get(f, ()))
     return FlowPage(
@@ -311,98 +312,25 @@ def _call_text(repo_root: Path, rel: str, line: int) -> str:
     return "\n".join(out).strip()
 
 
-## @brief The entry's own body: read from its file's span when the flow selected it by file.
-## @param db The index.
-## @param repo_root The repository.
-## @param flow The flow.
-## @param file The entry's file, or None.
+## @brief The functions a flow reaches, each linked to its symbol section.
+## @param functions (function, file) pairs.
 ## @return Markdown lines.
 ## @version 1
 ## @dg_internal
-def _entry_body(db: Path, repo_root: Path, flow: Flow, file: str | None) -> list[str]:
-    """A NAME SEVERAL FILES SHARE (`main`) cannot be looked up by name: the entry's span is read
-    from its own file, so the page shows the function the diagram is of.
+def _functions(functions: set[tuple[str, str]]) -> list[str]:
+    """ONE BODY PER FUNCTION, on its symbol section: the flow page links there rather than
+    repeating it — the repeated dossier per function was 37 of 86 s of clew's own build
+    (cProfile, 333 export_dossier calls at ~110 ms).
 
-    @brief Entry body.
+    @brief Function links.
     @return Lines.
     """
-    if not file:
-        return _dossier_body(db, repo_root, flow.entry, flow.entry_qualified)
-    from ..query._common import connect
-
-    with connect(db) as conn:
-        row = conn.execute(
-            "SELECT m.bodystart, m.bodyend FROM memberdef m JOIN path p ON p.rowid = m.file_id "
-            "WHERE m.kind = 'function' AND m.name = ? AND p.name = ? AND m.bodystart > 0",
-            (flow.entry, file),
-        ).fetchone()
-    try:
-        text = (Path(repo_root) / file).read_text(encoding="utf-8", errors="replace").splitlines()
-    except OSError:
-        return []
-    if not row:
-        return []
-    return [
-        f"### `{flow.entry}`",
-        "",
-        f"`{file}`",
-        "",
-        "```",
-        *text[row[0] - 1 : row[1]],
-        "```",
-        "",
-    ]
-
-
-## @brief One function's body section, as dossier excerpts it.
-## @param db The index.
-## @param repo_root The repository.
-## @param name The function.
-## @param qual Its qualified name.
-## @return Markdown lines; [] when the index has no body for it.
-## @version 1
-## @dg_internal
-def _dossier_body(db: Path, repo_root: Path, name: str, qual: str) -> list[str]:
-    """@brief Body section. @return Lines."""
-    from ..query import export_dossier
-
-    payload = export_dossier(db, name, qualified=qual or None, repo_root=repo_root)
-    body = payload.get("body") or {}
-    if not body.get("lines"):
-        return []
-    return [
-        f"### `{qual or name}`",
-        "",
-        f"`{body.get('file', '')}`",
-        "",
-        "```",
-        *body["lines"],
-        "```",
-        "",
-    ]
-
-
-## @brief The source bodies of every function a flow reaches, as code blocks.
-## @param db The index.
-## @param repo_root The repository.
-## @param flow The flow.
-## @return Markdown lines.
-## @param file The entry's file, when the flow selected it by file.
-## v2: the entry's body read from its own file when selected by file.
-## @version 2
-## @dg_internal
-def _bodies(db: Path, repo_root: Path, flow: Flow, file: str | None = None) -> list[str]:
-    """THE INDEX'S OWN BODY EXCERPT (export_dossier), so a page shows what `dossier` shows.
-
-    @brief Body sections.
-    @return Lines.
-    """
-    seen = [(s.callee, s.callee_qualified) for s in flow.steps if s.callee_qualified]
-    out: list[str] = ["", "## Functions", ""]
-    out += _entry_body(db, repo_root, flow, file)
-    for name, qual in dict.fromkeys(seen):
-        out += _dossier_body(db, repo_root, name, qual)
-    return out
+    items = "".join(
+        f'<li><a href="{escape(symbol_href(n, f))}">{code(n)}</a> '
+        f'<span class="ver">{escape(f)}</span></li>'
+        for n, f in sorted(functions, key=lambda k: (k[1], k[0]))
+    )
+    return ["## Functions", "", "```{raw} html", f'<ul class="modal-list">{items}</ul>', "```", ""]
 
 
 ## @brief Requirement badges, each linked to its row on the requirements page.
@@ -421,10 +349,12 @@ def _badges(reqs: Any) -> str:
 ## @brief The Flows page: flows grouped by role, tooling folded away.
 ## @param source The Sphinx source directory.
 ## @param pages The flow pages.
+## @param undrawn_tests Directly linked tests the cap left without a flow (stated when > 0).
 ## @return The page name, or "" when there is no flow.
-## @version 1
+## v2: a Tests role and the cap's disclosure (P2b).
+## @version 2
 ## @req REQ-DDB-WIKI-023
-def flows_index(source: Path, pages: list[FlowPage]) -> str:
+def flows_index(source: Path, pages: list[FlowPage], undrawn_tests: int = 0) -> str:
     """OWNER 2026-11-15: the product's flows first — console scripts, declared roots, mains
     outside tooling — then thread entries, then tooling (scripts, harnesses) folded. A role
     with no flow has no section.
@@ -448,6 +378,13 @@ def flows_index(source: Path, pages: list[FlowPage]) -> str:
                 "```",
                 "",
             ]
+    if undrawn_tests:
+        noun = "test has" if undrawn_tests == 1 else "tests have"
+        lines += [
+            f"{undrawn_tests} directly linked {noun} no pre-drawn flow (`wiki.test_flows` caps how "
+            "many are drawn).",
+            "",
+        ]
     names = [p.name for p in pages]
     lines += ["```{toctree}", ":hidden:", ":maxdepth: 1", "", *names, "```", ""]
     (Path(source) / "flows.md").write_text("\n".join(lines), encoding="utf-8")
@@ -458,7 +395,8 @@ def flows_index(source: Path, pages: list[FlowPage]) -> str:
 ## @param role The role.
 ## @param members Its flow pages.
 ## @return HTML.
-## @version 1
+## v2: the tests role folds too (P2b).
+## @version 2
 ## @dg_internal
 def _role_block(role: str, members: list[FlowPage]) -> str:
     """@brief Role block. @return HTML."""
@@ -471,8 +409,8 @@ def _role_block(role: str, members: list[FlowPage]) -> str:
         for p in members
     ]
     body = table(["flow", "steps", "requirements"], rows, numeric=("steps",), keep=("flow",))
-    if role == "tooling":
-        body = f"<details><summary>{len(members)} tooling flows</summary>{body}</details>"
+    if role in _FOLDED:
+        body = f"<details><summary>{len(members)} {role} flows</summary>{body}</details>"
     return f'<section class="flow-role" data-role="{role}">{body}</section>'
 
 
@@ -489,4 +427,7 @@ _ROLES = (
     ),
     ("threads", "Threads", "Each thread's entry function and what it reaches."),
     ("tooling", "Tooling", "Scripts and harnesses around the product."),
+    ("tests", "Tests", "Each directly linked test as a flow: what it calls, in order."),
 )
+## Roles whose section is folded away.
+_FOLDED = ("tooling", "tests")

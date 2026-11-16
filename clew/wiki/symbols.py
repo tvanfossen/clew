@@ -106,14 +106,15 @@ def anchor(name: str) -> str:
 ## @param source The Sphinx source directory.
 ## @return {(function, file): href} of the sections written.
 ## v2: test functions the evidence names get sections too (P2a).
-## @version 2
+## v3: `test_functions` is public (the build resolves directly linked tests to draw, P2b).
+## @version 3
 ## @req REQ-DDB-WIKI-025
 def symbol_pages(
     db: Path, repo_root: Path, keys: set[tuple[str, str]], ctx: dict[str, Any], source: Path
 ) -> dict[tuple[str, str], str]:
     """@brief Write sym-*.md. @return Hrefs."""
     with connect(db) as conn:
-        tests = _test_functions(conn, set(ctx.get("tests") or {}))
+        tests = test_functions(conn, set(ctx.get("tests") or {}))
         defs = _definitions(conn, keys | tests)
         graph = _Edges(conn)
     ctx = {**ctx, "test_keys": tests}
@@ -147,8 +148,8 @@ def symbol_pages(
 ## @param names Test names.
 ## @return (function, file) pairs.
 ## @version 1
-## @dg_internal
-def _test_functions(conn: Any, names: set[str]) -> set[tuple[str, str]]:
+## @req REQ-DDB-WIKI-026
+def test_functions(conn: Any, names: set[str]) -> set[tuple[str, str]]:
     """A NAME OUTSIDE TEST CODE is not that test: a scenario title or a Catch2 string name has no
     function of that name, and a namesake in product code is not the test.
 

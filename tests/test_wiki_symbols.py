@@ -230,3 +230,39 @@ def test_gherkin_renders_rules_examples_and_doc_strings() -> None:
     assert "<table" in html and "<td>2</td>" in html
     assert '<pre class="docstring">total &lt;n&gt;</pre>' in html
     assert "Other" not in html and '<span class="gtag">@area</span>' in html
+
+
+# --- Round 3, P2b: tests as flows ----------------------------------------------------------------
+
+
+def test_a_directly_linked_test_is_a_flow(site: dict[str, str]) -> None:  # noqa: F811
+    """OWNER 2026-11-15: "tests as auto-generated flows". A test linked by tag or measured
+    coverage is drawn as a flow — what it calls, in order — listed under Tests on the Flows page
+    (folded) and linked from its own section.
+
+    @brief P2b: test flows.
+    """
+    name = "flow-test_load-tests-test-data-py.html"
+    assert name in site and '<svg class="seq"' in site[name]
+    flows = site["flows.html"]
+    tests = re.search(r'<section class="flow-role" data-role="tests">(.*?)</section>', flows, re.S)
+    assert tests is not None and name in tests.group(1) and "<details" in tests.group(1)
+    sec = site["sym-tests-test-data-py.html"]
+    assert f'href="{name}"' in sec[sec.index('id="s-test_load"') :]
+
+
+def test_the_test_flow_cap_is_stated(repo: tuple[Path, Path], tmp_path: Path) -> None:  # noqa: F811
+    """A CUT IS SAID: with `test_flows: 0` no test is drawn, and the Flows page says how many
+    directly linked tests have no pre-drawn flow.
+
+    @brief P2b: the cap.
+    """
+    from clew.wiki.build import build_wiki
+    from tests.test_wiki_site import _WIKI
+
+    config = tmp_path / "wiki.yaml"
+    config.write_text(_WIKI + "  test_flows: 0\n")
+    html = build_wiki(repo[0], repo[1], tmp_path / "out", config_path=config)
+    flows = (html / "flows.html").read_text()
+    assert not (html / "flow-test_load-tests-test-data-py.html").exists()
+    assert "1 directly linked test has no pre-drawn flow" in flows

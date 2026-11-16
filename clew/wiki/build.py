@@ -64,7 +64,8 @@ _CELL = str.maketrans({"|": "\\|", "\n": " "})
 ## v12: Change impact section after Flows (P1g).
 ## v13: symbol pages (P1f); source permalinks dropped when the commit is known unpublished.
 ## v14: test sections and Gherkin feature pages (P2a).
-## @version 14
+## v15: directly linked tests drawn as flows (P2b).
+## @version 15
 ## @req REQ-DDB-WIKI-003
 def build_wiki(
     repo_root: Path,
@@ -79,7 +80,7 @@ def build_wiki(
 
     @brief Write and render the site.
     @return The HTML directory.
-    @version 13
+    @version 14
     """
     from .flowpage import flow_page, flows_index
     from .impactpage import impact_page
@@ -110,13 +111,14 @@ def build_wiki(
     milestones = _milestones(repo_root, config)
     burndown = _burndown(out_dir, version, snapshot, milestones) if version else ""
     req_of = _requirements_of(trace.evidence)
+    facts = testfacts.gather(trace.evidence)
+    test_specs, undrawn = _test_flows(db, facts, config.test_flows)
     pages = [
         flow_page(repo_root, db, _with_role(spec, config), source, rules, config, commit, req_of)
-        for spec in _all_flows(repo_root, db, config)
+        for spec in [*_all_flows(repo_root, db, config), *test_specs]
     ]
     keys = {(n, f) for r in trace.evidence for n, f, _l in r.implementer_sites}
     keys |= {fn for p in pages for fn in p.functions}
-    facts = testfacts.gather(trace.evidence)
     symbol_ctx = {
         "req_of": req_of,
         "flows": pages,
@@ -140,7 +142,7 @@ def build_wiki(
     issues = resolve_target(config.issues, config.issues_enabled, repo_root)
     sections = [
         requirements_page(trace, config, source, rules, burndown, tuple(pages), issues),
-        flows_index(source, pages),
+        flows_index(source, pages, undrawn),
         impact_page(trace, pages, rules, source),
         map_page(
             graph,
@@ -196,6 +198,34 @@ def _lit(pages: list, graph: dict, config: WikiConfig) -> dict[str, list[str]]:
     return {
         p.name: sorted({component_of(f, config.components) for f in p.files} & known) for p in pages
     }
+
+
+## @brief Directly linked tests (by tag or measured coverage) as flows, at most `cap`.
+## @param db The index.
+## @param facts {test name: facts}.
+## @param cap The most drawn.
+## @return (flow specs, how many directly linked tests were left undrawn).
+## @version 1
+## @dg_internal
+def _test_flows(db: Path, facts: dict, cap: int) -> tuple[list, int]:
+    """CATALOG AND INFERRED LINKS ARE NOT DIRECT: a catalog names a whole test file and inference
+    reaches through the call graph; only a tagged or measured test is drawn by default.
+
+    @brief Test flows.
+    @return Specs and the undrawn count.
+    """
+    from ..query._common import connect
+    from .config import FlowSpec
+    from .symbols import test_functions
+
+    direct = {n for n, f in facts.items() if any(k in ("tag", "measured") for _r, k in f.verifies)}
+    with connect(db) as conn:
+        keys = sorted(test_functions(conn, direct))
+    specs = [
+        FlowSpec(entry=n, file=f, depth=2, title=f"test `{n}` ({f})", role="tests")
+        for n, f in keys[: max(cap, 0)]
+    ]
+    return specs, len(keys) - len(specs)
 
 
 ## @brief A flow with its role settled: declared, else tooling by path, else product.

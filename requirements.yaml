@@ -741,6 +741,19 @@ requirements:
     x-priority: P1
     x-status: implemented
     x-evidence: clew/wiki/testfacts.py, symbols.py, reqmodal.py, tracepages.py, build.py; tests/test_wiki_symbols.py.
+  REQ-DDB-WIKI-027:
+    subsystem: wiki
+    name: Directly linked tests are drawn as flows; a flow page links its functions' sections
+    acceptance_criteria: >-
+      Each test linked to a requirement by tag or measured coverage (catalog and inferred links
+      are not direct) is drawn as a flow of depth 2 from the test function, under a folded Tests
+      section of the Flows page and linked from the test's own section; at most
+      `wiki.test_flows` (default 50) are drawn, and the Flows page states how many directly
+      linked tests were left without one. A flow page lists the functions it reaches, each
+      linked to its symbol section, instead of repeating each body.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/build.py, flowpage.py, config.py, symbols.py; tests/test_wiki_symbols.py.
   REQ-DDB-SCHEMA-013:
     subsystem: schema
     name: Kconfig structure tables, created independently of the gating table
