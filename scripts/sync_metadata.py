@@ -45,6 +45,11 @@ REPO = Path(__file__).resolve().parent.parent
 MARK = "clew:langs"
 ## The README's support table, generated from `clew.languages.CAPABILITIES`.
 SUPPORT_MARK = "clew:support"
+## The served surface — tools, prompts, resources — generated from the description files the server
+## loads (round 3, P6): "the four tools" survived a tool's retirement in two documents.
+TOOLS_MARK = "clew:tools"
+## Small counts as words, for the clause's prose.
+_NUMBER = {1: "one", 2: "two", 3: "three", 4: "four", 5: "five", 6: "six", 7: "seven"}
 
 
 ##
@@ -137,6 +142,31 @@ def replace_json_description(path: Path, body: str, *, write: bool = True) -> tu
     return changed, ""
 
 
+# @brief The served surface as one clause: the tools, then the prompts, then the wiki resources.
+# @return The clause, no trailing full stop.
+# @version 1
+def tools_clause() -> str:
+    """FROM THE DESCRIPTION FILES THE SERVER LOADS (tier 1, then tier 0, then the tier-2 prompts),
+    in the order the server registers them — never a list a person keeps.
+
+    @brief Build the tool clause.
+    @return The clause.
+    @version 1
+    """
+    from clew.mcp_server.descriptions import load_descriptions
+
+    tools = [*load_descriptions(tier=1), *load_descriptions(tier=0)]
+    prompts = list(load_descriptions(tier=2))
+    named = ", ".join(f"`{t}`" for t in tools[:-1]) + f" and `{tools[-1]}`"
+    words = _NUMBER.get(len(tools), str(len(tools)))
+    asked = " and ".join(f"`{p}`" for p in prompts)
+    return (
+        f"{words} tools — {named} — plus the {asked} prompt{'s' if len(prompts) > 1 else ''} "
+        "and the wiki as MCP resources (`clew://wiki/{slug}/llms.txt`, "
+        "`clew://wiki/{slug}/flow/{name}`)"
+    )
+
+
 ##
 # @brief Regenerate every derived metadata span.
 # @param check True to report drift without writing.
@@ -145,7 +175,7 @@ def replace_json_description(path: Path, body: str, *, write: bool = True) -> tu
 def main(check: bool) -> int:
     """@brief Sync or check the derived metadata.
     @return 0 when in sync, 1 on drift under --check, 2 when a target could not be handled.
-    @version 1
+    @version 2
     """
     body = clause()
     table = "\n" + support_table() + "\n"
@@ -156,11 +186,15 @@ def main(check: bool) -> int:
     ## PyPI description, and "which languages are FULLY supported" was the question it failed to
     ## answer: the flat clause put shell beside C as if "who calls this" worked for both. The other
     ## three targets cannot render a table, so they keep the clause.
-    spans = {
-        REPO / "pyproject.toml": (f"# <{MARK}>", f"# </{MARK}>", body),
-        REPO / "README.md": (f"<!-- {SUPPORT_MARK} -->", f"<!-- /{SUPPORT_MARK} -->", table),
-    }
-    for path, (o, c, text) in spans.items():
+    tools = tools_clause()
+    spans = [
+        (REPO / "pyproject.toml", f"# <{MARK}>", f"# </{MARK}>", body),
+        (REPO / "README.md", f"<!-- {SUPPORT_MARK} -->", f"<!-- /{SUPPORT_MARK} -->", table),
+        (REPO / "README.md", f"<!-- {TOOLS_MARK} -->", f"<!-- /{TOOLS_MARK} -->", tools),
+        (REPO / "SKILLS.md", f"<!-- {TOOLS_MARK} -->", f"<!-- /{TOOLS_MARK} -->", tools),
+        (REPO / "SKILLS.md", f"<!-- {MARK} -->", f"<!-- /{MARK} -->", body),
+    ]
+    for path, o, c, text in spans:
         did, why = replace_span(path, o, c, text, write=not check)
         ## `did` IS THE CONDITION, not `why`. The first version appended on an empty `why`, so
         ## every marker file read as drifted on every run — a check that always fails teaches the

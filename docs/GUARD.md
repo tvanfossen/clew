@@ -1,8 +1,8 @@
 # The doxygen gate (`clew guard`)
 
 `clew guard` is the pre-commit gate formerly published as
-[doxygen-guard](https://github.com/tvanfossen/doxygen-guard), absorbed into clew at its 1.4.2
-release. It **enforces** doxygen documentation and reports the **change impact** of a commit.
+[doxygen-guard](https://github.com/tvanfossen/doxygen-guard), absorbed into clew at
+doxygen-guard's own 1.4.2 release. It **enforces** doxygen documentation and reports the **change impact** of a commit.
 It is optional: nothing in the index pipeline runs it, and a repo that does not declare the
 hook is unaffected.
 
@@ -342,7 +342,7 @@ tag in prose, write `\@req` or `@@req`.
 ## Using doxygen alongside the gate
 
 ```bash
-clew guard doxyfile > doxygen-guard.doxyfile   # then: @INCLUDE = doxygen-guard.doxyfile
+clew guard doxyfile > clew-guard.doxyfile   # then: @INCLUDE = clew-guard.doxyfile
 ```
 
 The fragment declares the gate's tags as `ALIASES` (`@req` becomes a cross-referenced

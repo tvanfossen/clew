@@ -31,11 +31,11 @@ nothing gets its whole tree indexed, and three of the four reference repositorie
 that way. The gate ships in this package and stays off until a repo declares its hook. See
 [docs/GUARD.md](GUARD.md).
 
-## The four tools
+## The tools
 
-An agent is the user, and these are the whole of what the server exposes. A human-facing browser
-over the index is deliberately deferred: repository searchability for a person is what an IDE
-already is, so building a second one is not where the value is.
+An agent is the user, and these are the whole of what the server exposes to it. The person's view
+of the same index is the generated wiki — requirements, flows, a system map, a page per function —
+described in [WIKI.md](WIKI.md).
 
 | tool | for |
 |---|---|
@@ -364,6 +364,12 @@ kconfig:              {path: Kconfig}
 event_tags:           {emits: produce, handles: consume}
 entry_patterns:       ["%trampoline%", "on_%"]
 enrich:               docs/architecture_topics.yaml
+doxyfile:             doxygen/project.doxyfile
+test_paths:           ["test/*", "*_test.cpp"]
+vendored:             [third_party/json]
+sub_indexes:          {deps-slam: {excludes: [deps/slam/third_party]}}
+guard:                {validate: {tags: {req: {cross_reference: true}}}}   # the gate: docs/GUARD.md
+wiki:                 {title: My project, flows: [{entry: main, depth: 2}]}  # the wiki: docs/WIKI.md
 ```
 
 Nothing about a target repo is hardcoded: every section above is a declared override of
@@ -413,7 +419,7 @@ module findable by a query naming the concept rather than a function name.
 ## Without an agent
 
 `clew.query` is importable and returns JSON-serializable dataclasses. It is what the MCP server
-is a view over, so no query logic exists twice — and it is **wider than the four tools**, by
+is a view over, so no query logic exists twice — and it is **wider than the MCP tools**, by
 design: `callers`, `callees`, `chain_trace`, `req_trace` and `thread_of` are functions here,
 folded into `dossier` at the tool layer to keep one call answering a whole question.
 
@@ -455,7 +461,7 @@ catalog lives in `requirements.yaml`.
 ## The doxygen gate (`clew guard`)
 
 doxygen-guard was a separate tool that clew consumed as a pip dependency. It is now part of
-clew (`clew/guard/`, absorbed at its 1.4.2 release). Its config is the `guard:` section of the
+clew (`clew/guard/`, absorbed at doxygen-guard's own 1.4.2 release). Its config is the `guard:` section of the
 repo's `.clew.yaml`, so the gate and the index read one file with one schema;
 `.doxygen-guard.yaml` is no longer read. The tags are unchanged; THE HOOK ID IS NOT — it is
 `clew-guard` now, because one tool in one repository should not answer to the name of the

@@ -14,9 +14,14 @@ chain of greps the agent rebuilds every session and loses at every context compa
   thread entry points, the locks held around a call.
 - **Answers that say what they do not know.** An unresolved call, a layer that failed to build,
   or a file clew cannot parse is reported as *unresolved* — never quietly as "none".
-- **An index that keeps itself current.** Touched repositories are refreshed every 15 s, a query
-  against a stale index refreshes it before answering, and only edited files are re-parsed.
-  Separate git worktrees get separate indexes.
+- **An index that keeps itself current.** A saved file refreshes its repository's index within
+  about a second (a file-change event, not a poll); a query against a stale index refreshes it
+  before answering, and only edited files are re-parsed. Separate git worktrees get separate
+  indexes.
+- **A wiki generated from the index.** Requirements and the tests that verify them, sequence
+  flows, a system map and a page per function, built as a static site, as Markdown for a GitHub
+  or Azure DevOps wiki, or served live by the MCP server ([the wiki](https://github.com/tvanfossen/clew/blob/main/docs/WIKI.md)).
+- **What the server serves:** <!-- clew:tools -->three tools — `dossier`, `search` and `index` — plus the `propose_declaration` prompt and the wiki as MCP resources (`clew://wiki/{slug}/llms.txt`, `clew://wiki/{slug}/flow/{name}`)<!-- /clew:tools -->.
 - **Measured, not asserted.** Each release is graded against the same agent working without
   clew, and published with the defects that move its numbers:
   [acceptance results](https://github.com/tvanfossen/clew/tree/main/acceptance/runs).
@@ -74,7 +79,7 @@ re-measured by a test that builds a fixture in that language.
 ## Learn more
 
 - [**Overview**](https://github.com/tvanfossen/clew/blob/main/docs/OVERVIEW.md) — the depth
-  - [The four tools](https://github.com/tvanfossen/clew/blob/main/docs/OVERVIEW.md#the-four-tools)
+  - [The tools](https://github.com/tvanfossen/clew/blob/main/docs/OVERVIEW.md#the-tools)
     · [What's in the database](https://github.com/tvanfossen/clew/blob/main/docs/OVERVIEW.md#whats-in-the-database)
     · [Refreshing an index](https://github.com/tvanfossen/clew/blob/main/docs/OVERVIEW.md#refreshing-an-index)
   - [Install and registration](https://github.com/tvanfossen/clew/blob/main/docs/OVERVIEW.md#install)
