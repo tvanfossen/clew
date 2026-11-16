@@ -787,6 +787,20 @@ requirements:
     x-priority: P1
     x-status: implemented
     x-evidence: clew/wiki/exports.py, flowpage.py, build.py; tests/test_wiki_exports.py.
+  REQ-DDB-WIKI-030:
+    subsystem: wiki
+    name: CTRF results, JUnit variants and Sphinx-needs requirements are imported
+    acceptance_criteria: >-
+      `ctrf` is a declared result format (CTRF JSON: `pending` is a skip, `other` an error,
+      parameters dropped, worst case wins). A JUnit case named `name(args)[n]` is the function
+      `name`; `status="disabled"` or `"skipped"` without a child element is a skip; a case whose
+      only failure was rerun (`flakyFailure`, `rerunFailure`) passed. `wiki.needs` names a
+      Sphinx-needs `needs.json` whose `req` / `requirement` needs of the current version
+      contribute titles, criteria and status — the repository's catalog wins where both describe
+      an id — and a need no index row knows becomes a requirement with no implementer, MISSING.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/imports.py, evidence.py, tracepages.py, config.py; tests/test_wiki_test_imports.py.
   REQ-DDB-SCHEMA-013:
     subsystem: schema
     name: Kconfig structure tables, created independently of the gating table

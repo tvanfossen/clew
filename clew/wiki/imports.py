@@ -37,7 +37,7 @@ from pathlib import Path
 from typing import Any
 
 ## Result formats `wiki.tests.results` may declare.
-RESULT_FORMATS = ("ctest", "tap", "catch2", "pytest-json", "ceedling", "unity")
+RESULT_FORMATS = ("ctest", "tap", "catch2", "pytest-json", "ceedling", "unity", "ctrf")
 ## Worst-first statuses (JUnit's rank).
 _RANK = {"error": 0, "failed": 1, "skipped": 2, "passed": 3}
 _PARAMS = re.compile(r"\[.*\]$")
@@ -46,6 +46,8 @@ _TAP_LINE = re.compile(r"^(not )?ok\b\s*\d*\s*(?:-\s*)?(.*?)(?:\s+#\s*(SKIP|TODO
 _SCENARIO = re.compile(r"^(Scenario(?: Outline| Template)?|Example):\s*(.*)$")
 _CTEST = {"passed": "passed", "failed": "failed", "notrun": "skipped", "disabled": "skipped"}
 _PYTEST = {"xfailed": "skipped", "xpassed": "passed"}
+## CTRF statuses that are not already ours.
+_CTRF = {"pending": "skipped", "other": "error"}
 _UNITY_LINE = re.compile(r"^[^:]+:\d+:(\w+):(PASS|FAIL|IGNORE)(?::\s*(.*))?$")
 _UNITY = {"PASS": "passed", "FAIL": "failed", "IGNORE": "skipped"}
 
@@ -100,7 +102,8 @@ def fold_cases(cases: Iterable[tuple[str, str, str]]) -> dict[str, Any]:
 ## @param path The report.
 ## @return {test name: CaseResult}.
 ## v2: Ceedling's XML report and Unity's text output.
-## @version 2
+## v3: CTRF (round 3, P3c).
+## @version 3
 ## @req REQ-DDB-WIKI-010
 def parse_results(fmt: str, path: Path) -> dict[str, Any]:
     """@brief Parse a report. @return Results."""
@@ -111,6 +114,7 @@ def parse_results(fmt: str, path: Path) -> dict[str, Any]:
         "pytest-json": _pytest_json,
         "ceedling": _ceedling,
         "unity": _unity,
+        "ctrf": _ctrf,
     }
     if fmt not in readers:
         raise ValueError(f"unknown result format {fmt!r} (known: {', '.join(RESULT_FORMATS)})")
@@ -363,6 +367,55 @@ def _pytest_json(text: str) -> list[tuple[str, str, str]]:
         name = _PARAMS.sub("", str(test.get("nodeid") or "").rsplit("::", 1)[-1])
         outcome = str(test.get("outcome") or "error")
         out.append((name, _PYTEST.get(outcome, outcome if outcome in _RANK else "error"), ""))
+    return out
+
+
+## @brief Read the requirements of a Sphinx-needs `needs.json`, as catalog entries.
+## @param path The file.
+## @return {need id: {name, acceptance_criteria, status}} for needs typed as requirements.
+## @version 1
+## @req REQ-DDB-WIKI-030
+def parse_needs(path: Path) -> dict[str, dict[str, str]]:
+    """THE CURRENT VERSION'S NEEDS (or the only version's), and only those typed `req` or
+    `requirement` — a spec, a test case or an implementation need is not a requirement.
+
+    @brief Read needs.json.
+    @return Entries.
+    """
+    doc = json.loads(_text(path))
+    versions = doc.get("versions") or {}
+    version = versions.get(str(doc.get("current_version"))) or next(iter(versions.values()), {})
+    out = {}
+    for nid, need in (version.get("needs") or {}).items():
+        if str(need.get("type") or "") not in ("req", "requirement"):
+            continue
+        entry = {
+            "name": str(need.get("title") or ""),
+            "acceptance_criteria": str(need.get("content") or ""),
+            "status": str(need.get("status") or ""),
+        }
+        out[str(need.get("id") or nid)] = {k: v for k, v in entry.items() if v}
+    return out
+
+
+## @brief Read a CTRF (Common Test Report Format) JSON report.
+## @param text The report.
+## @return Cases named by test, parameters dropped.
+## @version 1
+## @dg_internal
+def _ctrf(text: str) -> list[tuple[str, str, str]]:
+    """`pending` IS A SKIP AND `other` AN ERROR — never a pass.
+
+    @brief Read CTRF.
+    @return Cases.
+    """
+    out = []
+    for test in (json.loads(text).get("results") or {}).get("tests") or []:
+        status = str(test.get("status") or "other")
+        status = _CTRF.get(status, status if status in _RANK else "error")
+        out.append(
+            (_PARAMS.sub("", str(test.get("name") or "")), status, str(test.get("message") or ""))
+        )
     return out
 
 

@@ -48,6 +48,10 @@ MAX_REPORT_BYTES = 64 * 1024 * 1024
 _RANK = {"error": 0, "failed": 1, "skipped": 2, "passed": 3}
 ## A parametrized case's suffix: `test_x[a-1]` folds to `test_x`.
 _PARAMS = re.compile(r"\[.*\]$")
+## A JUnit case's parameters: JUnit 5 `name(args)[n]`, pytest `name[id]`.
+## A `status` attribute naming a case that did not run (GoogleTest, Surefire, others).
+_SKIP_STATUS = ("notrun", "disabled", "skipped")
+_JUNIT_PARAMS = re.compile(r"(\(.*\))?(\[.*\])?$")
 ## A path-shaped token in a catalog evidence field.
 _PATH_TOKEN = re.compile(r"[\w.-]+(?:/[\w.-]+)+\.\w+")
 
@@ -94,7 +98,8 @@ class RequirementEvidence:
 ## @param paths JUnit report files.
 ## @return {test name: CaseResult}.
 ## v2: folding shared with the W16 formats (`imports.fold_cases`).
-## @version 2
+## v3: JUnit 5 `name(args)[n]` folds to `name` (round 3, P3c).
+## @version 3
 ## @req REQ-DDB-WIKI-002
 def parse_junit(paths: list[Path]) -> dict[str, CaseResult]:
     """THE TEST NAME IS THE CASE NAME WITH ITS PARAMETERS DROPPED, the name the index knows as a
@@ -107,7 +112,7 @@ def parse_junit(paths: list[Path]) -> dict[str, CaseResult]:
     from .imports import fold_cases
 
     return fold_cases(
-        (_PARAMS.sub("", case.get("name") or ""), *_case_status(case))
+        (_JUNIT_PARAMS.sub("", case.get("name") or "", count=1), *_case_status(case))
         for path in paths
         for case in _root(path).iter("testcase")
     )
@@ -447,7 +452,9 @@ def _tier(statuses: tuple[tuple[str, str], ...], target_only: tuple[str, ...]) -
 ## @param case The element.
 ## @return (status, message).
 ## v2: GoogleTest's notrun / suppressed / skipped attributes.
-## @version 2
+## v3: `status="disabled"` / `"skipped"` is a skip; a rerun-only failure
+## (`flakyFailure`, `rerunFailure`) passed — it has no `failure` child (P3c).
+## @version 3
 ## @dg_internal
 def _case_status(case: ET.Element) -> tuple[str, str]:
     """GOOGLETEST'S `status="notrun"` (a disabled test) has no child element: it is a skip, not a
@@ -456,8 +463,8 @@ def _case_status(case: ET.Element) -> tuple[str, str]:
     @brief Classify a testcase.
     @return Status and message.
     """
-    if case.get("status") == "notrun" or case.get("result") in ("suppressed", "skipped"):
-        return "skipped", case.get("result") or "notrun"
+    if case.get("status") in _SKIP_STATUS or case.get("result") in ("suppressed", "skipped"):
+        return "skipped", case.get("result") or str(case.get("status"))
     for tag, status in (("error", "error"), ("failure", "failed"), ("skipped", "skipped")):
         child = case.find(tag)
         if child is not None:

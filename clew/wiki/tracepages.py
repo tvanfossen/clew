@@ -83,7 +83,8 @@ class Trace:
     ## @param config The section.
     ## @param commit The commit the site describes.
     ## @return The trace.
-    ## @version 1
+    ## v2: a Sphinx-needs import (`wiki.needs`, round 3 P3c).
+    ## @version 2
     ## @dg_internal
     @classmethod
     def gather(cls, repo_root: Path, db: Path, config: WikiConfig, commit: str) -> Trace:
@@ -102,6 +103,8 @@ class Trace:
             repo_root=repo_root,
         )
         catalog_path, declared = declared_catalog(repo_root)
+        if config.needs:
+            evidence, declared = _with_needs(evidence, declared, Path(repo_root) / config.needs)
         parts = {
             "evidence": evidence,
             "nodes": load_nodes(repo_root, config.sources)[0],
@@ -156,6 +159,36 @@ class Trace:
 
             return linked(name, symbol_href(name, rel))
         return linked(name, source_url(self.template, self.commit, rel, max(line, 1)))
+
+
+## @brief Merge a Sphinx-needs import: the catalog wins; a need the index never saw is MISSING.
+## @param evidence The evidence rows.
+## @param declared The catalog's entries.
+## @param path The needs.json.
+## @return (evidence, declared) with the needs merged.
+## @version 1
+## @req REQ-DDB-WIKI-030
+def _with_needs(evidence: list, declared: dict, path: Path) -> tuple[list, dict]:
+    """A NEED NOTHING IMPLEMENTS IS A REQUIREMENT WITH NO IMPLEMENTER — MISSING, not absent: the
+    import declares it, and the site says nobody has done it.
+
+    @brief Merge needs.
+    @return Evidence and entries.
+    """
+    from .evidence import RequirementEvidence
+    from .imports import parse_needs
+
+    needs = parse_needs(path)
+    merged = {**{k: dict(v) for k, v in needs.items()}, **declared}
+    for key, entry in declared.items():
+        merged[key] = {**needs.get(key, {}), **entry}
+    known = {r.req_id for r in evidence}
+    extra = [
+        RequirementEvidence(nid, needs[nid].get("name", ""), "MISSING", (), ())
+        for nid in sorted(needs)
+        if nid not in known
+    ]
+    return [*evidence, *extra], merged
 
 
 ## @brief Where the impact report is: declared, else clew-guard's output directory.

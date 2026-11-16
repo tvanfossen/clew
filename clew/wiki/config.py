@@ -68,6 +68,7 @@ is silently ignored produces a site that looks complete and omits what the key a
         logo: docs/logo.svg
         fonts: true                   # false: system fonts, no bundled font files
       roadmap: ROADMAP.md             # W17: headings naming a version are burndown milestones
+      needs: docs/needs.json          # round 3: Sphinx-needs requirements (the catalog wins)
       impact: docs/generated/impact/impact.json  # default: <guard.output_dir>/impact/impact.json
       components:                     # round 3: the map's boxes; default = packages by path
         Query layer: [clew/query/*]
@@ -103,6 +104,7 @@ _TOP = {
     "issues",
     "tooling",
     "test_flows",
+    "needs",
 }
 _THEME = {"name", "palette", "css", "logo", "fonts"}
 ## The palette tokens of the default theme (the sassafras-class botanical palette).
@@ -267,7 +269,8 @@ class RuleSpec:
 ## v9: tooling (paths whose entry points group under Tooling).
 ## v10: test_flows (how many directly linked tests are drawn as flows).
 ## v11: issues_fetch.
-## @version 11
+## v12: needs (a Sphinx-needs import).
+## @version 12
 @dataclass(frozen=True)
 class WikiConfig:
     """@brief The whole `wiki:` section. @version 4"""
@@ -300,6 +303,8 @@ class WikiConfig:
     tooling: tuple[str, ...] = DEFAULT_TOOLING
     ## The most directly linked tests drawn as flows.
     test_flows: int = 50
+    ## A Sphinx-needs `needs.json` contributing requirements (repo-relative), or None.
+    needs: str | None = None
 
 
 ## @brief Read and validate a repository's `wiki:` section.
@@ -316,7 +321,8 @@ class WikiConfig:
 ## v9: tooling.
 ## v10: test_flows.
 ## v11: issues.fetch.
-## @version 11
+## v12: needs.
+## @version 12
 ## @req REQ-DDB-WIKI-003
 def load_wiki_config(
     repo_root: Path, config_path: Path | None = None
@@ -326,7 +332,7 @@ def load_wiki_config(
 
     @brief Load the section.
     @return Config and problems.
-    @version 11
+    @version 12
     """
     raw, problems = _read_section(Path(config_path or Path(repo_root) / ".clew.yaml"))
     if problems:
@@ -361,6 +367,7 @@ def load_wiki_config(
         issues_fetch=isinstance(raw.get("issues"), dict) and bool(raw["issues"].get("fetch")),
         tooling=tuple(str(g) for g in raw.get("tooling", DEFAULT_TOOLING) or ()),
         test_flows=int(raw.get("test_flows", 50) or 0),
+        needs=str(raw["needs"]) if raw.get("needs") else None,
     )
     return config, problems
 
