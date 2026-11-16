@@ -902,6 +902,20 @@ requirements:
     x-priority: P1
     x-status: implemented
     x-evidence: clew/wiki/tracerun.py, flowpage.py, build.py, config.py; tests/test_wiki_tracerun.py.
+  REQ-DDB-WIKI-037:
+    subsystem: wiki
+    name: One click into the wiki — the live hub when it runs, else a built static site
+    acceptance_criteria: >-
+      `clew wiki open` opens the running wiki hub's page for the repository when the state
+      root's `wiki.json` names a live process, ignoring a record left by a dead one; otherwise
+      it brings the index current, builds the static site beside the index (where the hub keeps
+      it) and opens it as a file. It always prints the URL it opened and opens nothing with
+      `--no-browser`. The plugin ships `/wiki`, running that verb through uv at the plugin's
+      pinned release with the wiki extra, and its manifest names the 2.0.0 surface (three tools,
+      a prompt, the wiki as resources).
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/open_command.py, command.py; commands/wiki.md; .claude-plugin/plugin.json; tests/test_wiki_open.py.
   REQ-DDB-SCHEMA-013:
     subsystem: schema
     name: Kconfig structure tables, created independently of the gating table

@@ -114,12 +114,17 @@ def _parser() -> argparse.ArgumentParser:
 ## v5: `trace` gets the repository (for `--config` imports).
 ## v6: `--refresh` refreshes the index before `check` / `build`.
 ## v7: `trace-run`, which needs no index (it overlays the expected flow when one exists).
-## @version 7
+## v8: `open` (round 3, P5a), dispatched before the parser: it owns its own arguments.
+## @version 8
 ## @req REQ-DDB-WIKI-001
 def wiki_main(argv: list[str]) -> int:
     """@brief Dispatch a wiki verb. @return Exit status."""
     from ..query_command import _locate
 
+    if argv[:1] == ["open"]:
+        from .open_command import open_main
+
+        return open_main(argv[1:])
     args = _parser().parse_args(argv)
     if args.verb == "diff":
         return _diff(args)
