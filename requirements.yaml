@@ -606,6 +606,20 @@ requirements:
     x-priority: P1
     x-status: implemented
     x-evidence: clew/wiki/entrypoints.py, flow.py, flowpage.py, build.py; clew/query/callsites.py; tests/test_wiki_site.py.
+  REQ-DDB-WIKI-019:
+    subsystem: wiki
+    name: One system graph, at several zoom levels, laid out deterministically
+    acceptance_criteria: >-
+      `build_graph` derives components from path prefixes (a file belongs to its package; a
+      declared `wiki.components` grouping wins), links between components aggregating call edges
+      and shared keys, and a point cloud of every function placed inside its component's box.
+      Lens facts ride on components and symbols — requirements by evidence tier, test scope,
+      threads, changed functions — and a lens whose source is absent is absent (no impact report,
+      no `changed` key), while an empty report is a measured zero. Layout is computed in Python
+      and is deterministic: callers sit in layers above their callees.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/graph.py; tests/test_wiki_graph.py.
   REQ-DDB-SCHEMA-013:
     subsystem: schema
     name: Kconfig structure tables, created independently of the gating table
