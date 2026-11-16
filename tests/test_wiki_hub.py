@@ -175,3 +175,192 @@ def test_serve_runs_the_hub_only_when_asked_and_records_its_url(
     monkeypatch.delenv("CLEW_WIKI")
     anyio.run(srv.serve, None, _State(), 0, transport)
     assert seen["exists"] is False
+
+
+# --- Round 3, P4c-2a: the live layer ------------------------------------------------------------
+
+import json  # noqa: E402
+import queue  # noqa: E402
+
+
+def _stream(url: str, cookie: str, into: "queue.Queue[dict]") -> None:
+    """Read server-sent events into a queue until the stream ends."""
+    request = urllib.request.Request(url, headers={"Cookie": cookie})
+    try:
+        with urllib.request.urlopen(request, timeout=15) as reply:
+            for raw in reply:
+                line = raw.decode().strip()
+                if line.startswith("data: "):
+                    into.put(json.loads(line[6:]))
+    except OSError:
+        return
+
+
+def test_a_refreshed_target_with_a_built_wiki_is_rebuilt_and_announced(hub) -> None:  # noqa: ANN001
+    """LIVE VIEW: after the refresh loop refreshes a target whose wiki is built, the hub rebuilds
+    it and tells every open page; a target with no built wiki is left alone.
+
+    @brief P4c-2a: rebuild after refresh, `rebuilt` events.
+    """
+    server, builder, live, gone = hub
+    builder.release.set()
+    site = server.site_dir(live)
+    site.mkdir(parents=True)
+    (site / "index.html").write_text("old")
+    events: queue.Queue[dict] = queue.Queue()
+    reader = threading.Thread(
+        target=_stream,
+        args=(f"http://127.0.0.1:{server.port}/events", f"clew_wiki={server.token}", events),
+        daemon=True,
+    )
+    reader.start()
+    threading.Event().wait(0.3)
+    server.refreshed([live.slug, gone.slug])
+    event = events.get(timeout=10)
+    assert event == {"type": "rebuilt", "slug": live.slug}
+    assert builder.calls == [live.slug]
+
+
+def test_pages_served_by_the_hub_carry_the_live_script(hub) -> None:  # noqa: ANN001
+    """THE STATIC SITE STAYS SERVER-FREE: the hub injects `/live.js` into the pages it serves.
+
+    @brief P4c-2a: live script injection.
+    """
+    server, builder, live, _gone = hub
+    builder.release.set()
+    site = server.site_dir(live)
+    site.mkdir(parents=True)
+    (site / "index.html").write_text("<html><body><p>x</p></body></html>")
+    cookie = f"clew_wiki={server.token}"
+    _status, page, _h = _get(f"http://127.0.0.1:{server.port}/r/{live.slug}/", cookie)
+    assert '<script src="/live.js"></script></body>' in page
+    status, script, headers = _get(f"http://127.0.0.1:{server.port}/live.js", cookie)
+    assert status == 200 and "EventSource" in script and "javascript" in headers["Content-Type"]
+
+
+def test_the_api_answers_with_the_query_engine(tmp_path: Path) -> None:
+    """THE SAME ENGINE THE TOOLS USE: `/api/<slug>/dossier` and `/api/<slug>/search` answer
+    through `clew.query.export`.
+
+    @brief P4c-2a: JSON API.
+    """
+    from clew.cli import _build_argparser, _run_pipeline
+    from clew.mcp_server.wikihub import WikiHub
+
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "m.py").write_text(
+        'def alpha():\n    """Alpha."""\n    return beta()\n\n\ndef beta():\n    """Beta."""\n    return 1\n'
+    )
+    home = tmp_path / "state"
+    target = TargetRegistry(home).register(repo)
+    _run_pipeline(
+        _build_argparser().parse_args(["--output", target.db_path, "--repo-root", str(repo)])
+    )
+    server = WikiHub(home, builder=_Builder())
+    server.start()
+    try:
+        cookie = f"clew_wiki={server.token}"
+        base = f"http://127.0.0.1:{server.port}/api/{target.slug}"
+        status, body, headers = _get(f"{base}/dossier?subject=alpha", cookie)
+        reply = json.loads(body)
+        assert status == 200 and "json" in headers["Content-Type"]
+        assert reply["name"] == "alpha" and [c["name"] for c in reply["callees"]] == ["beta"]
+        status, body, _h = _get(f"{base}/search?text=beta", cookie)
+        assert status == 200 and any(r["name"] == "beta" for r in json.loads(body)["results"])
+        status, _body, _h = _get(f"{base}/dossier", cookie)
+        assert status == 400
+    finally:
+        server.stop()
+
+
+def test_a_dossier_reply_carries_a_wiki_url_only_while_the_hub_runs(tmp_path: Path) -> None:
+    """ADDITIVE, AND ONLY WHILE SERVING: a found function's reply names its symbol section on the
+    hub (no token — the browser holds the session cookie), and the hub tells open pages the
+    agent looked there. Without a linker no key is added.
+
+    @brief P4c-2a: wiki_url and focus.
+    """
+    from clew.cli import _build_argparser, _run_pipeline
+    from clew.mcp_server.tools_query import QueryTools
+    from clew.mcp_server.wikihub import WikiHub
+
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "m.py").write_text('def alpha():\n    """Alpha."""\n    return 1\n')
+    home = tmp_path / "state"
+    target = TargetRegistry(home).register(repo)
+    db = Path(target.db_path)
+    _run_pipeline(_build_argparser().parse_args(["--output", str(db), "--repo-root", str(repo)]))
+    plain = QueryTools(lambda: db, lambda: repo)
+    assert "wiki_url" not in plain.dossier("alpha")
+    server = WikiHub(home, builder=_Builder())
+    seen: list[dict] = []
+    server.publish = seen.append  # type: ignore[method-assign]
+    server.port = 4242
+    linked = QueryTools(lambda: db, lambda: repo)
+    linked.wiki_linker = server.link
+    reply = linked.dossier("alpha")
+    assert reply["wiki_url"] == f"http://127.0.0.1:4242/r/{target.slug}/sym-m-py.html#s-alpha"
+    assert "t=" not in reply["wiki_url"]
+    assert seen == [{"type": "focus", "slug": target.slug, "url": reply["wiki_url"]}]
+    assert "wiki_url" not in linked.dossier("no_such_function")
+
+
+def test_serve_attaches_the_hub_to_the_tools_and_the_refresh_loop(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """@brief P4c-2a: with the hub on, replies gain links and refreshes reach the hub."""
+    from clew.mcp_server import server as srv
+
+    monkeypatch.setenv("CLEW_STATE_HOME", str(tmp_path / "state"))
+    monkeypatch.setenv("CLEW_WIKI", "1")
+    seen: dict[str, object] = {}
+
+    class _Tools:
+        wiki_linker = None
+
+    class _State:
+        tools = _Tools()
+        wiki_hub = None
+
+        async def keep_current(self, interval: float) -> None:  # noqa: ARG002
+            await anyio.sleep_forever()
+
+    state = _State()
+
+    async def transport(_mcp: object) -> None:
+        seen["linker"] = state.tools.wiki_linker
+        seen["hub"] = state.wiki_hub
+
+    anyio.run(srv.serve, None, state, 0, transport)
+    assert seen["linker"] is not None and seen["hub"] is not None
+    assert state.tools.wiki_linker is None and state.wiki_hub is None
+
+
+def test_the_refresh_loop_tells_the_hub_what_it_refreshed(monkeypatch: pytest.MonkeyPatch) -> None:
+    """@brief P4c-2a: keep_current hands the refreshed slugs to the hub."""
+    from clew.mcp_server.server import DocsDbServer
+
+    told: list[list[str]] = []
+
+    class _Hub:
+        def refreshed(self, slugs: list[str]) -> None:
+            told.append(slugs)
+
+    server = DocsDbServer.__new__(DocsDbServer)
+    server.wiki_hub = _Hub()
+
+    async def refresh() -> list[str]:
+        return ["a-123456"]
+
+    monkeypatch.setattr(server, "refresh_touched", refresh, raising=False)
+    server._watcher = type("W", (), {"sync": lambda self, paths: None, "stop": lambda self: None})()
+    server._touched = {}
+
+    async def run() -> None:
+        with anyio.move_on_after(0.5):
+            await server.keep_current(0.05)
+
+    anyio.run(run)
+    assert told and told[0] == ["a-123456"]

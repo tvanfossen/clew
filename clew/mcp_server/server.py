@@ -1205,7 +1205,8 @@ class DocsDbServer:
     ## @brief Construct the server state.
     ## @param registry Target registry (defaults to the per-user one).
     ## v10 (1.3.6): holds the file watcher and the loop's wake event.
-    ## @version 10
+    ## v11: holds the wiki hub while it runs (round 3, P4c-2a).
+    ## @version 11
     ## @dg_internal
     def __init__(self, registry: TargetRegistry | None = None) -> None:
         self.registry = registry if registry is not None else TargetRegistry()
@@ -1245,6 +1246,8 @@ class DocsDbServer:
         self.tools = QueryTools(
             self.active_db, self.active_repo, self.staleness_notices, self.answering
         )
+        ## The wiki hub while it runs (round 3, P4c), else None.
+        self.wiki_hub: Any = None
 
     ## @brief The build lock for one repository, allocated on first contention.
     ## @param repo_path Resolved repo path identifying the target.
@@ -1684,7 +1687,8 @@ class DocsDbServer:
     ## @param interval Seconds between checks when no file event arrives.
     ## @return None; runs until its task group is cancelled.
     ## v2 (1.3.6): woken by OS file events through `watcher.RepoWatcher`, not only by the interval.
-    ## @version 2
+    ## v3: refreshed targets are handed to the wiki hub, which rebuilds their built wikis.
+    ## @version 3
     ## @req REQ-DDB-MCP-004
     async def keep_current(self, interval: float) -> None:
         """WOKEN BY A SAVE, OR BY THE INTERVAL (1.3.6). Each pass first reconciles the file
@@ -1694,7 +1698,7 @@ class DocsDbServer:
 
         @brief Background refresh loop.
         @return None.
-        @version 2
+        @version 3
         """
         self._wake_token = anyio.lowlevel.current_token()
         self._wake = anyio.Event()
@@ -1706,7 +1710,10 @@ class DocsDbServer:
                 if self._wake.is_set():
                     self._wake = anyio.Event()
                     await anyio.sleep(_WAKE_DEBOUNCE_SECONDS)
-                await self.refresh_touched()
+                refreshed = await self.refresh_touched()
+                hub = getattr(self, "wiki_hub", None)
+                if refreshed and hub is not None:
+                    hub.refreshed(refreshed)
         finally:
             self._watcher.stop()
 
@@ -3401,7 +3408,8 @@ async def run_stdio(mcp: MCPServer) -> None:
 ## @return None, once the transport ends.
 ## v2: the wiki hub (round 3, P4c) runs beside the transport when `CLEW_WIKI=1`, and stops
 ## with it.
-## @version 2
+## v3: the hub is attached to the tools (`wiki_url`) and the refresh loop (rebuilds), P4c-2a.
+## @version 3
 ## @req REQ-DDB-MCP-004
 async def serve(
     mcp: MCPServer, state: DocsDbServer, interval: float, transport: Any = None
@@ -3412,13 +3420,14 @@ async def serve(
 
     @brief Run the transport alongside the background refresh loop.
     @return None.
-    @version 2
+    @version 3
     """
     from . import wikihub
     from .state import state_home
 
     serving = transport if transport is not None else run_stdio
     hub = wikihub.start_if_enabled(state_home())
+    wikihub.attach(state, hub)
     try:
         async with anyio.create_task_group() as tg:
             if interval > 0:
@@ -3426,6 +3435,7 @@ async def serve(
             await serving(mcp)
             tg.cancel_scope.cancel()
     finally:
+        wikihub.attach(state, None)
         wikihub.stop(hub, state_home())
 
 

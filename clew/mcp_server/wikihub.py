@@ -16,8 +16,14 @@ the refresh loop and the indexes, and the agent and the person in the browser se
     block a tool call), one build at a time, cached beside the target's index.
   * STDOUT IS THE JSON-RPC WIRE: request logging goes to the logger, never to stdout.
 
+LIVE (round 3, P4c-2a): `/events` streams `rebuilt` (a built wiki was rebuilt after its index
+refreshed) and `focus` (the agent's dossier reply named a symbol) to every open page, through a
+small script the hub injects into the pages it serves — the static site itself stays
+server-free. `/api/<slug>/dossier` and `/api/<slug>/search` answer through `clew.query.export`,
+the engine the tools use.
+
 @brief Serve the wiki of every indexed repository from the MCP process.
-@version 1
+@version 2
 """
 
 from __future__ import annotations
@@ -27,6 +33,7 @@ import json
 import logging
 import mimetypes
 import os
+import queue
 import secrets
 import subprocess
 import sys
@@ -84,15 +91,105 @@ def build_in_subprocess(target: Target, out: Path) -> Path:
     return out / "html"
 
 
+## @brief The live layer's methods, mixed into the hub (round 3, P4c-2a).
+## @version 1
+class _Live:
+    """@brief Events, refresh-driven rebuilds and agent links. @version 1"""
+
+    _subscribers: list[queue.Queue[dict | None]]
+    port: int
+    host: str
+
+    ## @brief Send an event to every open page.
+    ## @param event The event.
+    ## @return None.
+    ## @version 1
+    ## @req REQ-DDB-WIKI-033
+    def publish(self, event: dict) -> None:
+        """@brief Broadcast. @return None."""
+        for subscriber in list(self._subscribers):
+            subscriber.put(event)
+
+    ## @brief Subscribe to events.
+    ## @return A queue the events arrive on (None ends the stream).
+    ## @version 1
+    ## @dg_internal
+    def subscribe(self) -> queue.Queue[dict | None]:
+        """@brief Subscribe. @return Queue."""
+        subscriber: queue.Queue[dict | None] = queue.Queue()
+        self._subscribers.append(subscriber)
+        return subscriber
+
+    ## @brief Stop sending to a subscriber.
+    ## @param subscriber Its queue.
+    ## @return None.
+    ## @version 1
+    ## @dg_internal
+    def unsubscribe(self, subscriber: queue.Queue[dict | None]) -> None:
+        """@brief Unsubscribe. @return None."""
+        if subscriber in self._subscribers:
+            self._subscribers.remove(subscriber)
+
+    ## @brief Rebuild the built wikis of targets the refresh loop just refreshed.
+    ## @param slugs The refreshed targets.
+    ## @return None.
+    ## @version 1
+    ## @req REQ-DDB-WIKI-033
+    def refreshed(self, slugs: list[str]) -> None:
+        """A WIKI NOBODY HAS OPENED IS NOT BUILT on a refresh: only one already built is kept
+        current, and its open pages are told when the new one is ready.
+
+        @brief Rebuild after a refresh.
+        @return None.
+        """
+        for slug in slugs:
+            target = self.find(slug)  # type: ignore[attr-defined]
+            if target is None or not Path(target.repo_path).is_dir():
+                continue
+            if (self.site_dir(target) / "index.html").is_file():  # type: ignore[attr-defined]
+                self.request_build(target)  # type: ignore[attr-defined]
+
+    ## @brief The hub URL of a function's symbol section, announcing it to open pages.
+    ## @param repo_path The repository the reply answered from.
+    ## @param name The function.
+    ## @param rel Its file.
+    ## @return The URL (no token), or None when the repository is not registered.
+    ## @version 1
+    ## @req REQ-DDB-WIKI-033
+    def link(self, repo_path: str, name: str, rel: str) -> str | None:
+        """NO TOKEN IN THE URL: it lands in the model's context and in transcripts; the browser
+        that opened the hub holds the session cookie.
+
+        @brief Link a symbol.
+        @return URL or None.
+        """
+        from ..wiki.symbols import symbol_href
+
+        target = next(
+            (
+                t
+                for t in TargetRegistry(self.home).targets()  # type: ignore[attr-defined]
+                if t.repo_path == str(repo_path) and t.name is None
+            ),
+            None,
+        )
+        if target is None:
+            return None
+        url = f"http://{self.host}:{self.port}/r/{target.slug}/{symbol_href(name, rel)}"
+        self.publish({"type": "focus", "slug": target.slug, "url": url})
+        return url
+
+
 ## @brief The hub: an HTTP server on a daemon thread, building wikis on demand.
 ## @version 1
-class WikiHub:
+class WikiHub(_Live):
     """@brief Hub. @version 1"""
 
     ## @brief Prepare the hub (nothing listens until `start`).
     ## @param home The state root (the registry and every target's wiki live under it).
     ## @param builder Builds one target's site; a subprocess build by default.
-    ## @version 1
+    ## v2: event subscribers (P4c-2a).
+    ## @version 2
     ## @dg_internal
     def __init__(self, home: Path, builder: Builder | None = None) -> None:
         """@brief Store. @return None."""
@@ -104,6 +201,7 @@ class WikiHub:
         self.state: dict[str, str] = {}
         self.errors: dict[str, str] = {}
         self._lock = threading.Lock()
+        self._subscribers: list[queue.Queue[dict | None]] = []
         self._server: ThreadingHTTPServer | None = None
         self._thread: threading.Thread | None = None
 
@@ -136,12 +234,15 @@ class WikiHub:
         self._thread.start()
         logger.info("clew wiki hub listening on %s:%d", self.host, self.port)
 
-    ## @brief Stop listening.
+    ## @brief Stop listening, ending every open event stream.
     ## @return None.
-    ## @version 1
+    ## v2: event streams end with the hub (P4c-2a).
+    ## @version 2
     ## @req REQ-DDB-WIKI-032
     def stop(self) -> None:
         """@brief Stop. @return None."""
+        for subscriber in list(self._subscribers):
+            subscriber.put(None)
         if self._server is not None:
             self._server.shutdown()
             self._server.server_close()
@@ -211,7 +312,8 @@ class WikiHub:
     ## @brief Run one build, then the next queued one.
     ## @param target The target.
     ## @return None.
-    ## @version 1
+    ## v2: a finished build is announced to open pages (P4c-2a).
+    ## @version 2
     ## @dg_internal
     def _build(self, target: Target) -> None:
         """A FAILED BUILD IS A STATE with its reason, never a crash of the hub.
@@ -223,6 +325,7 @@ class WikiHub:
             self.builder(target, self.site_dir(target).parent)
             outcome = "built"
             self.errors.pop(target.slug, None)
+            self.publish({"type": "rebuilt", "slug": target.slug})
         except (OSError, RuntimeError, ValueError, subprocess.SubprocessError) as exc:
             logger.error("wiki build for %s failed: %s", target.slug, exc)
             self.errors[target.slug] = str(exc)
@@ -247,7 +350,8 @@ class _HubHandler(BaseHTTPRequestHandler):
 
     ## @brief Serve a GET.
     ## @return None.
-    ## @version 1
+    ## v2: `/api/`, `/events`, `/live.js` (P4c-2a).
+    ## @version 2
     ## @dg_internal
     def do_GET(self) -> None:  # noqa: N802 — the http.server spelling
         """@brief GET. @return None."""
@@ -262,6 +366,12 @@ class _HubHandler(BaseHTTPRequestHandler):
             self._send(200, _hub_page(self.owner), set_cookie=bool(token))
         elif path.startswith("/r/"):
             self._site(path[3:], set_cookie=bool(token))
+        elif path.startswith("/api/"):
+            self._api(path[5:], parse_qs(parts.query))
+        elif path == "/events":
+            self._events()
+        elif path == "/live.js":
+            self._send(200, _LIVE_JS.encode("utf-8"), "text/javascript")
         else:
             self._send(404, "<p>Not found.</p>")
 
@@ -281,7 +391,8 @@ class _HubHandler(BaseHTTPRequestHandler):
     ## @param rest `<slug>/<path>`.
     ## @param set_cookie Whether to set the session cookie.
     ## @return None.
-    ## @version 1
+    ## v2: HTML pages carry the live script (P4c-2a).
+    ## @version 2
     ## @dg_internal
     def _site(self, rest: str, set_cookie: bool) -> None:
         """CONFINED: the requested file must resolve inside the built site.
@@ -306,7 +417,93 @@ class _HubHandler(BaseHTTPRequestHandler):
             self._send(404, "<p>Not found.</p>")
             return
         kind = mimetypes.guess_type(wanted.name)[0] or "application/octet-stream"
-        self._send(200, wanted.read_bytes(), kind, set_cookie)
+        data = wanted.read_bytes()
+        if kind == "text/html":
+            data = _with_live_script(data)
+        self._send(200, data, kind, set_cookie)
+
+    ## @brief Answer a JSON API call through the same engine the tools use.
+    ## @param rest `<slug>/<verb>`.
+    ## @param query The query parameters.
+    ## @return None.
+    ## @version 1
+    ## @dg_internal
+    def _api(self, rest: str, query: dict[str, list[str]]) -> None:
+        """`dossier?subject=&qualified=` and `search?text=&corpus=`; a missing argument is a 400,
+        an unknown target a 404, a refused call (an unknown corpus) a 400 with its reason.
+
+        @brief API.
+        @return None.
+        """
+        from ..query.export import export_dossier, export_search
+
+        slug, _, verb = rest.partition("/")
+        target = self.owner.find(slug)
+        arg = {k: v[0] for k, v in query.items() if v}
+        if target is None or not Path(target.db_path).is_file():
+            self._json(404, {"error": f"no built index for {slug!r}"})
+            return
+        try:
+            if verb == "dossier" and arg.get("subject"):
+                reply = export_dossier(
+                    target.db_path,
+                    arg["subject"],
+                    qualified=arg.get("qualified"),
+                    repo_root=target.repo_path,
+                )
+            elif verb == "search" and "text" in arg:
+                reply = export_search(
+                    target.db_path, arg["text"], corpus=arg.get("corpus", "symbols")
+                )
+            else:
+                self._json(400, {"error": "use dossier?subject=… or search?text=…"})
+                return
+        except ValueError as exc:
+            self._json(400, {"error": str(exc)})
+            return
+        self._json(200, reply)
+
+    ## @brief Send a JSON reply.
+    ## @param status HTTP status.
+    ## @param payload The body.
+    ## @return None.
+    ## @version 1
+    ## @dg_internal
+    def _json(self, status: int, payload: Any) -> None:
+        """@brief JSON. @return None."""
+        self._send(status, json.dumps(payload, default=str).encode("utf-8"), "application/json")
+
+    ## @brief Hold a server-sent event stream open until the client or the hub goes away.
+    ## @return None.
+    ## @version 1
+    ## @dg_internal
+    def _events(self) -> None:
+        """A COMMENT EVERY 15 S keeps proxies and the browser from closing an idle stream.
+
+        @brief Event stream.
+        @return None.
+        """
+        subscriber = self.owner.subscribe()
+        self.send_response(200)
+        self.send_header("Content-Type", "text/event-stream")
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+        try:
+            while True:
+                try:
+                    event = subscriber.get(timeout=15)
+                except queue.Empty:
+                    self.wfile.write(b": keepalive\n\n")
+                    self.wfile.flush()
+                    continue
+                if event is None:
+                    break
+                self.wfile.write(f"data: {json.dumps(event)}\n\n".encode())
+                self.wfile.flush()
+        except OSError:
+            pass
+        finally:
+            self.owner.unsubscribe(subscriber)
 
     ## @brief Start (or report) a build and answer with a page that refreshes until it is done.
     ## @param target The target.
@@ -366,6 +563,42 @@ class _HubHandler(BaseHTTPRequestHandler):
     def log_message(self, fmt: str, *args: Any) -> None:
         """@brief Log. @return None."""
         logger.debug("wiki hub: " + fmt, *args)
+
+
+## @brief A page with the live script added before its closing body tag.
+## @param data The page.
+## @return The page.
+## @version 1
+## @dg_internal
+def _with_live_script(data: bytes) -> bytes:
+    """@brief Inject. @return Page."""
+    tag = b'<script src="/live.js"></script></body>'
+    at = data.rfind(b"</body>")
+    return data[:at] + tag + data[at + len(b"</body>") :] if at >= 0 else data
+
+
+## The live script: rebuilt pages offer a reload; the agent's focus is offered as a link.
+_LIVE_JS = """(function () {
+  if (!window.EventSource) return;
+  var slug = (location.pathname.split('/')[2] || '');
+  var bar = document.createElement('div');
+  bar.setAttribute('role', 'status');
+  bar.style.cssText = 'position:fixed;right:16px;bottom:16px;max-width:420px;padding:10px 14px;' +
+    'border-radius:12px;background:#1F3B16;color:#fff;font:14px system-ui;display:none;z-index:99';
+  document.body.appendChild(bar);
+  function say(html) { bar.innerHTML = html; bar.style.display = 'block'; }
+  new EventSource('/events').onmessage = function (m) {
+    var e = JSON.parse(m.data);
+    if (e.slug !== slug) return;
+    if (e.type === 'rebuilt') say('This wiki was rebuilt. <a style="color:#fff" href="">Reload</a>');
+    if (e.type === 'focus') {
+      var a = document.createElement('a');
+      a.href = e.url; a.textContent = 'The agent is looking here'; a.style.color = '#fff';
+      bar.textContent = ''; bar.appendChild(a); bar.style.display = 'block';
+    }
+  };
+})();
+"""
 
 
 ## @brief The hub page: every indexed repository and its wiki's state.
@@ -446,3 +679,17 @@ def stop(hub: WikiHub | None, home: Path) -> None:
         return
     hub.stop()
     (Path(home) / WIKI_RECORD).unlink(missing_ok=True)
+
+
+## @brief Attach the hub to the server's tools and refresh loop, or detach it.
+## @param state The server state (its `tools` and `wiki_hub`).
+## @param hub The running hub, or None to detach.
+## @return None.
+## @version 1
+## @req REQ-DDB-WIKI-033
+def attach(state: Any, hub: WikiHub | None) -> None:
+    """@brief Attach. @return None."""
+    if not hasattr(state, "tools"):
+        return
+    state.wiki_hub = hub
+    state.tools.wiki_linker = hub.link if hub is not None else None

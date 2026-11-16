@@ -833,6 +833,23 @@ requirements:
     x-priority: P1
     x-status: implemented
     x-evidence: clew/mcp_server/wikihub.py, server.py; scripts/served_text_audit.py; docs/SECURITY.md; tests/test_wiki_hub.py.
+  REQ-DDB-WIKI-033:
+    subsystem: wiki
+    name: The hub is live — refresh-driven rebuilds, agent focus, and an API over the query engine
+    acceptance_criteria: >-
+      While the hub runs it is attached to the server: after the refresh loop refreshes targets,
+      every one whose wiki is already built is rebuilt (an unopened wiki is not), and each
+      finished build is announced as a `rebuilt` event on `/events` (server-sent events, a
+      keepalive comment every 15 s, every stream ended when the hub stops). A found function's
+      dossier reply gains `wiki_url` — its symbol section on the hub, carrying no token — and a
+      `focus` event; with the hub off no key is added and a failing link never costs the
+      answer. Pages the hub serves carry an injected `/live.js` that offers a reload on
+      `rebuilt` and a link on `focus`; the static site carries no live code. `/api/<slug>/dossier`
+      and `/api/<slug>/search` answer through `clew.query.export`; a missing argument or a
+      refused call is a 400 with its reason, an unbuilt index a 404.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/mcp_server/wikihub.py, server.py, tools_query.py; tests/test_wiki_hub.py.
   REQ-DDB-SCHEMA-013:
     subsystem: schema
     name: Kconfig structure tables, created independently of the gating table

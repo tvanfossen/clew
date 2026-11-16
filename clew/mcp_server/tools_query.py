@@ -19,8 +19,9 @@ process per repository — was a workaround for.
 
 from __future__ import annotations
 
-import re
 import json
+import logging
+import re
 from collections.abc import Callable
 from pathlib import Path
 from typing import Annotated, Any
@@ -59,6 +60,8 @@ from ..query.recovery import recovery_hint
 from .descriptions import load_descriptions
 from .routing import MAX_LISTED_SIBLINGS, no_index_message
 from .state import Answering
+
+logger = logging.getLogger(__name__)
 
 DbProvider = Callable[[], Path]
 RepoProvider = Callable[[], Path]
@@ -1065,7 +1068,8 @@ class QueryTools:
     ## @param repo_provider Callable returning the active repo root (needed to read source text).
     ## @param staleness_provider Callable returning the staleness axes in play, or None for no annotation.
     ## @param answerer Callable resolving a caller-supplied target string, or None for a single-repository tool set.
-    ## @version 4
+    ## v5: `wiki_linker`, set while the wiki hub runs.
+    ## @version 5
     ## @dg_internal
     def __init__(
         self,
@@ -1078,6 +1082,8 @@ class QueryTools:
         self._repo_provider = repo_provider
         self._staleness_provider = staleness_provider
         self._answerer = answerer
+        ## Set while the wiki hub runs: (repo path, name, file) -> URL or None (round 3, P4c-2a).
+        self.wiki_linker: Callable[[str, str, str], str | None] | None = None
 
     ## @brief Resolve an explicit per-call target, refusing when this set cannot route.
     ## @param target Target string the caller supplied.
@@ -1539,7 +1545,8 @@ class QueryTools:
     ## API shares; this adds the budget, the neighbour cap and the server stamps.
     ## v16 (1.3.7): serves the compact neighbour shape when `CLEW_WIRE=compact`.
     ## v17 (1.3.10): an over-cap list answers the first eight and names the rest.
-    ## @version 17
+    ## v18: a found function's reply gains `wiki_url` while the wiki hub runs (round 3, P4c-2a).
+    ## @version 18
     ## @req REQ-DDB-MCP-003
     ## @req REQ-DDB-QUERY-010
     def dossier(
@@ -1708,13 +1715,39 @@ class QueryTools:
             max_neighbors=max_neighbors if max_neighbors is not None else CHAIN_MAX_NEIGHBORS,
         )
         cap = max_neighbors if max_neighbors is not None else DEFAULT_MAX_NEIGHBORS
-        return self._answered(
+        reply = self._answered(
             _wire_shape(_capped_neighbors(_budgeted_dossier(payload), cap)),
             kind="dossier",
             subject=subject,
             target=target,
             sub_index=sub_index,
         )
+        return self._with_wiki_url(reply)
+
+    ## @brief Add the hub URL of a found function's symbol section, while the hub runs.
+    ## @param reply The stamped reply.
+    ## @return The reply.
+    ## @version 1
+    ## @dg_internal
+    def _with_wiki_url(self, reply: dict[str, Any]) -> dict[str, Any]:
+        """ADDITIVE AND ONLY WHILE SERVING: no linker, no key; a miss or a non-function subject
+        gets none. A linker that fails costs the link, never the answer.
+
+        @brief wiki_url.
+        @return Reply.
+        """
+        if self.wiki_linker is None or reply.get("found") is False:
+            return reply
+        if reply.get("subject_kind") != "function" or not reply.get("file"):
+            return reply
+        try:
+            url = self.wiki_linker(str(reply.get("target")), str(reply["name"]), str(reply["file"]))
+        except Exception:
+            logger.debug("wiki link failed for %s", reply.get("name"))
+            url = None
+        if url:
+            reply["wiki_url"] = url
+        return reply
 
     ## @brief The whole lock layer: every lock, the mutex count, the origin split, the nestings.
     ## @param target Repo root or slug to answer from; omit for the server's derived target.
