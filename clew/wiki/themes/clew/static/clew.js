@@ -6,6 +6,7 @@
  * so the state is a link and the BACK BUTTON closes it; Esc closes natively; focus returns to
  * the opener. showModal() makes the rest of the page inert, which is the focus trap.
  * MENU: below 860px the top bar's sections fold behind a labelled button.
+ * GROUPS: a `[data-req-filter]` card shows only its group's `tr[data-group]` rows; again clears.
  * MAP: `[data-lens]` / `[data-level-set]` buttons set the block's lens and zoom level; CSS does
  * the rest; the `[data-trace-set]` picker shows one flow's trace. A `role=button` trigger (an SVG box) opens on Enter or Space.
  * PAN / ZOOM: a `[data-pz]` wrapper's SVG zooms on ctrl+wheel and the +/-/reset buttons, and pans
@@ -94,6 +95,18 @@
     if (!block) return;
     Array.prototype.forEach.call(block.querySelectorAll('g.trace'), function (g) {
       g.classList.toggle('on', g.getAttribute('data-trace') === s.value);
+    });
+  });
+
+  document.addEventListener('click', function (e) {
+    var card = e.target.closest && e.target.closest('[data-req-filter]');
+    if (!card) return;
+    var on = card.getAttribute('aria-pressed') !== 'true', g = card.getAttribute('data-req-filter');
+    Array.prototype.forEach.call(document.querySelectorAll('[data-req-filter]'), function (c) {
+      c.setAttribute('aria-pressed', String(on && c === card));
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('tr[data-group]'), function (r) {
+      r.hidden = on && r.getAttribute('data-group') !== g;
     });
   });
 

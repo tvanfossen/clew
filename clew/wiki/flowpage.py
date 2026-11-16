@@ -35,15 +35,18 @@ from .svg import flow_svg
 
 ## @brief A written flow page: its name, title, the files its steps pass through, and its hops.
 ## v2: `hops`, for the map's flow traces (round 3, P1c-3).
-## @version 2
+## v3: `functions`, so a requirement lists the flows its implementers are on (P1d).
+## @version 3
 class FlowPage(NamedTuple):
-    """@brief A flow page. @version 2"""
+    """@brief A flow page. @version 3"""
 
     name: str
     title: str
     files: frozenset[str]
     ## (caller's file, callee's file) per step, in call order.
     hops: tuple[tuple[str, str], ...] = ()
+    ## (function, file) of every caller and callee — what a requirement's implementer must be.
+    functions: frozenset[tuple[str, str]] = frozenset()
 
 
 ## The most lines a call expression is read across.
@@ -98,7 +101,8 @@ _STYLE = (
 ## v3: passes the entry's file to the bodies.
 ## v4: returns a `FlowPage` — the map (round 3, P1c) links each component to the flows through it.
 ## v5: with its hops (P1c-3).
-## @version 5
+## v6: with its functions (P1d).
+## @version 6
 ## @req REQ-DDB-WIKI-014
 def flow_page(
     repo_root: Path,
@@ -150,7 +154,11 @@ def flow_page(
     (source / f"{name}.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
     files = {s.file for s in flow.steps} | {s.site_file for s in flow.steps if s.site_file}
     hops = tuple((s.site_file, s.file) for s in flow.steps if s.site_file)
-    return FlowPage(name, spec.title or "Flow: " + spec.entry, frozenset(files), hops)
+    functions = {(s.callee, s.file) for s in flow.steps} | {
+        (s.caller, s.site_file) for s in flow.steps if s.site_file
+    }
+    title = spec.title or "Flow: " + spec.entry
+    return FlowPage(name, title, frozenset(files), hops, frozenset(functions))
 
 
 ## @brief A flow's page name: the entry, and its file when the flow selects one.

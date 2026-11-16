@@ -13,7 +13,7 @@ Cells are HTML the caller built; text from the repository goes through `code` or
 escape it.
 
 @brief Build HTML tables and source links.
-@version 1
+@version 2
 """
 
 from __future__ import annotations
@@ -29,10 +29,12 @@ _NONE = '<span class="none">—</span>'
 ## @param cls Extra classes for the table.
 ## @param numeric Headers of right-aligned columns.
 ## @param keep Headers kept even when empty everywhere.
+## @param row_attrs One attribute string per row (e.g. ` data-group="X"`), or None.
 ## @return HTML.
 ## v2: every cell names its column (`data-label`), which the narrow-screen card layout prints
 ## (round 3, P1b).
-## @version 2
+## v3: `row_attrs` (the requirement list's group filter, P1d).
+## @version 3
 ## @req REQ-DDB-WIKI-012
 def table(
     headers: list[str],
@@ -40,15 +42,19 @@ def table(
     cls: str = "",
     numeric: tuple[str, ...] = (),
     keep: tuple[str, ...] = (),
+    row_attrs: list[str] | None = None,
 ) -> str:
     """@brief Render a table. @return HTML."""
     used = [i for i, h in enumerate(headers) if h in keep or any(r[i] for r in rows)]
     align = {i: ' class="n"' if headers[i] in numeric else "" for i in used}
     label = {i: f' data-label="{escape(headers[i])}"' for i in used}
     head = "".join(f"<th{align[i]}>{escape(headers[i])}</th>" for i in used)
+    attrs = row_attrs or [""] * len(rows)
     body = "".join(
-        "<tr>" + "".join(f"<td{align[i]}{label[i]}>{r[i] or _NONE}</td>" for i in used) + "</tr>"
-        for r in rows
+        f"<tr{a}>"
+        + "".join(f"<td{align[i]}{label[i]}>{r[i] or _NONE}</td>" for i in used)
+        + "</tr>"
+        for r, a in zip(rows, attrs, strict=True)
     )
     classes = f"clew {cls}".strip()
     return (
@@ -109,3 +115,14 @@ def source_url(template: str, commit: str, rel: str, line: int) -> str:
 def linked(name: str, url: str) -> str:
     """@brief Link. @return HTML."""
     return f'<a href="{escape(url)}">{code(name)}</a>' if url else code(name)
+
+
+## @brief A flow title (Markdown with inline code spans) as HTML.
+## @param title The title.
+## @return HTML.
+## @version 1
+## @dg_internal
+def md_title(title: str) -> str:
+    """@brief Inline code spans become <code>, everything escaped. @return HTML."""
+    parts = escape(title).split("`")
+    return "".join(f"<code>{s}</code>" if i % 2 else s for i, s in enumerate(parts))

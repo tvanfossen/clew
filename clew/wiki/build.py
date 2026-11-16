@@ -57,7 +57,8 @@ _CELL = str.maketrans({"|": "\\|", "\n": " "})
 ## v7: the system map (round 3, P1c) after Flows.
 ## v8: the sidebar minimap, each flow page lighting the components it passes through.
 ## v9: flow traces on the map.
-## @version 9
+## v10: the requirements page gets the flow pages and the issue tracker (P1d).
+## @version 10
 ## @req REQ-DDB-WIKI-003
 def build_wiki(
     repo_root: Path,
@@ -72,10 +73,11 @@ def build_wiki(
 
     @brief Write and render the site.
     @return The HTML directory.
-    @version 8
+    @version 9
     """
     from .flowpage import flow_page
     from .graph import build_graph
+    from .issues import resolve_target
     from .mappage import map_page, minimap_svg
     from .tracepages import Trace, nodes_page, requirements_page
     from .versions import record_version, valid_key
@@ -101,8 +103,9 @@ def build_wiki(
     ]
     flows = [p.name for p in pages]
     graph = build_graph(db, trace.evidence, trace.impact, config.components, exclude_tests=True)
+    issues = resolve_target(config.issues, config.issues_enabled, repo_root)
     sections = [
-        requirements_page(trace, config, source, rules, burndown),
+        requirements_page(trace, config, source, rules, burndown, tuple(pages), issues),
         _section(source, "flows", "Flows", flows, _FLOWS_LEAD),
         map_page(
             graph,

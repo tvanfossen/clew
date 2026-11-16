@@ -11,7 +11,8 @@ trace is ONE page:
   3. the latest change impact (`impact.json`): requirements whose implementing functions changed;
   4. every requirement — its tier, the functions implementing it (linked to source), its tests
      with their status, layers, the catalog's declared status and priority, model entries and
-     mutation outcomes; the acceptance criteria fold out under the id;
+     mutation outcomes; the id opens the requirement's modal (round 3, P1d: `reqmodal`), which
+     holds the acceptance criteria, the flows it is on and a prefilled issue link;
   5. external rules and pinned sub-catalogs.
 
 Sources and where they are found:
@@ -21,7 +22,7 @@ Sources and where they are found:
     means no section, never an empty one claiming nothing changed.
 
 @brief Gather the trace; write the requirements and model-entries pages.
-@version 1
+@version 2
 """
 
 from __future__ import annotations
@@ -33,6 +34,7 @@ from typing import Any
 from .catalogs import declared_catalog
 from .config import Audience, WikiConfig
 from .htmltable import code, linked, source_url, table, tag, text
+from .reqmodal import first, requirement_cell, via
 
 ## Where clew-guard writes its impact report, under its `output_dir`.
 _IMPACT = Path("impact") / "impact.json"
@@ -176,14 +178,24 @@ def load_impact(path: Path) -> list[dict] | None:
 ## @param source The Sphinx source directory.
 ## @param rules The audience rules.
 ## @param burndown A burndown SVG for a versioned site, or "".
+## @param flows The flow pages (a requirement lists the flows its implementers are on).
+## @param issues The issue tracker, or None (no issue links).
 ## @return The page name.
-## @version 1
+## v2: requirements front and centre (round 3, P1d) — group cards that filter the list first,
+## each requirement opening its whole trace in the shared modal, the group table kept below.
+## @version 2
 ## @req REQ-DDB-WIKI-012
 def requirements_page(
-    trace: Trace, config: WikiConfig, source: Path, rules: Audience, burndown: str = ""
+    trace: Trace,
+    config: WikiConfig,
+    source: Path,
+    rules: Audience,
+    burndown: str = "",
+    flows: tuple = (),
+    issues: tuple[str, str] | None = None,
 ) -> str:
     """@brief Render the trace. @return Page name."""
-    from .summary import charts_block, group_table
+    from .summary import charts_block, group_cards, group_table
 
     ev = trace.evidence
     origin = f" declared in `{trace.catalog_path}`" if trace.catalog_path else ""
@@ -196,13 +208,28 @@ def requirements_page(
         "",
         _link_kinds(ev),
         "",
+        "## Groups",
+        "",
+        "Each card is a requirement group; pick one to filter the list below to it.",
+        "",
+        *_raw(group_cards(ev)),
+        "## Every requirement",
+        "",
+        "Open a requirement for its acceptance criteria, implementers, tests, flows and issues.",
+        "",
+        *_raw(
+            _requirement_table(
+                trace, {"trace": trace, "rules": rules, "flows": list(flows), "issues": issues}
+            )
+        ),
+        "## Charts",
+        "",
         *_raw(charts_block(ev)),
     ]
     if burndown:
         lines += ["## Burndown", "", *_raw(f'<div class="chart-card">{burndown}</div>')]
-    lines += ["## By group", "", *_raw(group_table(ev, config.inputs.min_layers))]
+    lines += ["## Group counts", "", *_raw(group_table(ev, config.inputs.min_layers))]
     lines += _impact_section(trace, rules)
-    lines += ["## Every requirement", "", *_raw(_requirement_table(trace, rules))]
     lines += _rules_section(trace, rules)
     lines += _catalogs_section(trace, rules)
     (source / "requirements.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
@@ -241,36 +268,44 @@ def _link_kinds(ev: list) -> str:
 
 ## @brief The per-requirement table.
 ## @param trace The gathered trace.
-## @param rules The audience rules.
+## @param ctx The modal context: trace, rules, flows, issue target.
 ## @return HTML.
-## @version 1
+## v2: the id opens the requirement's modal; rows carry their group for the cards' filter;
+## a long test list is its counts (the modal lists it).
+## @version 2
 ## @dg_internal
-def _requirement_table(trace: Trace, rules: Audience) -> str:
+def _requirement_table(trace: Trace, ctx: dict[str, Any]) -> str:
     """@brief Render rows. @return HTML."""
+    from .summary import group_of
+
     rows = []
     for row in trace.evidence:
         entry = trace.declared.get(row.req_id, {})
         rows.append(
             [
-                _requirement_cell(row, entry, rules),
+                requirement_cell(row, entry, ctx),
                 tag(row.tier),
                 _fold(
                     [trace.link(n, f, ln) for n, f, ln in row.implementer_sites],
                     f"{len(row.implementer_sites)} functions",
                 ),
-                _fold(
-                    [f"{code(t)} {tag(s)}{_via(row, t)}" for t, s in row.tests],
-                    _test_summary(row.tests),
-                ),
+                _tests_cell(row),
                 ", ".join(f"{text(k)} {n}" for k, n in row.layers or ()),
-                text(str(_first(entry, "x-status", "status"))),
-                text(str(_first(entry, "x-priority", "priority"))),
+                text(str(first(entry, "x-status", "status"))),
+                text(str(first(entry, "x-priority", "priority"))),
                 "<br>".join(code(n) for n in trace.nodes_for(row.req_id)),
                 "<br>".join(f"{code(m)} → {code(t)} {text(o)}" for m, t, o in row.mutations or ()),
             ]
         )
     head = ["requirement", "tier", "implemented by", "tests", "layers", "declared", "priority"]
-    return table([*head, "model entries", "mutations"], rows, cls="trace", keep=tuple(head[:4]))
+    groups = [f' data-group="{text(group_of(r.req_id))}"' for r in trace.evidence]
+    return table(
+        [*head, "model entries", "mutations"],
+        rows,
+        cls="trace",
+        keep=tuple(head[:4]),
+        row_attrs=groups,
+    )
 
 
 ## @brief A list, folded behind a summary when it is long.
@@ -290,6 +325,23 @@ def _fold(items: list[str], summary: str) -> str:
     return f'<details class="fold"><summary>{text(summary)}</summary>{"<br>".join(items)}</details>'
 
 
+## @brief The tests column: a short list inline, a long one as its counts (the modal lists it).
+## @param row The evidence row.
+## @return HTML.
+## @version 1
+## @dg_internal
+def _tests_cell(row: Any) -> str:
+    """ONE FULL LIST PER REQUIREMENT, in its modal: repeating hundreds of tests in a folded cell
+    doubled the page (clew's own: 2.2 MB).
+
+    @brief Tests cell.
+    @return HTML.
+    """
+    if len(row.tests) <= 4:
+        return "<br>".join(f"{code(t)} {tag(s)}{via(row, t)}" for t, s in row.tests)
+    return f'<span class="tsum">{text(_test_summary(row.tests))}</span>'
+
+
 ## @brief "N tests: a passed · b absent".
 ## @param tests (test, status) pairs.
 ## @return The summary.
@@ -301,45 +353,6 @@ def _test_summary(tests: tuple) -> str:
     for _t, status in tests:
         counts[status] = counts.get(status, 0) + 1
     return f"{len(tests)} tests: " + " · ".join(f"{n} {k}" for k, n in sorted(counts.items()))
-
-
-## @brief How a test was linked, when weaker than a tag.
-## @param row The evidence row.
-## @param test The test.
-## @return HTML ("" for a tagged link).
-## @version 1
-## @dg_internal
-def _via(row: Any, test: str) -> str:
-    """@brief Link kind. @return HTML."""
-    for kind, tests in (
-        ("measured", row.measured_tests),
-        ("catalog", row.declared_tests),
-        ("inferred", row.inferred_tests),
-    ):
-        if test in tests:
-            return f' <span class="via via-{kind}" title="linked by {kind}">{kind}</span>'
-    return ""
-
-
-## @brief The requirement cell: id, title and folded acceptance criteria.
-## @param row The evidence row.
-## @param entry Its catalog entry ({} when undeclared).
-## @param rules The audience rules (no text when requirement text is excluded).
-## @return HTML.
-## @version 1
-## @dg_internal
-def _requirement_cell(row: Any, entry: dict, rules: Audience) -> str:
-    """@brief Render the id cell. @return HTML."""
-    cell = f'<span class="rid" id="{text(row.req_id)}">{text(row.req_id)}</span>'
-    if rules.exclude_requirement_text:
-        return cell
-    title = row.title or str(_first(entry, "name", "title"))
-    if title:
-        cell += f'<div class="rtitle">{text(title)}</div>'
-    criteria = str(_first(entry, "acceptance_criteria", "acceptance", "description"))
-    if criteria:
-        cell += f"<details><summary>acceptance</summary>{text(criteria)}</details>"
-    return cell
 
 
 ## @brief The latest change impact from clew-guard's report.
@@ -480,14 +493,3 @@ def nodes_page(trace: Trace, config: WikiConfig, source: Path) -> str:
 def _raw(html: str) -> list[str]:
     """@brief Wrap. @return Lines."""
     return ["```{raw} html", html, "```", ""]
-
-
-## @brief The first non-empty field of a catalog entry.
-## @param entry The entry.
-## @param keys Field names, in preference order.
-## @return The value, or "".
-## @version 1
-## @dg_internal
-def _first(entry: dict, *keys: str) -> Any:
-    """@brief Pick a field. @return Value or ""."""
-    return next((entry[k] for k in keys if entry.get(k) not in (None, "")), "")

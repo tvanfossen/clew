@@ -71,6 +71,7 @@ is silently ignored produces a site that looks complete and omits what the key a
       impact: docs/generated/impact/impact.json  # default: <guard.output_dir>/impact/impact.json
       components:                     # round 3: the map's boxes; default = packages by path
         Query layer: [clew/query/*]
+      issues: {github: owner/repo}    # or {ado: org/project}, or false; default = origin remote
 
 @brief Read and validate the `wiki:` section.
 @version 2
@@ -98,6 +99,7 @@ _TOP = {
     "impact",
     "entry_points",
     "components",
+    "issues",
 }
 _THEME = {"name", "palette", "css", "logo", "fonts"}
 ## The palette tokens of the default theme (the sassafras-class botanical palette).
@@ -252,7 +254,8 @@ class RuleSpec:
 ## v5: impact report path.
 ## v6: entry_points (auto-derived entry-point flows, their depth).
 ## v7: components (the map's declared groupings).
-## @version 7
+## v8: issues (the tracker prefilled issue links open).
+## @version 8
 @dataclass(frozen=True)
 class WikiConfig:
     """@brief The whole `wiki:` section. @version 4"""
@@ -275,6 +278,10 @@ class WikiConfig:
     impact: str | None = None
     entry_points: int = 2
     components: tuple[tuple[str, tuple[str, ...]], ...] = ()
+    ## (provider, project) declared; None = read the origin remote.
+    issues: tuple[str, str] | None = None
+    ## False when `issues: false` — no issue links at all.
+    issues_enabled: bool = True
 
 
 ## @brief Read and validate a repository's `wiki:` section.
@@ -287,7 +294,8 @@ class WikiConfig:
 ## v5: impact.
 ## v6: entry_points.
 ## v7: components.
-## @version 7
+## v8: issues.
+## @version 8
 ## @req REQ-DDB-WIKI-003
 def load_wiki_config(
     repo_root: Path, config_path: Path | None = None
@@ -297,7 +305,7 @@ def load_wiki_config(
 
     @brief Load the section.
     @return Config and problems.
-    @version 7
+    @version 8
     """
     raw, problems = _read_section(Path(config_path or Path(repo_root) / ".clew.yaml"))
     if problems:
@@ -327,6 +335,8 @@ def load_wiki_config(
         impact=str(raw["impact"]) if raw.get("impact") else None,
         entry_points=int(raw.get("entry_points", 2) or 0),
         components=_components(raw.get("components") or {}, problems),
+        issues=_issues(raw.get("issues"), problems),
+        issues_enabled=raw.get("issues") is not False,
     )
     return config, problems
 
@@ -606,3 +616,23 @@ def _theme(raw: Any, problems: list[str]) -> ThemeSpec:
         logo=str(raw["logo"]) if raw.get("logo") else None,
         fonts=bool(raw.get("fonts", True)),
     )
+
+
+## @brief The declared issue tracker.
+## @param raw The `issues` value: {github: owner/repo}, {ado: org/project}, false, or absent.
+## @param problems Appended to.
+## @return (provider, project), or None when not declared.
+## @version 1
+## @dg_internal
+def _issues(raw: Any, problems: list[str]) -> tuple[str, str] | None:
+    """@brief Parse the tracker. @return Target or None."""
+    if raw is None or raw is False:
+        return None
+    if not isinstance(raw, dict) or len(raw) != 1 or next(iter(raw)) not in ("github", "ado"):
+        problems.append("`wiki.issues` must be {github: owner/repo}, {ado: org/project} or false")
+        return None
+    provider, project = next(iter(raw.items()))
+    if not isinstance(project, str) or project.count("/") != 1:
+        problems.append(f"`wiki.issues.{provider}` must name `<owner-or-org>/<repo-or-project>`")
+        return None
+    return str(provider), project

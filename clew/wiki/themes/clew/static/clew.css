@@ -103,6 +103,14 @@ a.modal-link{cursor:pointer}
 /* Icons. */
 svg.ico{vertical-align:-4px;flex:none}a.card-link h3{display:flex;align-items:center;gap:10px}
 .menu-toggle{display:none;align-items:center;justify-content:center;width:40px;height:40px;margin-left:auto;border-radius:10px;border:1px solid var(--rule);background:var(--paper);color:var(--ink);cursor:pointer}
+/* Requirement group cards (round 3, P1d): a filter for the list. */
+.group-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px;margin:12px 0 20px}
+button.group-card{display:flex;flex-direction:column;gap:6px;text-align:left;padding:14px 16px;border-radius:14px;border:1px solid var(--rule2);background:var(--surface);color:var(--ink);font:400 13px var(--sans);cursor:pointer}
+button.group-card:hover{border-color:var(--acc)}button.group-card[aria-pressed="true"]{border-color:var(--acc);box-shadow:0 0 0 2px var(--accbg)}
+.g-name{font:600 14px var(--mono)}.g-count{font:500 20px var(--serif);color:var(--accink)}.g-sub{color:var(--ink2);font-size:12px}
+.g-bar{display:flex;height:8px;border-radius:4px;overflow:hidden;background:var(--inset)}.g-bar .seg{background:var(--c)}
+.issue-link{margin:16px 0 0}.issue-link a{display:inline-block;padding:8px 14px;border-radius:9px;border:1px solid var(--acc);text-decoration:none;font-weight:600}
+tr[hidden]{display:none}
 /* The system map (round 3, P1c): lenses and zoom levels are classes on .map-block. */
 .map-controls{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:8px 0 10px}
 .map-controls .ctl-label{font:600 11px var(--sans);text-transform:uppercase;letter-spacing:.05em;color:var(--faint);margin:0 4px 0 10px}

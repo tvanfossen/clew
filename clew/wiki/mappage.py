@@ -27,7 +27,7 @@ from html import escape
 from pathlib import Path
 from typing import Any
 
-from .htmltable import tag
+from .htmltable import md_title, tag
 from .modal import modal_template
 
 ## Tier order of the requirement bar, worst last so a gap reads at the right edge.
@@ -328,7 +328,8 @@ def _point(p: dict[str, Any]) -> str:
 ## @param c The component.
 ## @param flows {flow page: (title, files)}.
 ## @return HTML.
-## @version 1
+## v2: flow titles through the shared `md_title`.
+## @version 2
 ## @dg_internal
 def _box_body(c: dict[str, Any], flows: Flows) -> str:
     """@brief Modal body. @return HTML."""
@@ -338,7 +339,7 @@ def _box_body(c: dict[str, Any], flows: Flows) -> str:
         for rid, tier in sorted(c.get("req_ids") or [])
     )
     through = "".join(
-        f'<li><a href="{escape(page)}.html">{_title(title)}</a></li>'
+        f'<li><a href="{escape(page)}.html">{md_title(title)}</a></li>'
         for page, (title, files) in sorted(flows.items())
         if files & paths
     )
@@ -352,17 +353,6 @@ def _box_body(c: dict[str, Any], flows: Flows) -> str:
     return "".join(
         f'<h4>{h}</h4><ul class="modal-list">{body}</ul>' for h, body in sections if body
     )
-
-
-## @brief A flow title (Markdown with inline code) as HTML.
-## @param title The title.
-## @return HTML.
-## @version 1
-## @dg_internal
-def _title(title: str) -> str:
-    """@brief Inline code spans become <code>. @return HTML."""
-    parts = escape(title).split("`")
-    return "".join(f"<code>{s}</code>" if i % 2 else s for i, s in enumerate(parts))
 
 
 ## @brief The sidebar's block diagram: every component as a small box linked to its map modal.

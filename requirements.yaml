@@ -656,6 +656,25 @@ requirements:
     x-priority: P1
     x-status: implemented
     x-evidence: clew/wiki/mappage.py, graph.py, flowpage.py, build.py, config.py, modal.py; clew/wiki/themes/clew/; tests/test_wiki_map.py, tests/test_wiki_site.py.
+  REQ-DDB-WIKI-022:
+    subsystem: wiki
+    name: Requirements front and centre — group cards, a modal per requirement, prefilled issues
+    acceptance_criteria: >-
+      The requirements page opens with one card per requirement group (its passing count, tier
+      progress bar, implemented and tested counts); a card filters the requirement list to its
+      group and pressing it again clears the filter. Each requirement id opens the shared modal
+      with its title and acceptance criteria (withheld under `exclude_requirement_text`), tier,
+      declared status and priority, implementers linked to source, tests with status and link
+      kind (a long list cut with the cut stated), the flows its implementers are on (matched by
+      function and file), model entries and mutations; the table no longer carries the
+      acceptance drop-down, and a long test list there is its counts. When the repository has a
+      tracker — declared in `wiki.issues` ({github: owner/repo} or {ado: org/project}) or read
+      from the `origin` remote, none for an unknown host, none with `issues: false` — the modal
+      carries a prefilled new-issue link holding the id in the title, a `req:<ID>` label (an ADO
+      tag) and a `clew-req: <ID>` marker line, with no withheld text in it.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/reqmodal.py, issues.py, summary.py, tracepages.py, htmltable.py, flowpage.py, build.py, config.py; tests/test_wiki_site.py.
   REQ-DDB-SCHEMA-013:
     subsystem: schema
     name: Kconfig structure tables, created independently of the gating table

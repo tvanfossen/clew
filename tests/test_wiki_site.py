@@ -124,6 +124,14 @@ Some text.
 ## v2.0 — the rest
 """
 
+## Round 3, P1d: a catalog, so a requirement has acceptance text for its modal.
+_CATALOG = """\
+requirements:
+  REQ-W-001:
+    name: Load the data
+    acceptance_criteria: Every item is parsed once, then the load finishes.
+"""
+
 _WIKI = """\
 wiki:
   title: Site Demo
@@ -144,6 +152,8 @@ wiki:
     css: docs/extra.css
   audiences:
     partner: {exclude_bodies: true}
+    public: {exclude_requirement_text: true}
+  issues: {github: acme/demo}
 """
 
 
@@ -168,6 +178,7 @@ def repo(tmp_path_factory: pytest.TempPathFactory) -> tuple[Path, Path]:
         "junit.xml": _JUNIT,
         "README.md": "# Demo\n\nThe demo repository.\n",
         "ROADMAP.md": _ROADMAP,
+        "requirements.yaml": _CATALOG,
         "docs/extra.css": ".repo-extra{color:red}\n",
         ".clew.yaml": _WIKI,
     }.items():
@@ -278,7 +289,9 @@ def test_the_requirements_page_summarises_each_requirement_group(site: dict[str,
     assert cells("REQ-W")[:9] == ["2", "2", "2", "1", "1", "0", "0", "0", "1"]
     assert cells("REQ-X")[:9] == ["1", "1", "1", "1", "0", "0", "0", "0", "1"]
     assert "only by call-graph inference" in page
-    assert page.index("<td>REQ-W</td>") < page.index("REQ-W-001")
+    # Round 3, P1d: the group CARDS now lead the page and the counts table sits below the list;
+    # the property — group counts come before the per-requirement rows — is held by the cards.
+    assert page.index('data-req-filter="REQ-W"') < page.index("REQ-W-001")
 
 
 def test_the_requirement_table_links_implementers_and_drops_empty_columns(
@@ -583,3 +596,85 @@ def test_every_page_carries_the_minimap_with_its_components_lit(site: dict[str, 
     assert lit == ["src"]
     assert re.search(r'href="map\.html#m=comp-\d+"', flow)
     assert not re.findall(r'\.minimap \[data-comp="([^"]+)"\]', site["requirements.html"])
+
+
+def _template(page: str, key: str) -> str:
+    """The body of one modal template."""
+    found = re.search(rf'<template id="modal-{re.escape(key)}"[^>]*>(.*?)</template>', page, re.S)
+    assert found is not None, key
+    return found.group(1)
+
+
+def test_requirement_groups_are_cards_that_filter_the_list(site: dict[str, str]) -> None:
+    """OWNER 2026-11-15: requirements front and centre, groups linked. Each group is a card with
+    its tier progress; the card filters the requirement list to that group.
+
+    @brief P1d: group cards.
+    """
+    page = site["requirements.html"]
+    cards = re.findall(r'<button[^>]*class="group-card"[^>]*data-req-filter="([^"]+)"', page)
+    assert cards == ["REQ-W", "REQ-X"]
+    assert page.index('class="group-card"') < page.index('<table class="clew trace"')
+    assert re.findall(r'<tr data-group="([^"]+)"', page) == ["REQ-W", "REQ-W", "REQ-X"]
+    w = page[page.index('data-req-filter="REQ-W"') :]
+    assert 'class="seg c-PASS"' in w[: w.index("</button>")]
+
+
+def test_a_requirement_opens_its_whole_trace_in_a_modal(site: dict[str, str]) -> None:
+    """THE ACCEPTANCE TEXT LEAVES THE TABLE (owner: the drop-down was noise) and lives in the
+    requirement's modal with everything else that requirement links to: implementers, tests with
+    their link kind, the flows passing through its implementers, and a prefilled issue link that
+    carries the id three ways — in the title, as a `req:` label, and as a marker line.
+
+    @brief P1d: the requirement modal and its issue link.
+    """
+    from html import unescape
+    from urllib.parse import parse_qs, urlsplit
+
+    page = site["requirements.html"]
+    assert "<summary>acceptance</summary>" not in page
+    assert 'data-modal="req-REQ-W-001"' in page
+    body = _template(page, "req-REQ-W-001")
+    assert "Every item is parsed once" in body
+    assert "src/data.py" in body and "test_load" in body
+    assert 'href="flow-load.html"' in body
+    href = unescape(
+        re.search(r'href="(https://github\.com/acme/demo/issues/new\?[^"]+)"', body).group(1)
+    )
+    query = parse_qs(urlsplit(href).query)
+    assert "REQ-W-001" in query["title"][0] and query["labels"] == ["req:REQ-W-001"]
+    assert "clew-req: REQ-W-001" in query["body"][0]
+
+
+def test_a_public_site_keeps_requirement_text_out_of_the_modal(
+    repo: tuple[Path, Path], tmp_path: Path
+) -> None:
+    """@brief P1d: `exclude_requirement_text` reaches the modal and the issue link."""
+    from clew.wiki.build import build_wiki
+
+    html = build_wiki(repo[0], repo[1], tmp_path / "out", audience="public")
+    page = (html / "requirements.html").read_text()
+    assert "Every item is parsed once" not in page and "Load the data" not in page
+    assert 'data-modal="req-REQ-W-001"' in page
+
+
+def test_issue_links_follow_the_declared_or_remote_tracker() -> None:
+    """GITHUB AND AZURE DEVOPS, prefilled; the tracker is declared (`wiki.issues`) or read from
+    the `origin` remote; an unknown host gives no link rather than a guessed one.
+
+    @brief P1d: issue targets and prefilled URLs.
+    """
+    from urllib.parse import parse_qs, urlsplit
+
+    from clew.wiki.issues import issue_url, target_from_remote
+
+    assert target_from_remote("git@github.com:acme/demo.git") == ("github", "acme/demo")
+    assert target_from_remote("https://github.com/acme/demo") == ("github", "acme/demo")
+    assert target_from_remote("https://dev.azure.com/org/proj/_git/repo") == ("ado", "org/proj")
+    assert target_from_remote("git@ssh.dev.azure.com:v3/org/proj/repo") == ("ado", "org/proj")
+    assert target_from_remote("https://gitlab.example/x/y.git") is None
+    url = issue_url(("ado", "org/proj"), "REQ-1", "Title", "Body")
+    parts = urlsplit(url)
+    assert parts.netloc == "dev.azure.com" and parts.path == "/org/proj/_workitems/create/Issue"
+    query = parse_qs(parts.query)
+    assert query["[System.Tags]"] == ["req:REQ-1"] and "REQ-1" in query["[System.Title]"][0]
