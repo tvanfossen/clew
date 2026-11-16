@@ -3,6 +3,21 @@
 The depth behind [the README](../README.md): what clew indexes, how it is built and refreshed,
 what it promises and what it does not. Start with the README if you are new here.
 
+```mermaid
+flowchart LR
+  repo[your repository<br/>source · .clew.yaml · requirements.yaml]
+  repo --> harvest[index build<br/>doxygen + tree-sitter layers]
+  harvest --> db[(clew.db<br/>SQLite)]
+  db --> query[clew.query<br/>the stable API]
+  query --> mcp[MCP server<br/>dossier · search · index]
+  query --> cli[CLI<br/>clew query · refresh · wiki]
+  query --> wiki[wiki<br/>HTML · Markdown · live hub]
+  mcp --> agent([an agent])
+  wiki --> person([a person])
+  repo -. pre-commit .-> guard[clew guard<br/>doc gate + change impact]
+  guard -. impact.json .-> wiki
+```
+
 ## Before you point it at a repository
 
 **Files that are not source are never read**, whatever their extension: a zip or object file
@@ -101,6 +116,17 @@ deliberately not repeated here or in `SKILLS.md`: the run directory is the only 
 copy cannot outlive it.
 
 ## Refreshing an index
+
+```mermaid
+flowchart LR
+  save[a file is saved] --> event[OS file event<br/>MCP server watcher]
+  event --> fast{same definitions?<br/>≤ 4 files}
+  fast -- yes --> tier1[FAST tier, in place<br/>positions · outgoing calls · code text<br/>under a second]
+  fast -- no --> full
+  tier1 --> derived[replies carry the<br/>`derived` staleness axis]
+  derived --> full[FULL refresh in the background<br/>threads · locks · reachability · …]
+  full --> current[index current]
+```
 
 **A refresh is incremental, and a stale query refreshes itself before answering.** Both exist
 for the same reason: an agent that believes the index is expensive to correct stops using the
@@ -307,22 +333,6 @@ installs no hook at all.
 `doxygen` is a C++ binary, so it cannot be a Python dependency — `clew init` checks for it and
 tells you if it is missing. Everything else, including the MCP SDK, comes with the package.
 
-### Working on clew itself
-
-```bash
-python3 -m venv .venv
-.venv/bin/pip install -e .[dev]   # pipeline + the doxygen gate + dev tooling
-sudo apt install doxygen          # external binary (plantuml optional)
-.venv/bin/pre-commit install      # the commit-time gate — not optional
-```
-
-That last line is listed because this repository reached 1.1.0 without it: nothing gated a commit,
-and every green in its history was a human remembering to run one. The `gate-hygiene` hook now
-refuses to report success in a checkout where it is missing.
-
-[AGENTS.md](../AGENTS.md) is the contributor contract — the gate, the `@version` rule on doxygen
-blocks, "absence is not emptiness", and the seven places a new index layer has to touch.
-
 ## Build a database
 
 ```bash
@@ -440,23 +450,10 @@ the narrower form that describes a function or macro and returns `None` for anyt
 diagrams, the requirement trace with CI evidence, charts and a burndown. See
 [WIKI.md](WIKI.md).
 
-## Layout
+## Working on clew itself
 
-| Path | What |
-|---|---|
-| `clew/` | The pipeline (`python -m clew`) |
-| `clew/query/` | The stable query API the MCP server is a view over |
-| `clew/guard/` | The doxygen gate (`clew guard`, formerly doxygen-guard); tests in `tests/guard/` |
-| `tests/` | `.venv/bin/python -m pytest tests/ -q` (add `--integration` for the tier that builds real repos) |
-| `acceptance/DESIGN.md` | The schema and grading routine for the instrument being rebuilt |
-| `acceptance/operational/` | Build and refresh cost, and judge variance — measured beside the matrix, never inside it |
-
-## Dogfooding
-
-clew runs its own gate: `.venv/bin/pre-commit run --all-files` → ruff (lint +
-format), the doxygen gate (`@brief`/`@version`/`@return` presence on the shipped
-package, run from this tree as `python -m clew guard`), and the full test suite. Its own
-catalog lives in `requirements.yaml`.
+Contributor material — the development setup, the package layout and how clew runs its own gate —
+is in [DESIGN.md](DESIGN.md); the contributor contract is [AGENTS.md](../AGENTS.md).
 
 ## The doxygen gate (`clew guard`)
 

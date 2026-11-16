@@ -13,6 +13,19 @@ pre-commit hook id is now `clew-guard`** rather than `doxygen-guard`, Rust is su
 same file that carries clew's index declarations. `.doxygen-guard.yaml` is no longer read;
 see [Migrating from doxygen-guard](#migrating-from-doxygen-guard).
 
+```mermaid
+flowchart LR
+  commit[git commit] --> hook[clew-guard hook<br/>staged files]
+  hook --> presence[every function documented<br/>@brief · @param · @return]
+  hook --> version[a changed body bumps<br/>its @version]
+  hook --> req["every @req names a requirement<br/>in the catalog"]
+  presence & version & req --> verdict{all pass?}
+  verdict -- yes --> ok[commit proceeds]
+  verdict -- no --> refuse[refused, each violation named]
+  hook -. clew guard impact .-> impact[impact.json<br/>requirements whose code changed]
+  impact -.-> wiki[the wiki's Change impact page]
+```
+
 ## Why it lives here
 
 clew already read every target's guard config — for the `@req` id pattern and the

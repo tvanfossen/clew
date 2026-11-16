@@ -1,140 +1,86 @@
 # clew wiki
 
-A static documentation site generated entirely from what the repository already has — nothing is
-written by hand for it:
+A documentation site generated entirely from what the repository already has. Nothing is written
+by hand for it: the index, the requirements catalog, test reports, `.clew.yaml` and the prose you
+select become one site. It can be read three ways, from the same build.
 
-| source | gives the site |
-|---|---|
-| the clew index | flows (sequence diagrams), implementers, test links, model-entry references |
-| `.clew.yaml` `wiki:` | what to include, reports, theme, audiences |
-| the requirements catalog | titles, acceptance criteria, declared status and priority, evidence files — found the way the index finds it (`guard:` declaration, else `requirements.yaml`) |
-| clew-guard's `impact.json` | the latest change impact (`<guard.output_dir>/impact/impact.json`, or `wiki.impact`) |
-| CI reports | test results, coverage, per-test coverage, mutation records |
-| prose you select | Markdown, reStructuredText or HTML pages, as written |
+```mermaid
+flowchart LR
+  subgraph sources [What the repository has]
+    idx[clew index]
+    cat[requirements catalog]
+    ci[CI reports<br/>JUnit · coverage · traces]
+    cfg[".clew.yaml wiki:"]
+    prose[prose, ADRs, AGENTS.md]
+    iss[open issues<br/>GitHub · Azure DevOps]
+  end
+  build[clew wiki build]
+  idx --> build
+  cat --> build
+  ci --> build
+  cfg --> build
+  prose --> build
+  iss -. opt-in .-> build
+  build --> html[HTML site<br/>Pages, file://]
+  build --> md[Markdown pages<br/>GitHub / ADO wiki]
+  build --> hub[live hub<br/>inside the MCP server]
+  build --> ex[exports<br/>ReqIF · needs.json · Structurizr<br/>Mermaid · PlantUML · llms.txt]
+```
 
-The site is self-contained — no CDN, no font service, no runtime fetch.
+## Open it
 
 ```bash
-pip install 'clew-trace[wiki]'          # Sphinx + MyST, only for `build`
-clew wiki check                          # validate the `wiki:` section; no Sphinx import
-clew wiki build --out site               # site/html
-clew wiki build --out sites --version v1.2.0   # one site per release, plus a burndown
-clew wiki diff --out sites v1.1.0 v1.2.0       # what changed between two recorded versions
-clew wiki flow ENTRY --svg --animate     # one diagram, standalone
-clew wiki trace --config .clew.yaml      # the graded trace as JSON
+pip install 'clew-trace[wiki]'   # Sphinx + MyST — only the HTML site needs it
+clew wiki open                    # the live hub if the MCP server runs one, else build + open files
 ```
 
-`check` is cheap and belongs in pre-commit or a CI static stage; `build` is a separate stage.
-Both take `--refresh` to bring the index current first. The `clew-wiki-check` pre-commit hook runs
-`clew wiki check --refresh`:
-
-```yaml
-- repo: https://github.com/tvanfossen/clew
-  rev: <tag>
-  hooks: [{id: clew-wiki-check}]
-```
-Every key of the section is known by name: a misspelled one is a problem, never ignored.
-
-## The `wiki:` section of `.clew.yaml`
-
-```yaml
-wiki:
-  title: Demo
-  docs: [README.md, "docs/**/*.md"]
-  entry_points: 2               # every console script / main / thread entry is a flow (0 = off)
-  flows:                        # roots you choose, added to the entry points
-    - entry: load               # bare name; `qualified:` or `file:` selects one identity
-      depth: 3
-      lanes: files              # files | packages | threads
-      stop_at: [log]
-      animate: true
-  tests:
-    junit: [build/junit.xml]
-    results:                    # each DECLARED: ctest | tap | catch2 | pytest-json | ceedling | unity
-      - {format: ctest, path: build/Testing/Test.xml}
-    coverage: build/coverage.xml          # Cobertura
-    gcov: ["build/**/*.gcov", build/cov.json.gz]   # gcov text, or gcov / gcovr JSON
-    mapping: docs/req_tests.yaml          # {REQ: [test]} or a `req,test` CSV
-    features: ["tests/features/**/*.feature"]      # Gherkin: @REQ-ID or @req:REQ-ID tags
-    layers: {unit: ["tests/unit/*"], bdd: ["tests/features/*"]}
-    min_layers: 2               # flag requirements tested in fewer layers
-    target_only: ["test_hw_*"]  # skipped on host by design: TARGET, not a gap
-    contexts: build/coverage.json         # coverage.py JSON with --cov-context=test
-    evidence_fields: [x-evidence, evidence]  # catalog fields naming test files
-    infer_depth: 2              # link tests whose calls reach an implementer (0 = off)
-    mutations: build/mutations.yaml
-  links:
-    template: "https://host/repo/blob/{commit}/{file}#L{line}"
-  theme:
-    name: clew                  # or any installed Sphinx theme
-    palette: {acc: "#3D6B2E"}
-    css: [docs/wiki.css]
-    logo: docs/logo.svg
-    fonts: true
-  roadmap: ROADMAP.md
-  impact: docs/generated/impact/impact.json   # default: from the guard: section
-  audiences:
-    partner: {exclude_bodies: true, exclude_requirement_text: true}
-```
-
-External node sources, pinned sub-catalogs and external rules (`sources`, `catalogs`, `rules`)
-are described in `clew/wiki/config.py`'s module documentation.
+In Claude Code the plugin's `/wiki` does the same. Set `CLEW_WIKI=1` in the MCP server's
+environment to run the **hub**: one page listing every repository indexed on this machine, each
+wiki built the first time it is opened, rebuilt when its index refreshes, and a "the agent is
+looking here" link whenever a `dossier` reply names a function. It listens on 127.0.0.1 only,
+behind a per-session token — see [SECURITY.md](SECURITY.md#9-the-wiki-hub-and-issue-fetching-reach-beyond-the-build).
+Reading never needs a server: the built site is static files.
 
 ## What the site holds
 
-The top bar names the sections and holds the search field.
+```mermaid
+flowchart TB
+  home[Home] --> req[Requirements]
+  home --> flows[Flows]
+  home --> impact[Change impact]
+  home --> map[Map]
+  home --> docs[Docs]
+  req -- a requirement --> modal[its modal:<br/>criteria · implementers · tests · flows · issues · decisions]
+  modal --> sym[symbol pages:<br/>signature · ego-graph · body]
+  modal --> test[a test's section:<br/>checks · result · path to the implementer]
+  flows --> sym
+  map -- a box --> comp[its files · requirements · flows]
+```
 
-- **Docs** — the selected prose.
-- **Flows** — a UML sequence diagram for every entry point (console scripts, `main`s outside
-  tests, thread entries) and every root declared in `wiki.flows`: lanes, activation bars, numbered calls,
-  returns, and loop / opt / alt / try frames around the calls they enclose. Every step is an
-  index edge; a call the index did not resolve is not drawn. Click a step for the data it
-  carries — the call expression at the call site, the callee's signature and brief, its frames
-  and a source link. Play, pause and step through the calls in order.
-- **Requirements** — one page: counts and charts, the burndown (versioned builds), per-group
-  counts, the change impact, then every requirement with its tier, implementers (linked to
-  source), tests and how each was linked, layers, the catalog's declared status and priority,
-  model entries and mutation outcomes; acceptance criteria fold out under the id. External rules
-  and pinned catalogs follow.
-- **Model entries** — entries of the model files declared in `wiki.sources`, with the functions
-  that realise each (`@node <source>:<id>`) and the requirements it serves.
+| section | what it shows |
+|---|---|
+| **Requirements** | One card per requirement group (passing count, tier bar) that filters the list. Each requirement opens a modal: acceptance criteria, the functions implementing it, its tests and how each was linked, the flows it is on, open issues, the decisions that name it, and a prefilled "raise an issue" link. |
+| **Flows** | A UML sequence diagram for every entry point and every root you declare, grouped by role — Product, Threads, Tooling, Tests. Every step is an index edge, badged with the requirements its callee implements; click one for the call it makes. Each flow is also exported as Mermaid and PlantUML. |
+| **Change impact** | From clew-guard's `impact.json`: each changed function, the requirements it implements and the flows it is on. Without a report it says *not measured*. |
+| **Map** | The system's components (callers above callees, arrows sized by calls) at two zooms — components, and every function as a point — re-tinted by lens: requirements, tests, and concurrency, change or issues when their sources exist. Pick a flow to watch it cross the components. A small copy of the map sits in every page's sidebar, lighting what that page touches. |
+| **Docs** | Your prose grouped by kind (tutorial, how-to, reference, explanation), agent-facing documents apart, and the architecture decision records. |
+| **Model entries** | Entries of declared model files and the functions that realise them (`@node`). |
+| **Symbol pages** | A section per referenced function: signature, source link, a radial graph of its callers and callees two hops out, its requirements and flows, and its body. A test's section adds what it checks — its assertions, its result, the requirements it verifies and the call path to each implementer. Gherkin scenarios are shown as Gherkin. |
 
-## Search
-
-The site's search covers its pages. The authoritative search over the index — every symbol, the
-code corpus, ranked — is `clew query search` or the MCP `search` tool; the site does not
-re-implement it, so a miss in the site's search never reads as "not in the repository".
+Everything works on a phone: the top bar folds into a menu, tables become cards, diagrams pan
+and zoom.
 
 ## How a test is linked to a requirement
 
-A test needs no tag. Links are made, strongest first, and the page marks every link weaker than a
+A test needs no tag. Links are made strongest first, and the site marks every link weaker than a
 tag:
 
 | kind | made by |
 |---|---|
 | tagged | `@req` on the test, a mapping file, or a Gherkin scenario tag |
 | measured | per-test coverage ran a line of an implementer |
-| catalog | the catalog's evidence field names the test's file (a file-level claim) |
+| catalog | the catalog's evidence field names the test's file |
 | inferred | the test's calls reach an implementer within `infer_depth` hops |
-
-Reaching code is not verifying it, so the trace counts the requirements linked only by each weaker
-kind.
-
-## Test frameworks
-
-| framework | a test is | results |
-|---|---|---|
-| pytest | a `test*` function or method | JUnit (`--junitxml`), pytest-json-report |
-| Catch2 / doctest | `TEST_CASE`, `SCENARIO`, `TEMPLATE_TEST_CASE`, `TEST_CASE_METHOD` — named by its string | Catch2 XML, JUnit reporter |
-| GoogleTest | `TEST`, `TEST_F`, `TEST_P`, `TYPED_TEST` — `Suite.Name` | `--gtest_output=xml` (read as JUnit; `notrun` is a skip) |
-| Boost.Test | `BOOST_AUTO_TEST_CASE`, `BOOST_FIXTURE_TEST_CASE` | JUnit |
-| Unity / Ceedling | a C `test_*` function | Ceedling's XML report, Unity's text output, JUnit |
-| CTest, TAP | — | CTest `Test.xml`, TAP |
-
-A framework macro counts as a test only inside test code. Coverage comes from Cobertura (gcovr
-`--xml`, coverage.py `xml`), gcov text, or gcov / gcovr JSON.
-
-## Evidence tiers
 
 | tier | meaning |
 |---|---|
@@ -144,24 +90,140 @@ A framework macro counts as a test only inside test code. Coverage comes from Co
 | NOT_RUN | tests are linked but skipped, or no report holds their result |
 | MISSING | no test is linked |
 
-Unmeasured is never reported as a result: with no coverage report, coverage fields are absent;
-with no layers configured, `layers` is absent.
+Unmeasured is never reported as a result: with no coverage report, coverage fields are absent.
 
-## Burndown
+## Watch a test run against the flow it should follow
 
-A versioned build records what it traced (`<out>/<key>/site.json`). The burndown plots open
-requirements — every tier but PASS and TARGET — at each recorded version. Headings of the roadmap
-that name a version (`## v0.8.0 — …`) are milestones; one not yet recorded is drawn ahead, with
-an ideal line to zero.
+```mermaid
+sequenceDiagram
+  participant T as test_load
+  participant L as load
+  participant P as parse
+  participant F as finish
+  T->>L: confirmed
+  L->>P: confirmed
+  L-->>F: not executed (dimmed)
+  Note over T: assert got == [2, 4] — passed
+```
+
+```bash
+clew wiki trace-run --test tests/test_m.py::test_load --out spans.json
+```
+
+The test runs in the repository's own interpreter under a tracer that records every call between
+the repository's functions as OpenTelemetry spans, with the values passed and returned. The
+overlay marks each step of the flow the index predicted as **confirmed** or **not executed**,
+lists calls the run made that the flow did not predict as **discovered**, and shows each
+assertion the test reached and where it failed. On the hub, a test's flow page offers the same
+as a button when `CLEW_WIKI_RUN=1` is set (it executes the repository's code). For other
+languages, export your test run's spans as OTLP JSON and list them under `wiki.tests.traces`: the
+overlay is drawn into the static site.
+
+## Publish it
+
+| where | how |
+|---|---|
+| GitHub Pages | the composite action `tvanfossen/clew/.github/actions/wiki` builds the HTML site (version-keyed if you like); upload and deploy with your own Pages steps |
+| GitHub wiki | `clew wiki build --format markdown --flavor github --out <wiki checkout>` |
+| Azure DevOps wiki | `templates/azure-pipelines-wiki.yml` builds `--format markdown --flavor ado` and pushes it to a code wiki with the job's token |
+
+The Markdown pages carry the requirements, flows (Mermaid) and change impact; the map, lenses and
+call graphs are the HTML site's.
+
+## Exports
+
+Every HTML build also writes, obeying its audience: `llms.txt` and `llms-full.txt` at the site
+root; `exports/requirements.reqif` (ReqIF 1.2), `exports/needs.json` (Sphinx-needs),
+`exports/system.dsl` (Structurizr) and, per flow, `exports/flows/<flow>.mmd` / `.puml`. A
+Sphinx-needs `needs.json` can also be imported (`wiki.needs`). The MCP server exposes the dense
+text and each flow as resources, `clew://wiki/{slug}/llms.txt` and `clew://wiki/{slug}/flow/{name}`.
+
+## Commands
+
+```bash
+clew wiki open                                  # one click: hub or built files
+clew wiki check                                 # validate the wiki: section; no Sphinx
+clew wiki build --out site                      # site/html
+clew wiki build --out sites --version v1.2.0    # one site per release, with a burndown
+clew wiki build --format markdown --flavor ado --out wiki
+clew wiki diff --out sites v1.1.0 v1.2.0        # what changed between two recorded versions
+clew wiki flow ENTRY --svg --animate            # one diagram, standalone
+clew wiki trace --config .clew.yaml             # the graded trace as JSON
+clew wiki trace-run --test NODE --out spans.json
+```
+
+`check` is cheap and belongs in pre-commit (the `clew-wiki-check` hook) or a CI static stage;
+`build` is a separate stage. Both take `--refresh` to bring the index current first.
+
+## The `wiki:` section of `.clew.yaml`
+
+Every key is known by name: a misspelled one is a problem, never ignored.
+
+```yaml
+wiki:
+  title: Demo
+  docs: [README.md, "docs/**/*.md"]
+  doc_kinds: {README.md: tutorial, "docs/OVERVIEW.md": explanation}   # tutorial|howto|reference|explanation|agents
+  adrs: ["docs/adr/*.md"]       # decision records (this is the default)
+  entry_points: 2               # every console script / main / thread entry is a flow (0 = off)
+  tooling: ["scripts/*", "tools/*"]   # entry points here are grouped as Tooling
+  test_flows: 50                # how many directly linked tests are drawn as flows
+  flows:                        # roots you choose, added to the entry points
+    - entry: load               # bare name; `qualified:` or `file:` selects one identity
+      depth: 3
+      lanes: files              # files | packages | threads
+      stop_at: [log]
+      animate: true
+      role: product             # product | threads | tooling | tests
+  components:                   # the map's boxes; default = packages by path
+    Query layer: ["src/query/*"]
+  tests:
+    junit: [build/junit.xml]
+    results:                    # each DECLARED: ctest | tap | catch2 | pytest-json | ceedling | unity | ctrf
+      - {format: ctest, path: build/Testing/Test.xml}
+    coverage: build/coverage.xml          # Cobertura
+    gcov: ["build/**/*.gcov", build/cov.json.gz]
+    mapping: docs/req_tests.yaml          # {REQ: [test]} or a `req,test` CSV
+    features: ["tests/features/**/*.feature"]      # Gherkin: @REQ-ID tags
+    layers: {unit: ["tests/unit/*"], bdd: ["tests/features/*"]}
+    min_layers: 2               # flag requirements tested in fewer layers
+    target_only: ["test_hw_*"]  # skipped on host by design: TARGET, not a gap
+    contexts: build/coverage.json         # coverage.py JSON with --cov-context=test
+    evidence_fields: [x-evidence, evidence]
+    infer_depth: 2              # link tests whose calls reach an implementer (0 = off)
+    mutations: build/mutations.yaml
+    traces: ["build/traces/*.json"]       # OTLP JSON test runs, drawn over their flows
+  needs: docs/needs.json        # Sphinx-needs requirements (the catalog wins)
+  issues: {github: owner/repo, fetch: true}  # or {ado: org/project}; false = no issue links
+  sources:                      # model files whose entries code realises (@node)
+    - {name: keys, path: model/keys.toml, items: keys, doc: doc}
+  catalogs:                     # sub-catalogs read at a pinned commit
+    - {name: kv, repo: ../kv, pin: "<sha>", catalog: requirements.yaml}
+  rules:                        # external rules mapped onto requirements
+    - {id: R1, title: "Timeouts are bounded", requirements: [REQ-NET-001]}
+  links:
+    template: "https://host/repo/blob/{commit}/{file}#L{line}"
+  theme:
+    name: clew                  # or any installed Sphinx theme
+    palette: {acc: "#3D6B2E"}
+    css: [docs/wiki.css]
+    logo: docs/logo.svg
+    fonts: true
+  roadmap: ROADMAP.md           # headings naming a version are burndown milestones
+  impact: docs/generated/impact/impact.json   # default: from the guard: section
+  audiences:
+    partner: {exclude_bodies: true, exclude_requirement_text: true}
+```
+
+`--audience NAME` applies an audience's redaction to every output, exports included:
+`exclude_bodies` removes function bodies, call text and assertions; `exclude_requirement_text`
+removes requirement titles and criteria. A source link is dropped when the repository has a
+remote and no remote branch holds the commit it would name, so a published site never links a
+404.
 
 ## Theme
 
 The default theme is clew's own, in the sassafras-class look, with Manrope, Newsreader and
-JetBrains Mono bundled under the SIL Open Font License (licence texts ship with the fonts).
-Palette tokens: `surface paper muted inset ink ink2 faint rule rule2 acc accbg accink root rootbg
-err errbg warn warnbg`. Naming another theme leaves that theme's look untouched.
-
-## Audiences
-
-`--audience NAME` applies redaction to the output: `exclude_bodies` removes function bodies and
-the call text in flow dialogs; `exclude_requirement_text` removes requirement titles.
+JetBrains Mono bundled under the SIL Open Font License. Palette tokens: `surface paper muted inset
+ink ink2 faint rule rule2 acc accbg accink root rootbg err errbg warn warnbg`. Naming another
+theme leaves that theme's look untouched.

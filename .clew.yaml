@@ -62,3 +62,45 @@ guard:
       # hold only one value states nothing.
       req:
         pattern: "^REQ-DDB-[A-Z]+-[0-9]{3}$"
+
+# clew's own wiki (round 3, P6): clew documents itself with the site it generates. Human guides
+# are grouped by kind; the agent-facing documents (AGENTS.md, SKILLS.md) are kept apart. The MCP
+# tool handlers are declared as product flows, so the site shows what a `dossier` call does.
+wiki:
+  title: clew
+  docs: [README.md, SKILLS.md, AGENTS.md, SECURITY.md, "docs/*.md"]
+  doc_kinds:
+    README.md: tutorial
+    docs/WIKI.md: howto
+    docs/GUARD.md: howto
+    docs/OVERVIEW.md: explanation
+    docs/CORE_HYPOTHESIS.md: explanation
+    docs/DESIGN.md: explanation
+    SECURITY.md: reference
+    docs/SECURITY.md: reference
+    AGENTS.md: agents
+    SKILLS.md: agents
+  flows:
+    - entry: dossier
+      file: clew/mcp_server/tools_query.py
+      depth: 2
+      lanes: packages
+      title: "MCP `dossier`: one subject, every layer"
+    - entry: search
+      file: clew/mcp_server/tools_query.py
+      depth: 2
+      lanes: packages
+      title: "MCP `search`: find the name"
+    - entry: index
+      file: clew/mcp_server/server.py
+      depth: 2
+      lanes: packages
+      title: "MCP `index`: refresh, status, targets"
+    - entry: build_wiki
+      depth: 2
+      lanes: packages
+      title: "build_wiki: how this site is built"
+  tooling: ["scripts/*", "acceptance/*", "tools/*"]
+  issues: {github: tvanfossen/clew}
+  links:
+    template: "https://github.com/tvanfossen/clew/blob/{commit}/{file}#L{line}"

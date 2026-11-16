@@ -7,6 +7,13 @@
 body with its callers, its callees, the thread it runs on and the locks it takes — instead of a
 chain of greps the agent rebuilds every session and loses at every context compaction.
 
+```mermaid
+flowchart LR
+  repo[your repository] --> index[(clew index)]
+  index --> agent([the agent, over MCP:<br/>one call per question])
+  index --> wiki([you, in the wiki:<br/>requirements · flows · map])
+```
+
 ## What you get
 
 - **One call instead of a search chain.** `dossier` answers "who calls this, and what does it

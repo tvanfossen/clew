@@ -14,6 +14,7 @@ and a refresh cadence ("every 15 s") two releases out of date.
 
 from __future__ import annotations
 
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -84,3 +85,52 @@ def test_the_declaration_example_names_every_section() -> None:
     assert set(KNOWN_SECTIONS) | set(NON_DECLARATION_SECTIONS) <= keys, sorted(
         (set(KNOWN_SECTIONS) | set(NON_DECLARATION_SECTIONS)) - keys
     )
+
+
+def test_the_wiki_guide_documents_every_key() -> None:
+    """THE REFERENCE A READER CONFIGURES FROM covers every key the section accepts — the round-3
+    keys were missing from it entirely.
+
+    @brief WIKI.md names every `wiki:` and `wiki.tests` key.
+    """
+    from clew.wiki.config import _TESTS, _TOP
+
+    text = (REPO / "docs" / "WIKI.md").read_text()
+    block = text[text.index("```yaml\nwiki:") :].split("```", 2)[1]
+    missing = [k for k in (*_TOP, *_TESTS) if not re.search(rf"^\s+{k}:", block, re.M)]
+    assert missing == [], missing
+
+
+def test_the_human_guides_are_visual() -> None:
+    """OWNER 2026-11-15: "human documentation should be FAR more visual". Each human guide opens
+    its subject with a diagram GitHub renders (Mermaid).
+
+    @brief Human guides carry a diagram.
+    """
+    for name in ("README.md", "docs/OVERVIEW.md", "docs/WIKI.md", "docs/GUARD.md"):
+        assert "```mermaid" in (REPO / name).read_text(), name
+
+
+def test_clew_documents_itself_with_its_own_wiki() -> None:
+    """DOGFOOD: clew's own `.clew.yaml` builds its wiki — every shipped doc has a kind, the agent
+    docs are kept apart, and the MCP tool handlers are declared as product flows.
+
+    @brief clew's own wiki section.
+    """
+    from clew.wiki.adr import doc_kind
+    from clew.wiki.config import load_wiki_config
+
+    config, problems = load_wiki_config(REPO)
+    assert problems == []
+    docs = [*REPO.glob("*.md"), *(REPO / "docs").glob("*.md")]
+    kinds = {
+        d.relative_to(REPO).as_posix(): doc_kind(d.relative_to(REPO).as_posix(), config.doc_kinds)
+        for d in docs
+    }
+    assert all(kinds.values()), {k: v for k, v in kinds.items() if not v}
+    assert kinds["AGENTS.md"] == "agents" and kinds["SKILLS.md"] == "agents"
+    assert {(f.entry, f.file) for f in config.flows} >= {
+        ("dossier", "clew/mcp_server/tools_query.py"),
+        ("search", "clew/mcp_server/tools_query.py"),
+        ("index", "clew/mcp_server/server.py"),
+    }
