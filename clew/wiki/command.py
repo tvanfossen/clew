@@ -46,7 +46,8 @@ WIKI_COMMAND = "wiki"
 ## v5: `trace --config` (W15/W16 imports).
 ## v6: `check --refresh` / `build --refresh` (the pre-commit hook has no index yet).
 ## v7: `trace-run` (round 3, P4b).
-## @version 7
+## v8: `build --format markdown --flavor` (round 3, P5b).
+## @version 8
 ## @dg_internal
 def _parser() -> argparse.ArgumentParser:
     """@brief Build the parser. @return Parser."""
@@ -83,6 +84,10 @@ def _parser() -> argparse.ArgumentParser:
     check.add_argument("--refresh", action="store_true", help="bring the index current first")
     build = sub.add_parser("build", help="render the site (needs clew-trace[wiki])")
     build.add_argument("--out", required=True, help="output directory; the site is <out>/html")
+    build.add_argument(
+        "--format", default="html", choices=("html", "markdown"), help="markdown: wiki pages"
+    )
+    build.add_argument("--flavor", default="github", help="markdown for: github, ado")
     build.add_argument("--audience", help="an audience from wiki.audiences")
     build.add_argument("--version", help="a version key: the site goes to <out>/<key>/")
     build.add_argument("--config", help="a file whose wiki: section applies")
@@ -146,6 +151,29 @@ def wiki_main(argv: list[str]) -> int:
         sys.stderr.write(f"clew wiki: refused — {exc}\n")
         return 2
     sys.stdout.write(text + "\n")
+    return 0
+
+
+## @brief Write the wiki as Markdown pages for a GitHub or Azure DevOps wiki.
+## @param args Parsed arguments.
+## @param db The index.
+## @param repo The repository.
+## @param config A config file, or None.
+## @return Exit status: 0 written, 2 refused.
+## @version 1
+## @req REQ-DDB-WIKI-038
+def _markdown(args: argparse.Namespace, db: Path, repo: Path, config: Path | None) -> int:
+    """@brief Markdown build. @return Exit status."""
+    from .markdown import build_markdown
+
+    try:
+        out = build_markdown(
+            repo, db, Path(args.out), args.flavor, audience=args.audience, config_path=config
+        )
+    except ValueError as exc:
+        sys.stderr.write(f"clew wiki: refused — {exc}\n")
+        return 2
+    sys.stdout.write(f"{out}\n")
     return 0
 
 
@@ -294,7 +322,8 @@ def _trace(args: argparse.Namespace, db: Path, repo: Path | None) -> dict[str, A
 ## @param repo The repository.
 ## @return Exit status: 0 clean / built, 1 problems found, 2 refused.
 ## v2: `--config` and `--version`.
-## @version 2
+## v3: `--format markdown` writes wiki pages instead.
+## @version 3
 ## @dg_internal
 def _site(args: argparse.Namespace, db: Path, repo: Path) -> int:
     """`check` PRINTS EVERY PROBLEM, one per line on stdout, and exits 1 when there is any — the
@@ -302,7 +331,7 @@ def _site(args: argparse.Namespace, db: Path, repo: Path) -> int:
 
     @brief Check or build the site.
     @return Exit status.
-    @version 2
+    @version 3
     """
     config = Path(args.config) if args.config else None
     if args.verb == "check":
@@ -314,6 +343,8 @@ def _site(args: argparse.Namespace, db: Path, repo: Path) -> int:
         return 1 if problems else 0
     from .build import build_wiki
 
+    if getattr(args, "format", "html") == "markdown":
+        return _markdown(args, db, repo, config)
     try:
         site = build_wiki(
             repo,

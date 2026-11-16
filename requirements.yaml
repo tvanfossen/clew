@@ -916,6 +916,22 @@ requirements:
     x-priority: P1
     x-status: implemented
     x-evidence: clew/wiki/open_command.py, command.py; commands/wiki.md; .claude-plugin/plugin.json; tests/test_wiki_open.py.
+  REQ-DDB-WIKI-038:
+    subsystem: wiki
+    name: The wiki as Markdown pages for GitHub and Azure DevOps wikis
+    acceptance_criteria: >-
+      `clew wiki build --format markdown --flavor github|ado --out DIR` writes, without Sphinx and
+      without HTML, a Home page (counts, links, and a statement that the map, lenses and
+      call graphs are the HTML site's), Requirements (per group: id, title unless requirement
+      text is excluded, tier, implementers, test count, open issues), Flows (by role) with one
+      page per flow — its sequence diagram in Mermaid and its steps by name and call site, no
+      call text or body — and Change impact when a report exists. GitHub pages fence
+      ```mermaid, link pages without an extension and get `_Sidebar.md`; Azure DevOps pages take
+      `::: mermaid` blocks, link `./Page.md` and get `.order`. An unknown flavour is refused by
+      name.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/markdown.py, command.py; tests/test_wiki_markdown.py.
   REQ-DDB-SCHEMA-013:
     subsystem: schema
     name: Kconfig structure tables, created independently of the gating table
