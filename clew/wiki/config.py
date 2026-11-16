@@ -69,6 +69,8 @@ is silently ignored produces a site that looks complete and omits what the key a
         fonts: true                   # false: system fonts, no bundled font files
       roadmap: ROADMAP.md             # W17: headings naming a version are burndown milestones
       needs: docs/needs.json          # round 3: Sphinx-needs requirements (the catalog wins)
+      adrs: [docs/adr/*.md]           # round 3: architecture decision records (this is the default)
+      doc_kinds: {README.md: tutorial, docs/OVERVIEW.md: explanation}  # Diátaxis grouping
       impact: docs/generated/impact/impact.json  # default: <guard.output_dir>/impact/impact.json
       components:                     # round 3: the map's boxes; default = packages by path
         Query layer: [clew/query/*]
@@ -105,6 +107,8 @@ _TOP = {
     "tooling",
     "test_flows",
     "needs",
+    "adrs",
+    "doc_kinds",
 }
 _THEME = {"name", "palette", "css", "logo", "fonts"}
 ## The palette tokens of the default theme (the sassafras-class botanical palette).
@@ -131,6 +135,10 @@ THEME_TOKENS = (
 _FLOW = {"entry", "qualified", "depth", "lanes", "stop_at", "title", "animate", "file", "role"}
 ## The roles a flow is grouped under on the Flows page (round 3, P1e).
 FLOW_ROLES = ("product", "threads", "tooling", "tests")
+## The kinds a document is grouped under (Diátaxis, plus agent-facing docs kept apart).
+DOC_KINDS = ("tutorial", "howto", "reference", "explanation", "agents")
+## Where architecture decision records are looked for, unless `wiki.adrs` says otherwise.
+DEFAULT_ADRS = ("docs/adr/*.md", "doc/adr/*.md", "docs/decisions/*.md", "adr/*.md")
 ## Paths whose entry points are tooling, unless `wiki.tooling` says otherwise.
 DEFAULT_TOOLING = ("scripts/*", "acceptance/*", "tools/*", "benchmarks/*", "examples/*")
 _TESTS = {
@@ -270,7 +278,8 @@ class RuleSpec:
 ## v10: test_flows (how many directly linked tests are drawn as flows).
 ## v11: issues_fetch.
 ## v12: needs (a Sphinx-needs import).
-## @version 12
+## v13: adrs, doc_kinds.
+## @version 13
 @dataclass(frozen=True)
 class WikiConfig:
     """@brief The whole `wiki:` section. @version 4"""
@@ -305,6 +314,10 @@ class WikiConfig:
     test_flows: int = 50
     ## A Sphinx-needs `needs.json` contributing requirements (repo-relative), or None.
     needs: str | None = None
+    ## Globs of architecture decision records.
+    adrs: tuple[str, ...] = DEFAULT_ADRS
+    ## (glob, kind) pairs: which document is a tutorial, how-to, reference, explanation or agents.
+    doc_kinds: tuple[tuple[str, str], ...] = ()
 
 
 ## @brief Read and validate a repository's `wiki:` section.
@@ -322,7 +335,8 @@ class WikiConfig:
 ## v10: test_flows.
 ## v11: issues.fetch.
 ## v12: needs.
-## @version 12
+## v13: adrs, doc_kinds.
+## @version 13
 ## @req REQ-DDB-WIKI-003
 def load_wiki_config(
     repo_root: Path, config_path: Path | None = None
@@ -332,7 +346,7 @@ def load_wiki_config(
 
     @brief Load the section.
     @return Config and problems.
-    @version 12
+    @version 13
     """
     raw, problems = _read_section(Path(config_path or Path(repo_root) / ".clew.yaml"))
     if problems:
@@ -368,6 +382,8 @@ def load_wiki_config(
         tooling=tuple(str(g) for g in raw.get("tooling", DEFAULT_TOOLING) or ()),
         test_flows=int(raw.get("test_flows", 50) or 0),
         needs=str(raw["needs"]) if raw.get("needs") else None,
+        adrs=tuple(str(g) for g in raw.get("adrs", DEFAULT_ADRS) or ()),
+        doc_kinds=_doc_kinds(raw.get("doc_kinds") or {}, problems),
     )
     return config, problems
 
@@ -698,3 +714,23 @@ def _issues(raw: Any, problems: list[str]) -> tuple[str, str] | None:
         problems.append(f"`wiki.issues.{provider}` must name `<owner-or-org>/<repo-or-project>`")
         return None
     return str(provider), project
+
+
+## @brief The declared document kinds.
+## @param raw The `doc_kinds` mapping: glob → kind.
+## @param problems Appended to.
+## @return (glob, kind) pairs, in the order written.
+## @version 1
+## @dg_internal
+def _doc_kinds(raw: Any, problems: list[str]) -> tuple[tuple[str, str], ...]:
+    """@brief Parse kinds. @return Pairs."""
+    if not isinstance(raw, dict):
+        problems.append("`wiki.doc_kinds` must map a path glob to a kind")
+        return ()
+    out = []
+    for glob, kind in raw.items():
+        if kind not in DOC_KINDS:
+            problems.append(f"`wiki.doc_kinds.{glob}` must be one of {', '.join(DOC_KINDS)}")
+            continue
+        out.append((str(glob), str(kind)))
+    return tuple(out)

@@ -51,7 +51,8 @@ class Trace:
     ## v2: `symbols` (P1f).
     ## v3: `test_href` (P2a).
     ## v4: `issues`, `unlinked`, `issues_note` (P3a).
-    ## @version 4
+    ## v5: `decisions` (P3c).
+    ## @version 5
     ## @dg_internal
     def __init__(self, parts: dict[str, Any], config: WikiConfig) -> None:
         """@brief Store. @return None."""
@@ -76,6 +77,8 @@ class Trace:
         self.unlinked: list = []
         ## Why issues were not fetched, when they were asked for and could not be.
         self.issues_note: str = ""
+        ## {requirement: decisions naming it} (round 3, P3c).
+        self.decisions: dict[str, list] = {}
 
     ## @brief Gather the trace for a repository.
     ## @param repo_root The repository.

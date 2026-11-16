@@ -124,6 +124,21 @@ Some text.
 ## v2.0 — the rest
 """
 
+## Round 3, P3c-2: an architecture decision record naming a requirement.
+_ADR = """\
+# 1. Use SQLite for the store
+
+Date: 2026-01-02
+
+## Status
+
+Accepted
+
+## Context
+
+REQ-W-001 needs a file-backed store.
+"""
+
 ## Round 3, P1d: a catalog, so a requirement has acceptance text for its modal.
 _CATALOG = """\
 requirements:
@@ -154,6 +169,7 @@ wiki:
     partner: {exclude_bodies: true}
     public: {exclude_requirement_text: true}
   issues: {github: acme/demo}
+  doc_kinds: {README.md: tutorial}
 """
 
 
@@ -179,6 +195,8 @@ def repo(tmp_path_factory: pytest.TempPathFactory) -> tuple[Path, Path]:
         "README.md": "# Demo\n\nThe demo repository.\n",
         "ROADMAP.md": _ROADMAP,
         "requirements.yaml": _CATALOG,
+        "docs/adr/0001-use-sqlite.md": _ADR,
+        "AGENTS.md": "# Agents\n\nHow an agent works in this repository.\n",
         "docs/extra.css": ".repo-extra{color:red}\n",
         ".clew.yaml": _WIKI,
     }.items():
@@ -719,3 +737,63 @@ def test_a_flow_step_carries_the_requirements_its_callee_implements(site: dict[s
     table = table[: table.index("</table>")]
     assert 'href="requirements.html#REQ-X-001"' in table
     assert 'href="requirements.html#REQ-W-002"' in table
+
+
+def test_docs_are_grouped_by_kind_and_agent_docs_are_included(site: dict[str, str]) -> None:
+    """DIÁTAXIS, AND HUMAN VS AGENT DOCS (owner 2026-11-15): the Docs page groups the repository's
+    prose by declared kind; AGENTS.md is included without being listed and kept apart, as
+    agent-facing.
+
+    @brief P3c-2: doc kinds.
+    """
+    page = site["docs.html"]
+
+    def kind(name: str) -> str:
+        found = re.search(
+            rf'<section class="doc-kind" data-kind="{name}">(.*?)</section>', page, re.S
+        )
+        assert found is not None, name
+        return found.group(1)
+
+    assert "prose/README" in kind("tutorial") and "prose/AGENTS" in kind("agents")
+    assert page.index('data-kind="tutorial"') < page.index('data-kind="agents"')
+    assert "prose/AGENTS.html" in site
+
+
+def test_decisions_are_listed_and_reach_the_requirements_they_name(site: dict[str, str]) -> None:
+    """@brief P3c-2: ADRs — a Decisions page (number, title, status, date, requirements named) and
+    a Decisions section in each named requirement's modal."""
+    page = site["decisions.html"]
+    table = page[page.index('<table class="clew"') :]
+    row = table[table.index("Use SQLite for the store") :].split("</tr>")[0]
+    assert "Accepted" in row and "2026-01-02" in row and 'href="requirements.html#REQ-W-001"' in row
+    assert "adr/0001-use-sqlite" in page
+    req = site["requirements.html"]
+    body = req[req.index('<template id="modal-req-REQ-W-001"') :]
+    body = body[: body.index("</template>")]
+    assert "<h4>Decisions</h4>" in body and "Use SQLite for the store" in body
+
+
+def test_adr_status_is_read_in_every_common_shape() -> None:
+    """@brief P3c-2: `Status:` inline, a `## Status` section, MADR front matter."""
+    from clew.wiki.adr import parse_adr
+
+    inline = parse_adr("0002-x.md", "# 2. X\n\nStatus: Proposed\nDate: 2026-02-01\n")
+    section = parse_adr("0003-y.md", "# Y\n\n## Status\n\nSuperseded by 4\n")
+    madr = parse_adr("0004-z.md", "---\nstatus: accepted\ndate: 2026-03-03\n---\n# Z\n")
+    assert (inline.number, inline.title, inline.status, inline.date) == (
+        "2",
+        "X",
+        "Proposed",
+        "2026-02-01",
+    )
+    assert (section.number, section.status) == ("3", "Superseded by 4")
+    assert (madr.title, madr.status, madr.date) == ("Z", "accepted", "2026-03-03")
+
+
+def test_an_unknown_doc_kind_is_a_problem(tmp_path: Path) -> None:
+    """@brief P3c-2: doc kinds are a closed set."""
+    from clew.wiki.config import load_wiki_config
+
+    (tmp_path / ".clew.yaml").write_text("wiki:\n  doc_kinds: {README.md: novel}\n")
+    assert load_wiki_config(tmp_path)[1]

@@ -67,7 +67,8 @@ _CELL = str.maketrans({"|": "\\|", "\n": " "})
 ## v15: directly linked tests drawn as flows (P2b).
 ## v16: open issues fetched and linked when `wiki.issues.fetch` (P3a).
 ## v17: exports — Mermaid / PlantUML flows, llms.txt, ReqIF, needs.json, Structurizr (P3b).
-## @version 17
+## v18: decisions (ADRs) and docs grouped by kind (P3c).
+## @version 18
 ## @req REQ-DDB-WIKI-003
 def build_wiki(
     repo_root: Path,
@@ -82,7 +83,7 @@ def build_wiki(
 
     @brief Write and render the site.
     @return The HTML directory.
-    @version 16
+    @version 17
     """
     from .flowpage import flow_page, flows_index
     from .impactpage import impact_page
@@ -91,6 +92,7 @@ def build_wiki(
     from .mappage import map_page, minimap_svg
     from . import testfacts
     from .imports import parse_features
+    from .adr import find_decisions
     from .exports import write_exports
     from .symbols import symbol_pages
     from .tracepages import Trace, nodes_page, requirements_page
@@ -141,6 +143,10 @@ def build_wiki(
     for (name, _rel), href in sorted(written.items()):
         if name in facts:
             trace.test_href.setdefault(name, href)
+    decisions = find_decisions(repo_root, config.adrs, tuple(r.req_id for r in trace.evidence))
+    trace.decisions = {
+        r.req_id: [d for d in decisions if r.req_id in d.requirements] for r in trace.evidence
+    }
     issues = resolve_target(config.issues, config.issues_enabled, repo_root)
     trace.issues, trace.unlinked, trace.issues_note = _fetch_issues(config, issues, trace.evidence)
     graph = build_graph(db, trace.evidence, trace.impact, config.components, exclude_tests=True)
@@ -155,7 +161,7 @@ def build_wiki(
             source,
             {p.name: (p.title, _component_hops(p.hops, config)) for p in pages},
         ),
-        _section(source, "docs", "Docs", _prose(repo_root, config, source), _DOCS_LEAD),
+        _docs_page(source, _prose(repo_root, config, source), config, decisions),
     ]
     if config.sources:
         sections.append(nodes_page(trace, config, source))
@@ -390,35 +396,112 @@ def _audience(config: WikiConfig, audience: str | None) -> Audience:
 ## @param repo_root The repository.
 ## @param config The section.
 ## @param source The Sphinx source directory.
-## @return Page names, in configured order.
+## @return (page name, repo-relative path) pairs, in configured order.
 ## v2: `.html` prose — its body is embedded in a themed page (owner 2026-11-15: user-selected
 ## html / md content).
-## @version 2
+## v3: AGENTS.md included; ADRs copied; pages returned with their paths (round 3, P3c).
+## @version 3
 ## @dg_internal
-def _prose(repo_root: Path, config: WikiConfig, source: Path) -> list[str]:
+def _prose(repo_root: Path, config: WikiConfig, source: Path) -> list[tuple[str, str]]:
     """AS WRITTEN: Markdown through MyST, reStructuredText natively, HTML embedded as it is.
+    AGENTS.md is included when present even if no glob names it — agent docs are kept apart on
+    the Docs page, not left out.
 
     @brief Copy prose.
-    @return Page names.
+    @return (page name, repo-relative path) pairs.
     """
-    pages: list[str] = []
-    for pattern in config.docs:
-        for path in sorted(repo_root.glob(pattern)):
-            suffix = path.suffix.lower()
-            if not path.is_file() or suffix not in (".md", ".rst", ".html", ".htm"):
-                continue
-            rel = path.relative_to(repo_root)
-            target = source / "prose" / rel
-            target.parent.mkdir(parents=True, exist_ok=True)
-            if suffix in (".html", ".htm"):
-                target = target.with_suffix(".md")
-                target.write_text(_html_page(path), encoding="utf-8")
-            else:
-                shutil.copyfile(path, target)
-            page = str(Path("prose") / rel.with_suffix(""))
-            if page not in pages:
-                pages.append(page)
-    return pages
+    from .config import DEFAULT_ADRS
+
+    root = Path(repo_root)
+    found = [p for pattern in config.docs for p in sorted(root.glob(pattern))]
+    found += [root / "AGENTS.md"]
+    pages: dict[str, str] = {}
+    for path in found:
+        rel = path.relative_to(root).as_posix() if path.is_absolute() else str(path)
+        if not path.is_file() or path.suffix.lower() not in (".md", ".rst", ".html", ".htm"):
+            continue
+        page = copy_prose(root, rel, source)
+        pages.setdefault(page, rel)
+    for pattern in config.adrs or DEFAULT_ADRS:
+        for path in sorted(root.glob(pattern)):
+            if path.is_file():
+                copy_prose(root, path.relative_to(root).as_posix(), source)
+    return list(pages.items())
+
+
+## @brief Copy one prose file into the source tree.
+## @param root The repository.
+## @param rel Its repo-relative path.
+## @param source The Sphinx source directory.
+## @return Its page name.
+## @version 1
+## @dg_internal
+def copy_prose(root: Path, rel: str, source: Path) -> str:
+    """@brief Copy prose. @return Page name."""
+    path = root / rel
+    target = source / "prose" / rel
+    target.parent.mkdir(parents=True, exist_ok=True)
+    if path.suffix.lower() in (".html", ".htm"):
+        target = target.with_suffix(".md")
+        target.write_text(_html_page(path), encoding="utf-8")
+    else:
+        shutil.copyfile(path, target)
+    return str(Path("prose") / Path(rel).with_suffix(""))
+
+
+## @brief The Docs page: the repository's prose grouped by kind, agent docs apart, decisions linked.
+## @param source The Sphinx source directory.
+## @param pages (page, repo-relative path) pairs.
+## @param config The section (doc kinds).
+## @param decisions The repository's decision records.
+## @return The page name, or "" when there is nothing to show.
+## @version 1
+## @dg_internal
+def _docs_page(
+    source: Path, pages: list[tuple[str, str]], config: WikiConfig, decisions: list
+) -> str:
+    """OWNER 2026-11-15: human docs and agent docs are different classes of information — the
+    agent-facing ones (AGENTS.md and kin) are their own group, after the human ones.
+
+    @brief Write docs.md.
+    @return Page name.
+    """
+    from html import escape
+
+    from .adr import decisions_page, doc_kind
+
+    decided = decisions_page(decisions, source)
+    if not pages and not decided:
+        return ""
+    lines = ["# Docs", "", _DOCS_LEAD, ""]
+    if decided:
+        lines += [f"[Decisions](decisions.md): {len(decisions)} architecture decision records.", ""]
+    for kind, heading in _KINDS:
+        members = [(p, rel) for p, rel in pages if (doc_kind(rel, config.doc_kinds) or "") == kind]
+        if not members:
+            continue
+        items = "".join(
+            f'<li><a href="{escape(p)}.html">{escape(rel)}</a></li>' for p, rel in members
+        )
+        block = (
+            f'<section class="doc-kind" data-kind="{kind or "other"}"><ul>{items}</ul></section>'
+        )
+        lines += [f"## {heading}", "", "```{raw} html", block, "```", ""]
+    toc = [p for p, _rel in pages] + ([decided] if decided else [])
+    lines += ["```{toctree}", ":hidden:", ":maxdepth: 1", "", *toc, "```", ""]
+    (source / "docs.md").write_text("\n".join(lines), encoding="utf-8")
+    return "docs"
+
+
+## (kind, heading) in page order; "" is a document no kind was declared for.
+_KINDS = (
+    ("tutorial", "Tutorials"),
+    ("howto", "How-to guides"),
+    ("reference", "Reference"),
+    ("explanation", "Explanation"),
+    ("", "More"),
+    ("agents", "For agents"),
+)
 
 
 ## @brief An HTML document as a page: its title as the heading, its body embedded.
@@ -438,24 +521,6 @@ def _html_page(path: Path) -> str:
 
 
 _DOCS_LEAD = "The repository's own documentation, as written."
-
-
-## @brief A section page listing its children; nothing when it has none.
-## @param source The Sphinx source directory.
-## @param name The page name.
-## @param title The section title (the top-bar label).
-## @param children Child page names.
-## @param lead The section's one-line description.
-## @return The page name, or "" when there are no children.
-## @version 1
-## @dg_internal
-def _section(source: Path, name: str, title: str, children: list[str], lead: str) -> str:
-    """@brief Write a section page. @return Page name or ""."""
-    if not children:
-        return ""
-    text = [f"# {title}", "", lead, "", "```{toctree}", ":maxdepth: 1", "", *children, "```", ""]
-    (source / f"{name}.md").write_text("\n".join(text), encoding="utf-8")
-    return name
 
 
 ## @brief Write the home page: a card per section, and the toctree the top bar is built from.

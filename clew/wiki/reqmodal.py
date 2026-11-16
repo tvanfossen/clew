@@ -64,7 +64,8 @@ def requirement_cell(row: Any, entry: dict, ctx: dict[str, Any]) -> str:
 ## v2: each implementer shows its file and line beside its symbol link (P1f).
 ## v3: tests link to their sections.
 ## v4: open issues (P3a).
-## @version 4
+## v5: decisions naming the requirement (P3c).
+## @version 5
 ## @dg_internal
 def _body(row: Any, entry: dict, title: str, ctx: dict[str, Any]) -> str:
     """@brief Assemble sections. @return HTML."""
@@ -97,6 +98,14 @@ def _body(row: Any, entry: dict, title: str, ctx: dict[str, Any]) -> str:
         (_tests_heading(row.tests), _tests(row, trace.test_href), "ul"),
         ("Flows through it", _flows(row, ctx["flows"]), "ul"),
         ("Open issues", issue_links((trace.issues or {}).get(row.req_id, []), True), ""),
+        (
+            "Decisions",
+            _items(
+                f'<a href="{text(d.href)}">{text(d.title)}</a> <span class="ver">{text(d.status)}</span>'
+                for d in trace.decisions.get(row.req_id, [])
+            ),
+            "ul",
+        ),
         ("Model entries", _items(code(n) for n in trace.nodes_for(row.req_id)), "ul"),
         (
             "Mutations",

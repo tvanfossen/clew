@@ -801,6 +801,22 @@ requirements:
     x-priority: P1
     x-status: implemented
     x-evidence: clew/wiki/imports.py, evidence.py, tracepages.py, config.py; tests/test_wiki_test_imports.py.
+  REQ-DDB-WIKI-031:
+    subsystem: wiki
+    name: Decision records and agent docs are read; docs are grouped by kind
+    acceptance_criteria: >-
+      Architecture decision records under `wiki.adrs` (default docs/adr, doc/adr, docs/decisions,
+      adr) are read for number (heading or file name), title, status and date — MADR front
+      matter, an inline `Status:` line or a `## Status` section — and for the requirement ids they
+      name whole; a Decisions page lists them with their requirements linked, each record is a
+      page, and a requirement's modal lists the decisions naming it. The Docs page groups the
+      repository's prose by `wiki.doc_kinds` (tutorial, howto, reference, explanation, agents; an
+      unknown kind is a configuration problem), undeclared documents under More, and AGENTS.md
+      (included when present, unlisted or not) and its kin under For agents, apart from the human
+      docs.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/adr.py, build.py, config.py, tracepages.py, reqmodal.py; tests/test_wiki_site.py.
   REQ-DDB-SCHEMA-013:
     subsystem: schema
     name: Kconfig structure tables, created independently of the gating table
