@@ -56,7 +56,8 @@ _CELL = str.maketrans({"|": "\\|", "\n": " "})
 ## centre (round 3, P1b; Change impact and Map slot in after Flows when they land).
 ## v7: the system map (round 3, P1c) after Flows.
 ## v8: the sidebar minimap, each flow page lighting the components it passes through.
-## @version 8
+## v9: flow traces on the map.
+## @version 9
 ## @req REQ-DDB-WIKI-003
 def build_wiki(
     repo_root: Path,
@@ -71,7 +72,7 @@ def build_wiki(
 
     @brief Write and render the site.
     @return The HTML directory.
-    @version 7
+    @version 8
     """
     from .flowpage import flow_page
     from .graph import build_graph
@@ -103,7 +104,12 @@ def build_wiki(
     sections = [
         requirements_page(trace, config, source, rules, burndown),
         _section(source, "flows", "Flows", flows, _FLOWS_LEAD),
-        map_page(graph, {p.name: (p.title, set(p.files)) for p in pages}, source),
+        map_page(
+            graph,
+            {p.name: (p.title, set(p.files)) for p in pages},
+            source,
+            {p.name: (p.title, _component_hops(p.hops, config)) for p in pages},
+        ),
         _section(source, "docs", "Docs", _prose(repo_root, config, source), _DOCS_LEAD),
     ]
     if config.sources:
@@ -117,6 +123,24 @@ def build_wiki(
     if version:
         record_version(out_dir, version, snapshot, config.title, milestones)
     return html
+
+
+## @brief A flow's hops between components, in call order, repeats and in-component calls dropped.
+## @param hops (caller file, callee file) per step.
+## @param config The section (declared groupings).
+## @return (from component, to component) pairs.
+## @version 1
+## @dg_internal
+def _component_hops(hops: tuple, config: WikiConfig) -> list[tuple[str, str]]:
+    """@brief Component hops. @return Pairs."""
+    from .graph import component_of
+
+    out: list[tuple[str, str]] = []
+    for a, b in hops:
+        pair = (component_of(a, config.components), component_of(b, config.components))
+        if pair[0] != pair[1] and (not out or out[-1] != pair):
+            out.append(pair)
+    return out
 
 
 ## @brief The components each flow page lights on the minimap.

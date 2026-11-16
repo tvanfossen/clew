@@ -38,20 +38,29 @@ _NAME_CHARS = 26
 
 ## {flow page: (title, files it passes through)}.
 Flows = dict[str, tuple[str, set[str]]]
+## {flow page: (title, [(from component, to component)] in call order)}.
+Traces = dict[str, tuple[str, list[tuple[str, str]]]]
+## Seconds each traced hop takes to draw.
+_HOP_S = 0.7
 
 
 ## @brief The map block: controls, the SVG and one modal template per box.
 ## @param graph `build_graph`'s output.
 ## @param flows {flow page: (title, files)}.
+## @param traces {flow page: (title, component hops)}: flows to trace across the map.
 ## @return HTML.
-## @version 1
+## v2: flow traces (round 3, P1c-3).
+## @version 2
 ## @req REQ-DDB-WIKI-021
-def map_html(graph: dict[str, Any], flows: Flows) -> str:
+def map_html(graph: dict[str, Any], flows: Flows, traces: Traces | None = None) -> str:
     """@brief Draw the map. @return HTML."""
     comps = graph["components"]
     keys = {c["id"]: f"comp-{i}" for i, c in enumerate(comps)}
     by_id = {c["id"]: c for c in comps}
     ports = _ports(graph["links"], by_id)
+    live = {
+        k: v for k, v in (traces or {}).items() if any(a in by_id and b in by_id for a, b in v[1])
+    }
     width = max((c["x"] + c["w"] for c in comps), default=0) + 2 * _MARGIN
     height = max((c["y"] + c["h"] for c in comps), default=0) + 2 * _MARGIN
     svg = [
@@ -63,6 +72,7 @@ def map_html(graph: dict[str, Any], flows: Flows) -> str:
         '<path d="M0 0L10 5L0 10z"/></marker></defs>',
         *(_link(link, by_id, ports) for link in graph["links"]),
         *(_box(c, keys[c["id"]]) for c in comps),
+        *(_trace(page, hops, by_id) for page, (_t, hops) in sorted(live.items())),
         '<g class="cloud">',
         *(_point(p) for p in graph["symbols"]),
         "</g></g></svg>",
@@ -70,7 +80,8 @@ def map_html(graph: dict[str, Any], flows: Flows) -> str:
     templates = "".join(modal_template(keys[c["id"]], c["id"], _box_body(c, flows)) for c in comps)
     return (
         f'<div class="map-block" data-lens-current="requirements" data-level="container">'
-        f'{_controls(comps)}<div class="map-wrap" data-pz>{"".join(svg)}</div>{templates}</div>'
+        f"{_controls(comps)}{_trace_picker(live)}"
+        f'<div class="map-wrap" data-pz>{"".join(svg)}</div>{templates}</div>'
     )
 
 
@@ -78,10 +89,14 @@ def map_html(graph: dict[str, Any], flows: Flows) -> str:
 ## @param graph The graph.
 ## @param flows {flow page: (title, files)}.
 ## @param source The Sphinx source directory.
+## @param traces {flow page: (title, component hops)}.
 ## @return The page name, or "" when the graph has no component.
-## @version 1
+## v2: traces.
+## @version 2
 ## @req REQ-DDB-WIKI-021
-def map_page(graph: dict[str, Any], flows: Flows, source: Path) -> str:
+def map_page(
+    graph: dict[str, Any], flows: Flows, source: Path, traces: Traces | None = None
+) -> str:
     """@brief Write map.md. @return Page name."""
     if not graph["components"]:
         return ""
@@ -90,7 +105,7 @@ def map_page(graph: dict[str, Any], flows: Flows, source: Path) -> str:
         "per dependency (wider = more calls). Switch the lens to re-tint it, switch to Code to "
         "see every function as a point, and click a box for its files, requirements and flows."
     )
-    text = ["# Map", "", lead, "", "```{raw} html", map_html(graph, flows), "```", ""]
+    text = ["# Map", "", lead, "", "```{raw} html", map_html(graph, flows, traces), "```", ""]
     (Path(source) / "map.md").write_text("\n".join(text), encoding="utf-8")
     return "map"
 
@@ -390,3 +405,50 @@ def minimap_svg(graph: dict[str, Any], width: int = 220) -> str:
         f'height="{height:.0f}" viewBox="0 0 {width} {height:.0f}" role="img" '
         f'aria-label="System map">{"".join(lines)}{"".join(boxes)}</svg>'
     )
+
+
+## @brief The flow picker: one option per traceable flow; nothing when there is none.
+## @param live {flow page: (title, hops)} with at least one hop on the map.
+## @return HTML.
+## @version 1
+## @dg_internal
+def _trace_picker(live: Traces) -> str:
+    """@brief Picker. @return HTML."""
+    if not live:
+        return ""
+    options = "".join(
+        f'<option value="{escape(page)}">{escape(title.replace("`", ""))}</option>'
+        for page, (title, _h) in sorted(live.items(), key=lambda kv: kv[1][0])
+    )
+    return (
+        '<div class="map-controls"><label class="ctl-label" for="trace-pick">Trace a flow</label>'
+        '<select data-trace-set id="trace-pick"><option value="">none</option>'
+        f"{options}</select></div>"
+    )
+
+
+## @brief One flow's hops across the map, each drawn after the one before.
+## @param page The flow page.
+## @param hops (from, to) component pairs in call order.
+## @param comps {id: component}.
+## @return SVG.
+## @version 1
+## @dg_internal
+def _trace(page: str, hops: list[tuple[str, str]], comps: dict[str, dict[str, Any]]) -> str:
+    """CENTRE TO CENTRE, in call order: the trace says which component hands control to which,
+    not which call — the flow's own page has the calls.
+
+    @brief Draw a trace.
+    @return SVG.
+    """
+    parts = []
+    for i, (a, b) in enumerate((a, b) for a, b in hops if a in comps and b in comps):
+        ca, cb = comps[a], comps[b]
+        x1, y1 = ca["x"] + ca["w"] / 2, ca["y"] + ca["h"] / 2
+        x2, y2 = cb["x"] + cb["w"] / 2, cb["y"] + cb["h"] / 2
+        parts.append(
+            f'<path class="hop" pathLength="1" d="M{x1:.0f} {y1:.0f}L{x2:.0f} {y2:.0f}" '
+            f'style="animation-delay:{i * _HOP_S:.1f}s" marker-end="url(#map-arrow)">'
+            f"<title>{i + 1}. {escape(a)} → {escape(b)}</title></path>"
+        )
+    return f'<g class="trace" data-trace="{escape(page)}">{"".join(parts)}</g>'

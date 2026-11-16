@@ -7,7 +7,7 @@
  * the opener. showModal() makes the rest of the page inert, which is the focus trap.
  * MENU: below 860px the top bar's sections fold behind a labelled button.
  * MAP: `[data-lens]` / `[data-level-set]` buttons set the block's lens and zoom level; CSS does
- * the rest. A `role=button` trigger (an SVG box) opens on Enter or Space.
+ * the rest; the `[data-trace-set]` picker shows one flow's trace. A `role=button` trigger (an SVG box) opens on Enter or Space.
  * PAN / ZOOM: a `[data-pz]` wrapper's SVG zooms on ctrl+wheel and the +/-/reset buttons, and pans
  * by dragging, through its viewBox.
  */
@@ -86,6 +86,14 @@
     block.setAttribute(attr === 'data-lens' ? 'data-lens-current' : 'data-level', b.getAttribute(attr));
     Array.prototype.forEach.call(block.querySelectorAll('[' + attr + ']'), function (o) {
       o.setAttribute('aria-pressed', String(o === b));
+    });
+  });
+
+  document.addEventListener('change', function (e) {
+    var s = e.target, block = s.closest && s.hasAttribute('data-trace-set') && s.closest('.map-block');
+    if (!block) return;
+    Array.prototype.forEach.call(block.querySelectorAll('g.trace'), function (g) {
+      g.classList.toggle('on', g.getAttribute('data-trace') === s.value);
     });
   });
 

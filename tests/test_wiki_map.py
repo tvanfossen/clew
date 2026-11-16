@@ -151,3 +151,26 @@ def test_components_are_declared_in_the_wiki_section(tmp_path: Path) -> None:
     )
     (tmp_path / ".clew.yaml").write_text("wiki:\n  components: [a, b]\n")
     assert load_wiki_config(tmp_path)[1]
+
+
+def test_a_flow_is_traced_across_the_map_in_call_order(db: Path) -> None:
+    """OWNER 2026-11-15: "an animated core flow traced across the map". Each flow with a call
+    between components becomes a trace: its cross-component hops in call order, each animated
+    after the one before. A flow that never leaves one component draws nothing to trace.
+
+    @brief P1c-3: flow traces on the map.
+    """
+    graph = build_graph(db, _EVIDENCE, None, exclude_tests=True)
+    traces = {
+        "flow-handle": ("Handle", [("pkg/api", "pkg/core"), ("pkg/core", "pkg/api")]),
+        "flow-local": ("Local", []),
+    }
+    html = map_html(graph, {}, traces)
+    assert (
+        "<select data-trace-set" in html and '<option value="flow-handle">Handle</option>' in html
+    )
+    assert "flow-local" not in html
+    group = re.search(r'<g class="trace" data-trace="flow-handle">(.*?)</g>', html, re.S).group(1)
+    delays = [float(d) for d in re.findall(r"animation-delay:([\d.]+)s", group)]
+    assert len(delays) == 2 and delays == sorted(delays) and delays[0] < delays[1]
+    assert "data-trace-set" not in map_html(graph, {})

@@ -126,6 +126,10 @@ svg.map rect[class^="c-"]{fill:var(--c)}svg.map .pt{fill:var(--inset)}svg.map .p
 .map-block[data-level="code"] svg.map text.sub{display:none}.map-block[data-level="code"] .link{opacity:.18}
 .modal-body h4{font:600 12px var(--sans);text-transform:uppercase;letter-spacing:.04em;color:var(--ink2);margin:14px 0 6px}
 .modal-body h4:first-child{margin-top:0}ul.modal-list{margin:0;padding-left:18px;font-size:14px}ul.modal-list li{margin:3px 0}
+svg.map g.trace{display:none}svg.map g.trace.on{display:inline}
+svg.map .hop{fill:none;stroke:var(--root);stroke-width:3.5;stroke-dasharray:1;stroke-dashoffset:1;visibility:hidden;animation:hop .7s ease-out forwards}
+@keyframes hop{0%{visibility:visible;stroke-dashoffset:1}100%{visibility:visible;stroke-dashoffset:0}}
+.map-controls select{height:32px;border-radius:9px;border:1px solid var(--rule);background:var(--paper);color:var(--ink);font:500 13px var(--sans);padding:0 8px;max-width:100%}
 /* The sidebar minimap (round 3, P1c-2); a page's own <style> lights its components. */
 .minimap-block{margin:0 0 20px}svg.minimap{display:block;max-width:100%;height:auto}
 svg.minimap rect{fill:var(--paper);stroke:var(--rule);stroke-width:1;cursor:pointer}

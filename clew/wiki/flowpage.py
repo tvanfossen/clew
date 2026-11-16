@@ -33,14 +33,17 @@ from .htmltable import code, source_url, table
 from .svg import flow_svg
 
 
-## @brief A written flow page: its name, title and the files its steps pass through.
-## @version 1
+## @brief A written flow page: its name, title, the files its steps pass through, and its hops.
+## v2: `hops`, for the map's flow traces (round 3, P1c-3).
+## @version 2
 class FlowPage(NamedTuple):
-    """@brief A flow page. @version 1"""
+    """@brief A flow page. @version 2"""
 
     name: str
     title: str
     files: frozenset[str]
+    ## (caller's file, callee's file) per step, in call order.
+    hops: tuple[tuple[str, str], ...] = ()
 
 
 ## The most lines a call expression is read across.
@@ -94,7 +97,8 @@ _STYLE = (
 ## entry and names the page.
 ## v3: passes the entry's file to the bodies.
 ## v4: returns a `FlowPage` — the map (round 3, P1c) links each component to the flows through it.
-## @version 4
+## v5: with its hops (P1c-3).
+## @version 5
 ## @req REQ-DDB-WIKI-014
 def flow_page(
     repo_root: Path,
@@ -145,7 +149,8 @@ def flow_page(
         lines += _bodies(db, repo_root, flow, spec.file)
     (source / f"{name}.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
     files = {s.file for s in flow.steps} | {s.site_file for s in flow.steps if s.site_file}
-    return FlowPage(name, spec.title or "Flow: " + spec.entry, frozenset(files))
+    hops = tuple((s.site_file, s.file) for s in flow.steps if s.site_file)
+    return FlowPage(name, spec.title or "Flow: " + spec.entry, frozenset(files), hops)
 
 
 ## @brief A flow's page name: the entry, and its file when the flow selects one.

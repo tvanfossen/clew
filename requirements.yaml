@@ -650,7 +650,9 @@ requirements:
       may be declared in `wiki.components` (name → path globs, order kept); a malformed entry is
       a configuration problem. Every page's sidebar carries the same minimap (one drawing for the
       site); a flow page lights the components its steps pass through, and each minimap box
-      opens that component on the map.
+      opens that component on the map. A flow picker on the map traces any flow that crosses
+      components: its hops between components in call order, each drawn after the one before;
+      a flow that never leaves one component is not offered.
     x-priority: P1
     x-status: implemented
     x-evidence: clew/wiki/mappage.py, graph.py, flowpage.py, build.py, config.py, modal.py; clew/wiki/themes/clew/; tests/test_wiki_map.py, tests/test_wiki_site.py.
