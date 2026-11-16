@@ -1,0 +1,76 @@
+# SPDX-License-Identifier: MIT
+# clew wiki — build a repository's wiki in CI (round 3, P5c).
+#
+# Installs clew at a pinned release (with the wiki extra), indexes the checkout, and builds the
+# wiki: HTML for GitHub Pages, or Markdown for a GitHub / Azure DevOps wiki. It outputs the built
+# directory and deploys nothing: the calling workflow keeps its own upload and deploy steps, so
+# one action serves Pages, a wiki repository or an artifact alike.
+#
+# Every action used here is pinned by commit SHA (docs/SECURITY.md, position 8); the clew
+# release defaults to the one this action ships with.
+name: clew wiki
+description: Index the checkout with clew and build its wiki (HTML or Markdown).
+inputs:
+  version:
+    description: clew-trace release to install.
+    default: "1.4.0"
+  format:
+    description: "html (a site, for Pages) or markdown (wiki pages)."
+    default: html
+  flavor:
+    description: "For markdown: github or ado."
+    default: github
+  out:
+    description: Output directory.
+    default: clew-wiki
+  config:
+    description: A file whose wiki section applies instead of the repository's .clew.yaml.
+    default: ""
+  audience:
+    description: An audience from wiki.audiences (empty for the full wiki).
+    default: ""
+  version-key:
+    description: "For html: build a version-keyed site (out/<key>/); restore earlier versions into out first to keep them."
+    default: ""
+  python-version:
+    description: Python to install clew under.
+    default: "3.12"
+outputs:
+  site:
+    description: The built site (html) or the wiki pages directory (markdown).
+    value: ${{ steps.build.outputs.site }}
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+      with:
+        python-version: ${{ inputs.python-version }}
+    - name: Install clew and doxygen
+      shell: bash
+      run: |
+        sudo apt-get update -q
+        sudo apt-get install -y -q --no-install-recommends doxygen
+        python -m pip install --quiet "clew-trace[wiki]==${{ inputs.version }}"
+    - name: Index the checkout
+      shell: bash
+      run: clew --repo-root "$GITHUB_WORKSPACE"
+    - name: Build the wiki
+      id: build
+      shell: bash
+      env:
+        CLEW_FORMAT: ${{ inputs.format }}
+        CLEW_FLAVOR: ${{ inputs.flavor }}
+        CLEW_OUT: ${{ inputs.out }}
+        CLEW_CONFIG: ${{ inputs.config }}
+        CLEW_AUDIENCE: ${{ inputs.audience }}
+        CLEW_VERSION_KEY: ${{ inputs.version-key }}
+      run: |
+        set -euo pipefail
+        args=(--repo-root "$GITHUB_WORKSPACE" --out "$CLEW_OUT" --format "$CLEW_FORMAT")
+        if [ "$CLEW_FORMAT" = markdown ]; then args+=(--flavor "$CLEW_FLAVOR"); fi
+        if [ -n "$CLEW_CONFIG" ]; then args+=(--config "$CLEW_CONFIG"); fi
+        if [ -n "$CLEW_AUDIENCE" ]; then args+=(--audience "$CLEW_AUDIENCE"); fi
+        if [ -n "$CLEW_VERSION_KEY" ]; then args+=(--version "$CLEW_VERSION_KEY"); fi
+        site="$(clew wiki build "${args[@]}" | tail -n 1)"
+        if [ "$CLEW_FORMAT" = html ] && [ -n "$CLEW_VERSION_KEY" ]; then site="$CLEW_OUT"; fi
+        echo "site=$site" >> "$GITHUB_OUTPUT"

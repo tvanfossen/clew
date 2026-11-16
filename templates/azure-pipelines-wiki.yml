@@ -1,0 +1,62 @@
+# SPDX-License-Identifier: MIT
+# clew wiki — Azure Pipelines template (round 3, P5c).
+#
+# Builds the repository's wiki as Azure DevOps-flavoured Markdown (Mermaid diagrams in
+# ::: mermaid blocks, page order in .order) and pushes it to a code wiki: a Git repository the
+# project publishes as a wiki. The job's own token authenticates the push through an extra
+# HTTP header, so it never appears in a URL or the log. The build service account needs
+# Contribute on the wiki repository.
+#
+# Use from a pipeline:
+#   steps:
+#     - template: templates/azure-pipelines-wiki.yml@clew
+#       parameters:
+#         wikiRepository: https://dev.azure.com/<org>/<project>/_git/<wiki-repo>
+parameters:
+  - name: clewVersion
+    type: string
+    default: "1.4.0"
+  - name: wikiRepository
+    type: string
+  - name: wikiBranch
+    type: string
+    default: wikiMaster
+  - name: wikiPath
+    type: string
+    default: "/"
+  - name: audience
+    type: string
+    default: ""
+
+steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: "3.12"
+  - script: |
+      set -euo pipefail
+      sudo apt-get update -q
+      sudo apt-get install -y -q --no-install-recommends doxygen
+      python -m pip install --quiet "clew-trace[wiki]==${{ parameters.clewVersion }}"
+      clew --repo-root "$(Build.SourcesDirectory)"
+      audience=()
+      if [ -n "${{ parameters.audience }}" ]; then audience=(--audience "${{ parameters.audience }}"); fi
+      clew wiki build --format markdown --flavor ado --repo-root "$(Build.SourcesDirectory)" \
+        --out "$(Agent.TempDirectory)/clew-wiki" "${audience[@]}"
+    displayName: Build the clew wiki (Markdown, ADO flavour)
+  - script: |
+      set -euo pipefail
+      auth="AUTHORIZATION: bearer $SYSTEM_ACCESSTOKEN"
+      git -c http.extraheader="$auth" clone --quiet --branch "${{ parameters.wikiBranch }}" \
+        "${{ parameters.wikiRepository }}" "$(Agent.TempDirectory)/wiki-repo"
+      target="$(Agent.TempDirectory)/wiki-repo${{ parameters.wikiPath }}"
+      mkdir -p "$target"
+      cp -R "$(Agent.TempDirectory)/clew-wiki/." "$target"
+      cd "$(Agent.TempDirectory)/wiki-repo"
+      git add -A
+      if git diff --cached --quiet; then echo "wiki unchanged"; exit 0; fi
+      git -c user.name="clew wiki" -c user.email="clew-wiki@users.noreply.dev.azure.com" \
+        commit --quiet -m "clew wiki: $(Build.SourceVersion)"
+      git -c http.extraheader="$auth" push --quiet origin "${{ parameters.wikiBranch }}"
+    displayName: Publish to the code wiki
+    env:
+      SYSTEM_ACCESSTOKEN: $(System.AccessToken)
