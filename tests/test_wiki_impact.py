@@ -1,0 +1,93 @@
+# SPDX-License-Identifier: MIT
+"""Change impact as its own section of the site (round 3, P1g).
+
+Owner 2026-11-15: "change impact can be a top bar item". clew-guard's impact report lists the
+requirements whose implementing functions changed; the section follows each changed function to
+the requirements it implements and the flows it is on.
+
+ABSENCE IS NOT EMPTINESS: without a report the section says the change was NOT MEASURED (and how
+to measure it); an empty report says no requirement was affected — a measured zero.
+
+@brief Tests for the change-impact page.
+@version 1
+"""
+
+from __future__ import annotations
+
+import json
+import re
+from pathlib import Path
+
+from tests.test_wiki_site import _WIKI, repo  # noqa: F401  (module fixture reused)
+
+
+## @brief Build the site with a config naming an impact report.
+## @param repo The indexed fixture repository.
+## @param tmp_path Scratch.
+## @param report The report's contents, or None for no report.
+## @return {page: html}.
+## @version 1
+def _site(repo: tuple[Path, Path], tmp_path: Path, report: list | None) -> dict[str, str]:  # noqa: F811
+    from clew.wiki.build import build_wiki
+
+    config = tmp_path / "wiki.yaml"
+    impact = tmp_path / "impact.json"
+    config.write_text(_WIKI + f"  impact: {impact}\n")
+    if report is not None:
+        impact.write_text(json.dumps(report))
+    html = build_wiki(repo[0], repo[1], tmp_path / "out", config_path=config)
+    return {p.name: p.read_text() for p in html.glob("*.html")}
+
+
+_REPORT = [
+    {
+        "req_id": "REQ-W-001",
+        "req_name": "Load",
+        "functions": [{"name": "load", "file": "src/data.py", "version": 2}],
+    }
+]
+
+
+def test_change_impact_follows_a_changed_function_to_requirements_and_flows(
+    repo: tuple[Path, Path],  # noqa: F811
+    tmp_path: Path,
+) -> None:
+    """@brief P1g: changed function → requirement → flow, in the top bar after Flows."""
+    pages = _site(repo, tmp_path, _REPORT)
+    page = pages["impact.html"]
+    nav = page[page.index('<nav class="nav"') : page.index("</nav>")]
+    order = [nav.index(f">{s}<") for s in ("Flows", "Change impact", "Map")]
+    assert order == sorted(order)
+    assert re.search(r'data-stat="requirements"[^>]*>\s*<b>1</b>', page)
+    assert re.search(r'data-stat="functions"[^>]*>\s*<b>1</b>', page)
+    row = page[page.index("<code>load</code>") :].split("</tr>")[0]
+    assert 'href="requirements.html#REQ-W-001"' in row and 'href="flow-load.html"' in row
+    assert "## Change impact" not in pages["requirements.html"]
+
+
+def test_without_a_report_the_change_is_not_measured(
+    repo: tuple[Path, Path],  # noqa: F811
+    tmp_path: Path,
+) -> None:
+    """@brief P1g: no report → "not measured", never a section claiming nothing changed."""
+    page = _site(repo, tmp_path, None)["impact.html"]
+    assert "Not measured" in page and "clew-guard" in page
+    assert "No requirement was affected" not in page
+
+
+def test_an_empty_report_is_a_measured_zero(
+    repo: tuple[Path, Path],  # noqa: F811
+    tmp_path: Path,
+) -> None:
+    """@brief P1g: an empty report says nothing was affected."""
+    page = _site(repo, tmp_path, [])["impact.html"]
+    assert "No requirement was affected" in page and "Not measured" not in page
+
+
+def test_the_impact_page_links_the_map_change_lens(
+    repo: tuple[Path, Path],  # noqa: F811
+    tmp_path: Path,
+) -> None:
+    """@brief P1g: the page points at the map's change lens, which opens preselected."""
+    page = _site(repo, tmp_path, _REPORT)["impact.html"]
+    assert 'href="map.html#lens=change"' in page

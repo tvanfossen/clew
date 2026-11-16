@@ -7,7 +7,7 @@
  * the opener. showModal() makes the rest of the page inert, which is the focus trap.
  * MENU: below 860px the top bar's sections fold behind a labelled button.
  * GROUPS: a `[data-req-filter]` card shows only its group's `tr[data-group]` rows; again clears.
- * MAP: `[data-lens]` / `[data-level-set]` buttons set the block's lens and zoom level; CSS does
+ * MAP: `#lens=NAME` preselects a lens; `[data-lens]` / `[data-level-set]` buttons set the block's lens and zoom level; CSS does
  * the rest; the `[data-trace-set]` picker shows one flow's trace. A `role=button` trigger (an SVG box) opens on Enter or Space.
  * PAN / ZOOM: a `[data-pz]` wrapper's SVG zooms on ctrl+wheel and the +/-/reset buttons, and pans
  * by dragging, through its viewBox.
@@ -69,8 +69,10 @@
     open: function (key, from) { opener = from || document.activeElement; return show(key, true); }
   };
   document.addEventListener('DOMContentLoaded', function () {
-    var key = keyFromHash();
+    var key = keyFromHash(), lens = /^#lens=(\w+)$/.exec(location.hash);
     if (key) show(key, false);
+    var b = lens && document.querySelector('[data-lens="' + lens[1] + '"]');
+    if (b) b.click();
   });
 
   document.addEventListener('keydown', function (e) {

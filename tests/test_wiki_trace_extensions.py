@@ -322,6 +322,10 @@ def test_the_site_shows_nodes_rules_catalogs_and_mutations(trace_repo, tmp_path:
     site = build_wiki(repo, db, tmp_path / "site")
     pages = {p.name: p.read_text() for p in site.rglob("*.html")}
     assert "Network timeout in milliseconds" in pages["nodes.html"]
+    # Round 3, P1g: the page explains itself with a worked example drawn from a REAL entry —
+    # model file entry → the function that realises it (`@node`) → the requirement it serves.
+    example = pages["nodes.html"].split('<svg class="node-example"', 1)[1].split("</svg>", 1)[0]
+    assert "net.timeout" in example and ">load<" in example and "@node keys:net.timeout" in example
     req = pages["requirements.html"]
     assert "R1" in req and "Timeouts are bounded" in req
     assert "REQ-KV-001" in req and "Store a key" in req

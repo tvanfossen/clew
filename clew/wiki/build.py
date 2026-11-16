@@ -60,7 +60,8 @@ _CELL = str.maketrans({"|": "\\|", "\n": " "})
 ## v9: flow traces on the map.
 ## v10: the requirements page gets the flow pages and the issue tracker (P1d).
 ## v11: flows grouped by role, steps badged with requirements (P1e).
-## @version 11
+## v12: Change impact section after Flows (P1g).
+## @version 12
 ## @req REQ-DDB-WIKI-003
 def build_wiki(
     repo_root: Path,
@@ -75,9 +76,10 @@ def build_wiki(
 
     @brief Write and render the site.
     @return The HTML directory.
-    @version 10
+    @version 11
     """
     from .flowpage import flow_page, flows_index
+    from .impactpage import impact_page
     from .graph import build_graph
     from .issues import resolve_target
     from .mappage import map_page, minimap_svg
@@ -109,6 +111,7 @@ def build_wiki(
     sections = [
         requirements_page(trace, config, source, rules, burndown, tuple(pages), issues),
         flows_index(source, pages),
+        impact_page(trace, pages, rules, source),
         map_page(
             graph,
             {p.name: (p.title, set(p.files)) for p in pages},
@@ -351,7 +354,8 @@ def _section(source: Path, name: str, title: str, children: list[str], lead: str
 ## v3: each card carries its section's icon (round 3, P1b); the flows card counts every flow page,
 ## not only the declared ones (it read "2" on a site with 30).
 ## v4: the map card (round 3, P1c).
-## @version 4
+## v5: the change-impact card (P1g).
+## @version 5
 ## @dg_internal
 def _write_index(
     source: Path, config: WikiConfig, trace: object, sections: list[str], flow_count: int
@@ -372,6 +376,10 @@ def _write_index(
             "passing.",
         ),
         "nodes": ("Model entries", "Entries of declared model files and the code realising them."),
+        "impact": (
+            "Change impact",
+            "What the last change touched: functions, requirements, flows.",
+        ),
         "map": ("Map", "The system's components, how they call each other, and what each holds."),
     }
     cards = "".join(

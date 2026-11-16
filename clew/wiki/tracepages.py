@@ -8,7 +8,7 @@ trace is ONE page:
 
   1. what the catalog declares and what the index found (counts, charts, the burndown);
   2. per requirement group: implemented, tested, tiers, single-layer coverage;
-  3. the latest change impact (`impact.json`): requirements whose implementing functions changed;
+  3. (change impact is its own section since round 3, P1g — `impactpage`);
   4. every requirement — its tier, the functions implementing it (linked to source), its tests
      with their status, layers, the catalog's declared status and priority, model entries and
      mutation outcomes; the id opens the requirement's modal (round 3, P1d: `reqmodal`), which
@@ -22,7 +22,7 @@ Sources and where they are found:
     means no section, never an empty one claiming nothing changed.
 
 @brief Gather the trace; write the requirements and model-entries pages.
-@version 2
+@version 3
 """
 
 from __future__ import annotations
@@ -183,7 +183,8 @@ def load_impact(path: Path) -> list[dict] | None:
 ## @return The page name.
 ## v2: requirements front and centre (round 3, P1d) — group cards that filter the list first,
 ## each requirement opening its whole trace in the shared modal, the group table kept below.
-## @version 2
+## v3: change impact moved to its own section (`impactpage`, P1g).
+## @version 3
 ## @req REQ-DDB-WIKI-012
 def requirements_page(
     trace: Trace,
@@ -229,7 +230,6 @@ def requirements_page(
     if burndown:
         lines += ["## Burndown", "", *_raw(f'<div class="chart-card">{burndown}</div>')]
     lines += ["## Group counts", "", *_raw(group_table(ev, config.inputs.min_layers))]
-    lines += _impact_section(trace, rules)
     lines += _rules_section(trace, rules)
     lines += _catalogs_section(trace, rules)
     (source / "requirements.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
@@ -355,34 +355,6 @@ def _test_summary(tests: tuple) -> str:
     return f"{len(tests)} tests: " + " · ".join(f"{n} {k}" for k, n in sorted(counts.items()))
 
 
-## @brief The latest change impact from clew-guard's report.
-## @param trace The gathered trace.
-## @param rules The audience rules.
-## @return Markdown lines; [] when there is no report.
-## @version 1
-## @dg_internal
-def _impact_section(trace: Trace, rules: Audience) -> list[str]:
-    """@brief Impact table. @return Lines."""
-    if trace.impact is None:
-        return []
-    lines = ["## Change impact", "", "From clew-guard's latest impact report.", ""]
-    if not trace.impact:
-        return [*lines, "No requirement was affected by the last change.", ""]
-    rows = [
-        [
-            f'<a href="#{text(str(e.get("req_id")))}">{text(str(e.get("req_id")))}</a>',
-            "" if rules.exclude_requirement_text else text(str(e.get("req_name") or "")),
-            "<br>".join(
-                f"{trace.link(str(f.get('name')), str(f.get('file') or ''), 0)} "
-                f'<span class="ver">v{text(str(f.get("version") or "?"))}</span>'
-                for f in e.get("functions") or []
-            ),
-        ]
-        for e in trace.impact
-    ]
-    return [*lines, *_raw(table(["requirement", "name", "functions changed"], rows))]
-
-
 ## @brief The rule → requirement → function → test chain.
 ## @param trace The gathered trace.
 ## @param rules The audience rules.
@@ -446,11 +418,13 @@ def _catalogs_section(trace: Trace, rules: Audience) -> list[str]:
 ## @param config The section (sources, for their files).
 ## @param source The Sphinx source directory.
 ## @return The page name.
-## @version 1
+## v2: a worked example diagram from a real entry (round 3, P1g).
+## @version 2
 ## @req REQ-DDB-WIKI-004
 def nodes_page(trace: Trace, config: WikiConfig, source: Path) -> str:
     """SAID WHAT IT IS (owner 2026-11-15: "model nodes is not well understood"): the page opens by
-    explaining that each row is an entry of a declared model file, and groups entries by source.
+    explaining that each row is an entry of a declared model file, with a worked example drawn
+    from a real row (round 3, P1g), and groups entries by source.
 
     @brief Render model entries.
     @return Page name.
@@ -463,6 +437,7 @@ def nodes_page(trace: Trace, config: WikiConfig, source: Path) -> str:
         "not stop at a generated setter: a function names the entry it realises with a "
         "`@node <source>:<id>` tag, and an entry may name the requirements it serves.",
         "",
+        *_raw(_node_example(trace)),
     ]
     for spec in config.sources:
         mine = [n for n in trace.nodes if n.source == spec.name]
@@ -483,6 +458,56 @@ def nodes_page(trace: Trace, config: WikiConfig, source: Path) -> str:
         )
     (source / "nodes.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
     return "nodes"
+
+
+## @brief A worked example, drawn from the first entry a function realises: entry → function →
+## requirement. Nothing when no entry is realised yet.
+## @param trace The gathered trace.
+## @return HTML.
+## @version 1
+## @req REQ-DDB-WIKI-024
+def _node_example(trace: Trace) -> str:
+    """A REAL ROW OF THIS REPOSITORY, not a made-up one: the example is what the reader will
+    find in the table below.
+
+    @brief Example diagram.
+    @return HTML.
+    """
+    node = next((n for n in trace.nodes if trace.refs.get(n.ref)), None)
+    if node is None:
+        return ""
+    func = sorted(trace.refs[node.ref])[0]
+    reqs = list(node.requirements) or sorted(
+        r.req_id for r in trace.evidence if any(n == func for n, _f, _l in r.implementer_sites)
+    )
+    boxes = [
+        (node.ref, node.file, "model entry"),
+        (func, "realises it", "function"),
+        (reqs[0] if reqs else "—", "served", "requirement"),
+    ]
+    arrows = [f"@node {node.ref}", "@req" if reqs else ""]
+    parts = []
+    for i, (name, sub, kind) in enumerate(boxes):
+        x = 10 + i * 270
+        parts.append(
+            f'<rect x="{x}" y="20" width="200" height="64" rx="10"/>'
+            f'<text class="k" x="{x + 12}" y="40">{text(kind)}</text>'
+            f'<text class="n" x="{x + 12}" y="60">{text(name)}</text>'
+            f'<text class="k" x="{x + 12}" y="76">{text(sub)}</text>'
+        )
+    for i, label in enumerate(arrows):
+        x = 210 + i * 270
+        parts.append(
+            f'<path d="M{x + 4} 52H{x + 64}" marker-end="url(#node-arrow)"/>'
+            f'<text class="a" x="{x + 34}" y="14" text-anchor="middle">{text(label)}</text>'
+        )
+    return (
+        '<svg class="node-example" xmlns="http://www.w3.org/2000/svg" width="760" height="100" '
+        'viewBox="0 0 760 100" role="img" aria-label="How a model entry traces to a requirement">'
+        '<defs><marker id="node-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" '
+        'markerHeight="8" orient="auto"><path d="M0 0L10 5L0 10z"/></marker></defs>'
+        f"{''.join(parts)}</svg>"
+    )
 
 
 ## @brief An HTML block as MyST raw lines.

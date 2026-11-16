@@ -689,6 +689,22 @@ requirements:
     x-priority: P1
     x-status: implemented
     x-evidence: clew/wiki/flowpage.py, build.py, config.py, entrypoints.py, flow.py; tests/test_wiki_site.py, tests/test_wiki_map.py.
+  REQ-DDB-WIKI-024:
+    subsystem: wiki
+    name: Change impact is its own section; model entries explain themselves by a real example
+    acceptance_criteria: >-
+      A Change impact section sits in the top bar after Flows. With clew-guard's impact report it
+      counts the requirements affected, functions changed and flows touched, follows each changed
+      function to the requirements it was reported under and the flows it is on (each linked),
+      lists the report per requirement, and links the map with its change lens preselected
+      (`map.html#lens=change`). Without a report it says the change was NOT MEASURED and how to
+      measure it; an empty report says no requirement was affected. The requirements page no
+      longer carries the impact table. The model-entries page opens with a worked example drawn
+      from the first entry a function realises — entry, the function naming it with `@node`, the
+      requirement served — and draws none when no entry is realised.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/impactpage.py, tracepages.py, build.py; clew/wiki/themes/clew/; tests/test_wiki_impact.py, tests/test_wiki_trace_extensions.py.
   REQ-DDB-SCHEMA-013:
     subsystem: schema
     name: Kconfig structure tables, created independently of the gating table
