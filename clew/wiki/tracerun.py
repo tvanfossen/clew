@@ -1,0 +1,213 @@
+# SPDX-License-Identifier: MIT
+"""A traced test run and its overlay on the expected flow (round 3, P4b).
+
+Owner 2026-11-15: "when executing a test in wiki, I expect it to be VISUAL, overlaid on top of
+EXPECTED flow, showing how the test catches failures". A test is run in a SUBPROCESS under
+`_traceplugin` — running a test executes the repository's code, so it is always an explicit act
+(`clew wiki trace-run`, or the hub with `CLEW_WIKI_RUN=1`) and never part of a build.
+
+The run comes back as OpenTelemetry spans in OTLP JSON — one span per call between functions of
+the repository's own files, nested as called, carrying the values passed and returned — plus the
+test's ASSERTION CHECKPOINTS (each assertion it executed, passed or failed) and, when it failed,
+the FAILURE POINT: the assertion's line and message, an `exception` event on the test's span.
+
+`overlay` compares the run with the flow the index predicted for the same test: each predicted
+step CONFIRMED (observed) or NOT EXECUTED; observed calls the flow did not predict are DISCOVERED.
+
+@brief Run a test under a tracer and overlay it on its expected flow.
+@version 1
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import shutil
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+from typing import Any
+
+## Seconds a traced run may take.
+_RUN_TIMEOUT = 600
+## The tracer's module name in the run's interpreter: neutral, so it cannot shadow anything.
+_PLUGIN_FILE = "clew_trace_plugin.py"
+## Where a repository's own virtual environment's interpreter is looked for, in order.
+_VENVS = (
+    ".venv/bin/python",
+    "venv/bin/python",
+    ".venv/Scripts/python.exe",
+    "venv/Scripts/python.exe",
+)
+
+
+## @brief Run one test under the tracer, in a subprocess.
+## @param repo_root The repository (the run's working directory and the traced tree).
+## @param nodeid The pytest node id, e.g. `tests/test_m.py::test_load`.
+## @return {passed, otlp, checkpoints, failure, dropped}.
+## v2: the repository's own interpreter; the plugin as a standalone file (the packaging gate
+## found the first cut importing pytest into clew and running with clew's interpreter).
+## @version 2
+## @req REQ-DDB-WIKI-035
+def trace_test(repo_root: Path, nodeid: str) -> dict[str, Any]:
+    """THE REPOSITORY'S OWN PYTEST CONFIG STILL APPLIES, except what would hide the run: a
+    parallel runner is disabled (the tracer follows one thread of one process). THE TEST RUNS IN
+    THE REPOSITORY'S OWN INTERPRETER (`interpreter_for`) — its dependencies live there, not in
+    clew's — and the tracer reaches it as a standalone plugin file on `PYTHONPATH`, so that
+    environment needs pytest and never clew.
+
+    @brief Trace a test.
+    @return The run.
+    """
+    root = Path(repo_root).resolve()
+    with tempfile.TemporaryDirectory() as scratch:
+        out = Path(scratch) / "run.json"
+        shutil.copyfile(Path(__file__).with_name("_traceplugin.py"), Path(scratch) / _PLUGIN_FILE)
+        path = os.pathsep.join(p for p in (scratch, os.environ.get("PYTHONPATH", "")) if p)
+        env = {
+            **os.environ,
+            "CLEW_TRACE_ROOT": str(root),
+            "CLEW_TRACE_OUT": str(out),
+            "PYTHONPATH": path,
+        }
+        argv = [
+            str(interpreter_for(root)),
+            "-m",
+            "pytest",
+            nodeid,
+            "-q",
+            "-p",
+            "no:cacheprovider",
+            "-p",
+            "no:xdist",
+            "-p",
+            _PLUGIN_FILE.removesuffix(".py"),
+        ]
+        done = subprocess.run(
+            argv,
+            cwd=root,
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=_RUN_TIMEOUT,
+            check=False,
+        )
+        if not out.is_file():
+            raise RuntimeError(
+                f"the traced run wrote nothing: {(done.stderr or done.stdout)[-2000:]}"
+            )
+        raw = json.loads(out.read_text(encoding="utf-8"))
+    if "error" in raw:
+        raise RuntimeError(f"{raw['error']} for {nodeid!r}: {(done.stdout or done.stderr)[-2000:]}")
+    test_file = root / nodeid.split("::", 1)[0]
+    return {
+        "passed": raw["exitstatus"] == 0,
+        "otlp": _otlp(raw["spans"], nodeid),
+        "checkpoints": _checkpoints(test_file, raw["lines"], raw["failure"]),
+        "failure": raw["failure"],
+        "dropped": raw["dropped"],
+    }
+
+
+## @brief The interpreter a repository's tests run under.
+## @param repo_root The repository.
+## @return Its own virtual environment's interpreter, else clew's.
+## @version 1
+## @req REQ-DDB-WIKI-035
+def interpreter_for(repo_root: Path) -> Path:
+    """@brief Interpreter. @return Path."""
+    for rel in _VENVS:
+        candidate = Path(repo_root) / rel
+        if candidate.exists():
+            return candidate
+    return Path(sys.executable)
+
+
+## @brief The spans as an OTLP JSON document.
+## @param spans The spans.
+## @param nodeid The test.
+## @return The document.
+## @version 1
+## @dg_internal
+def _otlp(spans: list[dict[str, Any]], nodeid: str) -> dict[str, Any]:
+    """@brief OTLP. @return Document."""
+    return {
+        "resourceSpans": [
+            {
+                "resource": {
+                    "attributes": [
+                        {"key": "service.name", "value": {"stringValue": "clew wiki trace-run"}},
+                        {"key": "test.nodeid", "value": {"stringValue": nodeid}},
+                    ]
+                },
+                "scopeSpans": [{"scope": {"name": "clew.wiki.trace"}, "spans": spans}],
+            }
+        ]
+    }
+
+
+## @brief Every span of an OTLP JSON document.
+## @param otlp The document.
+## @return Spans, in recorded order.
+## @version 1
+## @req REQ-DDB-WIKI-035
+def spans_of(otlp: dict[str, Any]) -> list[dict[str, Any]]:
+    """@brief Spans. @return List."""
+    return [
+        span
+        for resource in otlp.get("resourceSpans") or []
+        for scope in resource.get("scopeSpans") or []
+        for span in scope.get("spans") or []
+    ]
+
+
+## @brief The assertions the test executed, each passed or failed.
+## @param test_file The test's file.
+## @param lines The test function's executed lines.
+## @param failure The failure point, or None.
+## @return Checkpoints in executed order: {line, text, outcome}.
+## @version 1
+## @dg_internal
+def _checkpoints(test_file: Path, lines: list[int], failure: dict | None) -> list[dict[str, Any]]:
+    """@brief Checkpoints. @return List."""
+    from .testfacts import assertions
+
+    try:
+        source = test_file.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return []
+    out = []
+    for line in dict.fromkeys(lines):
+        found = assertions(source[line - 1 : line + 7]) if 0 < line <= len(source) else []
+        if found and source[line - 1].strip().startswith(found[0].split("(")[0].split(" ")[0]):
+            failed = bool(failure) and failure.get("line") == line
+            out.append(
+                {"line": line, "text": found[0], "outcome": "failed" if failed else "passed"}
+            )
+    return out
+
+
+## @brief Compare a run with the expected flow.
+## @param expected (caller, callee) per expected step, in flow order.
+## @param otlp The run's spans.
+## @return {steps: [confirmed | not executed], discovered: [[caller, callee]]}.
+## @version 1
+## @req REQ-DDB-WIKI-035
+def overlay(expected: list[tuple[str, str]], otlp: dict[str, Any]) -> dict[str, Any]:
+    """DISCOVERED IS INDEX-QUALITY FEEDBACK: a call the run made between repository functions that
+    the index's flow did not predict — an edge the index missed, or a step past the flow's depth.
+
+    @brief Overlay.
+    @return The comparison.
+    """
+    spans = spans_of(otlp)
+    names = {s["spanId"]: s["name"] for s in spans}
+    observed = [(names[s["parentSpanId"]], s["name"]) for s in spans if s["parentSpanId"] in names]
+    seen = set(observed)
+    want = set(expected)
+    discovered = [list(pair) for pair in dict.fromkeys(p for p in observed if p not in want)]
+    return {
+        "steps": ["confirmed" if pair in seen else "not executed" for pair in expected],
+        "discovered": discovered,
+    }

@@ -868,6 +868,26 @@ requirements:
     x-priority: P1
     x-status: implemented
     x-evidence: clew/mcp_server/server.py, wikihub.py, descriptions/; clew/query_command.py, cull_command.py, cli.py; tests/test_surface_2_0.py.
+  REQ-DDB-WIKI-035:
+    subsystem: wiki
+    name: A test runs traced and is overlaid on the flow the index expected
+    acceptance_criteria: >-
+      `clew wiki trace-run --test <node id> --out <file>` runs one pytest test in a subprocess
+      (parallel runners off) under a tracer recording every call between functions of the
+      repository's own files as an OTLP-JSON span — parent as called, file, line, function,
+      argument and return reprs (cut at 2,000 characters with the cut stated);
+      comprehension, generator-expression and lambda frames are transparent — and prints the
+      run: passed, the assertion checkpoints the test executed (line, statement, passed or
+      failed), the failure point (an `exception` event on the test's span with the assertion's
+      line and message), spans dropped past the cap, and, when an index exists, the overlay:
+      each step of the index's flow for that test CONFIRMED or NOT EXECUTED, and the observed
+      calls the flow did not predict as DISCOVERED. The hub runs the same on
+      `/api/<slug>/trace?test=` only with `CLEW_WIKI_RUN=1` (403 otherwise); a test flow's page
+      names its node id, and the hub's live script offers the traced run, dimming steps that
+      did not run and listing checkpoints, discovered calls and the failure.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/tracerun.py, _traceplugin.py, command.py, flowpage.py; clew/mcp_server/wikihub.py; docs/SECURITY.md; tests/test_wiki_tracerun.py.
   REQ-DDB-SCHEMA-013:
     subsystem: schema
     name: Kconfig structure tables, created independently of the gating table

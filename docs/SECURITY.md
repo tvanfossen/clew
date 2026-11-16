@@ -122,6 +122,12 @@ Two wiki features, both off by default, widen what a running clew touches:
   or the URL, can read every indexed repository's wiki for the life of the session. Building a
   wiki runs `clew wiki build` in a subprocess, which is a build of that repository in the sense
   of position 1.
+- **Traced test runs** (`clew wiki trace-run`, or the hub with `CLEW_WIKI_RUN=1` as well) run
+  one of the repository's tests under pytest in a subprocess, which executes that repository's
+  code, again position 1. The interpreter is the repository's own `.venv` or `venv` when it has
+  one, which is also code the repository supplies. The hub refuses the request (403) without the switch. Span attributes
+  carry argument and return values as their `repr`, up to 2,000 characters each, and the spans
+  are written wherever `--out` names.
 - **Issue fetching** (`wiki.issues.fetch: true`) makes the wiki build call GitHub's or Azure
   DevOps' REST API, with a token from the environment. It reads the repository's open issues,
   and only that tracker is contacted.

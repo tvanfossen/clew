@@ -29,6 +29,7 @@ from __future__ import annotations
 import argparse
 import dataclasses
 import json
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any
@@ -44,7 +45,8 @@ WIKI_COMMAND = "wiki"
 ## v4: `diff`, `--version`, `--config`, `--mutations`, `flow --svg --animate`.
 ## v5: `trace --config` (W15/W16 imports).
 ## v6: `check --refresh` / `build --refresh` (the pre-commit hook has no index yet).
-## @version 6
+## v7: `trace-run` (round 3, P4b).
+## @version 7
 ## @dg_internal
 def _parser() -> argparse.ArgumentParser:
     """@brief Build the parser. @return Parser."""
@@ -87,6 +89,14 @@ def _parser() -> argparse.ArgumentParser:
     build.add_argument("--refresh", action="store_true", help="bring the index current first")
     build.add_argument("--index")
     build.add_argument("--repo-root")
+    run = sub.add_parser(
+        "trace-run", help="run one test traced; spans as OTLP JSON (runs its code)"
+    )
+    run.add_argument("--test", required=True, help="pytest node id, e.g. tests/test_m.py::test_x")
+    run.add_argument("--out", required=True, help="where the spans go (OTLP JSON)")
+    run.add_argument("--index")
+    run.add_argument("--repo-root")
+    run.add_argument("--indent", type=int, default=None)
     diff = sub.add_parser("diff", help="compare two version-keyed builds")
     diff.add_argument("--out", required=True, help="the versioned output root")
     diff.add_argument("old")
@@ -103,7 +113,8 @@ def _parser() -> argparse.ArgumentParser:
 ## v4: and `diff`, which needs no index.
 ## v5: `trace` gets the repository (for `--config` imports).
 ## v6: `--refresh` refreshes the index before `check` / `build`.
-## @version 6
+## v7: `trace-run`, which needs no index (it overlays the expected flow when one exists).
+## @version 7
 ## @req REQ-DDB-WIKI-001
 def wiki_main(argv: list[str]) -> int:
     """@brief Dispatch a wiki verb. @return Exit status."""
@@ -112,6 +123,8 @@ def wiki_main(argv: list[str]) -> int:
     args = _parser().parse_args(argv)
     if args.verb == "diff":
         return _diff(args)
+    if args.verb == "trace-run":
+        return _trace_run(args)
     db, repo = _locate(args)
     if getattr(args, "refresh", False):
         from ..refresh_command import refresh_main
@@ -129,6 +142,56 @@ def wiki_main(argv: list[str]) -> int:
         return 2
     sys.stdout.write(text + "\n")
     return 0
+
+
+## @brief Run one test traced, write its spans, print the run and its overlay.
+## @param args Parsed arguments.
+## @return Exit status: 0 ran (whatever the test's outcome), 2 the run could not happen.
+## @version 1
+## @req REQ-DDB-WIKI-035
+def _trace_run(args: argparse.Namespace) -> int:
+    """THE OVERLAY NEEDS AN INDEX, the run does not: without one the spans and checkpoints are
+    still written and printed, and `overlay` is absent — never an empty comparison.
+
+    @brief Trace-run verb.
+    @return Exit status.
+    """
+    from ..query_command import _locate
+    from .tracerun import overlay, trace_test
+
+    repo = Path(args.repo_root or Path.cwd()).resolve()
+    try:
+        run = trace_test(repo, args.test)
+    except (RuntimeError, OSError, subprocess.SubprocessError) as exc:
+        sys.stderr.write(f"clew wiki: trace-run refused — {exc}\n")
+        return 2
+    Path(args.out).write_text(json.dumps(run["otlp"], indent=args.indent), encoding="utf-8")
+    report = {k: run[k] for k in ("passed", "checkpoints", "failure", "dropped")}
+    db, _repo = _locate(args)
+    if db.is_file():
+        report["overlay"] = overlay(expected_steps(db, repo, args.test), run["otlp"])
+    sys.stdout.write(json.dumps(report, indent=args.indent) + "\n")
+    return 0
+
+
+## @brief The index's expected flow for a test, as (caller, callee) pairs.
+## @param db The index.
+## @param repo The repository.
+## @param nodeid The test's node id.
+## @return Pairs in flow order ([] when the index has no such test function).
+## @version 1
+## @req REQ-DDB-WIKI-035
+def expected_steps(db: Path, repo: Path, nodeid: str) -> list[tuple[str, str]]:
+    """@brief Expected steps. @return Pairs."""
+    from .flow import derive_flow
+
+    file, _, name = nodeid.partition("::")
+    name = name.split("::")[-1].split("[")[0]
+    try:
+        flow = derive_flow(db, repo, name, file=file, depth=2)
+    except ValueError:
+        return []
+    return [(s.caller, s.callee) for s in flow.steps]
 
 
 ## @brief A payload as JSON text.

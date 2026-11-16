@@ -119,7 +119,8 @@ _STYLE = (
 ## v9: the functions section links symbol sections instead of repeating each body (P2b: the
 ## repeated dossiers were 37 of 86 s of clew's build).
 ## v10: Mermaid and PlantUML exports of the diagram, linked from the page (P3b).
-## @version 10
+## v11: a test's flow names its test node for a traced run (P4b).
+## @version 11
 ## @req REQ-DDB-WIKI-014
 def flow_page(
     repo_root: Path,
@@ -153,7 +154,7 @@ def flow_page(
         f"# {spec.title or 'Flow: ' + spec.entry}",
         "",
         "```{raw} html",
-        _block(flow, data, spec.animate),
+        _block(flow, data, spec.animate, test_node(spec)),
         "```",
         "",
     ]
@@ -191,6 +192,16 @@ def flow_page(
         reqs,
         calls,
     )
+
+
+## @brief A test flow's pytest node id, or "" for any other flow.
+## @param spec The flow.
+## @return `file::name`, or "".
+## @version 1
+## @req REQ-DDB-WIKI-035
+def test_node(spec: FlowSpec) -> str:
+    """@brief Node id. @return Text."""
+    return f"{spec.file}::{spec.entry}" if spec.role == "tests" and spec.file else ""
 
 
 ## @brief A flow's page name: the entry, and its file when the flow selects one.
@@ -248,24 +259,28 @@ def step_data(
 ## @param flow The flow.
 ## @param data The step data.
 ## @param animate Whether the diagram plays.
+## @param node The test's node id when the flow is a test's, else "".
 ## @return HTML.
 ## v2: the step opens the page's shared modal (round 3, P1b) — deep-linked as `#m=step-N` — not
 ## a dialog of its own; the diagram pans and zooms.
-## @version 2
+## v3: a test's flow names its test (`data-test-node`), so the hub can run it traced (P4b).
+## @version 3
 ## @dg_internal
-def _block(flow: Flow, data: list[dict[str, Any]], animate: bool) -> str:
+def _block(flow: Flow, data: list[dict[str, Any]], animate: bool, node: str = "") -> str:
     """`<` IS ESCAPED IN THE JSON so no repository text can close the script element.
 
     @brief Assemble the block.
     @return HTML.
     """
     blob = json.dumps(data, ensure_ascii=False).replace("<", "\\u003c")
+    attr = f' data-test-node="{escape(node)}"' if node else ""
+
     buttons = "".join(
         f'<button type="button" data-flow-control="{c}">{c}</button>'
         for c in ("play", "pause", "step")
     )
     return (
-        f'<div class="flow-block">{_STYLE}<div class="flow-controls">{buttons}</div>'
+        f'<div class="flow-block"{attr}>{_STYLE}<div class="flow-controls">{buttons}</div>'
         f'<div class="flow-wrap" data-pz>{flow_svg(flow, animate=animate)}</div>'
         f'<script type="application/json" class="flow-data">{blob}</script>'
         f"{_SCRIPT}</div>"

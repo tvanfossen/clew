@@ -49,6 +49,8 @@ logger = logging.getLogger(__name__)
 
 ## The environment switch that turns the hub on.
 WIKI_ENV = "CLEW_WIKI"
+## The switch that lets the hub RUN a test (it executes the repository's code).
+RUN_ENV = "CLEW_WIKI_RUN"
 ## The file under the state root naming the running hub's URL (for `clew wiki open`).
 WIKI_RECORD = "wiki.json"
 ## Seconds a wiki build may take before it is abandoned.
@@ -427,11 +429,13 @@ class _HubHandler(BaseHTTPRequestHandler):
     ## @param rest `<slug>/<verb>`.
     ## @param query The query parameters.
     ## @return None.
-    ## @version 1
+    ## v2: `trace` — a traced test run with its overlay, opt-in (round 3, P4b).
+    ## @version 2
     ## @dg_internal
     def _api(self, rest: str, query: dict[str, list[str]]) -> None:
-        """`dossier?subject=&qualified=` and `search?text=&corpus=`; a missing argument is a 400,
-        an unknown target a 404, a refused call (an unknown corpus) a 400 with its reason.
+        """`dossier?subject=&qualified=`, `search?text=&corpus=`, and `trace?test=<node id>` —
+        which RUNS the test, so it is refused (403) unless `CLEW_WIKI_RUN=1`. A missing argument
+        is a 400, an unknown target a 404, a refused call or a failed run a 400 with its reason.
 
         @brief API.
         @return None.
@@ -456,10 +460,15 @@ class _HubHandler(BaseHTTPRequestHandler):
                 reply = export_search(
                     target.db_path, arg["text"], corpus=arg.get("corpus", "symbols")
                 )
+            elif verb == "trace" and arg.get("test"):
+                if os.environ.get(RUN_ENV) != "1":
+                    self._json(403, {"error": f"running tests is off: set {RUN_ENV}=1"})
+                    return
+                reply = _traced(target, arg["test"])
             else:
                 self._json(400, {"error": "use dossier?subject=… or search?text=…"})
                 return
-        except ValueError as exc:
+        except (ValueError, RuntimeError, OSError, subprocess.SubprocessError) as exc:
             self._json(400, {"error": str(exc)})
             return
         self._json(200, reply)
@@ -566,6 +575,24 @@ class _HubHandler(BaseHTTPRequestHandler):
         logger.debug("wiki hub: " + fmt, *args)
 
 
+## @brief One test of a target, run traced, with its overlay on the expected flow.
+## @param target The target.
+## @param nodeid The test's node id.
+## @return {passed, checkpoints, failure, dropped, overlay}.
+## @version 1
+## @req REQ-DDB-WIKI-035
+def _traced(target: Target, nodeid: str) -> dict[str, Any]:
+    """@brief Traced run. @return Result."""
+    from ..wiki.command import expected_steps
+    from ..wiki.tracerun import overlay, trace_test
+
+    run = trace_test(Path(target.repo_path), nodeid)
+    steps = expected_steps(Path(target.db_path), Path(target.repo_path), nodeid)
+    out = {k: run[k] for k in ("passed", "checkpoints", "failure", "dropped")}
+    out["overlay"] = overlay(steps, run["otlp"])
+    return out
+
+
 ## @brief A page with the live script added before its closing body tag.
 ## @param data The page.
 ## @return The page.
@@ -578,7 +605,8 @@ def _with_live_script(data: bytes) -> bytes:
     return data[:at] + tag + data[at + len(b"</body>") :] if at >= 0 else data
 
 
-## The live script: rebuilt pages offer a reload; the agent's focus is offered as a link.
+## The live script: rebuilt pages offer a reload; the agent's focus is offered as a link; a test's
+## flow offers a traced run drawn over its expected steps (P4b).
 _LIVE_JS = """(function () {
   if (!window.EventSource) return;
   var slug = (location.pathname.split('/')[2] || '');
@@ -588,6 +616,40 @@ _LIVE_JS = """(function () {
     'border-radius:12px;background:#1F3B16;color:#fff;font:14px system-ui;display:none;z-index:99';
   document.body.appendChild(bar);
   function say(html) { bar.innerHTML = html; bar.style.display = 'block'; }
+  var block = document.querySelector('.flow-block[data-test-node]');
+  if (block) {
+    var css = document.createElement('style');
+    css.textContent = 'svg.seq g.obs-confirmed .ca,svg.seq g.obs-confirmed line{stroke:#3D6B2E;stroke-width:3}' +
+      'svg.seq g.obs-missed{opacity:.25}.trace-panel{margin:10px 0;padding:10px 14px;border-radius:12px;' +
+      'border:1px solid #CFC0A0;font:14px system-ui}.trace-panel .bad{color:#A03A26}';
+    document.head.appendChild(css);
+    var run = document.createElement('button');
+    run.type = 'button'; run.textContent = 'Run this test, traced';
+    var panel = document.createElement('div'); panel.className = 'trace-panel'; panel.hidden = true;
+    block.insertBefore(panel, block.firstChild); block.insertBefore(run, block.firstChild);
+    run.onclick = function () {
+      run.disabled = true; panel.hidden = false; panel.textContent = 'Running…';
+      fetch('/api/' + slug + '/trace?test=' + encodeURIComponent(block.getAttribute('data-test-node')))
+        .then(function (r) { return r.json().then(function (j) { return [r.status, j]; }); })
+        .then(function (sj) {
+          run.disabled = false;
+          var j = sj[1];
+          if (sj[0] !== 200) { panel.textContent = j.error || 'refused'; return; }
+          var steps = block.querySelectorAll('svg.seq g[data-step]');
+          (j.overlay.steps || []).forEach(function (s, i) {
+            if (steps[i]) steps[i].classList.add(s === 'confirmed' ? 'obs-confirmed' : 'obs-missed');
+          });
+          panel.textContent = '';
+          function line(text, bad) { var d = document.createElement('div'); d.textContent = text; if (bad) d.className = 'bad'; panel.appendChild(d); }
+          line(j.passed ? 'Passed.' : 'Failed.', !j.passed);
+          (j.checkpoints || []).forEach(function (c) { line('line ' + c.line + ': ' + c.text + ' — ' + c.outcome, c.outcome !== 'passed'); });
+          if (j.failure) line('Failure at line ' + j.failure.line + ': ' + j.failure.message, true);
+          (j.overlay.discovered || []).forEach(function (d) { line('Discovered (not in the flow): ' + d[0] + ' \u2192 ' + d[1]); });
+          var missed = (j.overlay.steps || []).filter(function (s) { return s !== 'confirmed'; }).length;
+          if (missed) line(missed + ' predicted step(s) did not run (dimmed).');
+        });
+    };
+  }
   new EventSource('/events').onmessage = function (m) {
     var e = JSON.parse(m.data);
     if (e.slug !== slug) return;
