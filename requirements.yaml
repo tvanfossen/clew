@@ -850,6 +850,24 @@ requirements:
     x-priority: P1
     x-status: implemented
     x-evidence: clew/mcp_server/wikihub.py, server.py, tools_query.py; tests/test_wiki_hub.py.
+  REQ-DDB-WIKI-034:
+    subsystem: wiki
+    name: The 2.0.0 MCP surface — three tools, the proposer as a prompt, the wiki as resources
+    acceptance_criteria: >-
+      The server lists exactly three tools — `index`, `dossier`, `search` — and serves no more
+      than 9,826 characters of instructions and tool definitions per turn (10,726 before, less
+      the measured cut). `index` has three actions (refresh, status, targets); `stats` and
+      `cull` are refused by name with their replacement — `clew query stats` and `clew cull`,
+      both CLI verbs printing JSON — and `max_age_days` / `include_stale` are gone with them.
+      `propose_declaration` is an MCP prompt (its description loaded from the tier-2 description
+      file) returning the commented draft for a named or the active repository; `clew propose`
+      remains. `clew://wiki/{slug}/llms.txt` and `clew://wiki/{slug}/flow/{name}` read a
+      target's built wiki, confined to the site, and say so — never empty — when the wiki is not
+      built, the slug is unknown or the file is missing. No served text points at a retired
+      tool or action.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/mcp_server/server.py, wikihub.py, descriptions/; clew/query_command.py, cull_command.py, cli.py; tests/test_surface_2_0.py.
   REQ-DDB-SCHEMA-013:
     subsystem: schema
     name: Kconfig structure tables, created independently of the gating table

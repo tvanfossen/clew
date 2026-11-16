@@ -41,8 +41,13 @@ already is, so building a second one is not where the value is.
 |---|---|
 | **`dossier`** | Everything about one named symbol in ONE reply: body excerpt, brief, both edge directions, locks held, the thread it runs on, requirements and covering tests, liveness. There is no separate `callers` or `chain_trace` tool — this is why. |
 | **`search`** | Find the name when you do not have one, or enumerate a whole layer. `corpus=` picks: symbols, prose, files, config, locks, threads. An empty result is graded and says what it did *not* read. |
-| **`index(action=…)`** | Administration, not questions: `refresh` builds, `status` diagnoses, `targets` lists every indexed repo, `stats` grades one, `cull` deletes aged-out databases. |
-| **`propose_declaration`** | Reads the repo's evidence and proposes a `.clew.yaml`, entirely as comments, for when a causal layer looks emptier than the code warrants. |
+| **`index(action=…)`** | Administration, not questions: `refresh` builds, `status` diagnoses, `targets` lists every indexed repo. Since 2.0.0, grading an index is `clew query stats` and deleting aged-out databases is `clew cull` — both CLI. |
+
+Since 2.0.0 the declaration proposer is an MCP **prompt**, `propose_declaration` (in Claude Code:
+`/mcp__clew__propose_declaration`), and the `clew propose` CLI: it reads the repo's evidence and
+proposes a `.clew.yaml`, entirely as comments, for when a causal layer looks emptier than the code
+warrants. A prompt costs nothing until someone invokes it. The wiki is readable as MCP resources:
+`clew://wiki/<slug>/llms.txt` and `clew://wiki/<slug>/flow/<name>`.
 
 **How to use them so they cost less than reading the source** is [SKILLS.md](../SKILLS.md) — batching,
 when depth pays, which layers to enumerate, and a blunt section on what clew cannot answer. Every

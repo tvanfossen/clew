@@ -1047,7 +1047,7 @@ async def test_index_action_refuses_sub_index_alone_on_registry_wide_actions(
     reg = st.TargetRegistry(tmp_path / "state")
     _mcp, state = build_server(reg)
 
-    for action in ("status", "targets", "cull"):
+    for action in ("status", "targets"):  # 2.0.0: `cull` retired to the CLI
         with pytest.raises(ValueError) as excinfo:
             await state._index_action(
                 _FakeCtx(),
@@ -1059,8 +1059,6 @@ async def test_index_action_refuses_sub_index_alone_on_registry_wide_actions(
                 "from-guard",
                 None,
                 None,
-                30.0,
-                True,
             )
         assert "sub_index" in str(excinfo.value), f"action={action!r}: {excinfo.value}"
 

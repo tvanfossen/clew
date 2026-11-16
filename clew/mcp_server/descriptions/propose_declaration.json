@@ -1,8 +1,8 @@
 {
  "tool": "propose_declaration",
- "tier": 0,
+ "tier": 2,
  "priority": 50,
  "description": [
-  "CALL THIS when a repo's causal layer looks empty — no threads, no shared-key dataflow. Returns a proposed `.clew.yaml`, written entirely as COMMENTS so committing it verbatim changes nothing. The EVIDENCE and the REJECTED list (what was refused, and why) are usually the answer."
+  "Propose a starter `.clew.yaml` for a repository whose causal layer looks empty (no threads, no shared-key dataflow): every line a comment, so committing it changes nothing, with the evidence for each entry and the rejected candidates."
  ]
 }

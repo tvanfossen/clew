@@ -10,6 +10,10 @@ return, as JSON on stdout, and nothing else. It adds no wording of its own to an
                         [--depth N] [--direction forward|back] [--max-body-lines N]
                         [--max-neighbors N]
     clew query search [TEXT] [--corpus C] [--limit N] [--index DB | --repo-root DIR]
+    clew query stats [--index DB | --repo-root DIR]
+
+`stats` (2.0.0) is the graph-quality report the MCP `index(action='stats')` served until that
+action was retired: edge counts by layer and confidence, coverage, the doxygen/parser split.
 
 WHICH INDEX. `--index` names a database; otherwise the index for `--repo-root` (default: the
 working directory) is found where the MCP server and a plain `clew` build put it, through the same
@@ -26,7 +30,7 @@ A long-lived host should keep one `clew-mcp` process instead (MCP is JSON-RPC 2.
 its wire keys are semver-covered): this verb pays an interpreter start per call.
 
 @brief The `clew query` subcommand: export payloads as JSON on stdout.
-@version 1
+@version 2
 """
 
 from __future__ import annotations
@@ -43,7 +47,8 @@ QUERY_COMMAND = "query"
 
 ## @brief The argument parser for `clew query`.
 ## @return The parser.
-## @version 1
+## v2 (2.0.0): the `stats` verb.
+## @version 2
 ## @dg_internal
 def _parser() -> argparse.ArgumentParser:
     """@brief Build the parser. @return Parser with `dossier` and `search` subcommands."""
@@ -66,7 +71,8 @@ def _parser() -> argparse.ArgumentParser:
     search.add_argument("text", nargs="?", default="")
     search.add_argument("--corpus", default="symbols", help=", ".join(EXPORT_CORPORA))
     search.add_argument("--limit", type=int, default=25)
-    for each in (dossier, search):
+    stats = sub.add_parser("stats", help="how much of the index can be trusted (graph quality)")
+    for each in (dossier, search, stats):
         each.add_argument("--index", help="path to a built clew.db")
         each.add_argument("--repo-root", help="working tree (default: the current directory)")
         each.add_argument("--indent", type=int, default=None, help="pretty-print JSON")
@@ -101,7 +107,8 @@ def _locate(args: argparse.Namespace) -> tuple[Path, Path | None]:
 ## @param db The index.
 ## @param repo The working tree, or None.
 ## @return The export payload.
-## @version 1
+## v2 (2.0.0): `stats` — the graph-quality report the retired `index(action='stats')` served.
+## @version 2
 ## @dg_internal
 def _payload(args: argparse.Namespace, db: Path, repo: Path | None) -> dict[str, Any]:
     """@brief Dispatch to the export function. @return The payload."""
@@ -109,6 +116,10 @@ def _payload(args: argparse.Namespace, db: Path, repo: Path | None) -> dict[str,
 
     if args.verb == "search":
         return q.export_search(db, args.text, corpus=args.corpus, limit=args.limit, repo_root=repo)
+    if args.verb == "stats":
+        from . import wire
+
+        return wire.one(q.graph_stats(db))
     subject: str | list[str] = args.subjects[0] if len(args.subjects) == 1 else args.subjects
     return q.export_dossier(
         db,

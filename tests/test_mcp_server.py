@@ -72,9 +72,10 @@ TIER0 = {
     # The METHODS survive on DocsDbServer — only the tool entries collapsed — so
     # `state.status(ctx)` still works and the tests below still call it.
     "index",
-    # Tier-0 because the state it fixes — a repo that has declared nothing — is
-    # exactly the state in which no tier-1 tool is registered (#54).
-    "propose_declaration",
+    # `propose_declaration` LEFT THIS SET IN 2.0.0 (owner 2026-11-16): it is an MCP PROMPT now
+    # (descriptions tier 2), served only when a person invokes it — wanted once per repository,
+    # it had cost every turn of every session; the 1.4.0-final grid's index arms made 0
+    # successful calls to it. A deliberate MAJOR break, which is why the cut is 2.0.0.
 }
 
 ## THE FROZEN PUBLIC TOOL NAMES — the semver surface, written out by hand.

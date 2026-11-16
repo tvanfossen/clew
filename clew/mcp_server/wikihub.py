@@ -270,11 +270,12 @@ class WikiHub(_Live):
     ## @brief A target's site directory (built or not).
     ## @param target The target.
     ## @return The directory.
-    ## @version 1
+    ## v2: through `wiki_site_dir`, shared with the MCP resources.
+    ## @version 2
     ## @dg_internal
     def site_dir(self, target: Target) -> Path:
         """@brief Site directory. @return Path."""
-        return Path(target.db_path).parent / "wiki" / "html"
+        return wiki_site_dir(target)
 
     ## @brief "built" when the site exists on disk, else "not built".
     ## @param target The target.
@@ -693,3 +694,44 @@ def attach(state: Any, hub: WikiHub | None) -> None:
         return
     state.wiki_hub = hub
     state.tools.wiki_linker = hub.link if hub is not None else None
+
+
+## @brief Where a target's built wiki lives: beside its index.
+## @param target The target.
+## @return The site directory.
+## @version 1
+## @req REQ-DDB-WIKI-034
+def wiki_site_dir(target: Target) -> Path:
+    """@brief Site directory. @return Path."""
+    return Path(target.db_path).parent / "wiki" / "html"
+
+
+## @brief One file of a registered target's built wiki, as text — or a sentence saying why not.
+## @param registry The target registry.
+## @param slug The target's slug.
+## @param rel The file, relative to the site.
+## @return Its text, or the reason it cannot be served.
+## @version 1
+## @req REQ-DDB-WIKI-034
+def read_wiki_file(registry: TargetRegistry, slug: str, rel: str) -> str:
+    """CONFINED to the site, and NEVER EMPTY: an unknown slug, an unbuilt wiki or a missing file
+    each says so, because an empty resource reads as "nothing here".
+
+    @brief Read a wiki file.
+    @return Text.
+    """
+    target = next((t for t in registry.targets() if t.slug == slug), None)
+    if target is None:
+        return f"No indexed repository has the slug {slug!r}; index(action='targets') lists them."
+    site = wiki_site_dir(target).resolve()
+    wanted = (site / rel).resolve()
+    if not wanted.is_relative_to(site):
+        return f"{rel!r} is outside the wiki."
+    if not (site / "index.html").is_file() and not wanted.is_file():
+        return (
+            f"The wiki of {slug} is not built. Open it on the wiki hub (CLEW_WIKI=1) or run "
+            f"`clew wiki build --repo-root {target.repo_path}`."
+        )
+    if not wanted.is_file():
+        return f"The wiki of {slug} has no {rel!r}."
+    return wanted.read_text(encoding="utf-8", errors="replace")

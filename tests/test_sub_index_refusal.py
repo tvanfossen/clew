@@ -218,7 +218,9 @@ def test_a_registered_sub_index_whose_tree_vanished_refuses_and_names_the_route(
 
     rejection = _sub_index_rejection(gone, repo)
     assert rejection is not None, "a vanished tree must not build the whole repository"
-    assert "cull" in rejection, f"name the route that clears the leftover, got: {rejection}"
+    ## 2.0.0: the route is the `clew cull` CLI; `index(action='cull')` was retired and would 404.
+    assert "clew cull" in rejection, f"name the route that clears the leftover, got: {rejection}"
+    assert "action='cull'" not in rejection
     assert "deps-removed" in rejection
 
 

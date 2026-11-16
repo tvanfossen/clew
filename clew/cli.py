@@ -247,6 +247,8 @@ QUERY_COMMAND = "query"
 REFRESH_COMMAND = "refresh"
 ## `wiki` derives documentation from the index (1.4.0, #67); `clew.wiki.command.WIKI_COMMAND`.
 WIKI_COMMAND = "wiki"
+## `cull` sweeps aged and version-stale databases (2.0.0: the retired `index(action='cull')`).
+CULL_COMMAND = "cull"
 
 ## The `build_meta` section carrying the scope decision, and the key inside it that
 ## records what the OPERATOR removed — kept apart from `scope.excludes`, which is
@@ -428,7 +430,8 @@ def _resolve_output(args: argparse.Namespace) -> None:
 
 
 ## @brief Construct the argparse.ArgumentParser for the build script.
-## @version 19
+## v20 (2.0.0): the epilog lists `query`, `refresh`, `wiki` and `cull` too.
+## @version 20
 ## @req REQ-DDB-CLI-001
 ## @return Configured ArgumentParser with all build-script CLI arguments registered.
 def _build_argparser() -> argparse.ArgumentParser:
@@ -473,6 +476,10 @@ def _build_argparser() -> argparse.ArgumentParser:
             f"  {PROPOSE_COMMAND:<10}propose a .clew.yaml declaration for a repository\n"
             f"  {EXPORT_COMMAND:<10}export an index\n"
             f"  {GUARD_COMMAND:<10}validate doxygen comments (the absorbed doxygen-guard)\n"
+            f"  {QUERY_COMMAND:<10}print a dossier, search or stats reply as JSON\n"
+            f"  {REFRESH_COMMAND:<10}bring an index current after an edit\n"
+            f"  {WIKI_COMMAND:<10}build or check the wiki\n"
+            f"  {CULL_COMMAND:<10}delete aged and version-stale index databases\n"
             f"\nRun `clew <command> --help` for a command's own options.\n"
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -3735,7 +3742,8 @@ def _stamp_refresh_metrics(
 ## v18 (1.3.2): dispatches `clew query`, the export API as JSON on stdout.
 ## v19 (1.3.5): dispatches `clew refresh`, the two-tier refresh.
 ## v20 (1.4.0): dispatches `clew wiki`.
-## @version 20
+## v21 (2.0.0): dispatches `clew cull` (the retired `index(action='cull')`).
+## @version 21
 ## @req REQ-DDB-CLI-001
 def main() -> None:
     """Entry point — parse args, run doxygen, optionally enrich.
@@ -3802,6 +3810,10 @@ def main() -> None:
         from .wiki.command import wiki_main
 
         sys.exit(wiki_main(sys.argv[2:]))
+    if sys.argv[1:2] == [CULL_COMMAND]:
+        from .cull_command import cull_main
+
+        sys.exit(cull_main(sys.argv[2:]))
     args = _build_argparser().parse_args()
     _configure_logging(args.verbose)
     _resolve_output(args)

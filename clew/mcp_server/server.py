@@ -1,11 +1,11 @@
 # SPDX-License-Identifier: MIT
 """R3 MCP server over clew.db — two tiers, official Python MCP SDK.
 
-TIER-0 (static, always available, even before any database exists):
-`build_or_refresh`, `status`, `list_targets`, `cull`, `propose_declaration`. That
-last one is tier-0 because the state it exists to fix — a repo that has not
-declared its conventions — is exactly the state in which no tier-1 tool is
-registered.
+TIER-0 (static, always available, even before any database exists): `index`, one
+tool whose actions are `refresh`, `status` and `targets` (2.0.0 retired `stats` and
+`cull` to the CLI). The declaration proposer, tier-0 until 2.0.0, is an MCP PROMPT now
+(`_register_prompts`): wanted once per repository, it had been served on every turn.
+The wiki is readable as MCP RESOURCES (`_register_wiki_resources`).
 TIER-1 (dynamic, registered once this server knows of any repository at all — an
 active target, or one in the registry): the R2 query tools, added with
 `MCPServer.add_tool` and removed with `remove_tool`. After a successful build the
@@ -171,6 +171,8 @@ SERVER_NAME = "clew"
 ## and let a 1.5 KB blob accumulate in the middle of registration logic. Descriptions and
 ## their metadata are DATA and live together, apart from source.
 TIER0_TOOLS: dict[str, str] = load_descriptions(tier=0)
+## MCP PROMPTS (tier 2, 2.0.0): served only when a person invokes one, never on every turn.
+PROMPTS: dict[str, str] = load_descriptions(tier=2)
 
 ## The verbs `index` dispatches on, and the ONLY place they are enumerated — the refusal
 ## message, the dispatch and the description all read from here, so an action advertised
@@ -181,7 +183,12 @@ TIER0_TOOLS: dict[str, str] = load_descriptions(tier=0)
 ## deliberately so: the other four operate ON the index, and 'stats' reports how far the
 ## index can be TRUSTED — both are questions about the tool rather than about the code,
 ## which is exactly the line separating this tool from `dossier` and `search`.
-INDEX_ACTIONS: tuple[str, ...] = ("status", "refresh", "targets", "cull", "stats")
+INDEX_ACTIONS: tuple[str, ...] = ("status", "refresh", "targets")
+## Actions retired in 2.0.0 (owner 2026-11-16), each refused BY NAME with the route that replaced it.
+RETIRED_INDEX_ACTIONS: dict[str, str] = {
+    "stats": "`clew query stats` (the index's quality, as JSON)",
+    "cull": "`clew cull` (sweep aged and version-stale databases)",
+}
 
 ## The notification that invalidates a roots-derived target. Registered through the
 ## low-level server's `add_notification_handler` rather than `Server(on_roots_list_changed=…)`
@@ -225,7 +232,7 @@ NO_TARGET_ERROR = (
 ## staleness, with no error and no mention that the argument had been ignored. That is the
 ## defect class that voided a 36-cell benchmark grid, where every validity term checked that
 ## the agent called database tools and none checked WHICH database answered.
-TARGET_ROUTING_ACTIONS: frozenset[str] = frozenset({"refresh", "stats"})
+TARGET_ROUTING_ACTIONS: frozenset[str] = frozenset({"refresh"})
 
 
 ## Why each registry-wide action cannot honour a target, and what to do instead. "Unsupported"
@@ -235,20 +242,15 @@ TARGET_ROUTING_ACTIONS: frozenset[str] = frozenset({"refresh", "stats"})
 _NO_TARGET_REASON: dict[str, str] = {
     "status": (
         "reports on the DERIVED target and on where that derivation came from, which is a "
-        "fact about this server rather than about a repository you can name. Two actions do "
-        "route: refresh(target=...) builds a named repository and stats(target=...) grades "
-        "its index. For any other repository's freshness, just ask it a question — every "
+        "fact about this server rather than about a repository you can name. One action does "
+        "route: refresh(target=...) builds a named repository. For any other repository's "
+        "freshness, just ask it a question — every "
         "dossier and search reply names the target it answered from, and carries a staleness "
         "block whenever there is one."
     ),
     "targets": (
         "lists EVERY registered repository, so naming one narrows nothing: the answer "
         "already contains it. Filter the list this returns."
-    ),
-    "cull": (
-        "sweeps the whole registry and has no per-target mode, so there is nothing here for "
-        "a target to mean. Deleting one named repository's database is not an operation this "
-        "tool offers."
     ),
 }
 
@@ -927,7 +929,8 @@ def _offered_sub_indexes(repo: Path) -> str:
 ## @param target The target being built, named or unnamed.
 ## @param repo Resolved repository root.
 ## @return A refusal naming the alternatives, or None to proceed.
-## @version 3
+## v4 (2.0.0): the leftover is dropped with `clew cull`; `index(action='cull')` was retired.
+## @version 4
 ## @dg_internal
 def _sub_index_rejection(target: Target, repo: Path) -> str | None:
     """gh#35. `refresh(sub_index='no-such-tree')` DID NOT REFUSE. It registered a slug, took the
@@ -976,8 +979,8 @@ def _sub_index_rejection(target: Target, repo: Path) -> str | None:
             f"Sub-index {target.name!r} of {repo} was built once but its tree is gone — a "
             f"submodule removed since. Its database describes code no longer in this "
             f"repository, and building it now would index the WHOLE repository under that "
-            f"name rather than the part it was made for. Buildable now: {listed}. Use "
-            f"index(action='cull') to drop the leftover."
+            f"name rather than the part it was made for. Buildable now: {listed}. Run "
+            f"`clew cull` to drop the leftover."
         )
     return (
         f"Sub-index {target.name!r} names no nested git tree under {repo}, so there is nothing "
@@ -2752,7 +2755,7 @@ class DocsDbServer:
         self._sync_tier1()
         return {"culled": culled, "remaining": len(self.registry.targets())}
 
-    ## @brief Administer the index: status, refresh, targets, cull, stats — one tool, one action.
+    ## @brief Administer the index: status, refresh, targets — one tool, one action.
     ## @param ctx MCP request context (the only route to the client's roots).
     ## @param action Which lifecycle operation to perform (see INDEX_ACTIONS).
     ## @param target Repo root or slug to act on; omit for the server's derived target.
@@ -2762,10 +2765,11 @@ class DocsDbServer:
     ## @param scope Index scope to derive (action='refresh').
     ## @param exclude Repo-relative paths to leave out (action='refresh').
     ## @param options Declaration sections to state for this build (action='refresh').
-    ## @param max_age_days Age threshold in days, null to disable the age rule (action='cull').
-    ## @param include_stale Also cull version-stale databases (action='cull').
     ## @return The chosen action's result, stamped with the `action` that produced it.
-    ## @version 5
+    ## v6 (2.0.0, owner 2026-11-16): `stats` and `cull` retired — refused by name with their CLI
+    ## route — and `max_age_days` / `include_stale` with them (`include_stale` was described
+    ## as a `targets` filter and only ever read by `cull`).
+    ## @version 6
     ## @req REQ-DDB-MCP-002
     ## @req REQ-DDB-MCP-003
     async def index(
@@ -2776,7 +2780,7 @@ class DocsDbServer:
             Field(
                 description=(
                     "'refresh' builds or updates; 'targets' lists repositories; 'status' "
-                    "diagnoses (not a session opener); 'stats' grades; 'cull' deletes stale ones."
+                    "diagnoses (not a session opener)."
                 )
             ),
         ] = "status",
@@ -2820,18 +2824,6 @@ class DocsDbServer:
                 description="Conventions keyed by `.clew.yaml` section; an unknown key is refused."
             ),
         ] = None,
-        max_age_days: Annotated[
-            ## `gt=0.0` IS A REFUSAL, NOT A STYLE CHOICE (1.1.0 audit, M4). A caller passing 0
-            ## to mean "no age limit" got the opposite — every database older than zero days,
-            ## which is all of them. `None` is the spelling that disables the rule; a
-            ## non-positive number is now a validation error a caller can read, and
-            ## `state.cull` treats it as "disabled" for the CLI path that does not pass here.
-            float | None,
-            Field(gt=0.0, description="For 'cull': age in days (null disables)."),
-        ] = 30.0,
-        include_stale: Annotated[
-            bool, Field(description="For 'targets': list stale databases too.")
-        ] = True,
     ) -> dict[str, Any]:
         """FIVE ADMINISTRATIVE TOOLS WERE FIVE ENTRIES IN EVERY SESSION'S TOOL LIST, and
         four of them are never called in a session that only asks questions. Tool cost is
@@ -2859,8 +2851,13 @@ class DocsDbServer:
 
         @brief Administer the index through one action-dispatched tool.
         @return The action's result, carrying `action`.
-        @version 5
+        @version 6
         """
+        if action in RETIRED_INDEX_ACTIONS:
+            raise ValueError(
+                f"index action {action!r} was retired in 2.0.0: run "
+                f"{RETIRED_INDEX_ACTIONS[action]} instead."
+            )
         if action not in INDEX_ACTIONS:
             raise ValueError(
                 f"Unknown index action {action!r}. Known actions: "
@@ -2877,8 +2874,6 @@ class DocsDbServer:
             scope,
             exclude,
             options,
-            max_age_days,
-            include_stale,
         )
         return (
             {**result, "action": action}
@@ -2899,10 +2894,9 @@ class DocsDbServer:
     ## @param scope Index scope to derive.
     ## @param exclude Repo-relative paths to leave out.
     ## @param options Declaration sections to state.
-    ## @param max_age_days Cull age threshold.
-    ## @param include_stale Cull version-stale databases too.
     ## @return Whatever the underlying method returns.
-    ## @version 4
+    ## v5 (2.0.0): three actions, cull and stats retired.
+    ## @version 5
     ## @dg_internal
     async def _index_action(
         self,
@@ -2915,8 +2909,6 @@ class DocsDbServer:
         scope: str,
         exclude: list[str] | None,
         options: dict[str, Any] | None,
-        max_age_days: float | None,
-        include_stale: bool,
     ) -> Any:
         """SPLIT OUT SO THE STAMP CANNOT BE FORGOTTEN. `index` adds `action` to every
         reply, and a dispatch written inline would have five `return` statements each of
@@ -2932,7 +2924,7 @@ class DocsDbServer:
 
         @brief Dispatch one validated index action.
         @return The underlying method's result.
-        @version 4
+        @version 5
         """
         if (target is not None or sub_index is not None) and action not in TARGET_ROUTING_ACTIONS:
             raise ValueError(registry_wide_target_error(action, target, sub_index))
@@ -2949,11 +2941,7 @@ class DocsDbServer:
                 sub_index=sub_index,
                 options=options,
             )
-        if action == "targets":
-            return self.list_targets()
-        if action == "cull":
-            return self.cull(max_age_days=max_age_days, include_stale=include_stale)
-        return self.tools.graph_stats(target, sub_index)
+        return self.list_targets()
 
     ## @brief Propose a starter `.clew.yaml` for the active target.
     ## @param ctx MCP request context (the only route to the client's roots).
@@ -3315,11 +3303,82 @@ class DocsDbServer:
             }
 
 
+## @brief Register the MCP prompts (2.0.0): served only when a person invokes one.
+## @param mcp The server.
+## @param state The server state.
+## @return None.
+## @version 1
+## @req REQ-DDB-WIKI-034
+def _register_prompts(mcp: MCPServer, state: DocsDbServer) -> None:
+    """THE PROPOSER LEFT THE TOOL LIST because a tool's description is served on every turn of
+    every session while this one is wanted once per repository (owner 2026-11-16; the 1.4.0-final
+    grid's index arms made 0 successful calls to it). A prompt costs nothing until invoked.
+
+    @brief Register prompts.
+    @return None.
+    """
+
+    async def propose_declaration(repo: str = "", ignore_declaration: str = "false") -> str:
+        target = target_for(repo) if repo else state.active
+        if target is None:
+            return NO_TARGET_ERROR
+        ignore = ignore_declaration.strip().lower() in ("1", "true", "yes")
+        result = await anyio.to_thread.run_sync(state._run_propose, target, ignore)
+        if not result.get("ok"):
+            return f"The proposer failed: {result.get('error')}"
+        return (
+            f"A proposed `.clew.yaml` for {target.repo_path} — every line a comment, so it can be "
+            f"committed as it is; uncomment what you accept:\n\n{result['draft']}"
+        )
+
+    mcp.prompt(name="propose_declaration", description=PROMPTS["propose_declaration"])(
+        propose_declaration
+    )
+
+
+## @brief Register the wiki's resource templates (round 3, P4c-2b).
+## @param mcp The server.
+## @param state The server state (its registry).
+## @return None.
+## @version 1
+## @req REQ-DDB-WIKI-034
+def _register_wiki_resources(mcp: MCPServer, state: DocsDbServer) -> None:
+    """RESOURCES, NOT A TOOL (owner 2026-11-16): a resource is read when asked for, so the wiki
+    adds no per-turn text beyond two template entries. A wiki that is not built SAYS so — an
+    empty resource would read as "nothing here".
+
+    @brief Register wiki resources.
+    @return None.
+    """
+    from . import wikihub
+
+    def llms(slug: str) -> str:
+        return wikihub.read_wiki_file(state.registry, slug, "llms-full.txt")
+
+    def flow(slug: str, name: str) -> str:
+        return wikihub.read_wiki_file(state.registry, slug, f"exports/flows/{name}.mmd")
+
+    mcp.resource(
+        "clew://wiki/{slug}/llms.txt",
+        name="wiki",
+        description="A repository's wiki as dense text: requirements, tiers, implementers, flows.",
+        mime_type="text/plain",
+    )(llms)
+    mcp.resource(
+        "clew://wiki/{slug}/flow/{name}",
+        name="wiki-flow",
+        description="One flow of a repository's wiki as a Mermaid sequence diagram.",
+        mime_type="text/plain",
+    )(flow)
+
+
 ## @brief Construct the MCP server with tier-0 tools registered.
 ## @param registry Target registry to use (defaults to the per-user one).
 ## @return Tuple of the MCP server instance and its DocsDbServer state object.
 ## v17 (1.3.8): tier-0 tools register through `_add_tool`, without generated schema titles.
-## @version 17
+## v18 (2.0.0): `propose_declaration` is a PROMPT, not a tool; the wiki is served as resource
+## templates (round 3, P4c-2b).
+## @version 18
 ## @req REQ-DDB-MCP-001
 def build_server(registry: TargetRegistry | None = None) -> tuple[MCPServer, DocsDbServer]:
     """Create the MCP server instance, register the tier-0 lifecycle tools, and bring
@@ -3343,7 +3402,7 @@ def build_server(registry: TargetRegistry | None = None) -> tuple[MCPServer, Doc
 
     @brief Build the MCP server and its state object.
     @return (MCPServer, DocsDbServer).
-    @version 15
+    @version 16
     """
     from mcp.types import NotificationParams
 
@@ -3358,14 +3417,13 @@ def build_server(registry: TargetRegistry | None = None) -> tuple[MCPServer, Doc
     ## out. The text itself lives in `descriptions/<tool>.json`: a description is the only
     ## thing a model reads before choosing a tool, so it is CONTENT, and a missing key
     ## raises here at startup rather than shipping a tool nothing can choose correctly.
-    for tool, method in (
-        ("index", state.index),
-        ("propose_declaration", state.propose_declaration),
-    ):
+    for tool, method in (("index", state.index),):
         ## SAME EXEMPTION FOR TIER 0 (gh#7). `index` is what a first-time user must call before
         ## anything else works, so leaving it deferred puts the two-call penalty on the very first
         ## interaction — the one where a reader is deciding whether the tool is worth the trouble.
         _add_tool(mcp, _refusal_as_tool_error(method), tool, TIER0_TOOLS[tool])
+    _register_prompts(mcp, state)
+    _register_wiki_resources(mcp, state)
     state._sync_tier1()
     return mcp, state
 

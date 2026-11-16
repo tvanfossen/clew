@@ -74,11 +74,14 @@ def test_shipped_descriptions_correspond_exactly_to_the_registered_tools() -> No
     tier-1 set alone would now report five "files-without-tools" — or, if the set were
     quietly swapped for the directory itself, would compare the directory to itself and
     assert nothing at all."""
-    from clew.mcp_server.server import TIER0_TOOLS
+    from clew.mcp_server.server import PROMPTS, TIER0_TOOLS
     from clew.mcp_server.tools_query import TIER1_TOOLS
 
-    registered = set(TIER1_TOOLS) | set(TIER0_TOOLS)
+    ## 2.0.0: tier 2 is the PROMPTS (`propose_declaration` left the tool list) — a description
+    ## file with no tool is still not prose nobody reads when it describes a registered prompt.
+    registered = set(TIER1_TOOLS) | set(TIER0_TOOLS) | set(PROMPTS)
     assert not set(TIER1_TOOLS) & set(TIER0_TOOLS), "a tool belongs to exactly one tier"
+    assert not set(PROMPTS) & (set(TIER1_TOOLS) | set(TIER0_TOOLS)), "a prompt is not a tool"
     on_disk = {p.stem for p in d.DESCRIPTIONS_DIR.glob("*.json") if not p.name.startswith("_")}
     assert on_disk == registered, (
         "description files and registered tools disagree: "
@@ -101,7 +104,11 @@ def test_shipped_descriptions_are_rendered_and_substantial() -> None:
     `build_or_refresh` text wrote `options=` with braces and a literal tag-to-role mapping,
     which this assertion reads as an unrendered placeholder, so the wording was changed
     rather than the invariant."""
-    loaded = {**d.load_descriptions(tier=1), **d.load_descriptions(tier=0)}
+    loaded = {
+        **d.load_descriptions(tier=1),
+        **d.load_descriptions(tier=0),
+        **d.load_descriptions(tier=2),  # 2.0.0: the prompts
+    }
     for name, text in loaded.items():
         assert len(text) > 40, f"{name}: description is suspiciously short"
         assert "{" not in text and "}" not in text, f"{name}: unrendered placeholder"
