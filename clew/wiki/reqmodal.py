@@ -62,7 +62,8 @@ def requirement_cell(row: Any, entry: dict, ctx: dict[str, Any]) -> str:
 ## @param ctx The page context.
 ## @return HTML.
 ## v2: each implementer shows its file and line beside its symbol link (P1f).
-## @version 2
+## v3: tests link to their sections.
+## @version 3
 ## @dg_internal
 def _body(row: Any, entry: dict, title: str, ctx: dict[str, Any]) -> str:
     """@brief Assemble sections. @return HTML."""
@@ -92,7 +93,7 @@ def _body(row: Any, entry: dict, title: str, ctx: dict[str, Any]) -> str:
             ),
             "ul",
         ),
-        (_tests_heading(row.tests), _tests(row), "ul"),
+        (_tests_heading(row.tests), _tests(row, trace.test_href), "ul"),
         ("Flows through it", _flows(row, ctx["flows"]), "ul"),
         ("Model entries", _items(code(n) for n in trace.nodes_for(row.req_id)), "ul"),
         (
@@ -144,17 +145,31 @@ def _tests_heading(tests: tuple) -> str:
 
 ## @brief The tests, each with its status and link kind; a long list is cut and the cut said.
 ## @param row The evidence row.
+## @param hrefs {test name: its section}.
 ## @return HTML.
-## @version 1
+## v2: each test links to its section — what it tests (round 3, P2a).
+## @version 2
 ## @dg_internal
-def _tests(row: Any) -> str:
+def _tests(row: Any, hrefs: dict[str, str]) -> str:
     """@brief Test items. @return HTML."""
-    items = [f"{code(t)} {tag(s)}{via(row, t)}" for t, s in row.tests[:_MAX_TESTS]]
+    items = [f"{test_link(t, hrefs)} {tag(s)}{via(row, t)}" for t, s in row.tests[:_MAX_TESTS]]
     if len(row.tests) > _MAX_TESTS:
         items.append(
             f'<span class="none">and {len(row.tests) - _MAX_TESTS} more, not listed</span>'
         )
     return _items(items)
+
+
+## @brief A test's name, linked to its section when it has one.
+## @param name The test.
+## @param hrefs {test name: its section}.
+## @return HTML.
+## @version 1
+## @req REQ-DDB-WIKI-026
+def test_link(name: str, hrefs: dict[str, str]) -> str:
+    """@brief Link a test. @return HTML."""
+    href = hrefs.get(name)
+    return f'<a href="{text(href)}">{code(name)}</a>' if href else code(name)
 
 
 ## @brief How a test was linked, when weaker than a tag.

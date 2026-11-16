@@ -34,7 +34,7 @@ from typing import Any
 from .catalogs import declared_catalog
 from .config import Audience, WikiConfig
 from .htmltable import code, linked, source_url, table, tag, text
-from .reqmodal import first, requirement_cell, via
+from .reqmodal import first, requirement_cell, test_link, via
 
 ## Where clew-guard writes its impact report, under its `output_dir`.
 _IMPACT = Path("impact") / "impact.json"
@@ -43,13 +43,14 @@ _IMPACT = Path("impact") / "impact.json"
 ## @brief Everything the trace pages and the version snapshot are drawn from, gathered once.
 ## @version 2
 class Trace:
-    """@brief Evidence, nodes, catalogs, rules, the declared catalog, impact, symbols. @version 3"""
+    """@brief Evidence, nodes, catalogs, rules, the declared catalog, impact, symbols, test links. @version 4"""
 
     ## @brief Hold the gathered parts.
     ## @param parts Evidence, nodes, refs, catalogs, declared, impact, commit, catalog path.
     ## @param config The section (rules, link template).
     ## v2: `symbols` (P1f).
-    ## @version 2
+    ## v3: `test_href` (P2a).
+    ## @version 3
     ## @dg_internal
     def __init__(self, parts: dict[str, Any], config: WikiConfig) -> None:
         """@brief Store. @return None."""
@@ -66,6 +67,8 @@ class Trace:
         self.template = config.link_template
         ## (function, file) pairs with a symbol section; `link` points there (round 3, P1f).
         self.symbols: set[tuple[str, str]] = set()
+        ## {test name: its section} (round 3, P2a).
+        self.test_href: dict[str, str] = {}
 
     ## @brief Gather the trace for a repository.
     ## @param repo_root The repository.
@@ -281,7 +284,8 @@ def _link_kinds(ev: list) -> str:
 ## @return HTML.
 ## v2: the id opens the requirement's modal; rows carry their group for the cards' filter;
 ## a long test list is its counts (the modal lists it).
-## @version 2
+## v3: short test lists link to the tests' sections (P2a).
+## @version 3
 ## @dg_internal
 def _requirement_table(trace: Trace, ctx: dict[str, Any]) -> str:
     """@brief Render rows. @return HTML."""
@@ -298,7 +302,7 @@ def _requirement_table(trace: Trace, ctx: dict[str, Any]) -> str:
                     [trace.link(n, f, ln) for n, f, ln in row.implementer_sites],
                     f"{len(row.implementer_sites)} functions",
                 ),
-                _tests_cell(row),
+                _tests_cell(row, trace.test_href),
                 ", ".join(f"{text(k)} {n}" for k, n in row.layers or ()),
                 text(str(first(entry, "x-status", "status"))),
                 text(str(first(entry, "x-priority", "priority"))),
@@ -336,10 +340,12 @@ def _fold(items: list[str], summary: str) -> str:
 
 ## @brief The tests column: a short list inline, a long one as its counts (the modal lists it).
 ## @param row The evidence row.
+## @param hrefs {test name: its section}.
 ## @return HTML.
-## @version 1
+## v2: tests link to their sections (P2a).
+## @version 2
 ## @dg_internal
-def _tests_cell(row: Any) -> str:
+def _tests_cell(row: Any, hrefs: dict[str, str]) -> str:
     """ONE FULL LIST PER REQUIREMENT, in its modal: repeating hundreds of tests in a folded cell
     doubled the page (clew's own: 2.2 MB).
 
@@ -347,7 +353,7 @@ def _tests_cell(row: Any) -> str:
     @return HTML.
     """
     if len(row.tests) <= 4:
-        return "<br>".join(f"{code(t)} {tag(s)}{via(row, t)}" for t, s in row.tests)
+        return "<br>".join(f"{test_link(t, hrefs)} {tag(s)}{via(row, t)}" for t, s in row.tests)
     return f'<span class="tsum">{text(_test_summary(row.tests))}</span>'
 
 

@@ -38,6 +38,8 @@ from ..query._common import connect, table_exists
 _RING1 = 10
 ## Neighbours drawn per first-ring node on the second ring, before folding.
 _RING2 = 3
+## The most calls a test-to-implementer path is searched across.
+_PATH_DEPTH = 5
 ## The most body lines a section bundles.
 _BODY_LINES = 120
 _W = 960
@@ -103,15 +105,18 @@ def anchor(name: str) -> str:
 ## @param ctx req_of, flows (FlowPage list), rules (Audience), template, commit.
 ## @param source The Sphinx source directory.
 ## @return {(function, file): href} of the sections written.
-## @version 1
+## v2: test functions the evidence names get sections too (P2a).
+## @version 2
 ## @req REQ-DDB-WIKI-025
 def symbol_pages(
     db: Path, repo_root: Path, keys: set[tuple[str, str]], ctx: dict[str, Any], source: Path
 ) -> dict[tuple[str, str], str]:
     """@brief Write sym-*.md. @return Hrefs."""
     with connect(db) as conn:
-        defs = _definitions(conn, keys)
+        tests = _test_functions(conn, set(ctx.get("tests") or {}))
+        defs = _definitions(conn, keys | tests)
         graph = _Edges(conn)
+    ctx = {**ctx, "test_keys": tests}
     by_file: dict[str, dict[str, list[Definition]]] = defaultdict(lambda: defaultdict(list))
     for d in defs:
         by_file[d.file][d.name].append(d)
@@ -135,6 +140,32 @@ def symbol_pages(
         ]
         (Path(source) / f"{page_for(rel)}.md").write_text("\n".join(text), encoding="utf-8")
     return {key: symbol_href(*key) for key in written}
+
+
+## @brief The test functions the evidence names, found in test code.
+## @param conn Open connection.
+## @param names Test names.
+## @return (function, file) pairs.
+## @version 1
+## @dg_internal
+def _test_functions(conn: Any, names: set[str]) -> set[tuple[str, str]]:
+    """A NAME OUTSIDE TEST CODE is not that test: a scenario title or a Catch2 string name has no
+    function of that name, and a namesake in product code is not the test.
+
+    @brief Resolve tests.
+    @return Keys.
+    """
+    if not names or not table_exists(conn, "test_scope"):
+        return set()
+    scope = {r for (r,) in conn.execute("SELECT path_rowid FROM test_scope")}
+    out = set()
+    for name, rel, prow in conn.execute(
+        "SELECT m.name, p.name, p.rowid FROM memberdef m JOIN path p ON p.rowid = "
+        "COALESCE(NULLIF(m.bodyfile_id, 0), m.file_id) WHERE m.kind = 'function'"
+    ):
+        if name in names and int(prow) in scope:
+            out.add((str(name), str(rel)))
+    return out
 
 
 ## @brief Every definition of each referenced (function, file).
@@ -232,7 +263,8 @@ class _Edges:
 ## @param ctx The page context.
 ## @param repo_root The repository.
 ## @return HTML.
-## @version 1
+## v2: a test's section adds what it tests (round 3, P2a).
+## @version 2
 ## @dg_internal
 def _section(
     name: str,
@@ -260,6 +292,8 @@ def _section(
             + f'<p class="where">{where}</p>'
             + _ego(d, graph, written)
         )
+        if key in ctx.get("test_keys", ()):
+            parts.append(_test_block(d, graph, ctx, repo_root))
         if not ctx["rules"].exclude_bodies:
             parts.append(_body(repo_root, d))
     if reqs:
@@ -280,6 +314,84 @@ def _section(
             + "</ul>"
         )
     return "".join(parts) + "</section>"
+
+
+## @brief What a test tests: its assertions, result, verified requirements and call paths.
+## @param d The test's definition.
+## @param graph The call graph.
+## @param ctx The page context (tests, implementers, rules).
+## @param repo_root The repository.
+## @return HTML.
+## @version 1
+## @dg_internal
+def _test_block(d: Definition, graph: _Edges, ctx: dict[str, Any], repo_root: Path) -> str:
+    """ASSERTIONS ARE SOURCE TEXT, withheld under `exclude_bodies`; the verified requirements and
+    paths are the index's facts and stay.
+
+    @brief Test block.
+    @return HTML.
+    """
+    from .testfacts import assertions, verifies_block
+
+    facts = ctx["tests"][d.name]
+    paths = {
+        req: _path(graph, d.rowid, ctx["implementers"].get(req, set()))
+        for req, _kind in facts.verifies
+    }
+    out = verifies_block(facts, {r: p for r, p in paths.items() if p})
+    lines = _lines(repo_root, d)
+    if lines and not ctx["rules"].exclude_bodies:
+        found = assertions(lines)
+        if found:
+            items = "".join(f"<li><code>{escape(a)}</code></li>" for a in found)
+            out = f'<h4>Checks</h4><ul class="asserts">{items}</ul>' + out
+    return f'<div class="test-facts">{out}</div>'
+
+
+## @brief The shortest call path from a test to any implementer of a requirement.
+## @param graph The call graph.
+## @param start The test's rowid.
+## @param targets The implementers' (function, file) pairs.
+## @return Function names along the path, or [] when none is found within the depth.
+## @version 1
+## @dg_internal
+def _path(graph: _Edges, start: int, targets: set[tuple[str, str]]) -> list[str]:
+    """BREADTH-FIRST over resolved calls, at most `_PATH_DEPTH` hops: the path a reader can walk
+    from the test to the code it reaches.
+
+    @brief Path.
+    @return Names.
+    """
+    goal = {r for key in targets for r in graph.rowids(key)}
+    prev: dict[int, int] = {start: start}
+    frontier = [start]
+    for _ in range(_PATH_DEPTH):
+        nxt = []
+        for node in frontier:
+            for callee in sorted(graph.callees.get(node, ())):
+                if callee in prev:
+                    continue
+                prev[callee] = node
+                if callee in goal:
+                    return _unwind(graph, prev, callee)
+                nxt.append(callee)
+        frontier = nxt
+    return []
+
+
+## @brief The names along a found path.
+## @param graph The call graph.
+## @param prev Predecessors.
+## @param end The last node.
+## @return Names, first to last.
+## @version 1
+## @dg_internal
+def _unwind(graph: _Edges, prev: dict[int, int], end: int) -> list[str]:
+    """@brief Unwind. @return Names."""
+    out = [end]
+    while prev[out[-1]] != out[-1]:
+        out.append(prev[out[-1]])
+    return [graph.names[r][0] for r in reversed(out)]
 
 
 ## @brief A definition's ego-graph, its neighbours linked when they have sections.
@@ -414,7 +526,8 @@ def _edge(x1: float, y1: float, x2: float, y2: float, cls: str) -> str:
 ## @param repo_root The repository.
 ## @param d The definition.
 ## @return HTML ("" when the file cannot be read or the extent is unknown).
-## @version 1
+## v2: the extent read and checked by `_lines`, shared with the test block.
+## @version 2
 ## @dg_internal
 def _body(repo_root: Path, d: Definition) -> str:
     """END 0 IS EXTENT UNKNOWN, never "covers nothing": no body is bundled rather than a guess.
@@ -424,18 +537,40 @@ def _body(repo_root: Path, d: Definition) -> str:
     @brief Body.
     @return HTML.
     """
-    if not d.start or not d.end or d.end < d.start:
+    lines = _lines(repo_root, d)
+    if lines is None:
         return ""
-    try:
-        lines = (repo_root / d.file).read_text(encoding="utf-8", errors="replace").splitlines()
-    except OSError:
-        return ""
-    body = lines[d.start - 1 : min(d.end, d.start - 1 + _BODY_LINES)]
-    if not any(re.search(rf"\b{re.escape(d.name)}\b", line) for line in body[:4]):
+    if not lines:
         return (
             '<p class="not-measured">The index is older than this file: the lines it records '
             "no longer hold this function. Refresh the index to bundle its body.</p>"
         )
+    body = lines[:_BODY_LINES]
     more = d.end - d.start + 1 - len(body)
     note = f'<p class="none">{more} more lines, not shown</p>' if more > 0 else ""
     return f'<pre class="body">{escape(chr(10).join(body))}</pre>{note}'
+
+
+## @brief A definition's lines: None when unknown or unreadable, [] when stale.
+## @param repo_root The repository.
+## @param d The definition.
+## @return Lines, [] or None.
+## @version 1
+## @dg_internal
+def _lines(repo_root: Path, d: Definition) -> list[str] | None:
+    """THE RECORDED EXTENT MUST STILL NAME THE FUNCTION in its first lines, else the file changed
+    after the index was built and the lines are someone else's.
+
+    @brief Read the extent.
+    @return Lines.
+    """
+    if not d.start or not d.end or d.end < d.start:
+        return None
+    try:
+        lines = (repo_root / d.file).read_text(encoding="utf-8", errors="replace").splitlines()
+    except OSError:
+        return None
+    body = lines[d.start - 1 : d.end]
+    if not any(re.search(rf"\b{re.escape(d.name)}\b", line) for line in body[:4]):
+        return []
+    return body

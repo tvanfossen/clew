@@ -63,7 +63,8 @@ _CELL = str.maketrans({"|": "\\|", "\n": " "})
 ## v11: flows grouped by role, steps badged with requirements (P1e).
 ## v12: Change impact section after Flows (P1g).
 ## v13: symbol pages (P1f); source permalinks dropped when the commit is known unpublished.
-## @version 13
+## v14: test sections and Gherkin feature pages (P2a).
+## @version 14
 ## @req REQ-DDB-WIKI-003
 def build_wiki(
     repo_root: Path,
@@ -78,13 +79,15 @@ def build_wiki(
 
     @brief Write and render the site.
     @return The HTML directory.
-    @version 12
+    @version 13
     """
     from .flowpage import flow_page, flows_index
     from .impactpage import impact_page
     from .graph import build_graph
     from .issues import resolve_target
     from .mappage import map_page, minimap_svg
+    from . import testfacts
+    from .imports import parse_features
     from .symbols import symbol_pages
     from .tracepages import Trace, nodes_page, requirements_page
     from .versions import record_version, valid_key
@@ -113,14 +116,26 @@ def build_wiki(
     ]
     keys = {(n, f) for r in trace.evidence for n, f, _l in r.implementer_sites}
     keys |= {fn for p in pages for fn in p.functions}
+    facts = testfacts.gather(trace.evidence)
     symbol_ctx = {
         "req_of": req_of,
         "flows": pages,
         "rules": rules,
         "template": config.link_template,
         "commit": commit,
+        "tests": facts,
+        "implementers": {
+            r.req_id: {(n, f) for n, f, _l in r.implementer_sites} for r in trace.evidence
+        },
     }
-    trace.symbols = set(symbol_pages(db, repo_root, keys, symbol_ctx, source))
+    written = symbol_pages(db, repo_root, keys, symbol_ctx, source)
+    scenarios = parse_features(repo_root, config.inputs.features)
+    written |= testfacts.feature_pages(repo_root, scenarios, facts, source)
+    trace.symbols = set(written)
+    trace.test_href = {}
+    for (name, _rel), href in sorted(written.items()):
+        if name in facts:
+            trace.test_href.setdefault(name, href)
     graph = build_graph(db, trace.evidence, trace.impact, config.components, exclude_tests=True)
     issues = resolve_target(config.issues, config.issues_enabled, repo_root)
     sections = [

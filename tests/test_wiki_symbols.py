@@ -133,3 +133,100 @@ def test_a_stale_extent_bundles_no_wrong_body(tmp_path: Path) -> None:
         tmp_path, stale
     )
     assert "return 2" in _body(tmp_path, fresh)
+
+
+# --- Round 3, P2a: what a test tests --------------------------------------------------------------
+
+
+def test_a_test_section_says_what_it_verifies_and_how(site: dict[str, str]) -> None:  # noqa: F811
+    """OWNER 2026-11-15: "click into a test associated with a requirement and see WHAT it's
+    testing". A test's section lists its assertions, the requirements it verifies with the link
+    kind, and for an inferred link the call path from the test to the implementer it reaches.
+
+    @brief P2a: a test's section.
+    """
+    page = site["sym-tests-test-data-py.html"]
+    sec = page[page.index('id="s-test_load"') :]
+    asserts = sec[sec.index('class="asserts"') :]
+    assert "assert load([]) == 1" in asserts[: asserts.index("</ul>")]
+    verifies = sec[sec.index('class="verifies"') :]
+    verifies = verifies[: verifies.index("</table>")]
+    assert 'href="requirements.html#REQ-X-001"' in verifies and "via-inferred" in verifies
+    assert re.search(r"test_load\s*→\s*load\s*→\s*parse", re.sub(r"<[^>]+>", "", verifies))
+    assert "t-passed" in sec[: sec.index('class="verifies"')]
+
+
+def test_a_requirements_tests_link_to_their_sections(site: dict[str, str]) -> None:  # noqa: F811
+    """@brief P2a: a requirement's tests open what they test."""
+    body = site["requirements.html"]
+    assert 'href="sym-tests-test-data-py.html#s-test_load"' in body
+    assert 'href="sym-tests-features-finish-feature.html#s-Finish_runs"' in body
+
+
+def test_a_gherkin_scenario_is_displayed_as_gherkin(site: dict[str, str]) -> None:  # noqa: F811
+    """OWNER 2026-11-15: "when we display gherkin, please display it properly" — Feature and
+    Scenario headings, keyword-highlighted steps, tags as chips, its result.
+
+    @brief P2a: Gherkin rendering.
+    """
+    page = site["sym-tests-features-finish-feature.html"]
+    sec = page[page.index('id="s-Finish_runs"') :]
+    assert '<span class="gk">Feature:</span>' in sec and '<span class="gk">Scenario:</span>' in sec
+    assert '<span class="gk step">Then</span> it finishes' in sec
+    assert '<span class="gtag">@REQ-W-002</span>' in sec and "t-failed" in sec
+
+
+def test_a_partner_site_lists_no_assertions(
+    repo: tuple[Path, Path],  # noqa: F811
+    tmp_path: Path,
+) -> None:
+    """@brief P2a: assertions are source text — withheld under `exclude_bodies`."""
+    from clew.wiki.build import build_wiki
+
+    html = build_wiki(repo[0], repo[1], tmp_path / "out", audience="partner")
+    page = (html / "sym-tests-test-data-py.html").read_text()
+    assert "assert load" not in page and 'class="verifies"' in page
+
+
+def test_assertions_are_read_per_framework() -> None:
+    """@brief P2a: Python assert, Catch2 REQUIRE/CHECK, gtest EXPECT_/ASSERT_, Unity TEST_ASSERT_;
+    a statement spanning lines is read whole."""
+    from clew.wiki.testfacts import assertions
+
+    lines = [
+        "def test_x():",
+        "    assert f(1) == 2",
+        "  REQUIRE(x == 1);",
+        "  CHECK_THAT(a,",
+        "             Equals(b));",
+        "  EXPECT_EQ(1, f());",
+        "  foo();",
+        "  TEST_ASSERT_EQUAL(1, x);",
+        "  ASSERT_TRUE(ok) << why;",
+    ]
+    assert assertions(lines) == [
+        "assert f(1) == 2",
+        "REQUIRE(x == 1);",
+        "CHECK_THAT(a, Equals(b));",
+        "EXPECT_EQ(1, f());",
+        "TEST_ASSERT_EQUAL(1, x);",
+        "ASSERT_TRUE(ok) << why;",
+    ]
+
+
+def test_gherkin_renders_rules_examples_and_doc_strings() -> None:
+    """@brief P2a: a Rule heading, an Examples table and a doc string, as Gherkin."""
+    from clew.wiki.testfacts import render_scenario
+
+    text = (
+        "@area\nFeature: Cart\n  Rule: Totals\n    @REQ-C-1\n    Scenario Outline: Add <n>\n"
+        '      Given a cart\n      When I add <n> items\n      Then the body is\n        """\n'
+        '        total <n>\n        """\n      Examples:\n        | n |\n        | 2 |\n'
+        "    Scenario: Other\n      Given nothing\n"
+    )
+    html = render_scenario(text, 5)
+    assert '<span class="gk">Rule:</span> Totals' in html
+    assert '<span class="gk">Scenario Outline:</span> Add &lt;n&gt;' in html
+    assert "<table" in html and "<td>2</td>" in html
+    assert '<pre class="docstring">total &lt;n&gt;</pre>' in html
+    assert "Other" not in html and '<span class="gtag">@area</span>' in html
