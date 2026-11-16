@@ -52,7 +52,9 @@ _CELL = str.maketrans({"|": "\\|", "\n": " "})
 ## v4: sections (Docs / Flows / Requirements / Model entries) instead of one page per top-bar
 ## entry; the trace from every source (catalog, impact.json) on one requirements page.
 ## v5: entry-point flows beside the declared ones.
-## @version 5
+## v6: sections ordered Requirements · Flows · Docs · Model entries — requirements front and
+## centre (round 3, P1b; Change impact and Map slot in after Flows when they land).
+## @version 6
 ## @req REQ-DDB-WIKI-003
 def build_wiki(
     repo_root: Path,
@@ -67,7 +69,7 @@ def build_wiki(
 
     @brief Write and render the site.
     @return The HTML directory.
-    @version 4
+    @version 5
     """
     from .flowpage import flow_page
     from .tracepages import Trace, nodes_page, requirements_page
@@ -93,13 +95,13 @@ def build_wiki(
         for spec in _all_flows(repo_root, db, config)
     ]
     sections = [
-        _section(source, "docs", "Docs", _prose(repo_root, config, source), _DOCS_LEAD),
-        _section(source, "flows", "Flows", flows, _FLOWS_LEAD),
         requirements_page(trace, config, source, rules, burndown),
+        _section(source, "flows", "Flows", flows, _FLOWS_LEAD),
+        _section(source, "docs", "Docs", _prose(repo_root, config, source), _DOCS_LEAD),
     ]
     if config.sources:
         sections.append(nodes_page(trace, config, source))
-    _write_index(source, config, trace, [s for s in sections if s])
+    _write_index(source, config, trace, [s for s in sections if s], len(flows))
     html = _render(source, site_dir / "html", config, repo_root)
     if version:
         record_version(out_dir, version, snapshot, config.title, milestones)
@@ -259,18 +261,25 @@ def _section(source: Path, name: str, title: str, children: list[str], lead: str
 ## @param config The section (title).
 ## @param trace The gathered trace (the requirements card's counts).
 ## @param sections Section page names, in order.
+## @param flow_count How many flow pages were written (declared and entry-point).
 ## @return None.
 ## v2: section cards; the top bar names sections, not every page (owner 2026-11-15).
-## @version 2
+## v3: each card carries its section's icon (round 3, P1b); the flows card counts every flow page,
+## not only the declared ones (it read "2" on a site with 30).
+## @version 3
 ## @dg_internal
-def _write_index(source: Path, config: WikiConfig, trace: object, sections: list[str]) -> None:
+def _write_index(
+    source: Path, config: WikiConfig, trace: object, sections: list[str], flow_count: int
+) -> None:
     """@brief Root page. @return None."""
     from html import escape
+
+    from .icons import icon
 
     ev = trace.evidence
     blurbs = {
         "docs": ("Docs", "The repository's own documentation."),
-        "flows": ("Flows", f"{len(config.flows)} sequence diagrams derived from the index."),
+        "flows": ("Flows", f"{flow_count} sequence diagrams derived from the index."),
         "requirements": (
             "Requirements",
             f"{len(ev)} requirements · {sum(1 for r in ev if r.implementers)} implemented · "
@@ -280,8 +289,8 @@ def _write_index(source: Path, config: WikiConfig, trace: object, sections: list
         "nodes": ("Model entries", "Entries of declared model files and the code realising them."),
     }
     cards = "".join(
-        f'<a class="card-link" href="{name}.html"><h3>{escape(blurbs[name][0])}</h3>'
-        f"<p>{escape(blurbs[name][1])}</p></a>"
+        f'<a class="card-link" href="{name}.html"><h3>{icon(name, 22)}'
+        f"{escape(blurbs[name][0])}</h3><p>{escape(blurbs[name][1])}</p></a>"
         for name in sections
     )
     text = [

@@ -5,7 +5,8 @@
 is `svg.flow_svg`; around it the page adds, inline and same-origin:
 
   * PLAY / PAUSE / STEP controls — replay the animation, freeze it, or reveal one step at a time;
-  * a DIALOG per step, opened by clicking it, holding the DATA THE STEP CARRIES: the call
+  * the site's shared MODAL per step (round 3, P1b: `#m=step-N`), opened by clicking it, holding
+    the DATA THE STEP CARRIES: the call
     expression as written at the call site (the arguments passed), the callee's signature and
     brief (what it receives), the frames around the call, and a link to the call site.
 
@@ -15,12 +16,13 @@ call expression is source code, so it is redacted like a body (signatures stay �
 interface).
 
 @brief Render a flow page.
-@version 1
+@version 2
 """
 
 from __future__ import annotations
 
 import json
+import re
 from html import escape
 from pathlib import Path
 from typing import Any
@@ -33,21 +35,24 @@ from .svg import flow_svg
 ## The most lines a call expression is read across.
 _CALL_LINES = 6
 ## The page's interactive layer: no dependency, nothing remote.
-_SCRIPT = """<script>(function(){
+_SCRIPT = """<script>document.addEventListener('DOMContentLoaded',function(){
 document.querySelectorAll('.flow-block').forEach(function(block){
  var data=JSON.parse(block.querySelector('script.flow-data').textContent);
- var svg=block.querySelector('svg.seq'),dlg=block.querySelector('dialog.flow-step');
- var groups=Array.prototype.slice.call(svg.querySelectorAll('g[data-step]')),cursor=0;
+ var svg=block.querySelector('svg.seq'),cursor=0;
+ var groups=Array.prototype.slice.call(svg.querySelectorAll('g[data-step]'));
  function row(dl,k,v,code){if(!v)return;var dt=document.createElement('dt'),dd=document.createElement('dd');
   dt.textContent=k;var el=code?document.createElement('pre'):document.createElement('span');el.textContent=v;
   dd.appendChild(el);dl.appendChild(dt);dl.appendChild(dd);}
- function show(i){var s=data[i];groups.forEach(function(g){g.classList.remove('sel');});groups[i].classList.add('sel');dlg.querySelector('h3').textContent=(i+1)+'. '+s.caller+' \\u2192 '+s.callee;
-  var dl=dlg.querySelector('dl');dl.textContent='';row(dl,'call',s.call,true);row(dl,'callee',s.callee_qualified);
+ function build(n){var i=+n,s=data[i];if(!s)return null;groups.forEach(function(g){g.classList.remove('sel');});
+  groups[i].classList.add('sel');var f=document.createDocumentFragment(),dl=document.createElement('dl');
+  dl.className='kv';row(dl,'call',s.call,true);row(dl,'callee',s.callee_qualified);
   row(dl,'receives',s.signature,true);row(dl,'brief',s.brief);row(dl,'frames',s.frames);
-  row(dl,'ambiguous',s.ambiguous);row(dl,'at',s.site);var a=dlg.querySelector('a.site');
-  if(s.link){a.href=s.link;a.hidden=false;}else{a.hidden=true;}dlg.showModal();}
- groups.forEach(function(g){g.addEventListener('click',function(){show(+g.getAttribute('data-step'));});});
- dlg.querySelector('button').addEventListener('click',function(){dlg.close();});
+  row(dl,'ambiguous',s.ambiguous);row(dl,'at',s.site);f.appendChild(dl);
+  if(s.link){var a=document.createElement('a');a.href=s.link;a.textContent='open the call site';f.appendChild(a);}
+  return {title:(i+1)+'. '+s.caller+' \\u2192 '+s.callee,node:f};}
+ if(window.clewModal)window.clewModal.register('step-',build);
+ groups.forEach(function(g){g.addEventListener('click',function(){
+  window.clewModal&&window.clewModal.open('step-'+g.getAttribute('data-step'),g);});});
  function control(name,fn){var b=block.querySelector('[data-flow-control='+name+']');if(b)b.addEventListener('click',fn);}
  control('play',function(){svg.classList.remove('stepping','paused');groups.forEach(function(g){
   g.classList.remove('on');var c=g.getAttribute('class');g.setAttribute('class','');void g.getBBox();g.setAttribute('class',c);});cursor=0;});
@@ -56,7 +61,7 @@ document.querySelectorAll('.flow-block').forEach(function(block){
   groups.forEach(function(g){g.classList.remove('on');});}
   if(cursor>=groups.length){cursor=0;groups.forEach(function(g){g.classList.remove('on');});}
   groups[cursor].classList.add('on');cursor++;});
-});})();</script>"""
+});});</script>"""
 _STYLE = (
     "<style>svg.seq.paused .cs,svg.seq.paused .cs .ca{animation-play-state:paused}"
     "svg.seq.stepping g[data-step]{opacity:.1;animation:none}"
@@ -181,12 +186,14 @@ def step_data(
     return out
 
 
-## @brief The diagram, controls, dialog, data and script, as one raw HTML block.
+## @brief The diagram, controls, data and script, as one raw HTML block.
 ## @param flow The flow.
 ## @param data The step data.
 ## @param animate Whether the diagram plays.
 ## @return HTML.
-## @version 1
+## v2: the step opens the page's shared modal (round 3, P1b) — deep-linked as `#m=step-N` — not
+## a dialog of its own; the diagram pans and zooms.
+## @version 2
 ## @dg_internal
 def _block(flow: Flow, data: list[dict[str, Any]], animate: bool) -> str:
     """`<` IS ESCAPED IN THE JSON so no repository text can close the script element.
@@ -201,10 +208,7 @@ def _block(flow: Flow, data: list[dict[str, Any]], animate: bool) -> str:
     )
     return (
         f'<div class="flow-block">{_STYLE}<div class="flow-controls">{buttons}</div>'
-        f'<div class="flow-wrap">{flow_svg(flow, animate=animate)}</div>'
-        '<dialog class="flow-step"><h3></h3><dl></dl>'
-        '<p><a class="site" hidden>open the call site</a></p>'
-        '<button type="button">close</button></dialog>'
+        f'<div class="flow-wrap" data-pz>{flow_svg(flow, animate=animate)}</div>'
         f'<script type="application/json" class="flow-data">{blob}</script>'
         f"{_SCRIPT}</div>"
     )
@@ -214,7 +218,9 @@ def _block(flow: Flow, data: list[dict[str, Any]], animate: bool) -> str:
 ## @param db The index.
 ## @param flow The flow.
 ## @return {(callee, qualified): (signature, brief)}.
-## @version 1
+## v2: the brief as plain text — doxygen stores it as XML (`<para>…</para>`), which the step modal
+## printed verbatim (round 3, P1b screenshots).
+## @version 2
 ## @dg_internal
 def _signatures(db: Path, flow: Flow) -> dict[tuple[str, str], tuple[str, str]]:
     """@brief Read signatures. @return Map."""
@@ -234,7 +240,8 @@ def _signatures(db: Path, flow: Flow) -> dict[tuple[str, str], tuple[str, str]]:
                 (min(rowids),),
             ).fetchone()
             if row:
-                out[key] = (f"{row[0] or ''}{row[1] or ''}".strip(), str(row[2] or "").strip())
+                brief = " ".join(re.sub(r"<[^>]+>", " ", str(row[2] or "")).split())
+                out[key] = (f"{row[0] or ''}{row[1] or ''}".strip(), brief)
     return out
 
 

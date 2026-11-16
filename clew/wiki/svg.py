@@ -85,14 +85,16 @@ _ANIMATION = (
 ## v2: `animate` (W12).
 ## v3: UML-proper (W18): heads at both ends, activation bars, numbered steps, return arrows,
 ## drawn frames, fitted lanes, theme tokens, `data-step` per step.
-## @version 3
+## v4: a viewBox, so the page's pan / zoom (round 3, P1b) can move it.
+## @version 4
 ## @req REQ-DDB-WIKI-008
 def flow_svg(flow: Flow, animate: bool = False) -> str:
     """@brief Lay out and draw the diagram. @return SVG text."""
     layout = _Layout(flow)
     parts = [
         f'<svg class="seq" xmlns="http://www.w3.org/2000/svg" width="{layout.width}" '
-        f'height="{layout.height}" role="img" aria-label="Sequence from {escape(flow.entry)}">',
+        f'height="{layout.height}" viewBox="0 0 {layout.width} {layout.height}" role="img" '
+        f'aria-label="Sequence from {escape(flow.entry)}">',
         _STYLE,
     ]
     if animate:

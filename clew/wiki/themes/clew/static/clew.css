@@ -13,7 +13,8 @@ html,body{margin:0;background:var(--surface);color:var(--ink);font:400 16px/1.55
 a,a:visited{color:var(--acc)}a:hover{color:var(--accink)}
 /* The top bar: brand and the site's pages. */
 .top{display:flex;align-items:center;gap:24px;padding:10px 32px;min-height:64px;border-bottom:1px solid var(--rule2);background:var(--surface);flex-wrap:wrap;position:sticky;top:0;z-index:5}
-.brand{display:flex;align-items:center;gap:10px;font:600 18px var(--sans);color:var(--ink);text-decoration:none}
+.brand{display:flex;align-items:center;gap:10px;font:600 18px var(--sans);color:var(--ink);text-decoration:none;min-width:0}
+.brand span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .brand .logo{height:32px;width:auto}
 .nav{margin-left:auto}.search input{height:36px;width:240px;border:1px solid var(--rule);border-radius:999px;background:var(--paper);color:var(--ink);padding:0 16px;font:400 14px var(--sans)}.search input:focus{outline:2px solid var(--acc);outline-offset:1px}.nav ul{display:flex;gap:4px;flex-wrap:wrap;list-style:none;margin:0;padding:0}
 .nav li{margin:0}.nav ul ul{display:none}
@@ -65,7 +66,9 @@ strong.tier,span.tier{display:inline-block;padding:1px 9px;border-radius:999px;f
 .t-MISSING,.t-absent{background:var(--muted);color:var(--ink2)}
 /* Charts (W14, W17). */
 .charts{display:flex;gap:24px;flex-wrap:wrap;margin:8px 0 24px}
-.chart-card{background:var(--surface);border:1px solid var(--rule2);border-radius:14px;padding:16px 18px}
+.chart-card{background:var(--surface);border:1px solid var(--rule2);border-radius:14px;padding:16px 18px;max-width:100%;overflow-x:auto}
+div.sphinxsidebar:not(:has(li)){display:none}
+.chart-card svg{max-width:100%;height:auto}
 .chart-card h4{margin:0 0 8px;font:600 13px var(--sans);color:var(--ink2);text-transform:uppercase;letter-spacing:.04em}
 svg.donut text,svg.burndown text{fill:var(--ink);font-family:var(--sans)}
 .c-PASS,.c-passed{--c:var(--acc)}.c-GAP,.c-failed{--c:var(--err)}.c-error,.c-TARGET{--c:var(--root)}
@@ -80,13 +83,35 @@ svg.burndown .milestone{stroke:var(--acc);stroke-dasharray:2 3}svg.burndown .ms-
 .flow-controls button,dialog.flow-step button{height:34px;padding:0 14px;border-radius:9px;border:1px solid var(--rule);background:var(--paper);color:var(--ink);font:600 13px var(--sans);cursor:pointer}
 .flow-controls button:hover{background:var(--muted)}
 svg.seq g.cs{cursor:pointer}svg.seq g.cs:hover text{fill:var(--acc)}
-dialog.flow-step{border:1px solid var(--rule);border-radius:16px;background:var(--paper);color:var(--ink);max-width:min(720px,92vw);padding:22px 24px}
-dialog.flow-step::backdrop{background:rgba(42,33,24,.35)}
-dialog.flow-step h3{font:500 22px var(--serif);margin:0 0 10px}
-dialog.flow-step dl{display:grid;grid-template-columns:max-content 1fr;gap:6px 14px;margin:0 0 14px;font-size:14px}
-dialog.flow-step dt{color:var(--ink2);font-weight:600}dialog.flow-step dd{margin:0;min-width:0}
-dialog.flow-step pre{white-space:pre-wrap}
+/* Pan / zoom (round 3, P1b): ctrl+wheel, drag, and these buttons. */
+[data-pz]{position:relative}[data-pz] svg{touch-action:pan-y;cursor:grab}
+.pz-bar{position:sticky;left:0;display:flex;gap:4px;margin:0 0 6px}
+.pz-bar button{height:28px;min-width:28px;padding:0 8px;border-radius:7px;border:1px solid var(--rule);background:var(--paper);color:var(--ink);font:600 12px var(--sans);cursor:pointer}
+/* The one modal (round 3, P1b): native dialog, deep-linked by #m=KEY. */
+dialog#clew-modal{border:1px solid var(--rule);border-radius:16px;background:var(--paper);color:var(--ink);width:min(760px,94vw);max-height:88vh;padding:0;overflow:hidden}
+dialog#clew-modal[open]{display:flex;flex-direction:column}
+dialog#clew-modal::backdrop{background:rgba(42,33,24,.4)}
+.modal-head{display:flex;align-items:center;gap:12px;padding:16px 20px 12px;border-bottom:1px solid var(--rule2)}
+.modal-head h3{flex:1;margin:0;font:500 22px/1.2 var(--serif);overflow-wrap:break-word;min-width:0}
+.modal-close{display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:9px;border:1px solid var(--rule);background:var(--paper);color:var(--ink);cursor:pointer}
+.modal-close:hover{background:var(--muted)}
+.modal-body{padding:16px 20px 20px;overflow:auto}
+.modal-body dl.kv{display:grid;grid-template-columns:max-content 1fr;gap:6px 14px;margin:0 0 14px;font-size:14px}
+.modal-body dt{color:var(--ink2);font-weight:600}.modal-body dd{margin:0;min-width:0}
+.modal-body pre{white-space:pre-wrap;overflow-wrap:anywhere;overflow:visible}
+a.modal-link{cursor:pointer}
+/* Icons. */
+svg.ico{vertical-align:-4px;flex:none}a.card-link h3{display:flex;align-items:center;gap:10px}
+.menu-toggle{display:none;align-items:center;justify-content:center;width:40px;height:40px;margin-left:auto;border-radius:10px;border:1px solid var(--rule);background:var(--paper);color:var(--ink);cursor:pointer}
 /* Footer. */
 .foot{margin:0;padding:18px 32px 32px;font-size:13px;color:var(--faint);display:flex;gap:18px;flex-wrap:wrap}
 div.footer{display:none}
-@media(max-width:860px){.search input{width:100%}.search{width:100%}div.document{flex-direction:column;padding:20px 16px}div.sphinxsidebar{position:static;width:auto!important;flex:none}div.body{padding:20px 18px}.top{padding:10px 16px}}
+@media(max-width:860px){.search input{width:100%}.search{width:100%}div.document{flex-direction:column;padding:20px 16px}div.sphinxsidebar{position:static;width:auto!important;flex:none}div.body{padding:20px 18px}.top{padding:10px 16px}
+ .top{flex-wrap:wrap;gap:12px}.brand{flex:1 1 0}.menu-toggle{display:flex;flex:none}div.sphinxsidebar{display:none}.top .nav,.top .search{display:none;width:100%;margin:0}.top.open .nav,.top.open .search{display:block}
+ .nav ul{flex-direction:column}.nav a{height:44px}}
+/* Tables become cards on a phone (round 3, P1b): each cell prints its column's name. */
+@media(max-width:760px){table.clew thead{display:none}table.clew,table.clew tbody,table.clew tr,table.clew td{display:block;width:100%}
+ table.clew tr{border:1px solid var(--rule2);border-radius:12px;margin:0 0 12px;padding:6px 4px;background:var(--surface)}
+ table.clew td{border:0;padding:5px 10px;white-space:normal!important;max-width:none!important;min-width:0!important}
+ table.clew td::before{content:attr(data-label);display:block;font:600 11px var(--sans);text-transform:uppercase;letter-spacing:.04em;color:var(--faint)}
+ table.clew td.n{text-align:left}table.clew code{white-space:normal;overflow-wrap:anywhere}}

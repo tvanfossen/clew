@@ -30,7 +30,9 @@ _NONE = '<span class="none">—</span>'
 ## @param numeric Headers of right-aligned columns.
 ## @param keep Headers kept even when empty everywhere.
 ## @return HTML.
-## @version 1
+## v2: every cell names its column (`data-label`), which the narrow-screen card layout prints
+## (round 3, P1b).
+## @version 2
 ## @req REQ-DDB-WIKI-012
 def table(
     headers: list[str],
@@ -42,9 +44,10 @@ def table(
     """@brief Render a table. @return HTML."""
     used = [i for i, h in enumerate(headers) if h in keep or any(r[i] for r in rows)]
     align = {i: ' class="n"' if headers[i] in numeric else "" for i in used}
+    label = {i: f' data-label="{escape(headers[i])}"' for i in used}
     head = "".join(f"<th{align[i]}>{escape(headers[i])}</th>" for i in used)
     body = "".join(
-        "<tr>" + "".join(f"<td{align[i]}>{r[i] or _NONE}</td>" for i in used) + "</tr>"
+        "<tr>" + "".join(f"<td{align[i]}{label[i]}>{r[i] or _NONE}</td>" for i in used) + "</tr>"
         for r in rows
     )
     classes = f"clew {cls}".strip()

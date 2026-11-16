@@ -14,8 +14,14 @@
 
 One indexed repository and one site build are shared by the module: Sphinx is the slow part.
 
-@brief Tests for the wiki theme, charts, summary, burndown and sequence diagram.
-@version 1
+Round 3, P1b — the UI SHELL: one modal component on every page (native `<dialog>`, deep-linked
+by URL hash, the back button closes it), the flow-step dialog served by it rather than its own;
+one budgeted `clew.js` and nothing remote in any theme asset; a top bar ordered Requirements ·
+Flows · Change impact · Map · Docs · Model entries that collapses to a menu on a phone; tables
+that become cards on a narrow screen; diagrams that pan and zoom; an inline SVG icon set.
+
+@brief Tests for the wiki theme, charts, summary, burndown, sequence diagram and UI shell.
+@version 2
 """
 
 from __future__ import annotations
@@ -185,6 +191,7 @@ def site(repo: tuple[Path, Path], tmp_path_factory: pytest.TempPathFactory) -> d
     html = build_wiki(repo[0], repo[1], tmp_path_factory.mktemp("out"))
     pages = {p.relative_to(html).as_posix(): p.read_text() for p in html.rglob("*.html")}
     pages.update({p.relative_to(html).as_posix(): p.read_text() for p in html.rglob("*.css")})
+    pages["_static/clew.js"] = (html / "_static" / "clew.js").read_text()
     pages["__fonts__"] = " ".join(sorted(p.name for p in (html / "_static").rglob("*.ttf")))
     pages["__licenses__"] = " ".join(sorted(p.name for p in (html / "_static").rglob("OFL*")))
     return pages
@@ -301,7 +308,8 @@ def test_the_top_bar_holds_sections_and_search(site: dict[str, str]) -> None:
     @brief Navigation and search placement.
     """
     index = site["index.html"]
-    nav = index[index.index('<nav class="nav">') : index.index("</nav>")]
+    # Locator loosened (round 3, P1b): the nav now carries an id for its menu button.
+    nav = index[index.index('<nav class="nav"') : index.index("</nav>")]
     for section in ("Docs", "Flows", "Requirements"):
         assert f">{section}<" in nav, section
     assert "load" not in nav and "Demo" not in nav
@@ -331,7 +339,9 @@ def test_the_sequence_diagram_is_uml_proper(site: dict[str, str]) -> None:
     """@brief W18: activation bars, a return arrow for the cross-lane call, a drawn loop frame,
     numbered steps, and lane heads at top and bottom."""
     page = _flow_page(site)
-    svg = page[page.index("<svg") : page.index("</svg>")]
+    # Locator narrowed (round 3, P1b): the top bar's menu icon is now the page's first <svg>.
+    start = page.index('<svg class="seq"')
+    svg = page[start : page.index("</svg>", start)]
     assert 'class="act"' in svg and 'class="ret"' in svg
     assert 'class="frame"' in svg and ">loop<" in svg
     assert re.findall(r'class="num"[^>]*>(\d+)<', svg) == ["1", "2"]
@@ -411,7 +421,9 @@ def test_an_empty_cell_reads_as_a_dash_and_an_empty_column_is_dropped() -> None:
 
     html = table(["a", "b", "c"], [["x", "", ""], ["", "y", ""]], numeric=("b",))
     assert re.findall(r"<th[^>]*>(\w)</th>", html) == ["a", "b"]
-    assert html.count('class="none"') == 2 and '<td class="n">y</td>' in html
+    # Fixture string loosened (round 3, P1b): a cell now also carries its column's `data-label`
+    # for the narrow-screen card layout; the property asserted — right-aligned numeric — is unchanged.
+    assert html.count('class="none"') == 2 and re.search(r'<td class="n"[^>]*>y</td>', html)
 
 
 def test_entry_points_become_flows_without_being_declared(site: dict[str, str]) -> None:
@@ -439,3 +451,109 @@ def test_a_flow_entry_is_selected_by_file(repo: tuple[Path, Path]) -> None:
 
     flow = derive_flow(repo[1], repo[0], "main", file="tools/other.py", depth=1)
     assert [s.callee for s in flow.steps] == ["other"]
+
+
+## The most bytes clew.js may carry: one script for every page, read before anything renders.
+_JS_BUDGET = 8192
+
+
+def test_one_modal_component_serves_every_page(site: dict[str, str]) -> None:
+    """ONE COMPONENT: every content page carries the same labelled `<dialog>` and the script that
+    drives it; the flow page's step dialog is that component, not a second one.
+
+    @brief P1b: the shared modal.
+    """
+    for name, text in site.items():
+        if name.endswith(".html") and name not in ("search.html", "genindex.html"):
+            assert '<dialog id="clew-modal"' in text, name
+            assert 'aria-labelledby="clew-modal-title"' in text, name
+            assert "_static/clew.js" in text, name
+    page = _flow_page(site)
+    assert "dialog.flow-step" not in page and '<dialog class="flow-step"' not in page
+    assert page.count("<dialog") == 1
+
+
+def test_a_modal_trigger_carries_its_content_inert_and_escaped() -> None:
+    """REPOSITORY TEXT NEVER BECOMES MARKUP: a trigger names a `<template>` whose content was
+    escaped by Python; the script clones it, it does not parse strings.
+
+    @brief P1b: modal triggers and templates.
+    """
+    from clew.wiki.modal import modal
+
+    html = modal("req-R-1", "R-1", "R-1 <b>", "<p>body</p>")
+    assert 'data-modal="req-R-1"' in html and '<template id="modal-req-R-1"' in html
+    assert 'data-title="R-1 &lt;b&gt;"' in html and "<p>body</p>" in html
+    with pytest.raises(ValueError):
+        modal("bad key", "x", "x", "")
+
+
+def test_the_script_is_budgeted_and_no_theme_asset_is_remote() -> None:
+    """SELF-CONTAINED: no theme stylesheet, layout or script names an http(s) URL, and the one
+    script stays under its byte budget. Deep links and the back button are the script's job:
+    it reads the `#m=` hash and closes on `popstate`.
+
+    @brief P1b: clew.js budget, nothing remote.
+    """
+    from clew.wiki.theme import THEMES
+
+    js = THEMES / "clew" / "static" / "clew.js"
+    assert js.stat().st_size <= _JS_BUDGET
+    for path in THEMES.rglob("*"):
+        if path.suffix in (".css", ".js", ".html"):
+            text = path.read_text(encoding="utf-8")
+            assert "http://" not in text and "https://" not in text, path
+    source = js.read_text(encoding="utf-8")
+    assert "#m=" in source and "popstate" in source
+
+
+def test_the_top_bar_is_ordered_and_collapses_to_a_menu(site: dict[str, str]) -> None:
+    """OWNER 2026-11-15: requirements front and centre. The sections run Requirements · Flows ·
+    (Change impact · Map) · Docs · Model entries; on a phone a labelled button opens them.
+
+    @brief P1b: section order and the mobile menu.
+    """
+    index = site["index.html"]
+    nav = index[index.index('<nav class="nav"') : index.index("</nav>")]
+    positions = [nav.index(f">{s}<") for s in ("Requirements", "Flows", "Docs")]
+    assert positions == sorted(positions)
+    assert 'class="menu-toggle"' in index and 'aria-controls="clew-nav"' in index
+    assert 'aria-expanded="false"' in index and 'id="clew-nav"' in nav
+
+
+def test_tables_become_cards_and_diagrams_pan_on_a_narrow_screen(site: dict[str, str]) -> None:
+    """@brief P1b: responsive tables (a cell names its column) and pan/zoom diagram wrappers."""
+    from clew.wiki.htmltable import table
+
+    html = table(["Name", "Count"], [["a", "1"]], numeric=("Count",))
+    assert 'data-label="Name"' in html and 'data-label="Count"' in html
+    css = site["_static/clew.css"]
+    assert "@media(max-width:760px)" in css and "attr(data-label)" in css
+    assert "data-pz" in _flow_page(site)
+
+
+def test_section_cards_carry_an_icon() -> None:
+    """@brief P1b: the inline icon set — currentColor, hidden from assistive tech; unknown names
+    refuse."""
+    from clew.wiki.icons import icon
+
+    svg = icon("requirements")
+    assert svg.startswith("<svg") and 'aria-hidden="true"' in svg and "currentColor" in svg
+    with pytest.raises(KeyError):
+        icon("nope")
+
+
+def test_a_step_brief_is_plain_text_and_the_home_card_counts_every_flow(
+    site: dict[str, str],
+) -> None:
+    """FOUND ON THE ROUND-3 SCREENSHOTS: the step modal printed doxygen's `<para>…</para>` around
+    the brief, and the Flows card counted only declared flows ("2" on a site with 30).
+
+    @brief Brief markup and the flow count.
+    """
+    blob = re.search(r'<script type="application/json"[^>]*>(.*?)</script>', _flow_page(site), re.S)
+    steps = json.loads(blob.group(1))
+    assert any(s["brief"] for s in steps)
+    assert all("<" not in s["brief"] and "para>" not in s["brief"] for s in steps)
+    count = sum(1 for n in site if n.startswith("flow-") and n.endswith(".html"))
+    assert f"{count} sequence diagrams" in site["index.html"]

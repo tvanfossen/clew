@@ -620,6 +620,22 @@ requirements:
     x-priority: P1
     x-status: implemented
     x-evidence: clew/wiki/graph.py; tests/test_wiki_graph.py.
+  REQ-DDB-WIKI-020:
+    subsystem: wiki
+    name: One UI shell — a shared modal, a phone layout, pan and zoom, icons, nothing remote
+    acceptance_criteria: >-
+      Every content page carries one labelled `<dialog id="clew-modal">` driven by one script,
+      `clew.js`, under a byte budget a test enforces; no theme stylesheet, layout or script names
+      an http(s) URL. A trigger opens an inert `<template>` of escaped content by key, the key is
+      the deep link (`#m=KEY`, refused when the hash reader would not accept it), the back button
+      closes the modal and Esc closes it natively; the flow-step dialog is this component, not a
+      second one. The top bar runs Requirements · Flows · Docs · Model entries and folds behind a
+      labelled menu button on a phone; table cells name their column so tables become cards
+      below 760px; diagrams carry a viewBox and pan and zoom; icons are inline, `currentColor`
+      and `aria-hidden`, and an unknown icon name refuses.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/modal.py, icons.py, htmltable.py, flowpage.py, build.py, svg.py; clew/wiki/themes/clew/; tests/test_wiki_site.py.
   REQ-DDB-SCHEMA-013:
     subsystem: schema
     name: Kconfig structure tables, created independently of the gating table
