@@ -65,7 +65,8 @@ _CELL = str.maketrans({"|": "\\|", "\n": " "})
 ## v13: symbol pages (P1f); source permalinks dropped when the commit is known unpublished.
 ## v14: test sections and Gherkin feature pages (P2a).
 ## v15: directly linked tests drawn as flows (P2b).
-## @version 15
+## v16: open issues fetched and linked when `wiki.issues.fetch` (P3a).
+## @version 16
 ## @req REQ-DDB-WIKI-003
 def build_wiki(
     repo_root: Path,
@@ -80,7 +81,7 @@ def build_wiki(
 
     @brief Write and render the site.
     @return The HTML directory.
-    @version 14
+    @version 15
     """
     from .flowpage import flow_page, flows_index
     from .impactpage import impact_page
@@ -138,8 +139,10 @@ def build_wiki(
     for (name, _rel), href in sorted(written.items()):
         if name in facts:
             trace.test_href.setdefault(name, href)
-    graph = build_graph(db, trace.evidence, trace.impact, config.components, exclude_tests=True)
     issues = resolve_target(config.issues, config.issues_enabled, repo_root)
+    trace.issues, trace.unlinked, trace.issues_note = _fetch_issues(config, issues, trace.evidence)
+    graph = build_graph(db, trace.evidence, trace.impact, config.components, exclude_tests=True)
+    _issues_into(graph, trace.issues)
     sections = [
         requirements_page(trace, config, source, rules, burndown, tuple(pages), issues),
         flows_index(source, pages, undrawn),
@@ -198,6 +201,49 @@ def _lit(pages: list, graph: dict, config: WikiConfig) -> dict[str, list[str]]:
     return {
         p.name: sorted({component_of(f, config.components) for f in p.files} & known) for p in pages
     }
+
+
+## @brief Open issues linked to requirements, when the section asks for them.
+## @param config The section.
+## @param target The tracker, or None.
+## @param evidence Requirement evidence rows.
+## @return ({requirement: issues} or None when not fetched, unlinked issues, a note).
+## @version 1
+## @dg_internal
+def _fetch_issues(config: WikiConfig, target: Any, evidence: list) -> tuple[Any, list, str]:
+    """THE BUILD'S ONLY NETWORK USE, and only when `wiki.issues.fetch` is true. A failure is SAID
+    on the page — never a crash, and never an empty list that would read "no open issues".
+
+    @brief Fetch and link issues.
+    @return Linked, unlinked, note.
+    """
+    from . import issues as tracker
+
+    if not config.issues_fetch:
+        return None, [], ""
+    if target is None:
+        return None, [], "Issues were not fetched: no tracker is declared or found on `origin`."
+    try:
+        found = tracker.provider_for(target).list_open()
+    except (OSError, ValueError, KeyError) as exc:
+        return None, [], f"Issues were not fetched from {target[0]} `{target[1]}`: {exc}"
+    linked, unlinked = tracker.link_issues(found, [r.req_id for r in evidence])
+    return linked, unlinked, ""
+
+
+## @brief Each component's count of open issues linked to the requirements it implements.
+## @param graph The graph (components gain `issues`).
+## @param linked {requirement: issues}, or None when not fetched (no count at all).
+## @return None.
+## @version 1
+## @dg_internal
+def _issues_into(graph: dict, linked: Any) -> None:
+    """@brief Count per component. @return None."""
+    if linked is None:
+        return
+    for comp in graph["components"]:
+        ids = {i.id for r, _tier in comp.get("req_ids") or [] for i in linked.get(r, [])}
+        comp["issues"] = len(ids)
 
 
 ## @brief Directly linked tests (by tag or measured coverage) as flows, at most `cap`.

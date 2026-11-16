@@ -34,7 +34,7 @@ from typing import Any
 from .catalogs import declared_catalog
 from .config import Audience, WikiConfig
 from .htmltable import code, linked, source_url, table, tag, text
-from .reqmodal import first, requirement_cell, test_link, via
+from .reqmodal import first, issue_links, requirement_cell, test_link, via
 
 ## Where clew-guard writes its impact report, under its `output_dir`.
 _IMPACT = Path("impact") / "impact.json"
@@ -50,7 +50,8 @@ class Trace:
     ## @param config The section (rules, link template).
     ## v2: `symbols` (P1f).
     ## v3: `test_href` (P2a).
-    ## @version 3
+    ## v4: `issues`, `unlinked`, `issues_note` (P3a).
+    ## @version 4
     ## @dg_internal
     def __init__(self, parts: dict[str, Any], config: WikiConfig) -> None:
         """@brief Store. @return None."""
@@ -69,6 +70,12 @@ class Trace:
         self.symbols: set[tuple[str, str]] = set()
         ## {test name: its section} (round 3, P2a).
         self.test_href: dict[str, str] = {}
+        ## Open issues by requirement; None when not fetched (round 3, P3a).
+        self.issues: dict[str, list] | None = None
+        ## Open issues linked to no requirement.
+        self.unlinked: list = []
+        ## Why issues were not fetched, when they were asked for and could not be.
+        self.issues_note: str = ""
 
     ## @brief Gather the trace for a repository.
     ## @param repo_root The repository.
@@ -196,7 +203,8 @@ def load_impact(path: Path) -> list[dict] | None:
 ## v2: requirements front and centre (round 3, P1d) — group cards that filter the list first,
 ## each requirement opening its whole trace in the shared modal, the group table kept below.
 ## v3: change impact moved to its own section (`impactpage`, P1g).
-## @version 3
+## v4: open issues (P3a).
+## @version 4
 ## @req REQ-DDB-WIKI-012
 def requirements_page(
     trace: Trace,
@@ -242,6 +250,7 @@ def requirements_page(
     if burndown:
         lines += ["## Burndown", "", *_raw(f'<div class="chart-card">{burndown}</div>')]
     lines += ["## Group counts", "", *_raw(group_table(ev, config.inputs.min_layers))]
+    lines += _issues_section(trace)
     lines += _rules_section(trace, rules)
     lines += _catalogs_section(trace, rules)
     (source / "requirements.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
@@ -285,7 +294,8 @@ def _link_kinds(ev: list) -> str:
 ## v2: the id opens the requirement's modal; rows carry their group for the cards' filter;
 ## a long test list is its counts (the modal lists it).
 ## v3: short test lists link to the tests' sections (P2a).
-## @version 3
+## v4: an issues column (P3a).
+## @version 4
 ## @dg_internal
 def _requirement_table(trace: Trace, ctx: dict[str, Any]) -> str:
     """@brief Render rows. @return HTML."""
@@ -308,12 +318,13 @@ def _requirement_table(trace: Trace, ctx: dict[str, Any]) -> str:
                 text(str(first(entry, "x-priority", "priority"))),
                 "<br>".join(code(n) for n in trace.nodes_for(row.req_id)),
                 "<br>".join(f"{code(m)} → {code(t)} {text(o)}" for m, t, o in row.mutations or ()),
+                issue_links((trace.issues or {}).get(row.req_id, [])),
             ]
         )
     head = ["requirement", "tier", "implemented by", "tests", "layers", "declared", "priority"]
     groups = [f' data-group="{text(group_of(r.req_id))}"' for r in trace.evidence]
     return table(
-        [*head, "model entries", "mutations"],
+        [*head, "model entries", "mutations", "issues"],
         rows,
         cls="trace",
         keep=tuple(head[:4]),
@@ -368,6 +379,25 @@ def _test_summary(tests: tuple) -> str:
     for _t, status in tests:
         counts[status] = counts.get(status, 0) + 1
     return f"{len(tests)} tests: " + " · ".join(f"{n} {k}" for k, n in sorted(counts.items()))
+
+
+## @brief Open issues: a note when they were asked for and not fetched; those linked to no
+## requirement, when they were fetched.
+## @param trace The gathered trace.
+## @return Markdown lines ([] when issues were not asked for).
+## @version 1
+## @dg_internal
+def _issues_section(trace: Trace) -> list[str]:
+    """@brief Issues section. @return Lines."""
+    if trace.issues_note:
+        return ["## Open issues", "", f'<p class="not-measured">{text(trace.issues_note)}</p>', ""]
+    if trace.issues is None:
+        return []
+    linked = len({i.id for found in trace.issues.values() for i in found})
+    lines = ["## Open issues", "", f"{linked} open issues link a requirement.", ""]
+    if trace.unlinked:
+        lines += ["### Not linked to a requirement", "", *_raw(issue_links(trace.unlinked, True))]
+    return lines
 
 
 ## @brief The rule → requirement → function → test chain.

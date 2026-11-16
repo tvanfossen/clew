@@ -72,6 +72,7 @@ is silently ignored produces a site that looks complete and omits what the key a
       components:                     # round 3: the map's boxes; default = packages by path
         Query layer: [clew/query/*]
       issues: {github: owner/repo}    # or {ado: org/project}, or false; default = origin remote
+                                      # add `fetch: true` to read open issues at build time
 
 @brief Read and validate the `wiki:` section.
 @version 2
@@ -265,7 +266,8 @@ class RuleSpec:
 ## v8: issues (the tracker prefilled issue links open).
 ## v9: tooling (paths whose entry points group under Tooling).
 ## v10: test_flows (how many directly linked tests are drawn as flows).
-## @version 10
+## v11: issues_fetch.
+## @version 11
 @dataclass(frozen=True)
 class WikiConfig:
     """@brief The whole `wiki:` section. @version 4"""
@@ -292,6 +294,8 @@ class WikiConfig:
     issues: tuple[str, str] | None = None
     ## False when `issues: false` — no issue links at all.
     issues_enabled: bool = True
+    ## True when `issues.fetch` asks the build to read open issues (the build's only network use).
+    issues_fetch: bool = False
     ## Path globs whose entry points are tooling flows.
     tooling: tuple[str, ...] = DEFAULT_TOOLING
     ## The most directly linked tests drawn as flows.
@@ -311,7 +315,8 @@ class WikiConfig:
 ## v8: issues.
 ## v9: tooling.
 ## v10: test_flows.
-## @version 10
+## v11: issues.fetch.
+## @version 11
 ## @req REQ-DDB-WIKI-003
 def load_wiki_config(
     repo_root: Path, config_path: Path | None = None
@@ -321,7 +326,7 @@ def load_wiki_config(
 
     @brief Load the section.
     @return Config and problems.
-    @version 10
+    @version 11
     """
     raw, problems = _read_section(Path(config_path or Path(repo_root) / ".clew.yaml"))
     if problems:
@@ -353,6 +358,7 @@ def load_wiki_config(
         components=_components(raw.get("components") or {}, problems),
         issues=_issues(raw.get("issues"), problems),
         issues_enabled=raw.get("issues") is not False,
+        issues_fetch=isinstance(raw.get("issues"), dict) and bool(raw["issues"].get("fetch")),
         tooling=tuple(str(g) for g in raw.get("tooling", DEFAULT_TOOLING) or ()),
         test_flows=int(raw.get("test_flows", 50) or 0),
     )
@@ -659,16 +665,28 @@ def _theme(raw: Any, problems: list[str]) -> ThemeSpec:
 ## @param raw The `issues` value: {github: owner/repo}, {ado: org/project}, false, or absent.
 ## @param problems Appended to.
 ## @return (provider, project), or None when not declared.
-## @version 1
+## v2: `fetch` beside or instead of a tracker (P3a).
+## @version 2
 ## @dg_internal
 def _issues(raw: Any, problems: list[str]) -> tuple[str, str] | None:
-    """@brief Parse the tracker. @return Target or None."""
+    """`fetch` MAY STAND ALONE (the tracker then comes from the origin remote) or beside one
+    tracker; two trackers, or an unknown key, is a problem.
+
+    @brief Parse the tracker.
+    @return Target or None.
+    """
     if raw is None or raw is False:
         return None
-    if not isinstance(raw, dict) or len(raw) != 1 or next(iter(raw)) not in ("github", "ado"):
-        problems.append("`wiki.issues` must be {github: owner/repo}, {ado: org/project} or false")
+    trackers = [k for k in raw if k in ("github", "ado")] if isinstance(raw, dict) else []
+    if not isinstance(raw, dict) or set(raw) - {"github", "ado", "fetch"} or len(trackers) > 1:
+        problems.append(
+            "`wiki.issues` must be {github: owner/repo} or {ado: org/project}, optionally with "
+            "`fetch: true`, or false"
+        )
         return None
-    provider, project = next(iter(raw.items()))
+    if not trackers:
+        return None
+    provider, project = trackers[0], raw[trackers[0]]
     if not isinstance(project, str) or project.count("/") != 1:
         problems.append(f"`wiki.issues.{provider}` must name `<owner-or-org>/<repo-or-project>`")
         return None

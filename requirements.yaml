@@ -754,6 +754,22 @@ requirements:
     x-priority: P1
     x-status: implemented
     x-evidence: clew/wiki/build.py, flowpage.py, config.py, symbols.py; tests/test_wiki_symbols.py.
+  REQ-DDB-WIKI-028:
+    subsystem: wiki
+    name: Open issues from GitHub or Azure DevOps link back to requirements three ways
+    acceptance_criteria: >-
+      `IssueProvider` (GitHub REST v3, Azure DevOps 7.0, stdlib only, token from the environment,
+      opener injectable) lists open issues — GitHub pages followed, pull requests excluded; Azure
+      DevOps through a WIQL query and batched field reads — and creates an issue carrying the
+      requirement id in its title, as a `req:<ID>` label or tag and as a `clew-req: <ID>` marker
+      line. `link_issues` ties an issue to every requirement whose id appears whole in its title
+      or body, whose `req:` label it carries, or whose marker line it holds. The build fetches
+      only when `wiki.issues.fetch` is true: a requirement's modal and row list its open issues,
+      the requirements page lists the issues linked to none, the map gains an issues lens; a
+      failed fetch leaves the site built and says issues were not fetched and why.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/issues.py, build.py, config.py, tracepages.py, reqmodal.py, mappage.py; tests/test_wiki_issues.py.
   REQ-DDB-SCHEMA-013:
     subsystem: schema
     name: Kconfig structure tables, created independently of the gating table

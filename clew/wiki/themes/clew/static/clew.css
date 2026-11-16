@@ -153,7 +153,7 @@ svg.map .link{fill:none;stroke:var(--faint);opacity:.55}svg.map marker path{fill
 svg.map .lens,svg.map .cloud{display:none}
 svg.map rect[class^="c-"]{fill:var(--c)}svg.map .pt{fill:var(--inset)}svg.map .pt.req{fill:var(--c)}
 .map-block[data-lens-current="requirements"] .lens-requirements,.map-block[data-lens-current="tests"] .lens-tests,
-.map-block[data-lens-current="concurrency"] .lens-concurrency,.map-block[data-lens-current="change"] .lens-change{display:inline}
+.map-block[data-lens-current="concurrency"] .lens-concurrency,.map-block[data-lens-current="change"] .lens-change,.map-block[data-lens-current="issues"] .lens-issues{display:inline}
 .map-block[data-lens-current="tests"] g.comp.untested .box{fill:var(--errbg)}
 .map-block[data-lens-current="change"] g.comp:not([data-changed="0"]) .box{fill:var(--warnbg);stroke:var(--warn)}
 .map-block[data-lens-current="change"] .pt.chg{fill:var(--err)}

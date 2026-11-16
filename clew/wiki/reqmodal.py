@@ -63,7 +63,8 @@ def requirement_cell(row: Any, entry: dict, ctx: dict[str, Any]) -> str:
 ## @return HTML.
 ## v2: each implementer shows its file and line beside its symbol link (P1f).
 ## v3: tests link to their sections.
-## @version 3
+## v4: open issues (P3a).
+## @version 4
 ## @dg_internal
 def _body(row: Any, entry: dict, title: str, ctx: dict[str, Any]) -> str:
     """@brief Assemble sections. @return HTML."""
@@ -95,6 +96,7 @@ def _body(row: Any, entry: dict, title: str, ctx: dict[str, Any]) -> str:
         ),
         (_tests_heading(row.tests), _tests(row, trace.test_href), "ul"),
         ("Flows through it", _flows(row, ctx["flows"]), "ul"),
+        ("Open issues", issue_links((trace.issues or {}).get(row.req_id, []), True), ""),
         ("Model entries", _items(code(n) for n in trace.nodes_for(row.req_id)), "ul"),
         (
             "Mutations",
@@ -158,6 +160,24 @@ def _tests(row: Any, hrefs: dict[str, str]) -> str:
             f'<span class="none">and {len(row.tests) - _MAX_TESTS} more, not listed</span>'
         )
     return _items(items)
+
+
+## @brief Open issues as links: inline (`#12, #13`) or as a list with titles.
+## @param issues The issues.
+## @param titled A list with titles, rather than inline numbers.
+## @return HTML ("" for none).
+## @version 1
+## @req REQ-DDB-WIKI-028
+def issue_links(issues: list, titled: bool = False) -> str:
+    """@brief Issue links. @return HTML."""
+    if not issues:
+        return ""
+    if not titled:
+        return ", ".join(f'<a href="{text(i.url)}">#{text(i.id)}</a>' for i in issues)
+    items = "".join(
+        f'<li><a href="{text(i.url)}">#{text(i.id)}</a> {text(i.title)}</li>' for i in issues
+    )
+    return f'<ul class="modal-list">{items}</ul>'
 
 
 ## @brief A test's name, linked to its section when it has one.

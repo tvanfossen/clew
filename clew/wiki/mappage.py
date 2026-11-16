@@ -113,7 +113,8 @@ def map_page(
 ## @brief The level and lens buttons; a lens appears only when its source exists.
 ## @param comps The components.
 ## @return HTML.
-## @version 1
+## v2: the issues lens, when issues were fetched (P3a).
+## @version 2
 ## @dg_internal
 def _controls(comps: list[dict[str, Any]]) -> str:
     """THE LENS SET IS READ FROM THE DATA: `tested_calls` exists only when test code was split
@@ -129,6 +130,8 @@ def _controls(comps: list[dict[str, Any]]) -> str:
         lenses.append("concurrency")
     if any("changed" in c for c in comps):
         lenses.append("change")
+    if any("issues" in c for c in comps):
+        lenses.append("issues")
     lens = "".join(
         f'<button type="button" data-lens="{n}" aria-pressed="{str(i == 0).lower()}">{n}</button>'
         for i, n in enumerate(lenses)
@@ -200,7 +203,8 @@ def _req_bar(c: dict[str, Any]) -> str:
 ## @brief The tests, concurrency and change lenses' text lines.
 ## @param c The component.
 ## @return SVG.
-## @version 1
+## v2: the issues line.
+## @version 2
 ## @dg_internal
 def _lens_text(c: dict[str, Any]) -> str:
     """@brief Lens lines. @return SVG."""
@@ -212,6 +216,8 @@ def _lens_text(c: dict[str, Any]) -> str:
         out.append(("concurrency", "threads: " + ", ".join(c["threads"])))
     if "changed" in c:
         out.append(("change", f"{c['changed']} functions changed"))
+    if "issues" in c:
+        out.append(("issues", f"{c['issues']} open issues"))
     return "".join(
         f'<g class="lens lens-{lens}"><text class="sub" x="{x}" y="{y}">{escape(t)}</text></g>'
         for lens, t in out
