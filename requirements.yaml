@@ -947,6 +947,21 @@ requirements:
     x-priority: P1
     x-status: implemented
     x-evidence: .github/actions/wiki/action.yml; templates/azure-pipelines-wiki.yml; tests/test_hosting.py.
+  REQ-DDB-WIKI-040:
+    subsystem: wiki
+    name: The composite requirement tree across pinned dependencies
+    acceptance_criteria: 'This repository''s catalogue is the root; each `wiki.catalogs` dependency is
+      read at its pin, and transitively each dependency''s own `wiki.catalogs` and pinned
+      `impact.requirements.external` from its `.clew.yaml` at that pin. Ids are namespaced
+      `<catalog>:<id>`; a requirement''s `satisfies` links it under what it serves. A dependency''s
+      implementers and tests are read from its index ONLY when its checkout is at the pin, clean,
+      and its index current; otherwise the row is unknown with the reason and a link to the local
+      checkout, or absent with no index, and carries no evidence fields. Dangling links, a
+      repository pinned at two revisions, and requirements the root''s tree does not reach are
+      reported; a repository cycle terminates.'
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/composite.py compose / probe_index; tests/test_wiki_composite.py.
   REQ-DDB-SCHEMA-013:
     subsystem: schema
     name: Kconfig structure tables, created independently of the gating table
