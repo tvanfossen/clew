@@ -557,3 +557,13 @@ def test_a_step_brief_is_plain_text_and_the_home_card_counts_every_flow(
     assert all("<" not in s["brief"] and "para>" not in s["brief"] for s in steps)
     count = sum(1 for n in site if n.startswith("flow-") and n.endswith(".html"))
     assert f"{count} sequence diagrams" in site["index.html"]
+
+
+def test_the_map_is_a_section_between_flows_and_docs(site: dict[str, str]) -> None:
+    """@brief P1c: the system map page, in the top bar after Flows, with its lens controls."""
+    index = site["index.html"]
+    nav = index[index.index('<nav class="nav"') : index.index("</nav>")]
+    positions = [nav.index(f">{s}<") for s in ("Requirements", "Flows", "Map", "Docs")]
+    assert positions == sorted(positions)
+    page = site["map.html"]
+    assert 'class="comp' in page and 'data-lens="requirements"' in page

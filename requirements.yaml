@@ -636,6 +636,22 @@ requirements:
     x-priority: P1
     x-status: implemented
     x-evidence: clew/wiki/modal.py, icons.py, htmltable.py, flowpage.py, build.py, svg.py; clew/wiki/themes/clew/; tests/test_wiki_site.py.
+  REQ-DDB-WIKI-021:
+    subsystem: wiki
+    name: A system map at two zoom levels, re-tinted by lenses, cross-linked through the site
+    acceptance_criteria: >-
+      The Map section draws the graph's components as boxes (callers above callees; test code
+      left out of the layout and counted as each box's calls from tests) and their links as
+      arrows whose width grows with the calls; the Code level shows every function as a point
+      inside its box. Lens buttons — requirements, tests, and concurrency or change only when
+      threads or an impact report exist — re-tint the same drawing. Every box opens the shared
+      modal with its files, the requirements it implements (each linked to its requirements-page
+      row), the flows passing through it (each linked to its page) and its threads. Components
+      may be declared in `wiki.components` (name → path globs, order kept); a malformed entry is
+      a configuration problem.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/mappage.py, graph.py, flowpage.py, build.py, config.py, modal.py; clew/wiki/themes/clew/; tests/test_wiki_map.py, tests/test_wiki_site.py.
   REQ-DDB-SCHEMA-013:
     subsystem: schema
     name: Kconfig structure tables, created independently of the gating table

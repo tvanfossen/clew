@@ -54,7 +54,8 @@ _CELL = str.maketrans({"|": "\\|", "\n": " "})
 ## v5: entry-point flows beside the declared ones.
 ## v6: sections ordered Requirements · Flows · Docs · Model entries — requirements front and
 ## centre (round 3, P1b; Change impact and Map slot in after Flows when they land).
-## @version 6
+## v7: the system map (round 3, P1c) after Flows.
+## @version 7
 ## @req REQ-DDB-WIKI-003
 def build_wiki(
     repo_root: Path,
@@ -69,9 +70,11 @@ def build_wiki(
 
     @brief Write and render the site.
     @return The HTML directory.
-    @version 5
+    @version 6
     """
     from .flowpage import flow_page
+    from .graph import build_graph
+    from .mappage import map_page
     from .tracepages import Trace, nodes_page, requirements_page
     from .versions import record_version, valid_key
 
@@ -90,13 +93,16 @@ def build_wiki(
     snapshot = trace.snapshot(version or "")
     milestones = _milestones(repo_root, config)
     burndown = _burndown(out_dir, version, snapshot, milestones) if version else ""
-    flows = [
+    pages = [
         flow_page(repo_root, db, spec, source, rules, config, commit)
         for spec in _all_flows(repo_root, db, config)
     ]
+    flows = [p.name for p in pages]
+    graph = build_graph(db, trace.evidence, trace.impact, config.components, exclude_tests=True)
     sections = [
         requirements_page(trace, config, source, rules, burndown),
         _section(source, "flows", "Flows", flows, _FLOWS_LEAD),
+        map_page(graph, {p.name: (p.title, set(p.files)) for p in pages}, source),
         _section(source, "docs", "Docs", _prose(repo_root, config, source), _DOCS_LEAD),
     ]
     if config.sources:
@@ -266,7 +272,8 @@ def _section(source: Path, name: str, title: str, children: list[str], lead: str
 ## v2: section cards; the top bar names sections, not every page (owner 2026-11-15).
 ## v3: each card carries its section's icon (round 3, P1b); the flows card counts every flow page,
 ## not only the declared ones (it read "2" on a site with 30).
-## @version 3
+## v4: the map card (round 3, P1c).
+## @version 4
 ## @dg_internal
 def _write_index(
     source: Path, config: WikiConfig, trace: object, sections: list[str], flow_count: int
@@ -287,6 +294,7 @@ def _write_index(
             "passing.",
         ),
         "nodes": ("Model entries", "Entries of declared model files and the code realising them."),
+        "map": ("Map", "The system's components, how they call each other, and what each holds."),
     }
     cards = "".join(
         f'<a class="card-link" href="{name}.html"><h3>{icon(name, 22)}'

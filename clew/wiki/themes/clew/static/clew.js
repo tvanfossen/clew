@@ -6,6 +6,8 @@
  * so the state is a link and the BACK BUTTON closes it; Esc closes natively; focus returns to
  * the opener. showModal() makes the rest of the page inert, which is the focus trap.
  * MENU: below 860px the top bar's sections fold behind a labelled button.
+ * MAP: `[data-lens]` / `[data-level-set]` buttons set the block's lens and zoom level; CSS does
+ * the rest. A `role=button` trigger (an SVG box) opens on Enter or Space.
  * PAN / ZOOM: a `[data-pz]` wrapper's SVG zooms on ctrl+wheel and the +/-/reset buttons, and pans
  * by dragging, through its viewBox.
  */
@@ -68,6 +70,23 @@
   document.addEventListener('DOMContentLoaded', function () {
     var key = keyFromHash();
     if (key) show(key, false);
+  });
+
+  document.addEventListener('keydown', function (e) {
+    var t = e.target;
+    if ((e.key === 'Enter' || e.key === ' ') && t.getAttribute && t.getAttribute('role') === 'button' && t.hasAttribute('data-modal')) {
+      e.preventDefault(); opener = t; show(t.getAttribute('data-modal'), true);
+    }
+  });
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest && e.target.closest('[data-lens],[data-level-set]');
+    var block = b && b.closest('.map-block');
+    if (!block) return;
+    var attr = b.hasAttribute('data-lens') ? 'data-lens' : 'data-level-set';
+    block.setAttribute(attr === 'data-lens' ? 'data-lens-current' : 'data-level', b.getAttribute(attr));
+    Array.prototype.forEach.call(block.querySelectorAll('[' + attr + ']'), function (o) {
+      o.setAttribute('aria-pressed', String(o === b));
+    });
   });
 
   var toggle = document.querySelector('.menu-toggle');

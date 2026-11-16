@@ -8,7 +8,7 @@ reaches the template, and the title travels as an escaped attribute, never as ma
 the deep link (`#m=KEY`), so it is restricted to characters a URL fragment carries unescaped.
 
 @brief Build modal triggers and their content templates.
-@version 1
+@version 2
 """
 
 from __future__ import annotations
@@ -27,19 +27,32 @@ _KEY = re.compile(r"^[\w.:-]+$")
 ## @param body The modal's content: HTML the caller built from escaped text.
 ## @param cls Extra classes for the trigger.
 ## @return HTML.
-## @version 1
+## v2: the template (and its key check) is `modal_template`, shared with SVG triggers.
+## @version 2
 ## @req REQ-DDB-WIKI-020
 def modal(key: str, label: str, title: str, body: str, cls: str = "") -> str:
-    """REFUSES a key the hash reader would not accept, rather than writing a trigger whose deep
+    """@brief Write a trigger + template. @return HTML."""
+    classes = f"modal-link {cls}".strip()
+    return (
+        f'<a class="{classes}" href="#m={key}" data-modal="{key}">{escape(label)}</a>'
+        + modal_template(key, title, body)
+    )
+
+
+## @brief The template alone, for a trigger drawn elsewhere (an SVG box carrying `data-modal`).
+## @param key The modal key.
+## @param title The modal's title (escaped here).
+## @param body The modal's content: HTML the caller built from escaped text.
+## @return HTML.
+## @version 1
+## @req REQ-DDB-WIKI-020
+def modal_template(key: str, title: str, body: str) -> str:
+    """REFUSES a key the hash reader would not accept, rather than writing a template whose deep
     link silently opens nothing.
 
-    @brief Write a trigger + template.
+    @brief Write a template.
     @return HTML.
     """
     if not _KEY.match(key):
         raise ValueError(f"modal key {key!r} must match {_KEY.pattern}")
-    classes = f"modal-link {cls}".strip()
-    return (
-        f'<a class="{classes}" href="#m={key}" data-modal="{key}">{escape(label)}</a>'
-        f'<template id="modal-{key}" data-title="{escape(title)}">{body}</template>'
-    )
+    return f'<template id="modal-{key}" data-title="{escape(title)}">{body}</template>'

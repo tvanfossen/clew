@@ -69,6 +69,8 @@ is silently ignored produces a site that looks complete and omits what the key a
         fonts: true                   # false: system fonts, no bundled font files
       roadmap: ROADMAP.md             # W17: headings naming a version are burndown milestones
       impact: docs/generated/impact/impact.json  # default: <guard.output_dir>/impact/impact.json
+      components:                     # round 3: the map's boxes; default = packages by path
+        Query layer: [clew/query/*]
 
 @brief Read and validate the `wiki:` section.
 @version 2
@@ -95,6 +97,7 @@ _TOP = {
     "roadmap",
     "impact",
     "entry_points",
+    "components",
 }
 _THEME = {"name", "palette", "css", "logo", "fonts"}
 ## The palette tokens of the default theme (the sassafras-class botanical palette).
@@ -248,7 +251,8 @@ class RuleSpec:
 ## v4: theme (W13) and roadmap (W17).
 ## v5: impact report path.
 ## v6: entry_points (auto-derived entry-point flows, their depth).
-## @version 6
+## v7: components (the map's declared groupings).
+## @version 7
 @dataclass(frozen=True)
 class WikiConfig:
     """@brief The whole `wiki:` section. @version 4"""
@@ -270,6 +274,7 @@ class WikiConfig:
     roadmap: str | None = None
     impact: str | None = None
     entry_points: int = 2
+    components: tuple[tuple[str, tuple[str, ...]], ...] = ()
 
 
 ## @brief Read and validate a repository's `wiki:` section.
@@ -281,7 +286,8 @@ class WikiConfig:
 ## v4: theme and roadmap.
 ## v5: impact.
 ## v6: entry_points.
-## @version 6
+## v7: components.
+## @version 7
 ## @req REQ-DDB-WIKI-003
 def load_wiki_config(
     repo_root: Path, config_path: Path | None = None
@@ -291,7 +297,7 @@ def load_wiki_config(
 
     @brief Load the section.
     @return Config and problems.
-    @version 6
+    @version 7
     """
     raw, problems = _read_section(Path(config_path or Path(repo_root) / ".clew.yaml"))
     if problems:
@@ -320,8 +326,29 @@ def load_wiki_config(
         roadmap=str(raw["roadmap"]) if raw.get("roadmap") else None,
         impact=str(raw["impact"]) if raw.get("impact") else None,
         entry_points=int(raw.get("entry_points", 2) or 0),
+        components=_components(raw.get("components") or {}, problems),
     )
     return config, problems
+
+
+## @brief The declared component groupings, in the order written.
+## @param raw The `components` mapping.
+## @param problems Appended to.
+## @return (name, globs) pairs.
+## @version 1
+## @dg_internal
+def _components(raw: Any, problems: list[str]) -> tuple[tuple[str, tuple[str, ...]], ...]:
+    """@brief Parse groupings. @return Pairs."""
+    if not isinstance(raw, dict):
+        problems.append("`wiki.components` must map a component name to a list of path globs")
+        return ()
+    out = []
+    for name, globs in raw.items():
+        if not isinstance(globs, list) or not all(isinstance(g, str) for g in globs):
+            problems.append(f"`wiki.components.{name}` must be a list of path globs")
+            continue
+        out.append((str(name), tuple(globs)))
+    return tuple(out)
 
 
 ## @brief The raw `wiki:` mapping of a config file.

@@ -16,7 +16,7 @@ call expression is source code, so it is redacted like a body (signatures stay �
 interface).
 
 @brief Render a flow page.
-@version 2
+@version 3
 """
 
 from __future__ import annotations
@@ -25,12 +25,23 @@ import json
 import re
 from html import escape
 from pathlib import Path
-from typing import Any
+from typing import Any, NamedTuple
 
 from .config import Audience, FlowSpec, WikiConfig
 from .flow import Flow, derive_flow
 from .htmltable import code, source_url, table
 from .svg import flow_svg
+
+
+## @brief A written flow page: its name, title and the files its steps pass through.
+## @version 1
+class FlowPage(NamedTuple):
+    """@brief A flow page. @version 1"""
+
+    name: str
+    title: str
+    files: frozenset[str]
+
 
 ## The most lines a call expression is read across.
 _CALL_LINES = 6
@@ -78,11 +89,12 @@ _STYLE = (
 ## @param rules The audience rules.
 ## @param config The section (link template).
 ## @param commit The commit the site describes.
-## @return The page name.
+## @return The page: its name, title and the files its steps pass through.
 ## v2: the step table through the shared table helper (empty columns dropped); `file` selects the
 ## entry and names the page.
 ## v3: passes the entry's file to the bodies.
-## @version 3
+## v4: returns a `FlowPage` — the map (round 3, P1c) links each component to the flows through it.
+## @version 4
 ## @req REQ-DDB-WIKI-014
 def flow_page(
     repo_root: Path,
@@ -92,12 +104,12 @@ def flow_page(
     rules: Audience,
     config: WikiConfig,
     commit: str,
-) -> str:
+) -> FlowPage:
     """THE STEP TABLE LINKS THE CALL SITE — the caller's file at the call's line (`site_file`),
     not the callee's file. The table drops a column no step fills.
 
     @brief Render one flow page.
-    @return Page name.
+    @return The page.
     """
     flow = derive_flow(
         db,
@@ -132,7 +144,8 @@ def flow_page(
     if not rules.exclude_bodies:
         lines += _bodies(db, repo_root, flow, spec.file)
     (source / f"{name}.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
-    return name
+    files = {s.file for s in flow.steps} | {s.site_file for s in flow.steps if s.site_file}
+    return FlowPage(name, spec.title or "Flow: " + spec.entry, frozenset(files))
 
 
 ## @brief A flow's page name: the entry, and its file when the flow selects one.

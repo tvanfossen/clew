@@ -21,7 +21,7 @@ LAYOUT IS COMPUTED HERE, deterministically (layered by call direction, ordered b
 tests and screenshots are reproducible and the page's script only toggles classes.
 
 @brief Build the wiki's system graph with its layout.
-@version 1
+@version 2
 """
 
 from __future__ import annotations
@@ -37,6 +37,8 @@ from ..query._common import connect, table_exists
 GRAPH_VERSION = 1
 ## Container layout geometry.
 _BOX_W, _BOX_H, _GAP_X, _GAP_Y = 200, 120, 60, 70
+## The band at the top of a box kept clear of points, for the component's name.
+_HEAD = 34
 
 
 ## @brief The component a file belongs to.
@@ -66,19 +68,32 @@ def component_of(rel: str, declared: tuple[tuple[str, tuple[str, ...]], ...] = (
 ## @param evidence Requirement evidence rows (implementer sites, tiers, tests).
 ## @param impact clew-guard impact entries, or None when there is no report.
 ## @param declared `wiki.components` groupings.
+## @param exclude_tests Leave test code out of the layout; count its calls as `tested_calls`.
 ## @return The graph as plain data.
-## @version 1
+## v2: `exclude_tests` (round 3, P1c: test code is a lens on the system, not boxes above it).
+## @version 2
 ## @req REQ-DDB-WIKI-019
 def build_graph(
-    db: Path, evidence: list, impact: list[dict] | None, declared: tuple = ()
+    db: Path,
+    evidence: list,
+    impact: list[dict] | None,
+    declared: tuple = (),
+    exclude_tests: bool = False,
 ) -> dict[str, Any]:
     """@brief Aggregate and lay out. @return Graph."""
     with connect(db) as conn:
         funcs = _functions(conn)
+        tested = _tested_calls(conn, funcs) if exclude_tests else None
+        if exclude_tests:
+            funcs = {r: f for r, f in funcs.items() if not f[2]}
         comp = {rowid: component_of(rel, declared) for rowid, (_n, rel, _t) in funcs.items()}
         links = _links(conn, comp)
         threads = _threads(conn, comp)
     components = _components(funcs, comp, evidence, impact, threads)
+    if tested is not None:
+        for rowid, cid in comp.items():
+            components[cid].setdefault("tested_calls", 0)
+            components[cid]["tested_calls"] += tested.get(rowid, 0)
     order = _layout(components, links)
     return {
         "graph_version": GRAPH_VERSION,
@@ -103,6 +118,30 @@ def _functions(conn: Any) -> dict[int, tuple[str, str, bool]]:
         "ON p.rowid = COALESCE(NULLIF(m.bodyfile_id, 0), m.file_id) WHERE m.kind = 'function'"
     )
     return {int(r): (str(n), str(rel), int(pr) in tests) for r, n, rel, pr in rows}
+
+
+## @brief Calls from test code into each non-test function.
+## @param conn Open connection.
+## @param funcs rowid → (name, file, in test code).
+## @return {callee rowid: distinct test callers}.
+## @version 1
+## @dg_internal
+def _tested_calls(conn: Any, funcs: dict[int, tuple[str, str, bool]]) -> dict[int, int]:
+    """A BINDING IS NOT A CALL and a fuzzy edge is a guess, as for links.
+
+    @brief Count test calls.
+    @return Counts.
+    """
+    out: dict[int, int] = defaultdict(int)
+    if table_exists(conn, "call_edges"):
+        for a, b in conn.execute(
+            "SELECT DISTINCT caller_rowid, callee_rowid FROM call_edges "
+            "WHERE source != 'binding' AND confidence != 'fuzzy'"
+        ):
+            caller, callee = funcs.get(int(a)), funcs.get(int(b))
+            if caller and callee and caller[2] and not callee[2]:
+                out[int(b)] += 1
+    return dict(out)
 
 
 ## @brief Calls and shared keys between components.
@@ -172,7 +211,8 @@ def _threads(conn: Any, comp: dict[int, str]) -> dict[str, set[str]]:
 ## @param impact Impact entries or None.
 ## @param threads Threads per component.
 ## @return {component: node}.
-## @version 1
+## v2: `paths` — the component's files, listed (the map's box modal names them).
+## @version 2
 ## @dg_internal
 def _components(funcs, comp, evidence, impact, threads) -> dict[str, dict[str, Any]]:
     """@brief Component nodes. @return Nodes."""
@@ -189,6 +229,7 @@ def _components(funcs, comp, evidence, impact, threads) -> dict[str, dict[str, A
     if impact is not None:
         _impact_into(nodes, file_comp, impact)
     for name, node in nodes.items():
+        node["paths"] = sorted(node["files"])
         node["files"] = len(node["files"])
         if threads.get(name):
             node["threads"] = sorted(threads[name])
@@ -200,7 +241,8 @@ def _components(funcs, comp, evidence, impact, threads) -> dict[str, dict[str, A
 ## @param file_comp file → component.
 ## @param evidence Requirement evidence.
 ## @return None.
-## @version 1
+## v2: `req_ids` — each requirement with its tier, for links from the map.
+## @version 2
 ## @dg_internal
 def _requirements_into(nodes: dict, file_comp: dict[str, str], evidence: list) -> None:
     """A REQUIREMENT COUNTS ONCE PER COMPONENT, however many of its implementers live there.
@@ -212,6 +254,7 @@ def _requirements_into(nodes: dict, file_comp: dict[str, str], evidence: list) -
         for cid in {file_comp.get(rel) for _n, rel, _l in row.implementer_sites} - {None}:
             tiers = nodes[cid].setdefault("requirements", {})
             tiers[row.tier] = tiers.get(row.tier, 0) + 1
+            nodes[cid].setdefault("req_ids", []).append([row.req_id, row.tier])
 
 
 ## @brief Functions changed by the last impact report, per component.
@@ -327,7 +370,8 @@ def _barycentre(c: str, down: dict[str, set[str]], pos: dict[str, float]) -> flo
 ## @param evidence Requirement evidence (tint by tier).
 ## @param impact Impact entries or None.
 ## @return Points.
-## @version 1
+## v2: points start below the name band, so the Code level keeps the box's name legible.
+## @version 2
 ## @dg_internal
 def _points(funcs, comp, components, evidence, impact) -> list[dict[str, Any]]:
     """A GRID PER BOX, by file then name, so neighbours in the cloud are neighbours in the source.
@@ -348,7 +392,8 @@ def _points(funcs, comp, components, evidence, impact) -> list[dict[str, Any]]:
     points = []
     for cid, rowids in by_comp.items():
         box = components[cid]
-        cols = max(1, int((len(rowids) * box["w"] / box["h"]) ** 0.5))
+        cols = max(1, int((len(rowids) * box["w"] / (box["h"] - _HEAD)) ** 0.5))
+        rows = max(1, -(-len(rowids) // cols))
         for i, rowid in enumerate(rowids):
             name, rel, _t = funcs[rowid]
             point = {
@@ -356,7 +401,7 @@ def _points(funcs, comp, components, evidence, impact) -> list[dict[str, Any]]:
                 "name": name,
                 "file": rel,
                 "x": box["x"] + 6 + (i % cols) * (box["w"] - 12) / cols,
-                "y": box["y"] + 6 + (i // cols) * (box["h"] - 12) / max(1, -(-len(rowids) // cols)),
+                "y": box["y"] + _HEAD + (i // cols) * (box["h"] - _HEAD - 6) / rows,
             }
             if (name, rel) in tier_of:
                 point["tier"] = tier_of[(name, rel)]

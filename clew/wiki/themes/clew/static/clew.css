@@ -103,6 +103,29 @@ a.modal-link{cursor:pointer}
 /* Icons. */
 svg.ico{vertical-align:-4px;flex:none}a.card-link h3{display:flex;align-items:center;gap:10px}
 .menu-toggle{display:none;align-items:center;justify-content:center;width:40px;height:40px;margin-left:auto;border-radius:10px;border:1px solid var(--rule);background:var(--paper);color:var(--ink);cursor:pointer}
+/* The system map (round 3, P1c): lenses and zoom levels are classes on .map-block. */
+.map-controls{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:8px 0 10px}
+.map-controls .ctl-label{font:600 11px var(--sans);text-transform:uppercase;letter-spacing:.05em;color:var(--faint);margin:0 4px 0 10px}
+.map-controls .ctl-label:first-child{margin-left:0}
+.map-controls button{height:32px;padding:0 12px;border-radius:999px;border:1px solid var(--rule);background:var(--paper);color:var(--ink);font:500 13px var(--sans);cursor:pointer;text-transform:capitalize}
+.map-controls button[aria-pressed="true"]{background:var(--accbg);color:var(--accink);border-color:var(--acc)}
+.map-wrap{overflow:auto;background:var(--surface);border:1px solid var(--rule2);border-radius:14px;padding:10px;max-height:78vh}
+svg.map text{font-family:var(--sans);fill:var(--ink)}svg.map text.name{font-weight:600;font-size:13px}svg.map text.sub{font-size:11px;fill:var(--ink2)}
+svg.map .box{fill:var(--paper);stroke:var(--rule);stroke-width:1.2}
+svg.map g.comp{cursor:pointer;outline:none}svg.map g.comp:hover .box,svg.map g.comp:focus .box{stroke:var(--acc);stroke-width:2.2}
+svg.map .link{fill:none;stroke:var(--faint);opacity:.55}svg.map marker path{fill:var(--faint)}
+svg.map .lens,svg.map .cloud{display:none}
+svg.map rect[class^="c-"]{fill:var(--c)}svg.map .pt{fill:var(--inset)}svg.map .pt.req{fill:var(--c)}
+.map-block[data-lens-current="requirements"] .lens-requirements,.map-block[data-lens-current="tests"] .lens-tests,
+.map-block[data-lens-current="concurrency"] .lens-concurrency,.map-block[data-lens-current="change"] .lens-change{display:inline}
+.map-block[data-lens-current="tests"] g.comp.untested .box{fill:var(--errbg)}
+.map-block[data-lens-current="change"] g.comp:not([data-changed="0"]) .box{fill:var(--warnbg);stroke:var(--warn)}
+.map-block[data-lens-current="change"] .pt.chg{fill:var(--err)}
+.map-block[data-lens-current="change"] .pt:not(.chg),.map-block[data-lens-current="tests"] .pt{fill:var(--inset)}
+.map-block[data-level="code"] .cloud{display:inline}.map-block[data-level="code"] .lens{display:none}
+.map-block[data-level="code"] svg.map text.sub{display:none}.map-block[data-level="code"] .link{opacity:.18}
+.modal-body h4{font:600 12px var(--sans);text-transform:uppercase;letter-spacing:.04em;color:var(--ink2);margin:14px 0 6px}
+.modal-body h4:first-child{margin-top:0}ul.modal-list{margin:0;padding-left:18px;font-size:14px}ul.modal-list li{margin:3px 0}
 /* Footer. */
 .foot{margin:0;padding:18px 32px 32px;font-size:13px;color:var(--faint);display:flex;gap:18px;flex-wrap:wrap}
 div.footer{display:none}
