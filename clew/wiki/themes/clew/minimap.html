@@ -1,0 +1,11 @@
+{#- The system's block diagram in every page's sidebar (round 3, P1c-2). The drawing is one string
+    for the whole site (`clew_minimap`); a page lights its own components with one CSS rule from
+    `clew_minimap_lit`, so the markup never varies. -#}
+{%- if clew_minimap %}
+<div class="minimap-block">
+  <h3>System</h3>
+  {%- set lit = clew_minimap_lit.get(pagename, []) %}
+  {%- if lit %}<style>{% for c in lit %}.minimap [data-comp="{{ c|e }}"]{% if not loop.last %},{% endif %}{% endfor %}{fill:var(--acc);stroke:var(--accink)}</style>{% endif %}
+  {{ clew_minimap.replace('@MAP@', pathto('map')) }}
+</div>
+{%- endif %}

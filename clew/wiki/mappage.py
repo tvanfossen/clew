@@ -348,3 +348,45 @@ def _title(title: str) -> str:
     """@brief Inline code spans become <code>. @return HTML."""
     parts = escape(title).split("`")
     return "".join(f"<code>{s}</code>" if i % 2 else s for i, s in enumerate(parts))
+
+
+## @brief The sidebar's block diagram: every component as a small box linked to its map modal.
+## @param graph The graph.
+## @param width The drawing's width in CSS pixels.
+## @return SVG, with `@MAP@` where the page-relative path to map.html goes; "" without components.
+## @version 1
+## @req REQ-DDB-WIKI-021
+def minimap_svg(graph: dict[str, Any], width: int = 220) -> str:
+    """ONE DRAWING FOR EVERY PAGE: the page lights its own components with a CSS rule on
+    `[data-comp]`, so the markup is the same everywhere and its size does not grow with the page.
+
+    @brief Draw the minimap.
+    @return SVG.
+    """
+    comps = graph["components"]
+    if not comps:
+        return ""
+    full_w = max(c["x"] + c["w"] for c in comps)
+    full_h = max(c["y"] + c["h"] for c in comps)
+    scale = width / full_w
+    by_id = {c["id"]: c for c in comps}
+    lines = []
+    for link in graph["links"]:
+        a, b = by_id.get(link["from"]), by_id.get(link["to"])
+        if a and b:
+            lines.append(
+                f'<line x1="{(a["x"] + a["w"] / 2) * scale:.1f}" y1="{(a["y"] + a["h"]) * scale:.1f}" '
+                f'x2="{(b["x"] + b["w"] / 2) * scale:.1f}" y2="{b["y"] * scale:.1f}"/>'
+            )
+    boxes = [
+        f'<a href="@MAP@#m=comp-{i}"><rect data-comp="{escape(c["id"])}" x="{c["x"] * scale:.1f}" '
+        f'y="{c["y"] * scale:.1f}" width="{c["w"] * scale:.1f}" height="{c["h"] * scale:.1f}" '
+        f'rx="3"><title>{escape(c["id"])}</title></rect></a>'
+        for i, c in enumerate(comps)
+    ]
+    height = full_h * scale
+    return (
+        f'<svg class="minimap" xmlns="http://www.w3.org/2000/svg" width="{width}" '
+        f'height="{height:.0f}" viewBox="0 0 {width} {height:.0f}" role="img" '
+        f'aria-label="System map">{"".join(lines)}{"".join(boxes)}</svg>'
+    )

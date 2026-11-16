@@ -648,7 +648,9 @@ requirements:
       modal with its files, the requirements it implements (each linked to its requirements-page
       row), the flows passing through it (each linked to its page) and its threads. Components
       may be declared in `wiki.components` (name → path globs, order kept); a malformed entry is
-      a configuration problem.
+      a configuration problem. Every page's sidebar carries the same minimap (one drawing for the
+      site); a flow page lights the components its steps pass through, and each minimap box
+      opens that component on the map.
     x-priority: P1
     x-status: implemented
     x-evidence: clew/wiki/mappage.py, graph.py, flowpage.py, build.py, config.py, modal.py; clew/wiki/themes/clew/; tests/test_wiki_map.py, tests/test_wiki_site.py.

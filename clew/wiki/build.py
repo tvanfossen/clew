@@ -55,7 +55,8 @@ _CELL = str.maketrans({"|": "\\|", "\n": " "})
 ## v6: sections ordered Requirements · Flows · Docs · Model entries — requirements front and
 ## centre (round 3, P1b; Change impact and Map slot in after Flows when they land).
 ## v7: the system map (round 3, P1c) after Flows.
-## @version 7
+## v8: the sidebar minimap, each flow page lighting the components it passes through.
+## @version 8
 ## @req REQ-DDB-WIKI-003
 def build_wiki(
     repo_root: Path,
@@ -70,11 +71,11 @@ def build_wiki(
 
     @brief Write and render the site.
     @return The HTML directory.
-    @version 6
+    @version 7
     """
     from .flowpage import flow_page
     from .graph import build_graph
-    from .mappage import map_page
+    from .mappage import map_page, minimap_svg
     from .tracepages import Trace, nodes_page, requirements_page
     from .versions import record_version, valid_key
 
@@ -108,10 +109,31 @@ def build_wiki(
     if config.sources:
         sections.append(nodes_page(trace, config, source))
     _write_index(source, config, trace, [s for s in sections if s], len(flows))
-    html = _render(source, site_dir / "html", config, repo_root)
+    context = {
+        "clew_minimap": minimap_svg(graph) if "map" in sections else "",
+        "clew_minimap_lit": _lit(pages, graph, config),
+    }
+    html = _render(source, site_dir / "html", config, repo_root, context)
     if version:
         record_version(out_dir, version, snapshot, config.title, milestones)
     return html
+
+
+## @brief The components each flow page lights on the minimap.
+## @param pages The flow pages.
+## @param graph The graph (only its components are lit).
+## @param config The section (declared groupings).
+## @return {page name: [component ids]}.
+## @version 1
+## @dg_internal
+def _lit(pages: list, graph: dict, config: WikiConfig) -> dict[str, list[str]]:
+    """@brief Lit components. @return Map."""
+    from .graph import component_of
+
+    known = {c["id"] for c in graph["components"]}
+    return {
+        p.name: sorted({component_of(f, config.components) for f in p.files} & known) for p in pages
+    }
 
 
 ## @brief The declared flows, then every entry point's flow not already declared.
@@ -367,11 +389,15 @@ def _commit(repo_root: Path) -> str:
 ## @param html The output directory.
 ## @param config The section (title, theme).
 ## @param repo_root The repository (theme files are relative to it).
+## @param context Template variables for every page (`html_context`).
 ## @return The output directory.
 ## v2: the configured theme (W13), clew's own by default.
-## @version 2
+## v3: `context` (the minimap, round 3 P1c-2).
+## @version 3
 ## @dg_internal
-def _render(source: Path, html: Path, config: WikiConfig, repo_root: Path) -> Path:
+def _render(
+    source: Path, html: Path, config: WikiConfig, repo_root: Path, context: dict | None = None
+) -> Path:
     """THE ONLY SPHINX IMPORT, so everything else runs without the extra.
 
     @brief Run sphinx-build.
@@ -390,6 +416,7 @@ def _render(source: Path, html: Path, config: WikiConfig, repo_root: Path) -> Pa
         "extensions": ["myst_parser"],
         "source_suffix": {".rst": "restructuredtext", ".md": "markdown"},
         "exclude_patterns": ["_build"],
+        "html_context": context or {},
         **sphinx_settings(config.theme, repo_root, source),
     }
     (source / "conf.py").write_text(

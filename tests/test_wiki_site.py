@@ -567,3 +567,19 @@ def test_the_map_is_a_section_between_flows_and_docs(site: dict[str, str]) -> No
     assert positions == sorted(positions)
     page = site["map.html"]
     assert 'class="comp' in page and 'data-lens="requirements"' in page
+
+
+def test_every_page_carries_the_minimap_with_its_components_lit(site: dict[str, str]) -> None:
+    """CROSS-TALK (owner 2026-11-15): the sidebar holds the system's block diagram on every page;
+    a flow page lights the components its steps pass through, and each box opens that
+    component on the map.
+
+    @brief P1c-2: the sidebar minimap.
+    """
+    for name in ("index.html", "requirements.html", "flow-load.html"):
+        assert '<svg class="minimap"' in site[name], name
+    flow = site["flow-load.html"]
+    lit = re.findall(r'\.minimap \[data-comp="([^"]+)"\]', flow)
+    assert lit == ["src"]
+    assert re.search(r'href="map\.html#m=comp-\d+"', flow)
+    assert not re.findall(r'\.minimap \[data-comp="([^"]+)"\]', site["requirements.html"])

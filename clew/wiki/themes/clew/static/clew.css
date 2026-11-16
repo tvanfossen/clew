@@ -126,6 +126,10 @@ svg.map rect[class^="c-"]{fill:var(--c)}svg.map .pt{fill:var(--inset)}svg.map .p
 .map-block[data-level="code"] svg.map text.sub{display:none}.map-block[data-level="code"] .link{opacity:.18}
 .modal-body h4{font:600 12px var(--sans);text-transform:uppercase;letter-spacing:.04em;color:var(--ink2);margin:14px 0 6px}
 .modal-body h4:first-child{margin-top:0}ul.modal-list{margin:0;padding-left:18px;font-size:14px}ul.modal-list li{margin:3px 0}
+/* The sidebar minimap (round 3, P1c-2); a page's own <style> lights its components. */
+.minimap-block{margin:0 0 20px}svg.minimap{display:block;max-width:100%;height:auto}
+svg.minimap rect{fill:var(--paper);stroke:var(--rule);stroke-width:1;cursor:pointer}
+svg.minimap a:hover rect{stroke:var(--acc);stroke-width:2}svg.minimap line{stroke:var(--faint);stroke-width:.8;opacity:.6}
 /* Footer. */
 .foot{margin:0;padding:18px 32px 32px;font-size:13px;color:var(--faint);display:flex;gap:18px;flex-wrap:wrap}
 div.footer{display:none}
