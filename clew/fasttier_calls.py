@@ -42,7 +42,8 @@ FOLD_SOURCES = (CALL_SOURCE_AST, CALL_SOURCE_AST_MEMBER, CALL_SOURCE_BINDING, CA
 ## @param files {repo-relative path: path rowid} of the edited files.
 ## @return The resolution maps it built, so later per-file layers reuse them.
 ## v2 (phase 6): returns the maps, so the blocking-call rewrite reuses `file_funcs`.
-## @version 2
+## v3: passes the file and the rowid → file map (module-alias resolution), as the full stage does.
+## @version 3
 ## @req REQ-DDB-INDEX-006
 def refresh_outbound_calls(
     conn: sqlite3.Connection, repo_root: Path, cache: IndexCache, files: dict[str, int]
@@ -52,11 +53,12 @@ def refresh_outbound_calls(
 
     @brief Re-fold and replace one or more files' outgoing AST edges.
     @return The resolution maps.
-    @version 2
+    @version 3
     """
     from . import call_edges as ce
 
     maps = _resolution_maps(conn)
+    file_of = ce._file_of(maps["file_funcs"], ce._rel_paths(conn))
     resolved: list = []
     fuzzy: list = []
     for rel, rowid in files.items():
@@ -80,6 +82,8 @@ def refresh_outbound_calls(
             class_scopes=maps["class_scopes"],
             implementors=maps["implementors"],
             one_function=maps["one_function"],
+            caller_file=rel,
+            file_of=file_of,
         )
     collapsed, fuzzy = ce._collapse_duplicate_targets(fuzzy, maps["identity_of"], maps["defined"])
     ce._ast_insert_edges(conn, resolved + collapsed, fuzzy)

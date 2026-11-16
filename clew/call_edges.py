@@ -1919,7 +1919,9 @@ class _CallSiteHarvester(Harvester):
     ## 11: JS/TS member sites carry whether the receiver is an imported module (8th element).
     ## 12: a bash script is no longer mistaken for JavaScript (`is_js_tree` v2), so its payload
     ## changes path; a payload cached at 11 would keep the JS reading.
-    stage_version = 12
+    ## 13: Python member sites carry the module their receiver is imported as (9th element),
+    ## and keyword bindings naming a local are dropped; a payload cached at 12 has neither.
+    stage_version = 13
     label = "tree-sitter"
 
     ## @brief Harvest one file's call sites.
@@ -1945,8 +1947,83 @@ def call_site_harvester() -> Harvester:
     return _CallSiteHarvester()
 
 
+## @brief The one candidate a call through an imported module names, or None.
+## @param module The dotted module the receiver is imported as ("" for none).
+## @param caller_file The calling file, repo-relative (a relative import starts there).
+## @param candidates Same-named candidate rowids.
+## @param file_of rowid → repo-relative file.
+## @return The rowid, or None when the module names no file or not exactly one candidate.
+## @version 1
+## @req REQ-DDB-PIPE-003
+def _via_module(
+    module: str, caller_file: str, candidates: list[int], file_of: dict[int, str] | None
+) -> int | None:
+    """THE IMPORT NAMES THE FILE, so this is resolution, not a guess: `from ..query import export
+    as _export` makes `_export.f()` a call of `f` in `<pkg>/query/export.py` — not of a namesake
+    elsewhere. A path no candidate's file bears (an alias of a FUNCTION, not a module) resolves
+    nothing and the site falls through to the ordinary member rules.
+
+    @brief Resolve through a module.
+    @return Rowid or None.
+    """
+    if not module or not file_of:
+        return None
+    paths = _module_paths(module, caller_file)
+    hits = [c for c in candidates if any(_names_module(file_of.get(c, ""), p) for p in paths)]
+    return hits[0] if len(hits) == 1 else None
+
+
+## @brief The file stems a dotted module may live at.
+## @param module `..query.export` (relative) or `pkg.query.export` (absolute).
+## @param caller_file The calling file, repo-relative.
+## @return Candidate stems without suffix (`pkg/query/export`).
+## @version 1
+## @dg_internal
+def _module_paths(module: str, caller_file: str) -> list[str]:
+    """A RELATIVE module climbs from the caller's package (one dot = its own package); an absolute
+    one is matched as a path suffix, so a `src/` layout or a nested package root still finds it.
+
+    @brief Module stems.
+    @return Stems.
+    """
+    dots = len(module) - len(module.lstrip("."))
+    rest = module[dots:].replace(".", "/")
+    if not dots:
+        return [rest]
+    base = caller_file.split("/")[:-1]
+    base = base[: len(base) - (dots - 1)] if dots - 1 <= len(base) else []
+    return ["/".join([*base, rest]) if rest else "/".join(base)]
+
+
+## @brief Whether a file is the module a stem names.
+## @param rel A repo-relative file.
+## @param stem A module stem (`pkg/query/export`).
+## @return True for `<stem>.py` / `<stem>/__init__.py`, at the root or as a path suffix.
+## @version 1
+## @dg_internal
+def _names_module(rel: str, stem: str) -> bool:
+    """@brief Match. @return Bool."""
+    for form in (f"{stem}.py", f"{stem}/__init__.py"):
+        if rel == form or rel.endswith("/" + form):
+            return True
+    return False
+
+
+## @brief rowid → repo-relative file of every function the fold can land on.
+## @param file_funcs path rowid → functions in it.
+## @param rel_of path rowid → repo-relative path.
+## @return The map.
+## @version 1
+## @dg_internal
+def _file_of(file_funcs: dict, rel_of: dict) -> dict[int, str]:
+    """@brief Invert. @return Map."""
+    return {int(f[0]): rel_of.get(p, "") for p, funcs in file_funcs.items() for f in funcs}
+
+
 ## @brief Resolve one file's harvested call sites into call_edges rows.
-## @version 5
+## v6: a Python member call through an imported module resolves to that module's function
+## (`caller_file`, `file_of`).
+## @version 6
 ## @dg_internal
 def _fold_call_payload(
     payload: list[list[Any]],
@@ -1963,6 +2040,8 @@ def _fold_call_payload(
     class_scopes: frozenset[str] | None = None,
     implementors: dict[str, set[str]] | None = None,
     one_function: dict[tuple[int, ...], int] | None = None,
+    caller_file: str = "",
+    file_of: dict[int, str] | None = None,
 ) -> None:
     """Map each harvested call line back to its enclosing function's rowid and
     the callee name to candidate rowids — the rowid-dependent half of Layer 3,
@@ -1973,7 +2052,7 @@ def _fold_call_payload(
     of raising. The stage_version bump makes that path cold in practice.
 
     @brief Fold a cached call-site payload into call edges.
-    @version 5
+    @version 6
     """
     for site in payload:
         callee_name, call_line = site[0], site[1]
@@ -1986,9 +2065,15 @@ def _fold_call_payload(
         ## Seventh added for gh#15; absent in a payload cached before stage_version 6.
         construction = bool(site[6]) if len(site) > 6 else False
         ## Eighth added in 1.3.0 for JS/TS: the receiver is a module the file imports.
-        via_import = bool(site[7]) if len(site) > 7 else None
+        via_import = bool(site[7]) if len(site) > 7 and site[7] is not None else None
+        ## Ninth added in round 3 for Python: the module the receiver is imported as.
+        module = str(site[8]) if len(site) > 8 and site[8] else ""
         caller_rowid = _ast_caller_at_line(funcs_in_file, call_line)
         if caller_rowid is None:
+            continue
+        target = _via_module(module, caller_file, name_to_rowids.get(callee_name, []), file_of)
+        if target is not None:
+            edges_resolved.append((caller_rowid, target, source))
             continue
         _ast_record_call_edge(
             caller_rowid,
@@ -2357,7 +2442,8 @@ _FOLD_STAGE = "ast_fold"
 ## 3: bare calls resolve lexically first (`_lexical`).
 ## 4: JS/TS member calls reach free functions only through what holds them (`_member_reachable`).
 ## 5: an interface-typed receiver reaches its implementation family (`_interface_family`).
-_FOLD_STAGE_VERSION = 5
+## 6: a Python call through an imported module resolves to that module's function (`_via_module`).
+_FOLD_STAGE_VERSION = 6
 
 
 ## @brief Digest of every INDEX-WIDE input the fold reads, so a change to any invalidates all.
@@ -2480,7 +2566,9 @@ def _extend_from_cache(
 ## @param context (conn, repo_root, cache) — where the paths and the cache come from.
 ## @return (resolved edges, fuzzy edges, unresolved inbound rows).
 ## Version 5: merges PR #59 — `one_function` (a bare call naming one decl/def pair).
-## @version 5
+## Version 6: passes each file's path and the rowid → file map (module-alias resolution); both
+## are folded into the cache key.
+## @version 6
 ## @dg_internal
 def _fold_all_files(harvested: list, maps: dict, context: tuple) -> tuple[list, list, list]:
     """gh#34. THE 59%. Measured on a 6.8 GB repository refreshing after one touched file: the
@@ -2524,6 +2612,8 @@ def _fold_all_files(harvested: list, maps: dict, context: tuple) -> tuple[list, 
         maps.get("one_function"),
     )
     rel_of = _rel_paths(conn)
+    file_of = _file_of(maps["file_funcs"], rel_of)
+    digest = hashlib.sha256((digest + repr(sorted(file_of.items()))).encode("utf-8")).hexdigest()
     served = 0
     folded = 0
     for path_rowid, payload in harvested:
@@ -2560,6 +2650,8 @@ def _fold_all_files(harvested: list, maps: dict, context: tuple) -> tuple[list, 
             class_scopes=maps.get("class_scopes"),
             implementors=maps.get("implementors"),
             one_function=maps.get("one_function"),
+            caller_file=rel,
+            file_of=file_of,
         )
         if cache is not None and sha:
             cache.extract_put(

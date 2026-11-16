@@ -547,10 +547,14 @@ def callee_tail(callee: Any, src_bytes: bytes) -> tuple[str, bool] | None:
 ## @param call_node A Python `call` node.
 ## @param src_bytes The file's raw bytes.
 ## @param source_binding Provenance tag for a bound (not called) reference.
+## @param local Names the enclosing function binds (they shadow functions).
 ## @return One [name, line, source_binding] row per bare-identifier keyword value.
-## @version 2
+## v3: a value naming a parameter or local is not a binding.
+## @version 3
 ## @dg_internal
-def _keyword_bindings(call_node: Any, src_bytes: bytes, source_binding: str) -> list[list[Any]]:
+def _keyword_bindings(
+    call_node: Any, src_bytes: bytes, source_binding: str, local: frozenset[str] = frozenset()
+) -> list[list[Any]]:
     """gh#1's Python instance. `sub.set_defaults(func=cmd_rubric)` hands a function
     reference to argparse, which calls it later; no layer looking for a CALL to
     `cmd_rubric` finds one, so every argparse subcommand handler in this repo's own
@@ -562,14 +566,12 @@ def _keyword_bindings(call_node: Any, src_bytes: bytes, source_binding: str) -> 
     grading a BINDING that weakly would put a guess into a layer whose whole claim is
     that the reference is written down. Fail closed instead.
 
-    Known and accepted imprecision: an identifier is not proven to name a function
-    here. `cfg(mode=timeout)` where a local `timeout` shadows a function of that name
-    yields a spurious edge. This is the same name-resolution bet Layer 3 already makes
-    for a bare-identifier call site, and `_ast_record_call_edge` still has to find an
-    indexed function of that name before any row is written.
+    A NAME THE ENCLOSING FUNCTION BINDS is not a function reference (v3, round 3): a parameter
+    or local passed along (`cwd=repo_root` in `def commit(repo_root)`) used to resolve to any
+    function of that name — clew's own wiki drew `_commit → repo_root`, a pytest fixture.
 
     @brief Harvest keyword-argument function bindings from one call.
-    @version 2
+    @version 3
     """
     args_node = call_node.child_by_field_name("arguments")
     rows: list[list[Any]] = []
@@ -580,7 +582,8 @@ def _keyword_bindings(call_node: Any, src_bytes: bytes, source_binding: str) -> 
         if value is None or value.type != "identifier":
             continue
         name = src_bytes[value.start_byte : value.end_byte].decode("utf-8", errors="replace")
-        rows.append([name, value.start_point[0] + 1, source_binding])
+        if name not in local:
+            rows.append([name, value.start_point[0] + 1, source_binding])
     return rows
 
 
@@ -591,7 +594,9 @@ def _keyword_bindings(call_node: Any, src_bytes: bytes, source_binding: str) -> 
 ## @param source_member Provenance tag for an attribute-qualified callee.
 ## @param source_binding Provenance tag for a keyword-argument function binding (gh#1).
 ## @return Rowid-free call sites in walk order.
-## @version 4
+## v5: member sites whose receiver an import binds carry the module path (9th element); keyword
+## bindings naming a local are dropped.
+## @version 5
 ## @req REQ-DDB-PIPE-003
 def harvest_calls(
     tree: Any,
@@ -628,37 +633,146 @@ def harvest_calls(
     emitting it would cost a count per call site to break no tie.
 
     @brief Harvest Python call sites with call/member/binding provenance.
-    @return List of [callee_name, line, source, qualifier, receiver].
-    @version 4
+    @return List of [callee_name, line, source, qualifier, receiver(, -1, False, None, module)].
+    @version 5
     """
     sites: list[list[Any]] = []
     ## Computed once per file rather than per call site: `enclosing_class` is a containing-span
     ## lookup, and rebuilding the range list inside the walk would make it quadratic on a module
     ## of many classes.
     ranges = class_ranges(tree, src_bytes)
+    imports = import_bindings(tree, src_bytes)
+    shadows: dict[int, frozenset[str]] = {}
     stack = [tree.root_node]
     while stack:
         node = stack.pop()
         stack.extend(node.children)
         if node.type != "call":
             continue
-        sites.extend(_keyword_bindings(node, src_bytes, source_binding))
+        local = _locals_of(_enclosing_function(node), src_bytes, shadows)
+        sites.extend(_keyword_bindings(node, src_bytes, source_binding, local))
         callee = node.child_by_field_name("function")
         tail = callee_tail(callee, src_bytes)
         if tail is None:
             continue
         name, qualified = tail
         qualifier, receiver = _call_scope(callee, name, ranges, node.start_byte, src_bytes)
-        sites.append(
-            [
-                name,
-                node.start_point[0] + 1,
-                source_member if qualified else source_plain,
-                qualifier,
-                receiver,
-            ]
-        )
+        site = [
+            name,
+            node.start_point[0] + 1,
+            source_member if qualified else source_plain,
+            qualifier,
+            receiver,
+        ]
+        module = _receiver_module(callee, src_bytes, imports) if qualified else None
+        if module:
+            ## NINTH ELEMENT: the module the receiver is bound to by an IMPORT. Elements 6-8
+            ## (argc, construction, via_import) are C / JS facts and stay at their neutral values.
+            site += [-1, False, None, module]
+        sites.append(site)
     return sites
+
+
+## @brief A file's IMPORT bindings only: aliases that name modules or imported names.
+## @param tree The parsed Python tree.
+## @param src_bytes The file's raw bytes.
+## @return The binding table, with no local constructions in it.
+## @version 1
+## @req REQ-DDB-PIPE-003
+def import_bindings(tree: Any, src_bytes: bytes) -> PyBindings:
+    """A LOCAL CONSTRUCTION IS NOT A MODULE: `ex = Executor()` binds `ex` to a class, and a call
+    `ex.submit()` must never be looked up as a module path, so only import statements count.
+
+    @brief Import bindings.
+    @return Table.
+    """
+    bindings = PyBindings()
+    for node in _collect_by_type(tree.root_node, ("import_statement", "import_from_statement")):
+        if node.type == "import_statement":
+            _bind_import(node, src_bytes, bindings)
+        else:
+            _bind_import_from(node, src_bytes, bindings)
+    return bindings
+
+
+## @brief The module a member call's receiver is bound to by an import, if any.
+## @param callee The call's `function` child (an `attribute`).
+## @param src_bytes The file's raw bytes.
+## @param imports The file's import bindings.
+## @return The dotted module path (`..query.export`, `pkg.query.export`), or None.
+## @version 1
+## @dg_internal
+def _receiver_module(callee: Any, src_bytes: bytes, imports: PyBindings) -> str | None:
+    """THE OBJECT MUST BE A PLAIN DOTTED NAME (`_export`, `pkg.query.export`): a call result or a
+    subscript names no module. Whether the path IS a module, and not an imported function, is the
+    resolver's question — it asks whether a file bears it.
+
+    @brief Resolve the receiver through imports.
+    @return Module path or None.
+    """
+    obj = callee.child_by_field_name("object") if callee is not None else None
+    if obj is None or obj.type not in ("identifier", "attribute"):
+        return None
+    text = node_text(obj, src_bytes)
+    if not all(part.isidentifier() for part in text.split(".")):
+        return None
+    return imports.resolve(text)
+
+
+## @brief The function definition enclosing a node, or None at module level.
+## @param node Any node.
+## @return The `function_definition` node or None.
+## @version 1
+## @dg_internal
+def _enclosing_function(node: Any) -> Any:
+    """@brief Walk up. @return Function node or None."""
+    parent = node.parent
+    while parent is not None and parent.type != "function_definition":
+        parent = parent.parent
+    return parent
+
+
+## @brief Names a function binds itself: parameters and assignment / loop / `with` targets.
+## @param func The `function_definition` node, or None (module level binds nothing here).
+## @param src_bytes The file's raw bytes.
+## @param cache Names per function start byte; updated.
+## @return The names.
+## @version 1
+## @dg_internal
+def _locals_of(func: Any, src_bytes: bytes, cache: dict[int, frozenset[str]]) -> frozenset[str]:
+    """A PARAMETER OR LOCAL SHADOWS a function of the same name: `cwd=repo_root` inside
+    `def commit(repo_root)` passes the parameter along. Locals are assignment, loop,
+    comprehension, `with ... as` and walrus targets. Nested functions' own names are included
+    too — over-reading a local only ever withholds a binding edge, never invents one.
+
+    @brief Local names.
+    @return Names.
+    """
+    if func is None:
+        return frozenset()
+    if func.start_byte not in cache:
+        names: set[str] = set()
+        params = func.child_by_field_name("parameters")
+        for node in _collect_by_type(params, ("identifier",)) if params is not None else []:
+            names.add(node_text(node, src_bytes))
+        targets = (
+            "assignment",
+            "augmented_assignment",
+            "for_statement",
+            "for_in_clause",
+            "as_pattern",
+            "named_expression",
+        )
+        for node in _collect_by_type(func, targets):
+            left = (
+                node.child_by_field_name("left")
+                or node.child_by_field_name("alias")
+                or node.child_by_field_name("name")
+            )
+            for ident in _collect_by_type(left, ("identifier",)) if left is not None else []:
+                names.add(node_text(ident, src_bytes))
+        cache[func.start_byte] = frozenset(names)
+    return cache[func.start_byte]
 
 
 ## @brief What a Python call site says about the class it targets: a qualifier, or a receiver.
