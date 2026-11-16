@@ -778,8 +778,8 @@ class ReqTrace:
     implement it (with liveness), the covering test functions, and every
     indexed file line that names it.
 
-    @brief Requirement trace (metadata + implementers + tests + mentions).
-    @version 2
+    @brief Requirement trace (metadata + implementers + tests + mentions + links).
+    @version 3
     """
 
     req_id: str
@@ -792,6 +792,10 @@ class ReqTrace:
     ## EVERY INDEXED FILE LINE NAMING THE ID outside a `@req` tag and the catalog: design docs,
     ## diagrams, CMake, notes. None when the index predates the mentions pass — absent, not empty.
     mentioned_in: list[ReqMention] | None = None
+    ## GH #68: the requirements this one serves (`satisfies:` in its catalogue entry) and the ones
+    ## that serve it. None when the index predates `requirement_links` — absent, not empty.
+    satisfies: list[str] | None = None
+    satisfied_by: list[str] | None = None
 
 
 ## @brief One indexed file line that names a requirement.

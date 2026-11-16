@@ -806,6 +806,36 @@ def _uncheckable(func: Function, file_path: str, req_id: str) -> Violation:
     )
 
 
+## @brief A catalogue entry's `satisfies` ids that no catalogue holds (GH #68).
+#  @version 1.0
+#  @req REQ-DDB-SCHEMA-015
+#  @return One violation per unresolvable link, against the catalogue file
+def check_satisfies(
+    rows: dict[str, dict[str, str]], known: set[str], catalog_file: str
+) -> list[Violation]:
+    """A link names an id in the local or an external catalogue; `<catalog>:<id>` resolves by
+    its id. Anything else is a broken edge in the requirement tree."""
+    from ..requirements import satisfies_ids
+
+    out: list[Violation] = []
+    for req_id, row in rows.items():
+        for target in satisfies_ids(row.get("satisfies")):
+            if target in known or target.split(":", 1)[-1] in known:
+                continue
+            out.append(
+                Violation(
+                    file=catalog_file,
+                    line=1,
+                    check="tag",
+                    message=(
+                        f"{req_id} satisfies {target}, which no requirements catalogue holds "
+                        "(local or impact.requirements.external)"
+                    ),
+                )
+            )
+    return out
+
+
 ## @brief Cross-validate requirement tag references against the requirements file.
 #  @details v1.1: an EMPTY id set (looked, no catalogue) reports each tag as uncheckable;
 #  None still means no catalogue information was supplied (GH #68).

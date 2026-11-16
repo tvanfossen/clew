@@ -426,7 +426,9 @@
    "priority": "str",
    "implementers": "list[Implementer]",
    "tests": "list[str]",
-   "mentioned_in": "list[ReqMention] | None"
+   "mentioned_in": "list[ReqMention] | None",
+   "satisfies": "list[str] | None",
+   "satisfied_by": "list[str] | None"
   },
   "SectionCall": {
    "callee": "str",

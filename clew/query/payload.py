@@ -294,7 +294,8 @@ def _candidates_capped(db: Path | None, payload: dict[str, Any]) -> dict[str, An
 ## v6: a `config` section's `found` is reconciled on the way out — it means "a Kconfig FILE was
 ## located", which collides with what `found` means on every other reply this surface sends.
 ## v7: a requirement's `mentioned_in` is dropped when the index never scanned for mentions.
-## @version 7
+## v8: likewise `satisfies` / `satisfied_by` before the links layer existed (GH #68).
+## @version 8
 ## @dg_internal
 def _flatten_subject(built: Any, db: Path | None = None, depth: int = 1) -> dict[str, Any] | None:
     """FLAT, NOT NESTED, and the reason is the budget rather than taste. Every trimmer on
@@ -331,8 +332,11 @@ def _flatten_subject(built: Any, db: Path | None = None, depth: int = 1) -> dict
         payload = _config_found_on_the_wire(payload)
     ## AN INDEX THAT NEVER SCANNED FOR MENTIONS has no field, not a null one: `mentioned_in: []`
     ## and `mentioned_in: null` would both read as "nothing names this requirement".
-    if built.kind == "requirement" and payload.get("mentioned_in") is None:
-        payload.pop("mentioned_in", None)
+    ## Same rule for the GH #68 links: an index from before `requirement_links` has neither key.
+    if built.kind == "requirement":
+        for key in ("mentioned_in", "satisfies", "satisfied_by"):
+            if payload.get(key) is None:
+                payload.pop(key, None)
     if built.also:
         payload["also"] = list(built.also)
     if built.chain is not None:

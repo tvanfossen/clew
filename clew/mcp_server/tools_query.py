@@ -705,6 +705,10 @@ _DOSSIER_LISTS = (
     ## 1.3.0. A requirement's mentions across the indexed files: one row per line, independent,
     ## and on a widely cited requirement there can be dozens.
     "mentioned_in",
+    ## GH #68. A requirement's links in both directions: one id per row, independent; a product
+    ## requirement can be satisfied by many library requirements.
+    "satisfies",
+    "satisfied_by",
     ## gh#372 — the lists the NON-FUNCTION subject kinds contribute. A key that is not in
     ## this tuple is a list nothing can trim, so a subject kind added without its lists
     ## reintroduces the unbounded payload one kind at a time. Named here rather than

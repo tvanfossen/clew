@@ -1594,6 +1594,19 @@ requirements:
     x-evidence: clew/shared_key_edges.py import_shared_key_edges_inferred/import_shared_key_edges_declared,
       patterns resolved by resolve_shared_key_patterns/load_shared_key_patterns; CLAUDE.md queue-dataflow
       ground truth
+  REQ-DDB-SCHEMA-015:
+    subsystem: schema
+    name: Requirement-to-requirement links (satisfies)
+    acceptance_criteria: 'A catalogue entry''s `satisfies` (a list, one id, or a comma-separated
+      cell) is recorded one row per link in `requirement_links`, created on every build even with no
+      catalogue. A requirement''s dossier carries `satisfies` and `satisfied_by`, both [] on a
+      current index with no links and both ABSENT on an index built before the table existed. The
+      gate refuses a satisfies id that no local or external catalogue holds; `<catalog>:<id>`
+      resolves by its id.'
+    x-priority: P1
+    x-status: implemented
+    x-evidence: 'clew/requirements.py satisfies_ids / _record_links; clew/query/symbols.py
+      req_trace; clew/guard/checks.py check_satisfies. tests/test_requirement_links.py.'
   REQ-DDB-SCHEMA-006:
     subsystem: schema
     name: Requirement traceability edges (@req + test coverage)

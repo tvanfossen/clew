@@ -208,6 +208,48 @@ def _create_requirements_table(conn: sqlite3.Connection) -> None:
     conn.commit()
 
 
+## @brief Create (or reset) the `requirement_links` table (GH #68).
+## @version 1
+## @dg_internal
+def _create_links_table(conn: sqlite3.Connection) -> None:
+    """ALWAYS CREATED, even with no catalogue: an empty table means "looked, no links"; an absent
+    one means an index from before the layer.
+
+    @brief Create the links table.
+    """
+    conn.execute("DROP TABLE IF EXISTS requirement_links")
+    conn.execute(
+        "CREATE TABLE requirement_links (req_id TEXT NOT NULL, satisfies TEXT NOT NULL, "
+        "PRIMARY KEY (req_id, satisfies))"
+    )
+    conn.commit()
+
+
+## A token of a `satisfies` value: anything that is not a separator, bracket or quote.
+_LINK_TOKEN = re.compile(r"[^\s,\[\]'\"]+")
+
+
+## @brief The requirement ids a `satisfies` value names, in every spelling a catalogue uses.
+## @param value A list, one id, a comma-separated cell, or a list a loader already made text.
+## @return The ids, in order, without duplicates.
+## @version 1
+## @req REQ-DDB-SCHEMA-015
+def satisfies_ids(value: object) -> list[str]:
+    """ONE NORMALISER for the index and the gate, so they never disagree about what an entry
+    links to.
+
+    @brief Normalise satisfies.
+    @return Ids.
+    """
+    items = value if isinstance(value, list) else [value] if value else []
+    out: list[str] = []
+    for item in items:
+        for tok in _LINK_TOKEN.findall(str(item)):
+            if tok not in out:
+                out.append(tok)
+    return out
+
+
 ## @brief First present, non-empty value among several candidate keys.
 ## @param entry One catalog entry.
 ## @param keys Candidate keys, most specific first.
@@ -323,7 +365,9 @@ def _keyed_req_entries(data: object) -> list[dict]:
 ## @param db_path Path to the clew.db being built.
 ## @param requirements_yaml Path to requirements.yaml, or None if absent.
 ## @param guard_cfg Parsed `guard:` section of .clew.yaml (declares column mapping), or None.
-## @version 6
+## v7: also `requirement_links` from each entry's `satisfies` (GH #68), created on every build.
+## @version 7
+## @req REQ-DDB-SCHEMA-015
 ## @req REQ-DDB-SCHEMA-006
 def ingest_requirements_yaml(
     db_path: Path,
@@ -357,6 +401,7 @@ def ingest_requirements_yaml(
     """
     conn = sqlite3.connect(str(db_path))
     _create_requirements_table(conn)
+    _create_links_table(conn)
     if requirements_yaml is None or not requirements_yaml.exists():
         conn.close()
         logger.info("requirements: no requirements.yaml found — table empty")
@@ -382,6 +427,12 @@ def ingest_requirements_yaml(
     imported = 0
     for entry in entries:
         imported += _insert_req_entry(conn, entry, id_col, name_col)
+        rid = entry.get(id_col) or entry.get("id")
+        if rid:
+            conn.executemany(
+                "INSERT OR IGNORE INTO requirement_links (req_id, satisfies) VALUES (?, ?)",
+                [(str(rid), target) for target in satisfies_ids(entry.get("satisfies"))],
+            )
     conn.commit()
     conn.close()
     logger.info(

@@ -1998,11 +1998,31 @@ def _req_implementers(conn: sqlite3.Connection, req_id: str, tests: set[str]) ->
     ]
 
 
+## @brief Both directions of a requirement's `satisfies` links (GH #68).
+## @param conn Open connection.
+## @param req_id The requirement.
+## @return (satisfies, satisfied_by), or None when the index has no links table.
+## @version 1
+## @req REQ-DDB-SCHEMA-015
+def _req_links(conn: sqlite3.Connection, req_id: str) -> tuple[list[str], list[str]] | None:
+    """@brief Read links. @return Both directions, or None."""
+    if not table_exists(conn, "requirement_links"):
+        return None
+    up = conn.execute(
+        "SELECT satisfies FROM requirement_links WHERE req_id=? ORDER BY satisfies", (req_id,)
+    ).fetchall()
+    down = conn.execute(
+        "SELECT req_id FROM requirement_links WHERE satisfies=? ORDER BY req_id", (req_id,)
+    ).fetchall()
+    return [r[0] for r in up], [r[0] for r in down]
+
+
 ## Version 3: also every indexed file line naming the id (`mentioned_in`), from `req_mentions`.
+## Version 4: also `satisfies` / `satisfied_by` from `requirement_links` (GH #68).
 ##
-## @brief Requirement traceability: metadata + implementers + covering tests + mentions.
-## @return ReqTrace bundling the requirement's metadata (empty strings when absent), its implementing functions, covering test names and mentions.
-## @version 3
+## @brief Requirement traceability: metadata + implementers + covering tests + mentions + links.
+## @return ReqTrace bundling the requirement's metadata (empty strings when absent), its implementing functions, covering test names, mentions and links.
+## @version 4
 ## @req REQ-DDB-QUERY-001
 def req_trace(db: DbSource, req_id: str) -> ReqTrace:
     """Trace one requirement to its implementing functions (with liveness)
@@ -2044,6 +2064,7 @@ def req_trace(db: DbSource, req_id: str) -> ReqTrace:
             if table_exists(conn, "req_mentions")
             else None
         )
+        links = _req_links(conn, req_id)
     block, title, acceptance, priority = meta if meta else ("", "", "", "")
     return ReqTrace(
         req_id=req_id,
@@ -2054,6 +2075,8 @@ def req_trace(db: DbSource, req_id: str) -> ReqTrace:
         implementers=implementers,
         tests=tests,
         mentioned_in=mentions,
+        satisfies=links[0] if links else None,
+        satisfied_by=links[1] if links else None,
     )
 
 

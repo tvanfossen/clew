@@ -337,7 +337,12 @@ requirements:
       Every function must have a doxygen comment
     acceptance_criteria: >-           # optional
       Undocumented functions produce presence violations
+    satisfies: [REQ-PRD-004]          # optional: requirements this one serves
 ```
+
+`satisfies` names requirements in this catalogue, in an `external` one, or as `<catalog>:<id>`;
+a link no catalogue holds is a violation. The index records each link, and a requirement's
+`dossier` carries both directions, `satisfies` and `satisfied_by`.
 
 A missing file, an unknown format, a wrong shape, a missing `name`, or an id failing
 `validate.tags.req.pattern` raises `RequirementsError`. The run fails rather than continuing

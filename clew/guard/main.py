@@ -24,6 +24,7 @@ from .checks import (
     check_bus_tags,
     check_req_coverage,
     check_req_exists,
+    check_satisfies,
     check_return_presence,
     check_tags,
     check_unknown_tags,
@@ -252,7 +253,8 @@ def _report_skips(skipped: list[str]) -> None:
 #  @details The choke point both entry paths use (`validate` and pre-commit mode), which is
 #  why the skip report lives here rather than in either caller.
 #  v1.4: external catalogues' ids join the local catalogue's (GH #68).
-#  @version 1.4
+#  v1.5: the local catalogue's `satisfies` links are checked (GH #68).
+#  @version 1.5
 #  @dg_internal
 def _validate_files(
     file_paths: list[str],
@@ -264,8 +266,11 @@ def _validate_files(
     # THE LOCAL CATALOGUE AND EVERY EXTERNAL ONE (GH #68). The set is passed even when EMPTY —
     # catalogues were looked for and none exists — so the check reports each tag as uncheckable
     # rather than passing it; None is reserved for "no catalogue information supplied".
-    req_ids = set(load_requirements_full(config)) | set(load_external_requirements(config))
-    violations: list[Violation] = []
+    local = load_requirements_full(config)
+    req_ids = set(local) | set(load_external_requirements(config))
+    # GH #68: every `satisfies` link of the local catalogue must land in some catalogue.
+    catalog_file = (get_impact(config).get("requirements") or {}).get("file", "")
+    violations: list[Violation] = check_satisfies(local, req_ids, catalog_file)
     skipped: list[str] = []
     for file_path in file_paths:
         if not Path(file_path).exists():

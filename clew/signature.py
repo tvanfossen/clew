@@ -257,7 +257,10 @@ from .tiers import OPTIONS_META_PREFIX
 ##       stems words (porter), and ranks test-scope code last; `e2e/` and `*.e2e.*` are test scope.
 ##     * a call site is credited to the INNERMOST function containing it, not the first in list
 ##       order, which was an accident of row order and credited a mixin's calls to its factory.
-CLEW_BUILD_VERSION = 9
+## 10 (2.0.0) — `requirement_links`: a catalogue entry's `satisfies:` ids, one row per link
+##   (GH #68). An index built before it has no table, so a requirement's dossier would carry no
+##   `satisfies` / `satisfied_by` while reporting itself current; the bump makes it rebuild.
+CLEW_BUILD_VERSION = 10
 
 
 ## @brief Stamp the build version, scope, coverage and preprocessor config into build_meta.
