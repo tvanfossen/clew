@@ -100,6 +100,7 @@ _TOP = {
     "entry_points",
     "components",
     "issues",
+    "tooling",
 }
 _THEME = {"name", "palette", "css", "logo", "fonts"}
 ## The palette tokens of the default theme (the sassafras-class botanical palette).
@@ -123,7 +124,11 @@ THEME_TOKENS = (
     "warn",
     "warnbg",
 )
-_FLOW = {"entry", "qualified", "depth", "lanes", "stop_at", "title", "animate", "file"}
+_FLOW = {"entry", "qualified", "depth", "lanes", "stop_at", "title", "animate", "file", "role"}
+## The roles a flow is grouped under on the Flows page (round 3, P1e).
+FLOW_ROLES = ("product", "threads", "tooling")
+## Paths whose entry points are tooling, unless `wiki.tooling` says otherwise.
+DEFAULT_TOOLING = ("scripts/*", "acceptance/*", "tools/*", "benchmarks/*", "examples/*")
 _TESTS = {
     "junit",
     "coverage",
@@ -155,7 +160,7 @@ DEFAULT_DOCS = ("README.md", "docs/**/*.md", "docs/**/*.rst")
 ## @version 3
 @dataclass(frozen=True)
 class FlowSpec:
-    """@brief Entry, selector, file, depth, lanes, stop names, title, animation. @version 3"""
+    """@brief Entry, selector, file, depth, lanes, stop names, title, animation, role. @version 4"""
 
     entry: str
     qualified: str | None = None
@@ -165,6 +170,8 @@ class FlowSpec:
     title: str = ""
     animate: bool = True
     file: str | None = None
+    ## `product`, `threads` or `tooling`; "" = classified by the build (tooling paths, else product).
+    role: str = ""
 
 
 ## @brief The W15/W16 evidence imports of `wiki.tests`, as declared (paths relative to the repo).
@@ -255,7 +262,8 @@ class RuleSpec:
 ## v6: entry_points (auto-derived entry-point flows, their depth).
 ## v7: components (the map's declared groupings).
 ## v8: issues (the tracker prefilled issue links open).
-## @version 8
+## v9: tooling (paths whose entry points group under Tooling).
+## @version 9
 @dataclass(frozen=True)
 class WikiConfig:
     """@brief The whole `wiki:` section. @version 4"""
@@ -282,6 +290,8 @@ class WikiConfig:
     issues: tuple[str, str] | None = None
     ## False when `issues: false` — no issue links at all.
     issues_enabled: bool = True
+    ## Path globs whose entry points are tooling flows.
+    tooling: tuple[str, ...] = DEFAULT_TOOLING
 
 
 ## @brief Read and validate a repository's `wiki:` section.
@@ -295,7 +305,8 @@ class WikiConfig:
 ## v6: entry_points.
 ## v7: components.
 ## v8: issues.
-## @version 8
+## v9: tooling.
+## @version 9
 ## @req REQ-DDB-WIKI-003
 def load_wiki_config(
     repo_root: Path, config_path: Path | None = None
@@ -305,7 +316,7 @@ def load_wiki_config(
 
     @brief Load the section.
     @return Config and problems.
-    @version 8
+    @version 9
     """
     raw, problems = _read_section(Path(config_path or Path(repo_root) / ".clew.yaml"))
     if problems:
@@ -337,6 +348,7 @@ def load_wiki_config(
         components=_components(raw.get("components") or {}, problems),
         issues=_issues(raw.get("issues"), problems),
         issues_enabled=raw.get("issues") is not False,
+        tooling=tuple(str(g) for g in raw.get("tooling", DEFAULT_TOOLING) or ()),
     )
     return config, problems
 
@@ -500,7 +512,8 @@ def _unknown(mapping: Any, allowed: set[str], where: str) -> list[str]:
 ## @return The FlowSpec or None.
 ## v2: `animate`.
 ## v3: `file`.
-## @version 3
+## v4: `role` (one of FLOW_ROLES).
+## @version 4
 ## @dg_internal
 def _flow(raw: Any, index: int, problems: list[str]) -> FlowSpec | None:
     """@brief Parse one flow. @return Spec or None."""
@@ -518,7 +531,25 @@ def _flow(raw: Any, index: int, problems: list[str]) -> FlowSpec | None:
         title=str(raw.get("title") or ""),
         animate=bool(raw.get("animate", True)),
         file=str(raw["file"]) if raw.get("file") else None,
+        role=_role(raw.get("role"), where, problems),
     )
+
+
+## @brief A flow's declared role, checked.
+## @param raw The value, or None.
+## @param where The flow's location, for the problem text.
+## @param problems Appended to.
+## @return The role, or "" when undeclared or unknown.
+## @version 1
+## @dg_internal
+def _role(raw: Any, where: str, problems: list[str]) -> str:
+    """@brief Parse a role. @return Role."""
+    if raw is None:
+        return ""
+    if raw not in FLOW_ROLES:
+        problems.append(f"`{where}.role` must be one of {', '.join(FLOW_ROLES)}")
+        return ""
+    return str(raw)
 
 
 ## @brief The evidence imports of a `tests` block.

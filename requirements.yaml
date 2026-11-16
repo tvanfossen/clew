@@ -675,6 +675,20 @@ requirements:
     x-priority: P1
     x-status: implemented
     x-evidence: clew/wiki/reqmodal.py, issues.py, summary.py, tracepages.py, htmltable.py, flowpage.py, build.py, config.py; tests/test_wiki_site.py.
+  REQ-DDB-WIKI-023:
+    subsystem: wiki
+    name: Flows grouped by role, each step badged with the requirements its callee implements
+    acceptance_criteria: >-
+      The Flows page groups flows by role — Product (console scripts, declared roots, mains
+      outside tooling paths), Threads (thread entries), Tooling (entry points under
+      `wiki.tooling` globs, default scripts/, acceptance/, tools/, benchmarks/, examples/)
+      folded away — each listing its flows with their step counts and requirements; a role with
+      no flow has no section, and a flow may declare its `role`. Every flow step's row carries
+      the requirements its callee implements, each linked to its row on the requirements page.
+      `packages` lanes are the map's components (`clew/query`, not `clew`).
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/flowpage.py, build.py, config.py, entrypoints.py, flow.py; tests/test_wiki_site.py, tests/test_wiki_map.py.
   REQ-DDB-SCHEMA-013:
     subsystem: schema
     name: Kconfig structure tables, created independently of the gating table

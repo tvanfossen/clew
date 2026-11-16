@@ -32,6 +32,7 @@ from __future__ import annotations
 import shutil
 import subprocess
 from pathlib import Path
+from typing import Any
 
 from .config import Audience, WikiConfig, load_wiki_config
 
@@ -58,7 +59,8 @@ _CELL = str.maketrans({"|": "\\|", "\n": " "})
 ## v8: the sidebar minimap, each flow page lighting the components it passes through.
 ## v9: flow traces on the map.
 ## v10: the requirements page gets the flow pages and the issue tracker (P1d).
-## @version 10
+## v11: flows grouped by role, steps badged with requirements (P1e).
+## @version 11
 ## @req REQ-DDB-WIKI-003
 def build_wiki(
     repo_root: Path,
@@ -73,9 +75,9 @@ def build_wiki(
 
     @brief Write and render the site.
     @return The HTML directory.
-    @version 9
+    @version 10
     """
-    from .flowpage import flow_page
+    from .flowpage import flow_page, flows_index
     from .graph import build_graph
     from .issues import resolve_target
     from .mappage import map_page, minimap_svg
@@ -97,16 +99,16 @@ def build_wiki(
     snapshot = trace.snapshot(version or "")
     milestones = _milestones(repo_root, config)
     burndown = _burndown(out_dir, version, snapshot, milestones) if version else ""
+    req_of = _requirements_of(trace.evidence)
     pages = [
-        flow_page(repo_root, db, spec, source, rules, config, commit)
+        flow_page(repo_root, db, _with_role(spec, config), source, rules, config, commit, req_of)
         for spec in _all_flows(repo_root, db, config)
     ]
-    flows = [p.name for p in pages]
     graph = build_graph(db, trace.evidence, trace.impact, config.components, exclude_tests=True)
     issues = resolve_target(config.issues, config.issues_enabled, repo_root)
     sections = [
         requirements_page(trace, config, source, rules, burndown, tuple(pages), issues),
-        _section(source, "flows", "Flows", flows, _FLOWS_LEAD),
+        flows_index(source, pages),
         map_page(
             graph,
             {p.name: (p.title, set(p.files)) for p in pages},
@@ -117,7 +119,7 @@ def build_wiki(
     ]
     if config.sources:
         sections.append(nodes_page(trace, config, source))
-    _write_index(source, config, trace, [s for s in sections if s], len(flows))
+    _write_index(source, config, trace, [s for s in sections if s], len(pages))
     context = {
         "clew_minimap": minimap_svg(graph) if "map" in sections else "",
         "clew_minimap_lit": _lit(pages, graph, config),
@@ -161,6 +163,37 @@ def _lit(pages: list, graph: dict, config: WikiConfig) -> dict[str, list[str]]:
     return {
         p.name: sorted({component_of(f, config.components) for f in p.files} & known) for p in pages
     }
+
+
+## @brief A flow with its role settled: declared, else tooling by path, else product.
+## @param spec The flow.
+## @param config The section (`tooling` globs).
+## @return The flow, its role set.
+## @version 1
+## @dg_internal
+def _with_role(spec: Any, config: WikiConfig) -> Any:
+    """@brief Classify. @return Spec."""
+    import dataclasses
+    import fnmatch
+
+    if spec.role:
+        return spec
+    tooling = bool(spec.file) and any(fnmatch.fnmatch(spec.file, g) for g in config.tooling)
+    return dataclasses.replace(spec, role="tooling" if tooling else "product")
+
+
+## @brief Which requirements each implementing function carries.
+## @param evidence Requirement evidence rows.
+## @return {(function, file): [requirement ids]}.
+## @version 1
+## @dg_internal
+def _requirements_of(evidence: list) -> dict[tuple[str, str], list[str]]:
+    """@brief Invert implementer sites. @return Map."""
+    out: dict[tuple[str, str], list[str]] = {}
+    for row in evidence:
+        for name, rel, _line in row.implementer_sites:
+            out.setdefault((name, rel), []).append(row.req_id)
+    return out
 
 
 ## @brief The declared flows, then every entry point's flow not already declared.
@@ -287,10 +320,6 @@ def _html_page(path: Path) -> str:
 
 
 _DOCS_LEAD = "The repository's own documentation, as written."
-_FLOWS_LEAD = (
-    "Sequence diagrams derived from the index: every step is a call the index resolved, in the "
-    "caller's source order. Click a step for the data it carries."
-)
 
 
 ## @brief A section page listing its children; nothing when it has none.

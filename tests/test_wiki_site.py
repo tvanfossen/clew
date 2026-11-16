@@ -678,3 +678,37 @@ def test_issue_links_follow_the_declared_or_remote_tracker() -> None:
     assert parts.netloc == "dev.azure.com" and parts.path == "/org/proj/_workitems/create/Issue"
     query = parse_qs(parts.query)
     assert query["[System.Tags]"] == ["req:REQ-1"] and "REQ-1" in query["[System.Title]"][0]
+
+
+def test_flows_are_grouped_by_role(site: dict[str, str]) -> None:
+    """OWNER 2026-11-15: "a bunch of scripts, not much by way of core function". The Flows page
+    groups flows by role — PRODUCT (console scripts, declared roots, mains outside tooling),
+    THREADS (thread entries; absent here, so no section), TOOLING (scripts/, acceptance/, tools/
+    by default) folded away.
+
+    @brief P1e: flows by role.
+    """
+    page = site["flows.html"]
+
+    def role(name: str) -> str:
+        found = re.search(
+            rf'<section class="flow-role" data-role="{name}">(.*?)</section>', page, re.S
+        )
+        assert found is not None, name
+        return found.group(1)
+
+    product, tooling = role("product"), role("tooling")
+    assert "flow-load.html" in product and "flow-main-src-cli-py.html" in product
+    assert "flow-main-tools-other-py.html" in tooling and "<details" in tooling
+    assert "flow-main-tools-other-py.html" not in product
+    assert 'data-role="threads"' not in page
+    assert page.index('data-role="product"') < page.index('data-role="tooling"')
+
+
+def test_a_flow_step_carries_the_requirements_its_callee_implements(site: dict[str, str]) -> None:
+    """@brief P1e: requirement badges on steps, linked to the requirement's row."""
+    page = _flow_page(site)
+    table = page[page.index('<table class="clew steps"') :]
+    table = table[: table.index("</table>")]
+    assert 'href="requirements.html#REQ-X-001"' in table
+    assert 'href="requirements.html#REQ-W-002"' in table

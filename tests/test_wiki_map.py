@@ -174,3 +174,16 @@ def test_a_flow_is_traced_across_the_map_in_call_order(db: Path) -> None:
     delays = [float(d) for d in re.findall(r"animation-delay:([\d.]+)s", group)]
     assert len(delays) == 2 and delays == sorted(delays) and delays[0] < delays[1]
     assert "data-trace-set" not in map_html(graph, {})
+
+
+def test_package_lanes_are_the_maps_components(db: Path) -> None:
+    """THE SAME RULE AS THE MAP: `pkg/api/handlers.py` is in lane `pkg/api`, not `pkg` — a flow
+    inside one top-level package no longer collapses to a single lane.
+
+    @brief P1e: package lanes.
+    """
+    from clew.wiki.flow import derive_flow
+
+    repo = db.parent / "repo"
+    flow = derive_flow(db, repo, "handle", depth=1, lanes="packages")
+    assert [lane.id for lane in flow.lanes] == ["pkg/api", "pkg/core"]

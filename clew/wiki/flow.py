@@ -8,7 +8,8 @@ namesake's calls never appear as this function's), in each caller's own source O
 function in a LANE:
 
   * `files` — the file the function's body is in;
-  * `packages` — that file's top-level directory;
+  * `packages` — that file's component, by the map's rule (`graph.component_of`: `clew/query`,
+    not `clew`);
   * `threads` — the threads whose membership includes it (`thread_of`), or `unattributed`.
 
 EVERY STEP IS AN INDEX EDGE. A call the index did not resolve to an indexed function (a library
@@ -18,7 +19,7 @@ guessing one. A callee already expanded earlier in the flow is drawn again as a 
 expanded twice, which keeps a diagram finite without hiding that the call happens.
 
 @brief Derive a sequence flow from the index.
-@version 1
+@version 2
 """
 
 from __future__ import annotations
@@ -272,7 +273,9 @@ class _Walker:
     ## @brief Compute a function's lane under the chosen strategy.
     ## @param rowid The function's rowid.
     ## @return The lane id.
-    ## @version 1
+    ## v2: `packages` lanes are the map's components (round 3, P1e): a flow inside one top-level
+    ## package drew a single lane.
+    ## @version 2
     ## @dg_internal
     def _lane_for(self, rowid: int) -> str:
         """@brief Lane by strategy. @return Lane id."""
@@ -286,7 +289,9 @@ class _Walker:
             return "|".join(threads) or "unattributed"
         rel = self._file(rowid)
         if self.lanes == "packages":
-            return rel.split("/", 1)[0] if "/" in rel else "(root)"
+            from .graph import component_of
+
+            return component_of(rel) if rel else "(root)"
         return rel or "(unknown file)"
 
     ## @brief The file a function's body is in (public: the entry selection uses it).

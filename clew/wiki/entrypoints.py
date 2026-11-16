@@ -31,22 +31,23 @@ from .config import FlowSpec
 ## @param repo_root The repository.
 ## @param depth The call depth each flow expands.
 ## @return Flow specs, scripts first, then mains, then thread entries.
-## @version 1
+## v2: thread entries carry the `threads` role; the build classifies the rest (P1e).
+## @version 2
 ## @req REQ-DDB-WIKI-018
 def entry_point_flows(db: Path, repo_root: Path, depth: int) -> list[FlowSpec]:
     """@brief Discover entry points. @return Specs."""
-    found: dict[tuple[str, str], str] = {}
+    found: dict[tuple[str, str], tuple[str, str]] = {}
     with connect(db) as conn:
-        for name, rel, title in (
-            *_scripts(conn, Path(repo_root)),
-            *_mains(conn),
-            *_thread_entries(conn),
+        for (name, rel, title), role in (
+            *((s, "") for s in _scripts(conn, Path(repo_root))),
+            *((m, "") for m in _mains(conn)),
+            *((e, "threads") for e in _thread_entries(conn)),
         ):
             if (name, rel) not in found and _calls_something(conn, name, rel):
-                found[(name, rel)] = title
+                found[(name, rel)] = (title, role)
     return [
-        FlowSpec(entry=name, file=rel, depth=depth, title=title)
-        for (name, rel), title in found.items()
+        FlowSpec(entry=name, file=rel, depth=depth, title=title, role=role)
+        for (name, rel), (title, role) in found.items()
     ]
 
 

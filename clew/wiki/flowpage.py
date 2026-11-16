@@ -29,16 +29,17 @@ from typing import Any, NamedTuple
 
 from .config import Audience, FlowSpec, WikiConfig
 from .flow import Flow, derive_flow
-from .htmltable import code, source_url, table
+from .htmltable import code, md_title, source_url, table
 from .svg import flow_svg
 
 
 ## @brief A written flow page: its name, title, the files its steps pass through, and its hops.
 ## v2: `hops`, for the map's flow traces (round 3, P1c-3).
 ## v3: `functions`, so a requirement lists the flows its implementers are on (P1d).
-## @version 3
+## v4: `role`, `steps`, `requirements` — the Flows page groups and summarises them (P1e).
+## @version 4
 class FlowPage(NamedTuple):
-    """@brief A flow page. @version 3"""
+    """@brief A flow page. @version 4"""
 
     name: str
     title: str
@@ -47,6 +48,12 @@ class FlowPage(NamedTuple):
     hops: tuple[tuple[str, str], ...] = ()
     ## (function, file) of every caller and callee — what a requirement's implementer must be.
     functions: frozenset[tuple[str, str]] = frozenset()
+    ## `product`, `threads` or `tooling`.
+    role: str = ""
+    ## How many steps the flow draws.
+    steps: int = 0
+    ## Requirements its functions implement.
+    requirements: frozenset[str] = frozenset()
 
 
 ## The most lines a call expression is read across.
@@ -95,6 +102,7 @@ _STYLE = (
 ## @param rules The audience rules.
 ## @param config The section (link template).
 ## @param commit The commit the site describes.
+## @param req_of {(function, file): requirement ids} — the badges on each step.
 ## @return The page: its name, title and the files its steps pass through.
 ## v2: the step table through the shared table helper (empty columns dropped); `file` selects the
 ## entry and names the page.
@@ -102,7 +110,8 @@ _STYLE = (
 ## v4: returns a `FlowPage` — the map (round 3, P1c) links each component to the flows through it.
 ## v5: with its hops (P1c-3).
 ## v6: with its functions (P1d).
-## @version 6
+## v7: a requirements column — each step's callee's requirements, linked (P1e); `req_of`.
+## @version 7
 ## @req REQ-DDB-WIKI-014
 def flow_page(
     repo_root: Path,
@@ -112,6 +121,7 @@ def flow_page(
     rules: Audience,
     config: WikiConfig,
     commit: str,
+    req_of: dict[tuple[str, str], list[str]] | None = None,
 ) -> FlowPage:
     """THE STEP TABLE LINKS THE CALL SITE — the caller's file at the call's line (`site_file`),
     not the callee's file. The table drops a column no step fills.
@@ -146,8 +156,11 @@ def flow_page(
             if row["link"]
             else code(row["site"])
         )
-        rows.append([str(i), code(step.caller), code(step.callee), escape(row["frames"]), site])
-    head = ["#", "caller", "callee", "frames", "call site"]
+        reqs = _badges((req_of or {}).get((step.callee, step.file), ()))
+        rows.append(
+            [str(i), code(step.caller), code(step.callee), reqs, escape(row["frames"]), site]
+        )
+    head = ["#", "caller", "callee", "requirements", "frames", "call site"]
     lines += ["```{raw} html", table(head, rows, cls="steps", numeric=("#",)), "```", ""]
     if not rules.exclude_bodies:
         lines += _bodies(db, repo_root, flow, spec.file)
@@ -158,7 +171,10 @@ def flow_page(
         (s.caller, s.site_file) for s in flow.steps if s.site_file
     }
     title = spec.title or "Flow: " + spec.entry
-    return FlowPage(name, title, frozenset(files), hops, frozenset(functions))
+    reqs = frozenset(r for f in functions for r in (req_of or {}).get(f, ()))
+    return FlowPage(
+        name, title, frozenset(files), hops, frozenset(functions), spec.role, len(flow.steps), reqs
+    )
 
 
 ## @brief A flow's page name: the entry, and its file when the flow selects one.
@@ -386,3 +402,90 @@ def _bodies(db: Path, repo_root: Path, flow: Flow, file: str | None = None) -> l
     for name, qual in dict.fromkeys(seen):
         out += _dossier_body(db, repo_root, name, qual)
     return out
+
+
+## @brief Requirement badges, each linked to its row on the requirements page.
+## @param reqs Requirement ids.
+## @return HTML ("" for none).
+## @version 1
+## @dg_internal
+def _badges(reqs: Any) -> str:
+    """@brief Badges. @return HTML."""
+    return " ".join(
+        f'<a class="req-badge" href="requirements.html#{escape(r)}">{escape(r)}</a>'
+        for r in sorted(set(reqs))
+    )
+
+
+## @brief The Flows page: flows grouped by role, tooling folded away.
+## @param source The Sphinx source directory.
+## @param pages The flow pages.
+## @return The page name, or "" when there is no flow.
+## @version 1
+## @req REQ-DDB-WIKI-023
+def flows_index(source: Path, pages: list[FlowPage]) -> str:
+    """OWNER 2026-11-15: the product's flows first — console scripts, declared roots, mains
+    outside tooling — then thread entries, then tooling (scripts, harnesses) folded. A role
+    with no flow has no section.
+
+    @brief Write flows.md.
+    @return Page name.
+    """
+    if not pages:
+        return ""
+    lines = ["# Flows", "", _FLOWS_LEAD, ""]
+    for role, heading, lead in _ROLES:
+        members = sorted((p for p in pages if (p.role or "product") == role), key=lambda p: p.title)
+        if members:
+            lines += [
+                f"## {heading}",
+                "",
+                lead,
+                "",
+                "```{raw} html",
+                _role_block(role, members),
+                "```",
+                "",
+            ]
+    names = [p.name for p in pages]
+    lines += ["```{toctree}", ":hidden:", ":maxdepth: 1", "", *names, "```", ""]
+    (Path(source) / "flows.md").write_text("\n".join(lines), encoding="utf-8")
+    return "flows"
+
+
+## @brief One role's flows as a table, folded for tooling.
+## @param role The role.
+## @param members Its flow pages.
+## @return HTML.
+## @version 1
+## @dg_internal
+def _role_block(role: str, members: list[FlowPage]) -> str:
+    """@brief Role block. @return HTML."""
+    rows = [
+        [
+            f'<a href="{escape(p.name)}.html">{md_title(p.title)}</a>',
+            str(p.steps),
+            _badges(p.requirements),
+        ]
+        for p in members
+    ]
+    body = table(["flow", "steps", "requirements"], rows, numeric=("steps",), keep=("flow",))
+    if role == "tooling":
+        body = f"<details><summary>{len(members)} tooling flows</summary>{body}</details>"
+    return f'<section class="flow-role" data-role="{role}">{body}</section>'
+
+
+_FLOWS_LEAD = (
+    "Sequence diagrams derived from the index: every step is a call the index resolved, in the "
+    "caller's source order. Click a step for the data it carries."
+)
+## (role, heading, lead), in page order.
+_ROLES = (
+    (
+        "product",
+        "Product",
+        "What the shipped code does: console scripts, declared roots, programs.",
+    ),
+    ("threads", "Threads", "Each thread's entry function and what it reaches."),
+    ("tooling", "Tooling", "Scripts and harnesses around the product."),
+)
