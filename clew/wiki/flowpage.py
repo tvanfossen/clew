@@ -107,6 +107,7 @@ _STYLE = (
 ## @param config The section (link template).
 ## @param commit The commit the site describes.
 ## @param req_of {(function, file): requirement ids} — the badges on each step.
+## @param trace (file, OTLP document) of an imported run of this flow's test, or None.
 ## @return The page: its name, title and the files its steps pass through.
 ## v2: the step table through the shared table helper (empty columns dropped); `file` selects the
 ## entry and names the page.
@@ -120,7 +121,8 @@ _STYLE = (
 ## repeated dossiers were 37 of 86 s of clew's build).
 ## v10: Mermaid and PlantUML exports of the diagram, linked from the page (P3b).
 ## v11: a test's flow names its test node for a traced run (P4b).
-## @version 11
+## v12: an imported trace of its test is drawn over it (P4b-2).
+## @version 12
 ## @req REQ-DDB-WIKI-014
 def flow_page(
     repo_root: Path,
@@ -131,6 +133,7 @@ def flow_page(
     config: WikiConfig,
     commit: str,
     req_of: dict[tuple[str, str], list[str]] | None = None,
+    trace: tuple[str, dict[str, Any]] | None = None,
 ) -> FlowPage:
     """THE STEP TABLE LINKS THE CALL SITE — the caller's file at the call's line (`site_file`),
     not the callee's file. The table drops a column no step fills.
@@ -170,6 +173,8 @@ def flow_page(
         rows.append([str(i), code(step.caller), callee, reqs, escape(row["frames"]), site])
     head = ["#", "caller", "callee", "requirements", "frames", "call site"]
     lines += ["```{raw} html", table(head, rows, cls="steps", numeric=("#",)), "```", ""]
+    if trace is not None:
+        lines += ["```{raw} html", imported_trace(flow, *trace), "```", ""]
     files = {s.file for s in flow.steps} | {s.site_file for s in flow.steps if s.site_file}
     hops = tuple((s.site_file, s.file) for s in flow.steps if s.site_file)
     functions = {(s.callee, s.file) for s in flow.steps} | {
@@ -192,6 +197,49 @@ def flow_page(
         reqs,
         calls,
     )
+
+
+## @brief An imported trace drawn over the flow: per-step CSS and a panel saying what it found.
+## @param flow The flow.
+## @param rel The trace's file.
+## @param otlp The trace.
+## @return HTML.
+## @version 1
+## @req REQ-DDB-WIKI-036
+def imported_trace(flow: Flow, rel: str, otlp: dict[str, Any]) -> str:
+    """STATIC, so a published site carries it: each predicted step is styled CONFIRMED or dimmed
+    as NOT EXECUTED by a CSS rule on its `data-step`; discovered calls and the failure are listed.
+
+    @brief Imported trace overlay.
+    @return HTML.
+    """
+    from .tracerun import failure_of, overlay
+
+    result = overlay([(s.caller, s.callee) for s in flow.steps], otlp)
+    rules = "".join(
+        f'svg.seq g[data-step="{i}"]{{opacity:.25}}'
+        if state != "confirmed"
+        else f'svg.seq g[data-step="{i}"] line{{stroke:#3D6B2E;stroke-width:3}}'
+        for i, state in enumerate(result["steps"])
+    )
+    confirmed = result["steps"].count("confirmed")
+    lines = [
+        f"Imported trace <code>{escape(rel)}</code>: {confirmed} of {len(result['steps'])} "
+        "predicted steps confirmed; the rest are dimmed."
+    ]
+    lines += [
+        f"Discovered (not in the flow): <code>{escape(a)}</code> → <code>{escape(b)}</code>"
+        for a, b in result["discovered"]
+    ]
+    failed = failure_of(otlp)
+    if failed:
+        where = f" at line {escape(failed['line'])}" if failed["line"] else ""
+        lines.append(
+            f'<span class="bad">Failed in <code>{escape(failed["span"])}</code>{where}: '
+            f"{escape(failed['message'])}</span>"
+        )
+    body = "".join(f"<p>{line}</p>" for line in lines)
+    return f'<style>{rules}</style><div class="trace-panel imported">{body}</div>'
 
 
 ## @brief A test flow's pytest node id, or "" for any other flow.
@@ -401,11 +449,15 @@ def _badges(reqs: Any) -> str:
 ## @param source The Sphinx source directory.
 ## @param pages The flow pages.
 ## @param undrawn_tests Directly linked tests the cap left without a flow (stated when > 0).
+## @param unmatched (file, root span) of imported traces that matched no flow.
 ## @return The page name, or "" when there is no flow.
 ## v2: a Tests role and the cap's disclosure (P2b).
-## @version 2
+## v3: imported traces that matched no flow are listed (P4b-2).
+## @version 3
 ## @req REQ-DDB-WIKI-023
-def flows_index(source: Path, pages: list[FlowPage], undrawn_tests: int = 0) -> str:
+def flows_index(
+    source: Path, pages: list[FlowPage], undrawn_tests: int = 0, unmatched: tuple = ()
+) -> str:
     """OWNER 2026-11-15: the product's flows first — console scripts, declared roots, mains
     outside tooling — then thread entries, then tooling (scripts, harnesses) folded. A role
     with no flow has no section.
@@ -436,6 +488,10 @@ def flows_index(source: Path, pages: list[FlowPage], undrawn_tests: int = 0) -> 
             "many are drawn).",
             "",
         ]
+    if unmatched:
+        lines += ["Imported traces whose test has no flow here:", ""]
+        lines += [f"- `{rel}` — root `{root}`" for rel, root in unmatched]
+        lines.append("")
     names = [p.name for p in pages]
     lines += ["```{toctree}", ":hidden:", ":maxdepth: 1", "", *names, "```", ""]
     (Path(source) / "flows.md").write_text("\n".join(lines), encoding="utf-8")

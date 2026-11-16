@@ -68,7 +68,8 @@ _CELL = str.maketrans({"|": "\\|", "\n": " "})
 ## v16: open issues fetched and linked when `wiki.issues.fetch` (P3a).
 ## v17: exports — Mermaid / PlantUML flows, llms.txt, ReqIF, needs.json, Structurizr (P3b).
 ## v18: decisions (ADRs) and docs grouped by kind (P3c).
-## @version 18
+## v19: imported OTel traces drawn over their test flows; unmatched ones listed (P4b-2).
+## @version 19
 ## @req REQ-DDB-WIKI-003
 def build_wiki(
     repo_root: Path,
@@ -83,7 +84,7 @@ def build_wiki(
 
     @brief Write and render the site.
     @return The HTML directory.
-    @version 17
+    @version 18
     """
     from .flowpage import flow_page, flows_index
     from .impactpage import impact_page
@@ -94,6 +95,7 @@ def build_wiki(
     from .imports import parse_features
     from .adr import find_decisions
     from .exports import write_exports
+    from .tracerun import load_traces, root_name
     from .symbols import symbol_pages
     from .tracepages import Trace, nodes_page, requirements_page
     from .versions import record_version, valid_key
@@ -118,10 +120,29 @@ def build_wiki(
     req_of = _requirements_of(trace.evidence)
     facts = testfacts.gather(trace.evidence)
     test_specs, undrawn = _test_flows(db, facts, config.test_flows)
+    specs = [*_all_flows(repo_root, db, config), *test_specs]
+    traces = {
+        root_name(otlp): (rel, otlp) for rel, otlp in load_traces(repo_root, config.inputs.traces)
+    }
     pages = [
-        flow_page(repo_root, db, _with_role(spec, config), source, rules, config, commit, req_of)
-        for spec in [*_all_flows(repo_root, db, config), *test_specs]
+        flow_page(
+            repo_root,
+            db,
+            _with_role(s, config),
+            source,
+            rules,
+            config,
+            commit,
+            req_of,
+            traces.get(s.entry),
+        )
+        for s in specs
     ]
+    unmatched = tuple(
+        (rel, root)
+        for root, (rel, _o) in sorted(traces.items())
+        if root not in {s.entry for s in specs}
+    )
     keys = {(n, f) for r in trace.evidence for n, f, _l in r.implementer_sites}
     keys |= {fn for p in pages for fn in p.functions}
     symbol_ctx = {
@@ -153,7 +174,7 @@ def build_wiki(
     _issues_into(graph, trace.issues)
     sections = [
         requirements_page(trace, config, source, rules, burndown, tuple(pages), issues),
-        flows_index(source, pages, undrawn),
+        flows_index(source, pages, undrawn, unmatched),
         impact_page(trace, pages, rules, source),
         map_page(
             graph,

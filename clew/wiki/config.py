@@ -30,6 +30,7 @@ is silently ignored produces a site that looks complete and omits what the key a
         gcov: ["build/**/*.gcov", build/cov.json.gz]       # W15: .gcov text or gcov/gcovr JSON
         mapping: docs/req_tests.yaml  # W16: {REQ: [test, ...]} or a `req,test` CSV
         features: ["tests/features/**/*.feature"]          # W16: Gherkin; tags name requirements
+        traces: ["build/traces/*.json"]  # round 3: OTLP JSON test runs, drawn over their flows
         layers:                       # W16: test layers by path / test-id glob
           unit: ["tests/unit/*"]
           bdd: ["tests/features/*"]
@@ -155,6 +156,7 @@ _TESTS = {
     "evidence_fields",
     "infer_depth",
     "contexts",
+    "traces",
 }
 _RESULT = {"format", "path"}
 _SOURCE = {"name", "path", "items", "id", "doc", "req"}
@@ -189,10 +191,11 @@ class FlowSpec:
 ## @brief The W15/W16 evidence imports of `wiki.tests`, as declared (paths relative to the repo).
 ## v2: `evidence_fields` — catalog fields whose test files link their tests; `infer_depth`
 ## (call-graph inference) and `contexts` (per-test coverage) — tests need no tag.
-## @version 2
+## v3: `traces` — OTLP JSON traces of test runs, drawn over their test flows (round 3, P4b).
+## @version 3
 @dataclass(frozen=True)
 class EvidenceInputs:
-    """@brief Reports, gcov, mapping, features, layers, catalog, inference. @version 2"""
+    """@brief Reports, gcov, mapping, features, layers, catalog, inference, traces. @version 3"""
 
     results: tuple[tuple[str, str], ...] = ()
     gcov: tuple[str, ...] = ()
@@ -203,6 +206,7 @@ class EvidenceInputs:
     evidence_fields: tuple[str, ...] = ("x-evidence", "evidence")
     infer_depth: int = 2
     contexts: str | None = None
+    traces: tuple[str, ...] = ()
 
 
 ## @brief The site's theme (W13).
@@ -592,14 +596,15 @@ def _role(raw: Any, where: str, problems: list[str]) -> str:
 ## @param problems Accumulated problems; appended to.
 ## @return The inputs.
 ## v2: evidence_fields.
-## @version 2
+## v3: traces.
+## @version 3
 ## @dg_internal
 def _inputs(tests: dict[str, Any], problems: list[str]) -> EvidenceInputs:
     """A RESULT FORMAT IS DECLARED, so an entry without one is a problem, never a sniffed guess.
 
     @brief Parse imports.
     @return Inputs.
-    @version 2
+    @version 3
     """
     from .imports import RESULT_FORMATS
 
@@ -628,6 +633,7 @@ def _inputs(tests: dict[str, Any], problems: list[str]) -> EvidenceInputs:
         else EvidenceInputs.evidence_fields,
         infer_depth=int(tests.get("infer_depth", EvidenceInputs.infer_depth) or 0),
         contexts=str(tests["contexts"]) if tests.get("contexts") else None,
+        traces=tuple(str(g) for g in tests.get("traces") or ()),
     )
 
 

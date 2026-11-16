@@ -241,3 +241,104 @@ def test_a_run_uses_the_repositorys_own_interpreter(tmp_path: Path) -> None:
     (own / ".venv" / "bin").mkdir(parents=True)
     (own / ".venv" / "bin" / "python").symlink_to(sys.executable)
     assert interpreter_for(own) == own / ".venv" / "bin" / "python"
+
+
+# --- P4b-2: OpenTelemetry traces imported from any language's run --------------------------------
+
+
+def _span(sid: str, parent: str, name: str, status: int = 1, events: list | None = None) -> dict:
+    return {
+        "traceId": "a" * 32,
+        "spanId": sid,
+        "parentSpanId": parent,
+        "name": name,
+        "startTimeUnixNano": "1",
+        "endTimeUnixNano": "2",
+        "attributes": [],
+        "events": events or [],
+        "status": {"code": status},
+    }
+
+
+def test_an_imported_trace_is_drawn_over_its_test_flow(tmp_path: Path) -> None:
+    """ANY LANGUAGE, ONE OVERLAY: an OTLP JSON trace exported by a test run (a C++ test built with
+    instrumentation, a JS test with OTel) is matched to the test flow whose test is its root span,
+    and the page shows which predicted steps it confirmed, which never ran, what it discovered and
+    where it failed. A trace that matches no flow is listed, never dropped.
+
+    @brief Imported OTel traces.
+    """
+    from clew.cli import _build_argparser, _run_pipeline
+    from clew.wiki.build import build_wiki
+    from tests.test_wiki_site import (
+        _CATALOG,
+        _CLI,
+        _DATA,
+        _FEATURE,
+        _JUNIT,
+        _OTHER_MAIN,
+        _OUT,
+        _PYPROJECT,
+        _ROADMAP,
+        _TEST,
+        _WIKI,
+    )
+
+    root = tmp_path / "repo"
+    for rel, text in {
+        "src/__init__.py": "",
+        "src/data.py": _DATA,
+        "src/out.py": _OUT,
+        "src/cli.py": _CLI,
+        "tools/other.py": _OTHER_MAIN,
+        "pyproject.toml": _PYPROJECT,
+        "tests/test_data.py": _TEST,
+        "requirements.yaml": _CATALOG,
+        "README.md": "# Demo\n",
+        "junit.xml": _JUNIT,
+        "ROADMAP.md": _ROADMAP,
+        "docs/extra.css": ".x{}\n",
+        "tests/features/finish.feature": _FEATURE,
+    }.items():
+        (root / rel).parent.mkdir(parents=True, exist_ok=True)
+        (root / rel).write_text(text)
+    failure = [
+        {
+            "name": "exception",
+            "attributes": [
+                {"key": "code.lineno", "value": {"stringValue": "6"}},
+                {"key": "exception.message", "value": {"stringValue": "boom"}},
+            ],
+        }
+    ]
+    spans = [
+        _span("0000000000000001", "", "test_load", status=2, events=failure),
+        _span("0000000000000002", "0000000000000001", "load"),
+        _span("0000000000000003", "0000000000000002", "parse"),
+        _span("0000000000000004", "0000000000000002", "helper_not_in_flow"),
+    ]
+    (root / "traces").mkdir()
+    (root / "traces" / "run.json").write_text(
+        json.dumps({"resourceSpans": [{"scopeSpans": [{"spans": spans}]}]})
+    )
+    (root / "traces" / "orphan.json").write_text(
+        json.dumps(
+            {
+                "resourceSpans": [
+                    {"scopeSpans": [{"spans": [_span("0000000000000009", "", "test_nothing")]}]}
+                ]
+            }
+        )
+    )
+    db = tmp_path / "clew.db"
+    _run_pipeline(_build_argparser().parse_args(["--output", str(db), "--repo-root", str(root)]))
+    config = tmp_path / "wiki.yaml"
+    config.write_text(_WIKI.replace("  tests:\n", '  tests:\n    traces: ["traces/*.json"]\n'))
+    html = build_wiki(root, db, tmp_path / "out", config_path=config)
+    page = (html / "flow-test_load-tests-test-data-py.html").read_text()
+    panel = page[page.index('class="trace-panel imported"') :].split("</div>")[0]
+    assert "traces/run.json" in panel and "confirmed" in panel
+    assert "helper_not_in_flow" in panel and "boom" in panel
+    assert 'g[data-step="0"]' in page
+    flows = (html / "flows.html").read_text()
+    assert "traces/orphan.json" in flows and "test_nothing" in flows

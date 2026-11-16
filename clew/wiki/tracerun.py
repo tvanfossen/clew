@@ -14,8 +14,8 @@ the FAILURE POINT: the assertion's line and message, an `exception` event on the
 `overlay` compares the run with the flow the index predicted for the same test: each predicted
 step CONFIRMED (observed) or NOT EXECUTED; observed calls the flow did not predict are DISCOVERED.
 
-@brief Run a test under a tracer and overlay it on its expected flow.
-@version 1
+@brief Run a test under a tracer, import other runs' traces, overlay them on the expected flow.
+@version 2
 """
 
 from __future__ import annotations
@@ -211,3 +211,61 @@ def overlay(expected: list[tuple[str, str]], otlp: dict[str, Any]) -> dict[str, 
         "steps": ["confirmed" if pair in seen else "not executed" for pair in expected],
         "discovered": discovered,
     }
+
+
+## @brief Every OTLP JSON trace under the configured globs.
+## @param repo_root The repository.
+## @param globs The globs.
+## @return (repo-relative file, document) pairs; an unreadable file is skipped with a warning.
+## @version 1
+## @req REQ-DDB-WIKI-036
+def load_traces(repo_root: Path, globs: tuple[str, ...]) -> list[tuple[str, dict[str, Any]]]:
+    """@brief Load traces. @return Pairs."""
+    import logging
+
+    root = Path(repo_root)
+    out = []
+    for path in sorted({p for g in globs for p in root.glob(g) if p.is_file()}):
+        try:
+            out.append(
+                (path.relative_to(root).as_posix(), json.loads(path.read_text(encoding="utf-8")))
+            )
+        except (OSError, ValueError) as exc:
+            logging.getLogger(__name__).warning("trace %s skipped: %s", path, exc)
+    return out
+
+
+## @brief The name of a trace's root span (the test), or "".
+## @param otlp The document.
+## @return The name.
+## @version 1
+## @req REQ-DDB-WIKI-036
+def root_name(otlp: dict[str, Any]) -> str:
+    """@brief Root. @return Name."""
+    spans = spans_of(otlp)
+    ids = {s.get("spanId") for s in spans}
+    return next((s["name"] for s in spans if s.get("parentSpanId") not in ids), "")
+
+
+## @brief The first failing span's exception: where and why.
+## @param otlp The document.
+## @return {span, line, message}, or None when nothing failed.
+## @version 1
+## @req REQ-DDB-WIKI-036
+def failure_of(otlp: dict[str, Any]) -> dict[str, str] | None:
+    """@brief Failure. @return Mapping or None."""
+    for span in spans_of(otlp):
+        if (span.get("status") or {}).get("code") != 2:
+            continue
+        event = next((e for e in span.get("events") or [] if e.get("name") == "exception"), {})
+        attrs = {
+            a["key"]: next(iter(a["value"].values()), "") for a in event.get("attributes") or []
+        }
+        return {
+            "span": span["name"],
+            "line": str(attrs.get("code.lineno", "")),
+            "message": str(
+                attrs.get("exception.message") or (span.get("status") or {}).get("message", "")
+            ),
+        }
+    return None

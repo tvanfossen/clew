@@ -888,6 +888,20 @@ requirements:
     x-priority: P1
     x-status: implemented
     x-evidence: clew/wiki/tracerun.py, _traceplugin.py, command.py, flowpage.py; clew/mcp_server/wikihub.py; docs/SECURITY.md; tests/test_wiki_tracerun.py.
+  REQ-DDB-WIKI-036:
+    subsystem: wiki
+    name: OpenTelemetry traces from any language's test run are drawn over their test flows
+    acceptance_criteria: >-
+      `wiki.tests.traces` names OTLP JSON files (globs). Each trace is matched by its root span's
+      name to the flow whose entry is that test; the flow's page carries a static overlay — each
+      predicted step styled confirmed or dimmed as not executed, the calls the trace made that
+      the flow did not predict listed as discovered, and the first failing span's exception (span,
+      line, message) — so a published site shows it without a server. A trace whose root matches
+      no flow is listed on the Flows page with its file and root, never dropped; an unreadable file
+      is skipped with a warning.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/tracerun.py, flowpage.py, build.py, config.py; tests/test_wiki_tracerun.py.
   REQ-DDB-SCHEMA-013:
     subsystem: schema
     name: Kconfig structure tables, created independently of the gating table
