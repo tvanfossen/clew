@@ -119,6 +119,14 @@ a.req-badge{display:inline-block;font:600 11px var(--mono);padding:1px 7px;borde
 svg.node-example{max-width:100%;height:auto;margin:8px 0 16px}svg.node-example rect{fill:var(--surface);stroke:var(--rule)}
 svg.node-example text{font-family:var(--sans);fill:var(--ink)}svg.node-example .k{font-size:11px;fill:var(--ink2)}svg.node-example .n{font:600 13px var(--mono)}
 svg.node-example .a{font:600 11px var(--mono);fill:var(--acc)}svg.node-example path{stroke:var(--acc);stroke-width:1.6;fill:none}svg.node-example marker path{fill:var(--acc);stroke:none}
+/* Symbol sections and the ego-graph (round 3, P1f). */
+section.symbol{border-top:1px solid var(--rule2);padding-top:14px;margin-top:22px}section.symbol h2{border:0;margin:0 0 8px;padding:0}
+pre.sig{white-space:pre-wrap;font-size:13px}p.where{font:12px var(--mono);color:var(--ink2)}
+svg.ego{display:block;max-width:100%;height:auto;background:var(--surface);border:1px solid var(--rule2);border-radius:14px;margin:8px 0 12px}
+svg.ego text{font:12px var(--mono);fill:var(--ink)}svg.ego .edge{stroke:var(--faint);stroke-width:1.2;opacity:.6}svg.ego .edge.far{opacity:.3}
+svg.ego circle{fill:var(--paper);stroke:var(--acc);stroke-width:1.6}svg.ego .center circle{fill:var(--acc)}svg.ego .center text{font-weight:700;font-size:13px}
+svg.ego .caller circle{stroke:var(--root)}svg.ego .far text{fill:var(--ink2);font-size:11px}svg.ego .fold circle{stroke-dasharray:2 2}svg.ego .fold text{fill:var(--faint);font-style:italic}
+svg.ego a:hover text{fill:var(--acc)}pre.body{max-height:420px}
 /* The system map (round 3, P1c): lenses and zoom levels are classes on .map-block. */
 .map-controls{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:8px 0 10px}
 .map-controls .ctl-label{font:600 11px var(--sans);text-transform:uppercase;letter-spacing:.05em;color:var(--faint);margin:0 4px 0 10px}

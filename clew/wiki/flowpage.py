@@ -31,6 +31,7 @@ from .config import Audience, FlowSpec, WikiConfig
 from .flow import Flow, derive_flow
 from .htmltable import code, md_title, source_url, table
 from .svg import flow_svg
+from .symbols import symbol_href
 
 
 ## @brief A written flow page: its name, title, the files its steps pass through, and its hops.
@@ -111,7 +112,8 @@ _STYLE = (
 ## v5: with its hops (P1c-3).
 ## v6: with its functions (P1d).
 ## v7: a requirements column — each step's callee's requirements, linked (P1e); `req_of`.
-## @version 7
+## v8: each callee links to its symbol section (P1f).
+## @version 8
 ## @req REQ-DDB-WIKI-014
 def flow_page(
     repo_root: Path,
@@ -157,9 +159,8 @@ def flow_page(
             else code(row["site"])
         )
         reqs = _badges((req_of or {}).get((step.callee, step.file), ()))
-        rows.append(
-            [str(i), code(step.caller), code(step.callee), reqs, escape(row["frames"]), site]
-        )
+        callee = f'<a href="{escape(symbol_href(step.callee, step.file))}">{code(step.callee)}</a>'
+        rows.append([str(i), code(step.caller), callee, reqs, escape(row["frames"]), site])
     head = ["#", "caller", "callee", "requirements", "frames", "call site"]
     lines += ["```{raw} html", table(head, rows, cls="steps", numeric=("#",)), "```", ""]
     if not rules.exclude_bodies:

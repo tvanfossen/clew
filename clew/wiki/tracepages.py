@@ -43,12 +43,13 @@ _IMPACT = Path("impact") / "impact.json"
 ## @brief Everything the trace pages and the version snapshot are drawn from, gathered once.
 ## @version 2
 class Trace:
-    """@brief Evidence, nodes, catalogs, rules, the declared catalog and impact. @version 2"""
+    """@brief Evidence, nodes, catalogs, rules, the declared catalog, impact, symbols. @version 3"""
 
     ## @brief Hold the gathered parts.
     ## @param parts Evidence, nodes, refs, catalogs, declared, impact, commit, catalog path.
     ## @param config The section (rules, link template).
-    ## @version 1
+    ## v2: `symbols` (P1f).
+    ## @version 2
     ## @dg_internal
     def __init__(self, parts: dict[str, Any], config: WikiConfig) -> None:
         """@brief Store. @return None."""
@@ -63,6 +64,8 @@ class Trace:
         self.commit: str = parts["commit"]
         self.rules = config.rules
         self.template = config.link_template
+        ## (function, file) pairs with a symbol section; `link` points there (round 3, P1f).
+        self.symbols: set[tuple[str, str]] = set()
 
     ## @brief Gather the trace for a repository.
     ## @param repo_root The repository.
@@ -132,10 +135,16 @@ class Trace:
     ## @param rel Its file.
     ## @param line Its line.
     ## @return HTML.
-    ## @version 1
+    ## v2: a function with a symbol section links there — a dossier reference, whose page links
+    ## the source (owner 2026-11-15) — else to its source.
+    ## @version 2
     ## @dg_internal
     def link(self, name: str, rel: str, line: int) -> str:
         """@brief Link. @return HTML."""
+        if (name, rel) in self.symbols:
+            from .symbols import symbol_href
+
+            return linked(name, symbol_href(name, rel))
         return linked(name, source_url(self.template, self.commit, rel, max(line, 1)))
 
 

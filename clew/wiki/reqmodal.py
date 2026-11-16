@@ -61,7 +61,8 @@ def requirement_cell(row: Any, entry: dict, ctx: dict[str, Any]) -> str:
 ## @param title Its title, or "" when withheld.
 ## @param ctx The page context.
 ## @return HTML.
-## @version 1
+## v2: each implementer shows its file and line beside its symbol link (P1f).
+## @version 2
 ## @dg_internal
 def _body(row: Any, entry: dict, title: str, ctx: dict[str, Any]) -> str:
     """@brief Assemble sections. @return HTML."""
@@ -85,7 +86,10 @@ def _body(row: Any, entry: dict, title: str, ctx: dict[str, Any]) -> str:
         ("Acceptance", f"<p>{md_title(criteria)}</p>" if criteria else "", ""),
         (
             "Implemented by",
-            _items(trace.link(n, f, ln) for n, f, ln in row.implementer_sites),
+            _items(
+                f'{trace.link(n, f, ln)} <span class="ver">{text(f)}:{ln}</span>'
+                for n, f, ln in row.implementer_sites
+            ),
             "ul",
         ),
         (_tests_heading(row.tests), _tests(row), "ul"),

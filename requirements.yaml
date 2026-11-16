@@ -705,6 +705,24 @@ requirements:
     x-priority: P1
     x-status: implemented
     x-evidence: clew/wiki/impactpage.py, tracepages.py, build.py; clew/wiki/themes/clew/; tests/test_wiki_impact.py, tests/test_wiki_trace_extensions.py.
+  REQ-DDB-WIKI-025:
+    subsystem: wiki
+    name: Symbol pages with an ego-graph; links are dossier references; no permalink to an unpublished commit
+    acceptance_criteria: >-
+      Every symbol the site references — a requirement's implementers, a flow's functions — has
+      a section on its file's page (`sym-<path>.html#s-<name>`) holding every definition of that
+      name in the file: signature, brief, source permalink when one resolves, a radial ego-graph
+      (callers left, callees right, one more hop outward; overflow folded into a "+N more" node;
+      neighbours with sections linked), the requirements it implements, the flows it is on, and
+      its body bundled from the file (withheld under `exclude_bodies`; when the recorded extent
+      no longer names the function the section says the index is older than the file instead of
+      bundling other code). Requirement implementers and flow-step callees link to these
+      sections. When the repository has a remote and no remote branch contains the described
+      commit, source permalinks are dropped site-wide; with no git, no remote or an unknown
+      commit they are kept.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/symbols.py, build.py, tracepages.py, reqmodal.py, flowpage.py; tests/test_wiki_symbols.py, tests/test_wiki_site.py.
   REQ-DDB-SCHEMA-013:
     subsystem: schema
     name: Kconfig structure tables, created independently of the gating table

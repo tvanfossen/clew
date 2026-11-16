@@ -309,7 +309,13 @@ def test_the_requirement_table_links_implementers_and_drops_empty_columns(
     assert head[:3] == ["requirement", "tier", "implemented by"]
     assert "nodes" not in head and "mutations" not in head
     row = table.split("REQ-W-001", 1)[1].split("</tr>")[0]
-    assert re.search(r'href="https://example\.invalid/blob/[^/]+/src/data\.py#L\d+"', row)
+    # Round 3, P1f (owner ruling: source links become DOSSIER REFERENCES): an implementer links
+    # to its symbol section, and that section links the source permalink.
+    assert 'href="sym-src-data-py.html#s-load"' in row
+    assert re.search(
+        r'href="https://example\.invalid/blob/[^/]+/src/data\.py#L\d+"',
+        site["sym-src-data-py.html"],
+    )
     inferred = table.split("REQ-X-001", 1)[1].split("</tr>")[0]
     assert "via-inferred" in inferred and "test_load" in inferred
 

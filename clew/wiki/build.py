@@ -29,6 +29,7 @@ without the extra installed.
 
 from __future__ import annotations
 
+import dataclasses
 import shutil
 import subprocess
 from pathlib import Path
@@ -61,7 +62,8 @@ _CELL = str.maketrans({"|": "\\|", "\n": " "})
 ## v10: the requirements page gets the flow pages and the issue tracker (P1d).
 ## v11: flows grouped by role, steps badged with requirements (P1e).
 ## v12: Change impact section after Flows (P1g).
-## @version 12
+## v13: symbol pages (P1f); source permalinks dropped when the commit is known unpublished.
+## @version 13
 ## @req REQ-DDB-WIKI-003
 def build_wiki(
     repo_root: Path,
@@ -76,13 +78,14 @@ def build_wiki(
 
     @brief Write and render the site.
     @return The HTML directory.
-    @version 11
+    @version 12
     """
     from .flowpage import flow_page, flows_index
     from .impactpage import impact_page
     from .graph import build_graph
     from .issues import resolve_target
     from .mappage import map_page, minimap_svg
+    from .symbols import symbol_pages
     from .tracepages import Trace, nodes_page, requirements_page
     from .versions import record_version, valid_key
 
@@ -97,6 +100,8 @@ def build_wiki(
         shutil.rmtree(source)
     source.mkdir(parents=True)
     commit = _commit(repo_root)
+    if commit_published(repo_root, commit) is False:
+        config = dataclasses.replace(config, link_template="")
     trace = Trace.gather(repo_root, db, config, commit)
     snapshot = trace.snapshot(version or "")
     milestones = _milestones(repo_root, config)
@@ -106,6 +111,16 @@ def build_wiki(
         flow_page(repo_root, db, _with_role(spec, config), source, rules, config, commit, req_of)
         for spec in _all_flows(repo_root, db, config)
     ]
+    keys = {(n, f) for r in trace.evidence for n, f, _l in r.implementer_sites}
+    keys |= {fn for p in pages for fn in p.functions}
+    symbol_ctx = {
+        "req_of": req_of,
+        "flows": pages,
+        "rules": rules,
+        "template": config.link_template,
+        "commit": commit,
+    }
+    trace.symbols = set(symbol_pages(db, repo_root, keys, symbol_ctx, source))
     graph = build_graph(db, trace.evidence, trace.impact, config.components, exclude_tests=True)
     issues = resolve_target(config.issues, config.issues_enabled, repo_root)
     sections = [
@@ -446,6 +461,42 @@ def _commit(repo_root: Path) -> str:
     except (OSError, subprocess.TimeoutExpired):
         return "HEAD"
     return out.stdout.strip() or "HEAD"
+
+
+## @brief Whether a commit is on one of the repository's remotes.
+## @param repo_root The repository.
+## @param commit The commit.
+## @return True when a remote branch contains it, False when there are remotes and none does,
+## None when it cannot be known (no git, no remote, an unknown commit).
+## @version 1
+## @req REQ-DDB-WIKI-025
+def commit_published(repo_root: Path, commit: str) -> bool | None:
+    """OWNER 2026-11-15: "GH link broken (local unpushed commits)" — a permalink to a commit no
+    remote has is a 404. Only a KNOWN negative drops links: with nothing to go on they stay.
+
+    @brief Published?
+    @return Tri-state.
+    """
+    from ..gitenv import git_argv
+
+    if not commit or commit == "HEAD":
+        return None
+    try:
+        remotes = subprocess.run(
+            git_argv("remote"), cwd=repo_root, capture_output=True, text=True, timeout=30
+        )
+        if remotes.returncode != 0 or not remotes.stdout.strip():
+            return None
+        found = subprocess.run(
+            git_argv("branch", "-r", "--contains", commit),
+            cwd=repo_root,
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    return bool(found.stdout.strip()) if found.returncode == 0 else None
 
 
 ## @brief Render the source tree to HTML with Sphinx.
