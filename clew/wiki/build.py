@@ -66,7 +66,8 @@ _CELL = str.maketrans({"|": "\\|", "\n": " "})
 ## v14: test sections and Gherkin feature pages (P2a).
 ## v15: directly linked tests drawn as flows (P2b).
 ## v16: open issues fetched and linked when `wiki.issues.fetch` (P3a).
-## @version 16
+## v17: exports — Mermaid / PlantUML flows, llms.txt, ReqIF, needs.json, Structurizr (P3b).
+## @version 17
 ## @req REQ-DDB-WIKI-003
 def build_wiki(
     repo_root: Path,
@@ -81,7 +82,7 @@ def build_wiki(
 
     @brief Write and render the site.
     @return The HTML directory.
-    @version 15
+    @version 16
     """
     from .flowpage import flow_page, flows_index
     from .impactpage import impact_page
@@ -90,6 +91,7 @@ def build_wiki(
     from .mappage import map_page, minimap_svg
     from . import testfacts
     from .imports import parse_features
+    from .exports import write_exports
     from .symbols import symbol_pages
     from .tracepages import Trace, nodes_page, requirements_page
     from .versions import record_version, valid_key
@@ -158,6 +160,13 @@ def build_wiki(
     if config.sources:
         sections.append(nodes_page(trace, config, source))
     _write_index(source, config, trace, [s for s in sections if s], len(pages))
+    write_exports(
+        source / "_extra",
+        trace,
+        pages,
+        graph,
+        {"title": config.title, "rules": rules, "summary": ""},
+    )
     context = {
         "clew_minimap": minimap_svg(graph) if "map" in sections else "",
         "clew_minimap_lit": _lit(pages, graph, config),
@@ -599,7 +608,8 @@ def commit_published(repo_root: Path, commit: str) -> bool | None:
 ## @return The output directory.
 ## v2: the configured theme (W13), clew's own by default.
 ## v3: `context` (the minimap, round 3 P1c-2).
-## @version 3
+## v4: `_extra` (the exports) copied to the site root.
+## @version 4
 ## @dg_internal
 def _render(
     source: Path, html: Path, config: WikiConfig, repo_root: Path, context: dict | None = None
@@ -623,6 +633,7 @@ def _render(
         "source_suffix": {".rst": "restructuredtext", ".md": "markdown"},
         "exclude_patterns": ["_build"],
         "html_context": context or {},
+        "html_extra_path": ["_extra"] if (source / "_extra").is_dir() else [],
         **sphinx_settings(config.theme, repo_root, source),
     }
     (source / "conf.py").write_text(

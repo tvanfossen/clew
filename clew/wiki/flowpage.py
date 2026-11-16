@@ -38,9 +38,10 @@ from .symbols import symbol_href
 ## v2: `hops`, for the map's flow traces (round 3, P1c-3).
 ## v3: `functions`, so a requirement lists the flows its implementers are on (P1d).
 ## v4: `role`, `steps`, `requirements` — the Flows page groups and summarises them (P1e).
-## @version 4
+## v5: `calls`, for llms-full.txt (P3b).
+## @version 5
 class FlowPage(NamedTuple):
-    """@brief A flow page. @version 4"""
+    """@brief A flow page. @version 5"""
 
     name: str
     title: str
@@ -55,6 +56,8 @@ class FlowPage(NamedTuple):
     steps: int = 0
     ## Requirements its functions implement.
     requirements: frozenset[str] = frozenset()
+    ## (caller, callee) per step, in call order.
+    calls: tuple[tuple[str, str], ...] = ()
 
 
 ## The most lines a call expression is read across.
@@ -115,7 +118,8 @@ _STYLE = (
 ## v8: each callee links to its symbol section (P1f).
 ## v9: the functions section links symbol sections instead of repeating each body (P2b: the
 ## repeated dossiers were 37 of 86 s of clew's build).
-## @version 9
+## v10: Mermaid and PlantUML exports of the diagram, linked from the page (P3b).
+## @version 10
 ## @req REQ-DDB-WIKI-014
 def flow_page(
     repo_root: Path,
@@ -171,11 +175,21 @@ def flow_page(
         (s.caller, s.site_file) for s in flow.steps if s.site_file
     }
     lines += _functions(functions)
+    lines += _diagram_exports(flow, source, name)
     (source / f"{name}.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
     title = spec.title or "Flow: " + spec.entry
     reqs = frozenset(r for f in functions for r in (req_of or {}).get(f, ()))
+    calls = tuple((s.caller, s.callee) for s in flow.steps)
     return FlowPage(
-        name, title, frozenset(files), hops, frozenset(functions), spec.role, len(flow.steps), reqs
+        name,
+        title,
+        frozenset(files),
+        hops,
+        frozenset(functions),
+        spec.role,
+        len(flow.steps),
+        reqs,
+        calls,
     )
 
 
@@ -310,6 +324,28 @@ def _call_text(repo_root: Path, rel: str, line: int) -> str:
         if depth <= 0:
             break
     return "\n".join(out).strip()
+
+
+## @brief Write the flow as Mermaid and PlantUML into the site's exports, and link them.
+## @param flow The flow.
+## @param source The Sphinx source directory (its `_extra` is copied to the site root).
+## @param name The page name.
+## @return Markdown lines.
+## @version 1
+## @dg_internal
+def _diagram_exports(flow: Flow, source: Path, name: str) -> list[str]:
+    """@brief Diagram exports. @return Lines."""
+    from .exports import flow_mermaid, flow_plantuml
+
+    out = Path(source) / "_extra" / "exports" / "flows"
+    out.mkdir(parents=True, exist_ok=True)
+    (out / f"{name}.mmd").write_text(flow_mermaid(flow), encoding="utf-8")
+    (out / f"{name}.puml").write_text(flow_plantuml(flow), encoding="utf-8")
+    links = (
+        f'<p class="exports">This diagram as <a href="exports/flows/{name}.mmd">Mermaid</a> · '
+        f'<a href="exports/flows/{name}.puml">PlantUML</a></p>'
+    )
+    return ["```{raw} html", links, "```", ""]
 
 
 ## @brief The functions a flow reaches, each linked to its symbol section.

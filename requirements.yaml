@@ -770,6 +770,23 @@ requirements:
     x-priority: P1
     x-status: implemented
     x-evidence: clew/wiki/issues.py, build.py, config.py, tracepages.py, reqmodal.py, mappage.py; tests/test_wiki_issues.py.
+  REQ-DDB-WIKI-029:
+    subsystem: wiki
+    name: The site ships its trace in other tools' formats
+    acceptance_criteria: >-
+      Every built site carries, generated from the same trace and obeying its audience (no
+      requirement title or criteria under `exclude_requirement_text`): each flow as a Mermaid
+      `sequenceDiagram` and a PlantUML sequence diagram with its frames as loop / alt / opt (or
+      group) blocks, linked from the flow's page; `llms.txt` at the site root (an H1, a one-line
+      summary quote, sections of links to the requirements and every flow) and `llms-full.txt`
+      (every requirement with its tier, criteria and implementers, every flow's calls);
+      `exports/requirements.reqif` (ReqIF 1.2, one SPEC-OBJECT per requirement with id, title,
+      text and tier, one SPECIFICATION); `exports/needs.json` (Sphinx-needs: one `req` need per
+      requirement under the current version, with the amount); `exports/system.dsl` (Structurizr
+      DSL: the system, a container per component, a relation per link, a container view).
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/exports.py, flowpage.py, build.py; tests/test_wiki_exports.py.
   REQ-DDB-SCHEMA-013:
     subsystem: schema
     name: Kconfig structure tables, created independently of the gating table

@@ -203,6 +203,7 @@ def site(repo: tuple[Path, Path], tmp_path_factory: pytest.TempPathFactory) -> d
     pages = {p.relative_to(html).as_posix(): p.read_text() for p in html.rglob("*.html")}
     pages.update({p.relative_to(html).as_posix(): p.read_text() for p in html.rglob("*.css")})
     pages["_static/clew.js"] = (html / "_static" / "clew.js").read_text()
+    pages["__html__"] = str(html)
     pages["__fonts__"] = " ".join(sorted(p.name for p in (html / "_static").rglob("*.ttf")))
     pages["__licenses__"] = " ".join(sorted(p.name for p in (html / "_static").rglob("OFL*")))
     return pages
