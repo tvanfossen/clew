@@ -110,9 +110,25 @@ by commit SHA and bounds its dependency versions, which narrows the window for a
 substitution. It does not eliminate the position: a compromised release of a dependency is a
 compromise of clew.
 
-### 9. Nothing here is a vulnerability report
+### 9. The wiki hub and issue fetching reach beyond the build
 
-The nine positions above are the design. Reporting one back as a finding is useful only if it
+Two wiki features, both off by default, widen what a running clew touches:
+
+- **The wiki hub** (`CLEW_WIKI=1`) listens inside the MCP server on 127.0.0.1, on a port the OS
+  picks. One page lists every repository indexed on the machine and serves each one's wiki,
+  including bundled function bodies. Every request needs the per-session token: the URL carries
+  it once, which sets an HttpOnly, SameSite=Strict cookie. The token is also written to
+  `wiki.json` under the state root, created with mode 0600. Anything that can read that file,
+  or the URL, can read every indexed repository's wiki for the life of the session. Building a
+  wiki runs `clew wiki build` in a subprocess, which is a build of that repository in the sense
+  of position 1.
+- **Issue fetching** (`wiki.issues.fetch: true`) makes the wiki build call GitHub's or Azure
+  DevOps' REST API, with a token from the environment. It reads the repository's open issues,
+  and only that tracker is contacted.
+
+### 10. Nothing here is a vulnerability report
+
+The ten positions above are the design. Reporting one back as a finding is useful only if it
 comes with a case that the promise in the first section was broken.
 
 ## Reporting

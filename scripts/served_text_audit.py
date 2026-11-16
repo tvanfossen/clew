@@ -63,6 +63,7 @@ PLUMBING_MODULES = {
     "clew/mcp_server/descriptions.py": "loads the JSON; the text lives in the JSON",
     "clew/mcp_server/state.py": "target resolution and registry bookkeeping",
     "clew/mcp_server/watcher.py": "file-change watching for the refresh loop; logs only (1.3.6)",
+    "clew/mcp_server/wikihub.py": "HTML to a browser over loopback HTTP, never text to the model (P4c)",
 }
 
 DESCRIPTIONS_DIR = REPO / "clew/mcp_server/descriptions"

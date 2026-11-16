@@ -3399,7 +3399,9 @@ async def run_stdio(mcp: MCPServer) -> None:
 ## @param interval Seconds between background checks; 0 disables the loop.
 ## @param transport The serving coroutine, `run_stdio` unless a test supplies one.
 ## @return None, once the transport ends.
-## @version 1
+## v2: the wiki hub (round 3, P4c) runs beside the transport when `CLEW_WIKI=1`, and stops
+## with it.
+## @version 2
 ## @req REQ-DDB-MCP-004
 async def serve(
     mcp: MCPServer, state: DocsDbServer, interval: float, transport: Any = None
@@ -3410,14 +3412,21 @@ async def serve(
 
     @brief Run the transport alongside the background refresh loop.
     @return None.
-    @version 1
+    @version 2
     """
+    from . import wikihub
+    from .state import state_home
+
     serving = transport if transport is not None else run_stdio
-    async with anyio.create_task_group() as tg:
-        if interval > 0:
-            tg.start_soon(state.keep_current, interval)
-        await serving(mcp)
-        tg.cancel_scope.cancel()
+    hub = wikihub.start_if_enabled(state_home())
+    try:
+        async with anyio.create_task_group() as tg:
+            if interval > 0:
+                tg.start_soon(state.keep_current, interval)
+            await serving(mcp)
+            tg.cancel_scope.cancel()
+    finally:
+        wikihub.stop(hub, state_home())
 
 
 ## @brief Entry point — run the server over stdio.

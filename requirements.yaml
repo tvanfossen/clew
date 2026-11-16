@@ -817,6 +817,22 @@ requirements:
     x-priority: P1
     x-status: implemented
     x-evidence: clew/wiki/adr.py, build.py, config.py, tracepages.py, reqmodal.py; tests/test_wiki_site.py.
+  REQ-DDB-WIKI-032:
+    subsystem: wiki
+    name: The MCP server hosts a hub of every indexed repository's wiki, on request
+    acceptance_criteria: >-
+      With `CLEW_WIKI=1` the MCP server runs an HTTP thread beside its transport — none
+      otherwise — bound to 127.0.0.1 on an OS-chosen port, refusing every request without the
+      per-session token (a `?t=` query sets an HttpOnly, SameSite=Strict cookie), and writing
+      nothing to stdout. `/` lists every registered target with its wiki's state (built,
+      building, queued, not built, failed, or unreachable when the checkout is gone — listed,
+      never dropped); `/r/<slug>/` serves that target's wiki, built on demand in a subprocess,
+      one build at a time, behind a page that reloads until it is ready; a path resolving outside
+      the built site is refused before any build. The hub's URL is recorded in `wiki.json` under
+      the state root, created 0600, and removed with the hub when the transport ends.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/mcp_server/wikihub.py, server.py; scripts/served_text_audit.py; docs/SECURITY.md; tests/test_wiki_hub.py.
   REQ-DDB-SCHEMA-013:
     subsystem: schema
     name: Kconfig structure tables, created independently of the gating table
