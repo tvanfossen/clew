@@ -251,16 +251,20 @@ def _report_skips(skipped: list[str]) -> None:
 ## @brief Validate a list of files and report violations.
 #  @details The choke point both entry paths use (`validate` and pre-commit mode), which is
 #  why the skip report lives here rather than in either caller.
-#  @version 1.3
+#  v1.4: external catalogues' ids join the local catalogue's (GH #68).
+#  @version 1.4
 #  @dg_internal
 def _validate_files(
     file_paths: list[str],
     config: dict[str, Any],
     no_git: bool = False,
 ) -> list[Violation]:
-    from .impact import load_requirements_full
+    from .impact import load_external_requirements, load_requirements_full
 
-    req_ids = set(load_requirements_full(config).keys()) or None
+    # THE LOCAL CATALOGUE AND EVERY EXTERNAL ONE (GH #68). The set is passed even when EMPTY —
+    # catalogues were looked for and none exists — so the check reports each tag as uncheckable
+    # rather than passing it; None is reserved for "no catalogue information supplied".
+    req_ids = set(load_requirements_full(config)) | set(load_external_requirements(config))
     violations: list[Violation] = []
     skipped: list[str] = []
     for file_path in file_paths:

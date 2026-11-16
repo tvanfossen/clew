@@ -323,6 +323,7 @@ another tag and alias it: `version: {tag: "@revision"}` plus `extra_tags: ["revi
 | `requirements.format` | string | `yaml` | `yaml`, `csv` or `json` |
 | `requirements.id_column` | string | `Req ID` | Id column (`csv`/`json` only) |
 | `requirements.name_column` | string | `name` | Name column or field |
+| `requirements.external` | list | — | Catalogues this repository does not own: a path, or `{repo, rev, path}` read at that revision from a local clone or submodule. A URL is refused |
 
 The preferred catalog is a mapping keyed by id:
 
@@ -341,6 +342,24 @@ requirements:
 A missing file, an unknown format, a wrong shape, a missing `name`, or an id failing
 `validate.tags.req.pattern` raises `RequirementsError`. The run fails rather than continuing
 with an empty catalog.
+
+A library whose requirements are owned by the product that consumes it names the product's
+catalogue under `external` and needs no `file` of its own:
+
+```yaml
+impact:
+  requirements:
+    external:
+      - product/requirements.yaml                                   # a path in this checkout
+      - {repo: ../product, rev: v3.2.0, path: requirements.yaml}    # a local clone, at a pin
+```
+
+A pinned entry is read with `git show rev:path`, so it is the catalogue as of that revision, not
+the clone's working tree. The gate never fetches: a URL is refused by name.
+
+**No catalogue, a tag: a violation.** With `tags.req.cross_reference` on and no catalogue
+declared anywhere, every `@req` tag is reported as one that cannot be checked. (Before 2.0.0 it
+passed unchecked.) Declare a catalogue, or set `cross_reference: false`.
 
 ### Validation of the config itself
 

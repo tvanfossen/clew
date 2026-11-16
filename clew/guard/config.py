@@ -226,6 +226,9 @@ CONFIG_SCHEMA: dict[str, Any] = {
             "format": str,
             "id_column": str,
             "name_column": str,
+            ## GH #68: catalogues this repository does not own — a path, or {repo, rev, path}
+            ## read from a local clone at that revision. A URL is refused by name.
+            "external": list,
         },
         "output": {
             "format": str,

@@ -1934,6 +1934,21 @@ requirements:
     x-priority: P1
     x-status: implemented
     x-evidence: clew/guard/checks.py check_bus_tags; tests/guard/test_guard_bus.py.
+  REQ-DDB-GUARD-027:
+    subsystem: guard
+    name: External requirements catalogues, and no @req passes unchecked
+    acceptance_criteria: 'impact.requirements.external names catalogues this repository does not
+      own, each a local path or {repo, rev, path} read with git show at that revision from a local
+      checkout; their ids join the local catalogue for cross_reference, and `file` is optional
+      beside them. A URL source is refused naming it. An unreadable or empty external catalogue is
+      an error, never an empty set. With cross_reference on and no catalogue at all, each @req tag
+      is a violation saying it cannot be checked. The wiki''s pinned sub-catalogues are read through
+      the same reader.'
+    x-priority: P1
+    x-status: implemented
+    x-evidence: 'clew/requirements.py read_catalog_at / git_text; clew/guard/impact.py
+      load_external_requirements; clew/guard/checks.py check_req_exists / _uncheckable.
+      tests/guard/test_guard_external_catalogs.py.'
   REQ-DDB-GUARD-025:
     subsystem: guard
     name: JavaScript and TypeScript (JSDoc) functions are gated when a repo declares them

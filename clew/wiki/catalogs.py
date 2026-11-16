@@ -24,7 +24,6 @@ Every git call goes through `gitenv.git_argv` — the sibling's own `.git/config
 
 from __future__ import annotations
 
-import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -47,7 +46,9 @@ class CatalogRequirement:
 ## @param repo_root This repository (the sibling path is relative to it).
 ## @param spec The sub-catalog.
 ## @return (rows, problems).
-## @version 1
+## v2: through the shared reader `requirements.read_catalog_at` (GH #68), which the gate's
+## external catalogues use too.
+## @version 2
 ## @req REQ-DDB-WIKI-005
 def catalog_requirements(
     repo_root: Path, spec: CatalogSpec
@@ -58,19 +59,18 @@ def catalog_requirements(
     @brief Read a catalog at its pin.
     @return Rows and problems.
     """
-    import yaml
+    from ..requirements import read_catalog_at
 
-    sibling = (Path(repo_root) / spec.repo).resolve()
-    text = _git(sibling, "show", f"{spec.pin}:{spec.catalog}")
-    if text is None:
-        return [], [f"catalog {spec.name!r}: {spec.catalog} is not readable at pin {spec.pin}"]
     try:
-        doc = yaml.safe_load(text)
-    except yaml.YAMLError as exc:
-        return [], [f"catalog {spec.name!r}: not YAML at pin {spec.pin}: {exc}"]
-    rows = [CatalogRequirement(spec.name, req_id, title, spec.pin) for req_id, title in _pairs(doc)]
-    if not rows:
-        return [], [f"catalog {spec.name!r}: no `id` rows at pin {spec.pin}"]
+        found = read_catalog_at(
+            repo_root, {"repo": spec.repo, "rev": spec.pin, "path": spec.catalog}
+        )
+    except ValueError as exc:
+        return [], [f"catalog {spec.name!r}: {exc}"]
+    rows = [
+        CatalogRequirement(spec.name, req_id, row.get("title") or row.get("name") or "", spec.pin)
+        for req_id, row in found.items()
+    ]
     return rows, []
 
 
@@ -112,17 +112,20 @@ def declared_catalog(repo_root: Path) -> tuple[str, dict[str, dict]]:
 ## @param repo_root This repository.
 ## @param spec The sub-catalog.
 ## @return Problems; [] when the pin resolves and the catalog has not moved since.
-## @version 1
+## v2: git through the shared `requirements.git_text` (GH #68).
+## @version 2
 ## @req REQ-DDB-WIKI-005
 def pin_problems(repo_root: Path, spec: CatalogSpec) -> list[str]:
     """@brief Check a pin. @return Problems."""
+    from ..requirements import git_text
+
     sibling = (Path(repo_root) / spec.repo).resolve()
     if not sibling.is_dir():
         return [f"catalog {spec.name!r}: sibling checkout {spec.repo} does not exist"]
-    if _git(sibling, "rev-parse", "--verify", "--quiet", f"{spec.pin}^{{commit}}") is None:
+    if git_text(sibling, "rev-parse", "--verify", "--quiet", f"{spec.pin}^{{commit}}") is None:
         return [f"catalog {spec.name!r}: pin {spec.pin} does not resolve in {spec.repo}"]
-    pinned = _git(sibling, "show", f"{spec.pin}:{spec.catalog}")
-    head = _git(sibling, "show", f"HEAD:{spec.catalog}")
+    pinned = git_text(sibling, "show", f"{spec.pin}:{spec.catalog}")
+    head = git_text(sibling, "show", f"HEAD:{spec.catalog}")
     if pinned is None:
         return [f"catalog {spec.name!r}: {spec.catalog} does not exist at pin {spec.pin}"]
     if head != pinned:
@@ -131,44 +134,3 @@ def pin_problems(repo_root: Path, spec: CatalogSpec) -> list[str]:
             f"(it differs at {spec.repo} HEAD) — re-pin or trace against the pinned rows"
         ]
     return []
-
-
-## @brief (id, title) pairs from a catalog document.
-## @param doc The parsed catalog.
-## @return Pairs, in catalog order.
-## @version 1
-## @dg_internal
-def _pairs(doc: object) -> list[tuple[str, str]]:
-    """@brief Extract ids. @return Pairs."""
-    if isinstance(doc, list):
-        return [
-            (str(r["id"]), str(r.get("title") or r.get("name") or ""))
-            for r in doc
-            if isinstance(r, dict) and r.get("id")
-        ]
-    if isinstance(doc, dict):
-        return [
-            (str(k), str((v or {}).get("title") or (v or {}).get("name") or ""))
-            for k, v in doc.items()
-            if isinstance(v, dict) or v is None
-        ]
-    return []
-
-
-## @brief Run git in a sibling checkout through the hardened environment.
-## @param cwd The checkout.
-## @param args Git arguments.
-## @return stdout, or None when git failed.
-## @version 1
-## @dg_internal
-def _git(cwd: Path, *args: str) -> str | None:
-    """@brief Run git. @return Output or None."""
-    from ..gitenv import git_argv
-
-    try:
-        out = subprocess.run(
-            git_argv(*args), cwd=cwd, capture_output=True, text=True, check=False, timeout=30
-        )
-    except (OSError, subprocess.TimeoutExpired):
-        return None
-    return out.stdout if out.returncode == 0 else None

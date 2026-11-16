@@ -824,3 +824,115 @@ def _declared_catalog_field(guard_cfg: dict | None) -> str:
     from .guard import config as dg_config
 
     return str((dg_config.get_impact(guard_cfg).get("requirements") or {}).get("file") or "")
+
+
+# --- catalogues read from a path or a pinned revision (GH #68) ------------------------------------
+
+## A source that names a remote location rather than a local path or checkout.
+_URLISH = re.compile(r"^[a-z][a-z0-9+.-]*://|^[\w.-]+@[\w.-]+:", re.I)
+
+
+## @brief Run git in a local checkout through the hardened environment.
+## @param cwd The checkout.
+## @param args Git arguments.
+## @return stdout, or None when git failed.
+## @version 1
+## @req REQ-DDB-GUARD-027
+def git_text(cwd: Path, *args: str) -> str | None:
+    """THE HARDENED ENVIRONMENT (`gitenv.git_argv`): a checkout's own config is data, never code.
+
+    @brief Run git.
+    @return Output or None.
+    """
+    import subprocess
+
+    from .gitenv import git_argv
+
+    try:
+        out = subprocess.run(
+            git_argv(*args), cwd=cwd, capture_output=True, text=True, check=False, timeout=30
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    return out.stdout if out.returncode == 0 else None
+
+
+## @brief Read a requirements catalogue from a local path or a pinned revision of a local checkout.
+## @param repo_root The repository the source is relative to.
+## @param source A path, or `{repo, rev, path}`.
+## @return {requirement id: its row, values as text}.
+## @version 1
+## @req REQ-DDB-GUARD-027
+def read_catalog_at(repo_root: Path | str, source: str | dict) -> dict[str, dict[str, str]]:
+    """ONE READER for the gate's external catalogues and the wiki's pinned sub-catalogues (GH #68).
+
+    A URL is REFUSED BY NAME (owner 2026-11-16): reading one would make a pre-commit gate depend
+    on the network. A pinned source is read with `git show <rev>:<path>` from a LOCAL clone or
+    submodule, so it is the catalogue as it was at that revision, not as the working tree has it.
+    Both shapes are read — the `requirements:`-keyed mapping and the flat list of rows — and
+    anything else raises rather than yielding an empty catalogue that would pass every tag.
+
+    @brief Read a catalogue.
+    @return Rows by id.
+    """
+    import yaml
+
+    root = Path(repo_root)
+    if isinstance(source, dict):
+        missing = [k for k in ("repo", "rev", "path") if not source.get(k)]
+        if missing:
+            raise ValueError(f"a pinned catalogue needs repo, rev and path (missing: {missing})")
+        _refuse_url(str(source["repo"]))
+        text = git_text(root / str(source["repo"]), "show", f"{source['rev']}:{source['path']}")
+        where = f"{source['repo']}@{source['rev']}:{source['path']}"
+        if text is None:
+            raise ValueError(f"catalogue {where} is not readable at that revision")
+    else:
+        _refuse_url(str(source))
+        where = str(source)
+        try:
+            text = (root / where).read_text(encoding="utf-8")
+        except OSError as exc:
+            raise ValueError(f"catalogue {where} is not readable: {exc.strerror}") from exc
+    try:
+        rows = _catalog_rows(yaml.safe_load(text))
+    except yaml.YAMLError as exc:
+        raise ValueError(f"catalogue {where} is not YAML") from exc
+    if not rows:
+        raise ValueError(f"catalogue {where} holds no requirement rows")
+    return rows
+
+
+## @brief Refuse a source that is a URL.
+## @param text The source.
+## @return None.
+## @version 1
+## @dg_internal
+def _refuse_url(text: str) -> None:
+    """@brief URL check. @return None."""
+    if _URLISH.match(text.strip()):
+        raise ValueError(
+            f"{text!r} is a URL: a catalogue is read from a local path or a local clone pinned "
+            "by revision, never fetched"
+        )
+
+
+## @brief The rows of a parsed catalogue, in either shape.
+## @param data The parsed document.
+## @return {id: row}.
+## @version 1
+## @dg_internal
+def _catalog_rows(data: object) -> dict[str, dict[str, str]]:
+    """@brief Rows. @return Mapping."""
+    if isinstance(data, dict) and isinstance(data.get("requirements"), dict):
+        data = data["requirements"]
+    out: dict[str, dict[str, str]] = {}
+    if isinstance(data, list):
+        for row in data:
+            if isinstance(row, dict) and (row.get("id") or row.get("ID")):
+                out[str(row.get("id") or row.get("ID"))] = {k: str(v) for k, v in row.items()}
+    elif isinstance(data, dict):
+        for key, row in data.items():
+            if isinstance(row, dict) or row is None:
+                out[str(key)] = {k: str(v) for k, v in (row or {}).items()}
+    return out

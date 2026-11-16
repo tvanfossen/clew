@@ -154,7 +154,8 @@ def collect_changed_functions(
 
 
 ## @brief Extract requirements config, raising if a declared catalog is unusable.
-#  @version 2.1
+#  @details v2.2: `file` is optional beside `external` (GH #68).
+#  @version 2.2
 #  @req REQ-DDB-GUARD-011
 #  @return Catalog path, format, id column and name column, or None if unconfigured
 def _get_requirements_config(
@@ -167,8 +168,12 @@ def _get_requirements_config(
 
     req_file = req_config.get("file")
     if not req_file:
+        # GH #68: a repository whose catalogue its consumer owns names only `external`.
+        if req_config.get("external"):
+            return None
         raise RequirementsError(
-            "impact.requirements is declared but impact.requirements.file is not"
+            "impact.requirements is declared but neither impact.requirements.file nor "
+            "impact.requirements.external is"
         )
     # Containment before open(): the catalog path is repo-controlled, and its rows are
     # echoed back in validation errors. Without this, pointing it at any readable file
@@ -185,6 +190,28 @@ def _get_requirements_config(
         req_config.get("id_column", REQUIREMENTS_ID_COLUMN_DEFAULT),
         req_config.get("name_column", REQUIREMENTS_NAME_COLUMN_DEFAULT),
     )
+
+
+## @brief The requirement ids of the external catalogues this repository names (GH #68).
+#  @version 1.0
+#  @req REQ-DDB-GUARD-027
+#  @return Mapping of requirement ID to its row; empty when none is named
+def load_external_requirements(config: dict[str, Any]) -> dict[str, dict[str, str]]:
+    """The consumer's catalogue, read where it is pinned: each entry is a path or {repo, rev,
+    path} relative to the repository, through the reader the wiki uses. An unreadable one or a
+    URL is an error naming it, never an empty catalogue that would pass every tag."""
+    from ..requirements import read_catalog_at
+
+    req_config = get_impact(config).get("requirements") or {}
+    out: dict[str, dict[str, str]] = {}
+    for source in req_config.get("external") or []:
+        try:
+            out.update(read_catalog_at(Path.cwd(), source))
+        except ValueError as exc:
+            raise RequirementsError(f"impact.requirements.external: {exc}") from exc
+    if out:
+        logger.info("Loaded %d requirement(s) from external catalogues", len(out))
+    return out
 
 
 ## @brief Load full requirement rows from the configured catalog.

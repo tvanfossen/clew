@@ -789,8 +789,27 @@ def _edit_distance(a: str, b: str) -> int:
     return prev[len(b)]
 
 
-## @brief Cross-validate requirement tag references against the requirements file.
+## @brief A tag that cannot be checked because no catalogue is declared (GH #68).
 #  @version 1.0
+#  @req REQ-DDB-GUARD-027
+#  @return The violation
+def _uncheckable(func: Function, file_path: str, req_id: str) -> Violation:
+    return Violation(
+        file=file_path,
+        line=func.doxygen.start_line + 1,
+        check="tag",
+        message=(
+            f"@req {req_id} in {func.name}() cannot be checked: no requirements catalog is "
+            "declared; name one under impact.requirements (file or external), or set "
+            "validate.tags.req.cross_reference: false"
+        ),
+    )
+
+
+## @brief Cross-validate requirement tag references against the requirements file.
+#  @details v1.1: an EMPTY id set (looked, no catalogue) reports each tag as uncheckable;
+#  None still means no catalogue information was supplied (GH #68).
+#  @version 1.1
 #  @req REQ-DDB-GUARD-001
 def check_req_exists(
     func: Function,
@@ -798,6 +817,8 @@ def check_req_exists(
     config: dict[str, Any],
     req_ids: set[str] | None = None,
 ) -> list[Violation]:
+    # ABSENCE IS NOT EMPTINESS: None means the caller supplied no catalogue information (skip);
+    # an EMPTY set means the catalogues were looked for and none exists (GH #68).
     if func.doxygen is None or req_ids is None:
         return []
 
@@ -808,7 +829,11 @@ def check_req_exists(
 
     violations: list[Violation] = []
     for req_id in func.doxygen.tags.get("req", []):
-        if req_id not in req_ids:
+        if not req_ids:
+            # GH #68: NO CATALOGUE AT ALL used to pass every tag unchecked. A tag that cannot be
+            # checked is now said to be one.
+            violations.append(_uncheckable(func, file_path, req_id))
+        elif req_id not in req_ids:
             violations.append(
                 Violation(
                     file=file_path,
