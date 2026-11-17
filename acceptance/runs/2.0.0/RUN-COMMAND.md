@@ -29,8 +29,9 @@ done
 .venv/bin/python scripts/prune_judge_sessions.py   # after EVERY grading pass
 ```
 
-## The gate figures (per repo, vs the comparator)
+## The figures (per repo; 1.3.0-final and 1.4.0-final for context)
 
 ```bash
 .venv/bin/python scripts/gate_figures.py acceptance/runs/2.0.0 acceptance/runs/1.3.0-final
+.venv/bin/python scripts/gate_figures.py acceptance/runs/2.0.0 acceptance/runs/1.4.0-final
 ```

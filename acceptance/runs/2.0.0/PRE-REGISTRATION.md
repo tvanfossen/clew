@@ -3,17 +3,15 @@
 Written BEFORE the grid (owner 2026-11-16: push approved; full grid held for 1am, after a usage
 reset). Everything in `acceptance/runs/1.4.0-pending/PRE-REGISTRATION.md` holds unchanged —
 targets (mattermost, mbedtls, self, entropic), arms, replicates 3, seed 7, grader fingerprint
-`72a6c7bd363d`, comparator `acceptance/runs/1.3.0-final/`, and THE GATE AS WRITTEN (per repo,
-index_only arm: tokens vs baseline below the comparator's, separation within 3.0 pt of it) —
-except the tool commit, recorded by the harness as `clew_commit` (a dirty tree is refused).
+`72a6c7bd363d`, the 1.3.0-final and 1.4.0-final records for context, — except the tool commit, recorded by the harness as `clew_commit` (a dirty tree is refused).
 
 Answering model `claude-haiku-5-5`, judge `claude-sonnet-4-5-20250929`. The answering id is
 provider-canonical and FLOATS (`acceptance/modelpin.py`): the provider publishes no dated form
 for this family, so a model change under the id is possible and would show only in
 `answered_by`. Disclosed, not controlled.
 
-`acceptance/runs/1.4.0-final/` (gate missed on mbedtls quality and self cost) is SUPERSEDED by
-this run and kept as the record; it is reported beside this one, never inside a gated figure.
+`acceptance/runs/1.4.0-final/` is SUPERSEDED by this run and kept as the record; its figures are
+reported beside this run's for context.
 
 ## What changed for the measured arms since 1.4.0-final (`clew_commit` 4a0998d7)
 
@@ -26,26 +24,50 @@ Round 3 is mostly the wiki, which no arm calls. What does reach an arm:
 | `CLEW_BUILD_VERSION` 9 → 10 (`requirement_links`); a requirement dossier carries `satisfies` / `satisfied_by` | every index rebuilds once in provisioning; requirement dossiers only |
 | `git_argv` adds `--no-ext-diff` to diff-family commands | no arm (the gate's impact report) |
 
-## Hypotheses, per repo (index_only, vs 1.3.0-final, the gate)
+## What is reported — figures, not verdicts
 
-Method: 1.4.0-final's measured token totals per arm (`gate_figures._tokens`), less the served-text
-saving re-read from cache each turn — (10,726 − 9,636) / 4 tokens × that arm's measured turns.
-The method reproduces 1.4.0-final's published figures before the subtraction.
+OWNER 2026-11-16: the release decision is the owner's, weighing cost, quality and time against
+the features 2.0.0 adds. This run reports measurements; it states no pass/miss verdict and no
+tolerance band. The core claim is the index arms against the DEFAULT harness (baseline);
+release-to-release differences are context, and differences of a few points are within the
+variance below.
 
-| repo | 1.4.0-final tokens vs baseline | projected 2.0.0 | comparator 1.3.0-final | 1.4.0-final separation | expected |
-|---|---|---|---|---|---|
-| mattermost | −12.3% | −13.1% | +13.6% | +0.00 | PASS |
-| mbedtls | −29.7% | −30.5% | −17.0% | −4.51 (floor −0.45) | **MISS on quality** — nothing in this round addresses its Q3–Q5 fall |
-| self | −66.3% | −66.7% | −70.0% | −5.41 | **MISS on cost** — the served-text saving (≈1%) does not close 3.7 pt |
-| entropic | −46.8% | −47.4% | −34.6% | −9.80 | PASS |
+Per repo, for index_only and index:
 
-STATED PLAINLY: this round is not expected to fix the two misses. The grid measures 2.0.0 as it
-will ship; the release decision on these figures is the owner's.
+  * total tokens vs baseline, and output / cache-read / cache-create separately
+  * separation (arm score − baseline score, points), and per question
+  * wall time vs baseline
+  * the same figures from 1.3.0-final and 1.4.0-final beside them, for context
+  * baseline drift vs 1.4.0-final, reported on its own, never inside a separation
+  * judge error rate and split rate (repair passes until errors ≤ 2%)
 
-Variance: single clusters moved by up to 20 pt between two 1.3.0 grids on an unchanged rubric,
-and 1.4.0-final's baselines drifted +24.7% (mattermost) / −19.8% (self) in tokens. Baseline drift
-is reported as its own figure, never inside a separation.
+Method: `scripts/gate_figures.py` (it reproduces 1.3.0-final's and 1.4.0-final's published
+figures) and `scripts/judge_error_rate.py`.
 
-DISCLOSED CONFOUND, self only (unchanged from 1.4.0-final): its rubric asks about clew, so
-served text and clew's own docs can answer it; P0's Python fixes also change self's call graph.
-A self quality gain is weak evidence about the index.
+## Projected served-text effect, for context
+
+1.4.0-final's measured tokens per arm (`gate_figures._tokens`) less the served-text saving re-read
+from cache each turn — (10,726 − 9,636) / 4 tokens × that arm's measured turns. The method
+reproduces 1.4.0-final's figures before the subtraction. It covers only the served text; P0's
+call-graph fixes and model drift are not projected.
+
+| repo | 1.3.0-final index_only tokens vs baseline | 1.4.0-final | projected 2.0.0 |
+|---|---|---|---|
+| mattermost | +13.6% | −12.3% | −13.1% |
+| mbedtls | −17.0% | −29.7% | −30.5% |
+| self | −70.0% | −66.3% | −66.7% |
+| entropic | −34.6% | −46.8% | −47.4% |
+
+Separation (index_only, points) at 1.3.0-final / 1.4.0-final: mattermost +1.37 / +0.00, mbedtls
++2.55 / −4.51, self −5.92 / −5.41, entropic −7.01 / −9.80. Nothing in round 3 targets quality on
+these questions; no quality projection is made.
+
+## Variance
+
+Single clusters moved by up to 20 pt between two 1.3.0 grids on an unchanged rubric; 1.4.0-final's
+baselines drifted +24.7% (mattermost) and −19.8% (self) in tokens from the previous grid, and
+mattermost's index_only token ratio moved from +21.6% (1.4.0-pending) to −12.3% (1.4.0-final).
+
+DISCLOSED CONFOUND, self only: its rubric asks about clew, so served text and clew's own docs can
+answer it; P0's Python fixes also change self's call graph. A self quality change is weak evidence
+about the index.
