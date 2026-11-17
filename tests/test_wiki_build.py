@@ -184,9 +184,12 @@ def test_check_refresh_brings_the_index_current_first(
 
 
 def test_the_hook_manifest_offers_the_wiki_check() -> None:
-    """@brief `.pre-commit-hooks.yaml` publishes `clew-wiki-check`, running `check --refresh`."""
+    """@brief `.pre-commit-hooks.yaml` publishes `clew-wiki-check`, running `check --refresh --before-tests`."""
     import yaml
 
     hooks = {h["id"]: h for h in yaml.safe_load(Path(".pre-commit-hooks.yaml").read_text())}
     hook = hooks["clew-wiki-check"]
-    assert hook["entry"] == "clew wiki check --refresh" and hook["pass_filenames"] is False
+    # round 3, P6c: `--before-tests` — the hook runs before the tests write their reports, so a
+    # repository declaring `wiki.tests` failed every commit without it (found dogfooding).
+    assert hook["entry"] == "clew wiki check --refresh --before-tests"
+    assert hook["pass_filenames"] is False

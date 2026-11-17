@@ -112,6 +112,8 @@ dev = [
     "pre-commit>=3.6,<5",
     "build>=1.0,<2",
     "twine>=5.0,<8",
+    # round 3, P6c: `run_tests.py --coverage` (CI's wiki job) writes Cobertura for clew's own wiki.
+    "pytest-cov>=5,<8",
 ]
 
 [project.urls]

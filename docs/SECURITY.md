@@ -27,7 +27,9 @@ bug worth reporting:
   path that would let `@verbinclude` and its fourteen siblings inline a file, and symlink
   traversal.
 - **No subprocess inherits a git or Kconfig override.** A repository's own `.git/config`
-  cannot name a command git will run, in the pipeline or in the gate; a `Kconfig` is parsed in
+  cannot name a command git will run, in the pipeline or in the gate (a diff-family command
+  also carries `--no-ext-diff`: the empty `diff.external=` alone made git try to run `""`, so
+  every diff failed and the gate's impact report was silently empty before 2.0.0); a `Kconfig` is parsed in
   a minimal environment where `$(shell,…)` is refused and recorded rather than executed.
 - **Every subprocess is bounded.** No call to git, cargo or doxygen can hang a build, a
   pre-commit run or a long-lived MCP server indefinitely.

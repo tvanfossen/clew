@@ -287,6 +287,33 @@ def test_imports_join_the_trace(traced: Path, tmp_path: Path) -> None:
     assert rows["R-D"].tier == "MISSING" and rows["R-D"].layers == ()
 
 
+def test_before_tests_a_report_a_run_produces_is_not_yet_required(
+    traced: Path, tmp_path: Path
+) -> None:
+    """A PRE-COMMIT HOOK RUNS BEFORE THE TESTS (round 3, P6c, found dogfooding): the JUnit,
+    coverage, result and gcov reports are what the test run WRITES, so in pre-commit they do not
+    exist yet and the shipped `clew-wiki-check` hook failed every commit of a repository that
+    declared them. `before_tests` drops only those; files the repository HOLDS — the mapping,
+    feature files, mutation records — are still required, and the full check (after the tests,
+    in CI) still names a missing report.
+
+    @brief check_wiki(before_tests=True).
+    """
+    from clew.wiki.check import check_wiki
+
+    (tmp_path / ".clew.yaml").write_text(
+        "wiki:\n  docs: []\n  tests:\n    junit: [build/junit.xml]\n"
+        "    coverage: build/coverage.xml\n    results: [{format: tap, path: build/t.tap}]\n"
+        "    gcov: ['build/*.gcov']\n    mapping: missing-map.yaml\n"
+    )
+    early = "\n".join(check_wiki(tmp_path, traced, before_tests=True))
+    assert "junit.xml" not in early and "coverage.xml" not in early and "t.tap" not in early
+    assert "build/*.gcov" not in early
+    assert "missing-map.yaml" in early
+    full = "\n".join(check_wiki(tmp_path, traced))
+    assert "'build/junit.xml' does not exist" in full
+
+
 def test_without_layers_the_field_is_absent(traced: Path) -> None:
     """@brief No layers configured → `layers is None`, not ()."""
     row = next(r for r in requirement_evidence(traced, junit=[]) if r.req_id == "R-A")

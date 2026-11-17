@@ -154,7 +154,9 @@ clew wiki trace-run --test NODE --out spans.json
 ```
 
 `check` is cheap and belongs in pre-commit (the `clew-wiki-check` hook) or a CI static stage;
-`build` is a separate stage. Both take `--refresh` to bring the index current first.
+`build` is a separate stage. Both take `--refresh` to bring the index current first. The hook
+passes `--before-tests`: test reports (JUnit, results, coverage, gcov) are what the test run
+writes, so before it they are not yet required; run `check` without it after the tests, in CI.
 
 ## The `wiki:` section of `.clew.yaml`
 

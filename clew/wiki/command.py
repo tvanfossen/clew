@@ -47,7 +47,8 @@ WIKI_COMMAND = "wiki"
 ## v6: `check --refresh` / `build --refresh` (the pre-commit hook has no index yet).
 ## v7: `trace-run` (round 3, P4b).
 ## v8: `build --format markdown --flavor` (round 3, P5b).
-## @version 8
+## v9: `check --before-tests` (round 3, P6c).
+## @version 9
 ## @dg_internal
 def _parser() -> argparse.ArgumentParser:
     """@brief Build the parser. @return Parser."""
@@ -82,6 +83,11 @@ def _parser() -> argparse.ArgumentParser:
     check.add_argument("--repo-root")
     check.add_argument("--config", help="a file whose wiki: section applies")
     check.add_argument("--refresh", action="store_true", help="bring the index current first")
+    check.add_argument(
+        "--before-tests",
+        action="store_true",
+        help="the test reports are written later (a pre-commit hook): do not require them yet",
+    )
     build = sub.add_parser("build", help="render the site (needs clew-trace[wiki])")
     build.add_argument("--out", required=True, help="output directory; the site is <out>/html")
     build.add_argument(
@@ -323,7 +329,8 @@ def _trace(args: argparse.Namespace, db: Path, repo: Path | None) -> dict[str, A
 ## @return Exit status: 0 clean / built, 1 problems found, 2 refused.
 ## v2: `--config` and `--version`.
 ## v3: `--format markdown` writes wiki pages instead.
-## @version 3
+## v4: `check --before-tests`.
+## @version 4
 ## @dg_internal
 def _site(args: argparse.Namespace, db: Path, repo: Path) -> int:
     """`check` PRINTS EVERY PROBLEM, one per line on stdout, and exits 1 when there is any — the
@@ -337,7 +344,7 @@ def _site(args: argparse.Namespace, db: Path, repo: Path) -> int:
     if args.verb == "check":
         from .check import check_wiki
 
-        problems = check_wiki(repo, db, config)
+        problems = check_wiki(repo, db, config, before_tests=args.before_tests)
         for problem in problems:
             sys.stdout.write(f"{problem}\n")
         return 1 if problems else 0

@@ -168,3 +168,64 @@ def test_the_disarmed_key_list_reaches_the_argv(key: str) -> None:
     assert argv[0] == "git" and argv[-1] == "ls-files"
     expected = f"{key}=/dev/null" if key == "core.hooksPath" else f"{key}="
     assert expected in argv, f"{key} is not disarmed in {argv}"
+
+
+def _repo_with_change(tmp_path: Path) -> Path:
+    """@brief A repository with one committed file and an unstaged then staged edit."""
+    import subprocess
+
+    repo = tmp_path / "r"
+    repo.mkdir()
+    run = lambda *a: subprocess.run(  # noqa: E731
+        ["git", "-c", "user.email=t@e", "-c", "user.name=t", *a],
+        cwd=repo,
+        check=True,
+        capture_output=True,
+    )
+    run("init", "-q")
+    (repo / "f.txt").write_text("one\n")
+    run("add", "f.txt")
+    run("commit", "-q", "-m", "c")
+    (repo / "f.txt").write_text("two\n")
+    run("add", "f.txt")
+    return repo
+
+
+def test_a_diff_through_the_hardened_argv_works(tmp_path: Path) -> None:
+    """FOUND DOGFOODING (round 3, P6c): `-c diff.external=` is not "no external diff" — git runs
+    the EMPTY STRING as the diff program and dies ("cannot run : No such file or directory"), so
+    every `git diff` through `git_argv` failed and clew-guard's impact report was silently `[]`
+    for every adopter. A diff-family command now carries `--no-ext-diff`, which forbids any
+    external diff whatever the config says.
+
+    @brief git diff --cached through git_argv returns the patch.
+    """
+    import subprocess
+
+    from clew.gitenv import git_argv
+
+    repo = _repo_with_change(tmp_path)
+    out = subprocess.run(
+        git_argv("diff", "--cached", "-U0"), cwd=repo, capture_output=True, text=True
+    )
+    assert out.returncode == 0, out.stderr
+    assert "+two" in out.stdout
+
+
+def test_a_planted_external_diff_never_runs(tmp_path: Path) -> None:
+    """@brief diff.external in the tree's own config: not executed, and the diff still answers."""
+    import subprocess
+
+    from clew.gitenv import git_argv
+
+    repo = _repo_with_change(tmp_path)
+    marker = tmp_path / "ran"
+    script = tmp_path / "ext.sh"
+    script.write_text(f"#!/bin/sh\ntouch {marker}\n")
+    script.chmod(0o755)
+    subprocess.run(["git", "config", "diff.external", str(script)], cwd=repo, check=True)
+    for args in (("diff", "--cached"), ("log", "-p", "-1"), ("show", "HEAD")):
+        out = subprocess.run(git_argv(*args), cwd=repo, capture_output=True, text=True)
+        assert out.returncode == 0, (args, out.stderr)
+    subprocess.run(git_argv("diff", "HEAD"), cwd=repo, capture_output=True, text=True)
+    assert not marker.exists(), "the tree's external diff program ran"

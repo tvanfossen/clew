@@ -35,6 +35,9 @@ inputs:
   python-version:
     description: Python to install clew under.
     default: "3.12"
+  install-from:
+    description: "A local path to install clew from instead of the release (clew's own CI builds its wiki from the checkout)."
+    default: ""
 outputs:
   site:
     description: The built site (html) or the wiki pages directory (markdown).
@@ -47,10 +50,16 @@ runs:
         python-version: ${{ inputs.python-version }}
     - name: Install clew and doxygen
       shell: bash
+      env:
+        CLEW_INSTALL_FROM: ${{ inputs.install-from }}
       run: |
         sudo apt-get update -q
         sudo apt-get install -y -q --no-install-recommends doxygen
-        python -m pip install --quiet "clew-trace[wiki]==${{ inputs.version }}"
+        if [ -n "$CLEW_INSTALL_FROM" ]; then
+          python -m pip install --quiet "$CLEW_INSTALL_FROM[wiki]"
+        else
+          python -m pip install --quiet "clew-trace[wiki]==${{ inputs.version }}"
+        fi
     - name: Index the checkout
       shell: bash
       run: clew --repo-root "$GITHUB_WORKSPACE"

@@ -39,15 +39,19 @@ from .config import WikiConfig, load_wiki_config
 ## @return Problems, one sentence each; [] when clean.
 ## v2: nodes, catalogs, rules, mutations; `config_path`.
 ## v3: theme files and the roadmap (W13/W17).
-## @version 3
+## v4: `before_tests` — reports a test run produces are not yet required (round 3, P6c).
+## @param before_tests True in a hook that runs before the tests write their reports.
+## @version 4
 ## @req REQ-DDB-WIKI-003
-def check_wiki(repo_root: Path, db: Path, config_path: Path | None = None) -> list[str]:
+def check_wiki(
+    repo_root: Path, db: Path, config_path: Path | None = None, *, before_tests: bool = False
+) -> list[str]:
     """@brief Run every check. @return Problems."""
     repo_root = Path(repo_root)
     config, problems = load_wiki_config(repo_root, config_path)
     problems += _docs_problems(repo_root, config)
     problems += _flow_problems(db, config)
-    problems += _evidence_problems(repo_root, config)
+    problems += _evidence_problems(repo_root, config, before_tests)
     if config.link_template and "{file}" not in config.link_template:
         problems.append("`wiki.links.template` has no `{file}` placeholder")
     problems += trace_problems(repo_root, db, config)
@@ -242,27 +246,46 @@ def _flow_problems(db: Path, config: WikiConfig) -> list[str]:
 ## @return Problems.
 ## v2: the mutation record too.
 ## v3: the W15/W16 imports: result reports, gcov and feature globs, the mapping file.
-## @version 3
+## v4: `before_tests` drops the reports a test run produces (round 3, P6c).
+## @param before_tests True when the tests have not run yet.
+## @version 4
 ## @dg_internal
-def _evidence_problems(repo_root: Path, config: WikiConfig) -> list[str]:
+def _evidence_problems(
+    repo_root: Path, config: WikiConfig, before_tests: bool = False
+) -> list[str]:
     """A GLOB THAT MATCHES NOTHING IS A PROBLEM: a misspelled gcov or feature glob would yield a
     trace that reads as "nothing measured".
+
+    BEFORE THE TESTS, only what the repository HOLDS is required: JUnit, coverage, result
+    reports and gcov are what the run writes, so a pre-commit hook cannot see them. The full
+    check — after the tests, in CI — still names every missing one.
 
     @brief Check report paths.
     @return Problems.
     """
     inputs = config.inputs
-    reports = [
+    produced = [
         *config.junit,
         *([config.coverage] if config.coverage else []),
-        *([config.mutations] if config.mutations else []),
         *(path for _fmt, path in inputs.results),
+    ]
+    reports = [
+        *([] if before_tests else produced),
+        *([config.mutations] if config.mutations else []),
         *([inputs.mapping] if inputs.mapping else []),
     ]
     problems = [
         f"test report {r!r} does not exist" for r in reports if not (repo_root / r).is_file()
     ]
-    for key, globs in (("gcov", inputs.gcov), ("features", inputs.features)):
+    globbed = (
+        (("features", inputs.features),)
+        if before_tests
+        else (
+            ("gcov", inputs.gcov),
+            ("features", inputs.features),
+        )
+    )
+    for key, globs in globbed:
         problems += [
             f"`wiki.tests.{key}` glob {g!r} matches no file"
             for g in globs

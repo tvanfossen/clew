@@ -19,7 +19,7 @@
 - id: clew-wiki-check
   name: clew wiki check
   description: Validate the wiki section of .clew.yaml against the repository and its index
-  entry: clew wiki check --refresh
+  entry: clew wiki check --refresh --before-tests
   language: python
   pass_filenames: false
   always_run: true

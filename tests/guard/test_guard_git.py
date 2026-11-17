@@ -118,7 +118,9 @@ class TestGetStagedDiff:
         result = get_staged_diff("src/main.c", run_command=mock_runner)
         assert result == "mock diff output"
         assert calls[0][0] == "git" and "core.fsmonitor=" in calls[0]
-        assert calls[0][-5:] == ["diff", "--cached", "-U0", "--", "src/main.c"]
+        # round 3, P6c: `--no-ext-diff` follows `diff`. Without it the hardened argv's empty
+        # `diff.external=` made git run "" and every diff failed (impact read `[]`).
+        assert calls[0][-6:] == ["diff", "--no-ext-diff", "--cached", "-U0", "--", "src/main.c"]
 
 
 class TestGetDiff:
@@ -134,7 +136,9 @@ class TestGetDiff:
         result = get_diff("src/main.c", "HEAD~3..HEAD", run_command=mock_runner)
         assert result == "mock diff output"
         assert calls[0][0] == "git" and "core.fsmonitor=" in calls[0]
-        assert calls[0][-5:] == ["diff", "-U0", "HEAD~3..HEAD", "--", "src/main.c"]
+        # round 3, P6c: `--no-ext-diff` follows `diff`. Without it the hardened argv's empty
+        # `diff.external=` made git run "" and every diff failed (impact read `[]`).
+        assert calls[0][-6:] == ["diff", "--no-ext-diff", "-U0", "HEAD~3..HEAD", "--", "src/main.c"]
 
 
 class TestGetChangedLinesForFile:

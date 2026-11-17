@@ -1,19 +1,22 @@
-# clew's own declaration file. Only the gate is configured: the `guard:` section is what
-# `clew guard` enforces on this repo (dogfooding — we enforce on ourselves). The index
-# declares nothing here and builds this repo on its defaults.
+# clew's own declaration file. clew adopts its own tools in full (round 3, P6c):
+#
+#   guard:  what `clew guard` enforces on every commit — presence, @version bumps, @req ids that
+#           exist in requirements.yaml, `satisfies` links that resolve — and the change-impact
+#           report (docs/generated/impact/impact.json) the wiki's Change impact page reads.
+#   wiki:   clew's own wiki — docs labelled by kind, the MCP tool handlers as flows, requirement
+#           tiers from the gate's own JUnit (build/junit.xml) and CI's coverage (build/coverage.xml).
+#           `clew wiki check` runs in pre-commit; CI builds the site (Pages deploys at 2.0.0).
+#
+# The index declares no scope and builds this repo on its defaults.
 #
 # Every function/class in the shipped Python package carries:
 #   ## @brief    one-line summary
 #   ## @version  bumped on body change
 #   ## @return   on non-void functions
 #
-# @req COVERAGE IS NOT GATED. It was, by scripts/req_coverage_audit.py, which is
-# DELETED. Nothing now checks that a requirement claiming `implemented` resolves to
-# an implementing function, or that one claiming `planned` resolves to none.
-# Last measured by hand: 30 of 34 resolve; the 4 that do not are untagged
-# deliberately (two satisfied by configuration and human review, two unbuilt).
-#
-# Also not gated: whether a TEST covers a requirement. req_test_edges is sparse.
+# Measured figures live in the wiki (its Requirements page counts implemented, tested and
+# passing requirements from the index and the reports), not in this header: a figure written
+# here goes stale the commit after it is measured, as the coverage figure it once quoted did.
 
 guard:
   output_dir: docs/generated/
@@ -30,6 +33,11 @@ guard:
   impact:
     requirements:
       file: requirements.yaml
+    # round 3, P6c: the `clew-guard-impact` hook writes the report the wiki's Change impact page
+    # reads. JSON at the path the wiki looks for by default; gitignored, never committed.
+    output:
+      format: json
+      file: docs/generated/impact/impact.json
 
   validate:
     exclude:
@@ -101,6 +109,11 @@ wiki:
       lanes: packages
       title: "build_wiki: how this site is built"
   tooling: ["scripts/*", "acceptance/*", "tools/*"]
+  # The gate's own run is the evidence: scripts/run_tests.py writes JUnit on every run, and CI's
+  # wiki job adds Cobertura (`run_tests.py --coverage`).
+  tests:
+    junit: [build/junit.xml]
+    coverage: build/coverage.xml
   issues: {github: tvanfossen/clew}
   links:
     template: "https://github.com/tvanfossen/clew/blob/{commit}/{file}#L{line}"
