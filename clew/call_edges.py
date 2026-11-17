@@ -2992,7 +2992,8 @@ def _fold_all_files(harvested: list, maps: dict, context: tuple) -> tuple[list, 
 ## @param repo_root Repository root (for resolving indexed relative paths).
 ## @param cache Optional incremental index cache; None disables caching.
 ## Version 18: merges PR #59 — `one_function` (a bare call naming one decl/def pair).
-## @version 18
+## Version 19 (round 5, owner-approved): ends with `veto_unimportable_doxygen_python`.
+## @version 19
 ## @req REQ-DDB-PIPE-003
 def import_ast_call_edges(
     db_path: Path,
@@ -3085,6 +3086,7 @@ def import_ast_call_edges(
         edges_fuzzy,
     )
     prune_fabricated_self_edges(conn, repo_root, file_funcs, cache=cache)
+    veto_unimportable_doxygen_python(conn, repo_root)
     logger.info(
         "call_edges: %d call site(s) named a function and did not resolve, understating the "
         "callers of %d symbol(s) — recorded, so an empty `callers` can be graded",
@@ -3102,6 +3104,105 @@ def import_ast_call_edges(
         len(edges_resolved),
         len(edges_fuzzy),
     )
+
+
+## build_meta key: how many doxygen Python edges the import veto removed (recorded even at zero).
+DOXYGEN_PY_VETOED_META_KEY = "doxygen_python_import_vetoed"
+
+
+## @brief Drop doxygen Python edges an import contradicts (owner-approved targeted veto).
+## @param conn Open connection to the index being built.
+## @param repo_root The repository.
+## @return How many edges were removed.
+## @version 1
+## @req REQ-DDB-PIPE-003
+def veto_unimportable_doxygen_python(conn: sqlite3.Connection, repo_root: Path) -> int:
+    """DOXYGEN KEEPS NO IMPORTS. Its Python xref linked `import json; json.loads()` to a repo file
+    `tests/fakes/json.py` as `exact` (agent C's W5, owner ruling 2026-11-17: targeted veto, not a
+    blanket drop — doxygen alone asserts ~31% of clew's Python edges, mostly correct same-file
+    calls). An edge is removed only when ALL hold: it is doxygen's, it crosses files, the caller
+    imports a module whose last segment names the callee's file, and none of the caller's imports
+    resolves — on the import roots the AST layer uses — to that file. Counted and recorded.
+
+    @brief Veto contradicted doxygen Python edges.
+    @return Rows removed.
+    """
+    rows = conn.execute(
+        "SELECT ce.rowid, pa.name, pb.name FROM call_edges ce "
+        "JOIN memberdef a ON a.rowid = ce.caller_rowid JOIN memberdef b ON b.rowid = ce.callee_rowid "
+        "JOIN path pa ON pa.rowid = COALESCE(NULLIF(a.bodyfile_id, 0), a.file_id) "
+        "JOIN path pb ON pb.rowid = COALESCE(NULLIF(b.bodyfile_id, 0), b.file_id) "
+        "WHERE ce.source = 'doxygen_sqlite' AND pa.name LIKE '%.py' AND pb.name LIKE '%.py' "
+        "AND pa.name != pb.name"
+    ).fetchall()
+    py_roots = _py_import_roots(str(r) for (r,) in conn.execute("SELECT name FROM path"))
+    imports: dict[str, list[str]] = {}
+    doomed = []
+    for rowid, caller, callee in rows:
+        if caller not in imports:
+            imports[caller] = _py_import_modules(Path(repo_root) / caller)
+        if _import_contradicts(imports[caller], caller, callee, py_roots):
+            doomed.append((rowid,))
+    conn.executemany("DELETE FROM call_edges WHERE rowid = ?", doomed)
+    if _table_exists(conn, "build_meta"):
+        conn.execute(
+            "INSERT OR REPLACE INTO build_meta (key, value) VALUES (?, ?)",
+            (DOXYGEN_PY_VETOED_META_KEY, str(len(doomed))),
+        )
+    logger.info(
+        "call_edges: vetoed %d doxygen Python edge(s) an import contradicts (of %d cross-file)",
+        len(doomed),
+        len(rows),
+    )
+    return len(doomed)
+
+
+## @brief The modules a Python file's imports name (each binding's module and its parent).
+## @param path The file.
+## @return Dotted module names, relative ones keeping their dots; [] when unreadable.
+## @version 1
+## @dg_internal
+def _py_import_modules(path: Path) -> list[str]:
+    """@brief Import modules. @return Names."""
+    ## THROUGH THE SUBSTRATE, as every other parse here: clew declares `lang_parsing_substrate`,
+    ## never the raw grammars (`test_every_third_party_import_is_declared` caught the first cut).
+    from .pyast import import_bindings
+    from .tsnode import Parser
+
+    try:
+        src = path.read_bytes()
+        tree = Parser("python").parse(src)
+    except OSError as exc:
+        logger.warning("call_edges: import veto could not read %s (%s)", path, exc)
+        return []
+    out: set[str] = set()
+    for value in import_bindings(tree, src).names.values():
+        out.add(value)
+        if "." in value.lstrip("."):
+            out.add(value.rsplit(".", 1)[0])
+    return sorted(out)
+
+
+## @brief Whether a caller's imports name the callee's file's module yet resolve elsewhere.
+## @param modules The caller's import modules.
+## @param caller The caller's file.
+## @param callee The callee's file.
+## @param py_roots (package dirs, import roots).
+## @return True when the edge is contradicted.
+## @version 1
+## @dg_internal
+def _import_contradicts(modules: list[str], caller: str, callee: str, py_roots: tuple) -> bool:
+    """@brief Contradicted. @return Bool."""
+    stem = callee[: -len("/__init__.py")] if callee.endswith("/__init__.py") else callee[:-3]
+    leaf = stem.rsplit("/", 1)[-1]
+    named = [m for m in modules if m.lstrip(".").rsplit(".", 1)[-1] == leaf]
+    if not named or any(m.startswith(".") for m in named):
+        return False
+    for module in modules:
+        paths = _rooted(module, caller, _module_paths(module, caller), py_roots)
+        if any(_names_module(callee, p, exact=True) for p in paths):
+            return False
+    return True
 
 
 # ─── Self-edge guard: genuine recursion vs fabricated self-loop ─────────────

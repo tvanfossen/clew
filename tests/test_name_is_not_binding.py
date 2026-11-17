@@ -320,3 +320,17 @@ def test_a_namespaced_cast_and_a_lambda_s_local_are_typed_too(db: Path) -> None:
     """
     assert any("Orch::clear" in d for d in _ast_callees(db, "ns_cast"))
     assert any("Orch::clear" in d for d in _ast_callees(db, "in_lambda"))
+
+
+def test_doxygen_does_not_link_an_absolute_import_to_a_file_it_cannot_name(db: Path) -> None:
+    """OWNER-APPROVED TARGETED VETO (2026-11-17): doxygen's Python xref linked `import json;
+    json.loads()` to `tests/fakes/json.py::loads` as `exact`. A doxygen Python edge across files is
+    dropped when the caller imports a module of the callee file's name absolutely and clew's
+    import-root resolution says that import is NOT the callee's file. `test_it -> assist` (the
+    test's own directory) keeps every source's edge.
+
+    @brief W5 in the doxygen layer.
+    """
+    pairs = _pairs(db)
+    assert ("read", "loads") not in pairs
+    assert ("test_it", "assist") in pairs
