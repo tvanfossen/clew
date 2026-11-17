@@ -444,3 +444,22 @@ def test_a_node_tag_mentioned_in_prose_is_not_a_reference(tmp_path: Path) -> Non
     db = tmp_path / "clew.db"
     _run_pipeline(_build_argparser().parse_args(["--output", str(db), "--repo-root", str(repo)]))
     assert node_references(db) == {"keys:real": ("tagged",)}
+
+
+def test_the_site_names_a_declared_report_it_could_not_read(trace_repo, tmp_path: Path) -> None:
+    """@brief The requirements page says which declared report was not found, so unmeasured shows."""
+    from clew.wiki.build import build_wiki
+
+    repo, db, _kv = trace_repo
+    text = (
+        (repo / ".clew.yaml")
+        .read_text()
+        .replace(
+            "    junit: [build/junit.xml]\n",
+            "    junit: [build/junit.xml]\n    coverage: build/nope.xml\n",
+        )
+    )
+    (repo / ".clew.yaml").write_text(text)
+    site = build_wiki(repo, db, tmp_path / "site")
+    page = (site / "requirements.html").read_text()
+    assert "not-measured" in page and "build/nope.xml" in page

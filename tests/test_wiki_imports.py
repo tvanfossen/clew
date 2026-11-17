@@ -475,3 +475,22 @@ def test_per_test_coverage_contexts_link_tests_by_measurement(traced: Path, tmp_
     }
     assert rows["R-A"].measured_tests == ("test_cov",)
     assert "test_elsewhere" not in {t for t, _s in rows["R-A"].tests}
+
+
+def test_a_declared_report_that_is_not_there_is_unmeasured_not_a_crash(
+    traced: Path, tmp_path: Path
+) -> None:
+    """FOUND DOGFOODING (round 3, P6c): building clew's own wiki without CI's coverage file died
+    with a raw FileNotFoundError. A report that is declared and absent was NOT MEASURED: coverage
+    fields absent (None), results not run — never a traceback, never a zero.
+
+    @brief Missing JUnit and Cobertura: evidence still computed, unmeasured.
+    """
+    rows = {
+        r.req_id: r
+        for r in requirement_evidence(
+            traced, junit=[tmp_path / "gone.xml"], coverage=tmp_path / "gone-cov.xml"
+        )
+    }
+    assert rows["R-A"].implementers_covered is None
+    assert rows["R-A"].tier in ("NOT_RUN", "MISSING")

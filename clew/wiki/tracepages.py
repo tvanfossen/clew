@@ -52,7 +52,8 @@ class Trace:
     ## v3: `test_href` (P2a).
     ## v4: `issues`, `unlinked`, `issues_note` (P3a).
     ## v5: `decisions` (P3c).
-    ## @version 5
+    ## v6: `missing`, the declared reports that were not there.
+    ## @version 6
     ## @dg_internal
     def __init__(self, parts: dict[str, Any], config: WikiConfig) -> None:
         """@brief Store. @return None."""
@@ -61,6 +62,8 @@ class Trace:
         self.nodes = parts["nodes"]
         self.refs = parts["refs"]
         self.catalogs = parts["catalogs"]
+        ## Declared test reports that were not there: unmeasured, and the page says so.
+        self.missing = parts.get("missing", [])
         self.declared: dict[str, dict] = parts["declared"]
         self.catalog_path: str = parts["catalog_path"]
         self.impact: list[dict] | None = parts["impact"]
@@ -87,7 +90,8 @@ class Trace:
     ## @param commit The commit the site describes.
     ## @return The trace.
     ## v2: a Sphinx-needs import (`wiki.needs`, round 3 P3c).
-    ## @version 2
+    ## v3: the declared reports that are missing (round 3, P6c).
+    ## @version 3
     ## @dg_internal
     @classmethod
     def gather(cls, repo_root: Path, db: Path, config: WikiConfig, commit: str) -> Trace:
@@ -120,6 +124,15 @@ class Trace:
             "catalog_path": catalog_path,
             "impact": load_impact(impact_path(repo_root, config)),
             "commit": commit,
+            "missing": [
+                r
+                for r in (
+                    *config.junit,
+                    *([config.coverage] if config.coverage else []),
+                    *(rel for _fmt, rel in config.inputs.results),
+                )
+                if not (Path(repo_root) / r).is_file()
+            ],
         }
         return cls(parts, config)
 
@@ -240,7 +253,8 @@ def load_impact(path: Path) -> list[dict] | None:
 ## each requirement opening its whole trace in the shared modal, the group table kept below.
 ## v3: change impact moved to its own section (`impactpage`, P1g).
 ## v4: open issues (P3a).
-## @version 4
+## v5: names each declared test report that was not there — unmeasured (round 3, P6c).
+## @version 5
 ## @req REQ-DDB-WIKI-012
 def requirements_page(
     trace: Trace,
@@ -265,6 +279,7 @@ def requirements_page(
         "",
         _link_kinds(ev),
         "",
+        *_missing_note(trace),
         "## Groups",
         "",
         "Each card is a requirement group; pick one to filter the list below to it.",
@@ -492,6 +507,23 @@ def _catalogs_section(trace: Trace, rules: Audience) -> list[str]:
             )
         lines += _raw(table(["requirement", "title", "tier here", "functions here"], rows))
     return lines
+
+
+## @brief A "not measured" note naming each declared report that was not there.
+## @param trace The gathered trace.
+## @return Markdown lines; [] when every declared report was read.
+## @version 1
+## @dg_internal
+def _missing_note(trace: Trace) -> list[str]:
+    """@brief Note. @return Lines."""
+    if not trace.missing:
+        return []
+    names = ", ".join(f"<code>{text(m)}</code>" for m in trace.missing)
+    return _raw(
+        f'<p class="not-measured"><b>Not measured.</b> Declared but not found: {names}. '
+        "Results and coverage from them are absent, not zero; run the tests (and coverage) "
+        "before building.</p>"
+    ) + [""]
 
 
 ## @brief Write the model-entries page.

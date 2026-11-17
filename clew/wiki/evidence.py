@@ -252,7 +252,8 @@ class _Reports:
     ## @param repo_root The repository.
     ## @return The reports.
     ## v2: catalog evidence files, per-test coverage contexts and inference depth.
-    ## @version 2
+    ## v3: a declared report that does not exist is unmeasured, not an error (round 3, P6c).
+    ## @version 3
     ## @dg_internal
     @classmethod
     def read(cls, junit, coverage, mutations, inputs, repo_root) -> _Reports:
@@ -272,9 +273,14 @@ class _Reports:
 
         inputs = inputs or EvidenceInputs()
         root = Path(repo_root or ".")
+        # A DECLARED REPORT THAT IS NOT THERE WAS NOT MEASURED (round 3, P6c): dropped here, so
+        # its fields stay absent — never a traceback, never a zero. The site names it.
+        junit = [j for j in junit if Path(j).is_file()]
+        coverage = coverage if coverage is not None and Path(coverage).is_file() else None
         results = parse_junit(junit)
         for fmt, rel in inputs.results:
-            results = _merge(results, parse_results(fmt, root / rel))
+            if (root / rel).is_file():
+                results = _merge(results, parse_results(fmt, root / rel))
         hits = parse_cobertura(coverage) if coverage is not None else None
         if inputs.gcov:
             gcov = parse_gcov(sorted({p for g in inputs.gcov for p in root.glob(g)}), root)
