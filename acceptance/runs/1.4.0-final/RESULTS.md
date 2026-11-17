@@ -82,3 +82,5 @@ to 20 pt, so a single cluster is not evidence on its own.
 - whether the baseline token drift (+24.7% mattermost, −19.8% self) is model drift or replicate noise.
 
 No release action is taken on these results without the owner's decision.
+
+> **Grader moved after this run (2026-11-17).** This run was graded at `72a6c7bd363d`. For the 2.0.0 grid the grader matches set members on whole path segments instead of the last segment (`include/mbedtls/*.h` had folded to `*.h`), at fingerprint `c10cf554ae6d`; these cells are not re-gradable at the new fingerprint.

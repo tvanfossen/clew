@@ -71,3 +71,5 @@ mattermost's index_only token ratio moved from +21.6% (1.4.0-pending) to −12.3
 DISCLOSED CONFOUND, self only: its rubric asks about clew, so served text and clew's own docs can
 answer it; P0's Python fixes also change self's call graph. A self quality change is weak evidence
 about the index.
+
+> **Grader fingerprint (2026-11-17):** `c10cf554ae6d` — set members match on whole path segments (`_matches`), replacing the last-segment key that folded `include/mbedtls/*.h` to `*.h` (found by the rubric cross-check; owner-approved). Supersedes `72a6c7bd363d` named above.
