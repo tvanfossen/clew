@@ -64,6 +64,23 @@ _FILES = {
         '    """The comprehension variable is passed along."""\n'
         "    return [dict(v=item) for item in items]\n"
     ),
+    ## Round 5 (4d-0): an alias of a PACKAGE, whose `__init__` re-exports from a submodule.
+    "pkg/api/__init__.py": "from .impl import run\n",
+    "pkg/api/impl.py": 'def run(x):\n    """Run."""\n    return x\n',
+    "pkg/elsewhere.py": 'def run(x):\n    """A namesake outside the package."""\n    return 0\n',
+    "pkg/dup/__init__.py": "",
+    "pkg/dup/a.py": 'def go():\n    """One go."""\n    return 1\n',
+    "pkg/dup/b.py": 'def go():\n    """Another go."""\n    return 2\n',
+    "pkg/server/uses.py": (
+        "from .. import api as a\n"
+        "from .. import dup as d\n\n\n"
+        "def use(x):\n"
+        '    """Calls through a package alias."""\n'
+        "    return a.run(x)\n\n\n"
+        "def both():\n"
+        '    """Two candidates inside the package: no guess."""\n'
+        "    return d.go()\n"
+    ),
     "tests/conftest.py": (
         "import pytest\n\n\n"
         "@pytest.fixture\n"
@@ -138,3 +155,22 @@ def test_a_keyword_argument_naming_a_parameter_is_not_a_binding(db: Path) -> Non
     assert not any(a == "commit" and b == "repo_root" for a, b, _f, _c in edges)
     assert not any(a == "listing" and b == "item" for a, b, _f, _c in edges)
     assert any(a == "register" and b == "handler" for a, b, _f, _c in edges)
+
+
+def test_a_call_through_a_package_alias_resolves_to_its_re_export(db: Path) -> None:
+    """FOUND BY THE ROUND-5 WIKI (owner 2026-11-17: "is there not a single caller of cap at depth
+    that is in the master flow?"): `from .. import query as q; q.dossier(...)` made NO edge, so
+    every master flow through an MCP tool stopped at the query boundary. The alias names a
+    PACKAGE; `q.dossier` is the package's re-export of a function defined in one of its modules.
+    The one candidate inside that package is the callee — never the namesake outside it.
+
+    @brief Package alias → the function inside the package.
+    """
+    edges = _edges(db)
+    assert ("use", "run", "pkg/api/impl.py", "resolved") in edges
+    assert not any(a == "use" and f == "pkg/elsewhere.py" for a, _b, f, _c in edges)
+
+
+def test_a_package_alias_with_two_candidates_inside_resolves_nothing(db: Path) -> None:
+    """@brief Two `go`s inside the package: refused, never guessed."""
+    assert not any(a == "both" and c == "resolved" for a, _b, _f, c in _edges(db))

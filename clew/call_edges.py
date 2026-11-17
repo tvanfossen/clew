@@ -1953,7 +1953,9 @@ def call_site_harvester() -> Harvester:
 ## @param candidates Same-named candidate rowids.
 ## @param file_of rowid → repo-relative file.
 ## @return The rowid, or None when the module names no file or not exactly one candidate.
-## @version 1
+## v2 (round 5, 4d-0): an alias of a PACKAGE — `from .. import query as q; q.dossier()` — names
+## the one candidate defined inside that package (its `__init__` re-exports it).
+## @version 2
 ## @req REQ-DDB-PIPE-003
 def _via_module(
     module: str, caller_file: str, candidates: list[int], file_of: dict[int, str] | None
@@ -1970,7 +1972,23 @@ def _via_module(
         return None
     paths = _module_paths(module, caller_file)
     hits = [c for c in candidates if any(_names_module(file_of.get(c, ""), p) for p in paths)]
+    if not hits:
+        ## A PACKAGE ALIAS (found by the round-5 wiki: every MCP flow stopped at `q.dossier`):
+        ## `q.f` is the package's attribute, which its `__init__` imported from one of its
+        ## modules. Exactly one candidate inside the package is that function; two are refused.
+        hits = [c for c in candidates if any(_inside(file_of.get(c, ""), p) for p in paths)]
     return hits[0] if len(hits) == 1 else None
+
+
+## @brief Whether a file lies inside the package a module stem names.
+## @param rel A repo-relative file.
+## @param stem A module stem (`pkg/query`).
+## @return True when the file is under that directory, at the root or as a path suffix.
+## @version 1
+## @dg_internal
+def _inside(rel: str, stem: str) -> bool:
+    """@brief Inside a package. @return Bool."""
+    return bool(stem) and (rel.startswith(stem + "/") or f"/{stem}/" in rel)
 
 
 ## @brief The file stems a dotted module may live at.

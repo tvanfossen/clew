@@ -264,7 +264,11 @@ from .tiers import OPTIONS_META_PREFIX
 ##   test scope). Before it, a production function whose path contained "test" or whose name
 ##   began `test_` was its requirement's covering test (`mark_test_scope`, `test_id` on clew), so
 ##   an index built at 10 keeps those rows; the bump makes it rebuild.
-CLEW_BUILD_VERSION = 11
+## 12 (2.0.0, round 5 4d-0) — a Python call through an alias of a PACKAGE (`from .. import query
+##   as q; q.dossier()`) resolves to the one same-named function inside that package. Before it,
+##   no edge was made, so clew's own MCP flows stopped at the query layer; an index built at 11
+##   lacks those edges, and the bump makes it rebuild.
+CLEW_BUILD_VERSION = 12
 
 
 ## @brief Stamp the build version, scope, coverage and preprocessor config into build_meta.
