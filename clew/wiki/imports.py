@@ -198,16 +198,22 @@ def parse_contexts(path: Path, repo_root: Path) -> dict[str, dict[int, set[str]]
 ## @brief The test a coverage context names.
 ## @param context `<nodeid>|<phase>`, as `--cov-context=test` writes it.
 ## @return The test function's name ("" for the empty context).
-## @version 1
+## v2: only the run phase names a test.
+## @version 2
 ## @dg_internal
 def _context_test(context: str) -> str:
     """PARAMETERS ARE CUT AT THE FIRST "[" before the name is taken: a parameter id may itself
-    hold "::" and "]" (`test_x[a::b[c]-enhanced]` read as a test called `enhanced]`).
+    hold "::" and "]" (`test_x[a::b[c]-enhanced]` read as a test called `enhanced]`). ONLY THE
+    `run` PHASE names a test: what a fixture's setup or teardown ran is not what the test exercised
+    (clew: an autouse fixture made every test "measured" against REQ-DDB-MCP-004).
 
     @brief Context → test.
     @return Name.
     """
-    return context.split("|", 1)[0].split("[", 1)[0].rsplit("::", 1)[-1]
+    nodeid, _, phase = context.partition("|")
+    if phase and phase != "run":
+        return ""
+    return nodeid.split("[", 1)[0].rsplit("::", 1)[-1]
 
 
 ## @brief Per-test contexts from coverage.py's own data file (SQLite).

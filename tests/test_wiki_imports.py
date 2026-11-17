@@ -584,3 +584,31 @@ def test_a_context_with_brackets_in_its_parameters_names_its_test(tmp_path: Path
     )
     (tmp_path / "a.py").write_text("x = 1\n")
     assert parse_contexts(report, tmp_path) == {"a.py": {1: {"test_x"}}}
+
+
+def test_only_a_tests_own_run_links_it_not_its_fixtures_setup(tmp_path: Path) -> None:
+    """FOUND ON CLEW'S OWN WIKI (round 4): `test_cap_at_depth_taper` read as MEASURED against
+    REQ-DDB-MCP-004 through `source_fingerprint`, which only an autouse fixture's SETUP ran. A
+    context is `<nodeid>|<phase>`; the test exercised what ran in its `run` phase.
+
+    @brief Setup and teardown contexts do not link a test.
+    """
+    from clew.wiki.imports import parse_contexts
+
+    report = tmp_path / "coverage.json"
+    report.write_text(
+        json.dumps(
+            {
+                "files": {
+                    "a.py": {
+                        "contexts": {
+                            "1": ["tests/t.py::test_x|setup"],
+                            "2": ["tests/t.py::test_x|run"],
+                        }
+                    }
+                }
+            }
+        )
+    )
+    (tmp_path / "a.py").write_text("x = 1\ny = 2\n")
+    assert parse_contexts(report, tmp_path) == {"a.py": {1: set(), 2: {"test_x"}}}
