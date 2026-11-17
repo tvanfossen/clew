@@ -858,9 +858,10 @@ def test_a_test_has_its_own_page_saying_what_it_checks_and_reaches(site: dict[st
     proof = proof[: proof.index("</svg>")]
     assert ">test_load" in proof and ">load<" in proof and "REQ-W-001" in proof
     assert "Reaching is not proving" in page
-    ## A test with a flow links to it; without a packaged run the link says so.
-    assert 'href="flow-test_load-tests-test-data-py.html"' in page
-    assert "no recorded run was packaged" in page
+    ## OWNER 2026-11-17 (round 5): "a test itself doesn't need a sequence diagram" — without a
+    ## packaged run a test has no flow of its own (its slices of the master flows need per-test
+    ## coverage, which this fixture does not give; tests/test_wiki_testslices.py covers them).
+    assert "flow-test_load" not in page and "replay" not in page
 
 
 def test_a_discovered_flow_that_cannot_be_drawn_is_listed_not_fatal(

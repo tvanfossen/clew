@@ -196,7 +196,6 @@ wiki:
   adrs: ["docs/adr/*.md"]       # decision records (this is the default)
   entry_points: 2               # every console script / main / thread entry is a flow (0 = off)
   tooling: ["scripts/*", "tools/*"]   # entry points here are grouped as Tooling
-  test_flows: 50                # how many directly linked tests are drawn as flows
   flows:                        # roots you choose, added to the entry points
     - entry: load               # bare name; `qualified:` or `file:` selects one identity
       depth: 3

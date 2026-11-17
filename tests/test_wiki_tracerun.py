@@ -371,12 +371,13 @@ def test_installed_code_inside_the_repository_is_never_a_span(tmp_path: Path) ->
     assert rec.stack == []
 
 
-def test_a_traced_test_gets_its_flow_even_past_the_cap(tmp_path: Path) -> None:
+def test_only_a_traced_test_gets_a_flow_of_its_own(tmp_path: Path) -> None:
     """FOUND ON CLEW'S OWN WIKI (round 4): three runs were packaged, and the capped set of test
-    flows held none of their tests, so every replay landed in "traces whose test has no flow". A
-    test with a packaged trace is always drawn, whatever the cap.
+    flows held none of their tests, so every replay landed in "traces whose test has no flow".
+    Round 5 (owner 2026-11-17) removed per-test flows and the cap: a test is a slice of the master
+    flows, and only a test with a packaged trace keeps a flow, so its replay has a place to land.
 
-    @brief Traced tests are drawn regardless of `wiki.test_flows`.
+    @brief Traced tests keep a flow; no other test has one.
     """
     from unittest import mock
 
@@ -389,5 +390,6 @@ def test_a_traced_test_gets_its_flow_even_past_the_cap(tmp_path: Path) -> None:
     }
     keys = {("test_a", "tests/t.py"), ("test_z", "tests/t.py")}
     with mock.patch("clew.wiki.symbols.test_functions", return_value=keys):
-        specs, undrawn = build._test_flows(tmp_path / "x.db", facts, 1, frozenset({"test_z"}))
-    assert {s.entry for s in specs} == {"test_a", "test_z"} and undrawn == 0
+        specs = build._test_flows(tmp_path / "x.db", facts, frozenset({"test_z"}))
+    ## Round 5 (owner 2026-11-17): only the traced test keeps a flow; test_a is a slice.
+    assert {s.entry for s in specs} == {"test_z"}

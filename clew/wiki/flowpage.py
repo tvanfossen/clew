@@ -30,6 +30,7 @@ from typing import Any, NamedTuple
 from .config import Audience, FlowSpec, WikiConfig
 from .flow import Flow, derive_flow
 from .htmltable import code, md_title, source_url, table
+from .slices import slices_of
 from .svg import flow_svg
 from .symbols import symbol_href
 
@@ -41,7 +42,7 @@ from .symbols import symbol_href
 ## v5: `calls`, for llms-full.txt (P3b).
 ## @version 5
 class FlowPage(NamedTuple):
-    """@brief A flow page. @version 5"""
+    """@brief A flow page. @version 6"""
 
     name: str
     title: str
@@ -58,6 +59,9 @@ class FlowPage(NamedTuple):
     requirements: frozenset[str] = frozenset()
     ## (caller, callee) per step, in call order.
     calls: tuple[tuple[str, str], ...] = ()
+    ## Round 5: the derived flow, and each test's slice of it (from per-test coverage).
+    flow: Any = None
+    slices: Any = None
 
 
 ## The most lines a call expression is read across.
@@ -71,8 +75,9 @@ document.querySelectorAll('.flow-block').forEach(function(block){
  function row(dl,k,v,code){if(!v)return;var dt=document.createElement('dt'),dd=document.createElement('dd');
   dt.textContent=k;var el=code?document.createElement('pre'):document.createElement('span');el.textContent=v;
   dd.appendChild(el);dl.appendChild(dt);dl.appendChild(dd);}
- function build(n){var i=+n,s=data[i];if(!s)return null;groups.forEach(function(g){g.classList.remove('sel');});
-  groups[i].classList.add('sel');var f=document.createDocumentFragment(),dl=document.createElement('dl');
+ function at(i){return svg.querySelector('g[data-step="'+i+'"]');}
+ function build(n){var i=+n,s=data[i],g=at(i);if(!s||!g)return null;groups.forEach(function(g){g.classList.remove('sel');});
+  g.classList.add('sel');var f=document.createDocumentFragment(),dl=document.createElement('dl');
   dl.className='kv';row(dl,'call',s.call,true);row(dl,'callee',s.callee_qualified);
   row(dl,'receives',s.signature,true);row(dl,'brief',s.brief);row(dl,'frames',s.frames);
   row(dl,'ambiguous',s.ambiguous);row(dl,'at',s.site);f.appendChild(dl);
@@ -89,6 +94,16 @@ document.querySelectorAll('.flow-block').forEach(function(block){
   groups.forEach(function(g){g.classList.remove('on');});}
   if(cursor>=groups.length){cursor=0;groups.forEach(function(g){g.classList.remove('on');});}
   groups[cursor].classList.add('on');cursor++;});
+ var sl=document.getElementById('flow-slices'),slices=sl?JSON.parse(sl.textContent):{};
+ function lit(){var m=/^#test=(.+)$/.exec(location.hash),t=m&&decodeURIComponent(m[1]),on=t&&slices[t];
+  var note=block.querySelector('.slice-note');if(note)note.remove();
+  groups.forEach(function(g){var ids=(g.getAttribute('data-steps')||g.getAttribute('data-step')).split(' ');
+   var hit=on&&ids.some(function(k){return on.indexOf(+k)>=0;});
+   g.classList.toggle('ex',!!hit);g.classList.toggle('dim',!!on&&!hit);});
+  if(on){var p=document.createElement('p');p.className='slice-note';
+   p.textContent='Lit: the steps test '+t+' exercised ('+on.length+' of '+data.length+').';
+   block.insertBefore(p,block.firstChild);}}
+ lit();window.addEventListener('hashchange',lit);
 });});</script>"""
 _STYLE = (
     "<style>svg.seq.paused .cs,svg.seq.paused .cs .ca{animation-play-state:paused}"
@@ -96,6 +111,18 @@ _STYLE = (
     "svg.seq.stepping g.on{opacity:1}svg.seq.stepping g.on .ca{stroke-dashoffset:0;animation:none}"
     "svg.seq g[data-step]{cursor:pointer}</style>"
 )
+
+
+## @brief The lines any test ran, per file.
+## @param coverage {file: {line: tests}}.
+## @return {file: lines}.
+## @version 1
+## @dg_internal
+def _executed(coverage: dict[str, dict[int, set[str]]]) -> dict[str, set[int]]:
+    """@brief Union of all tests' lines. @return Lines."""
+    return {
+        rel: {line for line, tests in lines.items() if tests} for rel, lines in coverage.items()
+    }
 
 
 ## @brief Write one flow's page.
@@ -122,8 +149,12 @@ _STYLE = (
 ## v10: Mermaid and PlantUML exports of the diagram, linked from the page (P3b).
 ## v11: a test's flow names its test node for a traced run (P4b).
 ## v12: an imported trace of its test is drawn over it (P4b-2).
-## @version 12
+## @param coverage {file: {line: tests}} — per-test coverage, or None when unmeasured.
+## v13 (OWNER 2026-11-17, round 5): with per-test coverage a master flow grows where tests ran,
+## each test's slice of it rides inline (`#test=<name>` lights it), and a not-run stub is a row.
+## @version 13
 ## @req REQ-DDB-WIKI-014
+## @req REQ-DDB-WIKI-041
 def flow_page(
     repo_root: Path,
     db: Path,
@@ -134,6 +165,7 @@ def flow_page(
     commit: str,
     req_of: dict[tuple[str, str], list[str]] | None = None,
     trace: tuple[str, dict[str, Any]] | None = None,
+    coverage: dict[str, dict[int, set[str]]] | None = None,
 ) -> FlowPage:
     """THE STEP TABLE LINKS THE CALL SITE — the caller's file at the call's line (`site_file`),
     not the callee's file. The table drops a column no step fills.
@@ -150,7 +182,9 @@ def flow_page(
         lanes=spec.lanes,
         stop_at=spec.stop_at,
         file=spec.file,
+        executed=_executed(coverage) if coverage is not None and spec.role != "tests" else None,
     )
+    slices = slices_of(flow, coverage) if coverage is not None and spec.role != "tests" else {}
     name = page_name(spec)
     data = step_data(db, repo_root, flow, rules, config.link_template, commit)
     lines = [
@@ -170,14 +204,27 @@ def flow_page(
         )
         reqs = _badges((req_of or {}).get((step.callee, step.file), ()))
         callee = f'<a href="{escape(symbol_href(step.callee, step.file))}">{code(step.callee)}</a>'
+        if step.not_run:
+            callee = f'<span class="nr">… {step.not_run} not run</span>'
         rows.append([str(i), code(step.caller), callee, reqs, escape(row["frames"]), site])
     head = ["#", "caller", "callee", "requirements", "frames", "call site"]
     lines += ["```{raw} html", table(head, rows, cls="steps", numeric=("#",)), "```", ""]
     if trace is not None:
         lines += ["```{raw} html", imported_trace(flow, *trace), "```", ""]
+    if slices:
+        payload = json.dumps(
+            {t: list(c.exercised) for t, c in slices.items()}, separators=(",", ":")
+        )
+        payload = payload.replace("</", "<\\/")
+        lines += [
+            "```{raw} html",
+            f'<script type="application/json" id="flow-slices">{payload}</script>',
+            "```",
+            "",
+        ]
     files = {s.file for s in flow.steps} | {s.site_file for s in flow.steps if s.site_file}
-    hops = tuple((s.site_file, s.file) for s in flow.steps if s.site_file)
-    functions = {(s.callee, s.file) for s in flow.steps} | {
+    hops = tuple((s.site_file, s.file) for s in flow.steps if s.site_file and s.callee)
+    functions = {(s.callee, s.file) for s in flow.steps if s.callee} | {
         (s.caller, s.site_file) for s in flow.steps if s.site_file
     }
     lines += _functions(functions)
@@ -185,7 +232,7 @@ def flow_page(
     (source / f"{name}.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
     title = spec.title or "Flow: " + spec.entry
     reqs = frozenset(r for f in functions for r in (req_of or {}).get(f, ()))
-    calls = tuple((s.caller, s.callee) for s in flow.steps)
+    calls = tuple((s.caller, s.callee) for s in flow.steps if s.callee)
     return FlowPage(
         name,
         title,
@@ -196,6 +243,8 @@ def flow_page(
         len(flow.steps),
         reqs,
         calls,
+        flow,
+        slices,
     )
 
 
@@ -448,19 +497,18 @@ def _badges(reqs: Any) -> str:
 ## @brief The Flows page: flows grouped by role, tooling folded away.
 ## @param source The Sphinx source directory.
 ## @param pages The flow pages.
-## @param undrawn_tests Directly linked tests the cap left without a flow (stated when > 0).
 ## @param unmatched (file, root span) of imported traces that matched no flow.
 ## @param not_drawn (entry, file, reason) of discovered flows that could not be derived.
 ## @return The page name, or "" when there is no flow.
 ## v2: a Tests role and the cap's disclosure (P2b).
 ## v3: imported traces that matched no flow are listed (P4b-2).
 ## v4 (round 4): discovered flows that could not be drawn are listed with the reason.
-## @version 4
+## v5 (round 5): no cap to disclose — tests are slices of the master flows, not flows of their own.
+## @version 5
 ## @req REQ-DDB-WIKI-023
 def flows_index(
     source: Path,
     pages: list[FlowPage],
-    undrawn_tests: int = 0,
     unmatched: tuple = (),
     not_drawn: tuple = (),
 ) -> str:
@@ -487,13 +535,6 @@ def flows_index(
                 "```",
                 "",
             ]
-    if undrawn_tests:
-        noun = "test has" if undrawn_tests == 1 else "tests have"
-        lines += [
-            f"{undrawn_tests} directly linked {noun} no pre-drawn flow (`wiki.test_flows` caps how "
-            "many are drawn).",
-            "",
-        ]
     if unmatched:
         lines += ["Imported traces whose test has no flow here:", ""]
         lines += [f"- `{rel}` — root `{root}`" for rel, root in unmatched]

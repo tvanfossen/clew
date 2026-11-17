@@ -74,7 +74,9 @@ _CELL = str.maketrans({"|": "\\|", "\n": " "})
 ## per requirement (R4) and per test (R6/R7).
 ## v22 (round 4): a discovered flow that cannot be drawn is listed, not fatal; a traced test's
 ## flow is drawn past the cap.
-## @version 22
+## v23 (round 5): per-test coverage feeds the master flows; each test's slices go to its page; only
+## a traced test keeps a flow of its own.
+## @version 23
 ## @req REQ-DDB-WIKI-003
 def build_wiki(
     repo_root: Path,
@@ -129,8 +131,9 @@ def build_wiki(
     traces = {
         root_name(otlp): (rel, otlp) for rel, otlp in load_traces(repo_root, config.inputs.traces)
     }
-    test_specs, undrawn = _test_flows(db, facts, config.test_flows, frozenset(traces))
+    test_specs = _test_flows(db, facts, frozenset(traces))
     specs = [*_all_flows(repo_root, db, config), *test_specs]
+    coverage = _coverage(repo_root, config)
     pages, not_drawn, flow_of = [], [], {}
     for s in specs:
         try:
@@ -145,6 +148,7 @@ def build_wiki(
                     commit,
                     req_of,
                     traces.get(s.entry),
+                    coverage,
                 )
             )
             flow_of.setdefault(s.entry, pages[-1].name)
@@ -188,6 +192,7 @@ def build_wiki(
             "extent": {r.req_id: dict(r.extent) for r in trace.evidence if r.extent is not None},
             "flow_of": flow_of,
             "traced": set(traces),
+            "slices": _slices_by_test(pages),
         },
         source,
     )
@@ -204,7 +209,7 @@ def build_wiki(
     _issues_into(graph, trace.issues)
     sections = [
         requirements_page(trace, config, source, rules, burndown, tuple(pages), issues),
-        flows_index(source, pages, undrawn, unmatched, tuple(not_drawn)),
+        flows_index(source, pages, unmatched, tuple(not_drawn)),
         impact_page(trace, pages, rules, source),
         web_page(db, graph, [n for n, _g in config.components], pages, written, source),
         _docs_page(source, _prose(repo_root, config, source), config, decisions),
@@ -316,23 +321,55 @@ def _issues_into(graph: dict, linked: Any) -> None:
         comp["issues"] = len(ids)
 
 
-## @brief Directly linked tests (by tag or measured coverage) as flows, at most `cap`.
+## @brief Per-test coverage, when the section names it and it is there.
+## @param repo_root The repository.
+## @param config The section.
+## @return {file: {line: tests}}, or None (unmeasured).
+## @version 1
+## @dg_internal
+def _coverage(repo_root: Path, config: Any) -> dict | None:
+    """@brief Read contexts. @return Contexts or None."""
+    from .imports import parse_contexts
+
+    rel = config.inputs.contexts
+    return (
+        parse_contexts(repo_root / rel, repo_root) if rel and (repo_root / rel).is_file() else None
+    )
+
+
+## @brief Each test's slices of the master flows, most exercised first.
+## @param pages The flow pages.
+## @return {test: [(page, slice)]}.
+## @version 1
+## @req REQ-DDB-WIKI-041
+def _slices_by_test(pages: list) -> dict[str, list]:
+    """@brief Group slices by test. @return Slices."""
+    out: dict[str, list] = {}
+    for page in pages:
+        for test, cut in (page.slices or {}).items():
+            out.setdefault(test, []).append((page, cut))
+    for cuts in out.values():
+        cuts.sort(key=lambda pc: (-len(pc[1].exercised), pc[0].name))
+    return out
+
+
+## @brief Directly linked tests (by tag or measured coverage) with a packaged run, as flows.
 ## @param db The index.
 ## @param facts {test name: facts}.
-## @param cap The most drawn.
-## @param traced Tests with a packaged run: always drawn, past the cap.
-## @return (flow specs, how many directly linked tests were left undrawn).
+## @param traced Tests with a packaged run.
+## @return Flow specs.
 ## v2 (round 4): a traced test is drawn whatever the cap, so its replay has a flow to land on.
-## @version 2
+## v3 (OWNER 2026-11-17, round 5: "a test itself doesn't need a sequence diagram"): only a test
+## with a packaged run keeps a flow, so its replay has somewhere to land until replays are drawn
+## on the master flow; every other test is a slice of the master flows. The cap is gone.
+## @version 3
 ## @req REQ-DDB-WIKI-027
-def _test_flows(
-    db: Path, facts: dict, cap: int, traced: frozenset = frozenset()
-) -> tuple[list, int]:
+def _test_flows(db: Path, facts: dict, traced: frozenset = frozenset()) -> list:
     """CATALOG AND INFERRED LINKS ARE NOT DIRECT: a catalog names a whole test file and inference
     reaches through the call graph; only a tagged or measured test is drawn by default.
 
     @brief Test flows.
-    @return Specs and the undrawn count.
+    @return Specs.
     """
     from ..query._common import connect
     from .config import FlowSpec
@@ -341,13 +378,12 @@ def _test_flows(
     direct = {n for n, f in facts.items() if any(k in ("tag", "measured") for _r, k in f.verifies)}
     with connect(db) as conn:
         keys = sorted(test_functions(conn, direct))
-    chosen = keys[: max(cap, 0)]
-    chosen += [k for k in keys[max(cap, 0) :] if k[0] in traced]
+    chosen = [k for k in keys if k[0] in traced]
     specs = [
         FlowSpec(entry=n, file=f, depth=2, title=f"test `{n}` ({f})", role="tests")
         for n, f in chosen
     ]
-    return specs, len(keys) - len(specs)
+    return specs
 
 
 ## @brief A flow with its role settled: declared, else tooling by path, else product.

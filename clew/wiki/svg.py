@@ -50,7 +50,9 @@ _OPERATOR = {
     "catch": "catch",
 }
 _STYLE = (
-    "<style>.seq g.nr{opacity:.45}.seq g.nr .lbl{font-style:italic}"
+    "<style>.seq g.nr{opacity:.45}.seq g.nr .lbl{font-style:italic}.seq g.dim{opacity:.28}"
+    ".seq g.ex .ca{stroke-width:2.6}.seq .ent{font-size:11px;font-weight:700;"
+    "fill:var(--acc,#3D6B2E)}"
     ".seq text{font-family:var(--sans,sans-serif);font-size:12px;fill:var(--ink,#2A2118)}"
     ".seq .head{fill:var(--paper,#FAF1D9);stroke:var(--acc,#3D6B2E);stroke-width:1.2}"
     ".seq .head-t{font-weight:700;font-size:12px;fill:var(--accink,#1F3B16)}"
@@ -91,11 +93,18 @@ _ANIMATION = (
 ## v4: a viewBox, so the page's pan / zoom (round 3, P1b) can move it.
 ## v5 (OWNER 2026-11-17, round 5): consecutive identical leaf calls draw once, framed `loop ×N`;
 ## the group names every step it stands for, and the animation plays drawn arrows only.
-## @version 5
+## @param marks Extra classes per step (round 5: `ex` / `dim` / `entry` for a test's slice).
+## @param first The master-flow number of this flow's first step (a window keeps its numbering).
+## v6 (round 5): `marks` and `first`, so a test's slice is drawn as a window of its master flow.
+## @version 6
 ## @req REQ-DDB-WIKI-008
-def flow_svg(flow: Flow, animate: bool = False) -> str:
+## @req REQ-DDB-WIKI-041
+def flow_svg(
+    flow: Flow, animate: bool = False, marks: dict[int, str] | None = None, first: int = 0
+) -> str:
     """@brief Lay out and draw the diagram. @return SVG text."""
-    runs = _runs(flow.steps)
+    marks = marks or {}
+    runs = _runs(flow.steps, marks)
     layout = _Layout(replace(flow, steps=tuple(flow.steps[start] for start, _n in runs)))
     parts = [
         f'<svg class="seq" xmlns="http://www.w3.org/2000/svg" width="{layout.width}" '
@@ -110,18 +119,24 @@ def flow_svg(flow: Flow, animate: bool = False) -> str:
     parts += [layout.repeat_frame(d, n) for d, (_s, n) in enumerate(runs) if n > 1]
     parts += layout.activations_markup()
     for d, (start, n) in enumerate(runs):
-        shape = layout.step_markup(d, start + 1, n)
-        parts.append(_step_group(start, flow.steps[start], shape, animate, (d, n)))
+        mark = marks.get(start, "")
+        shape = layout.step_markup(d, first + start + 1, n)
+        if "entry" in mark:
+            shape += layout.entry_marker(d)
+        group = _step_group(first + start, flow.steps[start], shape, animate, (d, n, mark))
+        parts.append(group)
     parts.append("</svg>")
     return "".join(parts)
 
 
 ## @brief Runs of consecutive identical leaf calls.
 ## @param steps The flow's steps.
+## @param marks Extra classes per step: steps marked differently never fold together.
 ## @return (first step, how many) per drawn arrow, in order.
-## @version 1
+## v2 (round 5): a test's exercised call never folds with a dimmed one.
+## @version 2
 ## @dg_internal
-def _runs(steps: tuple[Step, ...]) -> list[tuple[int, int]]:
+def _runs(steps: tuple[Step, ...], marks: dict[int, str] | None = None) -> list[tuple[int, int]]:
     """A RUN IS THE SAME CALL REPEATED WITH NOTHING UNDER IT: same caller, callee, lanes, depth and
     frames, and no deeper step after any member (a call with a subtree is never folded — its
     subtree would be hidden).
@@ -130,8 +145,10 @@ def _runs(steps: tuple[Step, ...]) -> list[tuple[int, int]]:
     @return Runs.
     """
 
-    def key(step: Step) -> tuple:
+    def key(i: int) -> tuple:
+        step = steps[i]
         return (
+            (marks or {}).get(i, ""),
             step.caller_qualified or step.caller,
             step.callee_qualified or step.callee,
             step.from_lane,
@@ -144,8 +161,8 @@ def _runs(steps: tuple[Step, ...]) -> list[tuple[int, int]]:
         return i + 1 >= len(steps) or steps[i + 1].depth <= steps[i].depth
 
     runs: list[tuple[int, int]] = []
-    for i, step in enumerate(steps):
-        if runs and leaf(i) and key(steps[runs[-1][0]]) == key(step) and leaf(i - 1):
+    for i in range(len(steps)):
+        if runs and leaf(i) and key(runs[-1][0]) == key(i) and leaf(i - 1):
             runs[-1] = (runs[-1][0], runs[-1][1] + 1)
         else:
             runs.append((i, 1))
@@ -345,6 +362,19 @@ class _Layout:
         )
         return _frame(f"loop ×{times}", step.line, box)
 
+    ## @brief The "test enters" marker under one drawn step's arrow.
+    ## @param i The drawn step.
+    ## @return SVG markup.
+    ## @version 1
+    ## @dg_internal
+    def entry_marker(self, i: int) -> str:
+        """@brief Mark the entry. @return Markup."""
+        step = self.flow.steps[i]
+        return (
+            f'<text class="ent" x="{self.x[step.from_lane] + 8:.0f}" y="{self.call_y[i] + 14:.0f}">'
+            "▶ test enters</text>"
+        )
+
     ## @brief One step's call arrow, badge, label and any returns it closes.
     ## @param i The drawn step.
     ## @param number The number its badge shows (its first step's, counted from 1).
@@ -458,19 +488,20 @@ def _frame(operator: str, line: int, box: tuple[float, float, float, float]) -> 
 ## @param shape The step's markup.
 ## @param animate Whether the diagram is animated.
 ## @return SVG markup.
-## @param drawn (its position among drawn arrows, how many steps it stands for).
+## @param drawn (its position among drawn arrows, how many steps it stands for, extra classes).
 ## v2: takes the step; carries `data-step`.
 ## v3 (round 5): a fold carries `data-steps` (every step it stands for) and is delayed by its
 ## DRAWN position, so folding leaves no gap in the animation.
 ## v4 (round 5): a `not_run` stub's group is classed `nr` (dimmed).
-## @version 4
+## v5 (round 5): extra classes (a test slice's `ex` / `dim` / `entry`).
+## @version 5
 ## @dg_internal
 def _step_group(
-    index: int, step: Step, shape: str, animate: bool, drawn: tuple[int, int] = (-1, 1)
+    index: int, step: Step, shape: str, animate: bool, drawn: tuple[int, int, str] = (-1, 1, "")
 ) -> str:
     """@brief Wrap a step. @return SVG text."""
-    slot, times = drawn if drawn[0] >= 0 else (index, 1)
-    kind = "st nr" if step.not_run else "st"
+    slot, times, mark = drawn if drawn[0] >= 0 else (index, 1, "")
+    kind = " ".join(c for c in ("st", "nr" if step.not_run else "", mark) if c)
     numbers = f"{index + 1}–{index + times}" if times > 1 else f"{index + 1}"
     title = f"<title>{numbers}. {escape(step.caller)} → {escape(step.callee)}</title>"
     steps = f' data-steps="{" ".join(str(index + k) for k in range(times))}"' if times > 1 else ""

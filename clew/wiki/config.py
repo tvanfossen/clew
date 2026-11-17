@@ -106,7 +106,6 @@ _TOP = {
     "components",
     "issues",
     "tooling",
-    "test_flows",
     "needs",
     "adrs",
     "doc_kinds",
@@ -283,7 +282,8 @@ class RuleSpec:
 ## v11: issues_fetch.
 ## v12: needs (a Sphinx-needs import).
 ## v13: adrs, doc_kinds.
-## @version 13
+## v14 (round 5): test_flows removed — tests are slices of the master flows.
+## @version 14
 @dataclass(frozen=True)
 class WikiConfig:
     """@brief The whole `wiki:` section. @version 4"""
@@ -315,7 +315,6 @@ class WikiConfig:
     ## Path globs whose entry points are tooling flows.
     tooling: tuple[str, ...] = DEFAULT_TOOLING
     ## The most directly linked tests drawn as flows.
-    test_flows: int = 50
     ## A Sphinx-needs `needs.json` contributing requirements (repo-relative), or None.
     needs: str | None = None
     ## Globs of architecture decision records.
@@ -340,7 +339,8 @@ class WikiConfig:
 ## v11: issues.fetch.
 ## v12: needs.
 ## v13: adrs, doc_kinds.
-## @version 13
+## v14 (round 5): test_flows removed.
+## @version 14
 ## @req REQ-DDB-WIKI-003
 def load_wiki_config(
     repo_root: Path, config_path: Path | None = None
@@ -384,7 +384,6 @@ def load_wiki_config(
         issues_enabled=raw.get("issues") is not False,
         issues_fetch=isinstance(raw.get("issues"), dict) and bool(raw["issues"].get("fetch")),
         tooling=tuple(str(g) for g in raw.get("tooling", DEFAULT_TOOLING) or ()),
-        test_flows=int(raw.get("test_flows", 50) or 0),
         needs=str(raw["needs"]) if raw.get("needs") else None,
         adrs=tuple(str(g) for g in raw.get("adrs", DEFAULT_ADRS) or ()),
         doc_kinds=_doc_kinds(raw.get("doc_kinds") or {}, problems),

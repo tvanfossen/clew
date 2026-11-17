@@ -101,3 +101,40 @@ def test_a_test_that_ran_none_of_the_flow_has_an_empty_slice() -> None:
     """@brief Nothing ran → nothing exercised, nowhere entered (and never an error)."""
     cut = slice_of(_FLOW, {"src/other.py": {1}})
     assert cut.exercised == () and cut.entered == ()
+
+
+def test_a_slice_is_drawn_as_a_window_of_the_master_flow() -> None:
+    """THE PORTION OF THE DIAGRAM: the window runs from `pad` steps before the first exercised step
+    to `pad` after the last, numbered as in the master flow; exercised steps are lit (`ex`), the
+    rest dimmed (`dim`); the test's entry is marked; the steps outside the window are counted.
+
+    @brief Window of the master flow with the slice lit.
+    """
+    import re
+
+    from clew.wiki.slices import slice_svg
+
+    cut = slice_of(_FLOW, lines_per_test(_CONTEXTS)["test_load"])
+    html = slice_svg(_FLOW, cut, pad=0)
+    groups = dict(re.findall(r'<g class="st ([a-z ]+)" data-step="(\d+)"', html))
+    assert {v: k for k, v in groups.items()} == {"1": "ex entry", "2": "ex"}
+    assert ">2<" in html and ">3<" in html  # master numbering kept
+    assert "test enters" in html
+    assert "1 earlier step" in html and "2 later steps" in html
+    wide = slice_svg(_FLOW, cut, pad=1)
+    assert 'data-step="0"' in wide and 'class="st dim" data-step="3"' in wide
+
+
+def test_every_test_s_slice_of_a_flow_comes_from_one_pass_over_its_steps() -> None:
+    """A FLOW PAGE NEEDS ALL ITS TESTS' SLICES at once (clew: ~2,900 tests); `slices_of` reads them
+    from the steps' call sites in one pass, and agrees with `slice_of` test by test. A test that
+    touched none of the flow is absent, not an empty slice.
+
+    @brief All slices of a flow, equal to the per-test ones.
+    """
+    from clew.wiki.slices import slices_of
+
+    every = slices_of(_FLOW, _CONTEXTS)
+    per_test = lines_per_test(_CONTEXTS)
+    assert set(every) == {"test_main", "test_load"}
+    assert all(every[t] == slice_of(_FLOW, per_test[t]) for t in every)

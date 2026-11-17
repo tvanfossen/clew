@@ -60,7 +60,8 @@ def test_page_of(name: str, rel: str) -> str:
 ## @param source The Sphinx source directory.
 ## @return {test name: its page href}.
 ## v2: tests resolved by framework (Catch2 / GoogleTest macros), not by function name.
-## @version 2
+## v3 (round 5): what it exercises — its slices of the master flows, from per-test coverage.
+## @version 3
 ## @req REQ-DDB-WIKI-026
 def test_pages(db: Path, repo_root: Path, ctx: dict[str, Any], source: Path) -> dict[str, str]:
     """ONE PAGE PER NAME: every definition of a test name in test code is drawn on it, so a link
@@ -88,7 +89,8 @@ def test_pages(db: Path, repo_root: Path, ctx: dict[str, Any], source: Path) -> 
             "",
             "```{raw} html",
             '<p class="crumbs"><a href="requirements.html">← Requirements</a></p>',
-            f'<div class="test-page">{_result(name, ctx)}{_replay(name, ctx)}{body}'
+            f'<div class="test-page">{_result(name, ctx)}{_replay(name, ctx)}'
+            f"{_exercises(name, ctx)}{body}"
             f"{_requirements(name, ctx)}</div>",
             "```",
             "",
@@ -154,8 +156,9 @@ def _source_page(d: Definition) -> str:
 ## @brief A link to the test's flow, and whether a recorded run is drawn on it.
 ## @param name The test.
 ## @param ctx The page context (flow_of, traced).
-## @return HTML ("" when the test has no flow page).
-## @version 1
+## @return HTML ("" when the test has no recorded run).
+## v2 (round 5): only a traced test has a flow of its own, so only a replay is linked.
+## @version 2
 ## @dg_internal
 def _replay(name: str, ctx: dict[str, Any]) -> str:
     """A PACKAGED RUN IS REPLAYED ON THE FLOW (owner 2026-11-16: "take run results/logs that were
@@ -166,13 +169,56 @@ def _replay(name: str, ctx: dict[str, Any]) -> str:
     @return HTML.
     """
     page = (ctx.get("flow_of") or {}).get(name)
-    if not page:
+    if not page or name not in (ctx.get("traced") or set()):
         return ""
-    if name in (ctx.get("traced") or set()):
-        words = "Replay its recorded run on its flow: the calls it made and each check, in order"
-    else:
-        words = "Its flow: the calls it is expected to make (no recorded run was packaged)"
+    words = "Replay its recorded run on its flow: the calls it made and each check, in order"
     return f'<p class="replay"><a href="{escape(page)}.html">{words} →</a></p>'
+
+
+## How many of a test's master-flow slices are drawn on its page; the rest are linked.
+_SLICES_DRAWN = 3
+
+
+## @brief What a test exercises: its slices of the master flows.
+## @param name The test.
+## @param ctx The build context (`slices`: {test: [(flow page, slice)]}).
+## @return HTML, or "" when no master flow holds a step it ran.
+## @version 1
+## @req REQ-DDB-WIKI-041
+def _exercises(name: str, ctx: dict[str, Any]) -> str:
+    """OWNER 2026-11-17: "a test case is testing a portion OF a sequence diagram". Each master
+    flow the test ran a step of is drawn as the window around its slice, most steps first; the
+    title opens the whole flow with this test's steps lit.
+
+    @brief Draw the slices.
+    @return HTML.
+    """
+    from urllib.parse import quote
+
+    from .slices import slice_svg
+
+    cuts = (ctx.get("slices") or {}).get(name) or []
+    if not cuts:
+        return ""
+    parts = [
+        "<h2>What it exercises</h2><p>The parts of the system's flows this test ran, measured by "
+        "per-test coverage: lit steps ran in this test, dimmed ones did not, and ▶ marks where the "
+        "test called in. Each title opens the whole flow with these steps lit.</p>"
+    ]
+    for page, cut in cuts[:_SLICES_DRAWN]:
+        href = f"{page.name}.html#test={quote(name)}"
+        parts.append(
+            f'<h3><a href="{escape(href)}">{escape(page.title)}</a> · {len(cut.exercised)} of '
+            f"{page.steps} steps</h3>{slice_svg(page.flow, cut)}"
+        )
+    rest = cuts[_SLICES_DRAWN:]
+    if rest:
+        links = ", ".join(
+            f'<a href="{escape(p.name)}.html#test={escape(quote(name))}">{escape(p.title)}</a>'
+            for p, _c in rest
+        )
+        parts.append(f"<p>Also in: {links}.</p>")
+    return '<section class="exercises">' + "".join(parts) + "</section>"
 
 
 ## @brief The run's verdict on a test, and its failure message.
