@@ -1,21 +1,24 @@
 # SPDX-License-Identifier: MIT
-"""One requirement's whole trace, in the site's shared modal (round 3, P1d).
+"""One requirement's whole trace, on its own page (round 3, P1d; round 4, R4).
 
 Owner 2026-11-15: requirements front and centre; the acceptance drop-down in the table was noise;
 "being able to click into a test associated with a requirement and see WHAT it's testing". The
-requirement's id opens a modal holding everything it links to:
+requirement's id opens ITS OWN PAGE (round 4, R4 — owner 2026-11-16: "individual links that are
+self contained", not one giant scrolling page; the modal it replaces cut long test lists) holding
+everything it links to:
 
   * its title and acceptance criteria (both withheld under `exclude_requirement_text`);
   * its tier, and the catalog's declared status and priority;
   * the functions implementing it, linked to source;
-  * its tests, each with its status and how it was linked (tag, measured, catalog, inferred) —
-    a long list is cut, and the cut is SAID, never silent;
+  * its tests, every one, in two tables — linked directly (tag, mapping, catalog, measured) and
+    reached through calls (inferred) — each with its result, how it was linked, and its EXTENT:
+    which of the requirement's implementers it executes or reaches ("covers 2 of 9");
   * the flows its implementers are on, linked to their pages;
   * model entries and mutation outcomes, when it has any;
   * a prefilled "raise an issue" link, when the repository has a tracker.
 
-@brief Render a requirement's modal.
-@version 1
+@brief Render a requirement's page.
+@version 2
 """
 
 from __future__ import annotations
@@ -25,18 +28,15 @@ from typing import Any
 from .config import Audience
 from .htmltable import code, md_title, source_url, tag, text
 from .issues import Target, issue_url
-from .modal import modal
-
-## The most tests a modal lists before saying how many it left out.
-_MAX_TESTS = 40
 
 
-## @brief The requirement's cell: its id opening its modal, and its title under it.
+## @brief The requirement's cell: its id linking to its page, and its title under it.
 ## @param row The evidence row.
 ## @param entry Its catalog entry ({} when undeclared).
 ## @param ctx The page context: trace, rules, flows, issue target.
 ## @return HTML.
-## @version 1
+## v2 (round 4, R4): links to the requirement's page instead of opening a modal.
+## @version 2
 ## @req REQ-DDB-WIKI-022
 def requirement_cell(row: Any, entry: dict, ctx: dict[str, Any]) -> str:
     """@brief Id, title and modal. @return HTML."""
@@ -44,11 +44,9 @@ def requirement_cell(row: Any, entry: dict, ctx: dict[str, Any]) -> str:
     title = (
         "" if rules.exclude_requirement_text else (row.title or str(first(entry, "name", "title")))
     )
-    heading = f"{row.req_id} — {title}" if title else row.req_id
     cell = (
         f'<span class="rid" id="{text(row.req_id)}">'
-        + modal("req-" + _key(row.req_id), row.req_id, heading, _body(row, entry, title, ctx))
-        + "</span>"
+        f'<a href="{text(page_of(row.req_id))}.html">{text(row.req_id)}</a></span>'
     )
     if title:
         cell += f'<div class="rtitle">{text(title)}</div>'
@@ -65,7 +63,8 @@ def requirement_cell(row: Any, entry: dict, ctx: dict[str, Any]) -> str:
 ## v3: tests link to their sections.
 ## v4: open issues (P3a).
 ## v5: decisions naming the requirement (P3c).
-## @version 5
+## v6 (round 4, R4): the body of the requirement's own page; every test, as tables with extent.
+## @version 6
 ## @dg_internal
 def _body(row: Any, entry: dict, title: str, ctx: dict[str, Any]) -> str:
     """@brief Assemble sections. @return HTML."""
@@ -95,7 +94,7 @@ def _body(row: Any, entry: dict, title: str, ctx: dict[str, Any]) -> str:
             ),
             "ul",
         ),
-        (_tests_heading(row.tests), _tests(row, trace.test_href), "ul"),
+        (_tests_heading(row.tests), _tests(row, trace.test_href), ""),
         ("Flows through it", _flows(row, ctx["flows"]), "ul"),
         ("Open issues", issue_links((trace.issues or {}).get(row.req_id, []), True), ""),
         (
@@ -154,21 +153,139 @@ def _tests_heading(tests: tuple) -> str:
     return f"Tests ({len(tests)})"
 
 
-## @brief The tests, each with its status and link kind; a long list is cut and the cut said.
+## @brief Every test of a requirement, as two tables: linked directly, and reached through calls.
 ## @param row The evidence row.
 ## @param hrefs {test name: its section}.
 ## @return HTML.
-## v2: each test links to its section — what it tests (round 3, P2a).
-## @version 2
+## v3 (round 4, R4/R5): tables, every test, each with its extent; nothing cut.
+## @version 3
 ## @dg_internal
 def _tests(row: Any, hrefs: dict[str, str]) -> str:
-    """@brief Test items. @return HTML."""
-    items = [f"{test_link(t, hrefs)} {tag(s)}{via(row, t)}" for t, s in row.tests[:_MAX_TESTS]]
-    if len(row.tests) > _MAX_TESTS:
-        items.append(
-            f'<span class="none">and {len(row.tests) - _MAX_TESTS} more, not listed</span>'
+    """A TEST'S EXTENT IS SAID (owner 2026-11-17: "a test could cover sections of multiple
+    requirements, or one requirement in full"): which of the requirement's implementers it executed
+    (measured) or reaches (inferred) — "2 of 9" never reads like "9 of 9". A failing test sorts
+    first; then the NEAREST (fewest calls between test and implementer — the test aimed at this
+    code, not one that passes through it on the way elsewhere); then the widest extent.
+
+    @brief Test tables.
+    @return HTML.
+    """
+    reach = dict(row.extent or ())
+    hops = dict(row.distance)
+    total = len(row.implementers)
+    order = {"failed": 0, "error": 0, "skipped": 1, "absent": 2, "passed": 3}
+
+    def key(item: tuple[str, str]) -> tuple:
+        return (
+            order.get(item[1], 2),
+            hops.get(item[0], 0),
+            -len(reach.get(item[0], ())),
+            item[0],
         )
-    return _items(items)
+
+    direct = sorted((t for t in row.tests if t[0] not in row.inferred_tests), key=key)
+    reached = sorted((t for t in row.tests if t[0] in row.inferred_tests), key=key)
+    out = ""
+    for heading, rows in (("Linked directly", direct), ("Reached through calls", reached)):
+        if not rows:
+            continue
+        body = "".join(
+            f"<tr><td>{test_link(t, hrefs)}</td><td>{tag(st)}</td><td>{_kind(row, t)}</td>"
+            f"<td>{_extent(reach.get(t), total)}</td>"
+            f'<td class="n">{hops.get(t, "—")}</td></tr>'
+            for t, st in rows
+        )
+        out += (
+            f"<h5>{heading} ({len(rows)})</h5>"
+            '<table class="clew req-tests"><thead><tr><th>test</th><th>result</th>'
+            "<th>linked by</th><th>implementers exercised</th>"
+            '<th class="n" title="the fewest calls between the test and an implementer">calls away'
+            "</th></tr></thead>"
+            f"<tbody>{body}</tbody></table>"
+        )
+    return out
+
+
+## @brief How a test was linked, as a word.
+## @param row The evidence row.
+## @param test The test.
+## @return HTML.
+## @version 1
+## @dg_internal
+def _kind(row: Any, test: str) -> str:
+    """@brief Link kind. @return HTML."""
+    return via(row, test).strip() or '<span class="via via-tag">tag</span>'
+
+
+## @brief "k of n", naming the implementers when few.
+## @param names The implementers the test exercised, or None when unknown.
+## @param total The requirement's implementer count.
+## @return HTML.
+## @version 1
+## @dg_internal
+def _extent(names: tuple[str, ...] | None, total: int) -> str:
+    """@brief Extent cell. @return HTML."""
+    if names is None:
+        return '<span class="none">unknown</span>'
+    head = f"{len(names)} of {total}"
+    if not names or len(names) > 4:
+        return text(head)
+    return f"{text(head)}: " + ", ".join(code(n) for n in names)
+
+
+## @brief The page name of a requirement.
+## @param req_id The id.
+## @return The page name (without .html).
+## @version 1
+## @req REQ-DDB-WIKI-022
+def page_of(req_id: str) -> str:
+    """@brief Page name. @return Name."""
+    return "req-" + _key(req_id)
+
+
+## @brief Write one page per requirement.
+## @param trace The gathered trace.
+## @param ctx The page context: trace, rules, flows, issue target.
+## @param source The Sphinx source directory.
+## @return The page names written.
+## @version 1
+## @req REQ-DDB-WIKI-022
+def requirement_pages(trace: Any, ctx: dict[str, Any], source: Any) -> list[str]:
+    """ORPHAN PAGES (linked from the index, not from the toctree), one per requirement, so a
+    requirement is a URL a reader can share and the index stays a table.
+
+    @brief Write req-*.md.
+    @return Names.
+    """
+    from pathlib import Path
+
+    rules: Audience = ctx["rules"]
+    names = []
+    for row in trace.evidence:
+        entry = trace.declared.get(row.req_id, {})
+        title = (
+            ""
+            if rules.exclude_requirement_text
+            else (row.title or str(first(entry, "name", "title")))
+        )
+        name = page_of(row.req_id)
+        heading = f"{row.req_id}: {title}" if title else row.req_id
+        lines = [
+            "---",
+            "orphan: true",
+            "---",
+            "",
+            f"# {md_title(heading)}",
+            "",
+            "```{raw} html",
+            '<p class="crumbs"><a href="requirements.html">← Requirements</a></p>',
+            f'<div class="req-page">{_body(row, entry, title, ctx)}</div>',
+            "```",
+            "",
+        ]
+        (Path(source) / f"{name}.md").write_text("\n".join(lines), encoding="utf-8")
+        names.append(name)
+    return names
 
 
 ## @brief Open issues as links: inline (`#12, #13`) or as a list with titles.

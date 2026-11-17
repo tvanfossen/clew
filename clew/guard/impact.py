@@ -544,7 +544,9 @@ def format_report(entries: list[ImpactEntry], config: dict[str, Any]) -> str:
 
 
 ## @brief Orchestrate diff analysis, requirement mapping, and report generation.
-#  @version 1.1
+#  1.2 (round 4, R11): no files with a range or --staged means every file that changed there;
+#  an empty report then means nothing changed, never that nothing was read.
+#  @version 1.2
 #  @req REQ-DDB-GUARD-010
 def run_impact(
     file_paths: list[str],
@@ -553,6 +555,10 @@ def run_impact(
     diff_range: str | None = None,
     run_command: RunCommand | None = None,
 ) -> str:
+    if not file_paths and (staged or diff_range):
+        from .git import get_changed_files
+
+        file_paths = get_changed_files(diff_range, staged, run_command) or []
     changed = collect_changed_functions(
         file_paths,
         config,

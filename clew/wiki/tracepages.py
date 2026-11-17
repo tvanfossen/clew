@@ -34,7 +34,7 @@ from typing import Any
 from .catalogs import declared_catalog
 from .config import Audience, WikiConfig
 from .htmltable import code, linked, source_url, table, tag, text
-from .reqmodal import first, issue_links, requirement_cell, test_link, via
+from .reqmodal import first, issue_links, requirement_cell, requirement_pages, test_link, via
 
 ## Where clew-guard writes its impact report, under its `output_dir`.
 _IMPACT = Path("impact") / "impact.json"
@@ -91,13 +91,16 @@ class Trace:
     ## @return The trace.
     ## v2: a Sphinx-needs import (`wiki.needs`, round 3 P3c).
     ## v3: the declared reports that are missing (round 3, P6c).
-    ## @version 3
+    ## v4: the gate's exempt statuses re-grade MISSING as EXEMPT; a missing contexts report is
+    ## named with the others (round 4, R8).
+    ## @version 4
     ## @dg_internal
     @classmethod
     def gather(cls, repo_root: Path, db: Path, config: WikiConfig, commit: str) -> Trace:
         """@brief Read every source. @return Trace."""
         from .catalogs import catalog_requirements, pin_problems
-        from .evidence import requirement_evidence
+        from ..requirements import load_guard_config
+        from .evidence import exempt_by_status, requirement_evidence
         from .sources import load_nodes, node_references
 
         evidence = requirement_evidence(
@@ -112,6 +115,7 @@ class Trace:
         catalog_path, declared = declared_catalog(repo_root)
         if config.needs:
             evidence, declared = _with_needs(evidence, declared, Path(repo_root) / config.needs)
+        evidence = exempt_by_status(evidence, declared, load_guard_config(repo_root))
         parts = {
             "evidence": evidence,
             "nodes": load_nodes(repo_root, config.sources)[0],
@@ -130,6 +134,7 @@ class Trace:
                     *config.junit,
                     *([config.coverage] if config.coverage else []),
                     *(rel for _fmt, rel in config.inputs.results),
+                    *([config.inputs.contexts] if config.inputs.contexts else []),
                 )
                 if not (Path(repo_root) / r).is_file()
             ],
@@ -254,7 +259,8 @@ def load_impact(path: Path) -> list[dict] | None:
 ## v3: change impact moved to its own section (`impactpage`, P1g).
 ## v4: open issues (P3a).
 ## v5: names each declared test report that was not there — unmeasured (round 3, P6c).
-## @version 5
+## v6 (round 4, R4): one page per requirement; the index links to them.
+## @version 6
 ## @req REQ-DDB-WIKI-012
 def requirements_page(
     trace: Trace,
@@ -269,6 +275,8 @@ def requirements_page(
     from .summary import charts_block, group_cards, group_table
 
     ev = trace.evidence
+    ctx = {"trace": trace, "rules": rules, "flows": list(flows), "issues": issues}
+    requirement_pages(trace, ctx, source)
     origin = f" declared in `{trace.catalog_path}`" if trace.catalog_path else ""
     lines = [
         "# Requirements",
@@ -287,13 +295,10 @@ def requirements_page(
         *_raw(group_cards(ev)),
         "## Every requirement",
         "",
-        "Open a requirement for its acceptance criteria, implementers, tests, flows and issues.",
+        "Each requirement opens its own page: acceptance criteria, implementers, every test with "
+        "what it exercises, flows and issues.",
         "",
-        *_raw(
-            _requirement_table(
-                trace, {"trace": trace, "rules": rules, "flows": list(flows), "issues": issues}
-            )
-        ),
+        *_raw(_requirement_table(trace, ctx)),
         "## Charts",
         "",
         *_raw(charts_block(ev)),
@@ -405,11 +410,12 @@ def _fold(items: list[str], summary: str) -> str:
 ## @param hrefs {test name: its section}.
 ## @return HTML.
 ## v2: tests link to their sections (P2a).
-## @version 2
+## v3 (round 4, R4): the full list lives on the requirement's page, not a modal.
+## @version 3
 ## @dg_internal
 def _tests_cell(row: Any, hrefs: dict[str, str]) -> str:
-    """ONE FULL LIST PER REQUIREMENT, in its modal: repeating hundreds of tests in a folded cell
-    doubled the page (clew's own: 2.2 MB).
+    """ONE FULL LIST PER REQUIREMENT, on its own page: repeating hundreds of tests in a folded
+    cell doubled the page (clew's own: 2.2 MB).
 
     @brief Tests cell.
     @return HTML.
@@ -530,31 +536,45 @@ def _missing_note(trace: Trace) -> list[str]:
 ## @param trace The gathered trace.
 ## @param config The section (sources, for their files).
 ## @param source The Sphinx source directory.
-## @return The page name.
+## @return The page name, or "" when no function realises any entry.
 ## v2: a worked example diagram from a real entry (round 3, P1g).
-## @version 2
+## v3 (round 4, R12): no page when nothing realises an entry; per-source counts.
+## @version 3
 ## @req REQ-DDB-WIKI-004
 def nodes_page(trace: Trace, config: WikiConfig, source: Path) -> str:
     """SAID WHAT IT IS (owner 2026-11-15: "model nodes is not well understood"): the page opens by
     explaining that each row is an entry of a declared model file, with a worked example drawn
-    from a real row (round 3, P1g), and groups entries by source.
+    from a real row (round 3, P1g), and groups entries by source. ROUND 4, R12 (owner: "a USELESS
+    page"): no page at all when no function realises any entry, and each source says how many of
+    its entries have code behind them.
 
     @brief Render model entries.
     @return Page name.
     """
+    if not any(trace.refs.get(n.ref) for n in trace.nodes):
+        return ""
     lines = [
         "# Model entries",
         "",
-        "Entries of the model files this repository declares in `wiki.sources` — a key table, a "
-        "command list, a topic list. Code generated from a model should trace to the model entry, "
-        "not stop at a generated setter: a function names the entry it realises with a "
-        "`@node <source>:<id>` tag, and an entry may name the requirements it serves.",
+        "Some of what this repository does is defined by DATA rather than code: a table of keys, a "
+        "list of commands or topics, the models it ships. Those data files are declared in "
+        "`wiki.sources`, and each row is a *model entry*. When a function implements a row, it "
+        "says so with a `@node <source>:<id>` tag. This page shows, for every row, which code "
+        "realises it and which requirement it serves, so a row nothing implements, or code that "
+        "implements a row nobody declared, is visible. The diagram is a real row from this "
+        "repository.",
         "",
         *_raw(_node_example(trace)),
     ]
     for spec in config.sources:
         mine = [n for n in trace.nodes if n.source == spec.name]
-        lines += [f"## `{spec.name}` — `{spec.path}`", ""]
+        done = sum(1 for n in mine if trace.refs.get(n.ref))
+        lines += [
+            f"## `{spec.name}` — `{spec.path}`",
+            "",
+            f"{done} of {len(mine)} entries have code realising them.",
+            "",
+        ]
         rows = [
             [
                 code(n.id),

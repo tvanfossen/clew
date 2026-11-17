@@ -494,3 +494,52 @@ def test_a_declared_report_that_is_not_there_is_unmeasured_not_a_crash(
     }
     assert rows["R-A"].implementers_covered is None
     assert rows["R-A"].tier in ("NOT_RUN", "MISSING")
+
+
+def test_a_measured_link_carries_its_extent(traced: Path, tmp_path: Path) -> None:
+    """OWNER 2026-11-17: "a test could cover sections of multiple requirements, or one requirement
+    in full". A measured link says WHICH of the requirement's implementers the test executed, so
+    "ran 1 of 9" never reads like "ran all 9". Unmeasured (no contexts) is ABSENT, not empty.
+
+    @brief Per-test extent: the implementers each measured test executed.
+    """
+    report = tmp_path / "coverage.json"
+    report.write_text(
+        json.dumps({"files": {"src/a.c": {"contexts": {"11": ["tests/t.py::test_cov|run"]}}}})
+    )
+    measured = {
+        r.req_id: r
+        for r in requirement_evidence(
+            traced,
+            junit=[],
+            inputs=EvidenceInputs(contexts="coverage.json", infer_depth=0),
+            repo_root=tmp_path,
+        )
+    }
+    assert measured["R-A"].extent == (("test_cov", ("impl",)),)
+    assert measured["R-B"].extent == ()
+    plain = requirement_evidence(
+        traced, junit=[], inputs=EvidenceInputs(infer_depth=0), repo_root=tmp_path
+    )
+    assert all(r.extent is None for r in plain)
+
+
+def test_by_default_inference_is_the_full_transitive_closure(traced: Path, tmp_path: Path) -> None:
+    """OWNER 2026-11-17: tests are linked to source by what they reach, transitively — "we should
+    EXPLICITLY know which tests are related to which requirements by transitive linkage". A fixed
+    hop cap was a guess: clew's REQ-DDB-GUARD-021 implementer sits 4 calls under its tests, so the
+    demo read it MISSING. With no `infer_depth` declared, every test whose calls reach an
+    implementer at ANY depth is linked; the cap stays available, and 0 still turns it off. The
+    link's extent names the implementers each inferred test reaches.
+
+    @brief Unbounded transitive inference by default, with extent.
+    """
+    db = _with_calls(traced, tmp_path)
+    rows = {
+        r.req_id: r
+        for r in requirement_evidence(db, junit=[], inputs=EvidenceInputs(), repo_root=tmp_path)
+    }
+    assert rows["R-A"].inferred_tests == ("test_far", "test_infer")
+    assert dict(rows["R-A"].extent) == {"test_far": ("impl",), "test_infer": ("impl",)}
+    ## The nearest test is the one aimed at the code: test_infer is 2 calls away, test_far 3.
+    assert dict(rows["R-A"].distance) == {"test_far": 3, "test_infer": 2}

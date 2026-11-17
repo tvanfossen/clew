@@ -303,10 +303,11 @@ def test_the_requirements_page_summarises_each_requirement_group(site: dict[str,
         row = page.split(f"<td>{group}</td>", 1)[1].split("</tr>")[0]
         return re.findall(r"<td[^>]*>([^<]*)</td>", row)
 
-    # requirements, implemented, tested, PASS, GAP, TARGET, NOT_RUN, MISSING, below min layers.
+    # requirements, implemented, tested, PASS, GAP, TARGET, NOT_RUN, MISSING, EXEMPT, below min
+    # layers. EXEMPT column added in round 4 (R8); the counts asserted are unchanged.
     # REQ-W-002 spans two layers once test_load is inferred for `finish` (bdd + unit).
-    assert cells("REQ-W")[:9] == ["2", "2", "2", "1", "1", "0", "0", "0", "1"]
-    assert cells("REQ-X")[:9] == ["1", "1", "1", "1", "0", "0", "0", "0", "1"]
+    assert cells("REQ-W")[:10] == ["2", "2", "2", "1", "1", "0", "0", "0", "0", "1"]
+    assert cells("REQ-X")[:10] == ["1", "1", "1", "1", "0", "0", "0", "0", "0", "1"]
     assert "only by call-graph inference" in page
     # Round 3, P1d: the group CARDS now lead the page and the counts table sits below the list;
     # the property — group counts come before the per-requirement rows — is held by the cards.
@@ -634,7 +635,9 @@ def test_the_map_is_a_section_between_flows_and_docs(site: dict[str, str]) -> No
     positions = [nav.index(f">{s}<") for s in ("Requirements", "Flows", "Map", "Docs")]
     assert positions == sorted(positions)
     page = site["map.html"]
-    assert 'class="comp' in page and 'data-lens="requirements"' in page
+    ## ROUND 4, R3: the map page is the repository web (canvas, lens picker, block table) — the
+    ## box map's `comp` groups and lens buttons were replaced by owner ruling 2026-11-16.
+    assert 'class="web"' in page and "data-web-lens" in page and 'class="clew web-table"' in page
 
 
 def test_every_page_carries_the_minimap_with_its_components_lit(site: dict[str, str]) -> None:
@@ -644,12 +647,17 @@ def test_every_page_carries_the_minimap_with_its_components_lit(site: dict[str, 
 
     @brief P1c-2: the sidebar minimap.
     """
+    ## ROUND 4, R2 (owner 2026-11-16: the unlabelled sidebar boxes were "easier to simply click
+    ## into map"): the sidebar is now a LABELLED block list, in the web's order, each block a link
+    ## to that block on the web. The property — every page carries it, a flow lights its blocks —
+    ## is unchanged.
     for name in ("index.html", "requirements.html", "flow-load.html"):
-        assert '<svg class="minimap"' in site[name], name
+        assert '<nav class="minimap"' in site[name], name
     flow = site["flow-load.html"]
     lit = re.findall(r'\.minimap \[data-comp="([^"]+)"\]', flow)
     assert lit == ["src"]
-    assert re.search(r'href="map\.html#m=comp-\d+"', flow)
+    assert re.search(r'href="map\.html#b=\d+"[^>]*data-comp="src"', flow)
+    assert re.search(r'data-comp="src"[^>]*>.*?<span class="mm-name">src</span>', flow, re.S)
     assert not re.findall(r'\.minimap \[data-comp="([^"]+)"\]', site["requirements.html"])
 
 
@@ -675,24 +683,29 @@ def test_requirement_groups_are_cards_that_filter_the_list(site: dict[str, str])
     assert 'class="seg c-PASS"' in w[: w.index("</button>")]
 
 
-def test_a_requirement_opens_its_whole_trace_in_a_modal(site: dict[str, str]) -> None:
-    """THE ACCEPTANCE TEXT LEAVES THE TABLE (owner: the drop-down was noise) and lives in the
-    requirement's modal with everything else that requirement links to: implementers, tests with
-    their link kind, the flows passing through its implementers, and a prefilled issue link that
-    carries the id three ways — in the title, as a `req:` label, and as a marker line.
+def test_a_requirement_has_its_own_page_with_its_whole_trace(site: dict[str, str]) -> None:
+    """THE ACCEPTANCE TEXT LEAVES THE TABLE (owner: the drop-down was noise) and lives on the
+    requirement's OWN PAGE with everything else that requirement links to: implementers, tests
+    with their link kind and extent, the flows passing through its implementers, and a prefilled
+    issue link that carries the id three ways — in the title, as a `req:` label, and as a marker
+    line. ROUND 4, R4 (owner 2026-11-16: "Dont show things by one giant scrolling page, but
+    individual links that are self contained"): a page per requirement replaces the modal.
 
-    @brief P1d: the requirement modal and its issue link.
+    @brief R4: the requirement page and its issue link.
     """
     from html import unescape
     from urllib.parse import parse_qs, urlsplit
 
     page = site["requirements.html"]
     assert "<summary>acceptance</summary>" not in page
-    assert 'data-modal="req-REQ-W-001"' in page
-    body = _template(page, "req-REQ-W-001")
+    assert 'href="req-REQ-W-001.html"' in page
+    assert '<template id="modal-req-' not in page
+    body = site["req-REQ-W-001.html"]
     assert "Every item is parsed once" in body
     assert "src/data.py" in body and "test_load" in body
     assert 'href="flow-load.html"' in body
+    tests = body[body.index('class="clew req-tests') :]
+    assert "test_load" in tests and "of 1" in tests
     href = unescape(
         re.search(r'href="(https://github\.com/acme/demo/issues/new\?[^"]+)"', body).group(1)
     )
@@ -701,16 +714,16 @@ def test_a_requirement_opens_its_whole_trace_in_a_modal(site: dict[str, str]) ->
     assert "clew-req: REQ-W-001" in query["body"][0]
 
 
-def test_a_public_site_keeps_requirement_text_out_of_the_modal(
+def test_a_public_site_keeps_requirement_text_off_the_requirement_page(
     repo: tuple[Path, Path], tmp_path: Path
 ) -> None:
-    """@brief P1d: `exclude_requirement_text` reaches the modal and the issue link."""
+    """@brief R4: `exclude_requirement_text` reaches the requirement page and the issue link."""
     from clew.wiki.build import build_wiki
 
     html = build_wiki(repo[0], repo[1], tmp_path / "out", audience="public")
-    page = (html / "requirements.html").read_text()
+    page = (html / "requirements.html").read_text() + (html / "req-REQ-W-001.html").read_text()
     assert "Every item is parsed once" not in page and "Load the data" not in page
-    assert 'data-modal="req-REQ-W-001"' in page
+    assert 'href="req-REQ-W-001.html"' in page
 
 
 def test_issue_links_follow_the_declared_or_remote_tracker() -> None:
@@ -792,15 +805,14 @@ def test_docs_are_grouped_by_kind_and_agent_docs_are_included(site: dict[str, st
 
 def test_decisions_are_listed_and_reach_the_requirements_they_name(site: dict[str, str]) -> None:
     """@brief P3c-2: ADRs — a Decisions page (number, title, status, date, requirements named) and
-    a Decisions section in each named requirement's modal."""
+    a Decisions section on each named requirement's page."""
     page = site["decisions.html"]
     table = page[page.index('<table class="clew"') :]
     row = table[table.index("Use SQLite for the store") :].split("</tr>")[0]
     assert "Accepted" in row and "2026-01-02" in row and 'href="requirements.html#REQ-W-001"' in row
     assert "adr/0001-use-sqlite" in page
-    req = site["requirements.html"]
-    body = req[req.index('<template id="modal-req-REQ-W-001"') :]
-    body = body[: body.index("</template>")]
+    ## Round 4, R4: the requirement's own page holds what its modal did.
+    body = site["req-REQ-W-001.html"]
     assert "<h4>Decisions</h4>" in body and "Use SQLite for the store" in body
 
 
@@ -827,3 +839,22 @@ def test_an_unknown_doc_kind_is_a_problem(tmp_path: Path) -> None:
 
     (tmp_path / ".clew.yaml").write_text("wiki:\n  doc_kinds: {README.md: novel}\n")
     assert load_wiki_config(tmp_path)[1]
+
+
+def test_a_test_has_its_own_page_saying_what_it_checks_and_reaches(site: dict[str, str]) -> None:
+    """OWNER 2026-11-16: tests did not link through from requirements, and "at minimum, I want to
+    see visually what a test is PROVING". A requirement's test links to the test's OWN page: the
+    packaged run's result, its checks, and a drawn chain from the test through its calls to each
+    implementer it reaches — labelled as reaching, not proving, without mutation records.
+
+    @brief R6/R7: the test page.
+    """
+    req = site["req-REQ-W-001.html"]
+    assert 'href="test-tests-test_data-py-test_load.html"' in req
+    page = site["test-tests-test_data-py-test_load.html"]
+    assert "Passed in the packaged run." in page
+    assert "assert load([]) == 1" in page
+    proof = page[page.index('<svg class="proof') :]
+    proof = proof[: proof.index("</svg>")]
+    assert ">test_load" in proof and ">load<" in proof and "REQ-W-001" in proof
+    assert "Reaching is not proving" in page

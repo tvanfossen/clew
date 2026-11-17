@@ -208,16 +208,17 @@ def test_open_issues_reach_the_requirement_and_its_group(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """@brief A requirement's modal and row list its open issues; unlinked ones are listed apart."""
+    """@brief A requirement's page and row list its open issues; unlinked ones are listed apart."""
     provider = _Provider(
         [
             Issue("12", "REQ-W-001 loads twice", "", (), "https://example.invalid/i/12", "open"),
             Issue("13", "Docs typo", "", (), "https://example.invalid/i/13", "open"),
         ]
     )
-    page = _build(repo, tmp_path, monkeypatch, provider)["requirements.html"]
-    body = page[page.index('<template id="modal-req-REQ-W-001"') :]
-    body = body[: body.index("</template>")]
+    built = _build(repo, tmp_path, monkeypatch, provider)
+    page = built["requirements.html"]
+    ## Round 4, R4: the requirement's own page holds what its modal did.
+    body = built["req-REQ-W-001.html"]
     assert 'href="https://example.invalid/i/12"' in body and "#12" in body
     row = page[page.index('<tr data-group="REQ-W"') :].split("</tr>")[0]
     assert "#12" in row

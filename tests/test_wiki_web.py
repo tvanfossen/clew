@@ -1,0 +1,169 @@
+# SPDX-License-Identifier: MIT
+"""The repository web: one zoomable, walkable view of every function (round 4, R3).
+
+OWNER 2026-11-16: "the spiderweb should be full repo web, zoomable, interactive, and animatable
+single viewpoint - different selections simply jump the camera position to the according position,
+zooming out past a threshold collapses functions to blocks accordingly". It replaces the box map
+and the per-page ego-graphs.
+
+THE LAYOUT IS COMPUTED HERE, in Python, so it is deterministic and testable: one wedge per block
+(spokes), functions on rings by call depth from the entry points (the web's threads), files kept
+contiguous inside a wedge. The page's script only draws, pans, zooms and moves the camera.
+
+Grounding (references: .claude/tmp/wiki-round4-references.md, to be published with the docs):
+overview first, zoom and filter, details on demand (Shneiderman 1996); semantic zoom — what is drawn
+changes with scale, not only its size (Perlin & Fox 1993, Pad); smooth zoom-and-pan camera paths
+(van Wijk & Nuij 2003); camera animation is for keeping the mental map, not for speed (Bederson &
+Boltman 1999) — so it honours `prefers-reduced-motion`; a table view of the same blocks exists for
+anyone the canvas does not serve.
+
+@brief Tests for the repository web.
+@version 1
+"""
+
+from __future__ import annotations
+
+import json
+import math
+import re
+from pathlib import Path
+
+import pytest
+
+from clew.cli import _build_argparser, _run_pipeline
+from clew.wiki.graph import build_graph
+from clew.wiki.web import WEB_JS, web_data, web_html
+
+_FILES = {
+    "pkg/__init__.py": "",
+    "pkg/api/__init__.py": "",
+    "pkg/core/__init__.py": "",
+    "pkg/api/handlers.py": (
+        "from pkg.core import store\n\n\n"
+        "def handle(x):\n"
+        '    """Handle a request."""\n'
+        "    return store.save(x)\n"
+    ),
+    "pkg/core/store.py": (
+        'from pkg import util\n\n\ndef save(x):\n    """Save."""\n    return util.clean(x)\n'
+    ),
+    "pkg/util.py": 'def clean(x):\n    """Clean."""\n    return x\n',
+    "tests/test_store.py": (
+        "from pkg.core.store import save\n\n\n"
+        'def test_save():\n    """Covers save."""\n    assert save(1) == 1\n'
+    ),
+}
+_DECLARED = (("API", ("pkg/api/*",)), ("Core", ("pkg/core/*",)))
+
+
+## @brief The fixture repository, indexed.
+## @param tmp_path_factory Pytest's factory.
+## @return The index.
+## @version 1
+@pytest.fixture(scope="module")
+def db(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    """@brief Build. @return Index."""
+    root = tmp_path_factory.mktemp("web")
+    repo = root / "repo"
+    for rel, text in _FILES.items():
+        (repo / rel).parent.mkdir(parents=True, exist_ok=True)
+        (repo / rel).write_text(text)
+    out = root / "clew.db"
+    _run_pipeline(_build_argparser().parse_args(["--output", str(out), "--repo-root", str(repo)]))
+    return out
+
+
+def _data(db: Path) -> dict:
+    graph = build_graph(db, [], None, _DECLARED, exclude_tests=True)
+    return web_data(db, graph)
+
+
+def test_every_block_is_a_wedge_and_wedges_do_not_overlap(db: Path) -> None:
+    """@brief Spokes: one angular range per block, in declared order, disjoint, inside one turn."""
+    blocks = _data(db)["blocks"]
+    assert [b["id"] for b in blocks] == ["API", "Core"]
+    spans = [(b["a0"], b["a1"]) for b in blocks]
+    assert all(0 <= a0 < a1 <= 2 * math.pi + 1e-9 for a0, a1 in spans)
+    assert all(spans[i][1] <= spans[i + 1][0] for i in range(len(spans) - 1))
+
+
+def test_functions_sit_in_their_block_on_rings_by_call_depth(db: Path) -> None:
+    """THE WEB'S THREADS: an entry point (no non-test caller) is ring 0 at the centre; each call
+    takes its callee one ring out. Test code is not drawn — it is a lens, not a block.
+
+    @brief Rings by depth; every point inside its wedge.
+    """
+    data = _data(db)
+    nodes = {n["name"]: n for n in data["nodes"]}
+    assert "test_save" not in nodes
+    assert (nodes["handle"]["ring"], nodes["save"]["ring"], nodes["clean"]["ring"]) == (0, 1, 2)
+    blocks = {b["id"]: b for b in data["blocks"]}
+    for n in data["nodes"]:
+        block = data["blocks"][n["block"]]
+        angle = math.atan2(n["y"], n["x"]) % (2 * math.pi)
+        assert block["a0"] - 1e-6 <= angle <= block["a1"] + 1e-6, n["name"]
+    assert nodes["clean"]["block"] == [b["id"] for b in data["blocks"]].index("Core")
+    assert blocks["Core"]["inferred_files"] == ["pkg/util.py"]
+
+
+def test_edges_and_block_links_are_carried_for_walking_and_the_overview(db: Path) -> None:
+    """@brief Function edges by node index (walking source); block links weighted (overview)."""
+    data = _data(db)
+    names = [n["name"] for n in data["nodes"]]
+    edges = {(names[a], names[b]) for a, b in data["edges"]}
+    assert ("handle", "save") in edges and ("save", "clean") in edges
+    assert {"from": "API", "to": "Core", "calls": 1} in data["links"]
+
+
+def test_the_page_embeds_the_data_a_canvas_and_a_table_view(db: Path) -> None:
+    """@brief Canvas + inline JSON + the same blocks as a table; web.js local and budgeted."""
+    html = web_html(_data(db))
+    assert "<canvas" in html and 'class="web"' in html
+    payload = re.search(r'<script type="application/json" id="web-data">(.*?)</script>', html, re.S)
+    assert payload and json.loads(payload.group(1))["blocks"]
+    assert "<table" in html and "Core" in html.split("<table", 1)[1]
+    assert "http://" not in WEB_JS and "https://" not in WEB_JS
+    assert len(WEB_JS.encode()) <= 16384
+    assert "prefers-reduced-motion" in WEB_JS
+
+
+def test_the_change_lens_exists_only_with_an_impact_report(db: Path) -> None:
+    """NO IMPACT REPORT, NO CHANGE LENS (ported from the box map, which the web replaced): with a
+    report the lens exists and a changed function carries `changed`.
+
+    @brief Lens options follow their sources.
+    """
+    plain = build_graph(db, [], None, _DECLARED, exclude_tests=True)
+    assert "Change</option>" not in web_html(web_data(db, plain))
+    impact = [{"req_id": "R-1", "functions": [{"name": "save", "file": "pkg/core/store.py"}]}]
+    measured = build_graph(db, [], impact, _DECLARED, exclude_tests=True)
+    data = web_data(db, measured)
+    assert "Change</option>" in web_html(data)
+    assert {n["name"]: n.get("changed") for n in data["nodes"]}["save"] is True
+
+
+def test_a_flow_is_played_by_its_functions_in_call_order(db: Path) -> None:
+    """OWNER 2026-11-15: "an animated core flow traced across the map". A flow's steps are its
+    functions in call order (caller, then callee, each once in a row); a step whose function is
+    not drawn is skipped, never invented.
+
+    @brief Flow steps on the web.
+    """
+    from types import SimpleNamespace
+
+    from clew.wiki.web import _flow
+
+    data = _data(db)
+    slot = {(n["name"], n["file"]): i for i, n in enumerate(data["nodes"])}
+    page = SimpleNamespace(
+        name="flow-handle",
+        title="Handle",
+        calls=(("handle", "save"), ("save", "clean"), ("clean", "nowhere")),
+        hops=(
+            ("pkg/api/handlers.py", "pkg/core/store.py"),
+            ("pkg/core/store.py", "pkg/util.py"),
+            ("pkg/util.py", "elsewhere.py"),
+        ),
+    )
+    steps = [data["nodes"][i]["name"] for i in _flow(page, slot)["steps"]]
+    assert steps == ["handle", "save", "clean"]

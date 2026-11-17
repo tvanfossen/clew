@@ -13,8 +13,8 @@ HAS a remote and no remote branch contains that commit, the permalink would 404,
 drops it and the bundled body stands in. With no git or no remote nothing is known, and links
 stay.
 
-@brief Tests for symbol pages, the ego-graph and published-commit permalinks.
-@version 1
+@brief Tests for symbol pages, their web links and published-commit permalinks.
+@version 2
 """
 
 from __future__ import annotations
@@ -29,12 +29,16 @@ from tests.test_wiki_site import repo, site  # noqa: F401  (module fixtures reus
 
 
 def test_a_referenced_symbol_has_a_section_on_its_files_page(site: dict[str, str]) -> None:  # noqa: F811
-    """@brief P1f: signature, ego-graph, requirements, flows and bundled body."""
+    """@brief P1f: signature, neighbours and the web link, requirements, flows and bundled body."""
     page = site["sym-src-data-py.html"]
     load = page[page.index('id="s-load"') :]
     load = load[: load.index('id="s-parse"')] if 'id="s-parse"' in load else load
-    ego = load[load.index('<svg class="ego"') : load.index("</svg>")]
-    assert ">load<" in ego and ">parse<" in ego and ">finish<" in ego
+    ## ROUND 4, R3: the per-symbol ego-graph is replaced by the repository web (owner 2026-11-16:
+    ## "the spiderweb is not really a true spiderweb"); a section links to its function ON the web
+    ## and lists its neighbours, each linked where it has a section.
+    assert 'href="map.html#n=load@src/data.py"' in load
+    near = load[load.index('class="near"') :]
+    assert ">parse<" in near and ">finish<" in near
     assert 'href="requirements.html#REQ-W-001"' in load
     assert 'href="flow-load.html"' in load
     assert "SECRET_BODY_MARKER" in page[page.index('id="s-parse"') :]
@@ -59,20 +63,6 @@ def test_a_partner_site_bundles_no_body_on_symbol_pages(
     html = build_wiki(repo[0], repo[1], tmp_path / "out", audience="partner")
     page = (html / "sym-src-data-py.html").read_text()
     assert "SECRET_BODY_MARKER" not in page and 'id="s-parse"' in page
-
-
-def test_the_ego_graph_folds_a_large_fan_out() -> None:
-    """A FOLD IS SAID: more neighbours than fit become one "+N more" node.
-
-    @brief P1f: ego-graph folding.
-    """
-    from clew.wiki.symbols import ego_svg
-
-    callees = [(f"f{i}", "") for i in range(25)]
-    svg = ego_svg("hub", [("caller", "")], callees, {})
-    assert ">hub<" in svg and ">caller<" in svg
-    assert len(re.findall(r'class="node callee"', svg)) == 10
-    assert "+15 more" in svg
 
 
 def _git(cwd: Path, *args: str) -> str:
@@ -157,9 +147,13 @@ def test_a_test_section_says_what_it_verifies_and_how(site: dict[str, str]) -> N
 
 
 def test_a_requirements_tests_link_to_their_sections(site: dict[str, str]) -> None:  # noqa: F811
-    """@brief P2a: a requirement's tests open what they test."""
+    """ROUND 4, R6: a test function links to ITS OWN PAGE (result, checks, what it reaches); a
+    Gherkin scenario, which is not a function, still opens its section on the feature's page.
+
+    @brief P2a/R6: a requirement's tests open what they test.
+    """
     body = site["requirements.html"]
-    assert 'href="sym-tests-test-data-py.html#s-test_load"' in body
+    assert 'href="test-tests-test_data-py-test_load.html"' in body
     assert 'href="sym-tests-features-finish-feature.html#s-Finish_runs"' in body
 
 

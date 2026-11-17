@@ -39,9 +39,9 @@ table.docutils,table.clew{border-collapse:collapse;width:100%;margin:12px 0 24px
 div.body .table-wrap,div.body div.highlight{overflow-x:auto}
 table.docutils th,table.docutils td,table.clew th,table.clew td{border:0;border-bottom:1px solid var(--rule2);padding:9px 12px;text-align:left;vertical-align:top}
 table.clew th.n,table.clew td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
-table.clew code{white-space:nowrap}table.clew td{min-width:4ch}
-table.trace td:first-child{min-width:18ch;max-width:44ch}table.trace td:nth-child(2){white-space:nowrap}
-.rid{font:600 13px var(--mono);white-space:nowrap}.rtitle{color:var(--ink2);margin-top:2px}
+table.clew code{white-space:normal;overflow-wrap:anywhere}table.clew td{min-width:4ch;overflow-wrap:anywhere}
+table.trace td:first-child{min-width:14ch}
+.rid{font:600 13px var(--mono);overflow-wrap:anywhere}.rtitle{color:var(--ink2);margin-top:2px}
 table.clew details summary{cursor:pointer;color:var(--acc);font-size:12px;margin-top:4px}table.clew details{color:var(--ink2);font-size:13px}
 table.clew details.fold{color:var(--ink)}table.clew details.fold summary{font-size:13px;font-weight:600}
 .none{color:var(--faint)}.via{font:600 10px var(--sans);text-transform:uppercase;letter-spacing:.04em;color:var(--ink2);border:1px solid var(--rule);border-radius:4px;padding:0 4px;margin-left:2px}
@@ -51,7 +51,7 @@ a.card-link{display:block;background:var(--surface);border:1px solid var(--rule2
 a.card-link h3{margin:0 0 6px;font:500 22px var(--serif);color:var(--accink)}a.card-link p{margin:0;color:var(--ink2);max-width:none}
 table.docutils th,table.clew th{white-space:nowrap;font:600 12px var(--sans);text-transform:uppercase;letter-spacing:.04em;color:var(--ink2);background:var(--muted)}
 table.docutils tr:hover td,table.clew tr:hover td{background:var(--surface)}
-table.clew:not(.trace) td:first-child{white-space:nowrap}
+
 /* Code. */
 code,pre,tt,kbd{font-family:var(--mono);font-size:13px}
 code.literal,code.docutils{background:var(--muted);border-radius:5px;padding:1px 5px;color:var(--ink)}
@@ -63,7 +63,7 @@ strong.tier,span.tier{display:inline-block;padding:1px 9px;border-radius:999px;f
 .t-GAP,.t-failed,.t-error{background:var(--errbg);color:var(--err)}
 .t-TARGET{background:var(--rootbg);color:var(--root)}
 .t-NOT_RUN,.t-skipped{background:var(--warnbg);color:var(--ink)}
-.t-MISSING,.t-absent{background:var(--muted);color:var(--ink2)}
+.t-MISSING,.t-absent{background:var(--muted);color:var(--ink2)}.t-EXEMPT{background:var(--surface);color:var(--ink2);border:1px dashed var(--rule)}
 /* Charts (W14, W17). */
 .charts{display:flex;gap:24px;flex-wrap:wrap;margin:8px 0 24px}
 .chart-card{background:var(--surface);border:1px solid var(--rule2);border-radius:14px;padding:16px 18px;max-width:100%;overflow-x:auto}
@@ -72,7 +72,7 @@ div.sphinxsidebar:not(:has(li)){display:none}
 .chart-card h4{margin:0 0 8px;font:600 13px var(--sans);color:var(--ink2);text-transform:uppercase;letter-spacing:.04em}
 svg.donut text,svg.burndown text{fill:var(--ink);font-family:var(--sans)}
 .c-PASS,.c-passed{--c:var(--acc)}.c-GAP,.c-failed{--c:var(--err)}.c-error,.c-TARGET{--c:var(--root)}
-.c-NOT_RUN,.c-skipped{--c:var(--warn)}.c-MISSING,.c-absent{--c:var(--inset)}
+.c-NOT_RUN,.c-skipped{--c:var(--warn)}.c-MISSING,.c-absent{--c:var(--inset)}.c-EXEMPT{--c:var(--rule)}
 svg.donut path,svg.donut circle{stroke:var(--c)}svg.donut rect{fill:var(--c)}
 svg.burndown .axis{stroke:var(--rule);fill:none}svg.burndown .open{stroke:var(--err);stroke-width:2.5;fill:none}
 svg.burndown .ideal{stroke:var(--faint);stroke-dasharray:5 4;fill:none}svg.burndown .pt{fill:var(--err)}
@@ -131,11 +131,7 @@ svg.node-example .a{font:600 11px var(--mono);fill:var(--acc)}svg.node-example p
 /* Symbol sections and the ego-graph (round 3, P1f). */
 section.symbol{border-top:1px solid var(--rule2);padding-top:14px;margin-top:22px}section.symbol h2{border:0;margin:0 0 8px;padding:0}
 pre.sig{white-space:pre-wrap;font-size:13px}p.where{font:12px var(--mono);color:var(--ink2)}
-svg.ego{display:block;max-width:100%;height:auto;background:var(--surface);border:1px solid var(--rule2);border-radius:14px;margin:8px 0 12px}
-svg.ego text{font:12px var(--mono);fill:var(--ink)}svg.ego .edge{stroke:var(--faint);stroke-width:1.2;opacity:.6}svg.ego .edge.far{opacity:.3}
-svg.ego circle{fill:var(--paper);stroke:var(--acc);stroke-width:1.6}svg.ego .center circle{fill:var(--acc)}svg.ego .center text{font-weight:700;font-size:13px}
-svg.ego .caller circle{stroke:var(--root)}svg.ego .far text{fill:var(--ink2);font-size:11px}svg.ego .fold circle{stroke-dasharray:2 2}svg.ego .fold text{fill:var(--faint);font-style:italic}
-svg.ego a:hover text{fill:var(--acc)}pre.body{max-height:420px}
+.near{font-size:14px;margin:6px 0 10px}.near p{margin:2px 0;overflow-wrap:anywhere}pre.body{max-height:420px}
 /* What a test tests, and Gherkin (round 3, P2a). */
 .test-facts{background:var(--surface);border:1px solid var(--rule2);border-radius:14px;padding:12px 16px;margin:10px 0}
 ul.asserts{margin:0 0 8px;padding-left:18px}ul.asserts code{white-space:pre-wrap}
@@ -176,9 +172,10 @@ svg.map .hop{fill:none;stroke:var(--root);stroke-width:3.5;stroke-dasharray:1;st
 @keyframes hop{0%{visibility:visible;stroke-dashoffset:1}100%{visibility:visible;stroke-dashoffset:0}}
 .map-controls select{height:32px;border-radius:9px;border:1px solid var(--rule);background:var(--paper);color:var(--ink);font:500 13px var(--sans);padding:0 8px;max-width:100%}
 /* The sidebar minimap (round 3, P1c-2); a page's own <style> lights its components. */
-.minimap-block{margin:0 0 20px}svg.minimap{display:block;max-width:100%;height:auto}
-svg.minimap rect{fill:var(--paper);stroke:var(--rule);stroke-width:1;cursor:pointer}
-svg.minimap a:hover rect{stroke:var(--acc);stroke-width:2}svg.minimap line{stroke:var(--faint);stroke-width:.8;opacity:.6}
+.minimap-block{margin:0 0 20px}nav.minimap{display:flex;flex-direction:column;gap:4px}
+nav.minimap a{display:grid;grid-template-columns:1fr auto;gap:2px 8px;padding:6px 8px;border:1px solid var(--rule2);border-radius:8px;background:var(--paper);color:var(--ink);text-decoration:none;font:500 12.5px/1.3 var(--sans)}
+nav.minimap a:hover{border-color:var(--acc)}.mm-name{overflow-wrap:anywhere;min-width:0}.mm-n{color:var(--faint);font-variant-numeric:tabular-nums}
+.mm-size{grid-column:1/3;height:3px;border-radius:2px;background:linear-gradient(90deg,var(--acc) var(--w),var(--rule2) var(--w))}
 /* Footer. */
 .foot{margin:0;padding:18px 32px 32px;font-size:13px;color:var(--faint);display:flex;gap:18px;flex-wrap:wrap}
 div.footer{display:none}
@@ -191,3 +188,32 @@ div.footer{display:none}
  table.clew td{border:0;padding:5px 10px;white-space:normal!important;max-width:none!important;min-width:0!important}
  table.clew td::before{content:attr(data-label);display:block;font:600 11px var(--sans);text-transform:uppercase;letter-spacing:.04em;color:var(--faint)}
  table.clew td.n{text-align:left}table.clew code{white-space:normal;overflow-wrap:anywhere}}
+/* The repository web (round 4, R3): the canvas fills the page width; the panel floats over it. */
+.web-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:8px 0 12px;font:500 13px var(--sans);color:var(--ink2)}
+.web-bar input,.web-bar select,.web-bar button{height:34px;border-radius:9px;border:1px solid var(--rule);background:var(--paper);color:var(--ink);font:500 13px var(--sans);padding:0 10px;max-width:100%}
+.web-bar input{width:min(260px,100%)}.web-bar button{cursor:pointer;min-width:34px}.web-bar label{display:flex;align-items:center;gap:6px;max-width:100%}
+.web-stage{position:relative;width:100%;height:clamp(420px,76vh,980px);background:var(--surface);border:1px solid var(--rule2);border-radius:14px;overflow:hidden}
+.web-canvas{display:block;width:100%;height:100%;touch-action:none;cursor:grab}.web-canvas:active{cursor:grabbing}
+.web-panel{position:absolute;top:12px;right:12px;width:min(340px,calc(100% - 24px));max-height:calc(100% - 24px);overflow:auto;background:var(--paper);border:1px solid var(--rule);border-radius:12px;padding:14px 16px;font-size:14px;box-shadow:0 6px 24px rgba(0,0,0,.12)}
+.web-panel h3{margin:0 28px 4px 0;font:500 20px/1.2 var(--serif);overflow-wrap:anywhere}.web-panel h4{margin:12px 0 4px;font:600 12px var(--sans);text-transform:uppercase;letter-spacing:.04em;color:var(--ink2)}
+.web-panel ul{list-style:none;margin:0;padding:0}.web-panel li{margin:2px 0;overflow-wrap:anywhere}.web-panel button[data-go]{border:0;background:none;color:var(--acc);font:400 13px var(--mono);cursor:pointer;padding:0;text-align:left;overflow-wrap:anywhere}
+.web-file{font:400 12px var(--mono);color:var(--ink2);overflow-wrap:anywhere}.web-x{position:absolute;top:8px;right:8px;width:28px;height:28px;border-radius:8px;border:1px solid var(--rule);background:var(--paper);color:var(--ink);cursor:pointer}
+.web-tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--paper);font:500 12px var(--sans);padding:4px 8px;border-radius:6px;max-width:60%;overflow-wrap:anywhere}
+@media(max-width:760px){.web-stage{height:70vh}.web-panel{top:auto;bottom:8px;right:8px;left:8px;width:auto;max-height:45%}}
+/* Round 4, R10: everything sizes to the window — no fixed widths, long identifiers wrap. */
+div.body,div.body *{max-width:100%}div.body pre{overflow-x:auto;white-space:pre}
+div.body p,div.body li,div.body dd,div.body td,div.body h1,div.body h2,div.body h3{overflow-wrap:anywhere}
+/* Requirement and test pages (round 4, R4/R6/R7). */
+.crumbs{margin:0 0 12px;font-size:14px}.req-page dl.kv{display:flex;flex-wrap:wrap;gap:6px 18px;margin:0 0 8px}
+.req-page dl.kv dt{color:var(--ink2);font:600 12px var(--sans);text-transform:uppercase;letter-spacing:.04em;align-self:center}
+.req-page dl.kv dd{margin:0 10px 0 0}.req-page h5{margin:14px 0 6px;font:600 14px var(--sans)}
+.result-banner{border:1px solid var(--rule);border-left-width:6px;border-radius:10px;padding:10px 14px;margin:6px 0 16px;background:var(--surface)}
+.result-banner.r-passed{border-left-color:var(--acc)}.result-banner.r-failed,.result-banner.r-error{border-left-color:var(--err);background:var(--errbg)}
+.result-banner.r-skipped,.result-banner.r-absent{border-left-color:var(--warn)}.fail-msg{color:var(--err);margin:8px 0 0;white-space:pre-wrap}
+ol.asserts li{margin:2px 0}ol.asserts code{white-space:pre-wrap;overflow-wrap:anywhere}
+.proof-wrap{overflow-x:auto;background:var(--surface);border:1px solid var(--rule2);border-radius:14px;padding:12px;margin:8px 0 14px}
+svg.proof{display:block}svg.proof text{font:12px var(--mono);fill:var(--ink)}svg.proof rect{fill:var(--paper);stroke:var(--rule);stroke-width:1.2}
+svg.proof .test rect{stroke:var(--acc);stroke-width:2}svg.proof.s-failed .test rect,svg.proof.s-error .test rect{stroke:var(--err);fill:var(--errbg)}
+svg.proof .impl rect{fill:var(--accbg);stroke:var(--acc)}svg.proof.s-failed .impl rect,svg.proof.s-error .impl rect{fill:var(--errbg);stroke:var(--err)}
+svg.proof .pe{stroke:var(--faint);stroke-width:1.4;fill:none}svg.proof marker path{fill:var(--faint)}svg.proof .preq{font-weight:600;fill:var(--acc)}
+.mut-killed{color:var(--acc);font-weight:600}.mut-survived{color:var(--err);font-weight:600}

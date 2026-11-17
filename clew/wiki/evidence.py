@@ -10,6 +10,9 @@ JUnit results per test and Cobertura line hits per file, and grades each require
   TARGET   every linked result is a skip of a test declared target-only (needs hardware)
   NOT_RUN  tests are linked but were skipped, or the reports carry no result for them
   MISSING  no test is linked at all
+  EXEMPT   no test is linked, and the catalog's declared status is one `impact.requirements.
+           exempt_status` exempts (round 4, R8) — the gate's own rule, so the wiki and `clew guard
+           coverage` never disagree about one catalogue
 
 THE TIERS NEVER COLLAPSE: a host-only CI run skips hardware tests on purpose, and reporting those
 as GAP or MISSING is the false gap #67's consumers asked to stop seeing. Coverage is reported per
@@ -28,7 +31,7 @@ Imports beyond these (W15/W16: gcov, CTest / TAP / Catch2 / pytest-json results,
 Gherkin scenarios, test layers) are parsed in `clew.wiki.imports` and joined here.
 
 @brief JUnit/Cobertura/mutation evidence per requirement.
-@version 3
+@version 4
 """
 
 from __future__ import annotations
@@ -74,10 +77,12 @@ class CaseResult:
 ## v4: implementer sites (name, file, line), so a page can link each implementer to its source;
 ## `declared_tests` (catalog evidence files), `measured_tests` (per-test coverage) and
 ## `inferred_tests` (the call graph) — the tests linked by each weaker kind than a tag.
-## @version 4
+## v5: `extent` — per measured test, the implementers it executed (None when unmeasured).
+## v6: `distance` — per inferred test, the fewest calls to an implementer.
+## @version 6
 @dataclass(frozen=True)
 class RequirementEvidence:
-    """@brief Tier, tests, implementers and their sites, coverage, mutations, layers. @version 4"""
+    """@brief Tier, tests, implementers and their sites, coverage, mutations, layers. @version 6"""
 
     req_id: str
     title: str
@@ -92,6 +97,9 @@ class RequirementEvidence:
     declared_tests: tuple[str, ...] = ()
     measured_tests: tuple[str, ...] = ()
     inferred_tests: tuple[str, ...] = ()
+    extent: tuple[tuple[str, tuple[str, ...]], ...] | None = None
+    ## Per inferred test, the fewest calls between it and an implementer (round 4).
+    distance: tuple[tuple[str, int], ...] = ()
 
 
 ## @brief Read JUnit XML reports into one folded result per test.
@@ -173,7 +181,9 @@ def parse_mutations(path: Path) -> list[tuple[str, str, bool]]:
 ## v2: `mutations` (W9).
 ## v3: `inputs` / `repo_root` (W15/W16): more result formats, gcov, mapping, Gherkin, layers.
 ## v4: implementer sites.
-## @version 4
+## v5: per-test extent from coverage contexts (round 4).
+## v6: per-test call distance for inferred links.
+## @version 6
 ## @req REQ-DDB-WIKI-002
 def requirement_evidence(
     db: Path | str,
@@ -191,7 +201,7 @@ def requirement_evidence(
         out = []
         for req_id, title in _requirement_ids(conn):
             impls = _implementer_spans(conn, req_id)
-            linked, kinds = reports.linked_tests(conn, req_id, impls)
+            linked, kinds, inferred = reports.linked_tests(conn, req_id, impls)
             statuses = tuple((t, reports.status(t, names)) for t, _where, names in linked)
             covered = uncovered = None
             if reports.hits is not None:
@@ -212,6 +222,8 @@ def requirement_evidence(
                     declared_tests=_of_kind(kinds, "catalog"),
                     measured_tests=_of_kind(kinds, "measured"),
                     inferred_tests=_of_kind(kinds, "inferred"),
+                    extent=reports.extent(impls, inferred),
+                    distance=tuple(sorted((t, v[2]) for t, v in inferred.items())),
                 )
             )
     return out
@@ -253,7 +265,8 @@ class _Reports:
     ## @return The reports.
     ## v2: catalog evidence files, per-test coverage contexts and inference depth.
     ## v3: a declared report that does not exist is unmeasured, not an error (round 3, P6c).
-    ## @version 3
+    ## v4: no contexts report is None (unmeasured), not {} (round 4).
+    ## @version 4
     ## @dg_internal
     @classmethod
     def read(cls, junit, coverage, mutations, inputs, repo_root) -> _Reports:
@@ -294,7 +307,11 @@ class _Reports:
             inputs.layers,
             _catalog_files(root, inputs.evidence_fields) if repo_root else {},
             (
-                parse_contexts(root / inputs.contexts, root) if inputs.contexts else {},
+                (
+                    parse_contexts(root / inputs.contexts, root)
+                    if inputs.contexts and (root / inputs.contexts).is_file()
+                    else None
+                ),
                 inputs.infer_depth,
             ),
         )
@@ -303,9 +320,10 @@ class _Reports:
     ## @param conn Open connection.
     ## @param req_id The requirement.
     ## @param impls Its implementers (name, file, start, end).
-    ## @return (tests, the kind of each link weaker than a tag).
+    ## @return (tests, the kind of each link weaker than a tag, the inferred tests with extent).
     ## v2: catalog evidence files, per-test coverage, call-graph inference.
-    ## @version 2
+    ## v3 (round 4): the inferred tests' reached implementers are returned for the extent.
+    ## @version 3
     ## @dg_internal
     def linked_tests(self, conn, req_id: str, impls: list) -> tuple[list, dict[str, str]]:
         """LINKS BY STRENGTH: a test tagged, mapped or a tagged scenario; else MEASURED (per-test
@@ -315,8 +333,10 @@ class _Reports:
         A scenario's result is found under its own name or its pytest-bdd `test_<snake>` name.
 
         @brief Collect links.
-        @return (tests as (id, where, lookup names), {test: catalog | measured | inferred}).
+        @return (tests as (id, where, lookup names), {test: catalog | measured | inferred},
+            {test: (row, implementers reached)}).
         """
+        inferred = _reaching_tests(conn, req_id, self.infer_depth)
         out = {name: (name, file, names) for name, file, names in _linked_tests(conn, req_id)}
         for name in self.mapping.get(req_id, ()):
             out.setdefault(name, (name, name, (name,)))
@@ -328,28 +348,59 @@ class _Reports:
         weaker = (
             ("measured", self._measured(impls)),
             ("catalog", _tests_in_files(conn, self.catalog.get(req_id, ()))),
-            ("inferred", _reaching_tests(conn, req_id, self.infer_depth)),
+            ("inferred", [t for t, _impls, _hop in inferred.values()]),
         )
         for kind, found in weaker:
             for name, file, names in found:
                 if name not in out:
                     out[name] = (name, file, names)
                     kinds[name] = kind
-        return sorted(out.values()), kinds
+        return sorted(out.values()), kinds, inferred
 
     ## @brief Tests the per-test coverage saw run a line of an implementer.
     ## @param impls (name, file, start, end) per implementer.
     ## @return (test, file, lookup names).
-    ## @version 1
+    ## v2: through `_hits`, shared with the per-test extent.
+    ## @version 2
     ## @dg_internal
     def _measured(self, impls: list) -> list[tuple[str, str, tuple[str, ...]]]:
         """@brief Measured tests. @return Pairs."""
-        found: set[str] = set()
-        for _n, rel, start, end in impls:
-            for line, tests in (self.contexts.get(rel) or {}).items():
+        return [(t, t, (t,)) for t in sorted(self._hits(impls))]
+
+    ## @brief Which tests ran a line of which implementer.
+    ## @param impls (name, file, start, end) per implementer.
+    ## @return {test: implementer names it executed}; empty when no contexts.
+    ## @version 1
+    ## @dg_internal
+    def _hits(self, impls: list) -> dict[str, set[str]]:
+        """@brief Per-test implementer hits. @return Map."""
+        found: dict[str, set[str]] = {}
+        for name, rel, start, end in impls:
+            for line, tests in ((self.contexts or {}).get(rel) or {}).items():
                 if start <= line <= end:
-                    found |= tests
-        return [(t, t, (t,)) for t in sorted(found)]
+                    for t in tests:
+                        found.setdefault(t, set()).add(name)
+        return found
+
+    ## @brief Per linked test, the implementers of one requirement it executed or reaches.
+    ## @param impls (name, file, start, end) per implementer.
+    ## @param inferred {test: (row, implementers reached)} from the call graph.
+    ## @return ((test, implementers), ...) ordered, or None when neither source ran.
+    ## @version 1
+    ## @dg_internal
+    def extent(self, impls: list, inferred: dict) -> tuple[tuple[str, tuple[str, ...]], ...] | None:
+        """MEASURED WINS: a test with per-test coverage reports the implementers it EXECUTED; one
+        without reports those its calls reach. UNKNOWN IS ABSENT: with no contexts and inference
+        off this is None, never ().
+
+        @brief Extent.
+        @return Pairs or None.
+        """
+        if self.contexts is None and self.infer_depth == 0:
+            return None
+        out = {t: set(n) for t, (_row, n, _hop) in inferred.items()}
+        out.update(self._hits(impls))
+        return tuple((t, tuple(sorted(n))) for t, n in sorted(out.items()))
 
     ## @brief One test's status: the first of its names a report holds, else "absent".
     ## @param test The test id.
@@ -454,6 +505,35 @@ def _tier(statuses: tuple[tuple[str, str], ...], target_only: tuple[str, ...]) -
     return "NOT_RUN"
 
 
+## @brief Re-grade MISSING requirements whose declared status the gate exempts.
+## @param evidence The graded rows.
+## @param declared The catalog entries by id.
+## @param guard The parsed guard section, or None.
+## @return The rows, EXEMPT where the status is exempt and no test is linked.
+## Round 4, R8: the demo read 5 MISSING where `clew guard coverage` read 3 of them exempt.
+## @version 1
+## @req REQ-DDB-WIKI-002
+def exempt_by_status(
+    evidence: list[RequirementEvidence], declared: dict[str, dict], guard: dict | None
+) -> list[RequirementEvidence]:
+    """ONLY MISSING MOVES: a linked test's measured result outranks a catalogue label, so a
+    planned requirement whose test failed is still GAP.
+
+    @brief Apply exempt statuses.
+    @return Rows.
+    """
+    from dataclasses import replace
+
+    req = ((guard or {}).get("impact") or {}).get("requirements") or {}
+    statuses = set(req.get("exempt_status") or [])
+    field = req.get("status_field", "status")
+
+    def exempt(row: RequirementEvidence) -> bool:
+        return row.tier == "MISSING" and (declared.get(row.req_id) or {}).get(field) in statuses
+
+    return [replace(r, tier="EXEMPT") if exempt(r) else r for r in evidence]
+
+
 ## @brief The status and skip message of one JUnit testcase element.
 ## @param case The element.
 ## @return (status, message).
@@ -539,72 +619,78 @@ def _catalog_files(root: Path, fields: tuple[str, ...]) -> dict[str, tuple[str, 
     return out
 
 
-## @brief The tests whose calls reach a requirement's implementers within a depth.
+## @brief The tests whose calls reach a requirement's implementers, and which ones each reaches.
 ## @param conn Open connection.
 ## @param req_id The requirement.
-## @param depth Call hops (0 = off).
-## @return (test, file, lookup names).
+## @param depth Call hops; None = the full transitive closure (the default), 0 = off.
+## @return {test: ((test, file, lookup names), implementer names it reaches)}.
 ## v2: framework recognition (Catch2 / GoogleTest / Boost cases), one hop per `_callers_step`.
-## @version 2
+## v3 (round 4): unbounded by default, and each test's reached implementers (its extent).
+## @version 3
 ## @req REQ-DDB-WIKI-016
-def _reaching_tests(
-    conn: object, req_id: str, depth: int
-) -> list[tuple[str, str, tuple[str, ...]]]:
+def _reaching_tests(conn: object, req_id: str, depth: int | None) -> dict[str, tuple]:
     """WALKED BACKWARDS from the implementers over call edges, never through a `binding` edge (a
     function value passed along is not a call) nor a fuzzy one, and never through a test: a test
     found is recorded, not expanded. A test is whatever `frameworks.recognise_test` recognises —
     a `test_*` function or a Catch2 / GoogleTest / Boost case.
 
-    @brief Infer reaching tests.
-    @return (test, file, lookup names).
+    EACH NODE CARRIES THE IMPLEMENTERS IT REACHES (owner 2026-11-17: a test may cover part of one
+    requirement or all of it), and is walked again only when that set grows — so the closure
+    terminates on a cyclic graph and the extent is exact.
+
+    @brief Infer reaching tests with their extent.
+    @return Tests found.
     """
-    if depth <= 0 or not table_exists(conn, "call_edges") or not table_exists(conn, "req_edges"):
-        return []
-    frontier = {
-        r
-        for (r,) in conn.execute(
-            "SELECT memberdef_rowid FROM req_edges WHERE req_id = ?", (req_id,)
-        )
-    }
-    seen, found = set(frontier), {}
-    for _hop in range(depth):
-        frontier = _callers_step(conn, frontier, seen, found)
-        if not frontier:
-            break
-    return sorted(found.values())
+    if depth == 0 or not table_exists(conn, "call_edges") or not table_exists(conn, "req_edges"):
+        return {}
+    origins: dict[int, set[str]] = {}
+    for rowid, name in conn.execute(
+        "SELECT r.memberdef_rowid, m.name FROM req_edges r "
+        "JOIN memberdef m ON m.rowid = r.memberdef_rowid WHERE r.req_id = ?",
+        (req_id,),
+    ):
+        origins.setdefault(rowid, set()).add(str(name))
+    frontier, found, hop = set(origins), {}, 0
+    while frontier and (depth is None or hop < depth):
+        hop += 1
+        frontier = _callers_step(conn, frontier, origins, found, hop)
+    return found
 
 
-## @brief One backward hop: callers of the frontier, tests recorded, others returned.
+## @brief One backward hop: callers of the frontier inherit its implementers; tests are recorded.
 ## @param conn Open connection.
-## @param frontier Rowids to find callers of.
-## @param seen Rowids already visited; updated.
-## @param found Tests found by rowid; updated.
-## @return The next frontier.
-## @version 1
+## @param frontier Rowids whose implementer sets just grew.
+## @param origins Implementers reached, per rowid; updated.
+## @param found Tests found, by test name; updated with (row, implementers, nearest hop).
+## @param hop How many calls from an implementer this step is.
+## @return The next frontier: non-test callers whose set grew.
+## v2 (round 4): implementer sets propagate (extent); a node is re-walked when its set grows.
+## v3: the nearest hop a test was found at, so the closest tests can be listed first.
+## @version 3
 ## @dg_internal
-def _callers_step(conn: object, frontier: set, seen: set, found: dict) -> set:
+def _callers_step(conn: object, frontier: set, origins: dict, found: dict, hop: int = 1) -> set:
     """@brief Step back. @return Next frontier."""
     from .frameworks import recognise_test
 
-    if not frontier:
-        return set()
     marks = ",".join("?" * len(frontier))
     rows = conn.execute(
-        "SELECT DISTINCT c.caller_rowid, m.name, COALESCE(m.argsstring, ''), COALESCE(p.name, '') "
-        "FROM call_edges c JOIN memberdef m ON m.rowid = c.caller_rowid "
+        "SELECT DISTINCT c.callee_rowid, c.caller_rowid, m.name, COALESCE(m.argsstring, ''), "
+        "COALESCE(p.name, '') FROM call_edges c JOIN memberdef m ON m.rowid = c.caller_rowid "
         "LEFT JOIN path p ON p.rowid = m.file_id "
         f"WHERE c.callee_rowid IN ({marks}) AND c.source != 'binding' AND c.confidence != 'fuzzy'",
         tuple(frontier),
     ).fetchall()
     nxt = set()
-    for rowid, name, args, rel in rows:
-        if rowid in seen:
-            continue
-        seen.add(rowid)
+    for callee, rowid, name, args, rel in rows:
         test = recognise_test(str(name), str(args), str(rel))
         if test:
-            found[rowid] = (test[0], str(rel), test[1])
-        else:
+            entry = found.setdefault(test[0], [(test[0], str(rel), test[1]), set(), hop])
+            entry[1].update(origins[callee])
+            entry[2] = min(entry[2], hop)
+            continue
+        mine = origins.setdefault(rowid, set())
+        if not origins[callee] <= mine:
+            mine |= origins[callee]
             nxt.add(rowid)
     return nxt
 
@@ -681,17 +767,28 @@ def _linked_tests(conn: object, req_id: str) -> list[tuple[str, str, tuple[str, 
 ## @param conn Open connection.
 ## @param req_id The requirement.
 ## @return (name, file, start, end) per implementer.
-## @version 1
+## v2 (round 4): a tagged function in TEST CODE is a test of the requirement, not an implementer.
+## @version 2
 ## @dg_internal
 def _implementer_spans(conn: object, req_id: str) -> list[tuple[str, str, int, int]]:
-    """@brief Implementer locations. @return Rows."""
+    """A TEST IS NEVER ITS REQUIREMENT'S IMPLEMENTER: counting it made a test's extent read
+    "1 of 2" where the requirement has one implementer and the test exercises it.
+
+    @brief Implementer locations.
+    @return Rows.
+    """
     if not table_exists(conn, "req_edges"):
         return []
+    tests = (
+        " AND p.rowid NOT IN (SELECT path_rowid FROM test_scope)"
+        if table_exists(conn, "test_scope")
+        else ""
+    )
     rows = conn.execute(
         "SELECT DISTINCT m.name, p.name, m.bodystart, m.bodyend FROM req_edges r "
         "JOIN memberdef m ON m.rowid = r.memberdef_rowid "
         "JOIN path p ON p.rowid = COALESCE(NULLIF(m.bodyfile_id, 0), m.file_id) "
-        "WHERE r.req_id = ? ORDER BY m.name",
+        f"WHERE r.req_id = ?{tests} ORDER BY m.name",
         (req_id,),
     )
     return [(str(n), str(f), int(s or 0), int(e or 0)) for n, f, s, e in rows]

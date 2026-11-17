@@ -82,6 +82,37 @@ guard:
 # tool handlers are declared as product flows, so the site shows what a `dossier` call does.
 wiki:
   title: clew
+  ## Round 4, R1: the map's blocks are what clew DOES, not its directories. Declared blocks win; a
+  ## file named by none joins the block it shares the most calls with, labelled as inferred.
+  components:
+    "Answer: query engine + MCP server": ["clew/query/*", "clew/mcp_server/*", "clew/wire.py",
+      "clew/query_command.py", "clew/export_command.py", "clew/mcp_config.py"]
+    "Build: orchestration": ["clew/cli.py", "clew/harvest.py", "clew/harvest_plan.py",
+      "clew/fasttier*.py", "clew/indexcache.py", "clew/build*.py", "clew/refresh_command.py",
+      "clew/init_command.py", "clew/cull_command.py", "clew/scope.py", "clew/treescan.py",
+      "clew/signature.py", "clew/stagetimer.py", "clew/declaration.py", "clew/config_defaults.py",
+      "clew/toolchain.py", "clew/languages.py", "clew/filetypes.py", "clew/gitenv.py",
+      "clew/diagnostics.py", "clew/errors.py", "clew/_common.py", "clew/vocabulary.py",
+      "clew/tiers.py", "clew/tomlcompat.py", "clew/__main__.py"]
+    "Build: parse front ends": ["clew/ast_symbols.py", "clew/pyast.py", "clew/jsast.py",
+      "clew/shast.py", "clew/cmakeast.py", "clew/scriptast.py", "clew/substrate.py",
+      "clew/tsnode.py", "clew/synth.py", "clew/doxygen*.py", "clew/c_extent.py",
+      "clew/preprocessor.py", "clew/pydocs.py", "clew/rustdoc.py", "clew/py_entrypoints.py",
+      "clew/external.py", "clew/datamodel.py", "clew/generated.py", "clew/enrichment.py"]
+    "Build: call and data edges": ["clew/call_edges.py", "clew/dispatch*.py",
+      "clew/callback_edges.py", "clew/event_edges.py", "clew/shared_key_edges.py",
+      "clew/macro_refs.py", "clew/dominated_edges.py", "clew/reachability.py"]
+    "Build: concurrency and config layers": ["clew/threads.py", "clew/locks.py",
+      "clew/blocking.py", "clew/isr.py", "clew/critical_sections.py", "clew/context.py",
+      "clew/kconfig*.py"]
+    "Build: docs, requirements and tests layers": ["clew/filedocs.py", "clew/prose.py",
+      "clew/code_text.py", "clew/req_mentions.py", "clew/requirements.py", "clew/coverage.py",
+      "clew/testscope.py", "clew/guardconfig.py"]
+    "Guard: the pre-commit gate": ["clew/guard/*"]
+    "Wiki: this site": ["clew/wiki/*"]
+    "Propose: declaration proposals": ["clew/propose/*"]
+    "Acceptance: measuring clew": ["acceptance/*"]
+    "Tooling: scripts": ["scripts/*"]
   docs: [README.md, SKILLS.md, AGENTS.md, SECURITY.md, "docs/*.md"]
   doc_kinds:
     README.md: tutorial
@@ -120,6 +151,7 @@ wiki:
   tests:
     junit: [build/junit.xml]
     coverage: build/coverage.xml
+    contexts: build/coverage.json   # per-test coverage: measured test → requirement links
   issues: {github: tvanfossen/clew}
   links:
     template: "https://github.com/tvanfossen/clew/blob/{commit}/{file}#L{line}"

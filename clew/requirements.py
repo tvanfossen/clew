@@ -678,9 +678,12 @@ def _create_req_test_edges_table(conn: sqlite3.Connection) -> None:
 
 ## @brief Materialize the test-function subset of req_edges into req_test_edges.
 ## @param db_path Path to the clew.db being built.
-## @version 2
+## @param test_patterns The resolved test-path patterns, or None for the name/path heuristic.
+## v3 (round 4, R9): with patterns, a covering test is a function in a file they match — the
+## substring heuristic made clew/testscope.py's `mark_test_scope` its own covering test.
+## @version 3
 ## @req REQ-DDB-SCHEMA-006
-def import_req_test_edges(db_path: Path) -> None:
+def import_req_test_edges(db_path: Path, test_patterns: tuple[str, ...] | None = None) -> None:
     """Link test functions to requirements via req_edges → req_test_edges.
 
     For every req_edges row whose memberdef matches `_looks_like_test_function`,
@@ -711,7 +714,12 @@ def import_req_test_edges(db_path: Path) -> None:
 
     imported = 0
     for row in rows:
-        if not _looks_like_test_function(row["name"], row["file_path"]):
+        if test_patterns is not None:
+            from .testscope import is_test_path
+
+            if not is_test_path(str(row["file_path"] or ""), test_patterns):
+                continue
+        elif not _looks_like_test_function(row["name"], row["file_path"]):
             continue
         imported += conn.execute(
             """

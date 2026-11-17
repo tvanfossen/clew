@@ -70,7 +70,9 @@ _CELL = str.maketrans({"|": "\\|", "\n": " "})
 ## v18: decisions (ADRs) and docs grouped by kind (P3c).
 ## v19: imported OTel traces drawn over their test flows; unmatched ones listed (P4b-2).
 ## v20: the product trace — the composite requirement tree across pinned dependencies (GH #68).
-## @version 20
+## v21 (round 4): the map is the repository web (R3); blocks declared or coupled (R1); a page
+## per requirement (R4) and per test (R6/R7).
+## @version 21
 ## @req REQ-DDB-WIKI-003
 def build_wiki(
     repo_root: Path,
@@ -91,13 +93,15 @@ def build_wiki(
     from .impactpage import impact_page
     from .graph import build_graph
     from .issues import resolve_target
-    from .mappage import map_page, minimap_svg
+    from .web import minimap_html, web_page
     from . import testfacts
     from .imports import parse_features
     from .adr import find_decisions
     from .exports import write_exports
     from .tracerun import load_traces, root_name
     from .symbols import symbol_pages
+    from .testpages import test_pages
+    from .evidence import parse_junit
     from .tracepages import Trace, nodes_page, requirements_page
     from .versions import record_version, valid_key
 
@@ -161,7 +165,19 @@ def build_wiki(
     scenarios = parse_features(repo_root, config.inputs.features)
     written |= testfacts.feature_pages(repo_root, scenarios, facts, source)
     trace.symbols = set(written)
-    trace.test_href = {}
+    ## Round 4, R6/R7: a test links to ITS OWN PAGE — result, checks, what it reaches.
+    trace.test_href = test_pages(
+        db,
+        repo_root,
+        {
+            **symbol_ctx,
+            "results": parse_junit(
+                [repo_root / j for j in config.junit if (repo_root / j).is_file()]
+            ),
+            "extent": {r.req_id: dict(r.extent) for r in trace.evidence if r.extent is not None},
+        },
+        source,
+    )
     for (name, _rel), href in sorted(written.items()):
         if name in facts:
             trace.test_href.setdefault(name, href)
@@ -177,12 +193,7 @@ def build_wiki(
         requirements_page(trace, config, source, rules, burndown, tuple(pages), issues),
         flows_index(source, pages, undrawn, unmatched),
         impact_page(trace, pages, rules, source),
-        map_page(
-            graph,
-            {p.name: (p.title, set(p.files)) for p in pages},
-            source,
-            {p.name: (p.title, _component_hops(p.hops, config)) for p in pages},
-        ),
+        web_page(db, graph, [n for n, _g in config.components], pages, written, source),
         _docs_page(source, _prose(repo_root, config, source), config, decisions),
     ]
     if config.catalogs:
@@ -198,7 +209,9 @@ def build_wiki(
         {"title": config.title, "rules": rules, "summary": ""},
     )
     context = {
-        "clew_minimap": minimap_svg(graph) if "map" in sections else "",
+        "clew_minimap": minimap_html(graph, [n for n, _g in config.components])
+        if "map" in sections
+        else "",
         "clew_minimap_lit": _lit(pages, graph, config),
     }
     html = _render(source, site_dir / "html", config, repo_root, context)
@@ -227,39 +240,24 @@ def _product_section(
     return product_page(tree, rules, source)
 
 
-## @brief A flow's hops between components, in call order, repeats and in-component calls dropped.
-## @param hops (caller file, callee file) per step.
-## @param config The section (declared groupings).
-## @return (from component, to component) pairs.
-## @version 1
-## @dg_internal
-def _component_hops(hops: tuple, config: WikiConfig) -> list[tuple[str, str]]:
-    """@brief Component hops. @return Pairs."""
-    from .graph import component_of
-
-    out: list[tuple[str, str]] = []
-    for a, b in hops:
-        pair = (component_of(a, config.components), component_of(b, config.components))
-        if pair[0] != pair[1] and (not out or out[-1] != pair):
-            out.append(pair)
-    return out
-
-
 ## @brief The components each flow page lights on the minimap.
 ## @param pages The flow pages.
 ## @param graph The graph (only its components are lit).
 ## @param config The section (declared groupings).
 ## @return {page name: [component ids]}.
-## @version 1
+## v2 (round 4, R1): blocks from the graph's placement, inferred files included.
+## @version 2
 ## @dg_internal
 def _lit(pages: list, graph: dict, config: WikiConfig) -> dict[str, list[str]]:
-    """@brief Lit components. @return Map."""
-    from .graph import component_of
+    """THE GRAPH'S OWN PLACEMENT (round 4, R1), so a file joined to a block by coupling lights
+    that block, as the map draws it.
 
+    @brief Lit components.
+    @return Map.
+    """
+    owner = graph.get("file_block") or {}
     known = {c["id"] for c in graph["components"]}
-    return {
-        p.name: sorted({component_of(f, config.components) for f in p.files} & known) for p in pages
-    }
+    return {p.name: sorted({owner[f] for f in p.files if f in owner} & known) for p in pages}
 
 
 ## @brief Open issues linked to requirements, when the section asks for them.

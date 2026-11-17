@@ -36,7 +36,7 @@ is silently ignored produces a site that looks complete and omits what the key a
           bdd: ["tests/features/*"]
         min_layers: 2                 # flag a requirement tested in fewer layers
         evidence_fields: [x-evidence, evidence]  # catalog fields naming test files ([] = off)
-        infer_depth: 2                # tests reaching an implementer within N calls (0 = off)
+        infer_depth: 4                # cap the call-graph walk at N calls (omit = transitive; 0 = off)
         contexts: build/coverage.json # coverage.py JSON with --cov-context=test (measured links)
       links:
         template: "https://host/repo/blob/{commit}/{file}#L{line}"
@@ -204,7 +204,7 @@ class EvidenceInputs:
     layers: tuple[tuple[str, tuple[str, ...]], ...] | None = None
     min_layers: int | None = None
     evidence_fields: tuple[str, ...] = ("x-evidence", "evidence")
-    infer_depth: int = 2
+    infer_depth: int | None = None
     contexts: str | None = None
     traces: tuple[str, ...] = ()
 
@@ -597,14 +597,15 @@ def _role(raw: Any, where: str, problems: list[str]) -> str:
 ## @return The inputs.
 ## v2: evidence_fields.
 ## v3: traces.
-## @version 3
+## v4 (round 4): an omitted `infer_depth` is the full transitive closure (None), not 2 hops.
+## @version 4
 ## @dg_internal
 def _inputs(tests: dict[str, Any], problems: list[str]) -> EvidenceInputs:
     """A RESULT FORMAT IS DECLARED, so an entry without one is a problem, never a sniffed guess.
 
     @brief Parse imports.
     @return Inputs.
-    @version 3
+    @version 4
     """
     from .imports import RESULT_FORMATS
 
@@ -631,10 +632,21 @@ def _inputs(tests: dict[str, Any], problems: list[str]) -> EvidenceInputs:
         evidence_fields=tuple(str(f) for f in tests["evidence_fields"] or ())
         if "evidence_fields" in tests
         else EvidenceInputs.evidence_fields,
-        infer_depth=int(tests.get("infer_depth", EvidenceInputs.infer_depth) or 0),
+        infer_depth=_infer_depth(tests),
         contexts=str(tests["contexts"]) if tests.get("contexts") else None,
         traces=tuple(str(g) for g in tests.get("traces") or ()),
     )
+
+
+## @brief The call-graph inference depth a `tests` block declares.
+## @param tests The block.
+## @return None (omitted: the full transitive closure), or the declared cap (0 = off).
+## @version 1
+## @dg_internal
+def _infer_depth(tests: dict[str, Any]) -> int | None:
+    """@brief Read the cap. @return Depth or None."""
+    raw = tests.get("infer_depth")
+    return None if raw is None else int(raw)
 
 
 ## @brief A (format, path) pair from a validated `results` entry.

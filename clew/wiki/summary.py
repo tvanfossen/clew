@@ -12,7 +12,7 @@ so single-layer coverage is visible instead of reading as tested.
 Two donuts summarise the whole trace: requirements by tier, and distinct tests by status.
 
 @brief Trace charts, group cards and the per-group table.
-@version 2
+@version 3
 """
 
 from __future__ import annotations
@@ -23,7 +23,7 @@ from html import escape
 from .charts import donut
 
 ## Tiers and test statuses, in chart order.
-TIERS = ("PASS", "GAP", "TARGET", "NOT_RUN", "MISSING")
+TIERS = ("PASS", "GAP", "TARGET", "NOT_RUN", "MISSING", "EXEMPT")
 STATUSES = ("passed", "failed", "error", "skipped", "absent")
 _GROUP = re.compile(r"[-_.]?\d+$")
 

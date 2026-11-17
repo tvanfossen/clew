@@ -11,7 +11,7 @@ PAGES (owner): CI builds the site and uploads it now; the Pages DEPLOY switches 
 cut — so this file asserts the build and the artifact, and asserts NO deploy step yet.
 
 @brief clew dogfoods its wiki and guard.
-@version 1
+@version 2
 """
 
 from __future__ import annotations
@@ -43,6 +43,11 @@ def test_every_gate_run_writes_junit_where_the_wiki_reads_it() -> None:
     tests = _clew_yaml()["wiki"]["tests"]
     assert tests["junit"] == ["build/junit.xml"]
     assert tests["coverage"] == "build/coverage.xml"
+    ## Round 4 (owner 2026-11-17: tests are linked to source by coverage, never by a tag): the
+    ## coverage run records which test ran each line, and the wiki links tests by it.
+    assert "--cov-context=test" in module.COVERAGE_ARGS
+    assert "--cov-report=json:build/coverage.json" in module.COVERAGE_ARGS
+    assert tests["contexts"] == "build/coverage.json"
 
 
 def test_the_wiki_check_and_impact_hooks_run_on_clew_itself() -> None:

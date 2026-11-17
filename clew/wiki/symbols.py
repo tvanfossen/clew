@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-"""Symbol pages and the ego-graph (round 3, P1f).
+"""Symbol pages (round 3, P1f; round 4, R3).
 
 Owner 2026-11-15: links should be DOSSIER REFERENCES — a symbol's own page, which in turn links
 its source — and the dossier drawn as a "spiderweb" of its links, a way of WALKING SOURCE. Every
@@ -7,9 +7,10 @@ symbol the site references (a requirement's implementers, a flow's functions) ge
 its FILE's page (`sym-<path>.html#s-<name>`), holding every definition of that name in the file:
 
   * signature and brief, and a source permalink when one resolves;
-  * a radial EGO-GRAPH: callers on the left, callees on the right, and one more hop outward; a
-    fan-out larger than the ring holds is folded into one "+N more" node, never dropped silently;
-    a neighbour with a section of its own links to it, so the graph can be walked;
+  * its callers and callees, each linked to its own section where it has one, and a link to the
+    function ON THE REPOSITORY WEB (`map.html#n=`), where the walking happens. Round 4, R3: the
+    per-symbol radial ego-graph was replaced by the one repository web (owner 2026-11-16: "the
+    spiderweb is not really a true spiderweb");
   * the requirements it implements and the flows it is on;
   * its body, bundled from the file (withheld under `exclude_bodies`).
 
@@ -18,13 +19,12 @@ THE INDEX IS READ DIRECTLY (signature, body extent, resolved call edges) rather 
 single and batched), and a site references ~900 — over a minute before rendering starts. A
 binding is not a call and a fuzzy edge is a guess, as on the map.
 
-@brief Write symbol pages with their ego-graphs.
-@version 1
+@brief Write symbol pages.
+@version 2
 """
 
 from __future__ import annotations
 
-import math
 import re
 from collections import defaultdict
 from dataclasses import dataclass
@@ -34,17 +34,12 @@ from typing import Any
 
 from ..query._common import connect, table_exists
 
-## Neighbours drawn on the first ring, per side, before folding.
-_RING1 = 10
-## Neighbours drawn per first-ring node on the second ring, before folding.
-_RING2 = 3
+## Neighbours listed per side before the rest are counted.
+_NEAR = 12
 ## The most calls a test-to-implementer path is searched across.
 _PATH_DEPTH = 5
 ## The most body lines a section bundles.
 _BODY_LINES = 120
-_W = 960
-## First- and second-ring radii.
-_R1, _R2 = 160, 300
 
 
 ## @brief One definition of a referenced symbol.
@@ -265,7 +260,8 @@ class _Edges:
 ## @param repo_root The repository.
 ## @return HTML.
 ## v2: a test's section adds what it tests (round 3, P2a).
-## @version 2
+## v3: neighbours and the web link replace the ego-graph (round 4, R3).
+## @version 3
 ## @dg_internal
 def _section(
     name: str,
@@ -291,7 +287,7 @@ def _section(
             f'<pre class="sig">{escape(d.signature or name)}</pre>'
             + (f"<p>{escape(d.brief)}</p>" if d.brief else "")
             + f'<p class="where">{where}</p>'
-            + _ego(d, graph, written)
+            + _near(d, graph, written)
         )
         if key in ctx.get("test_keys", ()):
             parts.append(_test_block(d, graph, ctx, repo_root))
@@ -353,10 +349,14 @@ def _test_block(d: Definition, graph: _Edges, ctx: dict[str, Any], repo_root: Pa
 ## @param graph The call graph.
 ## @param start The test's rowid.
 ## @param targets The implementers' (function, file) pairs.
+## @param depth The most calls searched across.
 ## @return Function names along the path, or [] when none is found within the depth.
-## @version 1
+## v2 (round 4, R7): the depth is a parameter; test pages search as far as the extent reaches.
+## @version 2
 ## @dg_internal
-def _path(graph: _Edges, start: int, targets: set[tuple[str, str]]) -> list[str]:
+def _path(
+    graph: _Edges, start: int, targets: set[tuple[str, str]], depth: int = _PATH_DEPTH
+) -> list[str]:
     """BREADTH-FIRST over resolved calls, at most `_PATH_DEPTH` hops: the path a reader can walk
     from the test to the code it reaches.
 
@@ -366,7 +366,7 @@ def _path(graph: _Edges, start: int, targets: set[tuple[str, str]]) -> list[str]
     goal = {r for key in targets for r in graph.rowids(key)}
     prev: dict[int, int] = {start: start}
     frontier = [start]
-    for _ in range(_PATH_DEPTH):
+    for _ in range(depth):
         nxt = []
         for node in frontier:
             for callee in sorted(graph.callees.get(node, ())):
@@ -395,132 +395,34 @@ def _unwind(graph: _Edges, prev: dict[int, int], end: int) -> list[str]:
     return [graph.names[r][0] for r in reversed(out)]
 
 
-## @brief A definition's ego-graph, its neighbours linked when they have sections.
+## @brief A definition's place on the web, and its neighbours linked when they have sections.
 ## @param d The definition.
 ## @param graph The call graph.
 ## @param written Keys with sections.
-## @return SVG.
+## @return HTML.
+## Round 4, R3: replaces the per-symbol ego-graph; the repository web is the one graph view.
 ## @version 1
 ## @dg_internal
-def _ego(d: Definition, graph: _Edges, written: set[tuple[str, str]]) -> str:
-    """@brief Ego-graph. @return SVG."""
+def _near(d: Definition, graph: _Edges, written: set[tuple[str, str]]) -> str:
+    """@brief Neighbours. @return HTML."""
+    from urllib.parse import quote
 
-    def linked(pairs: list[tuple[str, str]]) -> list[tuple[str, str]]:
-        return [(n, symbol_href(n, f) if (n, f) in written else "") for n, f in pairs]
+    def items(pairs: list[tuple[str, str]]) -> str:
+        shown = [
+            f'<a href="{symbol_href(n, f)}">{escape(n)}</a>'
+            if (n, f) in written
+            else f"<code>{escape(n)}</code>"
+            for n, f in pairs[:_NEAR]
+        ]
+        more = f" and {len(pairs) - _NEAR} more" if len(pairs) > _NEAR else ""
+        return (", ".join(shown) + more) or "none"
 
-    callers = graph.around(d.rowid, "callers")
-    callees = graph.around(d.rowid, "callees")
-    second: dict[str, list[tuple[str, str]]] = {}
-    for side, ring in (("callers", callers[:_RING1]), ("callees", callees[:_RING1])):
-        for key in ring:
-            outward = {p for r in graph.rowids(key) for p in graph.around(r, side)}
-            outward.discard((d.name, d.file))
-            second[key[0]] = linked(sorted(outward))
-    return ego_svg(d.name, linked(callers), linked(callees), second)
-
-
-## @brief Draw an ego-graph: callers left, callees right, one more hop outward.
-## @param center The function's name.
-## @param callers (name, href) of its callers.
-## @param callees (name, href) of its callees.
-## @param second {first-ring name: [(name, href)] one hop further out}.
-## @return SVG.
-## @version 1
-## @req REQ-DDB-WIKI-025
-def ego_svg(
-    center: str,
-    callers: list[tuple[str, str]],
-    callees: list[tuple[str, str]],
-    second: dict[str, list[tuple[str, str]]],
-) -> str:
-    """DETERMINISTIC, RADIAL: the first ring holds at most `_RING1` per side and the second
-    `_RING2` per first-ring node; what does not fit is ONE "+N more" node, so a fold is visible.
-    The view is cropped to the nodes drawn, so a small neighbourhood is a small drawing.
-
-    @brief Draw.
-    @return SVG.
-    """
-    cx, cy = _W / 2, 0.0
-    edges: list[str] = []
-    nodes: list[str] = [_node(cx, cy, center, "", "center")]
-    for side, ring, base in (("caller", callers, math.pi), ("callee", callees, 0.0)):
-        for (name, href), angle in _arc(ring, _RING1, base, math.radians(140)):
-            x, y = cx + _R1 * math.cos(angle), cy + _R1 * math.sin(angle)
-            edges.append(_edge(cx, cy, x, y, side))
-            nodes.append(_node(x, y, name, href, side))
-            outward = second.get(name, [])
-            for (n2, h2), a2 in _arc(outward, _RING2, angle, math.radians(26)):
-                x2, y2 = cx + _R2 * math.cos(a2), cy + _R2 * math.sin(a2) * 0.72
-                edges.append(_edge(x, y, x2, y2, side + " far"))
-                nodes.append(_node(x2, y2, n2, h2, side + " far"))
-    ys = [float(y) for y in re.findall(r'<circle cx="[^"]+" cy="([^"]+)"', "".join(nodes))]
-    top, height = min(ys) - 40, max(ys) - min(ys) + 70
+    web = f"map.html#n={quote(d.name)}@{quote(d.file)}"
     return (
-        f'<svg class="ego" xmlns="http://www.w3.org/2000/svg" width="{_W}" height="{height:.0f}" '
-        f'viewBox="0 {top:.0f} {_W} {height:.0f}" role="img" '
-        f'aria-label="Callers and callees of {escape(center)}">'
-        f"{''.join(edges)}{''.join(nodes)}</svg>"
+        f'<div class="near"><p><a href="{web}">Show on the map →</a></p>'
+        f"<p><b>Called by</b> {items(graph.around(d.rowid, 'callers'))}</p>"
+        f"<p><b>Calls</b> {items(graph.around(d.rowid, 'callees'))}</p></div>"
     )
-
-
-## @brief Spread a ring's members over an arc, folding the overflow into one node.
-## @param members (name, href) pairs.
-## @param cap The most drawn before folding.
-## @param centre The arc's centre angle.
-## @param span The arc's width.
-## @return ((name, href), angle) pairs; a fold is ("+N more", "").
-## @version 1
-## @dg_internal
-def _arc(
-    members: list[tuple[str, str]], cap: int, centre: float, span: float
-) -> list[tuple[tuple[str, str], float]]:
-    """@brief Place on an arc. @return Placements."""
-    shown = list(members[:cap])
-    if len(members) > cap:
-        shown.append((f"+{len(members) - cap} more", ""))
-    n = len(shown)
-    return [
-        (m, centre + (0.0 if n == 1 else (i / (n - 1) - 0.5) * span)) for i, m in enumerate(shown)
-    ]
-
-
-## @brief One node: a dot and its label, linked when it has a section.
-## @param x Centre x.
-## @param y Centre y.
-## @param name The label.
-## @param href The section link, or "".
-## @param cls Classes.
-## @return SVG.
-## @version 1
-## @dg_internal
-def _node(x: float, y: float, name: str, href: str, cls: str) -> str:
-    """@brief Node. @return SVG."""
-    fold = " fold" if name.startswith("+") and name.endswith(" more") else ""
-    anchor_side = "end" if "caller" in cls else "start"
-    if "center" in cls:
-        anchor_side = "middle"
-    dx = -9 if anchor_side == "end" else (9 if anchor_side == "start" else 0)
-    dy = -14 if anchor_side == "middle" else 4
-    label = (
-        f'<circle cx="{x:.0f}" cy="{y:.0f}" r="{9 if "center" in cls else 5}"/>'
-        f'<text x="{x + dx:.0f}" y="{y + dy:.0f}" text-anchor="{anchor_side}">{escape(name)}</text>'
-    )
-    inner = f'<a href="{escape(href)}">{label}</a>' if href else label
-    return f'<g class="node {cls}{fold}">{inner}</g>'
-
-
-## @brief One edge.
-## @param x1 From x.
-## @param y1 From y.
-## @param x2 To x.
-## @param y2 To y.
-## @param cls Classes.
-## @return SVG.
-## @version 1
-## @dg_internal
-def _edge(x1: float, y1: float, x2: float, y2: float, cls: str) -> str:
-    """@brief Edge. @return SVG."""
-    return f'<line class="edge {cls}" x1="{x1:.0f}" y1="{y1:.0f}" x2="{x2:.0f}" y2="{y2:.0f}"/>'
 
 
 ## @brief A definition's body, bundled from the file, cut at `_BODY_LINES` with the cut said.

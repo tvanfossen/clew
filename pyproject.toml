@@ -180,3 +180,8 @@ exclude = [
 ## already holds `ruff/` and this project's own scratch. Two conventions in one tree is the state
 ## someone later "tidies" by deleting the wrong one.
 cache_dir = ".cache/pytest"
+
+## Round 4: the wiki links tests to requirements by per-test coverage contexts, which the JSON
+## report only carries when asked.
+[tool.coverage.json]
+show_contexts = true

@@ -113,7 +113,9 @@ def test_needs_json_contributes_requirements(repo: tuple[Path, Path], tmp_path: 
     html = build_wiki(repo[0], repo[1], tmp_path / "out", config_path=config)
     page = (html / "requirements.html").read_text()
     assert "Load the data" in page and "Not this" not in page
-    assert "Finish the run" in page and "It finishes." in page
+    ## Round 4, R4: the acceptance text is on the requirement's own page, not in the index.
+    assert "Finish the run" in page
+    assert "It finishes." in (html / "req-REQ-W-002.html").read_text()
     row = page[page.index('<tr data-group="REQ-N"') :].split("</tr>")[0]
     assert "REQ-N-001" in row and "t-MISSING" in row and "Export it" in row
     assert "SPEC-1" not in page

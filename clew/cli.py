@@ -1920,7 +1920,8 @@ def _doxygen_meta(args) -> dict[str, str]:
 ## v65: the code corpus is built after AST recovery, so recovered C bodies are searchable.
 ## v66 (1.3.4): file docs, generated-file evidence, requirement mentions and code text read
 ## an unchanged file's result from the index cache.
-## @version 66
+## v67 (round 4, R9): covering tests are classified by the resolved test scope.
+## @version 67
 ## @req REQ-DDB-PIPE-001
 ## @req REQ-DDB-MCP-004
 ## @req REQ-DDB-CONFIG-007
@@ -2338,7 +2339,9 @@ def _build_stages(
     timer.mark("requirements")
     import_req_edges(output, req_id_pattern)
     timer.mark("req_edges")
-    import_req_test_edges(output)
+    ## Round 4, R9: the SAME resolved test scope the `test_scope` stage stamps below decides
+    ## which tagged functions are covering tests, so the two never disagree about a file.
+    import_req_test_edges(output, tuple(_test_paths(args, decl).values))
     timer.mark("req_test_edges")
     ## EVERY INDEXED LINE THAT NAMES A KNOWN REQUIREMENT: docs, diagrams, build files, comments.
     record_req_mentions(output, repo_root, requirements_yaml, cache=cache)

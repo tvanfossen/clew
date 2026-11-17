@@ -463,3 +463,27 @@ def test_the_site_names_a_declared_report_it_could_not_read(trace_repo, tmp_path
     site = build_wiki(repo, db, tmp_path / "site")
     page = (site / "requirements.html").read_text()
     assert "not-measured" in page and "build/nope.xml" in page
+
+
+def test_a_model_no_code_realises_gets_no_page(trace_repo, tmp_path: Path) -> None:
+    """OWNER 2026-11-16: "model entries remains a USELESS page with no reasonable explanation".
+    A declared source whose entries no function names (`@node`) has nothing to trace: the page
+    is left out rather than listing data with no code behind it, and the page that IS built says,
+    per source, how many entries have code realising them.
+
+    @brief R12: the model page only when code realises an entry; per-source counts.
+    """
+    import re
+    from types import SimpleNamespace
+
+    from clew.wiki.build import build_wiki
+    from clew.wiki.tracepages import nodes_page
+
+    repo, db, _kv = trace_repo
+    pages = {p.name: p.read_text() for p in build_wiki(repo, db, tmp_path / "a").rglob("*.html")}
+    assert re.search(r"\d+ of \d+ entries have code realising them", pages["nodes.html"])
+    node = SimpleNamespace(source="keys", ref="keys:x", id="x", doc="", requirements=(), file="k")
+    trace = SimpleNamespace(nodes=[node], refs={}, evidence=[])
+    config = SimpleNamespace(sources=[SimpleNamespace(name="keys", path="model/keys.toml")])
+    assert nodes_page(trace, config, tmp_path) == ""
+    assert not (tmp_path / "nodes.md").exists()

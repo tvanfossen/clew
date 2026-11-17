@@ -44,7 +44,15 @@ PYTEST_ARGS = ["-m", "pytest", "tests/", "-q", "--integration", "--junitxml=buil
 
 ## COVERAGE IS OPT-IN (`--coverage`): CI's wiki job asks for it. Not in the gate, where tracing
 ## every line would slow every commit for a figure only the published wiki reads.
-COVERAGE_ARGS = ["--cov=clew", "--cov-report=xml:build/coverage.xml"]
+## PER-TEST CONTEXTS (round 4): `--cov-context=test` records which test ran each line, and the
+## JSON report carries them (`[tool.coverage.json] show_contexts`), so the wiki links a test to a
+## requirement by what it EXECUTED — no tag, no call-depth guess.
+COVERAGE_ARGS = [
+    "--cov=clew",
+    "--cov-context=test",
+    "--cov-report=xml:build/coverage.xml",
+    "--cov-report=json:build/coverage.json",
+]
 
 ## The interpreter the gate uses. Kept as the default so `run_tests.py` with no arguments is
 ## exactly what the pre-commit hook runs, rather than approximately it.

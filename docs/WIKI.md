@@ -50,23 +50,24 @@ flowchart TB
   home --> impact[Change impact]
   home --> map[Map]
   home --> docs[Docs]
-  req -- a requirement --> modal[its modal:<br/>criteria · implementers · tests · flows · issues · decisions]
-  modal --> sym[symbol pages:<br/>signature · ego-graph · body]
-  modal --> test[a test's section:<br/>checks · result · path to the implementer]
+  req -- a requirement --> rpage[its page:<br/>criteria · implementers · every test with its extent · flows · issues]
+  rpage --> test[a test's page:<br/>result · checks · what it reaches, drawn]
+  rpage --> sym[symbol pages:<br/>signature · callers and callees · body]
   flows --> sym
-  map -- a box --> comp[its files · requirements · flows]
+  map -- a function --> walk[its callers and callees, walkable · its source page]
 ```
 
 | section | what it shows |
 |---|---|
-| **Requirements** | One card per requirement group (passing count, tier bar) that filters the list. Each requirement opens a modal: acceptance criteria, the functions implementing it, its tests and how each was linked, the flows it is on, open issues, the decisions that name it, and a prefilled "raise an issue" link. |
+| **Requirements** | One card per requirement group (passing count, tier bar) that filters the list. Each requirement has its own page: acceptance criteria, the functions implementing it, every test in two tables — linked directly, and reached through calls — with its result, how it was linked, which implementers it exercises ("2 of 9") and how many calls away it is, the flows it is on, open issues, the decisions that name it, and a prefilled "raise an issue" link. |
 | **Product trace** | Shown when `wiki.catalogs` names pinned dependency catalogues. This repository's requirements as roots and, under each, the dependency requirements whose `satisfies` reaches it — transitively, every catalogue read at its pin. A dependency's functions and tests appear only when its index is at the pin (checkout at the pin, clean, index current); otherwise the row says **unknown** and why, with a link to the local checkout, or **absent** with no index. Dependency requirements this repository implements are listed apart; dangling links, double pins and unreached requirements are reported. `clew wiki check` reports the same problems. |
 | **Flows** | A UML sequence diagram for every entry point and every root you declare, grouped by role — Product, Threads, Tooling, Tests. Every step is an index edge, badged with the requirements its callee implements; click one for the call it makes. Each flow is also exported as Mermaid and PlantUML. |
 | **Change impact** | From clew-guard's `impact.json`: each changed function, the requirements it implements and the flows it is on. Without a report it says *not measured*. |
-| **Map** | The system's components (callers above callees, arrows sized by calls) at two zooms — components, and every function as a point — re-tinted by lens: requirements, tests, and concurrency, change or issues when their sources exist. Pick a flow to watch it cross the components. A small copy of the map sits in every page's sidebar, lighting what that page touches. |
+| **Map** | The repository web: every function in one zoomable view. Each wedge is a block of the system (declared in `wiki.components`; an undeclared file joins the block it shares the most calls with, and is listed as placed by coupling); rings run outward by call depth from the entry points. Zoomed out you see the blocks and the calls between them; zoom in and the functions appear. Click a function to see what it calls and what calls it and walk from there; search jumps the camera to a name; pick a flow to watch it travel. The same blocks are listed as a table below. Every page's sidebar lists the blocks, labelled, lighting the ones that page touches. |
 | **Docs** | Your prose grouped by kind (tutorial, how-to, reference, explanation), agent-facing documents apart, and the architecture decision records. |
-| **Model entries** | Entries of declared model files and the functions that realise them (`@node`). |
-| **Symbol pages** | A section per referenced function: signature, source link, a radial graph of its callers and callees two hops out, its requirements and flows, and its body. A test's section adds what it checks — its assertions, its result, the requirements it verifies and the call path to each implementer. Gherkin scenarios are shown as Gherkin. |
+| **Model entries** | Some behaviour is defined by data — a key table, a command list, shipped models. Declare those files in `wiki.sources`; a function that implements a row says so with `@node <source>:<id>`. The page shows each row, the code realising it and the requirement it serves, with a count per source. It is built only when some function realises a row. |
+| **Test pages** | One per test: the packaged run's result (a failure's message in red), the checks it makes, and a drawing of what it reaches — from the test, through its calls, to each requirement's implementer. Reaching is not proving: without mutation records the page says what the test reaches; with them, which breaks it caught. |
+| **Symbol pages** | A section per referenced function: signature, source link, its callers and callees (each linked), a link to it on the map, its requirements and flows, and its body. Gherkin scenarios are shown as Gherkin. |
 
 Everything works on a phone: the top bar folds into a menu, tables become cards, diagrams pan
 and zoom.
@@ -81,7 +82,14 @@ tag:
 | tagged | `@req` on the test, a mapping file, or a Gherkin scenario tag |
 | measured | per-test coverage ran a line of an implementer |
 | catalog | the catalog's evidence field names the test's file |
-| inferred | the test's calls reach an implementer within `infer_depth` hops |
+| inferred | the test's calls reach an implementer, at any depth (`infer_depth` caps it; 0 turns it off) |
+
+Every measured or inferred link carries its **extent** — which of the requirement's implementers
+the test executes or reaches — and an inferred one its distance in calls, so a test aimed at a
+requirement lists before one that passes through it on the way elsewhere. A function in test code
+is never counted as an implementer. With Python, running the tests with `--cov-context=test` and a
+JSON report (`[tool.coverage.json] show_contexts = true`) gives measured links, including calls a
+static graph cannot see (a tool called by name).
 
 | tier | meaning |
 |---|---|
@@ -90,6 +98,7 @@ tag:
 | TARGET | every linked result is a skip of a target-only test |
 | NOT_RUN | tests are linked but skipped, or no report holds their result |
 | MISSING | no test is linked |
+| EXEMPT | no test is linked, and the catalog's status is one `impact.requirements.exempt_status` exempts (as `clew guard coverage` does) |
 
 Unmeasured is never reported as a result: with no coverage report, coverage fields are absent.
 
@@ -178,7 +187,7 @@ wiki:
       stop_at: [log]
       animate: true
       role: product             # product | threads | tooling | tests
-  components:                   # the map's boxes; default = packages by path
+  components:                   # the map's blocks; undeclared files join by coupling; default = packages
     Query layer: ["src/query/*"]
   tests:
     junit: [build/junit.xml]
@@ -193,7 +202,7 @@ wiki:
     target_only: ["test_hw_*"]  # skipped on host by design: TARGET, not a gap
     contexts: build/coverage.json         # coverage.py JSON with --cov-context=test
     evidence_fields: [x-evidence, evidence]
-    infer_depth: 2              # link tests whose calls reach an implementer (0 = off)
+    infer_depth: 4              # cap call-graph links at N calls (omit = any depth; 0 = off)
     mutations: build/mutations.yaml
     traces: ["build/traces/*.json"]       # OTLP JSON test runs, drawn over their flows
   needs: docs/needs.json        # Sphinx-needs requirements (the catalog wins)

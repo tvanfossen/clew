@@ -71,7 +71,8 @@ def component_of(rel: str, declared: tuple[tuple[str, tuple[str, ...]], ...] = (
 ## @param exclude_tests Leave test code out of the layout; count its calls as `tested_calls`.
 ## @return The graph as plain data.
 ## v2: `exclude_tests` (round 3, P1c: test code is a lens on the system, not boxes above it).
-## @version 2
+## v3 (round 4, R1): declared blocks win; undeclared files join by coupling (`inferred_files`).
+## @version 3
 ## @req REQ-DDB-WIKI-019
 def build_graph(
     db: Path,
@@ -86,10 +87,14 @@ def build_graph(
         tested = _tested_calls(conn, funcs) if exclude_tests else None
         if exclude_tests:
             funcs = {r: f for r, f in funcs.items() if not f[2]}
-        comp = {rowid: component_of(rel, declared) for rowid, (_n, rel, _t) in funcs.items()}
+        file_block, inferred = _blocks(conn, funcs, declared)
+        comp = {rowid: file_block[rel] for rowid, (_n, rel, _t) in funcs.items()}
         links = _links(conn, comp)
         threads = _threads(conn, comp)
     components = _components(funcs, comp, evidence, impact, threads)
+    for cid, node in components.items():
+        node["declared"] = any(cid == name for name, _g in declared)
+        node["inferred_files"] = sorted(inferred.get(cid, ()))
     if tested is not None:
         for rowid, cid in comp.items():
             components[cid].setdefault("tested_calls", 0)
@@ -100,7 +105,79 @@ def build_graph(
         "components": [components[c] for c in order],
         "links": [{"from": a, "to": b, **w} for (a, b), w in sorted(links.items())],
         "symbols": _points(funcs, comp, components, evidence, impact),
+        "file_block": dict(sorted(file_block.items())),
     }
+
+
+## @brief Every file's block: declared, else joined by coupling, else Unassigned.
+## @param conn Open connection.
+## @param funcs rowid → (name, file, in test code).
+## @param declared `wiki.components` groupings.
+## @return ({file: block}, {block: files placed by coupling}).
+## @version 1
+## @req REQ-DDB-WIKI-019
+def _blocks(conn: Any, funcs: dict, declared: tuple) -> tuple[dict[str, str], dict[str, set[str]]]:
+    """DECLARED BLOCKS WIN (round 4, R1; the reflexion method with clustering, Christl, Koschke &
+    Storey, WCRE 2005). With nothing declared every file keeps its package and nothing is
+    inferred. Otherwise an undeclared file joins the block it shares the most calls with, either
+    direction, repeated until nothing moves, so a file coupled only through another undeclared
+    file still lands. Ties go to the block declared first. A file coupled to none is Unassigned.
+
+    @brief Assign blocks.
+    @return Blocks and inferred placements.
+    """
+    files = {rel for _n, rel, _t in funcs.values()}
+    if not declared:
+        return {rel: component_of(rel) for rel in files}, {}
+    owner = {rel: component_of(rel, declared) for rel in files}
+    named = {name for name, _g in declared}
+    loose = {rel for rel, b in owner.items() if b not in named}
+    pairs = _file_calls(conn, funcs)
+    order = {name: i for i, (name, _g) in enumerate(declared)}
+    placed: dict[str, set[str]] = defaultdict(set)
+    moved = True
+    while loose and moved:
+        moved = False
+        for rel in sorted(loose):
+            weight: dict[str, int] = defaultdict(int)
+            for other, n in pairs.get(rel, {}).items():
+                if owner.get(other) in named:
+                    weight[owner[other]] += n
+            if weight:
+                best = min(weight, key=lambda b: (-weight[b], order[b]))
+                owner[rel] = best
+                placed[best].add(rel)
+                loose.discard(rel)
+                moved = True
+    for rel in loose:
+        owner[rel] = "Unassigned"
+    return owner, dict(placed)
+
+
+## @brief Call counts between files, both directions.
+## @param conn Open connection.
+## @param funcs rowid → (name, file, in test code).
+## @return {file: {other file: calls}}.
+## @version 1
+## @dg_internal
+def _file_calls(conn: Any, funcs: dict) -> dict[str, dict[str, int]]:
+    """A BINDING IS NOT A CALL and a fuzzy edge is a guess, as for links.
+
+    @brief File coupling.
+    @return Counts.
+    """
+    out: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
+    if not table_exists(conn, "call_edges"):
+        return {}
+    for a, b in conn.execute(
+        "SELECT DISTINCT caller_rowid, callee_rowid FROM call_edges "
+        "WHERE source != 'binding' AND confidence != 'fuzzy'"
+    ):
+        fa, fb = funcs.get(int(a)), funcs.get(int(b))
+        if fa and fb and fa[1] != fb[1]:
+            out[fa[1]][fb[1]] += 1
+            out[fb[1]][fa[1]] += 1
+    return out
 
 
 ## @brief Every function: rowid → (name, file, in test code).

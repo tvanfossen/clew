@@ -377,6 +377,35 @@ class TestRunImpact:
         assert "REQ-0252" in result
         assert "Func" in result
 
+    def test_a_range_with_no_files_reads_the_files_the_range_changed(self, tmp_path):
+        """ROUND 4, R11 (found building clew's own wiki): `impact --range A..B` with no file list
+        wrote an EMPTY report — "nothing changed" for 64 commits — because only the files named
+        on the command line were read. A range (or --staged) with no files means every file that
+        range changed; an empty report must mean nothing changed, never that nobody looked.
+        """
+        c_file = tmp_path / "test.c"
+        c_file.write_text(
+            dedent("""\
+                /**
+                 * @brief Func.
+                 * @version 1.0
+                 * @req REQ-0252
+                 */
+                void Func(void) {
+                    impl();
+                }
+            """)
+        )
+
+        def mock_runner(cmd):
+            if "--name-only" in cmd:
+                return f"{c_file}\n"
+            return "@@ -6,1 +6,1 @@\n-old\n+new\n"
+
+        config = _make_impact_config(req_file=FIXTURES_DIR / "impact" / "req.csv")
+        result = run_impact([], config, diff_range="A..B", run_command=mock_runner)
+        assert "REQ-0252" in result and "Func" in result
+
 
 class TestFilterRequirementsByVersion:
     """Tests for filter_requirements_by_version."""

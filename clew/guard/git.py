@@ -104,6 +104,24 @@ def get_diff(
     return run_git(["git", "diff", "-U0", diff_range, "--", file_path], run_command)
 
 
+## @brief The files a revision range (or the index) changed.
+#  Round 4, R11: `impact --range` with no file list read nothing and reported an empty impact.
+#  @version 1.0
+#  @req REQ-DDB-GUARD-023
+#  @return Repo-relative paths, or None if git failed
+def get_changed_files(
+    diff_range: str | None,
+    staged: bool,
+    run_command: RunCommand | None = None,
+) -> list[str] | None:
+    if diff_range and diff_range.startswith("-"):
+        logger.error("Refusing diff range that looks like an option: %r", diff_range)
+        return None
+    cmd = ["git", "diff", "--name-only", *(["--cached"] if staged else [diff_range or "HEAD"])]
+    out = run_git(cmd, run_command)
+    return None if out is None else [line for line in out.splitlines() if line.strip()]
+
+
 ## @brief Extract the set of modified line numbers from a unified diff.
 #  @version 1.1
 #  @req REQ-DDB-GUARD-023
