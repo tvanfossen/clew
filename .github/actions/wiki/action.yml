@@ -13,7 +13,7 @@ description: Index the checkout with clew and build its wiki (HTML or Markdown).
 inputs:
   version:
     description: clew-trace release to install.
-    default: "1.4.0"
+    default: "2.0.0"
   format:
     description: "html (a site, for Pages) or markdown (wiki pages)."
     default: html
