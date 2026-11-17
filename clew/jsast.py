@@ -707,17 +707,20 @@ def _enclosing_class(ranges: list[tuple[int, int, str]], byte: int) -> str:
 ## v2: also harvests JSX element usage as `jsx` sites. `<Card />` is a use of `Card`, and a
 ## component reached only through JSX had no inbound edge — so "where is it used" answered nothing
 ## and liveness read it as dead.
-## @version 3
+## v4 (round 5, agent C's W2/W3): a bare call or a bare argument whose name an enclosing function
+## binds as a parameter or a non-function value is not emitted — it calls or passes what it holds.
+## @version 4
 ## @req REQ-DDB-PIPE-012
 def harvest_calls(
     tree: Any, src_bytes: bytes, plain: str, member: str, binding: str, jsx: str = ""
 ) -> list[list[Any]]:
-    """@brief Harvest JS/TS call sites. @version 3"""
+    """@brief Harvest JS/TS call sites. @version 4"""
     from .guard.ts_parser import _imported_names
 
     ranges = _class_ranges(tree.root_node)
     imported = _imported_names(tree.root_node)
     sites: list[list[Any]] = []
+    scopes: dict[int, dict[str, bool]] = {}
     stack = [tree.root_node]
     while stack:
         node = stack.pop()
@@ -725,9 +728,13 @@ def harvest_calls(
         line = node.start_point[0] + 1
         if node.type == "call_expression":
             site = _call_site(node, ranges, plain, member, imported)
-            if site is not None:
+            if site is not None and not (site[1] == plain and _shadowed(node, site[0], scopes)):
                 sites.append([*site[:1], line, *site[1:]])
-            sites += _argument_bindings(node, line, binding)
+            sites += [
+                b
+                for b in _argument_bindings(node, line, binding)
+                if not _shadowed(node, b[0], scopes)
+            ]
         elif node.type == "new_expression":
             cls = _tail(node.child_by_field_name("constructor"))
             if cls:
@@ -737,6 +744,145 @@ def harvest_calls(
             if component:
                 sites.append([component, line, jsx, "", ""])
     return sites
+
+
+## Nodes that open a function scope in JS/TS.
+_JS_SCOPES = (
+    "function_declaration",
+    "generator_function_declaration",
+    "function_expression",
+    "function",
+    "generator_function",
+    "arrow_function",
+    "method_definition",
+)
+
+
+## @brief Whether an enclosing function binds a name to a value rather than a function.
+## @param node The call node.
+## @param name The bare name.
+## @param cache Per-scope {name: is a value} tables, keyed by start byte.
+## @return True when the nearest scope declaring the name declares a parameter or a value.
+## @version 1
+## @dg_internal
+def _shadowed(node: Any, name: str, cache: dict[int, dict[str, bool]]) -> bool:
+    """LEXICAL, NEAREST DECLARATION WINS. `function run(done) { done() }` calls its parameter;
+    `const helper = () => 1; helper()` calls a nested closure the index holds (TS round F2), so a
+    function-valued declaration does not shadow. Module scope never shadows — its names are the
+    imports and functions resolution is for.
+
+    @brief Shadowed by a local.
+    @return Bool.
+    """
+    scope = node.parent
+    while scope is not None:
+        if scope.type in _JS_SCOPES:
+            if scope.start_byte not in cache:
+                cache[scope.start_byte] = _scope_names(scope)
+            kind = cache[scope.start_byte].get(name)
+            if kind is not None:
+                return kind
+        scope = scope.parent
+    return False
+
+
+## @brief The names one function scope declares: parameters and its own declarations.
+## @param scope A function node.
+## @return {name: True for a value or parameter, False for a function}.
+## @version 1
+## @dg_internal
+def _scope_names(scope: Any) -> dict[str, bool]:
+    """@brief Scope table. @return Names."""
+    names: dict[str, bool] = {}
+    params = scope.child_by_field_name("parameters") or scope.child_by_field_name("parameter")
+    for ident in _identifiers(params):
+        names.setdefault(ident, True)
+    stack = [scope.child_by_field_name("body")]
+    while stack:
+        node = stack.pop()
+        if node is None:
+            continue
+        if node.type == "variable_declarator":
+            target, value = node.child_by_field_name("name"), node.child_by_field_name("value")
+            for ident in _identifiers(target):
+                names.setdefault(ident, not _is_function_value(value))
+        elif node.type in ("function_declaration", "generator_function_declaration"):
+            names.setdefault(_text(node.child_by_field_name("name")), False)
+        elif node.type == "catch_clause":
+            for ident in _identifiers(node.child_by_field_name("parameter")):
+                names.setdefault(ident, True)
+        stack.extend(c for c in node.children if c.type not in _JS_SCOPES)
+    return names
+
+
+## @brief Whether a declared value binds a function, as the index's definitions read it.
+## @param value The declarator's value node, or None.
+## @return True for a function literal, a wrapper around one (`useCallback(() => ...)`), or an
+##         import (`require(...)`), whose names bind another module's functions.
+## @version 1
+## @dg_internal
+def _is_function_value(value: Any) -> bool:
+    """THE SAME RULE THE DEFINITIONS USE (`ts_parser._unwrap_component`): a call whose first
+    argument is a function literal binds that function. Without it, `const openURL =
+    useCallback(...)` shadowed every call of the closure the index holds — measured on
+    mattermost-mobile before this landed.
+
+    @brief Function-valued.
+    @return Bool.
+    """
+    from .guard.ts_parser import _unwrap_component
+
+    if value is None:
+        return False
+    if _is_import_call(value):
+        return True
+    return value.type in _FUNCTION_VALUES or _unwrap_component(value) is not None
+
+
+## @brief Whether a value is a module import: `require(...)` or `await import(...)`.
+## @param value The declarator's value node.
+## @return True for an import.
+## @version 1
+## @dg_internal
+def _is_import_call(value: Any) -> bool:
+    """A DESTRUCTURED `require` IS AN IMPORT (found vetting mattermost-mobile): `const { f } =
+    require('./m')` binds the module's `f`, so calling it is a call, wherever it is written.
+
+    @brief Import call.
+    @return Bool.
+    """
+    if value.type == "await_expression" and value.named_children:
+        value = value.named_children[0]
+    if value.type != "call_expression":
+        return False
+    callee = value.child_by_field_name("function")
+    return (
+        callee is not None
+        and callee.type in ("identifier", "import")
+        and _text(callee) in ("require", "import")
+    )
+
+
+## @brief Identifier names bound by a pattern (plain, destructured, defaulted).
+## @param node A parameter list or binding pattern, or None.
+## @return The names.
+## @version 1
+## @dg_internal
+def _identifiers(node: Any) -> list[str]:
+    """TYPE ANNOTATIONS ARE `type_identifier`, so they are skipped; a default value's identifiers
+    are read too, which can only over-shadow (withhold an edge), never invent one.
+
+    @brief Bound names.
+    @return Names.
+    """
+    out: list[str] = []
+    stack = [node] if node is not None else []
+    while stack:
+        cur = stack.pop()
+        if cur.type in ("identifier", "shorthand_property_identifier_pattern"):
+            out.append(_text(cur))
+        stack.extend(c for c in cur.children if c.type not in _JS_SCOPES)
+    return out
 
 
 ## The two element shapes that name a component. A `jsx_element` is an opening tag, children and a

@@ -601,7 +601,9 @@ def _keyword_bindings(
 ## @return Rowid-free call sites in walk order.
 ## v5: member sites whose receiver an import binds carry the module path (9th element); keyword
 ## bindings naming a local are dropped.
-## @version 5
+## v6 (round 5, agent C's W2): a BARE call whose name the enclosing function binds — a parameter
+## or an assigned local — is not a call of the same-named function, and is not emitted.
+## @version 6
 ## @req REQ-DDB-PIPE-003
 def harvest_calls(
     tree: Any,
@@ -648,6 +650,7 @@ def harvest_calls(
     ranges = class_ranges(tree, src_bytes)
     imports = import_bindings(tree, src_bytes)
     shadows: dict[int, frozenset[str]] = {}
+    own: dict[int, frozenset[str]] = {}
     stack = [tree.root_node]
     while stack:
         node = stack.pop()
@@ -661,6 +664,10 @@ def harvest_calls(
         if tail is None:
             continue
         name, qualified = tail
+        if not qualified and name in _own_locals(_enclosing_function(node), src_bytes, own):
+            ## `def go(finish): finish()` calls what was passed in (agent C's W2): resolving
+            ## it to a function named `finish` minted a resolved edge from a spelling.
+            continue
         qualifier, receiver = _call_scope(callee, name, ranges, node.start_byte, src_bytes)
         site = [
             name,
@@ -778,6 +785,103 @@ def _locals_of(func: Any, src_bytes: bytes, cache: dict[int, frozenset[str]]) ->
                 names.add(node_text(ident, src_bytes))
         cache[func.start_byte] = frozenset(names)
     return cache[func.start_byte]
+
+
+## Scopes whose bindings belong to themselves, not to the function that contains them.
+_NESTED_SCOPES = ("function_definition", "lambda", "class_definition")
+
+
+## @brief Names a function itself binds: its parameters and what it assigns, not nested scopes'.
+## @param func The function node, or None at module level.
+## @param src_bytes The file's raw bytes.
+## @param cache Per-function cache, keyed by start byte.
+## @return The names.
+## @version 1
+## @dg_internal
+def _own_locals(func: Any, src_bytes: bytes, cache: dict[int, frozenset[str]]) -> frozenset[str]:
+    """STRICTER THAN `_locals_of`, deliberately. That set over-reads into nested functions, which
+    only ever withholds a keyword binding; here it would withhold a CALL. Python makes a name
+    assigned anywhere in a function local to all of it, so the function's own assignments count
+    wherever they sit; a nested function's, lambda's or class's bindings do not shadow the outer
+    call. A nested `def` name is not a shadow either — calling it is a real call.
+
+    @brief Own local names.
+    @return Names.
+    """
+    if func is None:
+        return frozenset()
+    if func.start_byte not in cache:
+        names: set[str] = set()
+        params = func.child_by_field_name("parameters")
+        for node in _collect_by_type(params, ("identifier",)) if params is not None else []:
+            names.add(node_text(node, src_bytes))
+        body = func.child_by_field_name("body")
+        for node in _own_nodes(body):
+            left = (
+                node.child_by_field_name("left")
+                or node.child_by_field_name("alias")
+                or node.child_by_field_name("name")
+            )
+            names.update(_bound_names(left, src_bytes))
+        cache[func.start_byte] = frozenset(names)
+    return cache[func.start_byte]
+
+
+## @brief The names an assignment target binds.
+## @param target A target node, or None.
+## @param src_bytes The file's raw bytes.
+## @return Names: a bare identifier, or each name in a tuple / list pattern.
+## @version 1
+## @dg_internal
+def _bound_names(target: Any, src_bytes: bytes) -> list[str]:
+    """A SUBSCRIPT OR ATTRIBUTE TARGET BINDS NOTHING: `found[rel_key(p)] = p` assigns into
+    `found`; reading every identifier in it made `rel_key` a "local" and dropped a real call
+    (measured on clew's own tree before this landed).
+
+    @brief Bound names.
+    @return Names.
+    """
+    if target is None:
+        return []
+    if target.type == "identifier":
+        return [node_text(target, src_bytes)]
+    if target.type in (
+        "pattern_list",
+        "tuple_pattern",
+        "list_pattern",
+        "parenthesized_expression",
+        "expression_list",
+        "list_splat_pattern",
+        "tuple",
+        "list",
+    ):
+        return [n for c in target.named_children for n in _bound_names(c, src_bytes)]
+    return []
+
+
+## @brief Binding nodes in a body, not descending into nested scopes.
+## @param body The function body, or None.
+## @return Assignment-like nodes.
+## @version 1
+## @dg_internal
+def _own_nodes(body: Any) -> list[Any]:
+    """@brief Own binders. @return Nodes."""
+    targets = (
+        "assignment",
+        "augmented_assignment",
+        "for_statement",
+        "for_in_clause",
+        "as_pattern",
+        "named_expression",
+    )
+    found: list[Any] = []
+    stack = [body] if body is not None else []
+    while stack:
+        node = stack.pop()
+        if node.type in targets:
+            found.append(node)
+        stack.extend(c for c in node.children if c.type not in _NESTED_SCOPES)
+    return found
 
 
 ## @brief What a Python call site says about the class it targets: a qualifier, or a receiver.

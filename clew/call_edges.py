@@ -476,7 +476,8 @@ def _ast_caller_at_line(
 ## nearest first, as the language does. Found on mattermost-mobile's TypeScript mixins.
 ## @param one_function Candidate sets that name one function, from _one_function_targets.
 ## Version 10: merges PR #59 — `one_function` (a bare call naming one decl/def pair).
-## @version 10
+## v11 (agent C's W4): passes the caller's definition, so an object is owned only in its module.
+## @version 11
 ## @dg_internal
 def _ast_record_call_edge(
     caller_rowid: int,
@@ -574,7 +575,12 @@ def _ast_record_call_edge(
     ## evidence too, so the rule applies whenever the site is a JS/TS member call.
     if source == SOURCE_AST_MEMBER and via_import is not None and class_scopes is not None:
         candidates, owned = _member_reachable(
-            candidates, receiver, via_import, definition_of or {}, class_scopes
+            candidates,
+            receiver,
+            via_import,
+            definition_of or {},
+            class_scopes,
+            (definition_of or {}).get(caller_rowid, ""),
         )
         if len(owned) == 1:
             edges_resolved.append((caller_rowid, owned[0], source))
@@ -1320,8 +1326,10 @@ def _narrow_by_qualifier(
 ## @param via_import Whether the receiver is a module the calling file imports.
 ## @param definition_of rowid → definition.
 ## @param class_scopes Dotted names of every class and interface.
+## @param caller_definition The caller's definition (ownership needs the object's module).
 ## @return (reachable candidates, non-method candidates owned by the receiver).
-## @version 1
+## v2 (agent C's W4): an object is owned only by a caller in its own module.
+## @version 2
 ## @dg_internal
 def _member_reachable(
     candidates: list[int],
@@ -1329,15 +1337,21 @@ def _member_reachable(
     via_import: bool,
     definition_of: dict[int, str],
     class_scopes: frozenset[str],
+    caller_definition: str = "",
 ) -> tuple[list[int], list[int]]:
     """A METHOD IS ALWAYS REACHABLE by a member call — the receiver's type is unknown, which is
     not evidence against it. A NON-METHOD (a module function, a closure, an object's property) is
     reachable only through what holds it. A doxygen-built candidate is kept unchanged: its
     `definition` is not a dotted path and this rule says nothing about it.
 
+    OWNERSHIP NEEDS THE OBJECT IN SCOPE (v2, agent C's W4): a receiver spelled like an object
+    literal owns it only when the caller is defined in that object's own module. A parameter
+    `api` in another file resolved to `src/api.ts`'s `api.get` by its name alone. An imported
+    object takes the `via_import` branch above, which keeps it without claiming ownership.
+
     @brief Filter by member-call reachability.
     @return Reachable and receiver-owned rowids.
-    @version 1
+    @version 2
     """
     kept: list[int] = []
     owned: list[int] = []
@@ -1353,10 +1367,31 @@ def _member_reachable(
             ## THROUGH AN IMPORTED MODULE: reachable, never "owned" — an alias that happens to
             ## equal the module's file name would otherwise resolve by coincidence.
             kept.append(rowid)
-        elif scope.rsplit(".", 1)[-1] == receiver:
+        elif scope.rsplit(".", 1)[-1] == receiver and _same_module(scope, caller_definition):
             kept.append(rowid)
             owned.append(rowid)
     return kept, owned
+
+
+## @brief Whether a caller is defined in the module that holds an object.
+## @param owner_scope The object's dotted path (`src.api.api`).
+## @param caller_definition The caller's dotted definition (`src.api.useIt`), or "".
+## @return True when the caller sits in the object's module.
+## @version 1
+## @dg_internal
+def _same_module(owner_scope: str, caller_definition: str) -> bool:
+    """AN UNKNOWN CALLER FAILS CLOSED: ownership is the one path that makes a member call
+    resolved, so without the caller's module there is no evidence the object is in scope.
+
+    @brief Same module.
+    @return Bool.
+    """
+    module = owner_scope.rsplit(".", 1)[0]
+    return (
+        bool(caller_definition)
+        and "." in owner_scope
+        and caller_definition.startswith(module + ".")
+    )
 
 
 ## @brief Bare names of every interface the index holds.
@@ -1645,7 +1680,8 @@ def _sole_child(node: Any) -> Any:
 ## @return List of [callee_name, call_line, source] triples in walk order.
 ## v11: passes the `jsx` source tag to the JS/TS harvester, so a component rendered in
 ## JSX becomes a call edge rather than a component with no inbound edge at all.
-## @version 11
+## v12 (round 5): a member call on a typed local or parameter carries `Type::method` (agent C's W1).
+## @version 12
 ## @dg_internal
 def _ast_harvest_calls(tree: Any, src_bytes: bytes) -> list[list[Any]]:
     """Walk the parse tree iteratively, recording every direct call's callee
@@ -1718,6 +1754,12 @@ def _ast_harvest_calls(tree: Any, src_bytes: bytes) -> list[list[Any]]:
         ## then separates surviving overloads.
         qualifier = _qualifier_text(raw_callee, src_bytes)
         receiver = _receiver_tail(raw_callee, src_bytes)
+        if not qualifier:
+            ## A LOCAL OR PARAMETER WHOSE DECLARATION STATES ITS TYPE (agent C's W1): the call is
+            ## a call on that class, written as `Type::method` so the qualified path resolves it
+            ## or fails closed — never a same-named member's type.
+            local_class = _local_receiver_class(raw_callee, src_bytes)
+            qualifier = f"{local_class}::{callee_name}" if local_class else ""
         ## gh#15. `std::make_unique<T>(...)` unwraps to `make_unique`, a name no repository
         ## index holds, so the construction emitted nothing — and on entropic that hid the SOLE
         ## production construction of every MCP server, leaving `dossier` to offer a test helper
@@ -1804,7 +1846,8 @@ def _class_tail(text: str) -> str:
 ## @param raw_callee The call_expression's `function` child.
 ## @param src_bytes The file's bytes, for slicing.
 ## @return e.g. 'engine' for `handle->engine->run_turn()`, or '' when there is no receiver.
-## @version 1
+## v2 (round 5): a bare receiver the function declares is recorded empty (agent C's W1).
+## @version 2
 ## @dg_internal
 def _receiver_tail(raw_callee: Any, src_bytes: bytes) -> str:
     """THE TAIL, not the whole expression. For `handle->engine->run_turn(input)` the callee is
@@ -1813,13 +1856,15 @@ def _receiver_tail(raw_callee: Any, src_bytes: bytes) -> str:
     outer text (`handle->engine`) would match no memberdef, and taking the root (`handle`)
     would resolve to the handle's type rather than the engine's.
 
-    A bare-identifier receiver (`obj.method()`) yields `obj`, which usually names a local or
-    parameter that doxygen does not index — that simply fails to resolve later, which is the
-    correct outcome and not a special case here.
+    A BARE-IDENTIFIER RECEIVER the enclosing function declares — a parameter or a local —
+    yields ''. v1 assumed such a name "simply fails to resolve later"; agent C's audit (W1)
+    showed it does not: member typing is keyed by NAME, so a local `EngB *engine` was resolved to
+    `EngA::run` because some class has a member `EngA *engine`. A bare name no local declares
+    (`engine->run()` inside a method of the class that owns it) still means the member.
 
     @brief Extract the receiver's trailing member name.
     @return The name, or ''.
-    @version 1
+    @version 2
     """
     if raw_callee is None or raw_callee.type != "field_expression":
         return ""
@@ -1829,7 +1874,144 @@ def _receiver_tail(raw_callee: Any, src_bytes: bytes) -> str:
     node = recv.child_by_field_name("field") if recv.type == "field_expression" else recv
     if node is None or node.type not in ("identifier", "field_identifier"):
         return ""
+    name = src_bytes[node.start_byte : node.end_byte].decode("utf-8", errors="replace")
+    if recv.type == "identifier" and name in _c_locals(_enclosing_c_function(recv), src_bytes):
+        return ""
+    return name
+
+
+## @brief The class a bare local or parameter receiver is declared as, or "".
+## @param raw_callee The call's `function` node.
+## @param src_bytes The file's raw bytes.
+## @return The class name (smart pointers peeled), or "" when not a typed local.
+## @version 1
+## @dg_internal
+def _local_receiver_class(raw_callee: Any, src_bytes: bytes) -> str:
+    """@brief Typed local receiver. @return Class or ''."""
+    if raw_callee is None or raw_callee.type != "field_expression":
+        return ""
+    recv = raw_callee.child_by_field_name("argument")
+    if recv is None or recv.type != "identifier":
+        return ""
+    name = src_bytes[recv.start_byte : recv.end_byte].decode("utf-8", errors="replace")
+    type_text = _c_locals(_enclosing_c_function(recv), src_bytes).get(name, "")
+    return _receiver_class(type_text) if type_text else ""
+
+
+## @brief The function definition a node sits in, or None.
+## @param node A node.
+## @return The `function_definition`, or None at file scope.
+## @version 1
+## @dg_internal
+def _enclosing_c_function(node: Any) -> Any:
+    """@brief Enclosing function. @return Node or None."""
+    cur = node.parent
+    while cur is not None and cur.type != "function_definition":
+        cur = cur.parent
+    return cur
+
+
+## @brief Names a C/C++ function declares — parameters and variables — with their declared types.
+## @param func A `function_definition`, or None.
+## @param src_bytes The file's raw bytes.
+## @return {name: declared type text, "" when the declaration does not name one}.
+## @version 1
+## @dg_internal
+def _c_locals(func: Any, src_bytes: bytes) -> dict[str, str]:
+    """ONLY DECLARATOR NAMES, never initialisers: `EngB *engine = new EngB()` declares `engine`;
+    the `new EngB()` names nothing — except as the TYPE of an `auto` declaration (`auto e = new
+    EngB()`, `auto e = std::make_unique<EngB>()`), where it is what the declaration states. A
+    lambda's own declarations are included, which can only withhold a member type, never invent
+    one.
+
+    @brief Local names and types.
+    @return Names to types.
+    """
+    if func is None:
+        return {}
+    names: dict[str, str] = {}
+    stack = [func.child_by_field_name("declarator"), func.child_by_field_name("body")]
+    while stack:
+        node = stack.pop()
+        if node is None:
+            continue
+        if node.type in ("parameter_declaration", "declaration", "optional_parameter_declaration"):
+            type_node = node.child_by_field_name("type")
+            stated = _text_of(type_node, src_bytes)
+            for decl in node.children_by_field_name("declarator"):
+                for name in _c_declarator_name(decl, src_bytes):
+                    names.setdefault(
+                        name, _auto_type(decl, src_bytes) if stated == "auto" else stated
+                    )
+        ## INTO INITIALISERS TOO: a lambda's own locals (`auto fn = [](void *ud) { auto *o = ...;`)
+        ## are locals of the function it sits in, as far as a receiver there is concerned.
+        stack.extend(node.children)
+    return names
+
+
+## @brief A node's text, or "".
+## @param node A node, or None.
+## @param src_bytes The file's raw bytes.
+## @return The text.
+## @version 1
+## @dg_internal
+def _text_of(node: Any, src_bytes: bytes) -> str:
+    """@brief Text. @return Str."""
+    if node is None:
+        return ""
     return src_bytes[node.start_byte : node.end_byte].decode("utf-8", errors="replace")
+
+
+## @brief The class an `auto` declaration's initialiser constructs, or "".
+## @param decl The `init_declarator`.
+## @param src_bytes The file's raw bytes.
+## @return `T` for `new T(...)`, `std::make_unique<T>()` / `make_shared<T>()`, or a
+##         `static_cast<T>` / `dynamic_cast<T>` / `reinterpret_cast<T>` / `const_cast<T>`, else "".
+## @version 1
+## @dg_internal
+def _auto_type(decl: Any, src_bytes: bytes) -> str:
+    """ONLY A STATED CONSTRUCTION: `auto x = make_thing()` names no type here, and a guess would
+    be the coincidence this replaces.
+
+    @brief Auto type.
+    @return Type text.
+    """
+    value = decl.child_by_field_name("value") if decl is not None else None
+    if value is None:
+        return ""
+    if value.type == "new_expression":
+        return _text_of(value.child_by_field_name("type"), src_bytes)
+    if value.type == "call_expression":
+        callee = value.child_by_field_name("function")
+        name = _text_of(callee, src_bytes)
+        ## THE NAME BEFORE ITS TEMPLATE ARGUMENT: `static_cast<ns::Orch *>` holds a `::` of its own.
+        bare = name.split("<", 1)[0].rsplit("::", 1)[-1].strip()
+        if bare in _CASTS and "<" in name and ">" in name:
+            ## `static_cast<HookRegistry*>(p)` STATES the type as plainly as `new T` does
+            ## (found vetting entropic: `auto* reg = static_cast<HookRegistry*>(...)`).
+            return name[name.index("<") + 1 : name.rindex(">")]
+        return _construction_type(bare, callee, src_bytes) or ""
+    return ""
+
+
+## The C++ casts whose template argument is the result's type.
+_CASTS = frozenset({"static_cast", "dynamic_cast", "reinterpret_cast", "const_cast"})
+
+
+## @brief The identifier a declarator declares (through pointers, references, arrays, inits).
+## @param decl A declarator node.
+## @param src_bytes The file's raw bytes.
+## @return Zero or one name.
+## @version 1
+## @dg_internal
+def _c_declarator_name(decl: Any, src_bytes: bytes) -> list[str]:
+    """@brief Declared name. @return Names."""
+    cur = decl
+    while cur is not None and cur.type != "identifier":
+        cur = cur.child_by_field_name("declarator")
+    if cur is None:
+        return []
+    return [src_bytes[cur.start_byte : cur.end_byte].decode("utf-8", errors="replace")]
 
 
 ## @brief How many arguments a call site passes.
@@ -1923,7 +2105,11 @@ class _CallSiteHarvester(Harvester):
     ## and keyword bindings naming a local are dropped; a payload cached at 12 has neither.
     ## 14 (round 5): `from .. import x` records `..x`, not `...x`; a payload cached at 13 climbs
     ## one package too far.
-    stage_version = 14
+    ## 15 (round 5, agent C's W2/W3): a bare call or bare argument naming a parameter or local
+    ## value is no longer emitted (Python and JS/TS); a payload cached at 14 still carries them.
+    ##     And (W1) a C/C++ receiver the calling function declares as a parameter or local is
+    ##     recorded empty, so it can no longer take a same-named member's type.
+    stage_version = 15
     label = "tree-sitter"
 
     ## @brief Harvest one file's call sites.
@@ -1959,10 +2145,17 @@ def call_site_harvester() -> Harvester:
 ## the one candidate defined inside that package (its `__init__` re-exports it).
 ## v3 (agent C's audit, W5): only for a RELATIVE import or an absolute package at the repository
 ## root — v2 matched `/<stem>/` anywhere, so `import json` landed in `vendor/json/`.
-## @version 3
+## @param py_roots (package directories, global import roots) from `_py_import_roots`, or None.
+## v4 (W5): an ABSOLUTE module resolves on an import root only — the repository root, a
+## top-level package's parent, or the caller's own script directory — never by path suffix.
+## @version 4
 ## @req REQ-DDB-PIPE-003
 def _via_module(
-    module: str, caller_file: str, candidates: list[int], file_of: dict[int, str] | None
+    module: str,
+    caller_file: str,
+    candidates: list[int],
+    file_of: dict[int, str] | None,
+    py_roots: tuple[frozenset[str], frozenset[str]] | None = None,
 ) -> int | None:
     """THE IMPORT NAMES THE FILE, so this is resolution, not a guess: `from ..query import export
     as _export` makes `_export.f()` a call of `f` in `<pkg>/query/export.py` — not of a namesake
@@ -1975,7 +2168,13 @@ def _via_module(
     if not module or not file_of:
         return None
     paths = _module_paths(module, caller_file)
-    hits = [c for c in candidates if any(_names_module(file_of.get(c, ""), p) for p in paths)]
+    if py_roots is not None:
+        paths = _rooted(module, caller_file, paths, py_roots)
+    hits = [
+        c
+        for c in candidates
+        if any(_names_module(file_of.get(c, ""), p, py_roots is not None) for p in paths)
+    ]
     if not hits:
         ## A PACKAGE ALIAS (found by the round-5 wiki: every MCP flow stopped at `q.dossier`):
         ## `q.f` is the package's attribute, which its `__init__` imported from one of its
@@ -1985,6 +2184,61 @@ def _via_module(
             c for c in candidates if any(_inside(file_of.get(c, ""), p, relative) for p in paths)
         ]
     return hits[0] if len(hits) == 1 else None
+
+
+## @brief Where Python can import an absolute module from, for this build's files.
+## @param rels Every indexed repo-relative path.
+## @return (directories holding an `__init__.py`, global import roots).
+## @version 1
+## @dg_internal
+def _py_import_roots(rels: Any) -> tuple[frozenset[str], frozenset[str]]:
+    """THE REPOSITORY ROOT AND EACH TOP-LEVEL PACKAGE'S PARENT (a `src/` layout's `src`). A
+    package is a directory with `__init__.py`; a top-level one is a package whose parent is not.
+
+    @brief Import roots.
+    @return (package dirs, roots).
+    """
+    packages = frozenset(r[: -len("/__init__.py")] for r in rels if str(r).endswith("/__init__.py"))
+    roots = {""} | {
+        d.rsplit("/", 1)[0] if "/" in d else "" for d in packages if _parent(d) not in packages
+    }
+    return packages, frozenset(roots)
+
+
+## @brief A path's parent directory ("" at the root).
+## @param rel A repo-relative path.
+## @return The parent.
+## @version 1
+## @dg_internal
+def _parent(rel: str) -> str:
+    """@brief Parent. @return Dir."""
+    return rel.rsplit("/", 1)[0] if "/" in rel else ""
+
+
+## @brief An absolute module's stems, anchored on the import roots this caller sees.
+## @param module The dotted module.
+## @param caller_file The calling file.
+## @param paths The unanchored stems from `_module_paths`.
+## @param py_roots (package dirs, global roots).
+## @return Root-anchored stems (a relative module's stems unchanged).
+## @version 1
+## @dg_internal
+def _rooted(module: str, caller_file: str, paths: list[str], py_roots: tuple) -> list[str]:
+    """A RELATIVE stem is anchored at the caller's package already. An absolute one is joined to
+    each root: the global ones and the caller's own script directory — the nearest ancestor that
+    is not a package, which Python (and pytest) put on `sys.path` for that file.
+
+    @brief Anchor stems.
+    @return Stems.
+    """
+    if module.startswith("."):
+        return paths
+    packages, roots = py_roots
+    base = _parent(caller_file)
+    while base in packages:
+        base = _parent(base)
+    anchors = sorted(roots | {base})
+    return [f"{a}/{p}" if a else p for a in anchors for p in paths]
 
 
 ## @brief Whether a file lies inside the package a module stem names.
@@ -2035,10 +2289,10 @@ def _module_paths(module: str, caller_file: str) -> list[str]:
 ## @return True for `<stem>.py` / `<stem>/__init__.py`, at the root or as a path suffix.
 ## @version 1
 ## @dg_internal
-def _names_module(rel: str, stem: str) -> bool:
+def _names_module(rel: str, stem: str, exact: bool = False) -> bool:
     """@brief Match. @return Bool."""
     for form in (f"{stem}.py", f"{stem}/__init__.py"):
-        if rel == form or rel.endswith("/" + form):
+        if rel == form or (not exact and rel.endswith("/" + form)):
             return True
     return False
 
@@ -2057,7 +2311,8 @@ def _file_of(file_funcs: dict, rel_of: dict) -> dict[int, str]:
 ## @brief Resolve one file's harvested call sites into call_edges rows.
 ## v6: a Python member call through an imported module resolves to that module's function
 ## (`caller_file`, `file_of`).
-## @version 6
+## v7 (agent C's W5): `py_roots` — absolute modules resolve on import roots only.
+## @version 7
 ## @dg_internal
 def _fold_call_payload(
     payload: list[list[Any]],
@@ -2076,6 +2331,7 @@ def _fold_call_payload(
     one_function: dict[tuple[int, ...], int] | None = None,
     caller_file: str = "",
     file_of: dict[int, str] | None = None,
+    py_roots: tuple[frozenset[str], frozenset[str]] | None = None,
 ) -> None:
     """Map each harvested call line back to its enclosing function's rowid and
     the callee name to candidate rowids — the rowid-dependent half of Layer 3,
@@ -2105,7 +2361,9 @@ def _fold_call_payload(
         caller_rowid = _ast_caller_at_line(funcs_in_file, call_line)
         if caller_rowid is None:
             continue
-        target = _via_module(module, caller_file, name_to_rowids.get(callee_name, []), file_of)
+        target = _via_module(
+            module, caller_file, name_to_rowids.get(callee_name, []), file_of, py_roots
+        )
         if target is not None:
             edges_resolved.append((caller_rowid, target, source))
             continue
@@ -2478,7 +2736,8 @@ _FOLD_STAGE = "ast_fold"
 ## 5: an interface-typed receiver reaches its implementation family (`_interface_family`).
 ## 6: a Python call through an imported module resolves to that module's function (`_via_module`).
 ## 7 (round 5): package aliases resolve inside a root-anchored package (`_via_module` v3).
-_FOLD_STAGE_VERSION = 7
+## 8 (agent C's W1/W4): local receivers carry no member type; ownership needs the module.
+_FOLD_STAGE_VERSION = 8
 
 
 ## @brief Digest of every INDEX-WIDE input the fold reads, so a change to any invalidates all.
@@ -2603,7 +2862,8 @@ def _extend_from_cache(
 ## Version 5: merges PR #59 — `one_function` (a bare call naming one decl/def pair).
 ## Version 6: passes each file's path and the rowid → file map (module-alias resolution); both
 ## are folded into the cache key.
-## @version 6
+## v7 (round 5): passes the Python import roots and digests them (agent C's W5).
+## @version 7
 ## @dg_internal
 def _fold_all_files(harvested: list, maps: dict, context: tuple) -> tuple[list, list, list]:
     """gh#34. THE 59%. Measured on a 6.8 GB repository refreshing after one touched file: the
@@ -2648,7 +2908,10 @@ def _fold_all_files(harvested: list, maps: dict, context: tuple) -> tuple[list, 
     )
     rel_of = _rel_paths(conn)
     file_of = _file_of(maps["file_funcs"], rel_of)
-    digest = hashlib.sha256((digest + repr(sorted(file_of.items()))).encode("utf-8")).hexdigest()
+    py_roots = _py_import_roots(rel_of.values())
+    digest = hashlib.sha256(
+        (digest + repr(sorted(file_of.items())) + repr(py_roots)).encode("utf-8")
+    ).hexdigest()
     served = 0
     folded = 0
     for path_rowid, payload in harvested:
@@ -2687,6 +2950,7 @@ def _fold_all_files(harvested: list, maps: dict, context: tuple) -> tuple[list, 
             one_function=maps.get("one_function"),
             caller_file=rel,
             file_of=file_of,
+            py_roots=py_roots,
         )
         if cache is not None and sha:
             cache.extract_put(
