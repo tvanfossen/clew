@@ -206,3 +206,52 @@ def test_the_flow_verb_prints_svg(tmp_path, capsys, monkeypatch) -> None:
     assert command.wiki_main(["flow", "a", "--index", str(db), "--svg", "--animate"]) == 0
     out = capsys.readouterr().out
     assert out.startswith("<svg") and "animation-delay" in out
+
+
+## @brief A test calling one function five times in a row, then another once.
+## @return The Flow.
+## @version 1
+def _repeated():
+    """@brief Build a flow. @return Flow."""
+    from clew.wiki.flow import Flow, Lane, Step
+
+    def call(callee: str, line: int) -> Step:
+        return Step(
+            caller="t",
+            caller_qualified="t",
+            callee=callee,
+            callee_qualified=callee,
+            from_lane="t.py",
+            to_lane="m.py",
+            file="m.py",
+            line=line,
+            depth=1,
+        )
+
+    steps = (*(call("cap", 10 + i) for i in range(5)), call("other", 20))
+    lanes = (Lane(id="t.py", label="t.py"), Lane(id="m.py", label="m.py"))
+    return Flow(
+        entry="t", entry_qualified="t", depth=1, lane_strategy="files", lanes=lanes, steps=steps
+    )
+
+
+def test_repeated_calls_fold_into_one_loop_frame() -> None:
+    """OWNER 2026-11-17 (round 5): repeated calls fold into a `loop ×N` frame. Five consecutive
+    calls to the same function draw ONE arrow labelled ×5 inside a loop frame; the group still
+    names every step it stands for (`data-steps`), so the step table, the step pop-ups and a
+    replayed trace keep all five. The animation plays drawn arrows, so a fold leaves no gap.
+
+    @brief Consecutive identical leaf calls draw once, framed `loop ×5`.
+    @return None.
+    """
+    import re
+
+    from clew.wiki.svg import STEP_SECONDS, flow_svg
+
+    animated = flow_svg(_repeated(), animate=True)
+    assert re.findall(r'data-step="(\d+)"', animated) == ["0", "5"]
+    assert 'data-steps="0 1 2 3 4"' in animated
+    assert ">loop ×5<" in animated and ">cap ×5<" in animated
+    delays = [float(d) for d in re.findall(r"animation-delay:([\d.]+)s", animated)]
+    assert delays == [0.0, STEP_SECONDS]
+    assert ">6<" in animated  # the call after the fold keeps its own number

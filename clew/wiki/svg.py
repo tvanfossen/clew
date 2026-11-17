@@ -29,6 +29,8 @@ from __future__ import annotations
 
 from html import escape
 
+from dataclasses import replace
+
 from .flow import Flow, Step
 
 ## Row height per event, top of the first row, lane head height.
@@ -86,11 +88,14 @@ _ANIMATION = (
 ## v3: UML-proper (W18): heads at both ends, activation bars, numbered steps, return arrows,
 ## drawn frames, fitted lanes, theme tokens, `data-step` per step.
 ## v4: a viewBox, so the page's pan / zoom (round 3, P1b) can move it.
-## @version 4
+## v5 (OWNER 2026-11-17, round 5): consecutive identical leaf calls draw once, framed `loop ×N`;
+## the group names every step it stands for, and the animation plays drawn arrows only.
+## @version 5
 ## @req REQ-DDB-WIKI-008
 def flow_svg(flow: Flow, animate: bool = False) -> str:
     """@brief Lay out and draw the diagram. @return SVG text."""
-    layout = _Layout(flow)
+    runs = _runs(flow.steps)
+    layout = _Layout(replace(flow, steps=tuple(flow.steps[start] for start, _n in runs)))
     parts = [
         f'<svg class="seq" xmlns="http://www.w3.org/2000/svg" width="{layout.width}" '
         f'height="{layout.height}" viewBox="0 0 {layout.width} {layout.height}" role="img" '
@@ -101,11 +106,49 @@ def flow_svg(flow: Flow, animate: bool = False) -> str:
         parts.append(_ANIMATION)
     parts += layout.lanes_markup()
     parts += layout.frames_markup()
+    parts += [layout.repeat_frame(d, n) for d, (_s, n) in enumerate(runs) if n > 1]
     parts += layout.activations_markup()
-    for i, step in enumerate(flow.steps):
-        parts.append(_step_group(i, step, layout.step_markup(i), animate))
+    for d, (start, n) in enumerate(runs):
+        shape = layout.step_markup(d, start + 1, n)
+        parts.append(_step_group(start, flow.steps[start], shape, animate, (d, n)))
     parts.append("</svg>")
     return "".join(parts)
+
+
+## @brief Runs of consecutive identical leaf calls.
+## @param steps The flow's steps.
+## @return (first step, how many) per drawn arrow, in order.
+## @version 1
+## @dg_internal
+def _runs(steps: tuple[Step, ...]) -> list[tuple[int, int]]:
+    """A RUN IS THE SAME CALL REPEATED WITH NOTHING UNDER IT: same caller, callee, lanes, depth and
+    frames, and no deeper step after any member (a call with a subtree is never folded — its
+    subtree would be hidden).
+
+    @brief Fold runs.
+    @return Runs.
+    """
+
+    def key(step: Step) -> tuple:
+        return (
+            step.caller_qualified or step.caller,
+            step.callee_qualified or step.callee,
+            step.from_lane,
+            step.to_lane,
+            step.depth,
+            step.frames,
+        )
+
+    def leaf(i: int) -> bool:
+        return i + 1 >= len(steps) or steps[i + 1].depth <= steps[i].depth
+
+    runs: list[tuple[int, int]] = []
+    for i, step in enumerate(steps):
+        if runs and leaf(i) and key(steps[runs[-1][0]]) == key(step) and leaf(i - 1):
+            runs[-1] = (runs[-1][0], runs[-1][1] + 1)
+        else:
+            runs.append((i, 1))
+    return runs
 
 
 ## @brief Positions of everything in a diagram, computed once.
@@ -283,13 +326,34 @@ class _Layout:
             parts.append(_frame(_OPERATOR.get(kind, kind), line, (left, top, right, bottom)))
         return parts
 
+    ## @brief A `loop ×N` frame around one folded arrow.
+    ## @param i The drawn step.
+    ## @param times How many calls it stands for.
+    ## @return SVG markup.
+    ## @version 1
+    ## @dg_internal
+    def repeat_frame(self, i: int, times: int) -> str:
+        """@brief Frame a fold. @return Markup."""
+        step = self.flow.steps[i]
+        lanes = (step.from_lane, step.to_lane)
+        box = (
+            min(self.x[ln] for ln in lanes) - 44,
+            self.call_y[i] - 26,
+            max(self.x[ln] for ln in lanes) + 82,
+            self.ret_y[i] + 4,
+        )
+        return _frame(f"loop ×{times}", step.line, box)
+
     ## @brief One step's call arrow, badge, label and any returns it closes.
-    ## @param i The step.
+    ## @param i The drawn step.
+    ## @param number The number its badge shows (its first step's, counted from 1).
+    ## @param times How many calls the arrow stands for.
     ## @return SVG markup.
     ## v2: label pills, a full-width row band (hover / selected), self-calls grouped.
-    ## @version 2
+    ## v3 (round 5): a folded arrow keeps its first step's number and reads `callee ×N`.
+    ## @version 3
     ## @dg_internal
-    def step_markup(self, i: int) -> str:
+    def step_markup(self, i: int, number: int, times: int = 1) -> str:
         """@brief Draw a step. @return Markup."""
         step = self.flow.steps[i]
         y = self.call_y[i]
@@ -309,15 +373,16 @@ class _Layout:
                 f'<path class="tip" d="M{end:.0f} {y:.0f} l{-sign * 9} -4 v8 z"/>'
             )
             lx, anchor = (x1 + x2) / 2, "middle"
-        tw = _text_w(step.callee)
+        text = f"{step.callee} ×{times}" if times > 1 else step.callee
+        tw = _text_w(text)
         left = lx + 12 if anchor == "start" else lx - tw / 2
         bx = left - 14
         label = (
             f'<rect class="pill" x="{bx - 11:.0f}" y="{y - 21:.0f}" width="{tw + 32:.0f}" '
             f'height="18" rx="9"/>'
             f'<circle class="badge" cx="{bx:.0f}" cy="{y - 12:.0f}" r="7.5"/>'
-            f'<text class="num" x="{bx:.0f}" y="{y - 8.5:.0f}" text-anchor="middle">{i + 1}</text>'
-            f'<text class="lbl" x="{left:.0f}" y="{y - 8:.0f}">{escape(step.callee)}</text>'
+            f'<text class="num" x="{bx:.0f}" y="{y - 8.5:.0f}" text-anchor="middle">{number}</text>'
+            f'<text class="lbl" x="{left:.0f}" y="{y - 8:.0f}">{escape(text)}</text>'
         )
         band = (
             f'<rect class="band" x="0" y="{y - _ROW / 2 - 6:.0f}" width="{self.width}" '
@@ -391,16 +456,27 @@ def _frame(operator: str, line: int, box: tuple[float, float, float, float]) -> 
 ## @param shape The step's markup.
 ## @param animate Whether the diagram is animated.
 ## @return SVG markup.
+## @param drawn (its position among drawn arrows, how many steps it stands for).
 ## v2: takes the step; carries `data-step`.
-## @version 2
+## v3 (round 5): a fold carries `data-steps` (every step it stands for) and is delayed by its
+## DRAWN position, so folding leaves no gap in the animation.
+## @version 3
 ## @dg_internal
-def _step_group(index: int, step: Step, shape: str, animate: bool) -> str:
+def _step_group(
+    index: int, step: Step, shape: str, animate: bool, drawn: tuple[int, int] = (-1, 1)
+) -> str:
     """@brief Wrap a step. @return SVG text."""
-    title = f"<title>{index + 1}. {escape(step.caller)} → {escape(step.callee)}</title>"
+    slot, times = drawn if drawn[0] >= 0 else (index, 1)
+    numbers = f"{index + 1}–{index + times}" if times > 1 else f"{index + 1}"
+    title = f"<title>{numbers}. {escape(step.caller)} → {escape(step.callee)}</title>"
+    steps = f' data-steps="{" ".join(str(index + k) for k in range(times))}"' if times > 1 else ""
     if not animate:
-        return f'<g class="st" data-step="{index}">{title}{shape}</g>'
-    delay = f"{index * STEP_SECONDS:.2f}s"
-    return f'<g class="cs" data-step="{index}" style="animation-delay:{delay}">{title}{shape}</g>'
+        return f'<g class="st" data-step="{index}"{steps}>{title}{shape}</g>'
+    delay = f"{slot * STEP_SECONDS:.2f}s"
+    return (
+        f'<g class="cs" data-step="{index}"{steps} style="animation-delay:{delay}">'
+        f"{title}{shape}</g>"
+    )
 
 
 ## @brief A label's approximate rendered width at 12px.
