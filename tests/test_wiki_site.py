@@ -858,3 +858,49 @@ def test_a_test_has_its_own_page_saying_what_it_checks_and_reaches(site: dict[st
     proof = proof[: proof.index("</svg>")]
     assert ">test_load" in proof and ">load<" in proof and "REQ-W-001" in proof
     assert "Reaching is not proving" in page
+    ## A test with a flow links to it; without a packaged run the link says so.
+    assert 'href="flow-test_load-tests-test-data-py.html"' in page
+    assert "no recorded run was packaged" in page
+
+
+def test_a_discovered_flow_that_cannot_be_drawn_is_listed_not_fatal(
+    repo: tuple[Path, Path], tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """FOUND BUILDING ENTROPIC AND SASSAFRAS-CLASS (round 4): one entry point the build discovered
+    on its own — a thread entry recorded at its header declaration, a `main` in vendored code —
+    could not be derived, and the whole site failed. A DISCOVERED flow that cannot be drawn is
+    listed on the Flows page with the reason; a DECLARED one still fails the build, since it is
+    the repository's own statement and a typo must not pass silently.
+
+    @brief Undrawable discovered flows are reported, not fatal.
+    """
+    from clew.wiki import entrypoints
+    from clew.wiki.build import build_wiki
+    from clew.wiki.config import FlowSpec
+
+    real = entrypoints.entry_point_flows
+
+    def with_a_ghost(db, root, depth):  # noqa: ANN001, ANN202
+        return [*real(db, root, depth), FlowSpec(entry="ghost", file="vendor/x.c", depth=depth)]
+
+    monkeypatch.setattr(entrypoints, "entry_point_flows", with_a_ghost)
+    html = build_wiki(repo[0], repo[1], tmp_path / "out")
+    flows = (html / "flows.html").read_text()
+    assert "ghost" in flows and "vendor/x.c" in flows and "not drawn" in flows
+
+
+def test_a_long_test_list_says_how_many_are_direct() -> None:
+    """ROUND 4: with transitive inference a broad requirement lists hundreds of tests; the index
+    says how many are aimed at it directly and how many only reach it through calls.
+
+    @brief The requirement index's test summary splits direct from reached.
+    """
+    from types import SimpleNamespace
+
+    from clew.wiki.tracepages import _tests_cell
+
+    row = SimpleNamespace(
+        tests=tuple((f"t{i}", "passed") for i in range(6)), inferred_tests=("t3", "t4", "t5")
+    )
+    cell = _tests_cell(row, {})
+    assert "3 direct · 3 reached through calls" in cell and "6 tests: 6 passed" in cell

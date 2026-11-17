@@ -76,7 +76,8 @@ class Scenario:
 ## @brief Fold (name, status, message) cases into one result per name, worst status first.
 ## @param cases The cases.
 ## @return {name: CaseResult}.
-## @version 1
+## v2 (round 4): the worst non-passing case's message, a failure's included (only skips were).
+## @version 2
 ## @req REQ-DDB-WIKI-010
 def fold_cases(cases: Iterable[tuple[str, str, str]]) -> dict[str, Any]:
     """@brief Fold. @return Results."""
@@ -91,7 +92,9 @@ def fold_cases(cases: Iterable[tuple[str, str, str]]) -> dict[str, Any]:
             name=name,
             status=min(rows, key=lambda r: _RANK[r[0]])[0],
             cases=len(rows),
-            message=next((m for s, m in rows if s == "skipped" and m), ""),
+            message=next(
+                (m for s, m in sorted(rows, key=lambda r: _RANK[r[0]]) if s != "passed" and m), ""
+            ),
         )
         for name, rows in folded.items()
     }
@@ -170,7 +173,8 @@ def parse_mapping(path: Path) -> dict[str, tuple[str, ...]]:
 ## `coverage json --show-contexts`).
 ## @param repo_root The repository the files are made relative to.
 ## @return {file: {line: test names}}; the empty (no-test) context is dropped.
-## @version 1
+## v2 (round 4): also coverage.py's `.coverage` data file — any path not ending `.json`.
+## @version 2
 ## @req REQ-DDB-WIKI-016
 def parse_contexts(path: Path, repo_root: Path) -> dict[str, dict[int, set[str]]]:
     """A CONTEXT IS `<nodeid>|<phase>`; the test is the nodeid's function, parameters dropped,
@@ -180,11 +184,54 @@ def parse_contexts(path: Path, repo_root: Path) -> dict[str, dict[int, set[str]]
     @return Tests per line.
     """
     root = Path(repo_root).resolve()
+    if path.suffix != ".json":
+        return _contexts_from_data_file(path, root)
     out: dict[str, dict[int, set[str]]] = {}
     for name, data in (json.loads(_text(path)).get("files") or {}).items():
         lines = out.setdefault(_relative(name, path.parent, root), {})
         for line, contexts in ((data or {}).get("contexts") or {}).items():
-            tests = {_PARAMS.sub("", c.split("|", 1)[0].rsplit("::", 1)[-1]) for c in contexts}
+            tests = {_context_test(c) for c in contexts}
+            lines.setdefault(int(line), set()).update(t for t in tests if t)
+    return out
+
+
+## @brief The test a coverage context names.
+## @param context `<nodeid>|<phase>`, as `--cov-context=test` writes it.
+## @return The test function's name ("" for the empty context).
+## @version 1
+## @dg_internal
+def _context_test(context: str) -> str:
+    """PARAMETERS ARE CUT AT THE FIRST "[" before the name is taken: a parameter id may itself
+    hold "::" and "]" (`test_x[a::b[c]-enhanced]` read as a test called `enhanced]`).
+
+    @brief Context → test.
+    @return Name.
+    """
+    return context.split("|", 1)[0].split("[", 1)[0].rsplit("::", 1)[-1]
+
+
+## @brief Per-test contexts from coverage.py's own data file (SQLite).
+## @param path The `.coverage` file.
+## @param root The repository root, resolved.
+## @return {file: {line: tests}}.
+## @version 1
+## @req REQ-DDB-WIKI-002
+def _contexts_from_data_file(path: Path, root: Path) -> dict[str, dict[int, set[str]]]:
+    """READ THROUGH COVERAGE'S API, not its schema: the data file is coverage.py's format to
+    change. Found on clew's own suite: the JSON form of the same contexts was 3.9 GB.
+
+    @brief Read contexts.
+    @return Tests per line.
+    """
+    from coverage import CoverageData
+
+    data = CoverageData(basename=str(path))
+    data.read()
+    out: dict[str, dict[int, set[str]]] = {}
+    for name in data.measured_files():
+        lines = out.setdefault(_relative(name, path.parent, root), {})
+        for line, contexts in (data.contexts_by_lineno(name) or {}).items():
+            tests = {_context_test(c) for c in contexts}
             lines.setdefault(int(line), set()).update(t for t in tests if t)
     return out
 

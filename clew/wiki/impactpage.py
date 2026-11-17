@@ -20,6 +20,10 @@ from typing import Any
 
 from .config import Audience
 from .htmltable import code, md_title, table, text
+from .reqmodal import page_of
+
+## The most flows a changed function's row lists before counting the rest.
+_SHOWN = 5
 
 _LEAD = (
     "What the last change touched, from clew-guard's impact report: each changed function, the "
@@ -61,7 +65,8 @@ def impact_page(trace: Any, pages: list, rules: Audience, source: Path) -> str:
 ## @param pages The flow pages.
 ## @param rules The audience rules.
 ## @return HTML.
-## @version 1
+## v2 (round 4): requirements link to their pages; a row's flows are capped, product first.
+## @version 2
 ## @dg_internal
 def _body(trace: Any, pages: list, rules: Audience) -> str:
     """@brief Body. @return HTML."""
@@ -89,12 +94,10 @@ def _body(trace: Any, pages: list, rules: Audience) -> str:
         [
             f'{trace.link(name, rel, 0)}<div class="ver">{text(rel)}</div>',
             " ".join(
-                f'<a class="req-badge" href="requirements.html#{text(r)}">{text(r)}</a>'
+                f'<a class="req-badge" href="{text(page_of(r))}.html">{text(r)}</a>'
                 for r in sorted(reqs)
             ),
-            "<br>".join(
-                f'<a href="{text(p.name)}.html">{md_title(p.title)}</a>' for p in flows[(name, rel)]
-            ),
+            _flow_cell(flows[(name, rel)]),
         ]
         for (name, rel), reqs in sorted(changed.items())
     ]
@@ -106,6 +109,27 @@ def _body(trace: Any, pages: list, rules: Audience) -> str:
         + "<h2>By requirement</h2>"
         + by_req
     )
+
+
+## @brief A changed function's flows: product first, five listed, the rest counted.
+## @param pages The flow pages it is on.
+## @return HTML.
+## @version 1
+## @req REQ-DDB-WIKI-029
+def _flow_cell(pages: list) -> str:
+    """FOUND ON CLEW'S OWN WIKI (round 4): `_build_argparser` sits on dozens of test flows and its
+    row listed every one. The system's own flows lead; test flows follow; five are listed.
+
+    @brief Flow cell.
+    @return HTML.
+    """
+    rank = {"product": 0, "threads": 1, "tooling": 2, "tests": 3}
+    ordered = sorted(pages, key=lambda p: (rank.get(p.role or "product", 0), p.title))
+    shown = "<br>".join(
+        f'<a href="{text(p.name)}.html">{md_title(p.title)}</a>' for p in ordered[:_SHOWN]
+    )
+    rest = len(ordered) - _SHOWN
+    return shown + (f'<br><span class="none">and {rest} more</span>' if rest > 0 else "")
 
 
 ## @brief Changed functions and the requirements each was reported under.
@@ -138,13 +162,14 @@ def _flows_of(fn: tuple[str, str], pages: list) -> list:
 ## @param trace The gathered trace.
 ## @param rules The audience rules (no requirement names when text is excluded).
 ## @return HTML.
-## @version 1
+## v2 (round 4): requirements link to their own pages.
+## @version 2
 ## @dg_internal
 def _by_requirement(trace: Any, rules: Audience) -> str:
     """@brief Per-requirement table. @return HTML."""
     rows = [
         [
-            f'<a href="requirements.html#{text(str(e.get("req_id")))}">{text(str(e.get("req_id")))}</a>',
+            f'<a href="{text(page_of(str(e.get("req_id"))))}.html">{text(str(e.get("req_id")))}</a>',
             "" if rules.exclude_requirement_text else text(str(e.get("req_name") or "")),
             "<br>".join(
                 f"{code(str(f.get('name')))} "

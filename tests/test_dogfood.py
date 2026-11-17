@@ -46,8 +46,9 @@ def test_every_gate_run_writes_junit_where_the_wiki_reads_it() -> None:
     ## Round 4 (owner 2026-11-17: tests are linked to source by coverage, never by a tag): the
     ## coverage run records which test ran each line, and the wiki links tests by it.
     assert "--cov-context=test" in module.COVERAGE_ARGS
-    assert "--cov-report=json:build/coverage.json" in module.COVERAGE_ARGS
-    assert tests["contexts"] == "build/coverage.json"
+    ## Contexts are read from coverage's own data file: the JSON form measured 3.9 GB here.
+    assert not any("json" in a for a in module.COVERAGE_ARGS)
+    assert tests["contexts"] == ".coverage"
 
 
 def test_the_wiki_check_and_impact_hooks_run_on_clew_itself() -> None:

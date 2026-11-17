@@ -450,13 +450,19 @@ def _badges(reqs: Any) -> str:
 ## @param pages The flow pages.
 ## @param undrawn_tests Directly linked tests the cap left without a flow (stated when > 0).
 ## @param unmatched (file, root span) of imported traces that matched no flow.
+## @param not_drawn (entry, file, reason) of discovered flows that could not be derived.
 ## @return The page name, or "" when there is no flow.
 ## v2: a Tests role and the cap's disclosure (P2b).
 ## v3: imported traces that matched no flow are listed (P4b-2).
-## @version 3
+## v4 (round 4): discovered flows that could not be drawn are listed with the reason.
+## @version 4
 ## @req REQ-DDB-WIKI-023
 def flows_index(
-    source: Path, pages: list[FlowPage], undrawn_tests: int = 0, unmatched: tuple = ()
+    source: Path,
+    pages: list[FlowPage],
+    undrawn_tests: int = 0,
+    unmatched: tuple = (),
+    not_drawn: tuple = (),
 ) -> str:
     """OWNER 2026-11-15: the product's flows first — console scripts, declared roots, mains
     outside tooling — then thread entries, then tooling (scripts, harnesses) folded. A role
@@ -465,7 +471,7 @@ def flows_index(
     @brief Write flows.md.
     @return Page name.
     """
-    if not pages:
+    if not pages and not not_drawn:
         return ""
     lines = ["# Flows", "", _FLOWS_LEAD, ""]
     for role, heading, lead in _ROLES:
@@ -491,6 +497,10 @@ def flows_index(
     if unmatched:
         lines += ["Imported traces whose test has no flow here:", ""]
         lines += [f"- `{rel}` — root `{root}`" for rel, root in unmatched]
+        lines.append("")
+    if not_drawn:
+        lines += ["Entry points found but not drawn:", ""]
+        lines += [f"- `{e}` (`{f}`) — not drawn: {r}" for e, f, r in not_drawn]
         lines.append("")
     names = [p.name for p in pages]
     lines += ["```{toctree}", ":hidden:", ":maxdepth: 1", "", *names, "```", ""]

@@ -342,3 +342,52 @@ def test_an_imported_trace_is_drawn_over_its_test_flow(tmp_path: Path) -> None:
     assert 'g[data-step="0"]' in page
     flows = (html / "flows.html").read_text()
     assert "traces/orphan.json" in flows and "test_nothing" in flows
+
+
+def test_installed_code_inside_the_repository_is_never_a_span(tmp_path: Path) -> None:
+    """FOUND TRACING CLEW'S OWN TESTS (round 4): clew's `.venv` sits inside the repository, so
+    pytest's own `pytest_runtest_call` (site-packages) became the root span and the 20,000-span
+    cap filled with pytest internals. A frame in site-packages, or under the running interpreter's
+    prefix, is installed code — not the repository's — however its path begins.
+
+    @brief Trace recorder: site-packages and the interpreter prefix are not repository code.
+    """
+    import sys
+    from types import SimpleNamespace
+
+    from clew.wiki._traceplugin import _Recorder
+
+    root = tmp_path / "repo"
+    rec = _Recorder(root, root / "tests" / "test_m.py", "test_m")
+
+    def frame(path: str, name: str) -> SimpleNamespace:
+        code = SimpleNamespace(co_filename=path, co_name=name, co_firstlineno=1)
+        return SimpleNamespace(f_code=code, f_locals={}, f_lineno=1)
+
+    site = str(root / ".venv/lib/python3.10/site-packages/_pytest/python.py")
+    assert rec.tracer(frame(site, "pytest_runtest_call"), "call", None) is None
+    prefixed = str(Path(sys.prefix) / "lib" / "x.py")
+    assert rec.tracer(frame(prefixed, "f"), "call", None) is None
+    assert rec.stack == []
+
+
+def test_a_traced_test_gets_its_flow_even_past_the_cap(tmp_path: Path) -> None:
+    """FOUND ON CLEW'S OWN WIKI (round 4): three runs were packaged, and the capped set of test
+    flows held none of their tests, so every replay landed in "traces whose test has no flow". A
+    test with a packaged trace is always drawn, whatever the cap.
+
+    @brief Traced tests are drawn regardless of `wiki.test_flows`.
+    """
+    from unittest import mock
+
+    from clew.wiki import build
+    from clew.wiki.testfacts import TestFacts
+
+    facts = {
+        "test_a": TestFacts(verifies=[("R", "tag")]),
+        "test_z": TestFacts(verifies=[("R", "tag")]),
+    }
+    keys = {("test_a", "tests/t.py"), ("test_z", "tests/t.py")}
+    with mock.patch("clew.wiki.symbols.test_functions", return_value=keys):
+        specs, undrawn = build._test_flows(tmp_path / "x.db", facts, 1, frozenset({"test_z"}))
+    assert {s.entry for s in specs} == {"test_a", "test_z"} and undrawn == 0

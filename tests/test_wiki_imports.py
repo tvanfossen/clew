@@ -543,3 +543,44 @@ def test_by_default_inference_is_the_full_transitive_closure(traced: Path, tmp_p
     assert dict(rows["R-A"].extent) == {"test_far": ("impl",), "test_infer": ("impl",)}
     ## The nearest test is the one aimed at the code: test_infer is 2 calls away, test_far 3.
     assert dict(rows["R-A"].distance) == {"test_far": 3, "test_infer": 2}
+
+
+def test_contexts_are_read_from_coverage_s_own_data_file(traced: Path, tmp_path: Path) -> None:
+    """FOUND ON CLEW'S OWN SUITE (round 4): the JSON report with per-test contexts was 3.9 GB for
+    3,176 tests — every line repeating every test that ran it. coverage.py's data file holds the
+    same contexts compactly (SQLite), so `contexts:` also takes it, read through coverage's API.
+
+    @brief Per-test contexts from a `.coverage` data file.
+    """
+    from coverage import CoverageData
+
+    data = CoverageData(basename=str(tmp_path / ".coverage"))
+    data.set_context("tests/unit/test_c.py::test_cov|run")
+    data.add_lines({str(tmp_path / "src" / "a.c"): [11]})
+    data.set_context("tests/unit/test_c.py::test_elsewhere|run")
+    data.add_lines({str(tmp_path / "src" / "a.c"): [40]})
+    data.write()
+    inputs = EvidenceInputs(contexts=".coverage", infer_depth=0)
+    rows = {
+        r.req_id: r
+        for r in requirement_evidence(traced, junit=[], inputs=inputs, repo_root=tmp_path)
+    }
+    assert rows["R-A"].measured_tests == ("test_cov",)
+
+
+def test_a_context_with_brackets_in_its_parameters_names_its_test(tmp_path: Path) -> None:
+    """FOUND ON CLEW'S OWN WIKI (round 4): `tests/t.py::test_x[a::b[c]-enhanced]|run` read as a
+    test called `enhanced]`. The parameters are cut at the first "[" before the name is taken.
+
+    @brief Context nodeids with nested brackets.
+    """
+    from clew.wiki.imports import parse_contexts
+
+    report = tmp_path / "coverage.json"
+    report.write_text(
+        json.dumps(
+            {"files": {"a.py": {"contexts": {"1": ["tests/t.py::test_x[a::b[c]-enhanced]|run"]}}}}
+        )
+    )
+    (tmp_path / "a.py").write_text("x = 1\n")
+    assert parse_contexts(report, tmp_path) == {"a.py": {1: {"test_x"}}}

@@ -18,7 +18,7 @@ checks observe (pseudo-tested code — Niedermayr, Juergens & Wagner 2016; check
 implementer breaks (DeMillo, Lipton & Sayward 1978); without one, the chain is labelled "reaches".
 
 @brief Write one page per test.
-@version 1
+@version 2
 """
 
 from __future__ import annotations
@@ -29,9 +29,9 @@ from html import escape
 from pathlib import Path
 from typing import Any
 
-from ..query._common import connect
+from ..query._common import connect, table_exists
 from .htmltable import source_url, tag
-from .symbols import _definitions, _Edges, _lines, _path, symbol_href, test_functions
+from .symbols import Definition, _Edges, _lines, _path, symbol_href
 
 ## The most requirement chains drawn before the rest are counted.
 _MAX_CHAINS = 12
@@ -59,7 +59,8 @@ def test_page_of(name: str, rel: str) -> str:
 ##        rules, template, commit, extent (req → {test: implementers}).
 ## @param source The Sphinx source directory.
 ## @return {test name: its page href}.
-## @version 1
+## v2: tests resolved by framework (Catch2 / GoogleTest macros), not by function name.
+## @version 2
 ## @req REQ-DDB-WIKI-026
 def test_pages(db: Path, repo_root: Path, ctx: dict[str, Any], source: Path) -> dict[str, str]:
     """ONE PAGE PER NAME: every definition of a test name in test code is drawn on it, so a link
@@ -69,8 +70,7 @@ def test_pages(db: Path, repo_root: Path, ctx: dict[str, Any], source: Path) -> 
     @return Hrefs.
     """
     with connect(db) as conn:
-        keys = test_functions(conn, set(ctx["tests"]))
-        defs = _definitions(conn, keys)
+        defs = _test_definitions(conn, set(ctx["tests"]))
         graph = _Edges(conn)
     by_name: dict[str, list] = defaultdict(list)
     for d in defs:
@@ -88,13 +88,91 @@ def test_pages(db: Path, repo_root: Path, ctx: dict[str, Any], source: Path) -> 
             "",
             "```{raw} html",
             '<p class="crumbs"><a href="requirements.html">← Requirements</a></p>',
-            f'<div class="test-page">{_result(name, ctx)}{body}{_requirements(name, ctx)}</div>',
+            f'<div class="test-page">{_result(name, ctx)}{_replay(name, ctx)}{body}'
+            f"{_requirements(name, ctx)}</div>",
             "```",
             "",
         ]
         (Path(source) / f"{page}.md").write_text("\n".join(text), encoding="utf-8")
         hrefs[name] = f"{page}.html"
     return hrefs
+
+
+## @brief Every definition, in test code, of a test the evidence names — by framework.
+## @param conn Open connection.
+## @param names Test names (a function's, or a framework's: a Catch2 scenario's string).
+## @return Definitions named by the test's own name.
+## @version 1
+## @req REQ-DDB-WIKI-026
+def _test_definitions(conn: object, names: set[str]) -> list[Definition]:
+    """RESOLVED AS THE EVIDENCE RESOLVES THEM (`frameworks.recognise_test`): a Catch2 `SCENARIO` /
+    `TEST_CASE`, a GoogleTest `TEST`, a Boost case is a macro row in the index, named by its
+    string. Found on entropic: 2,009 Catch2 tests and 11 pages, because only functions literally
+    named after the test were looked for. Test code only — a namesake in product code is not it.
+
+    @brief Resolve tests to definitions.
+    @return Definitions.
+    """
+    from .frameworks import recognise_test
+
+    if not names or not table_exists(conn, "test_scope"):
+        return []
+    rows = conn.execute(
+        "SELECT m.rowid, m.name, COALESCE(m.argsstring, ''), p.name, m.definition, "
+        "m.briefdescription, m.bodystart, m.bodyend, m.line FROM memberdef m JOIN path p "
+        "ON p.rowid = COALESCE(NULLIF(m.bodyfile_id, 0), m.file_id) WHERE m.kind = 'function' "
+        "AND p.rowid IN (SELECT path_rowid FROM test_scope) ORDER BY p.name, m.line"
+    )
+    out = []
+    for rowid, name, args, rel, definition, brief, start, end, line in rows:
+        test = recognise_test(str(name), str(args), str(rel))
+        if test and test[0] in names:
+            out.append(
+                Definition(
+                    int(rowid),
+                    test[0],
+                    str(rel),
+                    f"{definition or ''}{args or ''}".strip(),
+                    re.sub(r"<[^>]+>", " ", str(brief or "")).strip(),
+                    int(start or line or 0),
+                    int(end or 0),
+                )
+            )
+    return out
+
+
+## @brief The file page a test's definition is on.
+## @param d The definition.
+## @return Href.
+## @version 1
+## @dg_internal
+def _source_page(d: Definition) -> str:
+    """@brief Href. @return Href."""
+    return symbol_href(d.name, d.file).split("#", 1)[0]
+
+
+## @brief A link to the test's flow, and whether a recorded run is drawn on it.
+## @param name The test.
+## @param ctx The page context (flow_of, traced).
+## @return HTML ("" when the test has no flow page).
+## @version 1
+## @dg_internal
+def _replay(name: str, ctx: dict[str, Any]) -> str:
+    """A PACKAGED RUN IS REPLAYED ON THE FLOW (owner 2026-11-16: "take run results/logs that were
+    included/packaged with it and replay them"): the expected calls, the calls the run made, and
+    each assertion as a checkpoint where it was checked — red at the one that failed.
+
+    @brief Replay link.
+    @return HTML.
+    """
+    page = (ctx.get("flow_of") or {}).get(name)
+    if not page:
+        return ""
+    if name in (ctx.get("traced") or set()):
+        words = "Replay its recorded run on its flow: the calls it made and each check, in order"
+    else:
+        words = "Its flow: the calls it is expected to make (no recorded run was packaged)"
+    return f'<p class="replay"><a href="{escape(page)}.html">{words} →</a></p>'
 
 
 ## @brief The run's verdict on a test, and its failure message.
@@ -132,7 +210,8 @@ def _result(name: str, ctx: dict[str, Any]) -> str:
 ## @param ctx The page context.
 ## @param repo_root The repository.
 ## @return HTML.
-## @version 1
+## v2: links its file's page.
+## @version 2
 ## @dg_internal
 def _definition(d: Any, graph: _Edges, ctx: dict[str, Any], repo_root: Path) -> str:
     """@brief Definition block. @return HTML."""
@@ -141,10 +220,7 @@ def _definition(d: Any, graph: _Edges, ctx: dict[str, Any], repo_root: Path) -> 
     url = source_url(ctx["template"], ctx["commit"], d.file, max(d.start, 1))
     where = f"{escape(d.file)}:{d.start}"
     where = f'<a href="{escape(url)}">{where}</a>' if url else where
-    out = (
-        f'<p class="where">{where} · <a href="{symbol_href(d.name, d.file)}">section on its '
-        "file's page</a></p>"
-    )
+    out = f'<p class="where">{where} · <a href="{_source_page(d)}">its file\'s page</a></p>'
     lines = _lines(repo_root, d)
     checks = assertions(lines) if lines and not ctx["rules"].exclude_bodies else []
     if checks:

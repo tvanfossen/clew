@@ -217,3 +217,4 @@ svg.proof .test rect{stroke:var(--acc);stroke-width:2}svg.proof.s-failed .test r
 svg.proof .impl rect{fill:var(--accbg);stroke:var(--acc)}svg.proof.s-failed .impl rect,svg.proof.s-error .impl rect{fill:var(--errbg);stroke:var(--err)}
 svg.proof .pe{stroke:var(--faint);stroke-width:1.4;fill:none}svg.proof marker path{fill:var(--faint)}svg.proof .preq{font-weight:600;fill:var(--acc)}
 .mut-killed{color:var(--acc);font-weight:600}.mut-survived{color:var(--err);font-weight:600}
+.tier,.via{white-space:nowrap}

@@ -62,12 +62,15 @@ class _Recorder:
     ## @param event The event.
     ## @param arg The event's argument.
     ## @return The local tracer, or None for a frame not traced.
-    ## @version 1
+    ## v2 (round 4): installed code is not traced, even when it lies inside the repository.
+    ## @version 2
     ## @dg_internal
     def tracer(self, frame: Any, event: str, arg: Any) -> Any:
         """@brief Global trace. @return Local tracer or None."""
         path = frame.f_code.co_filename
         if event != "call" or not path.startswith(self.root) or path == __file__:
+            return None
+        if _installed(path):
             return None
         if frame.f_code.co_name.startswith("<"):
             return self.local if path == self.test_file else None
@@ -129,6 +132,27 @@ class _Recorder:
             "events": [],
             "status": {"code": 1},
         }
+
+
+## @brief Whether a file is installed code: site-packages, or under the interpreter's prefix.
+## @param path The frame's file.
+## @return True for installed code.
+## @version 1
+## @dg_internal
+def _installed(path: str) -> bool:
+    """A VIRTUAL ENVIRONMENT INSIDE THE REPOSITORY (clew's own `.venv`) puts pytest and every
+    dependency under the repository root; they are still not the repository's code.
+
+    @brief Installed?
+    @return Bool.
+    """
+    parts = Path(path).parts
+    if "site-packages" in parts or "dist-packages" in parts:
+        return True
+    return any(
+        path.startswith(str(Path(p).resolve())) or path.startswith(p)
+        for p in {sys.prefix, sys.base_prefix}
+    )
 
 
 ## @brief An OTLP string attribute.

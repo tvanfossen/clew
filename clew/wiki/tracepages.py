@@ -411,7 +411,8 @@ def _fold(items: list[str], summary: str) -> str:
 ## @return HTML.
 ## v2: tests link to their sections (P2a).
 ## v3 (round 4, R4): the full list lives on the requirement's page, not a modal.
-## @version 3
+## v4: a long list says how many tests are direct and how many only reached through calls.
+## @version 4
 ## @dg_internal
 def _tests_cell(row: Any, hrefs: dict[str, str]) -> str:
     """ONE FULL LIST PER REQUIREMENT, on its own page: repeating hundreds of tests in a folded
@@ -422,7 +423,9 @@ def _tests_cell(row: Any, hrefs: dict[str, str]) -> str:
     """
     if len(row.tests) <= 4:
         return "<br>".join(f"{test_link(t, hrefs)} {tag(s)}{via(row, t)}" for t, s in row.tests)
-    return f'<span class="tsum">{text(_test_summary(row.tests))}</span>'
+    reached = sum(1 for t, _s in row.tests if t in row.inferred_tests)
+    split = f"{len(row.tests) - reached} direct · {reached} reached through calls"
+    return f'<span class="tsum">{text(split)}<br>{text(_test_summary(row.tests))}</span>'
 
 
 ## @brief "N tests: a passed · b absent".

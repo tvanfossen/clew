@@ -78,6 +78,11 @@ _JUSTIFIED_UNDECLARED = {
     # index, the MCP server and `clew wiki check` never import it (the last is pinned by
     # tests/test_wiki_build.py).
     "sphinx",
+    # DECLARED IN THE `wiki` EXTRA (round 4): the wiki reads per-test coverage contexts from
+    # coverage.py's own `.coverage` data file through its API. The import sits inside
+    # `clew.wiki.imports._contexts_from_data_file`, reached only when `wiki.tests.contexts` names
+    # a data file; a JSON report needs no import at all.
+    "coverage",
 }
 
 

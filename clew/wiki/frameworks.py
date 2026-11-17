@@ -16,7 +16,7 @@ file): `SCENARIO` is a plausible name for anyone's function. A function whose na
 with `test` is a helper, not a test.
 
 @brief Recognise tests by framework shape.
-@version 1
+@version 2
 """
 
 from __future__ import annotations
@@ -48,14 +48,16 @@ _TEST_PATH = re.compile(
 ## @param args Its argument string (`argsstring`).
 ## @param path Its repo-relative file.
 ## @return (display name, names results are filed under), or None for a non-test.
-## @version 1
+## v2 (round 4): a plain `test*` name is a test only in test code, as the macros already were.
+## @version 2
 ## @req REQ-DDB-WIKI-017
 def recognise_test(name: str, args: str, path: str) -> tuple[str, tuple[str, ...]] | None:
     """@brief Recognise. @return Identity or None."""
     reader = _MACROS.get(name)
     if reader is not None:
         return reader(args or "") if _TEST_PATH.search(path or "") else None
-    return (name, (name,)) if name.lower().startswith("test") else None
+    is_test = name.lower().startswith("test") and _TEST_PATH.search(path or "")
+    return (name, (name,)) if is_test else None
 
 
 ## @brief A named-macro test: its first string literal.
@@ -93,8 +95,25 @@ def _bare(args: str) -> tuple[str, tuple[str, ...]] | None:
     return (idents[0], (idents[0],)) if idents else None
 
 
+## @brief A Catch2 scenario: its string, filed also as "Scenario: <string>", Catch2's report name.
+## @param args The argument string.
+## @return Identity or None.
+## @version 1
+## @dg_internal
+def _scenario(args: str) -> tuple[str, tuple[str, ...]] | None:
+    """ROUND 4, found on sassafras-class: Catch2's JUnit reporter and ctest's discovered tests
+    both name a SCENARIO "Scenario: <string>"; without that form its result was never found.
+
+    @brief Catch2 scenario.
+    @return Identity.
+    """
+    named = _named(args)
+    return (named[0], (named[0], f"Scenario: {named[0]}")) if named else None
+
+
 _MACROS = {
     **dict.fromkeys(_NAMED, _named),
     **dict.fromkeys(_SUITE, _suite),
     **dict.fromkeys(_BARE, _bare),
+    "SCENARIO": _scenario,
 }

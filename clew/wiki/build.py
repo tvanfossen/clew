@@ -72,7 +72,9 @@ _CELL = str.maketrans({"|": "\\|", "\n": " "})
 ## v20: the product trace — the composite requirement tree across pinned dependencies (GH #68).
 ## v21 (round 4): the map is the repository web (R3); blocks declared or coupled (R1); a page
 ## per requirement (R4) and per test (R6/R7).
-## @version 21
+## v22 (round 4): a discovered flow that cannot be drawn is listed, not fatal; a traced test's
+## flow is drawn past the cap.
+## @version 22
 ## @req REQ-DDB-WIKI-003
 def build_wiki(
     repo_root: Path,
@@ -124,25 +126,34 @@ def build_wiki(
     burndown = _burndown(out_dir, version, snapshot, milestones) if version else ""
     req_of = _requirements_of(trace.evidence)
     facts = testfacts.gather(trace.evidence)
-    test_specs, undrawn = _test_flows(db, facts, config.test_flows)
-    specs = [*_all_flows(repo_root, db, config), *test_specs]
     traces = {
         root_name(otlp): (rel, otlp) for rel, otlp in load_traces(repo_root, config.inputs.traces)
     }
-    pages = [
-        flow_page(
-            repo_root,
-            db,
-            _with_role(s, config),
-            source,
-            rules,
-            config,
-            commit,
-            req_of,
-            traces.get(s.entry),
-        )
-        for s in specs
-    ]
+    test_specs, undrawn = _test_flows(db, facts, config.test_flows, frozenset(traces))
+    specs = [*_all_flows(repo_root, db, config), *test_specs]
+    pages, not_drawn, flow_of = [], [], {}
+    for s in specs:
+        try:
+            pages.append(
+                flow_page(
+                    repo_root,
+                    db,
+                    _with_role(s, config),
+                    source,
+                    rules,
+                    config,
+                    commit,
+                    req_of,
+                    traces.get(s.entry),
+                )
+            )
+            flow_of.setdefault(s.entry, pages[-1].name)
+        except ValueError as refused:
+            ## Round 4: a DISCOVERED flow that cannot be drawn is listed with its reason; a
+            ## DECLARED one is the repository's own statement and still fails the build.
+            if s in config.flows:
+                raise
+            not_drawn.append((s.entry, s.file or "", str(refused)))
     unmatched = tuple(
         (rel, root)
         for root, (rel, _o) in sorted(traces.items())
@@ -175,6 +186,8 @@ def build_wiki(
                 [repo_root / j for j in config.junit if (repo_root / j).is_file()]
             ),
             "extent": {r.req_id: dict(r.extent) for r in trace.evidence if r.extent is not None},
+            "flow_of": flow_of,
+            "traced": set(traces),
         },
         source,
     )
@@ -191,7 +204,7 @@ def build_wiki(
     _issues_into(graph, trace.issues)
     sections = [
         requirements_page(trace, config, source, rules, burndown, tuple(pages), issues),
-        flows_index(source, pages, undrawn, unmatched),
+        flows_index(source, pages, undrawn, unmatched, tuple(not_drawn)),
         impact_page(trace, pages, rules, source),
         web_page(db, graph, [n for n, _g in config.components], pages, written, source),
         _docs_page(source, _prose(repo_root, config, source), config, decisions),
@@ -307,10 +320,14 @@ def _issues_into(graph: dict, linked: Any) -> None:
 ## @param db The index.
 ## @param facts {test name: facts}.
 ## @param cap The most drawn.
+## @param traced Tests with a packaged run: always drawn, past the cap.
 ## @return (flow specs, how many directly linked tests were left undrawn).
-## @version 1
+## v2 (round 4): a traced test is drawn whatever the cap, so its replay has a flow to land on.
+## @version 2
 ## @req REQ-DDB-WIKI-027
-def _test_flows(db: Path, facts: dict, cap: int) -> tuple[list, int]:
+def _test_flows(
+    db: Path, facts: dict, cap: int, traced: frozenset = frozenset()
+) -> tuple[list, int]:
     """CATALOG AND INFERRED LINKS ARE NOT DIRECT: a catalog names a whole test file and inference
     reaches through the call graph; only a tagged or measured test is drawn by default.
 
@@ -324,9 +341,11 @@ def _test_flows(db: Path, facts: dict, cap: int) -> tuple[list, int]:
     direct = {n for n, f in facts.items() if any(k in ("tag", "measured") for _r, k in f.verifies)}
     with connect(db) as conn:
         keys = sorted(test_functions(conn, direct))
+    chosen = keys[: max(cap, 0)]
+    chosen += [k for k in keys[max(cap, 0) :] if k[0] in traced]
     specs = [
         FlowSpec(entry=n, file=f, depth=2, title=f"test `{n}` ({f})", role="tests")
-        for n, f in keys[: max(cap, 0)]
+        for n, f in chosen
     ]
     return specs, len(keys) - len(specs)
 
@@ -578,7 +597,8 @@ _DOCS_LEAD = "The repository's own documentation, as written."
 ## v4: the map card (round 3, P1c).
 ## v5: the change-impact card (P1g).
 ## v6: the Product trace card (GH #68).
-## @version 6
+## v7 (round 4): the map card describes the repository web.
+## @version 7
 ## @dg_internal
 def _write_index(
     source: Path, config: WikiConfig, trace: object, sections: list[str], flow_count: int
@@ -607,7 +627,10 @@ def _write_index(
             "Change impact",
             "What the last change touched: functions, requirements, flows.",
         ),
-        "map": ("Map", "The system's components, how they call each other, and what each holds."),
+        "map": (
+            "Map",
+            "Every function in one zoomable web: blocks, calls, and where each test reaches.",
+        ),
     }
     cards = "".join(
         f'<a class="card-link" href="{name}.html"><h3>{icon(name, 22)}'

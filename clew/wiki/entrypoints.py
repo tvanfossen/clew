@@ -91,12 +91,13 @@ def _scripts(conn: object, repo_root: Path) -> list[tuple[str, str, str]]:
 ## @brief `main` functions outside test code.
 ## @param conn Open connection.
 ## @return (function, file, title) rows.
-## @version 1
+## v2 (round 4): the file is the one holding the body, not the declaration.
+## @version 2
 ## @dg_internal
 def _mains(conn: object) -> list[tuple[str, str, str]]:
     """@brief Find mains. @return Rows."""
     rows = conn.execute(
-        "SELECT DISTINCT p.name FROM memberdef m JOIN path p ON p.rowid = m.file_id "
+        "SELECT DISTINCT p.name FROM memberdef m JOIN path p ON p.rowid = COALESCE(NULLIF(m.bodyfile_id, 0), m.file_id) "
         f"WHERE m.kind = 'function' AND m.name = 'main' {_not_test(conn)} ORDER BY p.name"
     )
     return [("main", str(rel), f"`main` ({rel})") for (rel,) in rows]
@@ -105,7 +106,8 @@ def _mains(conn: object) -> list[tuple[str, str, str]]:
 ## @brief Thread entry functions outside test code.
 ## @param conn Open connection.
 ## @return (function, file, title) rows.
-## @version 1
+## v2 (round 4): the file is the one holding the body, not the declaration.
+## @version 2
 ## @dg_internal
 def _thread_entries(conn: object) -> list[tuple[str, str, str]]:
     """@brief Find thread entries. @return Rows."""
@@ -114,7 +116,8 @@ def _thread_entries(conn: object) -> list[tuple[str, str, str]]:
     rows = conn.execute(
         "SELECT DISTINCT m.name, p.name, t.name FROM threads t "
         "JOIN memberdef m ON m.rowid = t.entry_memberdef_rowid "
-        f"JOIN path p ON p.rowid = m.file_id WHERE 1 = 1 {_not_test(conn)} ORDER BY p.name, m.name"
+        f"JOIN path p ON p.rowid = COALESCE(NULLIF(m.bodyfile_id, 0), m.file_id) "
+        f"WHERE 1 = 1 {_not_test(conn)} ORDER BY p.name, m.name"
     )
     return [(str(n), str(rel), f"thread `{t}` — `{n}` ({rel})") for n, rel, t in rows]
 
@@ -124,12 +127,13 @@ def _thread_entries(conn: object) -> list[tuple[str, str, str]]:
 ## @param name The function.
 ## @param rel The file.
 ## @return True when it does.
-## @version 1
+## v2 (round 4): the file is the one holding the body, not the declaration.
+## @version 2
 ## @dg_internal
 def _defined(conn: object, name: str, rel: str) -> bool:
     """@brief Look up. @return Defined?"""
     row = conn.execute(
-        "SELECT 1 FROM memberdef m JOIN path p ON p.rowid = m.file_id "
+        "SELECT 1 FROM memberdef m JOIN path p ON p.rowid = COALESCE(NULLIF(m.bodyfile_id, 0), m.file_id) "
         "WHERE m.kind = 'function' AND m.name = ? AND p.name = ? LIMIT 1",
         (name, rel),
     ).fetchone()
@@ -141,7 +145,8 @@ def _defined(conn: object, name: str, rel: str) -> bool:
 ## @param name The function.
 ## @param rel Its file.
 ## @return True when it has an outgoing call edge.
-## @version 1
+## v2 (round 4): the file is the one holding the body, not the declaration.
+## @version 2
 ## @dg_internal
 def _calls_something(conn: object, name: str, rel: str) -> bool:
     """@brief Has callees? @return Bool."""
@@ -149,7 +154,7 @@ def _calls_something(conn: object, name: str, rel: str) -> bool:
         return False
     row = conn.execute(
         "SELECT 1 FROM call_edges c JOIN memberdef m ON m.rowid = c.caller_rowid "
-        "JOIN path p ON p.rowid = m.file_id WHERE m.name = ? AND p.name = ? "
+        "JOIN path p ON p.rowid = COALESCE(NULLIF(m.bodyfile_id, 0), m.file_id) WHERE m.name = ? AND p.name = ? "
         "AND c.source != 'binding' LIMIT 1",
         (name, rel),
     ).fetchone()

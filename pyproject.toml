@@ -99,6 +99,8 @@ clew-guard = "clew.guard.main:cli_main"
 wiki = [
     "sphinx>=7.3,<9",
     "myst-parser>=3,<5",
+    ## Round 4: per-test contexts are read from coverage.py's own data file through its API.
+    "coverage>=7.4,<8",
 ]
 dev = [
     # The wiki renderer is exercised by the gate (tests/test_wiki_build.py), so dev pulls it in.
@@ -180,8 +182,3 @@ exclude = [
 ## already holds `ruff/` and this project's own scratch. Two conventions in one tree is the state
 ## someone later "tidies" by deleting the wrong one.
 cache_dir = ".cache/pytest"
-
-## Round 4: the wiki links tests to requirements by per-test coverage contexts, which the JSON
-## report only carries when asked.
-[tool.coverage.json]
-show_contexts = true

@@ -61,7 +61,8 @@ def test_change_impact_follows_a_changed_function_to_requirements_and_flows(
     assert re.search(r'data-stat="requirements"[^>]*>\s*<b>1</b>', page)
     assert re.search(r'data-stat="functions"[^>]*>\s*<b>1</b>', page)
     row = page[page.index("<code>load</code>") :].split("</tr>")[0]
-    assert 'href="requirements.html#REQ-W-001"' in row and 'href="flow-load.html"' in row
+    ## Round 4, R4: a requirement links to its own page.
+    assert 'href="req-REQ-W-001.html"' in row and 'href="flow-load.html"' in row
     assert "## Change impact" not in pages["requirements.html"]
 
 
@@ -91,3 +92,22 @@ def test_the_impact_page_links_the_map_change_lens(
     """@brief P1g: the page points at the map's change lens, which opens preselected."""
     page = _site(repo, tmp_path, _REPORT)["impact.html"]
     assert 'href="map.html#lens=change"' in page
+
+
+def test_a_changed_functions_flows_are_capped_product_first() -> None:
+    """FOUND ON CLEW'S OWN WIKI (round 4): `_build_argparser` is on dozens of test flows, and its
+    row listed every one. Product flows come first; at most five are listed, the rest counted.
+    Requirements link to their own pages (R4).
+
+    @brief Impact rows: product flows first, five listed, the rest counted.
+    """
+    from types import SimpleNamespace
+
+    from clew.wiki.impactpage import _flow_cell
+
+    pages = [
+        SimpleNamespace(name=f"flow-t{i}", title=f"test {i}", role="tests") for i in range(7)
+    ] + [SimpleNamespace(name="flow-main", title="main", role="product")]
+    cell = _flow_cell(pages)
+    assert cell.index("flow-main") < cell.index("flow-t0")
+    assert cell.count("<a ") == 5 and "and 3 more" in cell

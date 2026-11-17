@@ -87,9 +87,10 @@ tag:
 Every measured or inferred link carries its **extent** — which of the requirement's implementers
 the test executes or reaches — and an inferred one its distance in calls, so a test aimed at a
 requirement lists before one that passes through it on the way elsewhere. A function in test code
-is never counted as an implementer. With Python, running the tests with `--cov-context=test` and a
-JSON report (`[tool.coverage.json] show_contexts = true`) gives measured links, including calls a
-static graph cannot see (a tool called by name).
+is never counted as an implementer. With Python, running the tests with `--cov-context=test` and naming coverage's data file
+(`contexts: .coverage`) gives measured links, including calls a static graph cannot see (a tool
+called by name). A JSON report with contexts works too, but grows with tests × lines — 3.9 GB on
+clew's own suite.
 
 | tier | meaning |
 |---|---|
@@ -200,7 +201,7 @@ wiki:
     layers: {unit: ["tests/unit/*"], bdd: ["tests/features/*"]}
     min_layers: 2               # flag requirements tested in fewer layers
     target_only: ["test_hw_*"]  # skipped on host by design: TARGET, not a gap
-    contexts: build/coverage.json         # coverage.py JSON with --cov-context=test
+    contexts: .coverage                   # coverage.py data (or JSON) with --cov-context=test
     evidence_fields: [x-evidence, evidence]
     infer_depth: 4              # cap call-graph links at N calls (omit = any depth; 0 = off)
     mutations: build/mutations.yaml

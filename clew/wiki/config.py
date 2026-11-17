@@ -37,7 +37,7 @@ is silently ignored produces a site that looks complete and omits what the key a
         min_layers: 2                 # flag a requirement tested in fewer layers
         evidence_fields: [x-evidence, evidence]  # catalog fields naming test files ([] = off)
         infer_depth: 4                # cap the call-graph walk at N calls (omit = transitive; 0 = off)
-        contexts: build/coverage.json # coverage.py JSON with --cov-context=test (measured links)
+        contexts: .coverage           # coverage.py data (or JSON) with --cov-context=test
       links:
         template: "https://host/repo/blob/{commit}/{file}#L{line}"
       sources:                        # W7: external node sources (JSON / TOML / YAML)
@@ -79,7 +79,7 @@ is silently ignored produces a site that looks complete and omits what the key a
                                       # add `fetch: true` to read open issues at build time
 
 @brief Read and validate the `wiki:` section.
-@version 2
+@version 3
 """
 
 from __future__ import annotations

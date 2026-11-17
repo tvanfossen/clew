@@ -151,7 +151,7 @@ wiki:
   tests:
     junit: [build/junit.xml]
     coverage: build/coverage.xml
-    contexts: build/coverage.json   # per-test coverage: measured test → requirement links
+    contexts: .coverage   # coverage.py's data file with per-test contexts: measured links
   issues: {github: tvanfossen/clew}
   links:
     template: "https://github.com/tvanfossen/clew/blob/{commit}/{file}#L{line}"

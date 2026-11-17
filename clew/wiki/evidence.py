@@ -107,7 +107,8 @@ class RequirementEvidence:
 ## @return {test name: CaseResult}.
 ## v2: folding shared with the W16 formats (`imports.fold_cases`).
 ## v3: JUnit 5 `name(args)[n]` folds to `name` (round 3, P3c).
-## @version 3
+## v4 (round 4): a Catch2 section path folds into its test case (`_case_name`).
+## @version 4
 ## @req REQ-DDB-WIKI-002
 def parse_junit(paths: list[Path]) -> dict[str, CaseResult]:
     """THE TEST NAME IS THE CASE NAME WITH ITS PARAMETERS DROPPED, the name the index knows as a
@@ -115,15 +116,34 @@ def parse_junit(paths: list[Path]) -> dict[str, CaseResult]:
 
     @brief Parse JUnit.
     @return Results.
-    @version 2
+    @version 3
     """
     from .imports import fold_cases
 
     return fold_cases(
-        (_JUNIT_PARAMS.sub("", case.get("name") or "", count=1), *_case_status(case))
+        (_case_name(case), *_case_status(case))
         for path in paths
         for case in _root(path).iter("testcase")
     )
+
+
+## @brief A JUnit testcase's test name: parameters dropped, a Catch2 section path folded.
+## @param case The element.
+## @return The name the index knows the test by.
+## @version 1
+## @dg_internal
+def _case_name(case: ET.Element) -> str:
+    """CATCH2'S OWN JUNIT REPORTER names one case per SECTION PATH ("Scenario: X/Given: a") under
+    classname `<binary>.global`; the test is the part before the first "/". Found on
+    sassafras-class, where 230 of 267 tested requirements read NOT_RUN without it.
+
+    @brief Test name.
+    @return Name.
+    """
+    name = _JUNIT_PARAMS.sub("", case.get("name") or "", count=1)
+    if (case.get("classname") or "").endswith(".global"):
+        name = name.split("/", 1)[0]
+    return name
 
 
 ## @brief Read a Cobertura XML report into line hits per file.
