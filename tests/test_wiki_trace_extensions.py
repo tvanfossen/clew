@@ -332,6 +332,34 @@ def test_the_site_shows_nodes_rules_catalogs_and_mutations(trace_repo, tmp_path:
     assert "survived" in req and "keys:net.timeout" in req
 
 
+def test_a_repository_with_pinned_catalogues_gets_the_product_trace(
+    trace_repo, tmp_path: Path
+) -> None:
+    """GH #68, P6b-3b: declared `wiki.catalogs` add the Product trace page — this repository's
+    requirements as roots, the pinned catalogue's rows on it with their evidence state. No pinned
+    catalogue, no page (the requirements page stays the whole story).
+
+    @brief product.html is built and lists the pinned catalogue's rows.
+    @return None.
+    """
+    from clew.wiki.build import build_wiki
+
+    repo, db, _kv = trace_repo
+    site = build_wiki(repo, db, tmp_path / "site")
+    page = (site / "product.html").read_text()
+    # The tree itself, not a fold: this repository's tagged requirement is a root, and the
+    # pinned catalogue's row its code implements is listed as implemented here.
+    tree = page.split('<ul class="ptree">', 1)[1].split("</ul>", 1)[0]
+    assert "REQ-W-001" in tree, page
+    # An id the pinned catalogue holds is the catalogue's, not a second root of this repo's.
+    assert "REQ-KV-001" not in tree, page
+    here = page.split('class="implemented-here"', 1)[1].split("</details>", 1)[0]
+    assert "kv:REQ-KV-001" in here and "Store a key" in here
+    # Implemented HERE: the row carries this repository's function, not kv's index state.
+    assert "<code>load</code>" in here and "ev-absent" not in here, here
+    assert 'class="ev ev-' in page
+
+
 # --- W11: version-keyed sites and a diff page ----------------------------------------------------
 
 

@@ -6,7 +6,7 @@ both schemes. Decorative only — every icon is `aria-hidden`, and the label bes
 meaning.
 
 @brief Inline SVG icons.
-@version 1
+@version 2
 """
 
 from __future__ import annotations
@@ -19,6 +19,8 @@ _PATHS = {
     "map": "M3 4h7v6H3zM14 4h7v6h-7zM8 15h8v6H8zM6.5 10v2.5h11V10M12 12.5V15",
     "docs": "M6 3h9l4 4v14H6zM15 3v4h4M9 12h7M9 16h7",
     "nodes": "M12 3l8 4.5v9L12 21l-8-4.5v-9zM12 12l8-4.5M12 12v9M12 12L4 7.5",
+    ## GH #68: the product trace — a root with two branches down to dependency requirements.
+    "product": "M9 3h6v4H9zM3 17h6v4H3zM15 17h6v4h-6zM12 7v5M6 17v-5h12v5",
     "test": "M9 3h6M10 3v6l-5 9a2 2 0 0 0 2 3h10a2 2 0 0 0 2-3l-5-9V3",
     "issue": "M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0-18 0M12 7v6M12 16v1",
     "close": "M6 6l12 12M18 6L6 18",

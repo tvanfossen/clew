@@ -72,6 +72,8 @@ class Composite:
     unreached: tuple[str, ...]
     dangling: tuple[tuple[str, str], ...]
     conflicts: tuple[str, ...]
+    ## Dependency requirements this repository's own code tags (the W8 direction): served here.
+    implemented_here: tuple[str, ...] = ()
 
 
 ## @brief One catalogue read into the walk.
@@ -87,6 +89,8 @@ class _Source:
     rows: dict[str, dict[str, str]]
     state: tuple[str, str, Path | None]
     links: dict[str, list[str]] = field(default_factory=dict)
+    ## The root's own catalogue ids (the rest of its rows come from its index's tags).
+    declared: set[str] = field(default_factory=set)
 
 
 ## @brief Whether a dependency's index describes its pinned code.
@@ -181,7 +185,9 @@ def _trace(db: Path, req_id: str) -> tuple[tuple[str, ...], tuple[str, ...]]:
 ## @param trace Requirement trace reader (default: the index's `req_trace`).
 ## @param root_db This repository's own index, for the root rows' evidence.
 ## @return The composite.
-## @version 1
+## v2: roots include ids the index knows from tags; dependency rows tagged here are served here,
+## carrying this repository's evidence; a tagged id a dependency catalogue holds is not a root.
+## @version 2
 ## @req REQ-DDB-WIKI-040
 def compose(
     repo_root: Path,
@@ -192,15 +198,30 @@ def compose(
     trace: Trace | None = None,
     root_db: Path | None = None,
 ) -> Composite:
-    """@brief Read every catalogue, link, mark reach. @return Composite."""
+    """AN ID A DEPENDENCY'S CATALOGUE HOLDS IS THAT CATALOGUE'S: tagged here without a local
+    catalogue entry, it is not also a root — it is listed as implemented here, with THIS
+    repository's functions and tests rather than the dependency's index state.
+
+    @brief Read every catalogue, link, mark reach.
+    @return Composite.
+    """
+    trace = trace or _trace
     root = _root_source(Path(repo_root), root_name, root_db)
     sources, conflicts = _walk(Path(repo_root), root_name, specs, probe or _probe_default)
+    dep_ids = {rid for s in sources for rid in s.rows}
+    root.rows = {k: v for k, v in root.rows.items() if k in root.declared or k not in dep_ids}
     sources.insert(0, root)
-    nodes, dangling = _nodes(sources, trace or _trace)
+    nodes, dangling = _nodes(sources, trace)
     roots = tuple(f"{root_name}:{rid}" for rid in sorted(root.rows))
-    reached = _reach(roots, nodes)
+    tagged = _tagged(root_db)
+    here = tuple(
+        sorted(r for r, n in nodes.items() if n.catalog != root_name and n.req_id in tagged)
+    )
+    for ref in here:
+        nodes[ref] = _served_here(nodes[ref], root.state, trace)
+    reached = _reach(roots, nodes) | set(here)
     unreached = tuple(sorted(r for r in nodes if r not in reached))
-    return Composite(roots, nodes, unreached, tuple(dangling), tuple(conflicts))
+    return Composite(roots, nodes, unreached, tuple(dangling), tuple(conflicts), here)
 
 
 ## @brief The default probe: `probe_index` with the registered index.
@@ -220,7 +241,8 @@ def _probe_default(dep: Path, pin: str, sha: str | None) -> tuple[str, str, Path
 ## @param name Its namespace.
 ## @param db Its index, if any.
 ## @return The source.
-## @version 1
+## v2: plus every requirement the index knows, tagged-only ones included.
+## @version 2
 ## @dg_internal
 def _root_source(repo_root: Path, name: str, db: Path | None) -> _Source:
     """@brief Root. @return Source."""
@@ -228,8 +250,60 @@ def _root_source(repo_root: Path, name: str, db: Path | None) -> _Source:
 
     _path, entries = declared_catalog(repo_root)
     rows = {rid: {k: v for k, v in e.items()} for rid, e in entries.items()}
+    # THE REQUIREMENTS PAGE'S SET: catalogue entries and every id the index knows (tags too).
+    for rid, title in _indexed_requirements(db).items():
+        rows.setdefault(rid, {"title": title})
     state = ("indexed", "", db) if db else ("absent", "this repository's index was not given", None)
-    return _Source(name, repo_root, "", "", rows, state)
+    return _Source(name, repo_root, "", "", rows, state, declared=set(entries))
+
+
+## @brief Every requirement id this repository's index knows, with its title.
+## @param db The index, or None.
+## @return {id: title}; {} without an index.
+## @version 1
+## @dg_internal
+def _indexed_requirements(db: Path | None) -> dict[str, str]:
+    """@brief Catalogue table plus tagged ids. @return Ids."""
+    out = {rid: "" for rid in _tagged(db)}
+    for rid, title in _rows(db, "SELECT id, COALESCE(title, '') FROM requirements"):
+        out[str(rid)] = str(title)
+    return out
+
+
+## @brief The requirement ids this repository's code tags (`@req`).
+## @param db The index, or None.
+## @return Ids.
+## @version 1
+## @dg_internal
+def _tagged(db: Path | None) -> set[str]:
+    """@brief Tagged ids. @return Set."""
+    return {str(r[0]) for r in _rows(db, "SELECT DISTINCT req_id FROM req_edges")}
+
+
+## @brief Rows of a read-only query, or none when the index or table is missing.
+## @param db The index, or None.
+## @param sql The query.
+## @return Rows.
+## @version 1
+## @dg_internal
+def _rows(db: Path | None, sql: str) -> list[tuple]:
+    """ABSENT IS NOT AN ERROR here: an index without the table simply contributes no ids.
+
+    @brief Query.
+    @return Rows.
+    """
+    import sqlite3
+
+    if db is None or not Path(db).is_file():
+        return []
+    try:
+        conn = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
+        try:
+            return conn.execute(sql).fetchall()
+        finally:
+            conn.close()
+    except sqlite3.Error:
+        return []
 
 
 ## @brief Read every dependency catalogue reachable from the root's specs.
@@ -402,6 +476,29 @@ def _node(s: _Source, rid: str, row: dict, trace: Trace, satisfied_by: tuple[str
     )
 
 
+## @brief A dependency requirement this repository implements, with this repository's evidence.
+## @param node The dependency's node.
+## @param state This repository's index state.
+## @param trace Trace reader.
+## @return The node, re-evidenced from here.
+## @version 1
+## @dg_internal
+def _served_here(node: Node, state: tuple[str, str, Path | None], trace: Trace) -> Node:
+    """@brief Re-evidence. @return Node."""
+    import dataclasses
+
+    ev, note, db = state
+    impl, tests = trace(db, node.req_id) if ev == "indexed" and db is not None else (None, None)
+    return dataclasses.replace(
+        node,
+        evidence=ev,
+        note=note or "implemented in this repository",
+        link="",
+        implementers=impl,
+        tests=tests,
+    )
+
+
 ## @brief Every ref reachable from the roots through `satisfied_by`.
 ## @param roots Root refs.
 ## @param nodes Nodes by ref.
@@ -419,3 +516,37 @@ def _reach(roots: tuple[str, ...], nodes: dict[str, Node]) -> set[str]:
         seen.add(ref)
         stack += nodes[ref].satisfied_by
     return seen
+
+
+## @brief The composite's problems, for `clew wiki check`.
+## @param repo_root This repository.
+## @param specs Its pinned catalogues.
+## @param probe Evidence probe (check needs none; the default skips index lookups).
+## @return Problems: dangling links and pin conflicts, each named.
+## @version 1
+## @req REQ-DDB-WIKI-040
+def composite_problems(
+    repo_root: Path, specs: list[CatalogSpec], *, probe: Probe | None = None
+) -> list[str]:
+    """CHEAP: the default probe reads no index — check is about the catalogues, not evidence.
+
+    @brief Check the composite.
+    @return Problems.
+    """
+    tree = compose(Path(repo_root), Path(repo_root).name, specs, probe=probe or _no_probe)
+    return [
+        f"{ref} satisfies {target}, which no catalogue on the composite holds"
+        for ref, target in tree.dangling
+    ] + list(tree.conflicts)
+
+
+## @brief A probe that looks at no index.
+## @param dep Checkout.
+## @param pin Pin.
+## @param sha Resolved pin.
+## @return An absent state.
+## @version 1
+## @dg_internal
+def _no_probe(dep: Path, pin: str, sha: str | None) -> tuple[str, str, Path | None]:
+    """@brief No probe. @return Absent."""
+    return ("absent", "", None)

@@ -115,6 +115,15 @@ tr[hidden]{display:none}
 .stats{display:flex;flex-wrap:wrap;gap:12px;margin:8px 0 12px}.stat{background:var(--surface);border:1px solid var(--rule2);border-radius:14px;padding:12px 18px;min-width:150px}
 .stat b{display:block;font:500 30px/1.1 var(--serif);color:var(--accink)}.stat span{font-size:13px;color:var(--ink2)}
 .not-measured{background:var(--warnbg);border:1px solid var(--warn);border-radius:12px;padding:12px 16px}
+/* product trace (GH #68): the composite requirement tree and its evidence states */
+.ptree,.ptree ul{list-style:none;padding-left:18px;border-left:1px solid var(--rule)}
+.ptree li{margin:6px 0}
+.ev{font-size:.78em;border-radius:8px;padding:1px 8px;margin-left:4px}
+.ev-indexed{background:var(--accbg);color:var(--accink)}
+.ev-unknown{background:var(--warnbg);color:var(--ink)}
+.ev-absent{background:var(--inset);color:var(--faint)}
+.ev-note,.ev-detail{font-size:.86em;color:var(--ink2);margin-left:4px}
+.ptree-problems{background:var(--errbg);border:1px solid var(--err);border-radius:12px;padding:12px 16px;margin:12px 0}
 a.req-badge{display:inline-block;font:600 11px var(--mono);padding:1px 7px;border-radius:999px;background:var(--accbg);color:var(--accink);text-decoration:none;margin:1px 2px}
 svg.node-example{max-width:100%;height:auto;margin:8px 0 16px}svg.node-example rect{fill:var(--surface);stroke:var(--rule)}
 svg.node-example text{font-family:var(--sans);fill:var(--ink)}svg.node-example .k{font-size:11px;fill:var(--ink2)}svg.node-example .n{font:600 13px var(--mono)}

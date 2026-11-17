@@ -69,7 +69,8 @@ _CELL = str.maketrans({"|": "\\|", "\n": " "})
 ## v17: exports — Mermaid / PlantUML flows, llms.txt, ReqIF, needs.json, Structurizr (P3b).
 ## v18: decisions (ADRs) and docs grouped by kind (P3c).
 ## v19: imported OTel traces drawn over their test flows; unmatched ones listed (P4b-2).
-## @version 19
+## v20: the product trace — the composite requirement tree across pinned dependencies (GH #68).
+## @version 20
 ## @req REQ-DDB-WIKI-003
 def build_wiki(
     repo_root: Path,
@@ -184,6 +185,8 @@ def build_wiki(
         ),
         _docs_page(source, _prose(repo_root, config, source), config, decisions),
     ]
+    if config.catalogs:
+        sections.insert(1, _product_section(repo_root, db, config, rules, source))
     if config.sources:
         sections.append(nodes_page(trace, config, source))
     _write_index(source, config, trace, [s for s in sections if s], len(pages))
@@ -202,6 +205,26 @@ def build_wiki(
     if version:
         record_version(out_dir, version, snapshot, config.title, milestones)
     return html
+
+
+## @brief The product trace page, when dependency catalogues are declared (GH #68).
+## @param repo_root The repository.
+## @param db Its index (the root rows' evidence).
+## @param config The section.
+## @param rules The audience rules.
+## @param source The Sphinx source directory.
+## @return The page name.
+## @version 1
+## @dg_internal
+def _product_section(
+    repo_root: Path, db: Path, config: WikiConfig, rules: Audience, source: Path
+) -> str:
+    """@brief Compose and write. @return Page name."""
+    from .composite import compose
+    from .productpage import product_page
+
+    tree = compose(repo_root, repo_root.name, list(config.catalogs), root_db=db)
+    return product_page(tree, rules, source)
 
 
 ## @brief A flow's hops between components, in call order, repeats and in-component calls dropped.
@@ -556,7 +579,8 @@ _DOCS_LEAD = "The repository's own documentation, as written."
 ## not only the declared ones (it read "2" on a site with 30).
 ## v4: the map card (round 3, P1c).
 ## v5: the change-impact card (P1g).
-## @version 5
+## v6: the Product trace card (GH #68).
+## @version 6
 ## @dg_internal
 def _write_index(
     source: Path, config: WikiConfig, trace: object, sections: list[str], flow_count: int
@@ -577,6 +601,10 @@ def _write_index(
             "passing.",
         ),
         "nodes": ("Model entries", "Entries of declared model files and the code realising them."),
+        "product": (
+            "Product trace",
+            "This repository's requirements and the pinned dependency requirements serving them.",
+        ),
         "impact": (
             "Change impact",
             "What the last change touched: functions, requirements, flows.",

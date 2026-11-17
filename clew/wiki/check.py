@@ -78,7 +78,8 @@ def _site_problems(repo_root: Path, config: WikiConfig) -> list[str]:
 ## @param config The section.
 ## @return Problems.
 ## v2: the mapping file's requirement ids (W16).
-## @version 2
+## v3: the composite requirement tree's dangling links and pin conflicts (GH #68).
+## @version 3
 ## @req REQ-DDB-WIKI-005
 def trace_problems(repo_root: Path, db: Path, config: WikiConfig) -> list[str]:
     """@brief Check W7–W9 targets. @return Problems."""
@@ -98,6 +99,14 @@ def trace_problems(repo_root: Path, db: Path, config: WikiConfig) -> list[str]:
             rows, more = catalog_requirements(repo_root, spec)
             problems += more
             known |= {r.req_id for r in rows}
+    if config.catalogs:
+        from .composite import composite_problems
+
+        # GH #68: the composite's dangling links and pin conflicts; a catalogue that cannot be
+        # read is already reported above, by the same reader, so it is not repeated.
+        problems += [
+            p for p in composite_problems(repo_root, list(config.catalogs)) if p not in problems
+        ]
     for rule in config.rules:
         problems += [
             f"rule {rule.id!r} names requirement {r!r}, which nothing declares or tags"

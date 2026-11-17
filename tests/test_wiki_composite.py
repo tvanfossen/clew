@@ -211,3 +211,123 @@ def test_an_indexed_dependency_carries_its_trace(tmp_path: Path) -> None:
     node = tree.nodes["lib:REQ-LIB-001"]
     assert node.evidence == "indexed"
     assert node.implementers == ("retry_send",) and node.tests == ("test_retry",)
+
+
+# --- P6b-3b: the page and `check` ------------------------------------------------------------------
+
+
+def _tree(tmp_path: Path, probe=_no_index):
+    product, pins = _fixture(tmp_path)
+    pins["lib"] = _repo(
+        tmp_path / "lib",
+        "requirements:\n"
+        "  REQ-LIB-001:\n    name: Bounded retry\n    satisfies: [product:REQ-PRD-001]\n"
+        "  REQ-LIB-002:\n    name: Unused\n"
+        "  REQ-LIB-003:\n    name: Broken\n    satisfies: product:REQ-PRD-999\n",
+        _catalogs(("hal", "../hal", pins["hal"])),
+    )
+    return compose(product, "product", _specs(product, pins), probe=probe), pins
+
+
+def test_the_page_draws_the_tree_with_each_rows_evidence_state(tmp_path: Path) -> None:
+    """UNKNOWN SAYS WHY AND WHERE: the note and the local checkout, and no evidence columns.
+
+    @brief Product trace HTML.
+    """
+    from clew.wiki.productpage import product_html
+    from clew.wiki.config import Audience
+
+    def unknown(dep: Path, pin: str, sha: str | None):
+        return ("unknown", f"not indexed at pin {pin[:12]}; checkout is at 0000", Path("/x.db"))
+
+    tree, pins = _tree(tmp_path, probe=unknown)
+    html = product_html(tree, Audience())
+    assert "REQ-PRD-001" in html and "lib:REQ-LIB-001" in html and "hal:REQ-HAL-001" in html
+    assert html.index("REQ-PRD-001") < html.index("lib:REQ-LIB-001") < html.index("hal:REQ-HAL-001")
+    assert "not indexed at pin" in html and str((tmp_path / "lib").resolve()) in html
+    assert "Bounded retry" in html
+    assert "REQ-PRD-999" in html, "a dangling link is listed"
+    assert '<details class="unreached"' in html and "lib:REQ-LIB-002" in html
+
+
+def test_the_page_obeys_the_audience(tmp_path: Path) -> None:
+    """@brief exclude_requirement_text: ids stay, titles go."""
+    from clew.wiki.productpage import product_html
+    from clew.wiki.config import Audience
+
+    tree, _ = _tree(tmp_path)
+    html = product_html(tree, Audience(exclude_requirement_text=True))
+    assert "lib:REQ-LIB-001" in html and "Bounded retry" not in html
+
+
+def test_check_reports_dangling_links_and_pin_conflicts(tmp_path: Path) -> None:
+    """@brief `clew wiki check`'s composite problems: the dangling id and the double pin, by name."""
+    from clew.wiki.composite import composite_problems
+    from clew.wiki.config import CatalogSpec
+
+    product, pins = _fixture(tmp_path)
+    pins["lib"] = _repo(
+        tmp_path / "lib",
+        "requirements:\n  REQ-LIB-003:\n    name: Broken\n    satisfies: product:REQ-PRD-999\n",
+        _catalogs(("hal", "../hal", pins["hal"])),
+    )
+    newer = _repo(tmp_path / "hal", "requirements:\n  REQ-HAL-001:\n    name: Timer v2\n")
+    specs = [
+        CatalogSpec("hal2", "../hal", newer, "requirements.yaml"),
+        *_specs(product, pins),
+    ]
+    problems = composite_problems(product, specs, probe=_no_index)
+    assert any("REQ-PRD-999" in p and "lib:REQ-LIB-003" in p for p in problems), problems
+    assert any("pinned at" in p for p in problems), problems
+
+
+def _root_db(path: Path, tagged: tuple[str, ...]) -> Path:
+    """@brief A minimal index: the tables the composite reads for the root's own requirements."""
+    import sqlite3
+
+    conn = sqlite3.connect(path)
+    conn.execute(
+        "CREATE TABLE requirements (id TEXT, block TEXT, title TEXT, acceptance TEXT, priority TEXT)"
+    )
+    conn.execute("CREATE TABLE req_edges (req_id TEXT)")
+    conn.executemany("INSERT INTO req_edges VALUES (?)", [(t,) for t in tagged])
+    conn.commit()
+    conn.close()
+    return path
+
+
+def test_a_tagged_requirement_without_a_catalogue_entry_is_a_root(tmp_path: Path) -> None:
+    """THE ROOT IS THIS REPOSITORY'S REQUIREMENTS, the set its Requirements page shows: catalogue
+    entries AND ids its code tags. A repository with no catalogue still has a tree.
+
+    @brief REQ-PRD-003 is tagged only: a root.
+    """
+    product, pins = _fixture(tmp_path)
+    db = _root_db(tmp_path / "root.db", ("REQ-PRD-003",))
+
+    def trace(_db: Path, _rid: str):
+        return ((), ())
+
+    tree = compose(
+        product, "product", _specs(product, pins), probe=_no_index, trace=trace, root_db=db
+    )
+    assert "product:REQ-PRD-003" in tree.roots
+
+
+def test_a_dependency_requirement_implemented_here_is_served_not_unreached(tmp_path: Path) -> None:
+    """A pinned catalogue's requirement this repository's own code tags is SERVED HERE — the W8
+    direction (a library implementing its product's catalogue) — never reported as unreached.
+
+    @brief lib:REQ-LIB-002 tagged in the root's index: implemented_here.
+    """
+    product, pins = _fixture(tmp_path)
+    db = _root_db(tmp_path / "root.db", ("REQ-LIB-002",))
+
+    def trace(_db: Path, _rid: str):
+        return ((), ())
+
+    tree = compose(
+        product, "product", _specs(product, pins), probe=_no_index, trace=trace, root_db=db
+    )
+    assert "lib:REQ-LIB-002" in tree.implemented_here
+    assert "lib:REQ-LIB-002" not in tree.unreached
