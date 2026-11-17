@@ -32,9 +32,12 @@ from pathlib import Path
 from typing import Any
 
 from ..query._common import connect, table_exists
+from ..vocabulary import EXTERNAL_ROOT_COLUMN
 
 ## The schema version of the graph JSON.
 GRAPH_VERSION = 1
+## The block holding every undeclared file inside a nested git tree (OWNER 2026-11-17).
+VENDOR = "Vendor"
 ## Container layout geometry.
 _BOX_W, _BOX_H, _GAP_X, _GAP_Y = 200, 120, 60, 70
 ## The band at the top of a box kept clear of points, for the component's name.
@@ -109,12 +112,14 @@ def build_graph(
     }
 
 
-## @brief Every file's block: declared, else joined by coupling, else Unassigned.
+## @brief Every file's block: declared, else Vendor, else joined by coupling, else Unassigned.
 ## @param conn Open connection.
 ## @param funcs rowid → (name, file, in test code).
 ## @param declared `wiki.components` groupings.
 ## @return ({file: block}, {block: files placed by coupling}).
-## @version 1
+## v2 (OWNER 2026-11-17, "Vendor code is a block of its own"): an undeclared file the index tags
+## as inside a nested git tree is the Vendor block — never a package, never joined by coupling.
+## @version 2
 ## @req REQ-DDB-WIKI-019
 def _blocks(conn: Any, funcs: dict, declared: tuple) -> tuple[dict[str, str], dict[str, set[str]]]:
     """DECLARED BLOCKS WIN (round 4, R1; the reflexion method with clustering, Christl, Koschke &
@@ -127,11 +132,15 @@ def _blocks(conn: Any, funcs: dict, declared: tuple) -> tuple[dict[str, str], di
     @return Blocks and inferred placements.
     """
     files = {rel for _n, rel, _t in funcs.values()}
-    if not declared:
-        return {rel: component_of(rel) for rel in files}, {}
-    owner = {rel: component_of(rel, declared) for rel in files}
     named = {name for name, _g in declared}
-    loose = {rel for rel, b in owner.items() if b not in named}
+    vendored = _vendored(conn)
+    owner = {
+        rel: VENDOR if rel in vendored and block not in named else block
+        for rel, block in ((rel, component_of(rel, declared)) for rel in files)
+    }
+    if not declared:
+        return owner, {}
+    loose = {rel for rel, b in owner.items() if b not in named and b != VENDOR}
     pairs = _file_calls(conn, funcs)
     order = {name: i for i, (name, _g) in enumerate(declared)}
     placed: dict[str, set[str]] = defaultdict(set)
@@ -152,6 +161,30 @@ def _blocks(conn: Any, funcs: dict, declared: tuple) -> tuple[dict[str, str], di
     for rel in loose:
         owner[rel] = "Unassigned"
     return owner, dict(placed)
+
+
+## @brief Files the index tags as belonging to a nested git tree (gh#335).
+## @param conn Open connection.
+## @return Repo-relative paths of vendored files.
+## @version 1
+## @dg_internal
+def _vendored(conn: Any) -> set[str]:
+    """A FACT, NOT A NAME GUESS: `clew/external.py` stamps the owning nested git tree onto `path`;
+    a copied-in file with no git tree of its own is first party. An index built before gh#335 has
+    no column, and there nothing nested was indexed at all, so the answer is empty by construction.
+
+    @brief Vendored files.
+    @return Paths.
+    """
+    columns = {row[1] for row in conn.execute("PRAGMA table_info(path)")}
+    if EXTERNAL_ROOT_COLUMN not in columns:
+        return set()
+    return {
+        str(name)
+        for (name,) in conn.execute(
+            f"SELECT name FROM path WHERE type = 1 AND COALESCE({EXTERNAL_ROOT_COLUMN}, '') != ''"
+        )
+    }
 
 
 ## @brief Call counts between files, both directions.
