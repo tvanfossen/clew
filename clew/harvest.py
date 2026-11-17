@@ -179,7 +179,8 @@ def _try_import_ts_module(modname: str):
 
 ## @brief Select the C, C++, Python or Rust tree-sitter language by extension.
 ## @return The grammar module for the path's extension, or None if unhandled.
-## @version 5
+## v6 (agent C's W9): `.C` / `.H` are C++.
+## @version 6
 ## @dg_internal
 def _ts_language_for(path: str):
     """Select the tree-sitter grammar for one path's extension.
@@ -193,9 +194,14 @@ def _ts_language_for(path: str):
     list so an ambiguous header still lands on C first and is retried per
     `_AMBIGUOUS_EXTS`.
 
+    `.C` AND `.H` ARE C++ (agent C's W9): the traditional Unix C++ suffixes, which GCC reads as
+    C++; lowering the path first sent them to the C grammar. Checked case-sensitively, first.
+
     @brief Grammar module for one path.
-    @version 3
+    @version 4
     """
+    if path.endswith((".C", ".H")):
+        path = path[:-2] + ".hpp"
     lower = path.lower()
     modname = _NAME_GRAMMARS.get(PurePosixPath(lower).name)
     if modname is None:

@@ -477,7 +477,8 @@ def _ast_caller_at_line(
 ## @param one_function Candidate sets that name one function, from _one_function_targets.
 ## Version 10: merges PR #59 — `one_function` (a bare call naming one decl/def pair).
 ## v11 (agent C's W4): passes the caller's definition, so an object is owned only in its module.
-## @version 11
+## v12 (W8): passes `file_of` to the lexical lookup.
+## @version 12
 ## @dg_internal
 def _ast_record_call_edge(
     caller_rowid: int,
@@ -501,6 +502,7 @@ def _ast_record_call_edge(
     class_scopes: frozenset[str] | None = None,
     implementors: dict[str, set[str]] | None = None,
     one_function: dict[tuple[int, ...], int] | None = None,
+    file_of: dict[int, str] | None = None,
 ) -> None:
     """A UNIQUE NAME IS NOT EVIDENCE ABOUT A RECEIVER, and conflating the two made this
     layer assert fabrications as certainties.
@@ -639,7 +641,7 @@ def _ast_record_call_edge(
     ## scope that declares it, outward to the module. Only for parse-built definitions, whose
     ## `definition` IS the dotted scope path; doxygen-resolved languages are untouched.
     if source == SOURCE_AST and len(candidates) > 1 and definition_of:
-        lexical = _lexical(caller_rowid, callee_name, candidates, definition_of)
+        lexical = _lexical(caller_rowid, callee_name, candidates, definition_of, file_of)
         if lexical is not None:
             edges_resolved.append((caller_rowid, lexical, source))
             return
@@ -1500,10 +1502,16 @@ def _class_scopes(conn: sqlite3.Connection) -> frozenset[str]:
 ## @param candidates Every indexed function bearing the name.
 ## @param definition_of rowid → definition signature.
 ## @return The rowid declared in the innermost enclosing scope, or None.
-## @version 1
+## @param file_of rowid → file: the caller's own file wins a dotted-key collision (W8).
+## v2 (W8): same-file preference.
+## @version 2
 ## @dg_internal
 def _lexical(
-    caller_rowid: int, name: str, candidates: list[int], definition_of: dict[int, str]
+    caller_rowid: int,
+    name: str,
+    candidates: list[int],
+    definition_of: dict[int, str],
+    file_of: dict[int, str] | None = None,
 ) -> int | None:
     """SCOPE BY SCOPE, INNERMOST FIRST: the caller's own body (`outer.helper.inner`), then each
     enclosing function or class, then the module. The first scope declaring exactly one candidate
@@ -1515,7 +1523,7 @@ def _lexical(
 
     @brief Lexical resolution of a bare call.
     @return Rowid or None.
-    @version 1
+    @version 2
     """
     caller = definition_of.get(caller_rowid, "")
     if not _DOTTED.fullmatch(caller):
@@ -1524,6 +1532,11 @@ def _lexical(
     for depth in range(len(parts), 0, -1):
         want = ".".join(parts[:depth]) + "." + name
         hits = [c for c in candidates if definition_of.get(c) == want]
+        if len(hits) > 1 and file_of:
+            ## TWO FILES, ONE DOTTED KEY (agent C's W8: `a.test.ts` and `a/test.ts` are both
+            ## `src.a.test`): the caller's own file is its lexical scope.
+            mine = file_of.get(caller_rowid)
+            hits = [c for c in hits if file_of.get(c) == mine] or hits
         if hits:
             return hits[0] if len(hits) == 1 else None
     return None
@@ -2109,7 +2122,8 @@ class _CallSiteHarvester(Harvester):
     ## value is no longer emitted (Python and JS/TS); a payload cached at 14 still carries them.
     ##     And (W1) a C/C++ receiver the calling function declares as a parameter or local is
     ##     recorded empty, so it can no longer take a same-named member's type.
-    stage_version = 15
+    ## 16 (agent C's W6): a JS/TS `super.m()` is qualified by the enclosing class's first base.
+    stage_version = 16
     label = "tree-sitter"
 
     ## @brief Harvest one file's call sites.
@@ -2312,7 +2326,8 @@ def _file_of(file_funcs: dict, rel_of: dict) -> dict[int, str]:
 ## v6: a Python member call through an imported module resolves to that module's function
 ## (`caller_file`, `file_of`).
 ## v7 (agent C's W5): `py_roots` — absolute modules resolve on import roots only.
-## @version 7
+## v8 (W8): passes `file_of` to each call's resolution.
+## @version 8
 ## @dg_internal
 def _fold_call_payload(
     payload: list[list[Any]],
@@ -2388,6 +2403,7 @@ def _fold_call_payload(
             class_scopes=class_scopes,
             implementors=implementors,
             one_function=one_function,
+            file_of=file_of,
         )
 
 
@@ -2737,7 +2753,8 @@ _FOLD_STAGE = "ast_fold"
 ## 6: a Python call through an imported module resolves to that module's function (`_via_module`).
 ## 7 (round 5): package aliases resolve inside a root-anchored package (`_via_module` v3).
 ## 8 (agent C's W1/W4): local receivers carry no member type; ownership needs the module.
-_FOLD_STAGE_VERSION = 8
+## 9 (W8): a dotted-key collision prefers the caller's own file.
+_FOLD_STAGE_VERSION = 9
 
 
 ## @brief Digest of every INDEX-WIDE input the fold reads, so a change to any invalidates all.

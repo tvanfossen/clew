@@ -27,7 +27,11 @@ where the work is being done — and the same shape as its standing warning that
 
 from __future__ import annotations
 
+import logging
 import os
+from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 ## Every variable git exports to a hook that REPOINTS a later git command. `GIT_DIR` is the
 ## fatal one; the rest are listed because they are the same class of override and a fix that
@@ -153,3 +157,39 @@ def git_env() -> dict[str, str]:
     @version 1
     """
     return {k: v for k, v in os.environ.items() if k not in GIT_HOOK_VARS}
+
+
+## @brief Whether a directory is the root of a git work tree, asked of git itself.
+## @param path The directory.
+## @return True when `git rev-parse --show-toplevel` run there names exactly that directory.
+## @version 1
+## @req REQ-DDB-CONFIG-001
+def is_work_tree_root(path: Path) -> bool:
+    """A `.git` DIRECTORY TEST REFUSED EVERY LINKED WORKTREE (agent C's W10): `git worktree add`
+    writes `.git` as a FILE pointing at the main repository. The filesystem cannot tell that file
+    from a planted one-byte `.git`, and a planted one must never make a directory indexable — so
+    git is asked. A planted file is not a valid gitdir, and git says so.
+
+    @brief Work-tree root check.
+    @return Bool.
+    """
+    import subprocess
+
+    directory = Path(path)
+    if not directory.is_dir():
+        return False
+    try:
+        result = subprocess.run(
+            git_argv("rev-parse", "--show-toplevel"),
+            cwd=directory,
+            env=git_env(),
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        logger.warning("is_work_tree_root: git could not answer for %s (%s)", directory, exc)
+        return False
+    top = result.stdout.strip()
+    return result.returncode == 0 and bool(top) and Path(top).resolve() == directory.resolve()

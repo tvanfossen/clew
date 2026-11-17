@@ -131,6 +131,7 @@ import anyio.lowlevel
 from .._common import captured_output, logger
 from ..buildlock import build_lock
 from ..declaration import SECTION_SUB_INDEXES
+from ..gitenv import is_work_tree_root
 from ..languages import harvested_phrase
 from ..scope import (
     FIRST_PARTY_INDEX,
@@ -1514,7 +1515,8 @@ class DocsDbServer:
     ## @brief Why an absent index may not be built automatically, or None when it may.
     ## @param asked The index a query resolved to.
     ## @return A reason, or None.
-    ## @version 3
+    ## v4 (agent C's W10): a work tree is what git names as one, so a linked worktree qualifies.
+    ## @version 4
     ## @req REQ-DDB-MCP-004
     def _first_build_refusal(self, asked: Target) -> str | None:
         """A QUERY NAMING A DIRECTORY IS NOT CONSENT TO INDEX IT. `target=` accepts any directory,
@@ -1527,19 +1529,19 @@ class DocsDbServer:
 
         @brief Decide whether a query may start a first build.
         @return The reason not to, or None.
-        @version 3
+        @version 4
         """
         repo = Path(asked.repo_path)
         registered = any(t.repo_path == asked.repo_path for t in self.registry.targets())
         reason = None
         if not repo.is_dir():
             reason = "the directory does not exist"
-        ## `.is_dir()`, NOT `.exists()`. The evidence wanted is a work TREE, and a one-byte file
-        ## called `.git` satisfied `exists()` — so any directory a caller could name became
-        ## indexable by planting one. A submodule's `.git` IS a file, but a submodule is reached
-        ## as a sub-index of its parent (which is registered) rather than as a bare target, so the
-        ## registry arm below covers that case without reopening this one.
-        elif not (repo / ".git").is_dir() and not registered:
+        ## GIT IS ASKED, not the filesystem (agent C's W10). The evidence wanted is a work TREE:
+        ## a one-byte planted `.git` file must not make a directory indexable (why this once read
+        ## `.is_dir()` rather than `.exists()`), but a `git worktree add` tree's `.git` IS a file,
+        ## and `.is_dir()` refused every one. `is_work_tree_root` accepts only a directory git
+        ## itself names as its top level, which a planted file is not.
+        elif not registered and not is_work_tree_root(repo):
             reason = "it is neither a git work tree root nor a registered repository"
         elif stale_code_refusal(code_identity()) is not None:
             reason = "this server process predates its own source"

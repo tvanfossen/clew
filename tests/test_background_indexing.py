@@ -371,11 +371,11 @@ async def test_concurrent_absent_indexes_do_not_run_their_builds_at_once(
     @brief Two concurrent first builds never run their pipelines simultaneously.
     @version 1
     """
-    repos = []
-    for name in ("one", "two", "three"):
-        repo = tmp_path / name
-        (repo / ".git").mkdir(parents=True)
-        repos.append(repo)
+    ## FIXTURE CHANGE (round 5, W10): these were empty `.git` DIRECTORIES, which a real git does
+    ## not take for a repository. The first-build gate now asks git (so a linked worktree's `.git`
+    ## FILE qualifies and a planted one does not), and refused them. The property guarded here —
+    ## concurrent first builds are serialised — is unchanged; the trees are now real ones.
+    repos = [_git_repo(tmp_path / name) for name in ("one", "two", "three")]
 
     _mcp, state = build_server(st.TargetRegistry(tmp_path / "state"))
 

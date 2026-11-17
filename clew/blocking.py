@@ -30,6 +30,7 @@ recorded, the site is reported as guarded, and the count says how many were with
 
 from __future__ import annotations
 
+import re
 import sqlite3
 from pathlib import Path
 from typing import Any
@@ -78,6 +79,12 @@ _BOUNDED_PREFIXES = (
     "K_TICKS",
     "K_USEC",
     "pdMS_TO_TICKS",
+)
+
+
+## A call of any ISR predicate, as a whole identifier (W7).
+_ISR_CALL = re.compile(
+    r"(?<![A-Za-z0-9_])(?:" + "|".join(map(re.escape, ISR_PREDICATES)) + r")\s*\("
 )
 
 
@@ -229,11 +236,27 @@ def classify_wait(operand: str, has_timeout: bool) -> str:
     return WAIT_UNDECIDABLE
 
 
+## @brief Whether a condition CALLS an ISR predicate (a whole name followed by `(`).
+## @param text Condition or operand text.
+## @return True when a predicate is called in it.
+## @version 1
+## @dg_internal
+def _names_isr_predicate(text: str) -> bool:
+    """A SUBSTRING IS NOT A CALL (agent C's W7): `in_irq` sits inside `within_irq_window(dev)`, and
+    reading that as a guard downgraded a real blocking-in-ISR conflict to "guarded".
+
+    @brief Predicate call.
+    @return Bool.
+    """
+    return _ISR_CALL.search(text) is not None
+
+
 ## @brief The nearest enclosing condition text for a node, up to a few levels.
 ## @param node The call node.
 ## @param src The file's raw bytes.
 ## @return The condition source text, or "".
-## @version 1
+## v2 (W7): a predicate counts only when CALLED (`_names_isr_predicate`).
+## @version 2
 ## @dg_internal
 def _enclosing_condition(node: Any, src: bytes) -> str:
     """Three levels up at most. A guard further away than that is not a guard a reader would
@@ -254,7 +277,7 @@ def _enclosing_condition(node: Any, src: bytes) -> str:
             if condition is not None
             else ""
         )
-        if any(predicate in text for predicate in ISR_PREDICATES):
+        if _names_isr_predicate(text):
             return text
         current = statement
     return ""
@@ -265,7 +288,8 @@ def _enclosing_condition(node: Any, src: bytes) -> str:
 ## @param src_bytes The file's raw bytes.
 ## @param patterns_by_name Blocking patterns keyed by callee name.
 ## @return A list of [primitive, line, wait, wait_operand, guard] records.
-## @version 2
+## v3 (W7): a guard in the operand counts only when a predicate is CALLED.
+## @version 3
 ## @req REQ-DDB-SCHEMA-011
 def walk_blocking_sites(tree: Any, src_bytes: bytes, patterns_by_name: dict) -> list[list[Any]]:
     """Rowid-free like every harvest payload: the holder is resolved by LINE at insert time,
@@ -310,7 +334,7 @@ def walk_blocking_sites(tree: Any, src_bytes: bytes, patterns_by_name: dict) -> 
         ## THE GUARD CAN LIVE IN THE ARGUMENT ITSELF. Zephyr's power-management path writes
         ## `k_sem_take(&pm->lock, k_is_in_isr() ? K_NO_WAIT : K_FOREVER)`
         ## (subsys/pm/device_runtime.c:71) — ten interrupt handlers reach it.
-        if not guard and any(predicate in operand for predicate in ISR_PREDICATES):
+        if not guard and _names_isr_predicate(operand):
             guard = operand
         sites.append(
             [

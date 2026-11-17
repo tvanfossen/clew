@@ -919,7 +919,8 @@ def _jsx_component(node: Any) -> str | None:
 
 ## @brief A call expression as [name, source, qualifier, receiver], or None.
 ## @return The site without its line, or None.
-## @version 1
+## v2 (W6): `super.m()` is qualified by the enclosing class's first base.
+## @version 2
 ## @dg_internal
 def _call_site(
     node: Any, ranges: list, plain: str, member: str, imported: frozenset[str] = frozenset()
@@ -935,7 +936,12 @@ def _call_site(
     if not name:
         return None
     obj = callee.child_by_field_name("object")
-    if obj is not None and obj.type in ("this", "super"):
+    if obj is not None and obj.type == "super":
+        ## `super.m()` STARTS AT THE BASE (agent C's W6): qualifying it with the class itself named
+        ## the override, whose self-edge was then pruned, so no override ever reached its base.
+        base = _super_base(node)
+        return [name, member, f"{base}.{name}" if base else "", ""]
+    if obj is not None and obj.type == "this":
         cls = _enclosing_class(ranges, node.start_byte)
         return [name, member, f"{cls}.{name}" if cls else "", ""]
     ## The EIGHTH element says whether the receiver is a module this file imports — the one way a
@@ -943,6 +949,20 @@ def _call_site(
     receiver = _tail(obj)
     via_import = obj is not None and obj.type == "identifier" and receiver in imported
     return [name, member, "", receiver, -1, 0, int(via_import)]
+
+
+## @brief The first base class of the class a node sits in, or "".
+## @param node A node inside a class body.
+## @return The base's tail name.
+## @version 1
+## @dg_internal
+def _super_base(node: Any) -> str:
+    """@brief Base of the enclosing class. @return Name."""
+    cur = node.parent
+    while cur is not None and cur.type not in _COMPOUND_KINDS:
+        cur = cur.parent
+    bases = _bases(cur) if cur is not None else []
+    return bases[0] if bases else ""
 
 
 ## @brief Bare function names passed as arguments, as binding sites.
