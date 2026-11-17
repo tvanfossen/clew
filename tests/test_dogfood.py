@@ -73,3 +73,29 @@ def test_the_declaration_header_states_what_is_configured() -> None:
     assert "Only the gate is configured" not in head
     assert "30 of 34" not in head
     assert "wiki:" in head and "guard:" in head
+
+
+def test_every_catalogued_requirement_has_an_implementer_or_an_exempt_status() -> None:
+    """THE GATE `scripts/req_coverage_audit.py` ONCE WAS, back and declared: the hook runs `clew
+    guard coverage`, and on this tree it passes — every requirement tagged, or exempt by status
+    (`planned`, `configuration`), each exemption still listed in the report.
+
+    @brief clew-guard-coverage hook, and a clean run on clew.
+    """
+    import os
+    import subprocess
+
+    hook = _hooks()["clew-guard-coverage"]
+    assert "coverage" in hook["entry"]
+    req = _clew_yaml()["guard"]["impact"]["requirements"]
+    assert req["exempt_status"] == ["planned", "configuration"]
+    out = subprocess.run(
+        [str(REPO / ".venv" / "bin" / "python"), "-m", "clew", "guard", "coverage", "clew"],
+        cwd=REPO,
+        capture_output=True,
+        text=True,
+        env={**os.environ},
+        timeout=300,
+    )
+    assert out.returncode == 0, out.stdout + out.stderr
+    assert "Exempt by status" in out.stdout

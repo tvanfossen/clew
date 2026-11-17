@@ -229,6 +229,10 @@ CONFIG_SCHEMA: dict[str, Any] = {
             ## GH #68: catalogues this repository does not own — a path, or {repo, rev, path}
             ## read from a local clone at that revision. A URL is refused by name.
             "external": list,
+            ## round 3, P6c: a requirement whose `status_field` value is in `exempt_status` is
+            ## not a coverage gap; `clew guard coverage` lists it as exempt, never silently.
+            "status_field": str,
+            "exempt_status": list,
         },
         "output": {
             "format": str,

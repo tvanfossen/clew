@@ -311,7 +311,7 @@ def _issues_into(graph: dict, linked: Any) -> None:
 ## @param cap The most drawn.
 ## @return (flow specs, how many directly linked tests were left undrawn).
 ## @version 1
-## @dg_internal
+## @req REQ-DDB-WIKI-027
 def _test_flows(db: Path, facts: dict, cap: int) -> tuple[list, int]:
     """CATALOG AND INFERRED LINKS ARE NOT DIRECT: a catalog names a whole test file and inference
     reaches through the call graph; only a tagged or measured test is drawn by default.

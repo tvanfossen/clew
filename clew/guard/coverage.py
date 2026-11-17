@@ -10,6 +10,7 @@ import json
 import logging
 from typing import TYPE_CHECKING, Any
 
+from .config import get_impact
 from .impact import load_requirements_full
 from .tags import collect_tagged_functions
 
@@ -20,9 +21,11 @@ logger = logging.getLogger(__name__)
 
 
 ## @brief Analyze requirement coverage across all documented functions.
-#  @version 2.0
+#  @details v2.1: requirements whose declared status is exempt are listed under `exempt`,
+#  not counted as uncovered (round 3, P6c).
+#  @version 2.1
 #  @req REQ-DDB-GUARD-022
-#  @return Dict with covered, uncovered, orphan_refs, unmapped_functions
+#  @return Dict with covered, uncovered, exempt, orphan_refs, unmapped_functions
 def analyze_coverage(
     source_dirs: list[str],
     config: dict[str, Any],
@@ -33,14 +36,33 @@ def analyze_coverage(
     all_req_ids = set(full_reqs.keys())
     tagged_reqs = _collect_req_ids(all_tagged)
     unmapped = _collect_unmapped_functions(all_tagged)
+    exempt = _exempt(full_reqs, all_req_ids - tagged_reqs, config)
 
     return {
         "total_requirements": len(all_req_ids),
         "covered": sorted(tagged_reqs & all_req_ids),
-        "uncovered": sorted(all_req_ids - tagged_reqs),
+        "uncovered": sorted(all_req_ids - tagged_reqs - {e["req_id"] for e in exempt}),
+        "exempt": exempt,
         "orphan_refs": sorted(tagged_reqs - all_req_ids),
         "unmapped_functions": sorted(unmapped),
     }
+
+
+## @brief The untagged requirements whose declared status exempts them from coverage.
+#  @version 1.0
+#  @req REQ-DDB-GUARD-022
+#  @return [{req_id, status}] sorted by id; [] when no exempt status is declared
+def _exempt(
+    rows: dict[str, dict[str, str]], untagged: set[str], config: dict[str, Any]
+) -> list[dict[str, str]]:
+    req = get_impact(config).get("requirements") or {}
+    statuses = set(req.get("exempt_status") or [])
+    field = req.get("status_field", "status")
+    return [
+        {"req_id": rid, "status": rows[rid].get(field, "")}
+        for rid in sorted(untagged)
+        if rows[rid].get(field) in statuses
+    ]
 
 
 ## @brief Collect all requirement IDs referenced across tagged functions.
@@ -63,23 +85,22 @@ def _collect_unmapped_functions(all_tagged: list[TaggedFunction]) -> set[str]:
 
 
 ## @brief Format coverage report as text.
-#  @version 1.1
+#  @details v1.2: exempt requirements listed with their status (round 3, P6c).
+#  @version 1.2
 #  @req REQ-DDB-GUARD-022
 #  @return Formatted text report string
 def format_coverage_text(report: dict[str, Any]) -> str:
     lines = [f"Requirements coverage: {len(report['covered'])}/{report['total_requirements']}"]
-    if report["uncovered"]:
-        lines.append(f"\nUncovered ({len(report['uncovered'])}):")
-        for r in report["uncovered"]:
-            lines.append(f"  - {r}")
-    if report["orphan_refs"]:
-        lines.append(f"\nOrphan @req refs ({len(report['orphan_refs'])}):")
-        for r in report["orphan_refs"]:
-            lines.append(f"  - {r}")
-    if report["unmapped_functions"]:
-        lines.append(f"\nFunctions without @req ({len(report['unmapped_functions'])}):")
-        for f in report["unmapped_functions"]:
-            lines.append(f"  - {f}()")
+    sections = (
+        ("Uncovered", report["uncovered"]),
+        ("Exempt by status", [f"{e['req_id']} ({e['status']})" for e in report.get("exempt", [])]),
+        ("Orphan @req refs", report["orphan_refs"]),
+        ("Functions without @req", [f"{f}()" for f in report["unmapped_functions"]]),
+    )
+    for title, items in sections:
+        if items:
+            lines.append(f"\n{title} ({len(items)}):")
+            lines += [f"  - {i}" for i in items]
     return "\n".join(lines)
 
 
@@ -92,7 +113,8 @@ def format_coverage_json(report: dict[str, Any]) -> str:
 
 
 ## @brief Format coverage report as markdown.
-#  @version 1.1
+#  @details v1.2: exempt requirements listed with their status.
+#  @version 1.2
 #  @req REQ-DDB-GUARD-022
 #  @return Markdown formatted coverage report string
 def format_coverage_markdown(report: dict[str, Any]) -> str:
@@ -101,6 +123,9 @@ def format_coverage_markdown(report: dict[str, Any]) -> str:
         lines.append(f"\n## Uncovered ({len(report['uncovered'])})")
         for r in report["uncovered"]:
             lines.append(f"- {r}")
+    if report.get("exempt"):
+        lines.append(f"\n## Exempt by status ({len(report['exempt'])})")
+        lines += [f"- {e['req_id']} ({e['status']})" for e in report["exempt"]]
     if report["orphan_refs"]:
         lines.append(f"\n## Orphan Refs ({len(report['orphan_refs'])})")
         for r in report["orphan_refs"]:

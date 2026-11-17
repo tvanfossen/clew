@@ -96,7 +96,7 @@ requirements:
     x-priority: P0
     coverage_exempt: satisfied by configuration FILES (.clew.yaml, .pre-commit-config.yaml),
       not by any function — a tag here would have to be attached to something arbitrary
-    x-status: partial
+    x-status: configuration
     x-evidence: 'NO IMPLEMENTER BY NATURE — satisfied by configuration files, not by any function, so
       it is deliberately left untagged. .clew.yaml + .pre-commit-config.yaml are present and
       the hook set is ruff, ruff-format, doxygen-guard (pinned upstream at rev v1.3.1, not repo:local),
@@ -945,7 +945,7 @@ requirements:
       own token, passed as an HTTP extra header and never in a URL. Every action used by this
       repository's workflows and its composite action is pinned by commit SHA.
     x-priority: P1
-    x-status: implemented
+    x-status: configuration
     x-evidence: .github/actions/wiki/action.yml; templates/azure-pipelines-wiki.yml; tests/test_hosting.py.
   REQ-DDB-WIKI-040:
     subsystem: wiki

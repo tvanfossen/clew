@@ -45,6 +45,15 @@ repos:
         args: [impact, --staged]
         files: ^clew/.*\.py$
         require_serial: true
+      ## Every catalogued requirement resolves to an @req implementer, or its status exempts it
+      ## (`exempt_status` in .clew.yaml) — the gate the deleted req_coverage_audit.py once was.
+      - id: clew-guard-coverage
+        name: clew guard coverage
+        entry: .venv/bin/python -m clew guard coverage clew
+        language: system
+        pass_filenames: false
+        files: ^(clew/.*\.py|requirements\.yaml|\.clew\.yaml)$
+        require_serial: true
       ## The wiki's static check, as adopters run it (`--refresh` brings the index current
       ## first). Scoped to the files that change what it checks, because a refresh on every
       ## commit costs a build; CI's `--all-files` still runs it on every push.

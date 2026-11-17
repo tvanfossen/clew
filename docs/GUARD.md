@@ -324,6 +324,8 @@ another tag and alias it: `version: {tag: "@revision"}` plus `extra_tags: ["revi
 | `requirements.id_column` | string | `Req ID` | Id column (`csv`/`json` only) |
 | `requirements.name_column` | string | `name` | Name column or field |
 | `requirements.external` | list | — | Catalogues this repository does not own: a path, or `{repo, rev, path}` read at that revision from a local clone or submodule. A URL is refused |
+| `requirements.status_field` | string | `status` | The catalogue field that holds a requirement's status |
+| `requirements.exempt_status` | list | — | Statuses that exempt an untagged requirement from `clew guard coverage` (e.g. `planned`, `configuration`); each exemption is listed in the report, never dropped |
 
 The preferred catalog is a mapping keyed by id:
 

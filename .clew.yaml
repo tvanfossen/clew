@@ -33,6 +33,12 @@ guard:
   impact:
     requirements:
       file: requirements.yaml
+      # round 3, P6c: `clew guard coverage` (a pre-commit hook) fails when a catalogued requirement
+      # has no @req implementer, unless its status exempts it — unbuilt (`planned`) or satisfied by
+      # configuration files rather than a function (`configuration`). Exemptions are listed in
+      # every coverage report by id and status, never silently.
+      status_field: x-status
+      exempt_status: [planned, configuration]
     # round 3, P6c: the `clew-guard-impact` hook writes the report the wiki's Change impact page
     # reads. JSON at the path the wiki looks for by default; gitignored, never committed.
     output:
