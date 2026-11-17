@@ -9,6 +9,9 @@ Grid at `0dd5ba1b` (clean tree), per `PRE-REGISTRATION.md`: 4 targets × 3 arms 
 fingerprint `72a6c7bd363d`, seed 7. Index arms ran with the plugin's server environment
 (`CLEW_WIRE=compact`). Comparator: `acceptance/runs/1.3.0-final/`.
 
+> **Correction (2026-11-17).** The judge named above is wrong. Every grade of this run records `judge_model: claude-sonnet-5-5` (189/189) — the provider-canonical id adopted in 844fee55 and disclosed in the 1.2.0 pre-registration. `claude-sonnet-4-5-20250929` was text carried over from an earlier record. The figures are unaffected: they were measured with what the grades record. Found by the 2.0.0 rubric cross-check; `tests/test_run_records.py` now checks every run's record against its grades. The line above is left as published.
+
+
 ## Judge integrity
 
 | pass | errored samples | rate | split decisions |

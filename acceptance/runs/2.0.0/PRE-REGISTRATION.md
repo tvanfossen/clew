@@ -5,7 +5,7 @@ reset). Everything in `acceptance/runs/1.4.0-pending/PRE-REGISTRATION.md` holds 
 targets (mattermost, mbedtls, self, entropic), arms, replicates 3, seed 7, grader fingerprint
 `72a6c7bd363d`, the 1.3.0-final and 1.4.0-final records for context, — except the tool commit, recorded by the harness as `clew_commit` (a dirty tree is refused).
 
-Answering model `claude-haiku-5-5`, judge `claude-sonnet-4-5-20250929`. The answering id is
+Answering model `claude-haiku-5-5`, judge `claude-sonnet-5-5` (corrected 2026-11-17: this line first said `claude-sonnet-4-5-20250929`, copied from an earlier record; every rubric and grade uses `claude-sonnet-5-5`, which also floats). The answering id is
 provider-canonical and FLOATS (`acceptance/modelpin.py`): the provider publishes no dated form
 for this family, so a model change under the id is possible and would show only in
 `answered_by`. Disclosed, not controlled.
