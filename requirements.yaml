@@ -962,6 +962,18 @@ requirements:
     x-priority: P1
     x-status: implemented
     x-evidence: clew/wiki/composite.py compose / probe_index; tests/test_wiki_composite.py.
+  REQ-DDB-WIKI-041:
+    subsystem: wiki
+    name: A test is drawn as the slice of a master flow it exercises
+    acceptance_criteria: 'A test has no sequence diagram of its own. From per-test coverage (coverage.py
+      contexts, or an LCOV tracefile with one `TN:` section per test, produced by the repository), a
+      master-flow step is exercised by a test when its call-site line ran in that test; the test
+      enters the flow at a function whose calls it ran while no exercised step called it. The
+      test''s page draws each master flow it touches with its exercised steps, its entry and the
+      rest dimmed; without per-test coverage the slice is static reach, labelled inferred.'
+    x-priority: P1
+    x-status: planned
+    x-evidence: clew/wiki/slices.py slice_of / lines_per_test; tests/test_wiki_slices.py.
   REQ-DDB-SCHEMA-013:
     subsystem: schema
     name: Kconfig structure tables, created independently of the gating table

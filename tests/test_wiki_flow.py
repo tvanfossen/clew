@@ -255,3 +255,63 @@ def test_repeated_calls_fold_into_one_loop_frame() -> None:
     delays = [float(d) for d in re.findall(r"animation-delay:([\d.]+)s", animated)]
     assert delays == [0.0, STEP_SECONDS]
     assert ">6<" in animated  # the call after the fold keeps its own number
+
+
+## OWNER 2026-11-17 (round 5): master flows expand what tests RAN. app/main.py lines: 5 load(),
+## 7 save(data) inside `if ready`; lib/store.py line 6 parse("x").
+_RAN_LOAD_ONLY = {"app/main.py": {4, 5, 6, 8}, "lib/store.py": {1, 2, 5, 6}}
+
+
+def test_a_measured_flow_expands_what_ran_and_folds_what_did_not(
+    indexed: tuple[Path, Path],
+) -> None:
+    """A CALL THAT RAN EXPANDS past the declared depth (load → parse at depth 1); calls that never
+    ran fold into ONE stub per caller (`not_run`), so the diagram shows the exercised path and says
+    how much of the static flow no test reached.
+
+    @brief Coverage-guided expansion with a per-caller not-run stub.
+    @return None.
+    """
+    from clew.wiki.flow import derive_flow
+
+    db, repo = indexed
+    flow = derive_flow(db, repo, "main", depth=1, executed=_RAN_LOAD_ONLY)
+    got = [(s.caller, s.callee, s.not_run) for s in flow.steps]
+    assert got == [("main", "load", 0), ("load", "parse", 0), ("main", "", 1)], got
+    assert flow.measured is True and flow.capped is False
+
+
+def test_an_unmeasured_file_is_walked_statically_never_folded_as_not_run(
+    indexed: tuple[Path, Path],
+) -> None:
+    """ABSENCE IS NOT EMPTINESS: lib/store.py is not in the coverage at all, so its calls were not
+    MEASURED — never reported as not run. They are emitted as the static flow would.
+
+    @brief A file outside the coverage keeps its static steps.
+    @return None.
+    """
+    from clew.wiki.flow import derive_flow
+
+    db, repo = indexed
+    flow = derive_flow(db, repo, "main", depth=1, executed={"app/main.py": {5}})
+    got = [(s.caller, s.callee, s.not_run) for s in flow.steps]
+    assert got == [("main", "load", 0), ("load", "parse", 0), ("main", "", 1)], got
+
+
+def test_a_step_cap_stops_the_walk_and_says_so(indexed: tuple[Path, Path]) -> None:
+    """@brief `max_steps` bounds a measured flow; `capped` discloses that it did."""
+    from clew.wiki.flow import derive_flow
+
+    db, repo = indexed
+    flow = derive_flow(db, repo, "main", depth=1, executed=_RAN_LOAD_ONLY, max_steps=1)
+    assert len(flow.steps) == 1 and flow.capped is True
+
+
+def test_a_not_run_stub_is_drawn_as_a_dim_note_not_a_call(indexed: tuple[Path, Path]) -> None:
+    """@brief A `not_run` stub reads "… N calls not run", dimmed (class `nr`), never a blank arrow."""
+    from clew.wiki.flow import derive_flow
+    from clew.wiki.svg import flow_svg
+
+    db, repo = indexed
+    svg = flow_svg(derive_flow(db, repo, "main", depth=1, executed=_RAN_LOAD_ONLY))
+    assert "… 1 call not run" in svg and 'class="st nr"' in svg

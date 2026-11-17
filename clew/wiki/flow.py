@@ -38,6 +38,11 @@ FLOW_VERSION = 1
 LANES = ("files", "packages", "threads")
 
 
+## How deep a call measured as run is followed (round 5), and the default step cap of a measured
+## flow; both bound a diagram drawn from coverage, and `Flow.capped` says when the cap stopped it.
+MEASURED_LEVELS, MEASURED_STEP_CAP = 12, 400
+
+
 ## @brief One lane of the diagram.
 ## @version 1
 @dataclass(frozen=True)
@@ -51,7 +56,9 @@ class Lane:
 ## @brief One message: a call from one function to another, with its frames.
 ## v2: `site_file` — the file the call is IN (the caller's), which `line` is a line of; `file`
 ## stays the callee's file. A link built from `file` and `line` pointed into the wrong file.
-## @version 2
+## v3 (round 5): `not_run` — a STUB standing for that many of the caller's calls no test ran
+## (callee empty); only a measured flow has stubs.
+## @version 3
 @dataclass(frozen=True)
 class Step:
     """@brief A call step in diagram order. @version 2"""
@@ -69,13 +76,15 @@ class Step:
     ambiguous: tuple[str, ...] = ()
     expanded_above: bool = False
     site_file: str = ""
+    not_run: int = 0
 
 
 ## @brief A derived flow.
-## @version 1
+## v2 (round 5): `measured` (expanded by per-test coverage) and `capped` (the step cap stopped it).
+## @version 2
 @dataclass(frozen=True)
 class Flow:
-    """@brief Lanes and ordered steps from one entry. @version 1"""
+    """@brief Lanes and ordered steps from one entry. @version 2"""
 
     entry: str
     entry_qualified: str
@@ -84,6 +93,8 @@ class Flow:
     lanes: tuple[Lane, ...] = ()
     steps: tuple[Step, ...] = ()
     flow_version: int = FLOW_VERSION
+    measured: bool = False
+    capped: bool = False
 
 
 ## @brief Derive the flow from an entry function.
@@ -99,8 +110,13 @@ class Flow:
 ## v2: `file` — select the entry by its file; its first hops use only that file's rowids.
 ## v3: the FILE chooses the identity (`_entry_rowids`); found in CI, where doxygen 1.9.8 gave two
 ## same-named mains distinct definitions and the default guess picked the other one.
-## @version 3
+## @param executed Lines any test ran, per file (round 5): a call that ran expands past `depth`;
+## a measured caller's calls that never ran fold into one `not_run` stub.
+## @param max_steps Stop after this many steps (`capped` says so); default 400 when measured.
+## v4 (OWNER 2026-11-17, round 5): master flows expand what tests ran.
+## @version 4
 ## @req REQ-DDB-WIKI-001
+## @req REQ-DDB-WIKI-041
 def derive_flow(
     db: Path | str,
     repo_root: Path | str,
@@ -111,6 +127,8 @@ def derive_flow(
     lanes: str = "files",
     stop_at: tuple[str, ...] = (),
     file: str | None = None,
+    executed: dict[str, set[int]] | None = None,
+    max_steps: int | None = None,
 ) -> Flow:
     """REFUSES BY NAME an entry the index does not hold and a lane strategy it does not know, so a
     typo never yields an empty diagram that looks like a function with no calls.
@@ -123,6 +141,8 @@ def derive_flow(
         raise ValueError(f"unknown lane strategy {lanes!r}; known: {', '.join(LANES)}")
     with connect(db) as conn:
         walker = _Walker(conn, Path(repo_root), lanes, frozenset(stop_at))
+        walker.executed = executed
+        walker.max_steps = max_steps or (MEASURED_STEP_CAP if executed is not None else 0)
         rowids = _entry_rowids(conn, walker, entry, qualified, file)
         if not rowids:
             raise ValueError(
@@ -138,6 +158,8 @@ def derive_flow(
             lane_strategy=lanes,
             lanes=tuple(Lane(id=lane, label=lane) for lane in ordered),
             steps=tuple(walker.steps),
+            measured=executed is not None,
+            capped=walker.capped,
         )
 
 
@@ -187,7 +209,8 @@ class _Walker:
     ## @param repo_root The working tree.
     ## @param lanes Lane strategy.
     ## @param stop_at Names not to expand.
-    ## @version 1
+    ## v2 (round 5): coverage (`executed`), the step cap and whether it was hit.
+    ## @version 2
     ## @dg_internal
     def __init__(
         self, conn: sqlite3.Connection, repo_root: Path, lanes: str, stop_at: frozenset[str]
@@ -197,6 +220,10 @@ class _Walker:
         self.lane_order: list[str] = []
         self.expanded: set[str] = set()
         self._lane_cache: dict[int, str] = {}
+        ## Round 5: lines any test ran (None = unmeasured), the step cap (0 = none), whether hit.
+        self.executed: dict[str, set[int]] | None = None
+        self.max_steps = 0
+        self.capped = False
 
     ## @brief Emit the steps of one caller, recursing into callees in call order.
     ## @param name The caller's bare name.
@@ -209,7 +236,9 @@ class _Walker:
     ## @return None.
     ## v2: passes the caller's file to each step.
     ## v3: `rowids` (an entry selected by file).
-    ## @version 3
+    ## v4 (round 5): a measured caller emits only the calls that ran, then one `not_run` stub; a
+    ## caller whose FILE the coverage does not hold was not measured and is walked statically.
+    ## @version 4
     ## @dg_internal
     def walk(
         self,
@@ -234,11 +263,51 @@ class _Walker:
         hop_rows = rowids or identity_rowids(self.conn, name, qual)
         for nname, nqual, nrowid, _hop in _identity_call_hops(self.conn, name, hop_rows, True):
             targets.setdefault(nname, []).append((nqual, nrowid))
+        ran = None if self.executed is None else self.executed.get(caller[1])
+        missed = 0
         for site in sequence:
             found = targets.get(site.callee)
             if not found:
                 continue
-            self._emit(name, qual, caller, site, found, (remaining, level, path))
+            if self.max_steps and len(self.steps) >= self.max_steps:
+                self.capped = True
+                return
+            if ran is not None and site.line not in ran:
+                missed += 1
+                continue
+            self._emit(name, qual, caller, site, found, (remaining, level, path, ran is not None))
+        if missed:
+            self._stub(name, qual, caller, level, missed)
+
+    ## @brief One step standing for the calls of a measured caller that no test ran.
+    ## @param name Caller name.
+    ## @param qual Caller qualified.
+    ## @param caller (lane, file) of the caller.
+    ## @param level The caller's call level.
+    ## @param missed How many calls.
+    ## @return None.
+    ## @version 1
+    ## @dg_internal
+    def _stub(self, name: str, qual: str, caller: tuple[str, str], level: int, missed: int) -> None:
+        """@brief Record a not-run stub. @return None."""
+        if self.max_steps and len(self.steps) >= self.max_steps:
+            self.capped = True
+            return
+        self.steps.append(
+            Step(
+                caller=name,
+                caller_qualified=qual,
+                callee="",
+                callee_qualified="",
+                from_lane=caller[0],
+                to_lane=caller[0],
+                file=caller[1],
+                line=0,
+                depth=level,
+                site_file=caller[1],
+                not_run=missed,
+            )
+        )
 
     ## @brief Emit one step and, when it may, expand the callee.
     ## @param name Caller name.
@@ -246,10 +315,11 @@ class _Walker:
     ## @param caller (lane, file) of the caller.
     ## @param site The call site.
     ## @param found The callee identities the caller's edges name for this site's callee.
-    ## @param walk_state (remaining, level, path).
+    ## @param walk_state (remaining, level, path, whether the call was measured as run).
     ## @return None.
     ## v2: records the call site's file.
-    ## @version 2
+    ## v3 (round 5): a call measured as run expands past the depth, up to MEASURED_LEVELS.
+    ## @version 3
     ## @dg_internal
     def _emit(
         self,
@@ -261,7 +331,7 @@ class _Walker:
         walk_state: tuple[int, int, frozenset[str]],
     ) -> None:
         """@brief Record a step; recurse once per identity. @return None."""
-        remaining, level, path = walk_state
+        remaining, level, path, measured = walk_state
         nqual, nrowid = found[0]
         ambiguous = tuple(sorted(q for q, _r in found)) if len(found) > 1 else ()
         callee_qual = "" if ambiguous else nqual
@@ -283,7 +353,8 @@ class _Walker:
                 site_file=caller[1],
             )
         )
-        if ambiguous or already or remaining <= 1 or site.callee in self.stop_at or nqual in path:
+        shallow = level >= MEASURED_LEVELS if measured else remaining <= 1
+        if ambiguous or already or shallow or site.callee in self.stop_at or nqual in path:
             return
         self.walk(site.callee, nqual, nrowid, remaining - 1, level + 1, path | {nqual})
 

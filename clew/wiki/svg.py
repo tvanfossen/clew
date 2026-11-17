@@ -50,7 +50,8 @@ _OPERATOR = {
     "catch": "catch",
 }
 _STYLE = (
-    "<style>.seq text{font-family:var(--sans,sans-serif);font-size:12px;fill:var(--ink,#2A2118)}"
+    "<style>.seq g.nr{opacity:.45}.seq g.nr .lbl{font-style:italic}"
+    ".seq text{font-family:var(--sans,sans-serif);font-size:12px;fill:var(--ink,#2A2118)}"
     ".seq .head{fill:var(--paper,#FAF1D9);stroke:var(--acc,#3D6B2E);stroke-width:1.2}"
     ".seq .head-t{font-weight:700;font-size:12px;fill:var(--accink,#1F3B16)}"
     ".seq .lane{stroke:var(--rule,#CFC0A0);stroke-dasharray:3 5;stroke-width:1.2}"
@@ -351,7 +352,8 @@ class _Layout:
     ## @return SVG markup.
     ## v2: label pills, a full-width row band (hover / selected), self-calls grouped.
     ## v3 (round 5): a folded arrow keeps its first step's number and reads `callee ×N`.
-    ## @version 3
+    ## v4 (round 5): a `not_run` stub reads "… N calls not run".
+    ## @version 4
     ## @dg_internal
     def step_markup(self, i: int, number: int, times: int = 1) -> str:
         """@brief Draw a step. @return Markup."""
@@ -373,7 +375,7 @@ class _Layout:
                 f'<path class="tip" d="M{end:.0f} {y:.0f} l{-sign * 9} -4 v8 z"/>'
             )
             lx, anchor = (x1 + x2) / 2, "middle"
-        text = f"{step.callee} ×{times}" if times > 1 else step.callee
+        text = _message(step, times)
         tw = _text_w(text)
         left = lx + 12 if anchor == "start" else lx - tw / 2
         bx = left - 14
@@ -460,23 +462,39 @@ def _frame(operator: str, line: int, box: tuple[float, float, float, float]) -> 
 ## v2: takes the step; carries `data-step`.
 ## v3 (round 5): a fold carries `data-steps` (every step it stands for) and is delayed by its
 ## DRAWN position, so folding leaves no gap in the animation.
-## @version 3
+## v4 (round 5): a `not_run` stub's group is classed `nr` (dimmed).
+## @version 4
 ## @dg_internal
 def _step_group(
     index: int, step: Step, shape: str, animate: bool, drawn: tuple[int, int] = (-1, 1)
 ) -> str:
     """@brief Wrap a step. @return SVG text."""
     slot, times = drawn if drawn[0] >= 0 else (index, 1)
+    kind = "st nr" if step.not_run else "st"
     numbers = f"{index + 1}–{index + times}" if times > 1 else f"{index + 1}"
     title = f"<title>{numbers}. {escape(step.caller)} → {escape(step.callee)}</title>"
     steps = f' data-steps="{" ".join(str(index + k) for k in range(times))}"' if times > 1 else ""
     if not animate:
-        return f'<g class="st" data-step="{index}"{steps}>{title}{shape}</g>'
+        return f'<g class="{kind}" data-step="{index}"{steps}>{title}{shape}</g>'
     delay = f"{slot * STEP_SECONDS:.2f}s"
     return (
-        f'<g class="cs" data-step="{index}"{steps} style="animation-delay:{delay}">'
+        f'<g class="{kind.replace("st", "cs")}" data-step="{index}"{steps} '
+        f'style="animation-delay:{delay}">'
         f"{title}{shape}</g>"
     )
+
+
+## @brief The text on a step's arrow.
+## @param step The step.
+## @param times How many calls a folded arrow stands for.
+## @return The label.
+## @version 1
+## @dg_internal
+def _message(step: Step, times: int) -> str:
+    """@brief Arrow label. @return Text."""
+    if step.not_run:
+        return f"… {step.not_run} call{'s' if step.not_run != 1 else ''} not run"
+    return f"{step.callee} ×{times}" if times > 1 else step.callee
 
 
 ## @brief A label's approximate rendered width at 12px.
