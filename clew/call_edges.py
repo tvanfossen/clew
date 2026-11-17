@@ -1921,7 +1921,9 @@ class _CallSiteHarvester(Harvester):
     ## changes path; a payload cached at 11 would keep the JS reading.
     ## 13: Python member sites carry the module their receiver is imported as (9th element),
     ## and keyword bindings naming a local are dropped; a payload cached at 12 has neither.
-    stage_version = 13
+    ## 14 (round 5): `from .. import x` records `..x`, not `...x`; a payload cached at 13 climbs
+    ## one package too far.
+    stage_version = 14
     label = "tree-sitter"
 
     ## @brief Harvest one file's call sites.
@@ -1955,7 +1957,9 @@ def call_site_harvester() -> Harvester:
 ## @return The rowid, or None when the module names no file or not exactly one candidate.
 ## v2 (round 5, 4d-0): an alias of a PACKAGE — `from .. import query as q; q.dossier()` — names
 ## the one candidate defined inside that package (its `__init__` re-exports it).
-## @version 2
+## v3 (agent C's audit, W5): only for a RELATIVE import or an absolute package at the repository
+## root — v2 matched `/<stem>/` anywhere, so `import json` landed in `vendor/json/`.
+## @version 3
 ## @req REQ-DDB-PIPE-003
 def _via_module(
     module: str, caller_file: str, candidates: list[int], file_of: dict[int, str] | None
@@ -1976,19 +1980,31 @@ def _via_module(
         ## A PACKAGE ALIAS (found by the round-5 wiki: every MCP flow stopped at `q.dossier`):
         ## `q.f` is the package's attribute, which its `__init__` imported from one of its
         ## modules. Exactly one candidate inside the package is that function; two are refused.
-        hits = [c for c in candidates if any(_inside(file_of.get(c, ""), p) for p in paths)]
+        relative = module.startswith(".")
+        hits = [
+            c for c in candidates if any(_inside(file_of.get(c, ""), p, relative) for p in paths)
+        ]
     return hits[0] if len(hits) == 1 else None
 
 
 ## @brief Whether a file lies inside the package a module stem names.
 ## @param rel A repo-relative file.
 ## @param stem A module stem (`pkg/query`).
-## @return True when the file is under that directory, at the root or as a path suffix.
-## @version 1
+## @param relative Whether the import was relative (the stem is then already anchored).
+## @return True when the file is under that directory, anchored at the stem's start.
+## v2 (W5): never a tree-wide suffix — an absolute stem must start at the repository root.
+## @version 2
 ## @dg_internal
-def _inside(rel: str, stem: str) -> bool:
-    """@brief Inside a package. @return Bool."""
-    return bool(stem) and (rel.startswith(stem + "/") or f"/{stem}/" in rel)
+def _inside(rel: str, stem: str, relative: bool = False) -> bool:
+    """A RELATIVE stem is the caller's own package path, so it is anchored; an absolute one is
+    anchored at the root. A same-named directory deep in the tree (`vendor/json/`) is not the
+    package `import json` names.
+
+    @brief Inside a package.
+    @return Bool.
+    """
+    del relative  # both forms are root-anchored paths by the time they reach here
+    return bool(stem) and rel.startswith(stem + "/")
 
 
 ## @brief The file stems a dotted module may live at.
@@ -2461,7 +2477,8 @@ _FOLD_STAGE = "ast_fold"
 ## 4: JS/TS member calls reach free functions only through what holds them (`_member_reachable`).
 ## 5: an interface-typed receiver reaches its implementation family (`_interface_family`).
 ## 6: a Python call through an imported module resolves to that module's function (`_via_module`).
-_FOLD_STAGE_VERSION = 6
+## 7 (round 5): package aliases resolve inside a root-anchored package (`_via_module` v3).
+_FOLD_STAGE_VERSION = 7
 
 
 ## @brief Digest of every INDEX-WIDE input the fold reads, so a change to any invalidates all.

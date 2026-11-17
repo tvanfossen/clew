@@ -81,6 +81,10 @@ _FILES = {
         '    """Two candidates inside the package: no guess."""\n'
         "    return d.go()\n"
     ),
+    ## Round 5 (W5, agent C's audit): an ABSOLUTE import of a module the repository does not
+    ## own (stdlib `json`) must not land in a same-named directory deep in the tree.
+    "app2/main.py": 'import json\n\n\ndef read(t):\n    """Reads."""\n    return json.loads(t)\n',
+    "vendor/json/decoder.py": 'def loads(s):\n    """A copy, not the stdlib."""\n    return s\n',
     "tests/conftest.py": (
         "import pytest\n\n\n"
         "@pytest.fixture\n"
@@ -174,3 +178,22 @@ def test_a_call_through_a_package_alias_resolves_to_its_re_export(db: Path) -> N
 def test_a_package_alias_with_two_candidates_inside_resolves_nothing(db: Path) -> None:
     """@brief Two `go`s inside the package: refused, never guessed."""
     assert not any(a == "both" and c == "resolved" for a, _b, _f, c in _edges(db))
+
+
+def test_an_absolute_import_never_lands_in_a_same_named_directory_deep_in_the_tree(
+    db: Path,
+) -> None:
+    """FOUND BY AGENT C'S AUDIT OF 4d-0 (2026-11-17): the package-alias rule matched `/<stem>/`
+    anywhere in a path, so `import json; json.loads()` resolved to `vendor/json/decoder.py`. A
+    package alias resolves inside a package only when the import is RELATIVE (anchored at the
+    caller's package) or the absolute package sits at the repository root.
+
+    @brief No tree-wide suffix match for an absolute package.
+    """
+    conn = sqlite3.connect(str(db))
+    rows = conn.execute(
+        "SELECT a.name, b.name FROM call_edges c JOIN memberdef a ON a.rowid = c.caller_rowid "
+        "JOIN memberdef b ON b.rowid = c.callee_rowid WHERE c.source != 'doxygen_sqlite'"
+    ).fetchall()
+    conn.close()
+    assert ("read", "loads") not in {(str(a), str(b)) for a, b in rows}

@@ -346,7 +346,9 @@ def _bind_import(node: Any, src_bytes: bytes, bindings: PyBindings) -> None:
 ## @param node An `import_from_statement` node.
 ## @param src_bytes The file's raw bytes.
 ## @param bindings Table mutated in place.
-## @version 1
+## v2 (round 5): `from .. import x` binds `..x`, not `...x` (the extra dot climbed one package
+## too far, so the package-alias rule could only match by tree-wide suffix).
+## @version 2
 ## @dg_internal
 def _bind_import_from(node: Any, src_bytes: bytes, bindings: PyBindings) -> None:
     """The imported name binds to `<module>.<name>`, so a relative import
@@ -358,7 +360,7 @@ def _bind_import_from(node: Any, src_bytes: bytes, bindings: PyBindings) -> None
     every call through it stays unresolved instead of being attributed to `x`.
 
     @brief Bind a from-import statement's names.
-    @version 1
+    @version 2
     """
     module_node = node.child_by_field_name("module_name")
     module = node_text(module_node, src_bytes) if module_node is not None else ""
@@ -375,7 +377,10 @@ def _bind_import_from(node: Any, src_bytes: bytes, bindings: PyBindings) -> None
             continue
         local, imported = _import_from_pair(child, src_bytes)
         if local is not None and imported is not None:
-            bindings.names[local] = f"{module}.{imported}" if module else imported
+            ## `from .. import api` is the module `..api`, not `...api`: a relative module that
+            ## already ends in a dot takes the name directly (round 5, found by agent C's W5).
+            joiner = "" if module.endswith(".") else "."
+            bindings.names[local] = f"{module}{joiner}{imported}" if module else imported
 
 
 ## @brief The (local name, imported name) pair for one from-import clause.
