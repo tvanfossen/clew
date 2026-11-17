@@ -491,6 +491,36 @@ def test_a_flow_entry_is_selected_by_file(repo: tuple[Path, Path]) -> None:
     assert [s.callee for s in flow.steps] == ["other"]
 
 
+def test_a_flow_entry_by_file_survives_distinct_identities(
+    repo: tuple[Path, Path], tmp_path: Path
+) -> None:
+    """FOUND IN CI (doxygen 1.9.8; 1.18 locally): the two `main`s can carry DIFFERENT definitions,
+    so they are two identities — and `identity_rowids` picked one by its default guess BEFORE the
+    file filter, leaving nothing for the other file. 51 wiki tests failed in CI and none locally.
+    The file now chooses the identity. Simulated here by giving the rows distinct definitions.
+
+    @brief derive_flow(file=...) finds each file's main whichever identity sorts first.
+    """
+    import shutil
+    import sqlite3
+
+    from clew.wiki.flow import derive_flow
+
+    db = tmp_path / "split.db"
+    shutil.copy(repo[1], db)
+    conn = sqlite3.connect(db)
+    conn.execute(
+        "UPDATE memberdef SET definition = 'def ' || ? || '.main' WHERE name = 'main' AND "
+        "file_id IN (SELECT rowid FROM path WHERE name LIKE ?)",
+        ("tools.other", "%tools/other.py"),
+    )
+    conn.commit()
+    conn.close()
+    for file in ("src/cli.py", "tools/other.py"):
+        flow = derive_flow(db, repo[0], "main", file=file, depth=1)
+        assert flow.steps, file
+
+
 ## The most bytes clew.js may carry: one script for every page, read before anything renders.
 _JS_BUDGET = 8192
 

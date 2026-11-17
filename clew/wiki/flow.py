@@ -28,7 +28,7 @@ import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
 
-from ..query._common import connect, identity_rowids, qualified_name_of
+from ..query._common import connect, function_candidates, identity_rowids, qualified_name_of
 from ..query.callsites import Frame, call_sequence
 from ..query.traversal import _definition, _identity_call_hops
 
@@ -97,7 +97,9 @@ class Flow:
 ## @param file Only the entry identity whose body is in this file (two `main`s share a name).
 ## @return The Flow.
 ## v2: `file` — select the entry by its file; its first hops use only that file's rowids.
-## @version 2
+## v3: the FILE chooses the identity (`_entry_rowids`); found in CI, where doxygen 1.9.8 gave two
+## same-named mains distinct definitions and the default guess picked the other one.
+## @version 3
 ## @req REQ-DDB-WIKI-001
 def derive_flow(
     db: Path | str,
@@ -120,10 +122,8 @@ def derive_flow(
     if lanes not in LANES:
         raise ValueError(f"unknown lane strategy {lanes!r}; known: {', '.join(LANES)}")
     with connect(db) as conn:
-        rowids = identity_rowids(conn, entry, qualified)
         walker = _Walker(conn, Path(repo_root), lanes, frozenset(stop_at))
-        if file:
-            rowids = [r for r in rowids if walker.file_of(r) == file]
+        rowids = _entry_rowids(conn, walker, entry, qualified, file)
         if not rowids:
             raise ValueError(
                 f"no function {entry!r} in this index (qualified={qualified!r}, file={file!r})"
@@ -139,6 +139,37 @@ def derive_flow(
             lanes=tuple(Lane(id=lane, label=lane) for lane in ordered),
             steps=tuple(walker.steps),
         )
+
+
+## @brief The rowids of the entry: its identity, chosen by file when one is given.
+## @param conn Open connection.
+## @param walker The walker (for each row's file).
+## @param entry The function name.
+## @param qualified An identity selector, or None.
+## @param file The entry's file, or None.
+## @return Rowids; [] when nothing matches.
+## @version 1
+## @dg_internal
+def _entry_rowids(
+    conn: sqlite3.Connection, walker: _Walker, entry: str, qualified: str | None, file: str | None
+) -> list[int]:
+    """THE FILE CHOOSES THE IDENTITY. Filtering the default identity by file found nothing when
+    two same-named functions were distinct identities and the guess picked the other one — which
+    depended on the doxygen version. With a file and no selector, the identity is the one whose
+    row sits in that file; only that file's rows are walked.
+
+    @brief Entry rowids.
+    @return Rowids.
+    """
+    if not file:
+        return identity_rowids(conn, entry, qualified)
+    if qualified is None:
+        rows = [(r, sig) for r, sig, *_rest in function_candidates(conn, entry)]
+        hit = next((sig for r, sig in rows if walker.file_of(r) == file), None)
+        if hit is None:
+            return []
+        qualified = qualified_name_of(entry, hit)
+    return [r for r in identity_rowids(conn, entry, qualified) if walker.file_of(r) == file]
 
 
 ## @brief The depth-first walk that emits steps in call order.
