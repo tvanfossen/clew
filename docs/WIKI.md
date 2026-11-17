@@ -92,6 +92,22 @@ is never counted as an implementer. With Python, running the tests with `--cov-c
 called by name). A JSON report with contexts works too, but grows with tests × lines — 3.9 GB on
 clew's own suite.
 
+For C and C++ the repository produces its own per-test report and names it the same way
+(`contexts: build/per-test.info`): an LCOV tracefile with one `TN:` section per test, named as the
+test's result is named. clew reads it and never runs your build. One way, with gcov under ctest
+(built with `--coverage`; checked with gcc and gcovr 8.8 on a two-test project whose test names hold
+spaces and regex characters):
+
+```bash
+# one test at a time: clear the counters, run it, export its lines under its own TN: name
+# (a read loop, because Catch2 test names hold spaces; -R is a regex, so escape its specials)
+ctest --test-dir build -N | sed -n 's/^ *Test *#[0-9]*: //p' | while IFS= read -r t; do
+  find build -name '*.gcda' -delete
+  ctest --test-dir build -R "^$(printf '%s' "$t" | sed 's/[][\.*^$()+?{}|]/\\&/g')\$"
+  gcovr --root . --lcov - | sed "s|^TN:.*|TN:$t|" >> build/per-test.info
+done
+```
+
 | tier | meaning |
 |---|---|
 | PASS | a linked test passed and none failed |
@@ -201,7 +217,7 @@ wiki:
     layers: {unit: ["tests/unit/*"], bdd: ["tests/features/*"]}
     min_layers: 2               # flag requirements tested in fewer layers
     target_only: ["test_hw_*"]  # skipped on host by design: TARGET, not a gap
-    contexts: .coverage                   # coverage.py data (or JSON) with --cov-context=test
+    contexts: .coverage                   # coverage.py data/JSON (--cov-context=test), or LCOV with TN: per test
     evidence_fields: [x-evidence, evidence]
     infer_depth: 4              # cap call-graph links at N calls (omit = any depth; 0 = off)
     mutations: build/mutations.yaml

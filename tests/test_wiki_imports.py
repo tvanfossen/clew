@@ -612,3 +612,30 @@ def test_only_a_tests_own_run_links_it_not_its_fixtures_setup(tmp_path: Path) ->
     )
     (tmp_path / "a.py").write_text("x = 1\ny = 2\n")
     assert parse_contexts(report, tmp_path) == {"a.py": {1: set(), 2: {"test_x"}}}
+
+
+def test_an_lcov_tracefile_s_test_sections_are_per_test_contexts(tmp_path: Path) -> None:
+    """OWNER 2026-11-17 (round 5): per-test coverage for C/C++ is THE REPOSITORY'S OWN REPORT,
+    read rather than stitched together by clew. LCOV carries one `TN:` section per test; a line
+    with hits > 0 in a section ran in that test, a zero-hit line did not, and an unnamed section
+    is unattributed (dropped, as coverage.py's empty context is). Paths are made repo-relative.
+
+    @brief `contexts` accepts LCOV: TN sections become tests per line.
+    @return None.
+    """
+    from clew.wiki.imports import parse_contexts
+
+    src = tmp_path / "src" / "codec.c"
+    src.parent.mkdir()
+    src.write_text("x\n" * 20)
+    info = tmp_path / "build" / "per-test.info"
+    info.parent.mkdir()
+    info.write_text(
+        f"TN:decodes a frame\nSF:{src}\nDA:3,1\nDA:4,0\nDA:7,2\nend_of_record\n"
+        "TN:rejects a short frame\nSF:src/codec.c\nDA:3,1,abc\nDA:9,1\nend_of_record\n"
+        f"TN:\nSF:{src}\nDA:12,5\nend_of_record\n"
+    )
+    lines = parse_contexts(info, tmp_path)["src/codec.c"]
+    assert lines[3] == {"decodes a frame", "rejects a short frame"}
+    assert lines[7] == {"decodes a frame"} and lines[9] == {"rejects a short frame"}
+    assert 4 not in lines and 12 not in lines

@@ -174,7 +174,8 @@ def parse_mapping(path: Path) -> dict[str, tuple[str, ...]]:
 ## @param repo_root The repository the files are made relative to.
 ## @return {file: {line: test names}}; the empty (no-test) context is dropped.
 ## v2 (round 4): also coverage.py's `.coverage` data file — any path not ending `.json`.
-## @version 2
+## v3 (round 5): an LCOV tracefile (`.info` / `.lcov`) — its `TN:` sections are the tests.
+## @version 3
 ## @req REQ-DDB-WIKI-016
 def parse_contexts(path: Path, repo_root: Path) -> dict[str, dict[int, set[str]]]:
     """A CONTEXT IS `<nodeid>|<phase>`; the test is the nodeid's function, parameters dropped,
@@ -184,6 +185,8 @@ def parse_contexts(path: Path, repo_root: Path) -> dict[str, dict[int, set[str]]
     @return Tests per line.
     """
     root = Path(repo_root).resolve()
+    if path.suffix in _LCOV_SUFFIXES:
+        return _contexts_from_lcov(path, root)
     if path.suffix != ".json":
         return _contexts_from_data_file(path, root)
     out: dict[str, dict[int, set[str]]] = {}
@@ -214,6 +217,43 @@ def _context_test(context: str) -> str:
     if phase and phase != "run":
         return ""
     return nodeid.split("[", 1)[0].rsplit("::", 1)[-1]
+
+
+## Suffixes read as an LCOV tracefile rather than coverage.py data.
+_LCOV_SUFFIXES = frozenset({".info", ".lcov"})
+
+
+## @brief Per-test contexts from an LCOV tracefile's `TN:` sections.
+## @param path The tracefile.
+## @param root The repository root, resolved.
+## @return {file: {line: tests}}.
+## @version 1
+## @req REQ-DDB-WIKI-016
+def _contexts_from_lcov(path: Path, root: Path) -> dict[str, dict[int, set[str]]]:
+    """THE REPOSITORY'S OWN REPORT (owner 2026-11-17): C/C++ per-test coverage is produced by the
+    repository's build — a per-test `GCOV_PREFIX` under ctest, then gcovr or lcov — and read here,
+    never stitched together by clew. A `TN:` line starts a test's section; `DA:<line>,<hits>[,…]`
+    with hits > 0 ran in it. An unnamed section is unattributed and dropped, as coverage.py's empty
+    context is.
+
+    @brief Read LCOV test sections.
+    @return Tests per line.
+    """
+    out: dict[str, dict[int, set[str]]] = {}
+    test, lines = "", None
+    for raw in _text(path).splitlines():
+        tag, _, value = raw.strip().partition(":")
+        if tag == "TN":
+            test = value.strip()
+        elif tag == "SF":
+            lines = out.setdefault(_relative(value, path.parent, root), {})
+        elif tag == "DA" and test and lines is not None:
+            line, _, rest = value.partition(",")
+            if int(rest.split(",", 1)[0] or 0) > 0:
+                lines.setdefault(int(line), set()).add(test)
+        elif tag == "end_of_record":
+            lines = None
+    return {rel: lines for rel, lines in out.items() if lines}
 
 
 ## @brief Per-test contexts from coverage.py's own data file (SQLite).

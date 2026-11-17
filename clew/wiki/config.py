@@ -37,7 +37,7 @@ is silently ignored produces a site that looks complete and omits what the key a
         min_layers: 2                 # flag a requirement tested in fewer layers
         evidence_fields: [x-evidence, evidence]  # catalog fields naming test files ([] = off)
         infer_depth: 4                # cap the call-graph walk at N calls (omit = transitive; 0 = off)
-        contexts: .coverage           # coverage.py data (or JSON) with --cov-context=test
+        contexts: .coverage           # coverage.py data/JSON, or LCOV (.info) with TN: per test
       links:
         template: "https://host/repo/blob/{commit}/{file}#L{line}"
       sources:                        # W7: external node sources (JSON / TOML / YAML)
