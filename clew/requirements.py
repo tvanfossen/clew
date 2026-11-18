@@ -33,6 +33,7 @@ Three stages, run after the call-graph layers and before reachability:
 
 from __future__ import annotations
 
+import json
 import re
 import sqlite3
 from pathlib import Path
@@ -188,13 +189,18 @@ def _is_flat_req_list(data: object, id_col: str) -> bool:
 
 
 ## @brief Create (or reset) the `requirements` table.
-## @version 1
+## v2 (2.0.0, S4): the 29148 columns and `extra`.
+## @version 2
 ## @dg_internal
 def _create_requirements_table(conn: sqlite3.Connection) -> None:
     """Create the requirements table schema, dropping any prior rows.
 
+    S4 (2.0.0): the IEEE 29148 attributes `status`, `rationale`, `verification` and `parent`
+    are columns, and `extra` holds every catalog key the reader does not map (JSON; NULL when
+    there is none — absent, not empty).
+
     @brief Create the requirements table.
-    @version 1
+    @version 2
     """
     conn.execute("DROP TABLE IF EXISTS requirements")
     conn.execute(
@@ -204,7 +210,12 @@ def _create_requirements_table(conn: sqlite3.Connection) -> None:
             block     TEXT,
             title     TEXT,
             acceptance TEXT,
-            priority  TEXT
+            priority  TEXT,
+            status    TEXT,
+            rationale TEXT,
+            verification TEXT,
+            parent    TEXT,
+            extra     TEXT
         )
         """,
     )
@@ -289,7 +300,8 @@ def _first(entry: dict, *keys: str) -> object | None:
 ## @param id_col Declared/convention id column key.
 ## @param name_col Declared/convention title/name column key.
 ## @return 1 if a row was inserted, 0 if the entry had no id.
-## @version 3
+## v4 (2.0.0, S4): the 29148 columns, and every unmapped key kept in `extra` and logged.
+## @version 4
 ## @req REQ-DDB-CONFIG-003
 def _insert_req_entry(
     conn: sqlite3.Connection,
@@ -300,26 +312,71 @@ def _insert_req_entry(
     """Insert a single flat catalog row, tolerating either the declared or
     the convention id/name keys.
 
+    A KEY NO COLUMN READS IS KEPT, NOT DROPPED (2.0.0, S4): it lands verbatim in `extra` and the
+    build log names it, so a catalog field the index does not model is visible rather than
+    indistinguishable from one the catalog never had.
+
     @brief Insert one flat requirements-catalog row.
-    @version 2
+    @version 3
     """
     rid = entry.get(id_col) or entry.get("id")
     if not rid:
         return 0
+    columns = {col: _first(entry, *keys) for col, keys in _COLUMN_KEYS.items()}
+    columns["title"] = _first(entry, name_col, *_COLUMN_KEYS["title"])
+    read = {
+        id_col,
+        "id",
+        name_col,
+        *_READ_ELSEWHERE,
+        *(k for keys in _COLUMN_KEYS.values() for k in keys),
+    }
+    extra = {k: entry[k] for k in sorted(entry) if k not in read}
+    if extra:
+        logger.info(
+            "requirements: %s carries keys no column reads, kept in `extra`: %s",
+            rid,
+            ", ".join(extra),
+        )
     conn.execute(
-        """
-        INSERT OR REPLACE INTO requirements (id, block, title, acceptance, priority)
-        VALUES (?, ?, ?, ?, ?)
-        """,
+        f"INSERT OR REPLACE INTO requirements (id, {', '.join(columns)}, extra) "
+        f"VALUES (?, {', '.join('?' * len(columns))}, ?)",
         (
             rid,
-            _first(entry, "block", "subsystem"),
-            _first(entry, name_col, "name", "title"),
-            _first(entry, "acceptance", "acceptance_criteria"),
-            _first(entry, "priority", "x-priority"),
+            *(_scalar(v) for v in columns.values()),
+            json.dumps(extra, default=str) if extra else None,
         ),
     )
     return 1
+
+
+## Column -> the catalog keys that fill it, most specific first: our flat shape, doxygen-guard's
+## keyed shape (`subsystem`, `acceptance_criteria`, `x-` extras) and the S4 (IEEE 29148) names.
+_COLUMN_KEYS: dict[str, tuple[str, ...]] = {
+    "block": ("block", "subsystem"),
+    "title": ("name", "title"),
+    "acceptance": ("acceptance", "acceptance_criteria"),
+    "priority": ("priority", "x-priority"),
+    "status": ("status", "x-status"),
+    "rationale": ("rationale", "x-rationale"),
+    "verification": ("verification", "verification_method", "x-verification"),
+    "parent": ("parent", "x-parent"),
+}
+## Keys a different reader consumes: `satisfies` (requirement_links), `version` (the gate's
+## version field). Not "unread", so not disclosed as such.
+_READ_ELSEWHERE = ("satisfies", "version", "x-version")
+
+
+## @brief A catalog value as a column holds it: text as written, a list or mapping as JSON.
+## @param value The catalog value.
+## @return Text, or None.
+## @version 1
+## @dg_internal
+def _scalar(value: object) -> str | None:
+    """@brief Column text. @return Text or None."""
+    if value is None or isinstance(value, str):
+        return value
+    return json.dumps(value, default=str) if isinstance(value, (list, dict)) else str(value)
 
 
 ## The key under which doxygen-guard's catalog contract puts the requirement entries,
