@@ -168,10 +168,14 @@ OPT_IN_LANGUAGE_DEFAULTS: dict[str, dict[str, Any]] = {
 # must import these rather than re-deriving them; duplicating the literals is how
 # the gate and its consumers drift apart.
 REQUIREMENTS_FORMAT_DEFAULT = "yaml"
-REQUIREMENTS_ID_COLUMN_DEFAULT = "Req ID"
+## ONE DEFAULT PAIR FOR EVERY READER (R5-CFG F8, 2.0.0). The gate defaulted to `Req ID`/`name` and
+## the index to `id`/`title`, so an undeclared flat `[{id, ...}]` catalog was keyed by one tool
+## and not the other. `id` is the index's id key and `name` the gate's required name field (the
+## index reads `name` or `title` either way, so its behaviour does not change).
+REQUIREMENTS_ID_COLUMN_DEFAULT = "id"
 REQUIREMENTS_NAME_COLUMN_DEFAULT = "name"
 REQUIREMENTS_ROOT_KEY = "requirements"
-REQUIREMENTS_REQUIRED_FIELDS = ("name",)
+REQUIREMENTS_REQUIRED_FIELDS = (REQUIREMENTS_NAME_COLUMN_DEFAULT,)
 REQUIREMENTS_OPTIONAL_FIELDS = (
     "subsystem",
     "min_version",
@@ -184,21 +188,67 @@ REQUIREMENTS_OPTIONAL_FIELDS = (
 # so no column name is involved.
 REQUIREMENTS_FORMATS_USING_ID_COLUMN = ("csv", "json")
 
-IMPACT_DEFAULTS: dict[str, Any] = {
+## ONE PATH FOR THE IMPACT REPORT (R5-CFG F9 / D8, 2.0.0). It was `output_dir` (a generic
+## directory that only ever held this report) for the hook, `impact.output.file` for the
+## subcommand and `wiki.impact` for the site — three keys that could disagree, and the literal
+## `docs/generated/` restated in four places. The hook writes `impact.md` and `impact.json` here,
+## `clew guard impact --write` does the same, and the wiki reads `impact.json` from here.
+DEFAULT_REPORT_DIR = "docs/generated/impact/"
+REPORT_MARKDOWN = "impact.md"
+REPORT_JSON = "impact.json"
+
+IMPACT_DEFAULTS: dict[str, Any] = {"report_dir": DEFAULT_REPORT_DIR}
+
+## `requirements` is the top-level catalog section, carried in the loaded config so every gate
+## reader finds it in one place; None means no catalog is declared. It is not a `guard:` key, and
+## `config --effective` reports it under `resolved.requirements` rather than echoing it as input.
+CONFIG_DEFAULTS: dict[str, Any] = {
+    "validate": VALIDATE_DEFAULTS,
+    "impact": IMPACT_DEFAULTS,
     "requirements": None,
 }
 
-CONFIG_DEFAULTS: dict[str, Any] = {
-    "output_dir": "docs/generated/",
-    "validate": VALIDATE_DEFAULTS,
-    "impact": IMPACT_DEFAULTS,
+## THE TOP-LEVEL `requirements:` SECTION (R5-CFG F6/F7/F14, 2.0.0): one catalog, read by the index,
+## the gate and the wiki. Before, it lived in five places — a top-level path the index alone read,
+## `guard.impact.requirements` (gate, wiki, coverage), `wiki.catalogs` and
+## `impact.requirements.external` (one concept in two spellings), and `wiki.needs` — and each
+## tool read a different one. `version_field` is a catalog field, so it lives here too.
+REQUIREMENTS_SCHEMA: dict[str, Any] = {
+    "file": str,
+    "format": str,
+    "id_column": str,
+    "name_column": str,
+    ## GH #68: catalogues this repository does not own — a path, or {repo, rev, path, name?}
+    ## read from a local clone at that revision. A URL is refused by name. Pinned entries are
+    ## also the wiki's sub-catalogues (what `wiki.catalogs` declared, in its other spelling).
+    "external": list,
+    ## round 3, P6c: a requirement whose `status_field` value is in `exempt_status` is not a
+    ## coverage gap; `clew guard coverage` lists it as exempt, never silently.
+    "status_field": str,
+    "exempt_status": list,
+    ## The catalog field naming the release a requirement becomes active in (the version gate).
+    "version_field": str,
+    ## A Sphinx-needs `needs.json` whose needs join the requirement trace.
+    "needs": str,
+}
+
+## Keys that MOVED in 2.0.0, refused with where they went rather than as unknown: each was
+## correct in 1.x, so "unknown key" would send a reader hunting a typo that is not there.
+MOVED_KEYS: dict[str, str] = {
+    "impact.requirements": "the top-level `requirements:` section of .clew.yaml",
+    "validate.version_gate.version_field": "`requirements.version_field` (top level)",
+    "validate.version_gate.current_version": "`guard.validate.current_version`",
+    "output_dir": "`guard.impact.report_dir` (the directory the impact report is written to)",
+    "impact.output": (
+        "`guard.impact.report_dir`; `clew guard impact --write` writes impact.md and impact.json "
+        "there, and without --write it prints (`--format markdown|json|text`)"
+    ),
 }
 
 
 _OPEN_DICT = object()
 
 CONFIG_SCHEMA: dict[str, Any] = {
-    "output_dir": str,
     "validate": {
         "languages": _OPEN_DICT,
         "comment_style": {"start": str, "end": str},
@@ -217,27 +267,13 @@ CONFIG_SCHEMA: dict[str, Any] = {
         "extra_tags": list,
         "known_tags_warn": bool,
         "duplicate_tags_error": bool,
-        "version_gate": {"current_version": str, "version_field": str},
+        ## The release the version gate compares `requirements.version_field` against: a
+        ## literal version, `auto:git` or `auto:cmake` (was `version_gate.current_version`).
+        "current_version": str,
         "bus": {"tags": list, "vocabulary": list, "handlers": list, "senders": list},
     },
     "impact": {
-        "requirements": {
-            "file": str,
-            "format": str,
-            "id_column": str,
-            "name_column": str,
-            ## GH #68: catalogues this repository does not own — a path, or {repo, rev, path}
-            ## read from a local clone at that revision. A URL is refused by name.
-            "external": list,
-            ## round 3, P6c: a requirement whose `status_field` value is in `exempt_status` is
-            ## not a coverage gap; `clew guard coverage` lists it as exempt, never silently.
-            "status_field": str,
-            "exempt_status": list,
-        },
-        "output": {
-            "format": str,
-            "file": str,
-        },
+        "report_dir": str,
     },
 }
 
@@ -298,15 +334,66 @@ def _validate_node(user: Any, schema: Any, path: str) -> list[str]:
 
 
 ## @brief Validate user config keys and types against CONFIG_SCHEMA.
-#  @version 1.1
+#  @details v1.2 (2.0.0): a key in MOVED_KEYS is reported with where it went, and is not also
+#  reported as unknown.
+#  @version 1.2
 #  @req REQ-DDB-GUARD-012
 #  @return List of error strings, empty if config is valid
 def validate_config_schema(user_config: dict[str, Any]) -> list[str]:
-    return _validate_node(user_config, CONFIG_SCHEMA, "")
+    moved, rest = _moved_keys(user_config)
+    return moved + _validate_node(rest, CONFIG_SCHEMA, "")
+
+
+## @brief Split out the keys that moved in 2.0.0, each with a pointer to its new home.
+#  @version 1.0
+#  @dg_internal
+#  @return (errors naming each moved key, the config without them)
+def _moved_keys(user_config: dict[str, Any]) -> tuple[list[str], dict[str, Any]]:
+    errors: list[str] = []
+    rest = copy.deepcopy(user_config) if isinstance(user_config, dict) else user_config
+    for dotted, where in MOVED_KEYS.items():
+        *parents, leaf = dotted.split(".")
+        node = rest
+        for part in parents:
+            node = node.get(part) if isinstance(node, dict) else None
+        if isinstance(node, dict) and leaf in node:
+            errors.append(f"guard.{dotted} moved in 2.0.0 to {where}")
+            del node[leaf]
+    gate = (rest.get("validate") or {}) if isinstance(rest, dict) else {}
+    if isinstance(gate, dict) and gate.get("version_gate") == {}:
+        del gate["version_gate"]
+    return errors, rest
+
+
+## @brief Read and validate the top-level `requirements:` section of a `.clew.yaml`.
+#  @details A bare string is the short form of `{file: <string>}`, which is what the 1.x top-level
+#  section was. Unknown keys are refused with a suggestion, like every `guard:` key.
+#  @version 1.0
+#  @req REQ-DDB-GUARD-012
+#  @return The section as a mapping, or None when the file declares none
+def read_requirements_section(config_path: Path) -> dict[str, Any] | None:
+    try:
+        with open(config_path) as f:
+            document = yaml.safe_load(f) or {}
+    except (OSError, yaml.YAMLError) as e:
+        raise ConfigError(f"Could not read config file {config_path}: {e}") from e
+    raw = document.get(REQUIREMENTS_ROOT_KEY) if isinstance(document, dict) else None
+    if raw is None:
+        return None
+    section = {"file": raw} if isinstance(raw, str) else raw
+    errors = _validate_node(section, REQUIREMENTS_SCHEMA, REQUIREMENTS_ROOT_KEY)
+    if not isinstance(section, dict):
+        errors = [f"{REQUIREMENTS_ROOT_KEY}: expected a mapping or one path"]
+    if errors:
+        for err in errors:
+            logger.error("Config error in %s: %s", config_path, err)
+        raise ConfigError(f"Invalid config in {config_path}", errors)
+    return dict(section)
 
 
 ## @brief Parse a version string like "v1.8.2" into a comparable tuple.
-#  @version 2.0
+#  v2.1: the message names validate.current_version (2.0.0)
+#  @version 2.1
 #  @req REQ-DDB-GUARD-014
 #  @return Tuple of integer components for comparison
 def parse_version(version_str: str) -> tuple[int, ...]:
@@ -322,7 +409,7 @@ def parse_version(version_str: str) -> tuple[int, ...]:
         logger.error("Could not parse version %r", version_str)
         raise ConfigError(
             f"Could not parse version {version_str!r}. If this came from "
-            f"validate.version_gate.current_version, either set a literal version or "
+            f"validate.current_version, either set a literal version or "
             f"ensure the auto: detector can resolve one."
         ) from e
 
@@ -400,7 +487,9 @@ def _warn_about_legacy_config(config_path: Path) -> None:
 ## @brief Load the `guard:` section of `.clew.yaml` and merge with built-in defaults.
 #  @details A missing file, or a file with no `guard:` section, runs on the defaults — and in
 #  either case an inert `.doxygen-guard.yaml` beside it is named as the probable cause.
-#  @version 3.1
+#  v3.2 (2.0.0): the top-level `requirements:` section rides along as `config["requirements"]`,
+#  read with or without a `guard:` section, so the gate and the index read one catalog.
+#  @version 3.2
 #  @req REQ-DDB-GUARD-012
 #  @return Merged config dict with defaults applied
 def load_config(config_path: Path | None = None) -> dict[str, Any]:
@@ -413,11 +502,12 @@ def load_config(config_path: Path | None = None) -> dict[str, Any]:
         return _fresh_defaults()
 
     logger.info("Loading config from %s", config_path)
+    requirements = read_requirements_section(config_path)
     user_config = read_guard_section(config_path)
     if user_config is None:
         logger.info("No %r section in %s, using defaults", CONFIG_SECTION, config_path)
         _warn_about_legacy_config(config_path)
-        return _fresh_defaults()
+        return {**_fresh_defaults(), REQUIREMENTS_ROOT_KEY: requirements}
 
     errors = validate_config_schema(user_config)
     if errors:
@@ -426,7 +516,9 @@ def load_config(config_path: Path | None = None) -> dict[str, Any]:
         raise ConfigError(f"Invalid config in {config_path}", errors)
 
     _log_declared_sections(user_config)
-    return apply_opt_in_languages(deep_merge(_fresh_defaults(), user_config), user_config)
+    merged = apply_opt_in_languages(deep_merge(_fresh_defaults(), user_config), user_config)
+    merged[REQUIREMENTS_ROOT_KEY] = requirements
+    return merged
 
 
 ## @brief Read the raw `guard:` mapping out of a `.clew.yaml`.
@@ -491,6 +583,20 @@ def get_validate(config: dict[str, Any]) -> dict[str, Any]:
 #  @dg_internal
 def get_impact(config: dict[str, Any]) -> dict[str, Any]:
     return config.get("impact", {})
+
+
+## @brief The directory the impact report is written to and read from.
+#  @version 1.0
+#  @dg_internal
+def report_dir(config: dict[str, Any] | None) -> str:
+    return str(((config or {}).get("impact") or {}).get("report_dir") or DEFAULT_REPORT_DIR)
+
+
+## @brief Access the requirements catalog section (the top-level `requirements:`).
+#  @version 1.0
+#  @dg_internal
+def get_requirements(config: dict[str, Any] | None) -> dict[str, Any]:
+    return (config or {}).get(REQUIREMENTS_ROOT_KEY) or {}
 
 
 ## @brief Reject output paths containing directory traversal or absolute components.

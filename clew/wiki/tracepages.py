@@ -18,7 +18,7 @@ trace is ONE page:
 Sources and where they are found:
   * the CATALOG — `requirements.resolve_catalog_path`, the same resolver the index uses
     (declaration in `guard:`, then the `requirements.yaml` convention);
-  * IMPACT — `wiki.impact` when declared, else `<guard.output_dir>/impact/impact.json`; absent
+  * IMPACT — `<guard.impact.report_dir>/impact.json` (default docs/generated/impact/); absent
     means no section, never an empty one claiming nothing changed.
 
 @brief Gather the trace; write the requirements and model-entries pages.
@@ -35,9 +35,6 @@ from .catalogs import declared_catalog
 from .config import Audience, WikiConfig
 from .htmltable import code, linked, source_url, table, tag, text
 from .reqmodal import first, issue_links, requirement_cell, requirement_pages, test_link, via
-
-## Where clew-guard writes its impact report, under its `output_dir`.
-_IMPACT = Path("impact") / "impact.json"
 
 
 ## @brief Everything the trace pages and the version snapshot are drawn from, gathered once.
@@ -216,16 +213,23 @@ def _with_needs(evidence: list, declared: dict, path: Path) -> tuple[list, dict]
 ## @param repo_root The repository.
 ## @param config The section.
 ## @return The path.
-## @version 1
+## v2: guard.impact.report_dir (2.0.0, R5-CFG F9)
+## @version 2
 ## @req REQ-DDB-WIKI-015
 def impact_path(repo_root: Path, config: WikiConfig) -> Path:
-    """@brief Locate impact.json. @return Path."""
-    if config.impact:
-        return Path(repo_root) / config.impact
+    """ONE PATH (R5-CFG F9, 2.0.0): the gate's `guard.impact.report_dir`, where its hook and
+    `clew guard impact --write` put the report. `wiki.impact` (a third key that could disagree) is
+    gone; `config.impact` remains only as a test seam.
+
+    @brief Locate impact.json.
+    @return Path.
+    """
+    from ..guard.config import REPORT_JSON, report_dir
     from ..requirements import load_guard_config
 
-    guard = load_guard_config(repo_root) or {}
-    return Path(repo_root) / str(guard.get("output_dir") or "docs/generated/") / _IMPACT
+    if config.impact:
+        return Path(repo_root) / config.impact
+    return Path(repo_root) / report_dir(load_guard_config(repo_root)) / REPORT_JSON
 
 
 ## @brief Read clew-guard's impact report.

@@ -174,13 +174,11 @@ class TestCoverageSubcommand:
         config = deep_merge(
             BASE_CONFIG,
             {
-                "impact": {
-                    "requirements": {
-                        "file": str(FIXTURES_DIR / "sources" / "requirements.csv"),
-                        "id_column": "Req ID",
-                        "name_column": "Name",
-                        "format": "csv",
-                    },
+                "requirements": {
+                    "file": str(FIXTURES_DIR / "sources" / "requirements.csv"),
+                    "id_column": "Req ID",
+                    "name_column": "Name",
+                    "format": "csv",
                 },
             },
         )

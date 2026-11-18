@@ -57,8 +57,9 @@ def test_the_wiki_check_and_impact_hooks_run_on_clew_itself() -> None:
     assert "clew-wiki-check" in hooks
     impact = hooks["clew-guard-impact"]
     assert "impact" in impact.get("args", []) or "impact" in impact["entry"]
-    output = _clew_yaml()["guard"]["impact"]["output"]
-    assert output == {"format": "json", "file": "docs/generated/impact/impact.json"}
+    ## 2.0.0 (R5-CFG F9): one report directory; the hook writes it with `--write`.
+    assert "--write" in impact.get("args", [])
+    assert _clew_yaml()["guard"]["impact"] == {"report_dir": "docs/generated/impact/"}
 
 
 def test_ci_builds_clews_own_wiki_and_does_not_deploy_it_yet() -> None:
@@ -93,7 +94,7 @@ def test_every_catalogued_requirement_has_an_implementer_or_an_exempt_status() -
 
     hook = _hooks()["clew-guard-coverage"]
     assert "coverage" in hook["entry"]
-    req = _clew_yaml()["guard"]["impact"]["requirements"]
+    req = _clew_yaml()["requirements"]  # 2.0.0: the top-level catalog section
     assert req["exempt_status"] == ["planned", "configuration"]
     out = subprocess.run(
         [str(REPO / ".venv" / "bin" / "python"), "-m", "clew", "guard", "coverage", "clew"],

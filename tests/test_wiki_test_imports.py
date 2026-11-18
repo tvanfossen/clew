@@ -6,7 +6,7 @@
   * JUNIT VARIANTS the plan names: a JUnit 5 / parametrised `name(args)[n]` is the function
     `name`; `status="disabled"` (or `"skipped"`) with no child element is a skip, not a pass; a
     test that failed and then passed on a rerun (`flakyFailure` / `rerunFailure` only) passed.
-  * SPHINX-NEEDS `needs.json` (`wiki.needs`) contributes requirements: titles and content for ids
+  * SPHINX-NEEDS `needs.json` (`requirements.needs`) contributes requirements: titles and content for ids
     the catalog does not describe, and a need the index has never seen becomes a requirement with
     no implementer — MISSING, not absent. The repository's own catalog wins where both speak.
 
@@ -109,7 +109,8 @@ def test_needs_json_contributes_requirements(repo: tuple[Path, Path], tmp_path: 
         )
     )
     config = tmp_path / "wiki.yaml"
-    config.write_text(_WIKI + f"  needs: {needs}\n")
+    ## FIXTURE CHANGED (2.0.0, R5-CFG F7): `wiki.needs` moved to `requirements.needs`.
+    config.write_text(f"requirements:\n  needs: {needs}\n" + _WIKI)
     html = build_wiki(repo[0], repo[1], tmp_path / "out", config_path=config)
     page = (html / "requirements.html").read_text()
     assert "Load the data" in page and "Not this" not in page

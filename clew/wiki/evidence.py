@@ -531,7 +531,8 @@ def _tier(statuses: tuple[tuple[str, str], ...], target_only: tuple[str, ...]) -
 ## @param guard The parsed guard section, or None.
 ## @return The rows, EXEMPT where the status is exempt and no test is linked.
 ## Round 4, R8: the demo read 5 MISSING where `clew guard coverage` read 3 of them exempt.
-## @version 1
+## v2: reads the top-level requirements: section (2.0.0, R5-CFG F7)
+## @version 2
 ## @req REQ-DDB-WIKI-002
 def exempt_by_status(
     evidence: list[RequirementEvidence], declared: dict[str, dict], guard: dict | None
@@ -544,7 +545,9 @@ def exempt_by_status(
     """
     from dataclasses import replace
 
-    req = ((guard or {}).get("impact") or {}).get("requirements") or {}
+    from ..guard.config import get_requirements
+
+    req = get_requirements(guard)
     statuses = set(req.get("exempt_status") or [])
     field = req.get("status_field", "status")
 

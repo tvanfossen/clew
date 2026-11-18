@@ -20,15 +20,16 @@ from clew.guard.errors import ConfigError
 from clew.requirements import load_guard_config, resolve_req_id_pattern
 from clew.scope import derive_scope
 
+## FIXTURE CHANGED (2.0.0, R5-CFG F7): the catalog is the top-level `requirements:` section, read
+## by both the index and the gate (the property these tests guard).
 _GUARD = """\
+requirements:
+  file: catalog.yaml
 guard:
   validate:
     tags:
       req:
         pattern: "^REQ-[0-9]{4}$"
-  impact:
-    requirements:
-      file: catalog.yaml
 """
 
 
@@ -44,7 +45,7 @@ def test_the_index_reads_the_guard_section_of_clew_yaml(tmp_path: Path) -> None:
     cfg = load_guard_config(tmp_path)
 
     assert cfg is not None
-    assert cfg["impact"]["requirements"]["file"] == "catalog.yaml"
+    assert cfg["requirements"]["file"] == "catalog.yaml"
     assert resolve_req_id_pattern(cfg).pattern == "^REQ-[0-9]{4}$"
 
 
@@ -54,7 +55,7 @@ def test_the_gate_reads_the_same_section(tmp_path: Path) -> None:
     cfg = load_config(path)
 
     assert cfg["validate"]["tags"]["req"]["pattern"] == "^REQ-[0-9]{4}$"
-    assert cfg["impact"]["requirements"]["file"] == "catalog.yaml"
+    assert cfg["requirements"]["file"] == "catalog.yaml"
 
 
 def test_no_file_and_no_section_both_mean_nothing_declared(tmp_path: Path) -> None:
@@ -89,12 +90,16 @@ def test_a_guard_section_that_is_not_a_mapping_is_refused_by_the_gate(tmp_path: 
 
 
 def test_the_guard_section_is_known_but_is_not_an_index_declaration(tmp_path: Path) -> None:
-    _write(tmp_path, _GUARD + "index_scope:\n  roots: [src]\n")
+    ## A `guard:`-ONLY file (2.0.0: `_GUARD` also carries the top-level catalog, which IS the
+    ## repository's declaration, so this property needs a file without one).
+    gate_only = _GUARD.split("guard:\n", 1)[1]
+    gate_only = "guard:\n" + gate_only
+    _write(tmp_path, gate_only + "index_scope:\n  roots: [src]\n")
     (tmp_path / "src").mkdir()
 
     assert load_declaration(tmp_path) == {"index_scope": {"roots": ["src"]}}
 
-    _write(tmp_path, _GUARD)
+    _write(tmp_path, gate_only)
     assert load_declaration(tmp_path) == {}, (
         "a file that configures only the gate must declare nothing to the index"
     )

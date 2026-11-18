@@ -53,7 +53,8 @@ class GuardConfigRead:
 ## @brief Read the `guard:` section of a repo's `.clew.yaml`, merged over the gate's defaults.
 ## @param repo_root Repo root whose `.clew.yaml` is read.
 ## @return A GuardConfigRead; `config` is empty when nothing usable was declared.
-## @version 2
+## v3: a requirements-only .clew.yaml is a declaration (2.0.0)
+## @version 3
 ## @req REQ-DDB-CONFIG-001
 def read_guard_config(repo_root: Path | str) -> GuardConfigRead:
     """THE single guard-config load for the index. Both consumers — the `@req` id
@@ -64,12 +65,21 @@ def read_guard_config(repo_root: Path | str) -> GuardConfigRead:
     @brief Load a repo's gate config for the index.
     @return The read result.
     """
-    from .guard.config import CONFIG_FILE_NAME, load_config, read_guard_section
+    from .guard.config import (
+        CONFIG_FILE_NAME,
+        load_config,
+        read_guard_section,
+        read_requirements_section,
+    )
     from .guard.errors import ConfigError
 
     path = Path(repo_root).expanduser() / CONFIG_FILE_NAME
     try:
-        declared = path.is_file() and read_guard_section(path) is not None
+        ## A catalog with no `guard:` section is still a declaration (2.0.0): the top-level
+        ## `requirements:` belongs to the repository, not to the gate.
+        declared = path.is_file() and (
+            read_guard_section(path) is not None or read_requirements_section(path) is not None
+        )
         config = load_config(path) if declared else {}
     except ConfigError as exc:
         problems = tuple(exc.problems) or (exc.message,)

@@ -10,7 +10,7 @@ import json
 import logging
 from typing import TYPE_CHECKING, Any
 
-from .config import get_impact
+from .config import get_requirements
 from .impact import load_requirements_full
 from .tags import collect_tagged_functions
 
@@ -49,13 +49,14 @@ def analyze_coverage(
 
 
 ## @brief The untagged requirements whose declared status exempts them from coverage.
-#  @version 1.0
+#  v1.1: reads the top-level requirements: section (2.0.0, R5-CFG F7)
+#  @version 1.1
 #  @req REQ-DDB-GUARD-022
 #  @return [{req_id, status}] sorted by id; [] when no exempt status is declared
 def _exempt(
     rows: dict[str, dict[str, str]], untagged: set[str], config: dict[str, Any]
 ) -> list[dict[str, str]]:
-    req = get_impact(config).get("requirements") or {}
+    req = get_requirements(config)
     statuses = set(req.get("exempt_status") or [])
     field = req.get("status_field", "status")
     return [

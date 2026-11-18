@@ -56,9 +56,11 @@ Installing the hook installs clew; there is no lighter gate-only distribution.
 
 ```yaml
 # .clew.yaml
-guard:
-  output_dir: docs/generated/
+requirements:                    # the catalog — one section the gate, the index and the wiki read
+  file: docs/requirements.yaml
+  format: yaml
 
+guard:
   validate:
     exclude:
       - "^tests/"
@@ -68,9 +70,7 @@ guard:
         pattern: "^REQ-[A-Z]+-[0-9]{3}$"
 
   impact:
-    requirements:
-      file: docs/requirements.yaml
-      format: yaml
+    report_dir: docs/generated/impact/   # the default
 ```
 
 The gate reads `.clew.yaml` from the directory it runs in (the repo root, under pre-commit);
@@ -93,8 +93,8 @@ int Sensor_ReadTemperature(void) {
 }
 ```
 
-`pre-commit run --all-files` prints violations to stderr and writes the impact report to
-`<output_dir>/impact/`.
+`pre-commit run --all-files` prints violations to stderr and writes the impact report
+(`impact.md`, `impact.json`) to `guard.impact.report_dir`.
 
 ## Migrating from doxygen-guard
 
@@ -131,7 +131,8 @@ hides the rest of the block from doxygen when `INTERNAL_DOCS` is off).
 
 **Change impact.** The `impact` subcommand, and the pre-commit run when a catalog is declared,
 cross-reference the diff with parsed functions and report which requirements the change
-touches, as markdown and JSON under `<output_dir>/impact/`.
+touches, as markdown and JSON under `guard.impact.report_dir`. `clew guard impact` prints the
+report (`--format markdown|json|text`); `--write` writes both files there instead.
 
 **Requirement coverage.** `clew guard coverage` reports covered, uncovered and orphan
 requirements, plus documented functions carrying no `@req`. Exit code 1 when gaps exist.
@@ -308,8 +309,7 @@ Every key below lives under the `guard:` section of `.clew.yaml`.
 | `exclude` | list | `[]` | Regexes for files to skip (`clew guard files` shows the result) |
 | `duplicate_tags_error` | bool | `true` | Flag a repeated `@brief`/`@version`/`@return`/`@file` |
 | `tags.req.cross_reference` | bool | `true` | `@req` ids must exist in the catalog |
-| `version_gate.current_version` | string | — | `auto:git`, `auto:cmake`, or an explicit version |
-| `version_gate.version_field` | string | — | Catalog field holding a requirement's minimum version |
+| `current_version` | string | — | The release the version gate compares against: `auto:git`, `auto:cmake`, or an explicit version (with `requirements.version_field`) |
 
 `version.tag` exists because the gate treats the tag as a **revision counter**, where doxygen
 documents `\version` as prose. A project using `\version` idiomatically can point the gate at
@@ -319,13 +319,32 @@ another tag and alias it: `version: {tag: "@revision"}` plus `extra_tags: ["revi
 
 | Key | Type | Default | Description |
 |---|---|---|---|
-| `requirements.file` | string | — | Path to the requirements catalog |
-| `requirements.format` | string | `yaml` | `yaml`, `csv` or `json` |
-| `requirements.id_column` | string | `Req ID` | Id column (`csv`/`json` only) |
-| `requirements.name_column` | string | `name` | Name column or field |
-| `requirements.external` | list | — | Catalogues this repository does not own: a path, or `{repo, rev, path}` read at that revision from a local clone or submodule. A URL is refused |
-| `requirements.status_field` | string | `status` | The catalogue field that holds a requirement's status |
-| `requirements.exempt_status` | list | — | Statuses that exempt an untagged requirement from `clew guard coverage` (e.g. `planned`, `configuration`); each exemption is listed in the report, never dropped |
+| `report_dir` | string | `docs/generated/impact/` | Where the pre-commit run and `clew guard impact --write` write `impact.md` and `impact.json`, and where the wiki reads them |
+
+### The top-level `requirements:` section
+
+The catalog is the repository's, not the gate's: one top-level section that the gate, the index
+and the wiki all read (2.0.0 — it was `guard.impact.requirements`, and the old location is
+refused with a pointer here). One path is the short form of `{file: <path>}`.
+
+| Key | Type | Default | Description |
+|---|---|---|---|
+| `file` | string | — | Path to the requirements catalog |
+| `format` | string | `yaml` | `yaml`, `csv` or `json` |
+| `id_column` | string | `id` | Id column (`csv`/`json` and the flat YAML list) |
+| `name_column` | string | `name` | Name column or field |
+| `external` | list | — | Catalogues this repository does not own: a path, or `{repo, rev, path, name}` read at that revision from a local clone or submodule. A URL is refused. Pinned entries are also the wiki's sub-catalogues |
+| `status_field` | string | `status` | The catalogue field that holds a requirement's status |
+| `exempt_status` | list | — | Statuses that exempt an untagged requirement from `clew guard coverage` (e.g. `planned`, `configuration`); each exemption is listed in the report, never dropped |
+| `version_field` | string | — | Catalog field naming the release a requirement becomes active in (with `guard.validate.current_version`) |
+| `needs` | string | — | A Sphinx-needs `needs.json` whose needs join the wiki's requirement trace |
+
+Moved in 2.0.0, each refused with where it went: `guard.impact.requirements` → `requirements:`,
+`guard.output_dir` and `guard.impact.output` → `guard.impact.report_dir`,
+`guard.validate.version_gate.current_version` → `guard.validate.current_version`,
+`guard.validate.version_gate.version_field` → `requirements.version_field`, `wiki.catalogs` →
+`requirements.external`, `wiki.needs` → `requirements.needs`, `wiki.impact` → the gate's
+`report_dir`.
 
 The preferred catalog is a mapping keyed by id:
 
@@ -354,11 +373,10 @@ A library whose requirements are owned by the product that consumes it names the
 catalogue under `external` and needs no `file` of its own:
 
 ```yaml
-impact:
-  requirements:
-    external:
-      - product/requirements.yaml                                   # a path in this checkout
-      - {repo: ../product, rev: v3.2.0, path: requirements.yaml}    # a local clone, at a pin
+requirements:
+  external:
+    - product/requirements.yaml                                   # a path in this checkout
+    - {repo: ../product, rev: v3.2.0, path: requirements.yaml}    # a local clone, at a pin
 ```
 
 A pinned entry is read with `git show rev:path`, so it is the catalogue as of that revision, not
@@ -420,7 +438,8 @@ clew guard -v coverage src/                # log which config sections were decl
 ## Adopting on an existing codebase
 
 1. Start with presence and revision only. Add `@brief` and `@version` as you touch functions,
-   and use `version_gate` to require `@req` only on requirements from a given version on.
+   and use `validate.current_version` with `requirements.version_field` to require `@req` only
+   on requirements from a given version on.
 2. Turn off `presence.require_return` during migration if needed.
 3. Exclude what you are not ready to cover (`validate.exclude: ["^vendor/", "^legacy/"]`).
 

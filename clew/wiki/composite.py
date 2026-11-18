@@ -374,11 +374,17 @@ def _read_source(
 ## @param dep The dependency checkout.
 ## @param pin Its pin.
 ## @return Specs relative to `dep`.
-## @version 1
+## v2: reads requirements.external; 1.x locations only at a pinned dependency (2.0.0)
+## @version 2
 ## @dg_internal
 def _nested_specs(dep: Path, pin: str) -> list[CatalogSpec]:
-    """`wiki.catalogs` and the PINNED `impact.requirements.external` entries (a path-only external
-    is the dependency's own file and adds no repository).
+    """The PINNED `requirements.external` entries (a path-only external is the dependency's own
+    file and adds no repository).
+
+    A DEPENDENCY IS READ AT ITS PIN, so its `.clew.yaml` may predate 2.0.0: the 1.x locations —
+    `wiki.catalogs` and `guard.impact.requirements.external` — are still read here, and only
+    here. This repository's own file refuses them (R5-CFG F6/F7); a pinned dependency cannot be
+    asked to migrate a revision that is already history.
 
     @brief Nested specs.
     @return Specs.
@@ -390,17 +396,24 @@ def _nested_specs(dep: Path, pin: str) -> list[CatalogSpec]:
         doc = yaml.safe_load(text or "") or {}
     except yaml.YAMLError:
         return []
-    wiki = (doc.get("wiki") or {}) if isinstance(doc, dict) else {}
-    guard = (doc.get("guard") or {}) if isinstance(doc, dict) else {}
-    external = (((guard.get("impact") or {}).get("requirements") or {}).get("external")) or []
+    doc = doc if isinstance(doc, dict) else {}
+    wiki = doc.get("wiki") or {}
+    guard = doc.get("guard") or {}
+    top = doc.get("requirements") if isinstance(doc.get("requirements"), dict) else {}
+    legacy = ((guard.get("impact") or {}).get("requirements") or {}).get("external") or []
     specs = [
         CatalogSpec(str(c["name"]), str(c["repo"]), str(c["pin"]), str(c["catalog"]))
         for c in wiki.get("catalogs") or []
         if isinstance(c, dict) and {"name", "repo", "pin", "catalog"} <= set(c)
     ]
     specs += [
-        CatalogSpec(Path(str(e["repo"])).name, str(e["repo"]), str(e["rev"]), str(e["path"]))
-        for e in external
+        CatalogSpec(
+            str(e.get("name") or Path(str(e["repo"])).name),
+            str(e["repo"]),
+            str(e["rev"]),
+            str(e["path"]),
+        )
+        for e in [*(top.get("external") or []), *legacy]
         if isinstance(e, dict) and {"repo", "rev", "path"} <= set(e)
     ]
     return specs

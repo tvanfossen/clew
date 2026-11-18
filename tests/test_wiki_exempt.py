@@ -18,9 +18,7 @@ from clew.wiki.evidence import RequirementEvidence, exempt_by_status
 from clew.wiki.summary import TIERS
 
 _GUARD = {
-    "impact": {
-        "requirements": {"status_field": "x-status", "exempt_status": ["planned", "configuration"]}
-    }
+    "requirements": {"status_field": "x-status", "exempt_status": ["planned", "configuration"]}
 }
 
 

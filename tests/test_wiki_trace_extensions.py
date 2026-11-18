@@ -119,7 +119,12 @@ def _sub_catalog(root: Path) -> tuple[Path, str]:
 ## @version 1
 def _wiki(pin: str) -> str:
     """@brief Section text. @return YAML."""
+    ## FIXTURE CHANGED (2.0.0, R5-CFG F6): `wiki.catalogs` moved to `requirements.external`, one
+    ## shape {repo, rev, path, name} for the gate and the wiki.
     return f"""\
+requirements:
+  external:
+    - {{repo: ../kv, rev: "{pin}", path: docs/requirements.yaml, name: kv}}
 wiki:
   title: Trace Demo
   docs: [README.md]
@@ -134,11 +139,6 @@ wiki:
       items: topics
       id: id
       doc: doc
-  catalogs:
-    - name: kv
-      repo: ../kv
-      pin: "{pin}"
-      catalog: docs/requirements.yaml
   rules:
     - id: R1
       title: Timeouts are bounded
@@ -267,7 +267,8 @@ def test_a_catalog_that_moved_since_its_pin_fails_check(trace_repo) -> None:
     page = (build_wiki(repo, db, repo.parent / "site") / "requirements.html").read_text()
     assert "moved since pin" in page, "the site states what check found, not only check"
     text = (repo / ".clew.yaml").read_text()
-    pin = text.split("pin: ")[1].split("\n")[0]
+    ## The pin is read back out of `requirements.external[].rev` (2.0.0 layout).
+    pin = text.split("rev: ")[1].split(",")[0]
     (repo / ".clew.yaml").write_text(text.replace(pin, "0" * 40))
     assert "does not resolve" in "\n".join(check_wiki(repo, db))
 

@@ -31,7 +31,10 @@ from .checks import (
     check_version_staleness,
 )
 from .config import (
-    get_impact,
+    REPORT_JSON,
+    REPORT_MARKDOWN,
+    get_requirements,
+    report_dir,
     get_validate,
     load_config,
     parse_content_for_file,
@@ -47,7 +50,8 @@ from .impact import (
     collect_changed_functions,
     format_json,
     format_markdown,
-    run_impact,
+    impact_entries,
+    format_report,
 )
 
 logger = logging.getLogger(__name__)
@@ -100,7 +104,8 @@ def _add_validate_parser(subparsers: argparse._SubParsersAction) -> None:
 
 
 ## @brief Add the impact subcommand to the parser.
-#  @version 1.1
+#  v1.2: --write and --format (2.0.0, R5-CFG F9)
+#  @version 1.2
 #  @dg_internal
 def _add_impact_parser(subparsers: argparse._SubParsersAction) -> None:
     p = subparsers.add_parser("impact", help="Change-impact analysis from git diff")
@@ -108,6 +113,14 @@ def _add_impact_parser(subparsers: argparse._SubParsersAction) -> None:
     group.add_argument("--staged", action="store_true", help="Analyze staged changes")
     group.add_argument("--range", dest="diff_range", help="Git revision range (e.g., HEAD~3..HEAD)")
     p.add_argument("files", nargs="*", help="Files to analyze")
+    p.add_argument(
+        "--write",
+        action="store_true",
+        help="Write impact.md and impact.json into guard.impact.report_dir instead of printing",
+    )
+    p.add_argument(
+        "--format", dest="output_format", default="markdown", choices=["markdown", "json", "text"]
+    )
 
 
 ## @brief Add the coverage subcommand to the parser.
@@ -254,7 +267,8 @@ def _report_skips(skipped: list[str]) -> None:
 #  why the skip report lives here rather than in either caller.
 #  v1.4: external catalogues' ids join the local catalogue's (GH #68).
 #  v1.5: the local catalogue's `satisfies` links are checked (GH #68).
-#  @version 1.5
+#  v1.6: reads the top-level requirements: section (2.0.0, R5-CFG F7)
+#  @version 1.6
 #  @dg_internal
 def _validate_files(
     file_paths: list[str],
@@ -269,7 +283,7 @@ def _validate_files(
     local = load_requirements_full(config)
     req_ids = set(local) | set(load_external_requirements(config))
     # GH #68: every `satisfies` link of the local catalogue must land in some catalogue.
-    catalog_file = (get_impact(config).get("requirements") or {}).get("file", "")
+    catalog_file = get_requirements(config).get("file", "")
     violations: list[Violation] = check_satisfies(local, req_ids, catalog_file)
     skipped: list[str] = []
     for file_path in file_paths:
@@ -351,11 +365,11 @@ def _detect_cmake_version() -> str | None:
 
 
 ## @brief Resolve the current project version from config, git tag, or CMake.
-#  @version 1.3
+#  v1.4: reads validate.current_version (2.0.0, R5-CFG F14)
+#  @version 1.4
 #  @dg_internal
 def _detect_current_version(config: dict[str, Any]) -> str | None:
-    gate = get_validate(config).get("version_gate", {})
-    version_str = gate.get("current_version")
+    version_str = get_validate(config).get("current_version")
     if not version_str:
         return None
     detectors = {"auto:git": _detect_git_version, "auto:cmake": _detect_cmake_version}
@@ -364,11 +378,11 @@ def _detect_current_version(config: dict[str, Any]) -> str | None:
 
 
 ## @brief Resolve the version gate in place, failing if it is declared but unresolvable.
-#  @version 1.0
+#  v1.1: reads validate.current_version (2.0.0, R5-CFG F14)
+#  @version 1.1
 #  @req REQ-DDB-GUARD-014
 def resolve_version_gate(config: dict[str, Any]) -> None:
-    gate = get_validate(config).get("version_gate", {})
-    declared = gate.get("current_version")
+    declared = get_validate(config).get("current_version")
     if not declared:
         logger.info("No version gate declared; all catalogued requirements are active")
         return
@@ -381,32 +395,32 @@ def resolve_version_gate(config: dict[str, Any]) -> None:
         # reporting success — worst on shallow CI clones with no tags.
         logger.error("Version gate %r declared but could not be resolved", declared)
         raise ConfigError(
-            f"validate.version_gate.current_version is {declared!r} but no version "
+            f"validate.current_version is {declared!r} but no version "
             f"could be resolved. On a shallow or tagless clone, fetch tags "
             f"(git fetch --tags) or set a literal version."
         )
 
     logger.info("Version gate resolved: %s -> %s", declared, resolved)
-    config.setdefault("validate", {}).setdefault("version_gate", {})["_resolved"] = resolved
+    config.setdefault("validate", {})["_current_version_resolved"] = resolved
 
 
 ## @brief Run all configured checks in pre-commit mode (no subcommand).
-#  @version 2.6
+#  v2.7: one report directory, guard.impact.report_dir; the writer is shared (2.0.0, R5-CFG F9)
+#  @version 2.7
 #  @req REQ-DDB-GUARD-001
 #  @return Exit code: 0 if no violations, 1 if violations found
 def run_precommit(file_paths: list[str], config: dict[str, Any]) -> int:
     logger.info("Pre-commit mode: %d file(s)", len(file_paths))
-    logger.info("Config: output_dir=%s", config.get("output_dir", "docs/generated/"))
+    logger.info("Config: impact.report_dir=%s", report_dir(config))
 
     resolve_version_gate(config)
 
     rc = _report_violations(_validate_files(file_paths, config))
 
-    base_dir = config.get("output_dir", "docs/generated/")
+    base_dir = report_dir(config)
     validate_output_path(base_dir)
 
-    impact_config = get_impact(config)
-    if impact_config.get("requirements"):
+    if get_requirements(config):
         diff_range = get_branch_diff_range()
         if diff_range:
             changed = collect_changed_functions(file_paths, config, diff_range=diff_range)
@@ -419,15 +433,7 @@ def run_precommit(file_paths: list[str], config: dict[str, Any]) -> int:
         ## symlink, and the gate wrote the report outside the repository and `git add`ed it —
         ## as the committing user, configured by the branch under review. Same validation the
         ## sibling in `_run_impact_command` already applies to its `output.file`.
-        impact_dir = Path(base_dir) / "impact"
-        md_path = impact_dir / "impact.md"
-        json_path = impact_dir / "impact.json"
-        validate_output_path(str(md_path))
-        validate_output_path(str(json_path))
-        impact_dir.mkdir(parents=True, exist_ok=True)
-        md_path.write_text(format_markdown(entries))
-        json_path.write_text(format_json(entries))
-        git_add([str(md_path), str(json_path)])
+        git_add([str(p) for p in _write_report(entries, base_dir)])
         print(format_markdown(entries), file=sys.stderr)
 
     return rc
@@ -502,27 +508,43 @@ def _parse_precommit_args(
 
 
 ## @brief Execute the impact subcommand.
-#  @version 1.4
+#  v1.5: prints by default, --write writes into report_dir (2.0.0, R5-CFG F9)
+#  @version 1.5
 #  @req REQ-DDB-GUARD-010
 #  @return Exit code: 0 on success, 1 if output path is invalid
 def _run_impact_command(args: argparse.Namespace, config: dict[str, Any]) -> int:
     file_paths = args.files or []
-    report = run_impact(
+    entries = impact_entries(
         file_paths=file_paths,
         config=config,
         staged=args.staged,
         diff_range=args.diff_range,
     )
-    output_file = get_impact(config).get("output", {}).get("file")
-    if output_file:
-        validate_output_path(output_file)
-        out_path = Path(output_file).resolve()
-        out_path.parent.mkdir(parents=True, exist_ok=True)
-        out_path.write_text(report)
-        print(f"Wrote report: {out_path}")
+    if args.write:
+        for written in _write_report(entries, report_dir(config)):
+            print(f"Wrote report: {written.resolve()}")
     else:
-        print(report)
+        print(format_report(entries, args.output_format))
     return 0
+
+
+## @brief Write the impact report's markdown and JSON into the report directory.
+#  @details THE FULL WRITE PATH IS VALIDATED, not just the directory (1.1.0 audit, M5): a
+#  committed `out/impact -> ../../elsewhere` passed a directory-only check, `mkdir` followed the
+#  symlink, and the gate wrote outside the repository as the committing user. One writer now
+#  serves the hook and `clew guard impact --write`, so the two cannot drift (R5-CFG F9).
+#  @version 1.0
+#  @dg_internal
+#  @return The two paths written
+def _write_report(entries: list[Any], base_dir: str) -> list[Path]:
+    out = Path(base_dir)
+    md_path, json_path = out / REPORT_MARKDOWN, out / REPORT_JSON
+    validate_output_path(str(md_path))
+    validate_output_path(str(json_path))
+    out.mkdir(parents=True, exist_ok=True)
+    md_path.write_text(format_markdown(entries))
+    json_path.write_text(format_json(entries))
+    return [md_path, json_path]
 
 
 ## @brief Configure logging based on verbosity flag.

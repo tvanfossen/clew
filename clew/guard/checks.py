@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from .config import get_impact, get_validate
+from .config import get_requirements, get_validate
 
 if TYPE_CHECKING:
     from collections.abc import Set as AbstractSet
@@ -294,11 +294,14 @@ def _exemption_hint() -> str:
 
 
 ## @brief Check if version gate is configured.
-#  @version 1.2
+#  v1.3: reads the top-level requirements: section (2.0.0, R5-CFG F7)
+#  @version 1.3
 #  @dg_internal
 def _has_version_gate(config: dict[str, Any]) -> bool:
-    gate = get_validate(config).get("version_gate", {})
-    return bool(gate.get("current_version") and gate.get("version_field"))
+    return bool(
+        get_validate(config).get("current_version")
+        and get_requirements(config).get("version_field")
+    )
 
 
 ## @brief Check if any requirements pass the version gate filter.
@@ -313,14 +316,15 @@ def _has_active_requirements(config: dict[str, Any]) -> bool:
 
 
 ## @brief Verify functions have requirement or exemption tags when requirements are configured.
-#  @version 1.6
+#  v1.7: reads the top-level requirements: section (2.0.0, R5-CFG F7)
+#  @version 1.7
 #  @req REQ-DDB-GUARD-004
 def check_req_coverage(
     functions: list[Function],
     file_path: str,
     config: dict[str, Any],
 ) -> list[Violation]:
-    req_config = get_impact(config).get("requirements")
+    req_config = get_requirements(config)
     if not req_config or not req_config.get("file"):
         return []
 

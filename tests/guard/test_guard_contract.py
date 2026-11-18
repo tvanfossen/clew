@@ -7,7 +7,6 @@ from this output. If a field here changes shape, CONTRACT_VERSION must move with
 from __future__ import annotations
 
 import json
-from textwrap import dedent
 
 from clew.guard.config import (
     CONFIG_DEFAULTS,
@@ -45,7 +44,8 @@ class TestSchemaContract:
 
     def test_types_encoded_by_name(self):
         schema = build_schema_contract()["config_schema"]
-        assert schema["output_dir"] == "str"
+        ## 2.0.0 (R5-CFG F7/F9/F14): the key this tested moved; the test follows it.
+        assert schema["impact"]["report_dir"] == "str"
         assert schema["validate"]["presence"]["require_doxygen"] == "bool"
 
     def test_catalog_constants_match_the_module(self):
@@ -67,16 +67,8 @@ class TestSchemaContract:
 class TestEffectiveContract:
     def test_reports_declared_requirements(self, tmp_path):
         config_file = tmp_path / ".clew.yaml"
-        config_file.write_text(
-            guard_yaml(
-                dedent("""\
-                impact:
-                  requirements:
-                    file: docs/requirements.yaml
-                    format: yaml
-            """)
-            )
-        )
+        ## 2.0.0 (R5-CFG F7/F9/F14): the key this tested moved; the test follows it.
+        config_file.write_text("requirements:\n  file: docs/requirements.yaml\n  format: yaml\n")
         resolved = build_effective_contract(load_config(config_file))["resolved"]
         assert resolved["requirements"]["declared"] is True
         assert resolved["requirements"]["file"] == "docs/requirements.yaml"
@@ -155,17 +147,21 @@ class TestContractRoundTrips:
         assert load_config(tmp_path / ".clew.yaml")
 
     def test_private_keys_are_stripped(self):
+        ## 2.0.0 (R5-CFG F7/F9/F14): the key this tested moved; the test follows it.
         config = deep_merge(
             CONFIG_DEFAULTS,
-            {"validate": {"version_gate": {"current_version": "auto:git", "_resolved": "v1.2.3"}}},
+            {"validate": {"current_version": "auto:git", "_current_version_resolved": "v1.2.3"}},
         )
         contract = build_effective_contract(config)
-        assert "_resolved" not in contract["config"]["validate"]["version_gate"]
-        assert "_resolved" not in contract["resolved"]["version_gate"]
+        assert "_current_version_resolved" not in contract["config"]["validate"]
+        assert contract["resolved"]["current_version"] == "auto:git"
+        assert "requirements" not in contract["config"], "the catalog is not a guard: key"
 
     def test_null_section_is_accepted_by_the_schema(self):
-        """impact.requirements ships as None; the schema must permit that shape."""
-        assert validate_config_schema({"impact": {"requirements": None}}) == []
+        """A section may be an explicit null (the shape `config --effective` can emit); the schema
+        must permit it. 2.0.0: `impact.requirements` (the old null-by-default node) moved to the
+        top-level catalog section, so a remaining `guard:` node carries the property."""
+        assert validate_config_schema({"impact": None}) == []
 
 
 class TestResolvedIsGeneratedFromSchema:

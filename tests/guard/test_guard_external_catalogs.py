@@ -47,7 +47,8 @@ def _run(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, impact: str, req: str)
     monkeypatch.chdir(tmp_path)
     (tmp_path / "f.c").write_text(_TAGGED.format(req=req))
     cfg = tmp_path / "guard.yaml"
-    cfg.write_text(guard_yaml(impact))
+    ## FIXTURE CHANGED (2.0.0, R5-CFG F7): the catalog is the top-level `requirements:`.
+    cfg.write_text(impact + guard_yaml(""))
     code = main(["--config", str(cfg), "validate", "--no-git", "f.c"])
     return code, ""
 
@@ -57,7 +58,7 @@ def test_an_external_catalogue_satisfies_cross_reference_without_a_local_one(
 ) -> None:
     """@brief A library checks its tags against its consumer's catalogue; an unknown id is named."""
     _catalog(tmp_path / "product" / "requirements.yaml", "REQ-PRD-001")
-    impact = "impact:\n  requirements:\n    external: [product/requirements.yaml]\n"
+    impact = "requirements:\n  external: [product/requirements.yaml]\n"
     code, _ = _run(tmp_path, monkeypatch, impact, "REQ-PRD-001")
     assert code == 0, capsys.readouterr()
     code, _ = _run(tmp_path, monkeypatch, impact, "REQ-PRD-999")
@@ -92,8 +93,8 @@ def test_a_pinned_external_catalogue_is_read_at_its_revision(
     rev = git("rev-parse", "HEAD")
     _catalog(consumer / "requirements.yaml", "REQ-PRD-001", "REQ-PRD-002")
     impact = (
-        "impact:\n  requirements:\n    external:\n"
-        f"      - {{repo: consumer, rev: {rev}, path: requirements.yaml}}\n"
+        "requirements:\n  external:\n"
+        f"    - {{repo: consumer, rev: {rev}, path: requirements.yaml}}\n"
     )
     code, _ = _run(tmp_path, monkeypatch, impact, "REQ-PRD-001")
     assert code == 0, capsys.readouterr()

@@ -108,6 +108,12 @@ SECTION_DATA_MODEL = "data_model"
 ## whole precedence order (stated > this section > the guard's own
 ## `impact.requirements.file` > convention > nothing), so declaring this displaces neither
 ## the gate's declaration nor the convention — it inserts one tier above them.
+##
+## 2.0.0 (R5-CFG F7): `requirements:` is the CATALOG SECTION the index, the gate and the wiki all
+## read — `{file, format, id_column, name_column, status_field, exempt_status, version_field,
+## external, needs}`, or one path as the short form of `{file: <path>}`. It still never inlines
+## the catalog itself, for the reason above. Its keys are validated by the gate's reader
+## (`guard.config.REQUIREMENTS_SCHEMA`), so the two cannot disagree about what is allowed.
 SECTION_REQUIREMENTS = "requirements"
 SECTION_ENRICH = "enrich"
 ## Lock primitives and repo-specific guard wrappers (R1 lock layer).
@@ -277,9 +283,7 @@ ACCEPTED_SECTIONS = KNOWN_SECTIONS | NON_DECLARATION_SECTIONS
 LIST_SECTIONS = frozenset({SECTION_ENTRY_PATTERNS, SECTION_TEST_PATHS, SECTION_VENDORED})
 
 ## A PATH section names one repo-relative file.
-PATH_SECTIONS = frozenset(
-    {SECTION_DATA_MODEL, SECTION_REQUIREMENTS, SECTION_ENRICH, SECTION_DOXYFILE}
-)
+PATH_SECTIONS = frozenset({SECTION_DATA_MODEL, SECTION_ENRICH, SECTION_DOXYFILE})
 
 ## A MANIFEST section is its document inline; its entries are checked against
 ## `buildoptions.MANIFEST_SCHEMAS`, the same schemas tier 1 is checked against.
@@ -443,7 +447,8 @@ def _checked_sections(data: dict[str, Any], path: Path) -> dict[str, Any]:
 ## @param value Its declared value.
 ## @param path The file it was read from.
 ## @return The (possibly normalised) value; raises DeclarationError on a wrong shape.
-## @version 1
+## v2: requirements: is checked against the gate's schema (2.0.0, R5-CFG F7)
+## @version 2
 ## @dg_internal
 def _checked_section(name: str, value: Any, path: Path) -> Any:
     """@brief Refuse a wrong-shaped section, naming it and the expected shape.
@@ -454,6 +459,8 @@ def _checked_section(name: str, value: Any, path: Path) -> Any:
 
     if name in LIST_SECTIONS:
         return _checked_list_section(name, value, path)
+    if name == SECTION_REQUIREMENTS:
+        return _checked_requirements(value, path)
     if name in PATH_SECTIONS:
         if not isinstance(value, str) or not value.strip():
             raise DeclarationError(
@@ -473,6 +480,28 @@ def _checked_section(name: str, value: Any, path: Path) -> Any:
             raise DeclarationError(f"{path}: {exc}") from exc
     _check_section_keys(name, value, path)
     return value
+
+
+## @brief Check the catalog section against the gate's own schema.
+## @param value Declared value: a path, or the catalog mapping.
+## @param path Source file.
+## @return The section as a mapping; raises DeclarationError on an unknown key or wrong type.
+## @version 1
+## @dg_internal
+def _checked_requirements(value: Any, path: Path) -> dict[str, Any]:
+    """@brief Validate `requirements:` with REQUIREMENTS_SCHEMA. @return Mapping."""
+    from .guard.config import REQUIREMENTS_SCHEMA, _validate_node
+
+    section = {"file": value} if isinstance(value, str) else value
+    if not isinstance(section, dict):
+        raise DeclarationError(
+            f"{path}: {SECTION_REQUIREMENTS} must be one path or the catalog mapping, got "
+            f"{type(value).__name__}"
+        )
+    errors = _validate_node(section, REQUIREMENTS_SCHEMA, SECTION_REQUIREMENTS)
+    if errors:
+        raise DeclarationError(f"{path}: {'; '.join(errors)}")
+    return dict(section)
 
 
 ## @brief Read a list section, accepting one bare string as a one-item list.

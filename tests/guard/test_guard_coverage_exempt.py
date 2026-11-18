@@ -39,9 +39,10 @@ def _config(tmp_path: Path, catalog: str, exempt: list[str] | None) -> dict:
     (tmp_path / "requirements.yaml").write_text(catalog)
     extra = ""
     if exempt is not None:
-        extra = f"    status_field: x-status\n    exempt_status: [{', '.join(exempt)}]\n"
+        extra = f"  status_field: x-status\n  exempt_status: [{', '.join(exempt)}]\n"
     cfg = tmp_path / "guard.yaml"
-    cfg.write_text(guard_yaml("impact:\n  requirements:\n    file: requirements.yaml\n" + extra))
+    ## FIXTURE CHANGED (2.0.0, R5-CFG F7): the catalog is the top-level `requirements:`.
+    cfg.write_text("requirements:\n  file: requirements.yaml\n" + extra + guard_yaml(""))
     return load_config(cfg)
 
 

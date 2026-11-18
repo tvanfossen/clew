@@ -412,7 +412,7 @@ class TestConstructorDestructorSkipping:
             enclosing_class="Foo",
         )
         config = {
-            "impact": {"requirements": {"file": "reqs.csv"}},
+            "requirements": {"file": "reqs.csv"},
             "validate": {},
         }
         violations = check_req_coverage([ctor], "test.cpp", config)
@@ -431,7 +431,7 @@ class TestConstructorDestructorSkipping:
             enclosing_class="Foo",
         )
         config = {
-            "impact": {"requirements": {"file": "reqs.csv"}},
+            "requirements": {"file": "reqs.csv"},
             "validate": {},
         }
         violations = check_req_coverage([method], "test.cpp", config)
@@ -560,7 +560,7 @@ class TestExemptionTagsAreToolOwned:
         catalog.write_text("requirements:\n  REQ-VAL-001:\n    name: A req\n")
         config = deep_merge(
             CONFIG_DEFAULTS,
-            {"impact": {"requirements": {"file": str(catalog), "format": "yaml"}}},
+            {"requirements": {"file": str(catalog), "format": "yaml"}},
         )
         func = _make_func(tags={"brief": ["B."], "version": ["1.0"]})
         violations = check_req_coverage([func], "a.c", config)

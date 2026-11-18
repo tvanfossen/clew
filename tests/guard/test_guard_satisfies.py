@@ -28,8 +28,9 @@ def _guard(
     (tmp_path / "requirements.yaml").write_text(catalog)
     (tmp_path / "f.c").write_text(_SOURCE)
     cfg = tmp_path / "guard.yaml"
-    impact = "impact:\n  requirements:\n    file: requirements.yaml\n" + external
-    cfg.write_text(guard_yaml(impact))
+    ## FIXTURE CHANGED (2.0.0, R5-CFG F7): the catalog is the top-level `requirements:`.
+    lifted = "".join(line[2:] + "\n" for line in external.splitlines())
+    cfg.write_text("requirements:\n  file: requirements.yaml\n" + lifted + guard_yaml(""))
     return main(["--config", str(cfg), "validate", "--no-git", "f.c"])
 
 

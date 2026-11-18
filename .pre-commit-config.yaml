@@ -42,7 +42,7 @@ repos:
         name: clew guard impact
         entry: .venv/bin/python -m clew guard
         language: system
-        args: [impact, --staged]
+        args: [impact, --staged, --write]
         files: ^clew/.*\.py$
         require_serial: true
       ## Every catalogued requirement resolves to an @req implementer, or its status exempts it

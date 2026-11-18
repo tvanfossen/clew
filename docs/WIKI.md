@@ -60,7 +60,7 @@ flowchart TB
 | section | what it shows |
 |---|---|
 | **Requirements** | One card per requirement group (passing count, tier bar) that filters the list. Each requirement has its own page: acceptance criteria, the functions implementing it, every test in two tables — linked directly, and reached through calls — with its result, how it was linked, which implementers it exercises ("2 of 9") and how many calls away it is, the flows it is on, open issues, the decisions that name it, and a prefilled "raise an issue" link. |
-| **Product trace** | Shown when `wiki.catalogs` names pinned dependency catalogues. This repository's requirements as roots and, under each, the dependency requirements whose `satisfies` reaches it — transitively, every catalogue read at its pin. A dependency's functions and tests appear only when its index is at the pin (checkout at the pin, clean, index current); otherwise the row says **unknown** and why, with a link to the local checkout, or **absent** with no index. Dependency requirements this repository implements are listed apart; dangling links, double pins and unreached requirements are reported. `clew wiki check` reports the same problems. |
+| **Product trace** | Shown when `requirements.external` names pinned dependency catalogues. This repository's requirements as roots and, under each, the dependency requirements whose `satisfies` reaches it — transitively, every catalogue read at its pin. A dependency's functions and tests appear only when its index is at the pin (checkout at the pin, clean, index current); otherwise the row says **unknown** and why, with a link to the local checkout, or **absent** with no index. Dependency requirements this repository implements are listed apart; dangling links, double pins and unreached requirements are reported. `clew wiki check` reports the same problems. |
 | **Flows** | A UML sequence diagram for every entry point and every root you declare, grouped by role — Product, Threads, Tooling, Tests. Every step is an index edge, badged with the requirements its callee implements; click one for the call it makes. Each flow is also exported as Mermaid and PlantUML. |
 | **Change impact** | From clew-guard's `impact.json`: each changed function, the requirements it implements and the flows it is on. Without a report it says *not measured*. |
 | **Map** | The repository web: every function in one zoomable view. Each wedge is a block of the system (declared in `wiki.components`; an undeclared file joins the block it shares the most calls with, and is listed as placed by coupling; an undeclared file inside a submodule the repository declares is the **Vendor** block, never folded into first-party code); rings run outward by call depth from the entry points. Zoomed out you see the blocks and the calls between them; zoom in and the functions appear. Click a function to see what it calls and what calls it and walk from there; search jumps the camera to a name; pick a flow to watch it travel. The same blocks are listed as a table below. Every page's sidebar lists the blocks, labelled, lighting the ones that page touches. |
@@ -115,7 +115,7 @@ done
 | TARGET | every linked result is a skip of a target-only test |
 | NOT_RUN | tests are linked but skipped, or no report holds their result |
 | MISSING | no test is linked |
-| EXEMPT | no test is linked, and the catalog's status is one `impact.requirements.exempt_status` exempts (as `clew guard coverage` does) |
+| EXEMPT | no test is linked, and the catalog's status is one `requirements.exempt_status` exempts (as `clew guard coverage` does) |
 
 Unmeasured is never reported as a result: with no coverage report, coverage fields are absent.
 
@@ -162,7 +162,7 @@ call graphs are the HTML site's.
 Every HTML build also writes, obeying its audience: `llms.txt` and `llms-full.txt` at the site
 root; `exports/requirements.reqif` (ReqIF 1.2), `exports/needs.json` (Sphinx-needs),
 `exports/system.dsl` (Structurizr) and, per flow, `exports/flows/<flow>.mmd` / `.puml`. A
-Sphinx-needs `needs.json` can also be imported (`wiki.needs`). The MCP server exposes the dense
+Sphinx-needs `needs.json` can also be imported (`requirements.needs`). The MCP server exposes the dense
 text and each flow as resources, `clew://wiki/{slug}/llms.txt` and `clew://wiki/{slug}/flow/{name}`.
 
 ## Commands
@@ -186,7 +186,18 @@ writes, so before it they are not yet required; run `check` without it after the
 
 ## The `wiki:` section of `.clew.yaml`
 
-Every key is known by name: a misspelled one is a problem, never ignored.
+Every key is known by name: a misspelled one is a problem, never ignored. The catalog, its
+pinned sub-catalogues (`external`) and a Sphinx-needs import (`needs`) are the top-level
+`requirements:` section the gate and the index read too (docs/GUARD.md); the change-impact report
+is read from the gate's `guard.impact.report_dir`.
+
+```yaml
+requirements:
+  file: docs/requirements.yaml
+  needs: docs/needs.json        # Sphinx-needs requirements (the catalog wins)
+  external:                     # sub-catalogs read at a pinned commit
+    - {repo: ../kv, rev: "<sha>", path: requirements.yaml, name: kv}
+```
 
 ```yaml
 wiki:
@@ -221,12 +232,9 @@ wiki:
     infer_depth: 4              # cap call-graph links at N calls (omit = any depth; 0 = off)
     mutations: build/mutations.yaml
     traces: ["build/traces/*.json"]       # OTLP JSON test runs, drawn over their flows
-  needs: docs/needs.json        # Sphinx-needs requirements (the catalog wins)
   issues: {github: owner/repo, fetch: true}  # or {ado: org/project}; false = no issue links
   sources:                      # model files whose entries code realises (@node)
     - {name: keys, path: model/keys.toml, items: keys, doc: doc}
-  catalogs:                     # sub-catalogs read at a pinned commit
-    - {name: kv, repo: ../kv, pin: "<sha>", catalog: requirements.yaml}
   rules:                        # external rules mapped onto requirements
     - {id: R1, title: "Timeouts are bounded", requirements: [REQ-NET-001]}
   links:
@@ -238,7 +246,6 @@ wiki:
     logo: docs/logo.svg
     fonts: true
   roadmap: ROADMAP.md           # headings naming a version are burndown milestones
-  impact: docs/generated/impact/impact.json   # default: from the guard: section
   audiences:
     partner: {exclude_bodies: true, exclude_requirement_text: true}
 ```

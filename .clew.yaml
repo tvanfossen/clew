@@ -2,7 +2,7 @@
 #
 #   guard:  what `clew guard` enforces on every commit — presence, @version bumps, @req ids that
 #           exist in requirements.yaml, `satisfies` links that resolve — and the change-impact
-#           report (docs/generated/impact/impact.json) the wiki's Change impact page reads.
+#           report (guard.impact.report_dir) the wiki's Change impact page reads.
 #   wiki:   clew's own wiki — docs labelled by kind, the MCP tool handlers as flows, requirement
 #           tiers from the gate's own JUnit (build/junit.xml) and CI's coverage (build/coverage.xml).
 #           `clew wiki check` runs in pre-commit; CI builds the site (Pages deploys at 2.0.0).
@@ -18,32 +18,25 @@
 # passing requirements from the index and the reports), not in this header: a figure written
 # here goes stale the commit after it is measured, as the coverage figure it once quoted did.
 
-guard:
-  output_dir: docs/generated/
+# The requirements catalog — ONE section the index, the gate and the wiki all read (2.0.0).
+# Not cosmetic dogfooding: `bd2d34e` taught clew to honour a declared catalog precisely because a
+# repo that declared one had it read by the gate and ignored by the index — and we then shipped
+# that fix without applying it to ourselves. A bare build of this repo ingested ZERO catalog rows,
+# so `req_trace` returned implementers with no title, status or acceptance.
+requirements:
+  file: requirements.yaml
+  # round 3, P6c: `clew guard coverage` (a pre-commit hook) fails when a catalogued requirement
+  # has no @req implementer, unless its status exempts it — unbuilt (`planned`) or satisfied by
+  # configuration files rather than a function (`configuration`). Exemptions are listed in every
+  # coverage report by id and status, never silently.
+  status_field: x-status
+  exempt_status: [planned, configuration]
 
-  # Declare where our catalog lives, so the INDEX finds it without a CLI flag.
-  # Not cosmetic dogfooding: `bd2d34e` taught clew to honour this field
-  # precisely because a repo that declares its catalog had the declaration read by
-  # the gate and ignored by the index — and we then shipped that fix without
-  # applying it to ourselves. A bare `--scope from-guard` build of this repo
-  # ingested ZERO catalog rows, so `req_trace` returned implementers with no title,
-  # status or acceptance, and the "30 of 34" figure was reproducible only with an
-  # undocumented `--requirements` argument. Through the MCP server, which passes no
-  # flags, it could not be reproduced at all.
+guard:
+  # round 3, P6c: the `clew-guard-impact` hook (`clew guard impact --write`) writes impact.md and
+  # impact.json here, which is where the wiki's Change impact page reads it. Gitignored.
   impact:
-    requirements:
-      file: requirements.yaml
-      # round 3, P6c: `clew guard coverage` (a pre-commit hook) fails when a catalogued requirement
-      # has no @req implementer, unless its status exempts it — unbuilt (`planned`) or satisfied by
-      # configuration files rather than a function (`configuration`). Exemptions are listed in
-      # every coverage report by id and status, never silently.
-      status_field: x-status
-      exempt_status: [planned, configuration]
-    # round 3, P6c: the `clew-guard-impact` hook writes the report the wiki's Change impact page
-    # reads. JSON at the path the wiki looks for by default; gitignored, never committed.
-    output:
-      format: json
-      file: docs/generated/impact/impact.json
+    report_dir: docs/generated/impact/
 
   validate:
     exclude:

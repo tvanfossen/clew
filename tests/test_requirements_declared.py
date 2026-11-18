@@ -114,18 +114,18 @@ def _write_guard_config(tmp_path: Path, req_file: str) -> Path:
     @brief Write a .clew.yaml guard-section fixture.
     @version 2
     """
+    ## FIXTURE CHANGED (2.0.0, R5-CFG F7): the catalog is the top-level `requirements:` section.
     (tmp_path / ".clew.yaml").write_text(
+        "requirements:\n"
+        f"  file: {req_file}\n"
+        "  format: yaml\n"
+        '  id_column: "req_id"\n'
+        '  name_column: "summary"\n'
         "guard:\n"
         "  validate:\n"
         "    tags:\n"
         "      req:\n"
-        '        pattern: "^REQ-X-[A-Z]+-[0-9]{3}$"\n'
-        "  impact:\n"
-        "    requirements:\n"
-        f"      file: {req_file}\n"
-        "      format: yaml\n"
-        '      id_column: "req_id"\n'
-        '      name_column: "summary"\n',
+        '        pattern: "^REQ-X-[A-Z]+-[0-9]{3}$"\n',
         encoding="utf-8",
     )
     return tmp_path
@@ -148,7 +148,13 @@ def test_declared_catalog_columns_read_from_guard_config(tmp_path: Path) -> None
 
 
 def test_declared_columns_default_when_no_config() -> None:
-    assert resolve_catalog_columns(None) == ("id", "title")
+    ## 2.0.0 (R5-CFG F8): ONE default pair for the index and the gate, `id` / `name`. The index
+    ## still reads `name` or `title` for an undeclared name column (`_first`), so a `{id, title}`
+    ## catalog ingests as before.
+    from clew.guard.config import REQUIREMENTS_ID_COLUMN_DEFAULT, REQUIREMENTS_NAME_COLUMN_DEFAULT
+
+    assert resolve_catalog_columns(None) == ("id", "name")
+    assert (REQUIREMENTS_ID_COLUMN_DEFAULT, REQUIREMENTS_NAME_COLUMN_DEFAULT) == ("id", "name")
 
 
 def test_nested_domains_catalog_ingests_zero_but_tags_populate(
@@ -418,10 +424,11 @@ def test_this_repo_DECLARES_where_its_own_requirements_catalog_lives() -> None:
     from clew.declaration import DECLARATION_NAME, SECTION_GUARD
 
     doc = yaml.safe_load(Path(__file__).resolve().parents[1].joinpath(DECLARATION_NAME).read_text())
-    cfg = doc.get(SECTION_GUARD) or {}
-    declared = (cfg.get("impact") or {}).get("requirements", {}).get("file")
+    ## 2.0.0 (R5-CFG F7): the catalog is the top-level `requirements:` section.
+    declared = (doc.get("requirements") or {}).get("file")
+    assert SECTION_GUARD in doc
     assert declared, (
-        f"{DECLARATION_NAME} `guard:` must declare impact.requirements.file, or our own index "
+        f"{DECLARATION_NAME} must declare requirements.file, or our own index "
         "silently ingests no catalog — the exact hole bd2d34e closed for other repos"
     )
     catalog = Path(__file__).resolve().parents[1] / str(declared)

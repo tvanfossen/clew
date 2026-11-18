@@ -6,80 +6,12 @@ this module reads it. Every key is known by name and an unknown one is a PROBLEM
 the same rule the build applies to its own sections, for the same reason: a misspelled key that
 is silently ignored produces a site that looks complete and omits what the key asked for.
 
-    wiki:
-      title: Demo                     # site title
-      docs: [README.md, "docs/**/*.md"]  # prose pages, as globs relative to the repo root
-      flows:                          # sequence flows derived from the index (clew wiki flow)
-        - entry: load
-          qualified: Store::load      # optional identity selector
-          depth: 3
-          lanes: files                # files | packages | threads
-          stop_at: [log]
-          title: Loading
-          animate: true               # W12: play the diagram in call order (default true)
-          file: src/store.py          # the entry's file, when its name is shared
-      entry_point_depth: 2            # every console script / main / thread entry gets a flow of
-                                      # this depth (0 = only the declared flows)
-      tests:                          # CI evidence for the requirement trace (clew wiki trace)
-        junit: [build/junit.xml]
-        coverage: build/coverage.xml
-        target_only: ["test_hw_*"]
-        mutations: build/mutations.yaml   # W9: [{mechanism, test, killed}]
-        results:                      # W16: other result formats, each DECLARED
-          - {format: ctest, path: build/Testing/Test.xml}   # ctest | tap | catch2 | pytest-json
-        gcov: ["build/**/*.gcov", build/cov.json.gz]       # W15: .gcov text or gcov/gcovr JSON
-        mapping: docs/req_tests.yaml  # W16: {REQ: [test, ...]} or a `req,test` CSV
-        features: ["tests/features/**/*.feature"]          # W16: Gherkin; tags name requirements
-        traces: ["build/traces/*.json"]  # round 3: OTLP JSON test runs, drawn over their flows
-        layers:                       # W16: test layers by path / test-id glob
-          unit: ["tests/unit/*"]
-          bdd: ["tests/features/*"]
-        min_layers: 2                 # flag a requirement tested in fewer layers
-        evidence_fields: [x-evidence, evidence]  # catalog fields naming test files ([] = off)
-        infer_depth: 4                # cap the call-graph walk at N calls (omit = transitive; 0 = off)
-        contexts: .coverage           # coverage.py data/JSON, or LCOV (.info) with TN: per test
-      links:
-        template: "https://host/repo/blob/{commit}/{file}#L{line}"
-      sources:                        # W7: external node sources (JSON / TOML / YAML)
-        - name: keys
-          path: model/keys.toml
-          items: keys                 # dotted path to a mapping (its keys are ids) or a list
-          id: name                    # the id field, for a list
-          doc: doc                    # the documentation field
-          req: reqs                   # optional: requirement ids the node serves
-      catalogs:                       # W8: sub-catalogs in sibling checkouts, read at a pin
-        - name: kv
-          repo: ../kv
-          pin: v1.2.0
-          catalog: docs/requirements.yaml
-      rules:                          # W8: normative rules kept outside any repository
-        - id: R1
-          title: Timeouts are bounded
-          status: adopted
-          url: https://host/contract#R1
-          requirements: [REQ-W-001]
-      audiences:
-        partner:
-          exclude_bodies: true
-          exclude_requirement_text: true
-      theme:                          # W13: the default is clew's own (sassafras-class look)
-        name: clew                    # or any installed Sphinx theme (then nothing below applies)
-        palette: {accent: "#3D6B2E"}  # override any token of THEME_TOKENS
-        css: [docs/wiki.css]          # extra stylesheets, copied into the site
-        logo: docs/logo.svg
-        fonts: true                   # false: system fonts, no bundled font files
-      roadmap: ROADMAP.md             # W17: headings naming a version are burndown milestones
-      needs: docs/needs.json          # round 3: Sphinx-needs requirements (the catalog wins)
-      adrs: [docs/adr/*.md]           # round 3: architecture decision records (this is the default)
-      doc_kinds: {README.md: tutorial, docs/OVERVIEW.md: explanation}  # Diátaxis grouping
-      impact: docs/generated/impact/impact.json  # default: <guard.output_dir>/impact/impact.json
-      components:                     # round 3: the map's boxes; default = packages by path
-        Query layer: [clew/query/*]
-      issues: {github: owner/repo}    # or {ado: org/project}, or false; default = origin remote
-                                      # add `fetch: true` to read open issues at build time
+ONE REFERENCE (R5-CFG F17, 2.0.0): every key, with an example, is in docs/WIKI.md, and
+`tests/test_docs_current.py` checks that block names every key this module accepts. This docstring
+used to carry a second copy, and the two disagreed.
 
 @brief Read and validate the `wiki:` section.
-@version 3
+@version 4
 """
 
 from __future__ import annotations
@@ -97,16 +29,13 @@ _TOP = {
     "links",
     "audiences",
     "sources",
-    "catalogs",
     "rules",
     "theme",
     "roadmap",
-    "impact",
     "entry_point_depth",
     "components",
     "issues",
     "tooling",
-    "needs",
     "adrs",
     "doc_kinds",
 }
@@ -141,6 +70,13 @@ _PALETTE_RENAMED = {css: word for word, css in PALETTE.items() if css != word}
 ## Keys renamed in 2.0.0, refused with a pointer rather than as unknown — "unknown" would send a
 ## reader hunting a typo in a key that was correct until this release.
 _RENAMED = {"entry_points": "entry_point_depth"}
+## Keys that MOVED to the top-level `requirements:` section in 2.0.0 (R5-CFG F6/F7): the catalog
+## is the repository's, read by the index, the gate and the wiki from one place.
+_MOVED = {
+    "catalogs": "`requirements.external` (entries {repo, rev, path, name})",
+    "needs": "`requirements.needs`",
+    "impact": "the gate's report directory (`guard.output_dir`), which the wiki now reads",
+}
 _FLOW = {"entry", "qualified", "depth", "lanes", "stop_at", "title", "animate", "file", "role"}
 ## The roles a flow is grouped under on the Flows page (round 3, P1e).
 FLOW_ROLES = ("product", "threads", "tooling", "tests")
@@ -169,7 +105,6 @@ _TESTS = {
 }
 _RESULT = {"format", "path"}
 _SOURCE = {"name", "path", "items", "id", "doc", "req"}
-_CATALOG = {"name", "repo", "pin", "catalog"}
 _RULE = {"id", "title", "status", "url", "requirements"}
 _LINKS = {"template"}
 _AUDIENCE = {"exclude_bodies", "exclude_requirement_text"}
@@ -293,7 +228,8 @@ class RuleSpec:
 ## v12: needs (a Sphinx-needs import).
 ## v13: adrs, doc_kinds.
 ## v14 (round 5): test_flows removed — tests are slices of the master flows.
-## @version 14
+## v15 (2.0.0): `needs` comes from `requirements.needs`; the orphan test_flows comment is gone.
+## @version 15
 @dataclass(frozen=True)
 class WikiConfig:
     """@brief The whole `wiki:` section. @version 4"""
@@ -324,8 +260,7 @@ class WikiConfig:
     issues_fetch: bool = False
     ## Path globs whose entry points are tooling flows.
     tooling: tuple[str, ...] = DEFAULT_TOOLING
-    ## The most directly linked tests drawn as flows.
-    ## A Sphinx-needs `needs.json` contributing requirements (repo-relative), or None.
+    ## A Sphinx-needs `needs.json` contributing requirements (from `requirements.needs`), or None.
     needs: str | None = None
     ## Globs of architecture decision records.
     adrs: tuple[str, ...] = DEFAULT_ADRS
@@ -352,7 +287,9 @@ class WikiConfig:
 ## v14 (round 5): test_flows removed.
 ## v15 (2.0.0, R5-CFG): list keys through `_strings` (one string is one entry, [] is empty, any other
 ## type is a problem); `entry_points` renamed `entry_point_depth`, the old key refused with a pointer.
-## @version 15
+## v16 (2.0.0, R5-CFG F6/F7/F9): catalogs and needs come from the top-level `requirements:`;
+## `wiki.catalogs`, `wiki.needs` and `wiki.impact` are refused with where they went.
+## @version 16
 ## @req REQ-DDB-WIKI-003
 def load_wiki_config(
     repo_root: Path, config_path: Path | None = None
@@ -362,13 +299,16 @@ def load_wiki_config(
 
     @brief Load the section.
     @return Config and problems.
-    @version 14
+    @version 15
     """
     raw, problems = _read_section(Path(config_path or Path(repo_root) / ".clew.yaml"))
     if problems:
         return WikiConfig(), problems
     problems = _renamed(raw, "wiki") + _unknown(
-        {k: v for k, v in raw.items() if k not in _RENAMED}, _TOP, "wiki"
+        {k: v for k, v in raw.items() if k not in _RENAMED and k not in _MOVED}, _TOP, "wiki"
+    )
+    requirements = _requirements_section(
+        Path(config_path or Path(repo_root) / ".clew.yaml"), problems
     )
     flows = tuple(_flow(f, i, problems) for i, f in enumerate(raw.get("flows") or []))
     tests = raw.get("tests") or {}
@@ -386,19 +326,19 @@ def load_wiki_config(
         audiences=_audiences(raw.get("audiences") or {}, problems),
         mutations=str(tests["mutations"]) if tests.get("mutations") else None,
         sources=_entries(raw, "sources", _SOURCE, ("name", "path"), _source, problems),
-        catalogs=_entries(raw, "catalogs", _CATALOG, tuple(sorted(_CATALOG)), _catalog, problems),
+        catalogs=_pinned_catalogs(requirements),
         rules=_entries(raw, "rules", _RULE, ("id",), _rule, problems),
         inputs=_inputs(tests, problems),
         theme=_theme(raw.get("theme") or {}, problems),
         roadmap=str(raw["roadmap"]) if raw.get("roadmap") else None,
-        impact=str(raw["impact"]) if raw.get("impact") else None,
+        impact=_declared_report(Path(config_path or Path(repo_root) / ".clew.yaml")),
         entry_point_depth=int(raw.get("entry_point_depth", 2)),
         components=_components(raw.get("components") or {}, problems),
         issues=_issues(raw.get("issues"), problems),
         issues_enabled=raw.get("issues") is not False,
         issues_fetch=isinstance(raw.get("issues"), dict) and bool(raw["issues"].get("fetch")),
         tooling=_strings(raw, "tooling", DEFAULT_TOOLING, "wiki", problems),
-        needs=str(raw["needs"]) if raw.get("needs") else None,
+        needs=str(requirements["needs"]) if requirements.get("needs") else None,
         adrs=_strings(raw, "adrs", DEFAULT_ADRS, "wiki", problems),
         doc_kinds=_doc_kinds(raw.get("doc_kinds") or {}, problems),
     )
@@ -511,15 +451,77 @@ def _source(e: dict[str, Any]) -> SourceSpec:
     )
 
 
-## @brief A CatalogSpec from a validated entry.
-## @param e The entry.
-## @return The spec.
+## @brief The top-level `requirements:` section of the same file, read by the gate's reader.
+## @param path The `.clew.yaml`.
+## @param problems Appended to when the section is invalid.
+## @return The section, or {} when undeclared or invalid.
 ## @version 1
 ## @dg_internal
-def _catalog(e: dict[str, Any]) -> CatalogSpec:
-    """@brief Build. @return Spec."""
-    return CatalogSpec(
-        name=str(e["name"]), repo=str(e["repo"]), pin=str(e["pin"]), catalog=str(e["catalog"])
+def _requirements_section(path: Path, problems: list[str]) -> dict[str, Any]:
+    """THE GATE'S OWN READER, so the wiki can never accept a catalog section the gate refuses.
+
+    @brief Read `requirements:`.
+    @return Section or {}.
+    """
+    from ..guard.config import read_requirements_section
+    from ..guard.errors import ConfigError
+
+    if not path.is_file():
+        return {}
+    try:
+        return read_requirements_section(path) or {}
+    except ConfigError as exc:
+        problems.extend(f"`requirements`: {p}" for p in (exc.problems or [exc.message]))
+        return {}
+
+
+## @brief The impact report the gate section of the SAME file declares, when it declares one.
+## @param path The config file the wiki was given.
+## @return `<guard.impact.report_dir>/impact.json`, or None to use the repository's own gate config.
+## @version 1
+## @dg_internal
+def _declared_report(path: Path) -> str | None:
+    """AN OUT-OF-TREE CONFIG (`clew wiki build --config FILE`) carries its own `guard:` section, so
+    the report directory is read from that file rather than from the repository's (R5-CFG F9).
+
+    @brief Read `guard.impact.report_dir` from this file.
+    @return Path string or None.
+    """
+    from ..guard.config import REPORT_JSON, read_guard_section
+    from ..guard.errors import ConfigError
+
+    if not path.is_file():
+        return None
+    try:
+        guard = read_guard_section(path) or {}
+    except ConfigError:
+        return None
+    declared = (guard.get("impact") or {}).get("report_dir") if isinstance(guard, dict) else None
+    return str(Path(str(declared)) / REPORT_JSON) if declared else None
+
+
+## @brief The wiki's sub-catalogues: every PINNED `requirements.external` entry.
+## @param requirements The top-level section.
+## @return Specs, in the order written.
+## @version 1
+## @dg_internal
+def _pinned_catalogs(requirements: dict[str, Any]) -> tuple[CatalogSpec, ...]:
+    """ONE SHAPE (R5-CFG F6): `{repo, rev, path, name?}` replaced `wiki.catalogs`'
+    `{name, repo, pin, catalog}`. A path-only entry is this repository's own file and adds no
+    sub-catalogue; a missing `name` is the checkout's directory name.
+
+    @brief Pinned catalogues.
+    @return Specs.
+    """
+    return tuple(
+        CatalogSpec(
+            name=str(e.get("name") or Path(str(e["repo"])).name),
+            repo=str(e["repo"]),
+            pin=str(e["rev"]),
+            catalog=str(e["path"]),
+        )
+        for e in requirements.get("external") or []
+        if isinstance(e, dict) and {"repo", "rev", "path"} <= set(e)
     )
 
 
@@ -561,16 +563,19 @@ def _unknown(mapping: Any, allowed: set[str], where: str) -> list[str]:
 ## @param mapping The section.
 ## @param where Its dotted location.
 ## @return Problems.
-## @version 1
+## v2: also names keys that moved to requirements: / report_dir (2.0.0)
+## @version 2
 ## @dg_internal
 def _renamed(mapping: Any, where: str) -> list[str]:
-    """@brief Point a renamed key at its new name. @return Problems."""
+    """@brief Point a renamed or moved key at its new home. @return Problems."""
     if not isinstance(mapping, dict):
         return []
     return [
         f"`{where}.{old}` was renamed `{new}` in 2.0.0 — it holds a depth, not a list of entry points"
         for old, new in _RENAMED.items()
         if old in mapping
+    ] + [
+        f"`{where}.{old}` moved in 2.0.0 to {new}" for old, new in _MOVED.items() if old in mapping
     ]
 
 

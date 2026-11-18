@@ -411,23 +411,33 @@ def test_a_declared_requirements_section_fills_an_unstated_catalog(tmp_path: Pat
     test rather than a separate one: the two orderings are one decision and splitting them
     lets a change break one while the other keeps passing.
 
+    2.0.0 (R5-CFG F7): `requirements:` is the catalog SECTION the gate's reader returns, so the
+    index resolves its path through `resolve_catalog_path` (the gate and the wiki use the same
+    one) rather than `_apply_declared_paths`; `enrich` stays a declared path. The property is
+    unchanged: a declared value fills the unstated catalog, and a stated one outranks it.
+
     @brief A declared path fills the dest, and a stated one outranks it.
-    @version 1
+    @version 2
     """
     from clew.cli import _apply_declared_paths
+    from clew.requirements import load_guard_config, resolve_catalog_path
 
     repo = tmp_path / "repo"
-    repo.mkdir()
-    declaration = {"requirements": "docs/declared.yaml", "enrich": "docs/topics.yaml"}
+    (repo / "docs").mkdir(parents=True)
+    (repo / "docs" / "declared.yaml").write_text("requirements: {}\n", encoding="utf-8")
+    (repo / ".clew.yaml").write_text("requirements: docs/declared.yaml\n", encoding="utf-8")
+    declaration = {"enrich": "docs/topics.yaml"}
 
     inherited = _build_argparser().parse_args(["--output", str(tmp_path / "a.db")])
-    assert _apply_declared_paths(inherited, declaration, repo) == ["requirements", "enrich"]
-    assert inherited.requirements == str(repo / "docs" / "declared.yaml")
+    assert _apply_declared_paths(inherited, declaration, repo) == ["enrich"]
+    assert inherited.requirements is None
+    declared = resolve_catalog_path(load_guard_config(repo), repo)
+    assert declared == (repo / "docs" / "declared.yaml").resolve()
 
     stated = _build_argparser().parse_args(["--output", str(tmp_path / "b.db")])
     stated.requirements = "/absolute/stated.yaml"
-    assert _apply_declared_paths(stated, declaration, repo) == ["enrich"]
-    assert stated.requirements == "/absolute/stated.yaml", "tier 1 must outrank tier 2"
+    ## The pipeline's order (`cli._build_stages`): a stated path, else the resolver.
+    assert (stated.requirements or declared) == "/absolute/stated.yaml", "tier 1 outranks tier 2"
 
 
 ## @brief A stated `predefined` reaches doxygen through the declaration route.

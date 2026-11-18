@@ -21,7 +21,7 @@ from .config import (
     REQUIREMENTS_ID_COLUMN_DEFAULT,
     REQUIREMENTS_NAME_COLUMN_DEFAULT,
     REQUIREMENTS_ROOT_KEY,
-    get_impact,
+    get_requirements,
     get_validate,
     parse_source_file,
     resolve_contained_path,
@@ -155,15 +155,16 @@ def collect_changed_functions(
 
 ## @brief Extract requirements config, raising if a declared catalog is unusable.
 #  @details v2.2: `file` is optional beside `external` (GH #68).
-#  @version 2.2
+#  v2.3: reads the top-level requirements: section (2.0.0, R5-CFG F7)
+#  @version 2.3
 #  @req REQ-DDB-GUARD-011
 #  @return Catalog path, format, id column and name column, or None if unconfigured
 def _get_requirements_config(
     config: dict[str, Any],
 ) -> tuple[str, str, str, str] | None:
-    req_config = get_impact(config).get("requirements")
+    req_config = get_requirements(config)
     if not req_config:
-        logger.info("No impact.requirements section declared; catalog features are off")
+        logger.info("No requirements section declared; catalog features are off")
         return None
 
     req_file = req_config.get("file")
@@ -193,7 +194,8 @@ def _get_requirements_config(
 
 
 ## @brief The requirement ids of the external catalogues this repository names (GH #68).
-#  @version 1.0
+#  v1.1: reads the top-level requirements: section (2.0.0, R5-CFG F7)
+#  @version 1.1
 #  @req REQ-DDB-GUARD-027
 #  @return Mapping of requirement ID to its row; empty when none is named
 def load_external_requirements(config: dict[str, Any]) -> dict[str, dict[str, str]]:
@@ -202,7 +204,7 @@ def load_external_requirements(config: dict[str, Any]) -> dict[str, dict[str, st
     URL is an error naming it, never an empty catalogue that would pass every tag."""
     from ..requirements import read_catalog_at
 
-    req_config = get_impact(config).get("requirements") or {}
+    req_config = get_requirements(config)
     out: dict[str, dict[str, str]] = {}
     for source in req_config.get("external") or []:
         try:
@@ -313,7 +315,8 @@ def load_requirements(config: dict[str, Any]) -> dict[str, str]:
 
 
 ## @brief Filter requirements to those active at the configured current version.
-#  @version 1.2
+#  v1.3: reads the top-level requirements: section (2.0.0, R5-CFG F7)
+#  @version 1.3
 #  @req REQ-DDB-GUARD-009
 def filter_requirements_by_version(
     reqs: dict[str, dict[str, str]],
@@ -321,9 +324,9 @@ def filter_requirements_by_version(
 ) -> dict[str, dict[str, str]]:
     from .config import compare_versions, parse_version
 
-    version_gate = get_validate(config).get("version_gate", {})
-    current_str = version_gate.get("_resolved") or version_gate.get("current_version")
-    version_field = version_gate.get("version_field")
+    validate = get_validate(config)
+    current_str = validate.get("_current_version_resolved") or validate.get("current_version")
+    version_field = get_requirements(config).get("version_field")
 
     if not current_str or not version_field:
         return reqs
@@ -340,7 +343,7 @@ def filter_requirements_by_version(
             problems.append(f"... and {len(missing) - len(problems)} more")
         logger.error("version_field %r missing on %d requirement(s)", version_field, len(missing))
         raise RequirementsError(
-            f"validate.version_gate.version_field is {version_field!r} but these "
+            f"requirements.version_field is {version_field!r} but these "
             f"requirements do not declare it",
             problems,
         )
@@ -535,10 +538,10 @@ def format_text(entries: list[ImpactEntry]) -> str:
 
 
 ## @brief Dispatch to the appropriate formatter based on config.
-#  @version 1.2
+#  v1.3: the format is a parameter, not impact.output.format (2.0.0, R5-CFG F9)
+#  @version 1.3
 #  @dg_internal
-def format_report(entries: list[ImpactEntry], config: dict[str, Any]) -> str:
-    fmt = get_impact(config).get("output", {}).get("format", "markdown")
+def format_report(entries: list[ImpactEntry], fmt: str = "markdown") -> str:
     formatters = {"json": format_json, "text": format_text}
     return formatters.get(fmt, format_markdown)(entries)
 
@@ -546,7 +549,9 @@ def format_report(entries: list[ImpactEntry], config: dict[str, Any]) -> str:
 ## @brief Orchestrate diff analysis, requirement mapping, and report generation.
 #  1.2 (round 4, R11): no files with a range or --staged means every file that changed there;
 #  an empty report then means nothing changed, never that nothing was read.
-#  @version 1.2
+#  1.3 (2.0.0, R5-CFG F9): the format is the caller's (`fmt`), not a config key; the entries are
+#  built by `impact_entries`, which `clew guard impact --write` also uses.
+#  @version 1.3
 #  @req REQ-DDB-GUARD-010
 def run_impact(
     file_paths: list[str],
@@ -554,7 +559,22 @@ def run_impact(
     staged: bool = False,
     diff_range: str | None = None,
     run_command: RunCommand | None = None,
+    fmt: str = "markdown",
 ) -> str:
+    return format_report(impact_entries(file_paths, config, staged, diff_range, run_command), fmt)
+
+
+## @brief Collect the changed functions and map them to the requirements they implement.
+#  @version 1.0
+#  @req REQ-DDB-GUARD-010
+#  @return One entry per changed function
+def impact_entries(
+    file_paths: list[str],
+    config: dict[str, Any],
+    staged: bool = False,
+    diff_range: str | None = None,
+    run_command: RunCommand | None = None,
+) -> list[ImpactEntry]:
     if not file_paths and (staged or diff_range):
         from .git import get_changed_files
 
@@ -566,5 +586,4 @@ def run_impact(
         staged=staged,
         run_command=run_command,
     )
-    entries = build_impact_report(changed, config)
-    return format_report(entries, config)
+    return build_impact_report(changed, config)

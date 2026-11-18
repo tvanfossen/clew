@@ -32,7 +32,9 @@ def _site(repo: tuple[Path, Path], tmp_path: Path, report: list | None) -> dict[
 
     config = tmp_path / "wiki.yaml"
     impact = tmp_path / "impact.json"
-    config.write_text(_WIKI + f"  impact: {impact}\n")
+    ## FIXTURE CHANGED (2.0.0, R5-CFG F9): `wiki.impact` is gone; the report is read from the gate's
+    ## `guard.impact.report_dir`, here in the same out-of-tree config.
+    config.write_text(_WIKI + f"guard:\n  impact:\n    report_dir: {tmp_path}\n")
     if report is not None:
         impact.write_text(json.dumps(report))
     html = build_wiki(repo[0], repo[1], tmp_path / "out", config_path=config)

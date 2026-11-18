@@ -110,7 +110,6 @@ from .declaration import (
     SECTION_LOCKS,
     SECTION_MQTT,
     SECTION_PREPROCESSOR,
-    SECTION_REQUIREMENTS,
     SECTION_SHARED_KEY,
     SECTION_THREADS,
     SECTION_VENDORED,
@@ -1377,7 +1376,10 @@ def _with_stated_sections(decl: dict, args: argparse.Namespace) -> dict:
 ## stages to read, while these two are consumed as `args.requirements` / `args.enrich` by
 ## code that has always read a path there. Merging them instead would leave both consumers
 ## reading None.
-_DECLARED_PATH_SECTIONS: tuple[str, ...] = (SECTION_REQUIREMENTS, SECTION_ENRICH)
+## 2.0.0: `requirements` left this tuple. It is now the catalog SECTION the gate's reader returns
+## inside `load_guard_config`, so `resolve_catalog_path` reads `requirements.file` from there and
+## the index, the gate and the wiki resolve one path.
+_DECLARED_PATH_SECTIONS: tuple[str, ...] = (SECTION_ENRICH,)
 
 
 ## @brief Let the target's own declaration supply the path options nothing stated.

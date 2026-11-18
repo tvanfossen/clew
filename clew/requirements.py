@@ -138,24 +138,27 @@ def resolve_req_id_pattern(guard_cfg: dict | None) -> re.Pattern[str]:
 
 ## @brief Resolve the DECLARED requirements-catalog id/name column names.
 ## @param guard_cfg Parsed `guard:` section of .clew.yaml, or None.
-## @return (id_column, name_column) — declared mapping or {id,title} default.
-## @version 4
+## @return (id_column, name_column) — declared mapping or the shared {id,name} default.
+## v5 (2.0.0): reads the top-level `requirements:` section; the default pair is the gate's.
+## @version 5
 ## @req REQ-DDB-CONFIG-001
 def resolve_catalog_columns(guard_cfg: dict | None) -> tuple[str, str]:
     """Return the id/name column keys for a flat requirements catalog.
 
-    Reads `impact.requirements.{id_column,name_column}` when the guard config
-    declares them (matching how doxygen-guard itself reads the catalog);
-    otherwise the clew convention `{id, title}`.
+    Reads `requirements.{id_column,name_column}` (the top-level section, which the gate reads
+    too); otherwise the ONE default pair both readers share (R5-CFG F8).
 
-    @brief Resolve declared catalog id/name columns (id/title default).
-    @version 4
+    @brief Resolve declared catalog id/name columns (id/name default).
+    @version 5
     """
-    id_col, name_col = "id", "title"
-    if guard_cfg:
-        from .guard import config as dg_config
+    from .guard import config as dg_config
 
-        req = dg_config.get_impact(guard_cfg).get("requirements") or {}
+    id_col, name_col = (
+        dg_config.REQUIREMENTS_ID_COLUMN_DEFAULT,
+        dg_config.REQUIREMENTS_NAME_COLUMN_DEFAULT,
+    )
+    if guard_cfg:
+        req = dg_config.get_requirements(guard_cfg)
         id_col = req.get("id_column", id_col)
         name_col = req.get("name_column", name_col)
     return id_col, name_col
@@ -756,7 +759,8 @@ def _table_exists(conn: sqlite3.Connection, name: str) -> bool:
 ## @param guard_cfg Parsed `guard:` section of .clew.yaml, or None.
 ## @param repo_root Repo root the declared path is relative to.
 ## @return Resolved catalog path when declared and present, else None.
-## @version 2
+## v3: reads the top-level requirements: section (2.0.0, R5-CFG F7)
+## @version 3
 ## @req REQ-DDB-SCHEMA-006
 def declared_catalog_path(guard_cfg: dict | None, repo_root: Path) -> Path | None:
     """Honour `impact.requirements.file`, which the GATE already reads.
@@ -786,13 +790,13 @@ def declared_catalog_path(guard_cfg: dict | None, repo_root: Path) -> Path | Non
     path = (repo_root / str(declared)).resolve()
     if not path.exists():
         logger.warning(
-            "requirements: .clew.yaml guard: declares impact.requirements.file=%s but %s "
+            "requirements: .clew.yaml declares requirements.file=%s but %s "
             "does not exist — ingesting no catalog; @req edges still populate from tags",
             declared,
             path,
         )
         return None
-    logger.info("requirements: using DECLARED catalog impact.requirements.file=%s", declared)
+    logger.info("requirements: using DECLARED catalog requirements.file=%s", declared)
     return path
 
 
@@ -815,7 +819,8 @@ _CONVENTIONAL_CATALOGS = (
 ## @param guard_cfg Parsed `guard:` section of .clew.yaml, or None.
 ## @param repo_root Repo root both candidates are relative to.
 ## @return Resolved catalog path, or None when none exists.
-## @version 2
+## v3: reads the top-level requirements: section (2.0.0, R5-CFG F7)
+## @version 3
 ## @req REQ-DDB-SCHEMA-006
 def resolve_catalog_path(guard_cfg: dict | None, repo_root: Path) -> Path | None:
     """ONE RESOLVER, BECAUSE THERE WERE TWO AND THEY DISAGREED. `cli` resolved
@@ -855,7 +860,7 @@ def resolve_catalog_path(guard_cfg: dict | None, repo_root: Path) -> Path | None
     if len(found) > 1:
         logger.warning(
             "requirements: %d conventional catalogs exist (%s) — using %s. Declare "
-            "impact.requirements.file to choose deliberately.",
+            "requirements.file to choose deliberately.",
             len(found),
             ", ".join(found),
             found[0],
@@ -865,10 +870,11 @@ def resolve_catalog_path(guard_cfg: dict | None, repo_root: Path) -> Path | None
     return repo_root / found[0]
 
 
-## @brief The raw `impact.requirements.file` value a config declares, if any.
+## @brief The raw `requirements.file` value a config declares, if any.
 ## @param guard_cfg Parsed `guard:` section of .clew.yaml, or None.
 ## @return The declared path string, or '' when nothing is declared.
-## @version 2
+## v3: reads the top-level requirements: section (2.0.0, R5-CFG F7)
+## @version 3
 ## @dg_internal
 def _declared_catalog_field(guard_cfg: dict | None) -> str:
     """Split out purely to keep `declared_catalog_path` inside the max-3-returns
@@ -882,7 +888,7 @@ def _declared_catalog_field(guard_cfg: dict | None) -> str:
         return ""
     from .guard import config as dg_config
 
-    return str((dg_config.get_impact(guard_cfg).get("requirements") or {}).get("file") or "")
+    return str(dg_config.get_requirements(guard_cfg).get("file") or "")
 
 
 # --- catalogues read from a path or a pinned revision (GH #68) ------------------------------------
