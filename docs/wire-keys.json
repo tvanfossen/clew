@@ -185,6 +185,8 @@
    "provenance": "str | None",
    "declared_at": "list[DeclarationSite]",
    "generated_by": "GenerationRule | None",
+   "owners": "list[OwnerRef]",
+   "license": "LicenseRef | None",
    "candidates": "list[Candidate]",
    "threads": "list[Thread]",
    "is_terminus": "bool",
@@ -253,7 +255,9 @@
    "generated_by": "GenerationRule | None",
    "generates": "tuple[str, ...]",
    "includes": "tuple[IncludeRef, ...] | None",
-   "included_by": "tuple[Includer, ...] | None"
+   "included_by": "tuple[Includer, ...] | None",
+   "owners": "tuple[OwnerRef, ...] | None",
+   "license": "LicenseRef | None"
   },
   "GenerationArg": {
    "literal": "str",
@@ -351,6 +355,10 @@
    "crosses_thread": "bool | None",
    "to_thread": "str | None"
   },
+  "LicenseRef": {
+   "expression": "str",
+   "line": "int"
+  },
   "LockEntry": {
    "name": "str",
    "scope": "str",
@@ -422,6 +430,13 @@
    "signature": "str",
    "file": "str",
    "line_start": "int | None"
+  },
+  "OwnerRef": {
+   "owner": "str",
+   "role": "str",
+   "source": "str",
+   "rule_line": "int",
+   "stanza": "str"
   },
   "ProseHit": {
    "file_path": "str",

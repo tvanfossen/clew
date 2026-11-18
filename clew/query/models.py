@@ -1048,7 +1048,7 @@ class Dossier:
     common case and not worth a key.
 
     @brief Composite per-function dossier.
-    @version 8
+    @version 9
     """
 
     name: str
@@ -1080,6 +1080,9 @@ class Dossier:
     ## T4 (2.0.0): the build rule that generates the file `file` names, the same record the file's
     ## dossier carries. ABSENT (None) when that file is hand-written.
     generated_by: GenerationRule | None = None
+    ## 2.0.0 (S2/S3/S5 served): the owners and licence of the file `file` names.
+    owners: list[OwnerRef] = field(default_factory=list)
+    license: LicenseRef | None = None
     candidates: list[Candidate] = field(default_factory=list)
     threads: list[Thread] = field(default_factory=list)
     is_terminus: bool = False
@@ -2179,6 +2182,38 @@ class FileMember:
     line: int = 0
 
 
+## @brief One owner a CODEOWNERS or MAINTAINERS rule assigns to a file.
+## @version 1
+@dataclass(frozen=True)
+class OwnerRef:
+    """2.0.0 (S2/S3 served). `source` is the format (`codeowners`, `maintainers`) and `rule_line`
+    the matching rule's line, so a reader can check the match; `stanza` names a MAINTAINERS entry.
+
+    @brief One owner.
+    @version 1
+    """
+
+    owner: str
+    role: str
+    source: str
+    rule_line: int
+    stanza: str = ""
+
+
+## @brief The SPDX licence expression a file's header declares.
+## @version 1
+@dataclass(frozen=True)
+class LicenseRef:
+    """2.0.0 (S5 served).
+
+    @brief One licence declaration.
+    @version 1
+    """
+
+    expression: str
+    line: int
+
+
 ## @brief One `#include` directive a file contains, and the file it resolved to.
 ## @version 1
 @dataclass(frozen=True)
@@ -2238,7 +2273,7 @@ class FileSubject:
     reports once for the whole index rather than per file.
 
     @brief One file: its documentation, its symbols, whether anything was harvested, and the build rule that produces it.
-    @version 3
+    @version 4
     """
 
     path: str
@@ -2269,6 +2304,11 @@ class FileSubject:
     ## tuple when the layer ran and this file includes nothing, or nothing includes it.
     includes: tuple[IncludeRef, ...] | None = None
     included_by: tuple[Includer, ...] | None = None
+    ## 2.0.0 (S2/S3/S5 served): who owns this file and the licence it declares. `owners` is None
+    ## when the ownership layer is absent, () when the rules ran and none matched; `license` is
+    ## None when the file declares none.
+    owners: tuple[OwnerRef, ...] | None = None
+    license: LicenseRef | None = None
 
 
 ## The subject kinds `resolve_subject` can classify a name as, in PROBE ORDER. The order

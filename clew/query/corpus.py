@@ -50,6 +50,8 @@ from .models import (
     GenerationArg,
     GenerationRule,
     IncludeRef,
+    LicenseRef,
+    OwnerRef,
     Includer,
     IndexScope,
     MergedDeclaration,
@@ -298,7 +300,8 @@ def _was_harvested(conn: sqlite3.Connection, name: str) -> bool:
 ## v2: carries the build rule that produces this file and the files it produces — the fact an
 ## index of what EXISTS structurally cannot hold, and the one mbedtls Q4's rubric calls decisive.
 ## v3: and its include graph, both directions (2.0.0, T3 served).
-## @version 3
+## v4: and its owners and licence (2.0.0, S2/S3/S5 served).
+## @version 4
 ## @req REQ-DDB-QUERY-004
 def file_subject(conn: sqlite3.Connection, name: str) -> FileSubject | None:
     """C1 of the 1.1.0 acceptance review, and the single largest item in it: 48 of 237 missed
@@ -318,7 +321,7 @@ def file_subject(conn: sqlite3.Connection, name: str) -> FileSubject | None:
 
     @brief Build the file subject by exact path.
     @return FileSubject or None.
-    @version 3
+    @version 4
     """
     if not is_indexed_file(conn, name):
         return None
@@ -343,7 +346,54 @@ def file_subject(conn: sqlite3.Connection, name: str) -> FileSubject | None:
         generates=generates_files(conn, name),
         members_truncated=len(members) > _FILE_MEMBER_CAP,
         **_include_graph(conn, name),
+        owners=file_owners(conn, name),
+        license=file_license(conn, name),
     )
+
+
+## @brief Who owns one file, from the ownership layer.
+## @param conn Open connection.
+## @param name The file's repo-relative path.
+## @return Owners in rule order; () when none matched; None when the layer is absent.
+## @version 1
+## @req REQ-DDB-QUERY-004
+def file_owners(conn: sqlite3.Connection, name: str) -> tuple[OwnerRef, ...] | None:
+    """2.0.0 (S2/S3 served). P2 built `owners` (656 rows on entropic) and nothing served it.
+
+    @brief Read a file's owners.
+    @return Owners or None.
+    """
+    if not table_exists(conn, "owners"):
+        return None
+    rows = conn.execute(
+        "SELECT o.owner, o.role, o.source, o.rule_line, o.stanza FROM owners o "
+        "JOIN path p ON p.rowid = o.path_rowid WHERE p.name = ? ORDER BY o.rowid",
+        (name,),
+    ).fetchall()
+    return tuple(
+        OwnerRef(owner=o, role=r, source=s, rule_line=int(ln), stanza=st or "")
+        for o, r, s, ln, st in rows
+    )
+
+
+## @brief The SPDX licence one file declares.
+## @param conn Open connection.
+## @param name The file's repo-relative path.
+## @return The declaration, or None.
+## @version 1
+## @req REQ-DDB-QUERY-004
+def file_license(conn: sqlite3.Connection, name: str) -> LicenseRef | None:
+    """2.0.0 (S5 served). P2 built `file_licenses` (475 rows on entropic) and nothing served it.
+
+    @brief Read a file's licence.
+    @return The licence or None.
+    """
+    if not table_exists(conn, "file_licenses"):
+        return None
+    row = conn.execute(
+        "SELECT license, line FROM file_licenses WHERE file_path = ?", (name,)
+    ).fetchone()
+    return LicenseRef(expression=str(row[0]), line=int(row[1])) if row else None
 
 
 ## @brief One file's include graph, both directions, from `ast_includes`.

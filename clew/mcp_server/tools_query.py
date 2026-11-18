@@ -716,6 +716,8 @@ _DOSSIER_LISTS = (
     ## has an includer per translation unit, so `included_by` is bounded by the tree, not by clew.
     "included_by",
     "includes",
+    ## 2.0.0, S2/S3. A file's owners: MAINTAINERS lets several stanzas match one file.
+    "owners",
     ## gh#372 — the lists the NON-FUNCTION subject kinds contribute. A key that is not in
     ## this tuple is a list nothing can trim, so a subject kind added without its lists
     ## reintroduces the unbounded payload one kind at a time. Named here rather than

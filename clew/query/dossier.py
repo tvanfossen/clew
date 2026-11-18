@@ -39,7 +39,7 @@ from ._common import (
     symbol_provenance,
     table_exists,
 )
-from .corpus import generation_rule
+from .corpus import file_license, file_owners, generation_rule
 from .externcalls import external_callees
 from .kconfig import gates_covering
 from .locks import (
@@ -522,7 +522,8 @@ def _anchored_pick(
 ## header and omitted the shipped config, reading as enabled when the default is off.
 ## v10: declared_at; file is the body's file (2.0.0, T2)
 ## v11: generated_by from the body's file (2.0.0, T4)
-## @version 11
+## v12: owners and license of the body's file (2.0.0, S2/S3/S5 served)
+## @version 12
 ## @req REQ-DDB-QUERY-004
 ## @dg_internal
 def _dossier_conn(
@@ -595,6 +596,9 @@ def _dossier_conn(
         ## T4 (2.0.0; mbedtls F4): `mbedtls_strerror` lives in the generated `error.c`, and a reader
         ## arriving by the function's name had no route to that fact but asking for the file.
         generated_by=generation_rule(conn, ident["file"]),
+        ## 2.0.0 (S2/S3/S5 served): the file's owners and licence, as its file dossier has them.
+        owners=list(file_owners(conn, ident["file"]) or ()),
+        license=file_license(conn, ident["file"]),
         candidates=overloads,
         # Membership is per-rowid, and doxygen splits one function across a
         # declaration row and a definition row — so asking only the chosen
