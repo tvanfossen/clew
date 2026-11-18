@@ -1048,7 +1048,7 @@ class Dossier:
     common case and not worth a key.
 
     @brief Composite per-function dossier.
-    @version 6
+    @version 7
     """
 
     name: str
@@ -1074,6 +1074,9 @@ class Dossier:
     ## for, and a truncated reply that does not say so reads as a complete one.
     detail: str = ""
     provenance: str | None = None
+    ## T2 (2.0.0): where this function is DECLARED, when that is not the file `file` names (the
+    ## body's). A header prototype or an in-class declaration; empty, and elided, otherwise.
+    declared_at: list[DeclarationSite] = field(default_factory=list)
     candidates: list[Candidate] = field(default_factory=list)
     threads: list[Thread] = field(default_factory=list)
     is_terminus: bool = False
@@ -1436,6 +1439,20 @@ class MergedDeclaration:
     line: int | None
     bases: list[str] = field(default_factory=list)
     declaration: BodyExcerpt | None = None
+
+
+## @brief Where a function is declared, apart from where it is defined.
+## @version 1
+@dataclass(frozen=True)
+class DeclarationSite:
+    """T2 (2.0.0): a prototype in a header, or an in-class declaration of an out-of-line member.
+
+    @brief One declaration site.
+    @version 1
+    """
+
+    file: str
+    line: int | None
 
 
 ## Version 3: carries `merged`, the same-named compounds of other kinds.

@@ -31,6 +31,7 @@ from ._common import (
     capped_detail,
     connect,
     extract_version,
+    has_columns,
     function_candidates,
     identity_rowids,
     is_overloaded,
@@ -47,7 +48,7 @@ from .locks import (
     sections_for_rowids,
 )
 from .macros import MACRO_KIND, config_defaults_conn, macro_definitions_conn
-from .models import BodyExcerpt, Dossier, ExternalCallee, MacroDef, ReqRef
+from .models import BodyExcerpt, DeclarationSite, Dossier, ExternalCallee, MacroDef, ReqRef
 from .source import DEFAULT_BODY_LINES, body_excerpt
 from .symbols import (
     _call_edges,
@@ -110,17 +111,25 @@ def _sibling_prose(conn: sqlite3.Connection, fn: str) -> tuple[str, str]:
 ## @brief Fetch identity fields (name/signature/file/lines/brief/detail/version/static).
 ## @return A dict of the function's identity columns, or None if the rowid has no memberdef row.
 ## Calls the shared `_common.capped_detail` since C1; the cap and the notice are unchanged.
-## @version 4
+## v5 (2.0.0, T2): `file` is the body's file when a body is recorded.
+## @version 5
 ## @dg_internal
 def _identity(conn: sqlite3.Connection, rowid: int) -> dict | None:
     """@brief Read one function's identity columns (definition row already chosen).
 
-    @version 2
+    @version 5
     """
+    ## THE BODY'S FILE WHEN THERE IS A BODY (T2, 2.0.0). `bodystart` is a line of the body's file,
+    ## and pairing it with the DECLARING file named a range that does not exist: entropic's
+    ## `pattern_matches` read `permission_manager.h:101-125` in a 90-line header. The declaration
+    ## is served separately, as `declared_at`.
     row = conn.execute(
-        "SELECT m.name, m.definition, m.argsstring, COALESCE(p.name,''), "
+        "SELECT m.name, m.definition, m.argsstring, "
+        "CASE WHEN COALESCE(m.bodyfile_id, 0) > 0 AND COALESCE(m.bodystart, 0) > 0 "
+        "THEN COALESCE(b.name, p.name, '') ELSE COALESCE(p.name, '') END, "
         "m.bodystart, m.bodyend, m.briefdescription, m.detaileddescription, "
         "m.kind, m.static FROM memberdef m LEFT JOIN path p ON p.rowid = m.file_id "
+        "LEFT JOIN path b ON b.rowid = m.bodyfile_id "
         "WHERE m.rowid=?",
         (rowid,),
     ).fetchone()
@@ -152,6 +161,38 @@ def _identity(conn: sqlite3.Connection, rowid: int) -> dict | None:
         "kind": row[8],
         "static": bool(row[9]),
     }
+
+
+## @brief Where one function identity is declared, outside the file that holds its body.
+## @param conn Open connection.
+## @param ids The identity's memberdef rowids (declaration and definition rows).
+## @param body_file The file `file` names.
+## @return Distinct declaration sites, by file then line; empty when there are none.
+## @version 1
+## @req REQ-DDB-QUERY-004
+## @dg_internal
+def _declaration_sites(
+    conn: sqlite3.Connection, ids: list[int], body_file: str
+) -> list[DeclarationSite]:
+    """ONE RULE FOR BOTH SHAPES (T2; entropic F1, mbedtls F2). A C++ out-of-line member is ONE row
+    whose `file_id` (the class header) differs from its `bodyfile_id`; a C function with a header
+    prototype is TWO rows, the prototype's `file_id` being the header. Either way a declaration
+    site is a row's declaring file and line where that file is not the body's.
+
+    @brief List declaration sites.
+    @return Sites.
+    """
+    if not ids:
+        return []
+    marks = ",".join("?" * len(ids))
+    ## A hand-built fixture's memberdef may lack `line` (doxygen's own schema always has it).
+    line = "m.line" if has_columns(conn, "memberdef", "line") else "NULL"
+    rows = conn.execute(
+        f"SELECT DISTINCT p.name, {line} FROM memberdef m JOIN path p ON p.rowid = m.file_id "  # noqa: S608
+        f"WHERE m.rowid IN ({marks}) AND p.name != ? ORDER BY 1, 2",
+        (*ids, body_file),
+    ).fetchall()
+    return [DeclarationSite(file=str(f), line=line) for f, line in rows]
 
 
 ## @brief Requirements (with titles) + covering tests for one function.
@@ -478,7 +519,8 @@ def _anchored_pick(
 ## commented out, shipped header first. `macros` is doxygen's ACTIVE definitions, so a
 ## commented-out shipped default could never appear there; the reply named a TFM profile
 ## header and omitted the shipped config, reading as enabled when the default is off.
-## @version 9
+## v10: declared_at; file is the body's file (2.0.0, T2)
+## @version 10
 ## @req REQ-DDB-QUERY-004
 ## @dg_internal
 def _dossier_conn(
@@ -547,6 +589,7 @@ def _dossier_conn(
         static=ident["static"],
         liveness=_liveness(conn, rowid),
         provenance=symbol_provenance(conn, rowid),
+        declared_at=_declaration_sites(conn, ids, ident["file"]),
         candidates=overloads,
         # Membership is per-rowid, and doxygen splits one function across a
         # declaration row and a definition row — so asking only the chosen

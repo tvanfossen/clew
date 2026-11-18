@@ -153,6 +153,10 @@
    "confidence": "str",
    "calls": "tuple[SectionCall, ...]"
   },
+  "DeclarationSite": {
+   "file": "str",
+   "line": "int | None"
+  },
   "DirectoryEntry": {
    "directory": "str",
    "indexed_files": "int",
@@ -179,6 +183,7 @@
    "liveness": "str",
    "detail": "str",
    "provenance": "str | None",
+   "declared_at": "list[DeclarationSite]",
    "candidates": "list[Candidate]",
    "threads": "list[Thread]",
    "is_terminus": "bool",
