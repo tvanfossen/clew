@@ -591,6 +591,26 @@ def _checked_document(key: str, value: dict[str, Any]) -> dict[str, Any]:
     return dict(value)
 
 
+## @brief Check a manifest document from ANY route against the one schema set.
+## @param key The manifest's option / section name.
+## @param value The document.
+## @return The validated document; raises BuildOptionError naming the offending key.
+## @version 1
+## @req REQ-DDB-CONFIG-001
+## @req REQ-DDB-CONFIG-008
+def check_manifest_document(key: str, value: dict[str, Any]) -> dict[str, Any]:
+    """THE IN-TREE `.clew.yaml` CALLS THIS TOO (R5-CFG F1, 2.0.0). Before, only tier 1 (`--declare`,
+    MCP `options`) reached `MANIFEST_SCHEMAS`; the repository's own file — the human's main way to
+    configure clew — went straight to loaders that read `entry.get(key, default)`, so the same
+    misspelling was refused on one route and silently defaulted on the other.
+
+    @brief Validate a manifest document against MANIFEST_SCHEMAS.
+    @return The document.
+    @version 1
+    """
+    return _checked_document(key, value)
+
+
 ## @brief Validate every entry of one list inside an inline manifest.
 ## @param key The option name, for the message.
 ## @param document The manifest document.

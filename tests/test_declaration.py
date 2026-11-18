@@ -203,9 +203,16 @@ def test_every_known_section_is_accepted(tmp_path: Path) -> None:
     """The negative control. Without it the refusal above would pass just as
     happily against a loader that rejected everything, and a declaration format
     nobody can use is worse than one that mis-reads a typo."""
-    from clew.declaration import KNOWN_SECTIONS, load_declaration
+    from clew.declaration import KNOWN_SECTIONS, LIST_SECTIONS, PATH_SECTIONS, load_declaration
 
-    body = "".join(f"{section}: []\n" for section in sorted(KNOWN_SECTIONS))
+    ## FIXTURE CHANGED (2.0.0, R5-CFG F1): every section used to be written `[]`, a value the loader
+    ## now refuses for a mapping or path section (a wrong SHAPE is refused, not dropped). The
+    ## property under test — every known NAME is accepted — is unchanged, so each section gets an
+    ## empty value of its own shape.
+    def empty(section: str) -> str:
+        return "[]" if section in LIST_SECTIONS else ("x" if section in PATH_SECTIONS else "{}")
+
+    body = "".join(f"{section}: {empty(section)}\n" for section in sorted(KNOWN_SECTIONS))
     (tmp_path / ".clew.yaml").write_text(body + "guard: {}\n", encoding="utf-8")
 
     # `guard:` is accepted and then dropped: it is the gate's section, not a declaration.
@@ -446,9 +453,11 @@ class TestForwardCompatibility:
         assert "guardd" in message and "allowed" in message, "the mechanical fix must survive"
 
     def test_an_experimental_section_is_tolerated_and_ignored(self, tmp_path):
-        """@brief An `x-` section neither refuses nor reaches the build. @version 1"""
+        """@brief An `x-` section neither refuses nor reaches the build. @version 2"""
+        ## FIXTURE CHANGED (2.0.0, R5-CFG F1): `thread_patterns: [worker]` was a list, which no
+        ## reader ever read and the loader now refuses; the property is the `x-` tolerance.
         (tmp_path / ".clew.yaml").write_text(
-            "x-future-thing:\n  whatever: 1\nthread_patterns:\n  - worker\n"
+            "x-future-thing:\n  whatever: 1\nthread_patterns:\n  spawns:\n    - {name: worker}\n"
         )
 
         data = load_declaration(tmp_path)

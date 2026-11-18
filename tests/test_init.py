@@ -1156,7 +1156,9 @@ def test_declaration_check_reports_both_states(repo: Path, stub_env: Path) -> No
     absent = _named(init_command.diagnose(repo, INIT_SCOPE_REPO), init_command.CHECK_DECLARATION)
     assert absent.status == CHECK_WARN
     assert "propose" in absent.detail
-    (repo / ".clew.yaml").write_text("shared_key_patterns: []\n", encoding="utf-8")
+    ## FIXTURE CHANGED (2.0.0, R5-CFG F1): a list under a mapping section was never read and is now
+    ## refused; the property under test does not depend on the section's contents.
+    (repo / ".clew.yaml").write_text("shared_key_patterns: {}\n", encoding="utf-8")
     present = _named(init_command.diagnose(repo, INIT_SCOPE_REPO), init_command.CHECK_DECLARATION)
     assert present.status == CHECK_OK
     assert ".clew.yaml" in present.detail

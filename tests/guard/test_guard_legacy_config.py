@@ -27,7 +27,9 @@ from clew.guard.config import LEGACY_CONFIG_NAME, load_config
 def test_a_legacy_config_with_no_guard_section_is_named(tmp_path, monkeypatch, caplog):
     """@brief The old file is named, with the migration. @version 1"""
     (tmp_path / LEGACY_CONFIG_NAME).write_text("validate:\n  presence:\n    require_brief: true\n")
-    (tmp_path / ".clew.yaml").write_text("thread_patterns:\n  - worker\n")
+    ## FIXTURE CHANGED (2.0.0, R5-CFG F1): `thread_patterns: [worker]` was never read (a list
+    ## under a mapping section) and is now refused; these tests only need a non-gate section.
+    (tmp_path / ".clew.yaml").write_text("thread_patterns:\n  spawns:\n    - {name: worker}\n")
     monkeypatch.chdir(tmp_path)
 
     with caplog.at_level(logging.WARNING, logger="clew.guard.config"):
@@ -60,7 +62,7 @@ def test_a_migrated_repo_is_not_nagged(tmp_path, monkeypatch, caplog):
 
 def test_no_legacy_file_means_no_warning(tmp_path, monkeypatch, caplog):
     """@brief A repo that never used doxygen-guard sees nothing. @version 1"""
-    (tmp_path / ".clew.yaml").write_text("thread_patterns:\n  - worker\n")
+    (tmp_path / ".clew.yaml").write_text("thread_patterns:\n  spawns:\n    - {name: worker}\n")
     monkeypatch.chdir(tmp_path)
 
     with caplog.at_level(logging.WARNING, logger="clew.guard.config"):
@@ -85,7 +87,7 @@ def test_the_index_warns_too(tmp_path, caplog):
     from clew.declaration import load_declaration
 
     (tmp_path / LEGACY_CONFIG_NAME).write_text("validate: {}\n")
-    (tmp_path / ".clew.yaml").write_text("thread_patterns:\n  - worker\n")
+    (tmp_path / ".clew.yaml").write_text("thread_patterns:\n  spawns:\n    - {name: worker}\n")
 
     with caplog.at_level(logging.WARNING):
         load_declaration(tmp_path)

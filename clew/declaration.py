@@ -266,6 +266,37 @@ KNOWN_SECTIONS = frozenset(
 ## Every top-level key `.clew.yaml` may carry: the declaration sections plus the gate's.
 ACCEPTED_SECTIONS = KNOWN_SECTIONS | NON_DECLARATION_SECTIONS
 
+## THE SHAPE OF EACH SECTION, ENFORCED BY THE LOADER (R5-CFG F1/F4/F5/F26, 2.0.0). Every section
+## is one of four shapes, and a value of the wrong shape is REFUSED here rather than handed to a
+## reader that would drop it (`section()` returns mapping-or-None, so a path string under
+## `thread_patterns:` was ignored), iterate it (`vendored: extern` became `e, x, t, e, r, n`), or
+## warn and ignore it — a warning is gone by the time anyone reads the index.
+##
+## A LIST section accepts one bare string as a one-item list, the precedent `wiki` already sets
+## for `gcov` and `theme.css`; anything else that is not a list is refused.
+LIST_SECTIONS = frozenset({SECTION_ENTRY_PATTERNS, SECTION_TEST_PATHS, SECTION_VENDORED})
+
+## A PATH section names one repo-relative file.
+PATH_SECTIONS = frozenset(
+    {SECTION_DATA_MODEL, SECTION_REQUIREMENTS, SECTION_ENRICH, SECTION_DOXYFILE}
+)
+
+## A MANIFEST section is its document inline; its entries are checked against
+## `buildoptions.MANIFEST_SCHEMAS`, the same schemas tier 1 is checked against.
+MANIFEST_SECTIONS = frozenset(
+    {SECTION_SHARED_KEY, SECTION_THREADS, SECTION_MQTT, SECTION_LOCKS, SECTION_DISPATCH}
+)
+
+## The keys a SECTION-DOCUMENT section may carry, where this loader is the only check. Restated
+## rather than imported so this module stays free of its readers' imports;
+## `tests/test_declaration_validated.py` pins each set to the reader's own constants.
+## `index_scope` and `sub_indexes` are absent on purpose: `scope.py` already refuses their
+## unknown keys by name (the model this follows).
+SECTION_KEYS: dict[str, frozenset[str]] = {
+    SECTION_PREPROCESSOR: frozenset({"predefined", "config_header"}),
+    SECTION_KCONFIG: frozenset({"root"}),
+}
+
 ## THE ESCAPE HATCH AN OLDER CLEW NEEDS (B5, 1.1.0 merge review). `guard:` is new in 1.1.0,
 ## so a `.clew.yaml` written for it is REFUSED outright by clew <= 1.0.39, which cannot know
 ## the name. Nothing shipped now can change what an already-released version does — but a
@@ -299,7 +330,9 @@ def load_declaration(repo_root: Path | str | None) -> dict[str, Any]:
 ## @return (declaration, source path) — the path is None when nothing was declared.
 ##         Raises DeclarationError when the document names an unknown section.
 ## v5 (1.4.0): the `wiki:` section is accepted and dropped, like `guard:`.
-## @version 5
+## v6 (2.0.0): every section's shape is checked (`_checked_sections`); manifest sections share
+## tier 1's MANIFEST_SCHEMAS, so the in-tree file is no longer the least validated route.
+## @version 6
 ## @req REQ-DDB-CONFIG-001
 def load_declaration_located(
     repo_root: Path | str | None,
@@ -327,7 +360,7 @@ def load_declaration_located(
 
     @brief Read the target's declared conventions and their source file.
     @return (parsed mapping, source path) — ({}, None) when there is nothing usable.
-    @version 2
+    @version 3
     """
     if repo_root is None:
         return {}, None
@@ -379,8 +412,111 @@ def load_declaration_located(
     if not configures_gate:
         _warn_about_legacy_config(path)
     if data:
+        data = _checked_sections(data, path)
         logger.info("declaration: %s declares %s", path, ", ".join(sorted(data)))
     return data, (path if data else None)
+
+
+## @brief Check every declared section's shape, normalising a one-string list section.
+## @param data The declaration, unknown sections already refused.
+## @param path The file it was read from, for the message.
+## @return The declaration with list sections as lists; raises DeclarationError on a wrong shape.
+## @version 1
+## @dg_internal
+def _checked_sections(data: dict[str, Any], path: Path) -> dict[str, Any]:
+    """ONE VALIDATOR FOR BOTH ROUTES (R5-CFG F1): manifest sections go through
+    `buildoptions.check_manifest_document`, the check tier 1 already had, so a key refused from
+    `--declare` is refused from the checked-in file too.
+
+    @brief Validate section shapes.
+    @return Normalised declaration.
+    @version 1
+    """
+    out = dict(data)
+    for name, value in data.items():
+        out[name] = _checked_section(name, value, path)
+    return out
+
+
+## @brief Check one section's shape.
+## @param name Section name.
+## @param value Its declared value.
+## @param path The file it was read from.
+## @return The (possibly normalised) value; raises DeclarationError on a wrong shape.
+## @version 1
+## @dg_internal
+def _checked_section(name: str, value: Any, path: Path) -> Any:
+    """@brief Refuse a wrong-shaped section, naming it and the expected shape.
+    @return The checked value.
+    @version 1
+    """
+    from .buildoptions import BuildOptionError, check_manifest_document
+
+    if name in LIST_SECTIONS:
+        return _checked_list_section(name, value, path)
+    if name in PATH_SECTIONS:
+        if not isinstance(value, str) or not value.strip():
+            raise DeclarationError(
+                f"{path}: {name} must be one repo-relative path, got {type(value).__name__}"
+            )
+        return value
+    if not isinstance(value, dict):
+        raise DeclarationError(
+            f"{path}: {name} must be a mapping (the document inline), got "
+            f"{type(value).__name__}. Nothing reads a {type(value).__name__} here, so the build "
+            f"would have used built-in defaults while reporting the section declared."
+        )
+    if name in MANIFEST_SECTIONS:
+        try:
+            return check_manifest_document(name, value)
+        except BuildOptionError as exc:
+            raise DeclarationError(f"{path}: {exc}") from exc
+    _check_section_keys(name, value, path)
+    return value
+
+
+## @brief Read a list section, accepting one bare string as a one-item list.
+## @param name Section name.
+## @param value Declared value.
+## @param path Source file.
+## @return The list of strings; raises DeclarationError for any other type.
+## @version 1
+## @dg_internal
+def _checked_list_section(name: str, value: Any, path: Path) -> list[str]:
+    """@brief Normalise a list section. @return Strings."""
+    if isinstance(value, str):
+        return [value]
+    if not isinstance(value, list) or not all(isinstance(v, (str, int, float)) for v in value):
+        raise DeclarationError(
+            f"{path}: {name} must be a list of strings (or one string), got {type(value).__name__}"
+        )
+    return [str(v) for v in value]
+
+
+## @brief Refuse a key a section-document section's reader never reads.
+## @param name Section name.
+## @param value Section mapping.
+## @param path Source file.
+## @return None; raises DeclarationError naming the unknown key(s).
+## @version 1
+## @dg_internal
+def _check_section_keys(name: str, value: dict[str, Any], path: Path) -> None:
+    """R5-CFG F4: `preprocessor: {predefine: [FOO]}` recorded a DECLARED configuration with no
+    macros, and `kconfig: {path: ...}` (once the documented spelling) was ignored in favour of the
+    root Kconfig by convention.
+
+    @brief Allow-list a section document's keys.
+    """
+    allowed = SECTION_KEYS.get(name)
+    if allowed is None:
+        return
+    unknown = sorted(str(k) for k in value if k not in allowed)
+    if unknown:
+        raise DeclarationError(
+            f"{path}: {name} names unknown key(s) {', '.join(repr(k) for k in unknown)} — "
+            f"allowed: {', '.join(sorted(allowed))}. A misspelled key reads as an absent one, so "
+            f"it would silently take its default."
+        )
 
 
 ## @brief Parse a YAML file expected to hold a mapping.
