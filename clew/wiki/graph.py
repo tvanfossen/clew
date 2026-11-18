@@ -48,11 +48,13 @@ _HEAD = 34
 ## @param rel Repo-relative path.
 ## @param declared (name, globs) groupings from `wiki.components`, first match wins.
 ## @return The component id.
-## @version 1
+## v2: the package depth is wiki.component_depth (2.0.0, R5-CFG C7)
+## @version 2
 ## @req REQ-DDB-WIKI-019
-def component_of(rel: str, declared: tuple[tuple[str, tuple[str, ...]], ...] = ()) -> str:
-    """A DECLARED GROUPING WINS; otherwise the package: `clew/query/x.py` → `clew/query`, a
-    top-level module `clew/cli.py` → `clew`, a root file → `(root)`.
+def component_of(
+    rel: str, declared: tuple[tuple[str, tuple[str, ...]], ...] = (), depth: int = 2
+) -> str:
+    """A DECLARED GROUPING WINS; otherwise the package (`package_of`).
 
     @brief Component of a file.
     @return Component id.
@@ -60,10 +62,28 @@ def component_of(rel: str, declared: tuple[tuple[str, tuple[str, ...]], ...] = (
     for name, globs in declared:
         if any(fnmatch.fnmatch(rel, g) for g in globs):
             return name
+    return package_of(rel, depth)
+
+
+## @brief The package a file sits in: its first `depth` directories.
+## @param rel Repo-relative path.
+## @param depth How many leading directories name a package (`wiki.component_depth`).
+## @return The package id, `(root)` for a root file.
+## @version 1
+## @req REQ-DDB-WIKI-019
+def package_of(rel: str, depth: int = 2) -> str:
+    """`clew/query/x.py` → `clew/query`, a top-level module `clew/cli.py` → `clew`, a root file →
+    `(root)`. THE DEPTH IS DECLARED (R5-CFG C7, 2.0.0): two segments made every Maven/Gradle file
+    (`src/main/java/com/acme/...`) one block `src/main`, and Go's `internal/x/y` one `internal/x`.
+
+    @brief Package of a file.
+    @return Package id.
+    """
     parts = rel.split("/")
     if len(parts) == 1:
         return "(root)"
-    return "/".join(parts[:2]) if len(parts) > 2 else parts[0]
+    dirs = parts[:-1]
+    return "/".join(dirs[:depth])
 
 
 ## @brief Build the graph.
@@ -75,13 +95,15 @@ def component_of(rel: str, declared: tuple[tuple[str, tuple[str, ...]], ...] = (
 ## @return The graph as plain data.
 ## v2: `exclude_tests` (round 3, P1c: test code is a lens on the system, not boxes above it).
 ## v3 (round 4, R1): declared blocks win; undeclared files join by coupling (`inferred_files`).
-## @version 3
+## v4: the package depth is wiki.component_depth (2.0.0, R5-CFG C7)
+## @version 4
 ## @req REQ-DDB-WIKI-019
 def build_graph(
     db: Path,
     evidence: list,
     impact: list[dict] | None,
     declared: tuple = (),
+    component_depth: int = 2,
     exclude_tests: bool = False,
 ) -> dict[str, Any]:
     """@brief Aggregate and lay out. @return Graph."""
@@ -90,7 +112,7 @@ def build_graph(
         tested = _tested_calls(conn, funcs) if exclude_tests else None
         if exclude_tests:
             funcs = {r: f for r, f in funcs.items() if not f[2]}
-        file_block, inferred = _blocks(conn, funcs, declared)
+        file_block, inferred = _blocks(conn, funcs, declared, component_depth)
         comp = {rowid: file_block[rel] for rowid, (_n, rel, _t) in funcs.items()}
         links = _links(conn, comp)
         threads = _threads(conn, comp)
@@ -119,9 +141,12 @@ def build_graph(
 ## @return ({file: block}, {block: files placed by coupling}).
 ## v2 (OWNER 2026-11-17, "Vendor code is a block of its own"): an undeclared file the index tags
 ## as inside a nested git tree is the Vendor block — never a package, never joined by coupling.
-## @version 2
+## v3: the package depth is wiki.component_depth (2.0.0, R5-CFG C7)
+## @version 3
 ## @req REQ-DDB-WIKI-019
-def _blocks(conn: Any, funcs: dict, declared: tuple) -> tuple[dict[str, str], dict[str, set[str]]]:
+def _blocks(
+    conn: Any, funcs: dict, declared: tuple, depth: int = 2
+) -> tuple[dict[str, str], dict[str, set[str]]]:
     """DECLARED BLOCKS WIN (round 4, R1; the reflexion method with clustering, Christl, Koschke &
     Storey, WCRE 2005). With nothing declared every file keeps its package and nothing is
     inferred. Otherwise an undeclared file joins the block it shares the most calls with, either
@@ -136,7 +161,7 @@ def _blocks(conn: Any, funcs: dict, declared: tuple) -> tuple[dict[str, str], di
     vendored = _vendored(conn)
     owner = {
         rel: VENDOR if rel in vendored and block not in named else block
-        for rel, block in ((rel, component_of(rel, declared)) for rel in files)
+        for rel, block in ((rel, component_of(rel, declared, depth)) for rel in files)
     }
     if not declared:
         return owner, {}

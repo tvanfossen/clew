@@ -29,8 +29,8 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
-## Seconds a traced run may take.
-_RUN_TIMEOUT = 600
+from .._common import logger
+
 ## The tracer's module name in the run's interpreter: neutral, so it cannot shadow anything.
 _PLUGIN_FILE = "clew_trace_plugin.py"
 ## Where a repository's own virtual environment's interpreter is looked for, in order.
@@ -48,7 +48,8 @@ _VENVS = (
 ## @return {passed, otlp, checkpoints, failure, dropped}.
 ## v2: the repository's own interpreter; the plugin as a standalone file (the packaging gate
 ## found the first cut importing pytest into clew and running with clew's interpreter).
-## @version 2
+## v3: interpreter and timeout from the repository's wiki: section (2.0.0, R5-CFG C5/W6)
+## @version 3
 ## @req REQ-DDB-WIKI-035
 def trace_test(repo_root: Path, nodeid: str) -> dict[str, Any]:
     """THE REPOSITORY'S OWN PYTEST CONFIG STILL APPLIES, except what would hide the run: a
@@ -61,6 +62,11 @@ def trace_test(repo_root: Path, nodeid: str) -> dict[str, Any]:
     @return The run.
     """
     root = Path(repo_root).resolve()
+    ## R5-CFG C5/W6 (2.0.0): the repository states its interpreter and timeout (`wiki.trace_python`,
+    ## `wiki.trace_timeout`); an invalid section falls back to the defaults, said by `wiki check`.
+    from .config import load_wiki_config
+
+    config, _problems = load_wiki_config(root)
     with tempfile.TemporaryDirectory() as scratch:
         out = Path(scratch) / "run.json"
         shutil.copyfile(Path(__file__).with_name("_traceplugin.py"), Path(scratch) / _PLUGIN_FILE)
@@ -72,7 +78,7 @@ def trace_test(repo_root: Path, nodeid: str) -> dict[str, Any]:
             "PYTHONPATH": path,
         }
         argv = [
-            str(interpreter_for(root)),
+            str(interpreter_for(root, config.trace_python)),
             "-m",
             "pytest",
             nodeid,
@@ -90,7 +96,7 @@ def trace_test(repo_root: Path, nodeid: str) -> dict[str, Any]:
             env=env,
             capture_output=True,
             text=True,
-            timeout=_RUN_TIMEOUT,
+            timeout=config.trace_timeout,
             check=False,
         )
         if not out.is_file():
@@ -112,15 +118,32 @@ def trace_test(repo_root: Path, nodeid: str) -> dict[str, Any]:
 
 ## @brief The interpreter a repository's tests run under.
 ## @param repo_root The repository.
-## @return Its own virtual environment's interpreter, else clew's.
-## @version 1
+## @param declared `wiki.trace_python`, repo-relative, or None.
+## @return The declared interpreter, else its own virtual environment's, else clew's.
+## v2 (2.0.0): a declared interpreter, and the fallback is said (R5-CFG W6).
+## @version 2
 ## @req REQ-DDB-WIKI-035
-def interpreter_for(repo_root: Path) -> Path:
-    """@brief Interpreter. @return Path."""
+def interpreter_for(repo_root: Path, declared: str | None = None) -> Path:
+    """A DECLARED interpreter (`wiki.trace_python`) wins; else a conventional venv under the root;
+    else clew's own interpreter — SAID AT WARNING (R5-CFG W6, 2.0.0), because the target's packages
+    are usually not there and the run then fails with an ImportError that reads as a test failure.
+
+    @brief Interpreter.
+    @return Path.
+    """
+    if declared:
+        return Path(repo_root) / declared
     for rel in _VENVS:
         candidate = Path(repo_root) / rel
         if candidate.exists():
             return candidate
+    logger.warning(
+        "trace-run: no interpreter declared (`wiki.trace_python`) and no %s under %s — running "
+        "the test under clew's own interpreter %s, which may lack the repository's packages",
+        " / ".join(_VENVS),
+        repo_root,
+        sys.executable,
+    )
     return Path(sys.executable)
 
 

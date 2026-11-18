@@ -37,7 +37,9 @@ from ..query._common import connect, table_exists
 ## Neighbours listed per side before the rest are counted.
 _NEAR = 12
 ## The most calls a test-to-implementer path is searched across.
-_PATH_DEPTH = 5
+## The default path depth when a caller states none; the build passes `wiki.path_depth` (R5-CFG
+## C3, 2.0.0 — it was 5 here and 12 on the test page, one question with two answers).
+_PATH_DEPTH = 12
 ## The most body lines a section bundles.
 _BODY_LINES = 120
 
@@ -319,7 +321,8 @@ def _section(
 ## @param ctx The page context (tests, implementers, rules).
 ## @param repo_root The repository.
 ## @return HTML.
-## @version 1
+## v2: one path depth, wiki.path_depth (2.0.0, R5-CFG C3)
+## @version 2
 ## @dg_internal
 def _test_block(d: Definition, graph: _Edges, ctx: dict[str, Any], repo_root: Path) -> str:
     """ASSERTIONS ARE SOURCE TEXT, withheld under `exclude_bodies`; the verified requirements and
@@ -332,7 +335,9 @@ def _test_block(d: Definition, graph: _Edges, ctx: dict[str, Any], repo_root: Pa
 
     facts = ctx["tests"][d.name]
     paths = {
-        req: _path(graph, d.rowid, ctx["implementers"].get(req, set()))
+        req: _path(
+            graph, d.rowid, ctx["implementers"].get(req, set()), ctx.get("path_depth", _PATH_DEPTH)
+        )
         for req, _kind in facts.verifies
     }
     out = verifies_block(facts, {r: p for r, p in paths.items() if p})

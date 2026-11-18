@@ -34,6 +34,7 @@ from .config import (
     REPORT_JSON,
     REPORT_MARKDOWN,
     get_requirements,
+    impact_base,
     report_dir,
     get_validate,
     load_config,
@@ -407,7 +408,8 @@ def resolve_version_gate(config: dict[str, Any]) -> None:
 
 ## @brief Run all configured checks in pre-commit mode (no subcommand).
 #  v2.7: one report directory, guard.impact.report_dir; the writer is shared (2.0.0, R5-CFG F9)
-#  @version 2.7
+#  v2.8: diffs against guard.impact.base (2.0.0, R5-CFG W8)
+#  @version 2.8
 #  @req REQ-DDB-GUARD-001
 #  @return Exit code: 0 if no violations, 1 if violations found
 def run_precommit(file_paths: list[str], config: dict[str, Any]) -> int:
@@ -422,7 +424,7 @@ def run_precommit(file_paths: list[str], config: dict[str, Any]) -> int:
     validate_output_path(base_dir)
 
     if get_requirements(config):
-        diff_range = get_branch_diff_range()
+        diff_range = get_branch_diff_range(impact_base(config))
         if diff_range:
             changed = collect_changed_functions(file_paths, config, diff_range=diff_range)
         else:

@@ -24,7 +24,7 @@ function), the TEST that should catch its removal, and whether it did (`killed`)
 to every requirement its mechanism implements, as (mechanism, test, killed | survived). The field
 is ABSENT (None) when no record file was given — unmeasured is not "every mutant was killed".
 
-Reports are read with the standard library's XML parser and capped at `MAX_REPORT_BYTES`; they are
+Reports are read with the standard library's XML parser and capped (`tests.max_report_mb`); they are
 CI artifacts the operator chose, not repository content.
 
 Imports beyond these (W15/W16: gcov, CTest / TAP / Catch2 / pytest-json results, a mapping file,
@@ -38,15 +38,53 @@ from __future__ import annotations
 
 import re
 import xml.etree.ElementTree as ET
+from collections.abc import Iterator
+from contextlib import contextmanager
+from contextvars import ContextVar
 from dataclasses import dataclass
 from fnmatch import fnmatch
 from pathlib import Path
 
 from ..query._common import connect, table_exists
-from .config import EvidenceInputs
+from .config import DEFAULT_MAX_REPORT_MB, EvidenceInputs
 
-## A report larger than this is refused rather than parsed.
-MAX_REPORT_BYTES = 64 * 1024 * 1024
+## A report larger than this is refused rather than parsed: `tests.max_report_mb` (R5-CFG C9,
+## 2.0.0), default 64 MiB — per-test LCOV grows with the number of tests, so a mid-size C repo can
+## exceed a cap that suited one JUnit file. Set per build with `report_limit`, read by the readers
+## below; a ContextVar so the limit belongs to the build that set it, not the process.
+_REPORT_MB: ContextVar[int] = ContextVar("clew_wiki_report_mb", default=DEFAULT_MAX_REPORT_MB)
+
+
+## @brief Hold this build's report size limit for the readers below.
+## @param megabytes The limit, in MiB.
+## @return A context manager.
+## @version 1
+## @req REQ-DDB-WIKI-005
+@contextmanager
+def report_limit(megabytes: int) -> Iterator[None]:
+    """@brief Scope the report limit. @return Context."""
+    token = _REPORT_MB.set(megabytes)
+    try:
+        yield
+    finally:
+        _REPORT_MB.reset(token)
+
+
+## @brief Refuse a report over this build's size limit.
+## @param path The report.
+## @return None; raises ValueError naming the limit and the key that raises it.
+## @version 1
+## @dg_internal
+def check_report_size(path: Path) -> None:
+    """@brief Apply the cap. @return None."""
+    limit = _REPORT_MB.get() * 1024 * 1024
+    if path.stat().st_size > limit:
+        raise ValueError(
+            f"{path} is larger than {_REPORT_MB.get()} MiB; refusing to parse it "
+            f"(raise `tests.max_report_mb` if the report is expected to be this large)"
+        )
+
+
 ## Worst-first: a folded test takes the worst status of its cases.
 _RANK = {"error": 0, "failed": 1, "skipped": 2, "passed": 3}
 ## A parametrized case's suffix: `test_x[a-1]` folds to `test_x`.
@@ -164,7 +202,8 @@ def parse_cobertura(path: Path) -> dict[str, dict[int, int]]:
 ## @brief Read a mutation record: (mechanism, test, killed) per entry.
 ## @param path A YAML or JSON list of `{mechanism, test, killed}`.
 ## @return Records, in file order.
-## @version 1
+## v2: the cap is this build's tests.max_report_mb (2.0.0, R5-CFG C9)
+## @version 2
 ## @req REQ-DDB-WIKI-006
 def parse_mutations(path: Path) -> list[tuple[str, str, bool]]:
     """AN ENTRY MISSING A FIELD IS REFUSED, never defaulted: a record that does not say whether
@@ -176,8 +215,7 @@ def parse_mutations(path: Path) -> list[tuple[str, str, bool]]:
     """
     import yaml
 
-    if path.stat().st_size > MAX_REPORT_BYTES:
-        raise ValueError(f"{path} is larger than {MAX_REPORT_BYTES} bytes; refusing to parse it")
+    check_report_size(path)
     doc = yaml.safe_load(path.read_text(encoding="utf-8")) or []
     if not isinstance(doc, list):
         raise ValueError(f"{path}: a mutation record is a list of {{mechanism, test, killed}}")
@@ -584,12 +622,12 @@ def _case_status(case: ET.Element) -> tuple[str, str]:
 ## @brief Parse one report, refusing an oversized one.
 ## @param path The report.
 ## @return The XML root.
-## @version 1
+## v2: the cap is this build's tests.max_report_mb (2.0.0, R5-CFG C9)
+## @version 2
 ## @dg_internal
 def _root(path: Path) -> ET.Element:
     """@brief Read XML with a size cap. @return Root element."""
-    if path.stat().st_size > MAX_REPORT_BYTES:
-        raise ValueError(f"{path} is larger than {MAX_REPORT_BYTES} bytes; refusing to parse it")
+    check_report_size(path)
     return ET.parse(path).getroot()
 
 

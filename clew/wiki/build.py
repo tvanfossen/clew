@@ -35,7 +35,7 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
-from .config import Audience, WikiConfig, load_wiki_config
+from .config import DEFAULT_MAX_REPORT_MB, Audience, WikiConfig, load_wiki_config
 
 ## Markdown table cells may not carry a bare pipe or newline.
 _CELL = str.maketrans({"|": "\\|", "\n": " "})
@@ -76,9 +76,43 @@ _CELL = str.maketrans({"|": "\\|", "\n": " "})
 ## flow is drawn past the cap.
 ## v23 (round 5): per-test coverage feeds the master flows; each test's slices go to its page; only
 ## a traced test keeps a flow of its own.
-## @version 23
+## v24 (2.0.0): the body moved to `_build_site`; this scopes the report limit around it (R5-CFG C9).
+## @version 24
 ## @req REQ-DDB-WIKI-003
 def build_wiki(
+    repo_root: Path,
+    db: Path,
+    out_dir: Path,
+    audience: str | None = None,
+    version: str | None = None,
+    config_path: Path | None = None,
+) -> Path:
+    """THE REPORT SIZE LIMIT (`tests.max_report_mb`) IS THIS BUILD'S: every report reader below
+    consults it, so it is set around the whole build rather than threaded through each parser.
+
+    @brief Write and render the site, within this build's report limit.
+    @return The HTML directory.
+    @version 24
+    """
+    from .evidence import report_limit
+
+    config, problems = load_wiki_config(Path(repo_root), config_path)
+    with report_limit(config.max_report_mb if not problems else DEFAULT_MAX_REPORT_MB):
+        return _build_site(repo_root, db, out_dir, audience, version, config_path)
+
+
+## @brief Write and render the site.
+## @param repo_root The repository.
+## @param db The index.
+## @param out_dir Where the site goes.
+## @param audience Redaction rules, by name.
+## @param version The version key, when versioned.
+## @param config_path An out-of-tree config.
+## @return The HTML directory.
+## The body of `build_wiki` before 2.0.0 (its history is recorded there).
+## @version 1
+## @dg_internal
+def _build_site(
     repo_root: Path,
     db: Path,
     out_dir: Path,
@@ -91,7 +125,7 @@ def build_wiki(
 
     @brief Write and render the site.
     @return The HTML directory.
-    @version 18
+    @version 1
     """
     from .flowpage import flow_page, flows_index
     from .impactpage import impact_page
@@ -131,7 +165,7 @@ def build_wiki(
     traces = {
         root_name(otlp): (rel, otlp) for rel, otlp in load_traces(repo_root, config.inputs.traces)
     }
-    test_specs = _test_flows(db, facts, frozenset(traces))
+    test_specs = _test_flows(db, facts, frozenset(traces), config.trace_depth)
     specs = [*_all_flows(repo_root, db, config), *test_specs]
     coverage = _coverage(repo_root, config)
     pages, not_drawn, flow_of = [], [], {}
@@ -170,6 +204,8 @@ def build_wiki(
         "flows": pages,
         "rules": rules,
         "template": config.link_template,
+        ## R5-CFG C3 (2.0.0): ONE test → implementer path depth for the symbol and test pages.
+        "path_depth": config.path_depth,
         "commit": commit,
         "tests": facts,
         "implementers": {
@@ -205,13 +241,28 @@ def build_wiki(
     }
     issues = resolve_target(config.issues, config.issues_enabled, repo_root)
     trace.issues, trace.unlinked, trace.issues_note = _fetch_issues(config, issues, trace.evidence)
-    graph = build_graph(db, trace.evidence, trace.impact, config.components, exclude_tests=True)
+    graph = build_graph(
+        db,
+        trace.evidence,
+        trace.impact,
+        config.components,
+        exclude_tests=True,
+        component_depth=config.component_depth,
+    )
     _issues_into(graph, trace.issues)
     sections = [
         requirements_page(trace, config, source, rules, burndown, tuple(pages), issues),
         flows_index(source, pages, unmatched, tuple(not_drawn)),
         impact_page(trace, pages, rules, source),
-        web_page(db, graph, [n for n, _g in config.components], pages, written, source),
+        web_page(
+            db,
+            graph,
+            [n for n, _g in config.components],
+            pages,
+            written,
+            source,
+            config.web_max_ring,
+        ),
         _docs_page(source, _prose(repo_root, config, source), config, decisions),
     ]
     if config.catalogs:
@@ -283,7 +334,8 @@ def _lit(pages: list, graph: dict, config: WikiConfig) -> dict[str, list[str]]:
 ## @param target The tracker, or None.
 ## @param evidence Requirement evidence rows.
 ## @return ({requirement: issues} or None when not fetched, unlinked issues, a note).
-## @version 1
+## v2: a listing cut at its page cap is disclosed (2.0.0, R5-CFG D14)
+## @version 2
 ## @dg_internal
 def _fetch_issues(config: WikiConfig, target: Any, evidence: list) -> tuple[Any, list, str]:
     """THE BUILD'S ONLY NETWORK USE, and only when `wiki.issues.fetch` is true. A failure is SAID
@@ -298,12 +350,20 @@ def _fetch_issues(config: WikiConfig, target: Any, evidence: list) -> tuple[Any,
         return None, [], ""
     if target is None:
         return None, [], "Issues were not fetched: no tracker is declared or found on `origin`."
+    provider = tracker.provider_for(target)
     try:
-        found = tracker.provider_for(target).list_open()
+        found = provider.list_open()
     except (OSError, ValueError, KeyError) as exc:
         return None, [], f"Issues were not fetched from {target[0]} `{target[1]}`: {exc}"
     linked, unlinked = tracker.link_issues(found, [r.req_id for r in evidence])
-    return linked, unlinked, ""
+    ## D14 (2.0.0): a listing cut at its page cap is SAID — the counts below are a floor.
+    note = (
+        f"Only the first {len(found)} open issues were read from {target[0]} `{target[1]}` (the "
+        f"listing stops at its page cap); counts on this page are a lower bound."
+        if getattr(provider, "truncated", False)
+        else ""
+    )
+    return linked, unlinked, note
 
 
 ## @brief Each component's count of open issues linked to the requirements it implements.
@@ -362,9 +422,10 @@ def _slices_by_test(pages: list) -> dict[str, list]:
 ## v3 (OWNER 2026-11-17, round 5: "a test itself doesn't need a sequence diagram"): only a test
 ## with a packaged run keeps a flow, so its replay has somewhere to land until replays are drawn
 ## on the master flow; every other test is a slice of the master flows. The cap is gone.
-## @version 3
+## v4: the traced flow depth is wiki.trace_depth (2.0.0, R5-CFG C4)
+## @version 4
 ## @req REQ-DDB-WIKI-027
-def _test_flows(db: Path, facts: dict, traced: frozenset = frozenset()) -> list:
+def _test_flows(db: Path, facts: dict, traced: frozenset = frozenset(), depth: int = 2) -> list:
     """CATALOG AND INFERRED LINKS ARE NOT DIRECT: a catalog names a whole test file and inference
     reaches through the call graph; only a tagged or measured test is drawn by default.
 
@@ -380,7 +441,7 @@ def _test_flows(db: Path, facts: dict, traced: frozenset = frozenset()) -> list:
         keys = sorted(test_functions(conn, direct))
     chosen = [k for k in keys if k[0] in traced]
     specs = [
-        FlowSpec(entry=n, file=f, depth=2, title=f"test `{n}` ({f})", role="tests")
+        FlowSpec(entry=n, file=f, depth=depth, title=f"test `{n}` ({f})", role="tests")
         for n, f in chosen
     ]
     return specs

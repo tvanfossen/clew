@@ -39,7 +39,28 @@ _TOP = {
     "tooling",
     "adrs",
     "doc_kinds",
+    ## R5-CFG C1-C5, C7, C8, W6 (2.0.0): the numbers the build used to assume.
+    "measured_depth",
+    "measured_steps",
+    "path_depth",
+    "trace_depth",
+    "trace_timeout",
+    "trace_python",
+    "component_depth",
+    "web",
 }
+## Each tuning key's former constant — the default when it is not declared.
+TUNING_DEFAULTS = {
+    "measured_depth": 12,
+    "measured_steps": 400,
+    "path_depth": 12,
+    "trace_depth": 2,
+    "trace_timeout": 600,
+    "component_depth": 2,
+}
+_WEB = {"max_ring"}
+## The per-test report cap, in MiB (`tests.max_report_mb`).
+DEFAULT_MAX_REPORT_MB = 64
 _THEME = {"name", "palette", "css", "logo", "fonts"}
 ## The palette tokens of the default theme, as a reader writes them, and the CSS custom property
 ## each one sets. R5-CFG F25 (2.0.0): the config used to expose the stylesheet's abbreviations
@@ -79,7 +100,19 @@ _MOVED = {
     "impact": "the gate's report directory (`guard.impact.report_dir`), which the wiki now reads",
     "tests": "the top-level `tests:` section (where tests live and the evidence their runs leave)",
 }
-_FLOW = {"entry", "qualified", "depth", "lanes", "stop_at", "title", "animate", "file", "role"}
+_FLOW = {
+    "entry",
+    "qualified",
+    "depth",
+    "lanes",
+    "stop_at",
+    "title",
+    "animate",
+    "file",
+    "role",
+    "measured_depth",
+    "max_steps",
+}
 ## The roles a flow is grouped under on the Flows page (round 3, P1e).
 FLOW_ROLES = ("product", "threads", "tooling", "tests")
 ## The kinds a document is grouped under (Diátaxis, plus agent-facing docs kept apart).
@@ -104,10 +137,11 @@ DEFAULT_DOCS = ("README.md", "docs/**/*.md", "docs/**/*.rst")
 ## @brief One flow the site derives.
 ## v2: `animate` (W12).
 ## v3: `file` — the entry's file, when its name is shared (every `def main`).
-## @version 3
+## v4 (2.0.0): measured_depth, max_steps per flow (R5-CFG C1/C2).
+## @version 4
 @dataclass(frozen=True)
 class FlowSpec:
-    """@brief Entry, selector, file, depth, lanes, stop names, title, animation, role. @version 4"""
+    """@brief Entry, selector, file, depth, lanes, stop names, title, animation, role. @version 5"""
 
     entry: str
     qualified: str | None = None
@@ -119,6 +153,10 @@ class FlowSpec:
     file: str | None = None
     ## `product`, `threads` or `tooling`; "" = classified by the build (tooling paths, else product).
     role: str = ""
+    ## R5-CFG C1/C2 (2.0.0): this flow's measured expansion depth and step cap; None inherits
+    ## `wiki.measured_depth` / `wiki.measured_steps`.
+    measured_depth: int | None = None
+    max_steps: int | None = None
 
 
 ## @brief The W15/W16 evidence imports of the top-level `tests:`, as declared (paths relative to the repo).
@@ -218,7 +256,8 @@ class RuleSpec:
 ## v13: adrs, doc_kinds.
 ## v14 (round 5): test_flows removed — tests are slices of the master flows.
 ## v15 (2.0.0): `needs` comes from `requirements.needs`; the orphan test_flows comment is gone.
-## @version 15
+## v16 (2.0.0): the tuning keys (R5-CFG C1-C5, C7-C9, W6).
+## @version 16
 @dataclass(frozen=True)
 class WikiConfig:
     """@brief The whole `wiki:` section. @version 4"""
@@ -249,6 +288,16 @@ class WikiConfig:
     issues_fetch: bool = False
     ## Path globs whose entry points are tooling flows.
     tooling: tuple[str, ...] = DEFAULT_TOOLING
+    ## R5-CFG C1-C5, C7-C9, W6 (2.0.0): the build's numbers, declared (see TUNING_DEFAULTS).
+    measured_depth: int = 12
+    measured_steps: int = 400
+    path_depth: int = 12
+    trace_depth: int = 2
+    trace_timeout: int = 600
+    trace_python: str | None = None
+    component_depth: int = 2
+    web_max_ring: int = 8
+    max_report_mb: int = DEFAULT_MAX_REPORT_MB
     ## A Sphinx-needs `needs.json` contributing requirements (from `requirements.needs`), or None.
     needs: str | None = None
     ## Globs of architecture decision records.
@@ -279,7 +328,8 @@ class WikiConfig:
 ## v16 (2.0.0, R5-CFG F6/F7/F9): catalogs and needs come from the top-level `requirements:`;
 ## `wiki.catalogs`, `wiki.needs` and `wiki.impact` are refused with where they went.
 ## v17: tests come from the top-level tests: section; wiki.tests is refused (2.0.0, R5-CFG F20)
-## @version 17
+## v18: reads the tuning keys (2.0.0, R5-CFG C1-C9)
+## @version 18
 ## @req REQ-DDB-WIKI-003
 def load_wiki_config(
     repo_root: Path, config_path: Path | None = None
@@ -331,6 +381,7 @@ def load_wiki_config(
         needs=str(requirements["needs"]) if requirements.get("needs") else None,
         adrs=_strings(raw, "adrs", DEFAULT_ADRS, "wiki", problems),
         doc_kinds=_doc_kinds(raw.get("doc_kinds") or {}, problems),
+        **_tuning(raw, tests, problems),
     )
     return config, problems
 
@@ -631,7 +682,8 @@ def _strings(
 ## v3: `file`.
 ## v4: `role` (one of FLOW_ROLES).
 ## v5 (2.0.0): `depth: 0` is a problem, not 3; `stop_at` through `_strings`.
-## @version 5
+## v6: measured_depth and max_steps per flow (2.0.0, R5-CFG C1/C2)
+## @version 6
 ## @dg_internal
 def _flow(raw: Any, index: int, problems: list[str]) -> FlowSpec | None:
     """@brief Parse one flow. @return Spec or None."""
@@ -650,7 +702,55 @@ def _flow(raw: Any, index: int, problems: list[str]) -> FlowSpec | None:
         animate=bool(raw.get("animate", True)),
         file=str(raw["file"]) if raw.get("file") else None,
         role=_role(raw.get("role"), where, problems),
+        measured_depth=_count(raw, "measured_depth", 0, where, problems)
+        if "measured_depth" in raw
+        else None,
+        max_steps=_count(raw, "max_steps", 0, where, problems) if "max_steps" in raw else None,
     )
+
+
+## @brief The tuning keys, each read as a whole number of at least 1.
+## @param raw The `wiki:` section.
+## @param tests The top-level `tests:` section.
+## @param problems Appended to.
+## @return WikiConfig keyword arguments.
+## @version 1
+## @dg_internal
+def _tuning(raw: dict[str, Any], tests: dict[str, Any], problems: list[str]) -> dict[str, Any]:
+    """ONE RULE (R5-CFG, 2.0.0): absent is the former constant; anything but an integer of at least
+    1 is a problem and the default stands — never a silent 0 that would draw nothing.
+
+    @brief Read tuning keys.
+    @return Keyword arguments.
+    """
+    out = {k: _count(raw, k, d, "wiki", problems) for k, d in TUNING_DEFAULTS.items()}
+    web = raw.get("web") or {}
+    problems += _unknown(web, _WEB, "wiki.web")
+    out["web_max_ring"] = _count(
+        web if isinstance(web, dict) else {}, "max_ring", 8, "wiki.web", problems
+    )
+    out["max_report_mb"] = _count(tests, "max_report_mb", DEFAULT_MAX_REPORT_MB, "tests", problems)
+    python = raw.get("trace_python")
+    out["trace_python"] = str(python) if python else None
+    return out
+
+
+## @brief A whole number of at least 1, or the default with a problem.
+## @param mapping The section.
+## @param key The key.
+## @param default Its default.
+## @param where The section's location.
+## @param problems Appended to.
+## @return The value.
+## @version 1
+## @dg_internal
+def _count(mapping: dict[str, Any], key: str, default: int, where: str, problems: list[str]) -> int:
+    """@brief Read one count. @return Count."""
+    value = mapping.get(key, default)
+    if not isinstance(value, int) or isinstance(value, bool) or value < 1:
+        problems.append(f"`{where}.{key}` must be a whole number of at least 1")
+        return default
+    return value
 
 
 ## @brief A flow's declared depth: omitted is 3, anything below 1 is a problem.

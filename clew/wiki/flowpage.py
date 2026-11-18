@@ -152,7 +152,8 @@ def _executed(coverage: dict[str, dict[int, set[str]]]) -> dict[str, set[int]]:
 ## @param coverage {file: {line: tests}} — per-test coverage, or None when unmeasured.
 ## v13 (OWNER 2026-11-17, round 5): with per-test coverage a master flow grows where tests ran,
 ## each test's slice of it rides inline (`#test=<name>` lights it), and a not-run stub is a row.
-## @version 13
+## v14: measured_depth / max_steps from the flow, else the site (2.0.0, R5-CFG C1/C2)
+## @version 14
 ## @req REQ-DDB-WIKI-014
 ## @req REQ-DDB-WIKI-041
 def flow_page(
@@ -173,6 +174,7 @@ def flow_page(
     @brief Render one flow page.
     @return The page.
     """
+    executed = _executed(coverage) if coverage is not None and spec.role != "tests" else None
     flow = derive_flow(
         db,
         repo_root,
@@ -182,7 +184,11 @@ def flow_page(
         lanes=spec.lanes,
         stop_at=spec.stop_at,
         file=spec.file,
-        executed=_executed(coverage) if coverage is not None and spec.role != "tests" else None,
+        executed=executed,
+        ## R5-CFG C1/C2 (2.0.0): the flow's own values, else the site's; both apply only to a
+        ## MEASURED flow (an unmeasured one is bounded by its depth, as before).
+        max_steps=(spec.max_steps or config.measured_steps) if executed is not None else None,
+        measured_depth=spec.measured_depth or config.measured_depth,
     )
     slices = slices_of(flow, coverage) if coverage is not None and spec.role != "tests" else {}
     name = page_name(spec)

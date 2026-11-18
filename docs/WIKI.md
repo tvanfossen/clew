@@ -217,6 +217,7 @@ tests:                          # top level: the index and the wiki read it
   infer_depth: 4              # cap call-graph links at N calls (omit = any depth; 0 = off)
   mutations: build/mutations.yaml
   traces: ["build/traces/*.json"]       # OTLP JSON test runs, drawn over their flows
+  max_report_mb: 64            # refuse a report larger than this (per-test LCOV grows with tests)
 ```
 
 ```yaml
@@ -229,6 +230,7 @@ wiki:
   tooling: ["scripts/*", "tools/*"]   # entry points here are grouped as Tooling
   flows:                        # roots you choose, added to the entry points
     - entry: load               # bare name; `qualified:` or `file:` selects one identity
+      measured_depth: 6         # per flow; inherits `measured_depth` / `measured_steps` (`max_steps:`)
       depth: 3
       lanes: files              # files | packages | threads
       stop_at: [log]
@@ -250,6 +252,15 @@ wiki:
     logo: docs/logo.svg
     fonts: true
   roadmap: ROADMAP.md           # headings naming a version are burndown milestones
+  # The build's numbers (2.0.0: each was a constant; these are the defaults).
+  measured_depth: 12            # how deep a call MEASURED as run expands past a flow's depth
+  measured_steps: 400           # the most steps a measured flow holds (the cap is disclosed)
+  path_depth: 12                # test → implementer path depth, on symbol and test pages alike
+  trace_depth: 2                # a traced test's flow depth
+  trace_timeout: 600            # seconds a traced test run may take
+  trace_python: .venv/bin/python  # the traced run's interpreter (default: a venv under the root, else clew's, said)
+  component_depth: 2            # leading directories that name a package on the map
+  web: {max_ring: 8}            # the deepest ring of the call web
   audiences:
     partner: {exclude_bodies: true, exclude_requirement_text: true}
 ```

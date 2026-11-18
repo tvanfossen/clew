@@ -449,16 +449,23 @@ def _test_summary(tests: tuple) -> str:
 ## requirement, when they were fetched.
 ## @param trace The gathered trace.
 ## @return Markdown lines ([] when issues were not asked for).
-## @version 1
+## v2: a truncation note is shown with the issues (2.0.0, R5-CFG D14)
+## @version 2
 ## @dg_internal
 def _issues_section(trace: Trace) -> list[str]:
-    """@brief Issues section. @return Lines."""
-    if trace.issues_note:
-        return ["## Open issues", "", f'<p class="not-measured">{text(trace.issues_note)}</p>', ""]
+    """A NOTE WITH ISSUES IS A CAVEAT (a truncated listing, D14); a note without them is the reason
+    nothing was fetched. Both are said.
+
+    @brief Issues section.
+    @return Lines.
+    """
+    note = (
+        [f'<p class="not-measured">{text(trace.issues_note)}</p>', ""] if trace.issues_note else []
+    )
     if trace.issues is None:
-        return []
+        return ["## Open issues", "", *note] if note else []
     linked = len({i.id for found in trace.issues.values() for i in found})
-    lines = ["## Open issues", "", f"{linked} open issues link a requirement.", ""]
+    lines = ["## Open issues", "", *note, f"{linked} open issues link a requirement.", ""]
     if trace.unlinked:
         lines += ["### Not linked to a requirement", "", *_raw(issue_links(trace.unlinked, True))]
     return lines

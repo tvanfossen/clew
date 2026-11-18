@@ -41,6 +41,7 @@ WEB_JS = (Path(__file__).parent / "themes" / "clew" / "static" / "web.js").read_
     encoding="utf-8"
 )
 ## The deepest ring drawn; deeper calls share it.
+## The default; `wiki.web.max_ring` states it (R5-CFG C8, 2.0.0).
 MAX_RING = 8
 ## Geometry, in world units: the innermost ring's radius, the band per ring, the gap between
 ## wedges (radians), the least spacing between two functions on one row, rows per band.
@@ -54,9 +55,12 @@ _FLOOR = 0.025
 ## @param graph `build_graph(..., exclude_tests=True)` output.
 ## @param order Block ids in the order the repository declared them; others follow in graph order.
 ## @return Plain data for the page.
-## @version 1
+## v2: the ring cap is wiki.web.max_ring (2.0.0, R5-CFG C8)
+## @version 2
 ## @req REQ-DDB-WIKI-019
-def web_data(db: Path, graph: dict[str, Any], order: list[str] | None = None) -> dict[str, Any]:
+def web_data(
+    db: Path, graph: dict[str, Any], order: list[str] | None = None, max_ring: int = MAX_RING
+) -> dict[str, Any]:
     """@brief Compute the web. @return Data."""
     blocks = _ordered(graph["components"], order or [])
     index = {b["id"]: i for i, b in enumerate(blocks)}
@@ -65,7 +69,7 @@ def web_data(db: Path, graph: dict[str, Any], order: list[str] | None = None) ->
     with connect(db) as conn:
         funcs = _functions(conn, owner)
         edges = _edges(conn, funcs)
-    ring = _rings(funcs, edges)
+    ring = _rings(funcs, edges, max_ring)
     _wedges(blocks, funcs, owner)
     nodes, slot = _place(blocks, index, funcs, owner, ring, facts)
     return {
@@ -141,9 +145,10 @@ def _edges(conn: Any, funcs: dict) -> set[tuple[int, int]]:
 ## @param funcs The drawn functions.
 ## @param edges Call edges.
 ## @return rowid → ring.
-## @version 1
+## v2: the ring cap is wiki.web.max_ring (2.0.0, R5-CFG C8)
+## @version 2
 ## @dg_internal
-def _rings(funcs: dict, edges: set[tuple[int, int]]) -> dict[int, int]:
+def _rings(funcs: dict, edges: set[tuple[int, int]], max_ring: int = MAX_RING) -> dict[int, int]:
     """BREADTH FIRST from every function nothing drawn calls. A function reached only around a
     cycle has no entry point; the lowest rowid of what is left seeds another walk, so every
     function gets a ring and the result does not depend on set order.
@@ -168,7 +173,7 @@ def _rings(funcs: dict, edges: set[tuple[int, int]]) -> dict[int, int]:
             node, depth = queue.popleft()
             for nxt in out_of[node]:
                 if nxt not in ring:
-                    ring[nxt] = min(depth + 1, MAX_RING)
+                    ring[nxt] = min(depth + 1, max_ring)
                     queue.append((nxt, depth + 1))
         seeds = []
     return ring
@@ -365,7 +370,8 @@ def _table(data: dict) -> str:
 ## @param hrefs (function, file) → its symbol page section.
 ## @param source The Sphinx source directory.
 ## @return The page name, or "" when nothing is drawn.
-## @version 1
+## v2: the ring cap is wiki.web.max_ring (2.0.0, R5-CFG C8)
+## @version 2
 ## @req REQ-DDB-WIKI-021
 def web_page(
     db: Path,
@@ -374,6 +380,7 @@ def web_page(
     pages: list,
     hrefs: dict[tuple[str, str], str],
     source: Path,
+    max_ring: int = MAX_RING,
 ) -> str:
     """A FLOW IS PLAYED BY ITS FUNCTIONS IN CALL ORDER: the camera visits each step; a step whose
     function is not drawn (test code, or outside the index) is skipped, never invented.
@@ -383,7 +390,7 @@ def web_page(
     """
     if not graph["components"]:
         return ""
-    data = web_data(db, graph, order)
+    data = web_data(db, graph, order, max_ring)
     slot = {(n["name"], n["file"]): i for i, n in enumerate(data["nodes"])}
     for n in data["nodes"]:
         href = hrefs.get((n["name"], n["file"]))

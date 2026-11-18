@@ -31,12 +31,10 @@ from typing import Any
 
 from ..query._common import connect, table_exists
 from .htmltable import source_url, tag
-from .symbols import Definition, _Edges, _lines, _path, symbol_href
+from .symbols import _PATH_DEPTH, Definition, _Edges, _lines, _path, symbol_href
 
 ## The most requirement chains drawn before the rest are counted.
 _MAX_CHAINS = 12
-## The most calls a chain is searched across: the extent is transitive, so the chain is too.
-_CHAIN_DEPTH = 12
 ## Chain geometry.
 _H, _GAP, _ROW = 30, 22, 46
 
@@ -282,7 +280,8 @@ def _definition(d: Any, graph: _Edges, ctx: dict[str, Any], repo_root: Path) -> 
 ## @param ctx The page context.
 ## @param checks How many checks the test makes.
 ## @return HTML.
-## @version 1
+## v2: one path depth, wiki.path_depth (2.0.0, R5-CFG C3)
+## @version 2
 ## @dg_internal
 def _proof(d: Any, graph: _Edges, ctx: dict[str, Any], checks: int) -> str:
     """ONE ROW PER REQUIREMENT: test → the calls it makes → the implementer. A requirement it is
@@ -297,7 +296,9 @@ def _proof(d: Any, graph: _Edges, ctx: dict[str, Any], checks: int) -> str:
     status = found.status if found else "absent"
     chains = []
     for req, kind in facts.verifies:
-        path = _path(graph, d.rowid, ctx["implementers"].get(req, set()), _CHAIN_DEPTH)
+        path = _path(
+            graph, d.rowid, ctx["implementers"].get(req, set()), ctx.get("path_depth", _PATH_DEPTH)
+        )
         chains.append((req, kind, path))
     drawn = [c for c in chains if c[2]][:_MAX_CHAINS]
     lead = (

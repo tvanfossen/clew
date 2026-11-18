@@ -17,7 +17,7 @@ LINKS (W16). A MAPPING file links requirements to tests the index cannot see a `
 (`{REQ: [test]}` YAML or a `req,test` CSV). Gherkin `.feature` SCENARIOS link through their tags
 — their own and the feature's / rule's they inherit — with `@ID` or `@req:ID`.
 
-Every report is capped at `evidence.MAX_REPORT_BYTES`; these are CI artifacts the operator chose.
+Every report is capped (`tests.max_report_mb`); these are CI artifacts the operator chose.
 
 @brief Parse gcov, other result formats, mapping files and Gherkin features.
 @version 1
@@ -345,14 +345,14 @@ def _tag(token: str) -> str:
 ## @brief A report's text, refused when oversized; `.gz` is decompressed.
 ## @param path The report.
 ## @return The text.
-## @version 1
+## v2: the cap is this build's tests.max_report_mb (2.0.0, R5-CFG C9)
+## @version 2
 ## @dg_internal
 def _text(path: Path) -> str:
     """@brief Read capped. @return Text."""
-    from .evidence import MAX_REPORT_BYTES
+    from .evidence import check_report_size
 
-    if path.stat().st_size > MAX_REPORT_BYTES:
-        raise ValueError(f"{path} is larger than {MAX_REPORT_BYTES} bytes; refusing to parse it")
+    check_report_size(path)
     data = path.read_bytes()
     if path.suffix == ".gz":
         data = gzip.decompress(data)

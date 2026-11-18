@@ -197,7 +197,11 @@ DEFAULT_REPORT_DIR = "docs/generated/impact/"
 REPORT_MARKDOWN = "impact.md"
 REPORT_JSON = "impact.json"
 
-IMPACT_DEFAULTS: dict[str, Any] = {"report_dir": DEFAULT_REPORT_DIR}
+## The branch the impact report diffs against, when `guard.impact.base` names none (R5-CFG W8, 2.0.0):
+## a repository on `master`, `develop` or an `upstream` remote states its own.
+DEFAULT_IMPACT_BASE = "origin/main"
+
+IMPACT_DEFAULTS: dict[str, Any] = {"report_dir": DEFAULT_REPORT_DIR, "base": DEFAULT_IMPACT_BASE}
 
 ## `requirements` is the top-level catalog section, carried in the loaded config so every gate
 ## reader finds it in one place; None means no catalog is declared. It is not a `guard:` key, and
@@ -345,6 +349,7 @@ CONFIG_SCHEMA: dict[str, Any] = {
     },
     "impact": {
         "report_dir": str,
+        "base": str,
     },
 }
 
@@ -722,6 +727,13 @@ def get_impact(config: dict[str, Any]) -> dict[str, Any]:
 #  @dg_internal
 def report_dir(config: dict[str, Any] | None) -> str:
     return str(((config or {}).get("impact") or {}).get("report_dir") or DEFAULT_REPORT_DIR)
+
+
+## @brief The ref the impact report diffs against (`guard.impact.base`).
+#  @version 1.0
+#  @dg_internal
+def impact_base(config: dict[str, Any] | None) -> str:
+    return str(((config or {}).get("impact") or {}).get("base") or DEFAULT_IMPACT_BASE)
 
 
 ## @brief Access the requirements catalog section (the top-level `requirements:`).

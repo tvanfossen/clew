@@ -114,7 +114,8 @@ class Flow:
 ## a measured caller's calls that never ran fold into one `not_run` stub.
 ## @param max_steps Stop after this many steps (`capped` says so); default 400 when measured.
 ## v4 (OWNER 2026-11-17, round 5): master flows expand what tests ran.
-## @version 4
+## v5: measured_depth (2.0.0, R5-CFG C1)
+## @version 5
 ## @req REQ-DDB-WIKI-001
 ## @req REQ-DDB-WIKI-041
 def derive_flow(
@@ -129,6 +130,7 @@ def derive_flow(
     file: str | None = None,
     executed: dict[str, set[int]] | None = None,
     max_steps: int | None = None,
+    measured_depth: int | None = None,
 ) -> Flow:
     """REFUSES BY NAME an entry the index does not hold and a lane strategy it does not know, so a
     typo never yields an empty diagram that looks like a function with no calls.
@@ -143,6 +145,8 @@ def derive_flow(
         walker = _Walker(conn, Path(repo_root), lanes, frozenset(stop_at))
         walker.executed = executed
         walker.max_steps = max_steps or (MEASURED_STEP_CAP if executed is not None else 0)
+        ## R5-CFG C1 (2.0.0): how deep a call measured as run expands (`wiki.measured_depth`).
+        walker.measured_levels = measured_depth or MEASURED_LEVELS
         rowids = _entry_rowids(conn, walker, entry, qualified, file)
         if not rowids:
             raise ValueError(
@@ -210,7 +214,8 @@ class _Walker:
     ## @param lanes Lane strategy.
     ## @param stop_at Names not to expand.
     ## v2 (round 5): coverage (`executed`), the step cap and whether it was hit.
-    ## @version 2
+    ## v3 (2.0.0): `measured_levels` (R5-CFG C1).
+    ## @version 3
     ## @dg_internal
     def __init__(
         self, conn: sqlite3.Connection, repo_root: Path, lanes: str, stop_at: frozenset[str]
@@ -224,6 +229,7 @@ class _Walker:
         self.executed: dict[str, set[int]] | None = None
         self.max_steps = 0
         self.capped = False
+        self.measured_levels = MEASURED_LEVELS
 
     ## @brief Emit the steps of one caller, recursing into callees in call order.
     ## @param name The caller's bare name.
@@ -319,7 +325,8 @@ class _Walker:
     ## @return None.
     ## v2: records the call site's file.
     ## v3 (round 5): a call measured as run expands past the depth, up to MEASURED_LEVELS.
-    ## @version 3
+    ## v4 (2.0.0): up to the walker's `measured_levels` (`wiki.measured_depth`, R5-CFG C1).
+    ## @version 4
     ## @dg_internal
     def _emit(
         self,
@@ -353,7 +360,7 @@ class _Walker:
                 site_file=caller[1],
             )
         )
-        shallow = level >= MEASURED_LEVELS if measured else remaining <= 1
+        shallow = level >= self.measured_levels if measured else remaining <= 1
         if ambiguous or already or shallow or site.callee in self.stop_at or nqual in path:
             return
         self.walk(site.callee, nqual, nrowid, remaining - 1, level + 1, path | {nqual})

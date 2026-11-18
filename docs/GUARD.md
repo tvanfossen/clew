@@ -349,6 +349,7 @@ another tag and alias it: `version: {tag: "@revision"}` plus `extra_tags: ["revi
 | Key | Type | Default | Description |
 |---|---|---|---|
 | `report_dir` | string | `docs/generated/impact/` | Where the pre-commit run and `clew guard impact --write` write `impact.md` and `impact.json`, and where the wiki reads them |
+| `base` | string | `origin/main` | The branch the pre-commit impact report diffs against (merge-base to HEAD); a repository on `master`, `develop` or an `upstream` remote states its own |
 
 ### The top-level `requirements:` section
 

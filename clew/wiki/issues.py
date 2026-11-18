@@ -147,13 +147,16 @@ class IssueProvider(ABC):
     ## @param project `owner/repo` (GitHub) or `org/project` (Azure DevOps).
     ## @param token An API token, or None (public read only).
     ## @param opener A `urlopen`-compatible callable.
-    ## @version 1
+    ## v2: a listing cut at its page cap is disclosed (2.0.0, R5-CFG D14)
+    ## @version 2
     ## @dg_internal
     def __init__(self, project: str, token: str | None = None, opener: Any = None) -> None:
         """@brief Store. @return None."""
         self.project = project
         self.token = token
         self.opener = opener or urlopen
+        ## True when the last listing stopped at its page cap with pages left (D14, 2.0.0).
+        self.truncated = False
 
     ## @brief Every open issue.
     ## @return Issues, in the tracker's order.
@@ -244,18 +247,18 @@ class GitHubIssues(IssueProvider):
 
     ## @brief Pages of 100 until a short page; pull requests are not issues.
     ## @return Issues.
-    ## @version 1
+    ## v2: a listing cut at its page cap is disclosed (2.0.0, R5-CFG D14)
+    ## @version 2
     ## @dg_internal
     def _list(self) -> list[Issue]:
         """@brief List. @return Issues."""
-        out: list[Issue] = []
-        for page in range(1, _MAX_PAGES + 1):
-            url = f"{self._API}/{self.project}/issues?state=open&per_page=100&page={page}"
-            rows = self._call("GET", url) or []
-            out += [_gh_issue(r) for r in rows if "pull_request" not in r]
-            if len(rows) < 100:
-                break
-        return out
+        rows, self.truncated = fetch_pages(
+            lambda page: self._call(
+                "GET", f"{self._API}/{self.project}/issues?state=open&per_page=100&page={page}"
+            ),
+            _MAX_PAGES,
+        )
+        return [_gh_issue(r) for r in rows if "pull_request" not in r]
 
     ## @brief Create through the issues endpoint.
     ## @param title Title.
@@ -417,8 +420,33 @@ def _gh_issue(row: dict) -> Issue:
     )
 
 
-## The most pages of 100 a GitHub listing follows.
+## The most pages of 100 a GitHub listing follows; reaching it is DISCLOSED (`truncated`, D14).
 _MAX_PAGES = 50
+
+
+## @brief Follow a paged listing of 100 per page until a short page or the page cap.
+## @param get_page Fetches one page by its 1-based number.
+## @param max_pages The cap.
+## @return (rows, whether the cap was reached with pages left).
+## @version 1
+## @req REQ-DDB-WIKI-028
+def fetch_pages(get_page: Any, max_pages: int) -> tuple[list[dict], bool]:
+    """R5-CFG D14 (2.0.0): the loop stopped at its cap and returned what it had with NO disclosure,
+    so a tracker with more open issues than the cap read as having exactly that many — the
+    "absence is not emptiness" failure. The cap stays; reaching it is now reported.
+
+    @brief Page through a listing.
+    @return Rows and the truncation flag.
+    """
+    out: list[dict] = []
+    for page in range(1, max_pages + 1):
+        rows = get_page(page) or []
+        out += rows
+        if len(rows) < 100:
+            return out, False
+    return out, True
+
+
 _WIQL = (
     "SELECT [System.Id] FROM WorkItems WHERE [System.TeamProject] = @project AND "
     "[System.State] NOT IN ('Closed', 'Done', 'Removed', 'Resolved')"

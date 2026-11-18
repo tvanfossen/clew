@@ -175,6 +175,8 @@ TESTS_KEYS = frozenset(
         "infer_depth",
         "contexts",
         "traces",
+        ## R5-CFG C9 (2.0.0): the size cap on one report, in MiB (per-test LCOV grows with tests).
+        "max_report_mb",
     }
 )
 ## The 1.x name, kept only so the refusal can name where it went.

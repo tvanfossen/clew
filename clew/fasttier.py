@@ -172,14 +172,15 @@ def _current_build(db: Path) -> bool:
 ## @param cache The index cache.
 ## @return {repo-relative path: (path rowid, old anchors, new anchors, old sha)} or None.
 ## v2 (phase 6): each plan carries the old content sha, the key to the corpus texts it replaces.
-## @version 2
+## v3: a declared whole-index input refuses the fast tier (2.0.0, R5-CFG W13)
+## @version 3
 ## @dg_internal
 def _plan(
     conn: sqlite3.Connection, repo_root: Path, cache: IndexCache
 ) -> dict[str, tuple[int, list[int], list[int], str]] | None:
     """@brief Find the edited files and map each one's lines. @return Plans or None."""
     edited = _edited_files(conn, repo_root, cache)
-    refusal = _refusal(edited)
+    refusal = _refusal(edited, config_inputs(repo_root))
     if refusal:
         logger.info("fast tier: not applicable — %s", refusal)
         return None
@@ -224,18 +225,55 @@ def _edited_files(
 ## @brief Why a set of edited files cannot take the fast tier, or "" when it can.
 ## @param edited The edited files.
 ## @return The refusal reason, or "".
-## @version 1
+## v2: a declared whole-index input refuses the fast tier (2.0.0, R5-CFG W13)
+## @version 2
 ## @dg_internal
-def _refusal(edited: list[tuple[int, str, str]]) -> str:
+def _refusal(edited: list[tuple[int, str, str]], declared: frozenset[str] = frozenset()) -> str:
     """@brief Apply the file-set preconditions. @return Reason or ""."""
     if not edited:
         return "no indexed file has changed"
     if len(edited) > FAST_MAX_FILES:
         return f"{len(edited)} files changed, more than {FAST_MAX_FILES}"
-    config = [rel for _r, rel, _s in edited if PurePosixPath(rel).name in _CONFIG_NAMES]
+    config = [
+        rel for _r, rel, _s in edited if PurePosixPath(rel).name in _CONFIG_NAMES or rel in declared
+    ]
     if config:
         return f"a configuration input changed ({', '.join(config)})"
     return ""
+
+
+## @brief The whole-index inputs a repository DECLARES by path, repo-relative.
+## @param repo_root The repository.
+## @return The declared catalog, needs import, test mapping, enrichment, data model and Doxyfile.
+## @version 1
+## @req REQ-DDB-INDEX-006
+def config_inputs(repo_root: Path) -> frozenset[str]:
+    """R5-CFG W13 (2.0.0): the fast tier refused on a config edit by BASENAME only, so a catalog
+    declared at `docs/reqs.yaml` changed under it without the full build its derived requirement
+    rows need. A declaration that cannot be read contributes nothing here; the full build reports
+    it.
+
+    @brief Declared whole-index inputs.
+    @return Paths.
+    """
+    from .declaration import load_declaration
+    from .vocabulary import DeclarationError
+
+    try:
+        decl = load_declaration(repo_root)
+    except DeclarationError:
+        return frozenset()
+    reqs = decl.get("requirements") or {}
+    tests = decl.get("tests") or {}
+    found = [
+        reqs.get("file"),
+        reqs.get("needs"),
+        tests.get("mapping"),
+        decl.get("enrich"),
+        decl.get("data_model"),
+        decl.get("doxyfile"),
+    ]
+    return frozenset(PurePosixPath(str(f)).as_posix() for f in found if isinstance(f, str) and f)
 
 
 ## @brief The before/after line anchors of one file, from its old cached payload and a new parse.
