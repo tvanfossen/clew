@@ -18,7 +18,7 @@ is silently ignored produces a site that looks complete and omits what the key a
           title: Loading
           animate: true               # W12: play the diagram in call order (default true)
           file: src/store.py          # the entry's file, when its name is shared
-      entry_points: 2                 # every console script / main / thread entry gets a flow of
+      entry_point_depth: 2            # every console script / main / thread entry gets a flow of
                                       # this depth (0 = only the declared flows)
       tests:                          # CI evidence for the requirement trace (clew wiki trace)
         junit: [build/junit.xml]
@@ -64,7 +64,7 @@ is silently ignored produces a site that looks complete and omits what the key a
           exclude_requirement_text: true
       theme:                          # W13: the default is clew's own (sassafras-class look)
         name: clew                    # or any installed Sphinx theme (then nothing below applies)
-        palette: {acc: "#3D6B2E"}     # override any token of THEME_TOKENS
+        palette: {accent: "#3D6B2E"}  # override any token of THEME_TOKENS
         css: [docs/wiki.css]          # extra stylesheets, copied into the site
         logo: docs/logo.svg
         fonts: true                   # false: system fonts, no bundled font files
@@ -102,7 +102,7 @@ _TOP = {
     "theme",
     "roadmap",
     "impact",
-    "entry_points",
+    "entry_point_depth",
     "components",
     "issues",
     "tooling",
@@ -111,27 +111,36 @@ _TOP = {
     "doc_kinds",
 }
 _THEME = {"name", "palette", "css", "logo", "fonts"}
-## The palette tokens of the default theme (the sassafras-class botanical palette).
-THEME_TOKENS = (
-    "surface",
-    "paper",
-    "muted",
-    "inset",
-    "ink",
-    "ink2",
-    "faint",
-    "rule",
-    "rule2",
-    "acc",
-    "accbg",
-    "accink",
-    "root",
-    "rootbg",
-    "err",
-    "errbg",
-    "warn",
-    "warnbg",
-)
+## The palette tokens of the default theme, as a reader writes them, and the CSS custom property
+## each one sets. R5-CFG F25 (2.0.0): the config used to expose the stylesheet's abbreviations
+## (`acc`, `accbg`, `rule2`), which were about to become semver-covered; the words are the
+## contract and the CSS names stay internal, so the stylesheet did not change.
+PALETTE = {
+    "surface": "surface",
+    "paper": "paper",
+    "muted": "muted",
+    "inset": "inset",
+    "ink": "ink",
+    "ink_soft": "ink2",
+    "faint": "faint",
+    "rule": "rule",
+    "rule_strong": "rule2",
+    "accent": "acc",
+    "accent_bg": "accbg",
+    "accent_ink": "accink",
+    "root": "root",
+    "root_bg": "rootbg",
+    "error": "err",
+    "error_bg": "errbg",
+    "warning": "warn",
+    "warning_bg": "warnbg",
+}
+THEME_TOKENS = tuple(PALETTE)
+## An old abbreviation, refused with the word that replaced it.
+_PALETTE_RENAMED = {css: word for word, css in PALETTE.items() if css != word}
+## Keys renamed in 2.0.0, refused with a pointer rather than as unknown — "unknown" would send a
+## reader hunting a typo in a key that was correct until this release.
+_RENAMED = {"entry_points": "entry_point_depth"}
 _FLOW = {"entry", "qualified", "depth", "lanes", "stop_at", "title", "animate", "file", "role"}
 ## The roles a flow is grouped under on the Flows page (round 3, P1e).
 FLOW_ROLES = ("product", "threads", "tooling", "tests")
@@ -140,7 +149,8 @@ DOC_KINDS = ("tutorial", "howto", "reference", "explanation", "agents")
 ## Where architecture decision records are looked for, unless `wiki.adrs` says otherwise.
 DEFAULT_ADRS = ("docs/adr/*.md", "doc/adr/*.md", "docs/decisions/*.md", "adr/*.md")
 ## Paths whose entry points are tooling, unless `wiki.tooling` says otherwise.
-DEFAULT_TOOLING = ("scripts/*", "acceptance/*", "tools/*", "benchmarks/*", "examples/*")
+## D2 (2.0.0): `acceptance/*` was this repository's own layout; it declares it for itself.
+DEFAULT_TOOLING = ("scripts/*", "tools/*", "benchmarks/*", "examples/*")
 _TESTS = {
     "junit",
     "coverage",
@@ -304,7 +314,7 @@ class WikiConfig:
     theme: ThemeSpec = ThemeSpec()
     roadmap: str | None = None
     impact: str | None = None
-    entry_points: int = 2
+    entry_point_depth: int = 2
     components: tuple[tuple[str, tuple[str, ...]], ...] = ()
     ## (provider, project) declared; None = read the origin remote.
     issues: tuple[str, str] | None = None
@@ -340,7 +350,9 @@ class WikiConfig:
 ## v12: needs.
 ## v13: adrs, doc_kinds.
 ## v14 (round 5): test_flows removed.
-## @version 14
+## v15 (2.0.0, R5-CFG): list keys through `_strings` (one string is one entry, [] is empty, any other
+## type is a problem); `entry_points` renamed `entry_point_depth`, the old key refused with a pointer.
+## @version 15
 ## @req REQ-DDB-WIKI-003
 def load_wiki_config(
     repo_root: Path, config_path: Path | None = None
@@ -350,12 +362,14 @@ def load_wiki_config(
 
     @brief Load the section.
     @return Config and problems.
-    @version 13
+    @version 14
     """
     raw, problems = _read_section(Path(config_path or Path(repo_root) / ".clew.yaml"))
     if problems:
         return WikiConfig(), problems
-    problems = _unknown(raw, _TOP, "wiki")
+    problems = _renamed(raw, "wiki") + _unknown(
+        {k: v for k, v in raw.items() if k not in _RENAMED}, _TOP, "wiki"
+    )
     flows = tuple(_flow(f, i, problems) for i, f in enumerate(raw.get("flows") or []))
     tests = raw.get("tests") or {}
     problems += _unknown(tests, _TESTS, "wiki.tests")
@@ -363,11 +377,11 @@ def load_wiki_config(
     problems += _unknown(links, _LINKS, "wiki.links")
     config = WikiConfig(
         title=str(raw.get("title") or "Wiki"),
-        docs=tuple(str(d) for d in raw.get("docs") or DEFAULT_DOCS),
+        docs=_strings(raw, "docs", DEFAULT_DOCS, "wiki", problems),
         flows=tuple(f for f in flows if f is not None),
-        junit=tuple(str(j) for j in tests.get("junit") or ()),
+        junit=_strings(tests, "junit", (), "wiki.tests", problems),
         coverage=str(tests["coverage"]) if tests.get("coverage") else None,
-        target_only=tuple(str(t) for t in tests.get("target_only") or ()),
+        target_only=_strings(tests, "target_only", (), "wiki.tests", problems),
         link_template=str(links.get("template") or ""),
         audiences=_audiences(raw.get("audiences") or {}, problems),
         mutations=str(tests["mutations"]) if tests.get("mutations") else None,
@@ -378,14 +392,14 @@ def load_wiki_config(
         theme=_theme(raw.get("theme") or {}, problems),
         roadmap=str(raw["roadmap"]) if raw.get("roadmap") else None,
         impact=str(raw["impact"]) if raw.get("impact") else None,
-        entry_points=int(raw.get("entry_points", 2) or 0),
+        entry_point_depth=int(raw.get("entry_point_depth", 2)),
         components=_components(raw.get("components") or {}, problems),
         issues=_issues(raw.get("issues"), problems),
         issues_enabled=raw.get("issues") is not False,
         issues_fetch=isinstance(raw.get("issues"), dict) and bool(raw["issues"].get("fetch")),
-        tooling=tuple(str(g) for g in raw.get("tooling", DEFAULT_TOOLING) or ()),
+        tooling=_strings(raw, "tooling", DEFAULT_TOOLING, "wiki", problems),
         needs=str(raw["needs"]) if raw.get("needs") else None,
-        adrs=tuple(str(g) for g in raw.get("adrs", DEFAULT_ADRS) or ()),
+        adrs=_strings(raw, "adrs", DEFAULT_ADRS, "wiki", problems),
         doc_kinds=_doc_kinds(raw.get("doc_kinds") or {}, problems),
     )
     return config, problems
@@ -543,6 +557,56 @@ def _unknown(mapping: Any, allowed: set[str], where: str) -> list[str]:
     ]
 
 
+## @brief Problems for keys renamed in 2.0.0, each naming its replacement.
+## @param mapping The section.
+## @param where Its dotted location.
+## @return Problems.
+## @version 1
+## @dg_internal
+def _renamed(mapping: Any, where: str) -> list[str]:
+    """@brief Point a renamed key at its new name. @return Problems."""
+    if not isinstance(mapping, dict):
+        return []
+    return [
+        f"`{where}.{old}` was renamed `{new}` in 2.0.0 — it holds a depth, not a list of entry points"
+        for old, new in _RENAMED.items()
+        if old in mapping
+    ]
+
+
+## @brief A list-of-strings key, read as written.
+## @param mapping The section holding the key.
+## @param key The key.
+## @param default Used ONLY when the key is absent.
+## @param where The section's dotted location, for the problem text.
+## @param problems Appended to.
+## @return The strings.
+## @version 1
+## @dg_internal
+def _strings(
+    mapping: dict[str, Any], key: str, default: tuple[str, ...], where: str, problems: list[str]
+) -> tuple[str, ...]:
+    """ONE RULE FOR EVERY LIST KEY (R5-CFG F5 / W9). Absent takes the default; `[]` (or null) is
+    an explicit "none"; one string is a one-item list, the precedent `gcov` and `theme.css` set;
+    anything else is a problem. Before, nine list keys iterated a string into its characters and
+    `docs: []` silently became the default docs.
+
+    @brief Read a string-list key.
+    @return Strings.
+    """
+    if key not in mapping:
+        return tuple(default)
+    value = mapping[key]
+    if value is None:
+        return ()
+    if isinstance(value, str):
+        return (value,)
+    if isinstance(value, list) and all(isinstance(v, (str, int, float)) for v in value):
+        return tuple(str(v) for v in value)
+    problems.append(f"`{where}.{key}` must be a list of strings (or one string)")
+    return tuple(default)
+
+
 ## @brief One flow entry, or None when it is unusable (a problem is recorded).
 ## @param raw The entry.
 ## @param index Its position.
@@ -551,7 +615,8 @@ def _unknown(mapping: Any, allowed: set[str], where: str) -> list[str]:
 ## v2: `animate`.
 ## v3: `file`.
 ## v4: `role` (one of FLOW_ROLES).
-## @version 4
+## v5 (2.0.0): `depth: 0` is a problem, not 3; `stop_at` through `_strings`.
+## @version 5
 ## @dg_internal
 def _flow(raw: Any, index: int, problems: list[str]) -> FlowSpec | None:
     """@brief Parse one flow. @return Spec or None."""
@@ -563,14 +628,35 @@ def _flow(raw: Any, index: int, problems: list[str]) -> FlowSpec | None:
     return FlowSpec(
         entry=str(raw["entry"]),
         qualified=str(raw["qualified"]) if raw.get("qualified") else None,
-        depth=int(raw.get("depth") or 3),
+        depth=_depth(raw, where, problems),
         lanes=str(raw.get("lanes") or "files"),
-        stop_at=tuple(str(s) for s in raw.get("stop_at") or ()),
+        stop_at=_strings(raw, "stop_at", (), where, problems),
         title=str(raw.get("title") or ""),
         animate=bool(raw.get("animate", True)),
         file=str(raw["file"]) if raw.get("file") else None,
         role=_role(raw.get("role"), where, problems),
     )
+
+
+## @brief A flow's declared depth: omitted is 3, anything below 1 is a problem.
+## @param raw The flow entry.
+## @param where Its location.
+## @param problems Appended to.
+## @return The depth.
+## @version 1
+## @dg_internal
+def _depth(raw: dict[str, Any], where: str, problems: list[str]) -> int:
+    """R5-CFG F16: `depth: 0` used to read 3 (`int(raw.get("depth") or 3)`). A depth of 0 draws
+    nothing, so it is reported; the flow keeps the default rather than being dropped.
+
+    @brief Read a flow depth.
+    @return Depth.
+    """
+    value = raw.get("depth", 3)
+    if not isinstance(value, int) or isinstance(value, bool) or value < 1:
+        problems.append(f"`{where}.depth` must be a whole number of hops, at least 1")
+        return 3
+    return value
 
 
 ## @brief A flow's declared role, checked.
@@ -597,14 +683,15 @@ def _role(raw: Any, where: str, problems: list[str]) -> str:
 ## v2: evidence_fields.
 ## v3: traces.
 ## v4 (round 4): an omitted `infer_depth` is the full transitive closure (None), not 2 hops.
-## @version 4
+## v5 (2.0.0): list keys through `_strings`; `min_layers: 0` is 0, not "off".
+## @version 5
 ## @dg_internal
 def _inputs(tests: dict[str, Any], problems: list[str]) -> EvidenceInputs:
     """A RESULT FORMAT IS DECLARED, so an entry without one is a problem, never a sniffed guess.
 
     @brief Parse imports.
     @return Inputs.
-    @version 4
+    @version 5
     """
     from .imports import RESULT_FORMATS
 
@@ -623,17 +710,17 @@ def _inputs(tests: dict[str, Any], problems: list[str]) -> EvidenceInputs:
         results=results,
         gcov=(str(gcov),) if isinstance(gcov, str) else tuple(str(g) for g in gcov),
         mapping=str(tests["mapping"]) if tests.get("mapping") else None,
-        features=tuple(str(f) for f in tests.get("features") or ()),
+        features=_strings(tests, "features", (), "wiki.tests", problems),
         layers=None
         if layers is None
         else tuple((str(k), tuple(str(g) for g in v or ())) for k, v in layers.items()),
-        min_layers=int(tests["min_layers"]) if tests.get("min_layers") else None,
+        min_layers=int(tests["min_layers"]) if tests.get("min_layers") is not None else None,
         evidence_fields=tuple(str(f) for f in tests["evidence_fields"] or ())
         if "evidence_fields" in tests
         else EvidenceInputs.evidence_fields,
         infer_depth=_infer_depth(tests),
         contexts=str(tests["contexts"]) if tests.get("contexts") else None,
-        traces=tuple(str(g) for g in tests.get("traces") or ()),
+        traces=_strings(tests, "traces", (), "wiki.tests", problems),
     )
 
 
@@ -662,7 +749,8 @@ def _result(e: dict[str, Any]) -> tuple[str, str]:
 ## @param raw The `theme` mapping.
 ## @param problems Accumulated problems; appended to.
 ## @return The spec.
-## @version 1
+## v2 (2.0.0): readable palette tokens mapped to the CSS names; old abbreviations refused.
+## @version 2
 ## @dg_internal
 def _theme(raw: Any, problems: list[str]) -> ThemeSpec:
     """A PALETTE TOKEN THE THEME DOES NOT DEFINE is a problem: it would be a silent no-op.
@@ -678,9 +766,11 @@ def _theme(raw: Any, problems: list[str]) -> ThemeSpec:
         problems.append("`wiki.theme.palette` must map a token to a colour")
         palette = {}
     problems += [
-        f"`wiki.theme.palette`: token {k!r} is not a theme token ({', '.join(THEME_TOKENS)})"
+        f"`wiki.theme.palette`: token {k!r} was renamed {_PALETTE_RENAMED[k]!r} in 2.0.0"
+        if k in _PALETTE_RENAMED
+        else f"`wiki.theme.palette`: token {k!r} is not a theme token ({', '.join(THEME_TOKENS)})"
         for k in palette
-        if k not in THEME_TOKENS
+        if k not in PALETTE
     ]
     problems += [
         f"`wiki.theme.palette.{k}`: {v!r} is not a colour value"
@@ -691,9 +781,9 @@ def _theme(raw: Any, problems: list[str]) -> ThemeSpec:
     return ThemeSpec(
         name=str(raw.get("name") or "clew"),
         palette=tuple(
-            (str(k), str(v))
+            (PALETTE[k], str(v))
             for k, v in palette.items()
-            if k in THEME_TOKENS and not any(c in str(v) for c in ";{}<>")
+            if k in PALETTE and not any(c in str(v) for c in ";{}<>")
         ),
         css=(str(css),) if isinstance(css, str) else tuple(str(c) for c in css),
         logo=str(raw["logo"]) if raw.get("logo") else None,

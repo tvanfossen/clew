@@ -194,7 +194,7 @@ wiki:
   docs: [README.md, "docs/**/*.md"]
   doc_kinds: {README.md: tutorial, "docs/OVERVIEW.md": explanation}   # tutorial|howto|reference|explanation|agents
   adrs: ["docs/adr/*.md"]       # decision records (this is the default)
-  entry_points: 2               # every console script / main / thread entry is a flow (0 = off)
+  entry_point_depth: 2          # every console script / main / thread entry is a flow this deep (0 = off)
   tooling: ["scripts/*", "tools/*"]   # entry points here are grouped as Tooling
   flows:                        # roots you choose, added to the entry points
     - entry: load               # bare name; `qualified:` or `file:` selects one identity
@@ -233,7 +233,7 @@ wiki:
     template: "https://host/repo/blob/{commit}/{file}#L{line}"
   theme:
     name: clew                  # or any installed Sphinx theme
-    palette: {acc: "#3D6B2E"}
+    palette: {accent: "#3D6B2E"}
     css: [docs/wiki.css]
     logo: docs/logo.svg
     fonts: true
@@ -253,5 +253,7 @@ remote and no remote branch holds the commit it would name, so a published site 
 
 The default theme is clew's own, in the sassafras-class look, with Manrope, Newsreader and
 JetBrains Mono bundled under the SIL Open Font License. Palette tokens: `surface paper muted inset
-ink ink2 faint rule rule2 acc accbg accink root rootbg err errbg warn warnbg`. Naming another
+ink ink_soft faint rule rule_strong accent accent_bg accent_ink root root_bg error error_bg warning
+warning_bg` (2.0.0 renamed the abbreviations — `acc`, `accbg`, `rule2`, … — and names each old one
+with its replacement). Naming another
 theme leaves that theme's look untouched.

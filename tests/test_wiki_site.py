@@ -163,7 +163,7 @@ wiki:
   links:
     template: "https://example.invalid/blob/{commit}/{file}#L{line}"
   theme:
-    palette: {acc: "#123456"}
+    palette: {accent: "#123456"}  # 2.0.0 token name; it still sets --acc
     css: docs/extra.css
   audiences:
     partner: {exclude_bodies: true}

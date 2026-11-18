@@ -422,7 +422,8 @@ def _requirements_of(evidence: list) -> dict[tuple[str, str], list[str]]:
 ## @param db The index.
 ## @param config The section.
 ## @return Flow specs.
-## @version 1
+## v2 (2.0.0): `entry_points` renamed `entry_point_depth`.
+## @version 2
 ## @dg_internal
 def _all_flows(repo_root: Path, db: Path, config: WikiConfig) -> list:
     """A DECLARED FLOW WINS for its function: its title, depth and lanes are the repository's
@@ -434,11 +435,11 @@ def _all_flows(repo_root: Path, db: Path, config: WikiConfig) -> list:
     from .entrypoints import entry_point_flows
 
     specs = list(config.flows)
-    if config.entry_points > 0:
+    if config.entry_point_depth > 0:
         declared = {(s.entry, s.file) for s in specs} | {(s.entry, None) for s in specs}
         specs += [
             s
-            for s in entry_point_flows(db, repo_root, config.entry_points)
+            for s in entry_point_flows(db, repo_root, config.entry_point_depth)
             if (s.entry, s.file) not in declared and (s.entry, None) not in declared
         ]
     return specs
