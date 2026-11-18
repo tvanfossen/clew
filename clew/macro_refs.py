@@ -48,6 +48,7 @@ from pathlib import Path
 from typing import Any
 
 from ._common import logger
+from .config_defaults import ORIGIN_DECLARED
 from .harvest import Harvester, run_harvest
 from .indexcache import IndexCache
 from .vocabulary import (
@@ -262,7 +263,8 @@ def macro_definitions(
 ## @param conn Open connection.
 ## @return {macro: True for on, False for off}, unanimous symbols only.
 ## v2 (2.0.0): only a unanimous state outside the test files decides (measured on mbedtls).
-## @version 2
+## v3 (2.0.0): where a macro has a row from a DECLARED config header, only declared rows vote.
+## @version 3
 ## @dg_internal
 def _shipped_states(
     conn: sqlite3.Connection, test_patterns: tuple[str, ...] | list[str] | None = None
@@ -277,13 +279,18 @@ def _shipped_states(
     @brief Read config_defaults. @return States.
     """
     try:
-        rows = conn.execute("SELECT macro, state, file_path FROM config_defaults").fetchall()
+        rows = conn.execute(
+            "SELECT macro, state, file_path, origin FROM config_defaults"
+        ).fetchall()
     except sqlite3.OperationalError:
         return {}
     tests = _test_files(conn, test_patterns, {r[2] for r in rows})
+    ## A DECLARED HEADER IS THE OPERATOR SAYING WHICH ONE THE BUILD READS: where a macro has a row
+    ## from one, only declared rows vote, so an alternative profile cannot make it undecided.
+    declared = {m for m, _s, f, origin in rows if origin == ORIGIN_DECLARED and f not in tests}
     seen: dict[str, set[str]] = {}
-    for macro, state, file_path in rows:
-        if file_path not in tests:
+    for macro, state, file_path, origin in rows:
+        if file_path not in tests and (macro not in declared or origin == ORIGIN_DECLARED):
             seen.setdefault(macro, set()).add(state)
     return {m: states == {CONFIG_DEFAULT_ON} for m, states in seen.items() if len(states) == 1}
 

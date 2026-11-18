@@ -161,3 +161,22 @@ def test_the_build_s_test_patterns_apply_before_test_scope_exists(tmp_path) -> N
     conn.execute("UPDATE config_defaults SET file_path = 'tests/cfg.h'")
     assert sorted(macro_definitions(conn, ["tests/*"])["mem_calloc"]) == [10, 11]
     assert macro_definitions(conn)["mem_calloc"] == [11], "no patterns, no table: the row decides"
+
+
+def test_a_declared_config_header_outvotes_heuristic_ones(tmp_path) -> None:
+    """THE OPERATOR CAN SAY WHICH HEADER IS THE BUILD'S. `config_defaults` already tiers each row:
+    `declared` for a header the repository states, `heuristic` for one that merely looks like a
+    config header. mbedtls's motivating case, MBEDTLS_PLATFORM_MEMORY, is off in mbedtls_config.h
+    and on in an alternative profile, so it is undecided by unanimity alone; with the shipped
+    header declared, the declared rows decide and the other profiles do not vote.
+
+    @brief Declared rows, where a macro has any, are the only votes.
+    """
+    from clew.macro_refs import macro_definitions
+
+    conn = _macro_db(tmp_path)
+    conn.execute("UPDATE config_defaults SET origin = 'declared'")
+    conn.execute(
+        "INSERT INTO config_defaults VALUES ('MEM', 'on', '', 'profile.h', 1, '', 'heuristic')"
+    )
+    assert macro_definitions(conn)["mem_calloc"] == [11], "declared off wins over a heuristic on"
