@@ -1048,7 +1048,7 @@ class Dossier:
     common case and not worth a key.
 
     @brief Composite per-function dossier.
-    @version 7
+    @version 8
     """
 
     name: str
@@ -1077,6 +1077,9 @@ class Dossier:
     ## T2 (2.0.0): where this function is DECLARED, when that is not the file `file` names (the
     ## body's). A header prototype or an in-class declaration; empty, and elided, otherwise.
     declared_at: list[DeclarationSite] = field(default_factory=list)
+    ## T4 (2.0.0): the build rule that generates the file `file` names, the same record the file's
+    ## dossier carries. ABSENT (None) when that file is hand-written.
+    generated_by: GenerationRule | None = None
     candidates: list[Candidate] = field(default_factory=list)
     threads: list[Thread] = field(default_factory=list)
     is_terminus: bool = False

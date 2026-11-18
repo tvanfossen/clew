@@ -39,6 +39,7 @@ from ._common import (
     symbol_provenance,
     table_exists,
 )
+from .corpus import generation_rule
 from .externcalls import external_callees
 from .kconfig import gates_covering
 from .locks import (
@@ -520,7 +521,8 @@ def _anchored_pick(
 ## commented-out shipped default could never appear there; the reply named a TFM profile
 ## header and omitted the shipped config, reading as enabled when the default is off.
 ## v10: declared_at; file is the body's file (2.0.0, T2)
-## @version 10
+## v11: generated_by from the body's file (2.0.0, T4)
+## @version 11
 ## @req REQ-DDB-QUERY-004
 ## @dg_internal
 def _dossier_conn(
@@ -590,6 +592,9 @@ def _dossier_conn(
         liveness=_liveness(conn, rowid),
         provenance=symbol_provenance(conn, rowid),
         declared_at=_declaration_sites(conn, ids, ident["file"]),
+        ## T4 (2.0.0; mbedtls F4): `mbedtls_strerror` lives in the generated `error.c`, and a reader
+        ## arriving by the function's name had no route to that fact but asking for the file.
+        generated_by=generation_rule(conn, ident["file"]),
         candidates=overloads,
         # Membership is per-rowid, and doxygen splits one function across a
         # declaration row and a definition row — so asking only the chosen

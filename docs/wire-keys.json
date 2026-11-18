@@ -184,6 +184,7 @@
    "detail": "str",
    "provenance": "str | None",
    "declared_at": "list[DeclarationSite]",
+   "generated_by": "GenerationRule | None",
    "candidates": "list[Candidate]",
    "threads": "list[Thread]",
    "is_terminus": "bool",
