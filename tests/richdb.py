@@ -1130,6 +1130,12 @@ def run_real_stages(db: Path, repo_root: Path) -> None:
     import_config_defaults(db, repo_root)
     recover_ast_symbols(db, repo_root)
     ingest_file_docs(db, repo_root)
+    ## S5 / S6 (2.0.0), by the real stages: the fidelity gate compares table sets.
+    from clew.kerneldoc import ingest_kerneldoc
+    from clew.licenses import ingest_file_licenses
+
+    ingest_file_licenses(db, repo_root)
+    ingest_kerneldoc(db, repo_root)
     ## THE PARSE FRONT END, which this fixture never ran. `test_fixture_fidelity` caught it the
     ## moment that stage gained a table: `generated_files` is emitted by every real build and by
     ## no fixture, which is precisely the "licence to assert over a schema that does not exist"

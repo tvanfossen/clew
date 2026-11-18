@@ -99,6 +99,8 @@ TABLE_CLASSES: dict[str, str] = {
     "code_text_files": FAST,
     "blocking_calls": FAST,
     "build_meta": FAST,
+    "file_licenses": FAST,
+    "kerneldoc": FAST,
     ## Left as they were, and named.
     "xrefs": "doxygen_call_edges",
     "memberdef_param": "doxygen_signatures",

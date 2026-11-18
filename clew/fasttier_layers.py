@@ -26,15 +26,21 @@ from .indexcache import IndexCache
 ## @param rel The edited file, repo-relative.
 ## @param cache The index cache.
 ## @return None.
-## @version 1
+## v2: also the licence and kernel-doc rows (2.0.0, S5/S6)
+## @version 2
 ## @req REQ-DDB-INDEX-006
 def refresh_text_layers(
     conn: sqlite3.Connection, repo_root: Path, rel: str, cache: IndexCache
 ) -> None:
-    """@brief Recompute file docs, requirement mentions and generated-file evidence. @return None."""
+    """@brief Recompute file docs, mentions, generated-file evidence, licence and kernel-doc. @return None."""
+    from .kerneldoc import refresh_kerneldoc
+    from .licenses import refresh_file_license
+
     _refresh_file_doc(conn, repo_root, rel, cache)
     _refresh_mentions(conn, repo_root, rel, cache)
     _refresh_generated(conn, repo_root, rel, cache)
+    refresh_file_license(conn, repo_root, rel, cache)
+    refresh_kerneldoc(conn, repo_root, rel, cache)
 
 
 ## @brief Whether a table exists in the index.

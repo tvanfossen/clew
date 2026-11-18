@@ -1176,6 +1176,30 @@ requirements:
     x-priority: P2
     x-status: implemented
     x-evidence: clew/owners.py; tests/test_owners.py.
+  REQ-DDB-INDEX-008:
+    subsystem: index
+    name: Each file's declared licence is its SPDX-License-Identifier header, recorded as written
+    acceptance_criteria: >-
+      A build records, per indexed file, the SPDX expression its header declares (the
+      `SPDX-License-Identifier:` tag in the first 30 lines, in any comment style) and the line it
+      is on. No licence is inferred from anything else. The `file_licenses` table exists, empty,
+      when no file declares one, and the fast tier rewrites an edited file's row in place.
+    x-priority: P2
+    x-status: implemented
+    x-evidence: clew/licenses.py; tests/test_file_licenses.py.
+  REQ-DDB-INDEX-009:
+    subsystem: index
+    name: kernel-doc comments are read into their own layer, beside doxygen's
+    acceptance_criteria: >-
+      A build records each kernel-doc block of an indexed C file (an identification line
+      `name() - summary`, `struct|union|enum|typedef name - summary` or `DOC: title`) with its
+      parameters (`@name:` with continuation lines), `Context:`, `Return:` and free description,
+      in a `kerneldoc` table — never in doxygen's rows. A block using a doxygen command is not
+      kernel-doc. The table exists, empty, in a tree without kernel-doc; the fast tier rewrites
+      an edited file's rows. The gate's rules are unchanged (index only).
+    x-priority: P2
+    x-status: implemented
+    x-evidence: clew/kerneldoc.py; tests/test_kerneldoc.py.
   REQ-DDB-INDEX-002:
     subsystem: pipeline
     name: Incremental/partial re-index for cheap refreshes

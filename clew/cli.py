@@ -146,6 +146,8 @@ from .enrichment import enrich_database
 from .errors import DoxygenFailedError, DoxygenUnavailableError, RustdocUnavailableError
 from .event_edges import import_event_edges
 from .filedocs import ingest_file_docs
+from .kerneldoc import ingest_kerneldoc
+from .licenses import ingest_file_licenses
 from .harvest_plan import build_harvest_plan, warm_harvest_plan
 from .doxygen_splice import include_expansion, splice_doxygen, xref_closure
 from .indexcache import IndexCache
@@ -1932,7 +1934,8 @@ def _doxygen_meta(args) -> dict[str, str]:
 ## an unchanged file's result from the index cache.
 ## v67 (round 4, R9): covering tests are classified by the resolved test scope.
 ## v68: the owners stage (2.0.0, S2/S3)
-## @version 68
+## v69: file_licenses and kerneldoc stages (2.0.0, S5/S6)
+## @version 69
 ## @req REQ-DDB-PIPE-001
 ## @req REQ-DDB-MCP-004
 ## @req REQ-DDB-CONFIG-007
@@ -2168,6 +2171,12 @@ def _build_stages(
     ## DROPs that table; above it these rows would be inserted and then deleted.
     ingest_file_docs(output, repo_root, cache=cache)
     timer.mark("file_docs")
+    ## S5 / S6 (2.0.0): each file's SPDX licence header and its kernel-doc blocks, memoized on
+    ## content like file_docs, over the same indexed inventory.
+    ingest_file_licenses(output, repo_root, cache=cache)
+    timer.mark("file_licenses")
+    ingest_kerneldoc(output, repo_root, cache=cache)
+    timer.mark("kerneldoc")
     build_call_edges(output)
     timer.mark("call_edges")
     import_macro_hop_edges(output)
