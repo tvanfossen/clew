@@ -46,6 +46,17 @@ class Function:
     # annotation). None leaves the decision to checks._is_void_function's text heuristics.
     returns_void: bool | None = None
 
+    ## @brief The function's identity: enclosing class, name and parameter list.
+    #  Added 2.0.0 (S1): a machine-format fingerprint is built from it, so it must not move
+    #  with a line and must tell overloads apart.
+    #  @version 1.0
+    #  @dg_internal
+    #  @return `Class::name(params)`, or `name(params)` at file scope
+    @property
+    def qualified(self) -> str:
+        owner = f"{self.enclosing_class}::" if self.enclosing_class else ""
+        return f"{owner}{self.name}{self.signature}"
+
     ## @brief Check if this function is a constructor of its enclosing class.
     #  @version 1.0
     #  @dg_internal

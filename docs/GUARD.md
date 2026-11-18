@@ -455,6 +455,7 @@ added the toolchain fields to `files`, and 5 moved the config into `.clew.yaml` 
 ```bash
 clew guard [--config path] [files...]      # pre-commit mode (what the hook runs)
 clew guard validate --no-git src/*.c
+clew guard validate --format sarif src/*.c > guard.sarif
 clew guard impact --staged src/*.c
 clew guard coverage src/
 clew guard config --schema | --effective
@@ -464,6 +465,28 @@ clew guard -v coverage src/                # log which config sections were decl
 ```
 
 `clew-guard` is the same entry point as a console script.
+
+### Machine-readable output
+
+`clew guard validate --format sarif|gitlab|github` writes the violations to **stdout** for a
+code host to annotate. The default, `text`, keeps the `file:line: [check] message` lines on
+stderr. The exit code is the same in every format, and zero violations still produce a document
+(an empty SARIF run, `[]`, or no lines).
+
+| format | consumer | shape |
+|---|---|---|
+| `sarif` | GitHub code scanning and other SARIF 2.1.0 readers | one run, one rule per check class |
+| `gitlab` | GitLab Code Quality (merge-request widget) | JSON array of issues |
+| `github` | GitHub Actions annotations | one `::error file=…,line=…` line per violation |
+
+**The fingerprint ignores line numbers.** SARIF `partialFingerprints` and the GitLab
+`fingerprint` hash the check, the file, the function's qualified identity (class, name,
+parameters) and the message. Inserting lines above a function keeps its fingerprint the same,
+and two overloads get different ones.
+
+**Complexity is not in these outputs.** Cognitive complexity and return counts are checked by a
+separate pre-commit hook, not by `clew guard`, so the SARIF, GitLab and GitHub documents never
+carry them.
 
 ## Adopting on an existing codebase
 

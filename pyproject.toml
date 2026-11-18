@@ -116,6 +116,8 @@ dev = [
     "twine>=5.0,<8",
     # round 3, P6c: `run_tests.py --coverage` (CI's wiki job) writes Cobertura for clew's own wiki.
     "pytest-cov>=5,<8",
+    # 2.0.0 S1: the SARIF output is validated against the vendored OASIS schema.
+    "jsonschema>=4,<5",
 ]
 
 [project.urls]

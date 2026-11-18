@@ -46,6 +46,7 @@ from .config import (
 from .errors import ConfigError, GuardError
 from .filters import excluded_by, gate_exclusion
 from .git import get_branch_diff_range, get_file_at_revision, git_add
+from .report_formats import FORMATS, render
 from .impact import (
     build_impact_report,
     collect_changed_functions,
@@ -95,13 +96,21 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 ## @brief Add the validate subcommand to the parser.
-#  @version 1.1
+#  v1.2: --format text|sarif|gitlab|github (2.0.0, S1)
+#  @version 1.2
 #  @dg_internal
 def _add_validate_parser(subparsers: argparse._SubParsersAction) -> None:
     p = subparsers.add_parser("validate", help="Validate doxygen comments (pre-commit gate)")
     p.add_argument("files", nargs="*", help="Files to validate (passed by pre-commit)")
     p.add_argument("--no-git", action="store_true", help="Skip git-based staleness checks")
     p.add_argument("--exclude", action="append", default=[], help="Exclude patterns (repeatable)")
+    p.add_argument(
+        "--format",
+        dest="output_format",
+        default="text",
+        choices=list(FORMATS),
+        help="text (stderr, the default) or a machine format on stdout: sarif, gitlab, github",
+    )
 
 
 ## @brief Add the impact subcommand to the parser.
@@ -299,27 +308,33 @@ def _validate_files(
     return violations
 
 
-## @brief Print violations to stderr and return exit code.
-#  @version 1.0
+## @brief Print violations and return exit code.
+#  v1.1: a machine format (sarif, gitlab, github) goes to stdout, whole, even when empty; the
+#  human lines and the count stay on stderr. The exit code is the same either way (2.0.0, S1).
+#  @version 1.1
 #  @dg_internal
-def _report_violations(violations: list[Violation]) -> int:
-    for v in violations:
-        print(v, file=sys.stderr)
+def _report_violations(violations: list[Violation], output_format: str = "text") -> int:
+    if output_format != "text":
+        sys.stdout.write(render(violations, output_format))
+    else:
+        for v in violations:
+            print(v, file=sys.stderr)
     if violations:
         print(f"\nclew guard: {len(violations)} violation(s) found", file=sys.stderr)
-        return 1
-    return 0
+    return 1 if violations else 0
 
 
 ## @brief Run validation checks on all specified files and report violations.
-#  @version 1.4
+#  v1.5: routes --format; no files still emits an empty document (2.0.0, S1)
+#  @version 1.5
 #  @req REQ-DDB-GUARD-001
 #  @return Exit code: 0 if no violations, 1 if violations found
 def run_validate(args: argparse.Namespace, config: dict[str, Any]) -> int:
     files = args.files or []
     if not files:
         logger.warning("No files specified for validation")
-        return 0
+        # Still a document in a machine format: an empty log, not a missing one.
+        return _report_violations([], getattr(args, "output_format", "text"))
     # Resolve here too: this path previously skipped resolution entirely, so the
     # documented `doxygen-guard validate` invocation ran with no @req coverage gate.
     resolve_version_gate(config)
@@ -328,7 +343,10 @@ def run_validate(args: argparse.Namespace, config: dict[str, Any]) -> int:
         validate = config.setdefault("validate", {})
         existing = validate.get("exclude", [])
         validate["exclude"] = existing + cli_excludes
-    return _report_violations(_validate_files(files, config, no_git=args.no_git))
+    return _report_violations(
+        _validate_files(files, config, no_git=args.no_git),
+        getattr(args, "output_format", "text"),
+    )
 
 
 ## @brief Detect version from git describe --tags.
