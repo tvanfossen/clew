@@ -50,7 +50,12 @@ from typing import Any
 from ._common import logger
 from .harvest import Harvester, run_harvest
 from .indexcache import IndexCache
-from .vocabulary import STAGE_MACRO_REFS
+from .vocabulary import (
+    CONFIG_DEFAULT_ON,
+    KCONFIG_GATE_IFDEF,
+    KCONFIG_GATE_IFNDEF,
+    STAGE_MACRO_REFS,
+)
 
 ## The `xrefs.context` value every row this module writes carries. doxygen writes `inline`,
 ## `argument` and `initializer`; this is a fourth value it never emits, so the two layers are
@@ -211,12 +216,124 @@ def _identifiers_in(body: Any, src_bytes: bytes) -> list[tuple[str, int]]:
 
 
 ##
+# @brief Every macro name's definitions, those the default build does not compile removed.
+# @param conn Open index connection.
+# @return {name: [memberdef rowids]}.
+# @version 1
+# @req REQ-DDB-PIPE-003
+def macro_definitions(conn: sqlite3.Connection) -> dict[str, list[int]]:
+    """UPERF T5 (2.0.0, mbedtls F3): `{name: rowid}` kept whichever same-name definition was read
+    LAST, so `mbedtls_calloc` — defined in three `#if` branches of platform.h — was credited to an
+    arbitrary one. A definition inside a branch the DEFAULT BUILD does not compile is dropped: its
+    covering gates of known polarity (`ifdef` / `ifndef`) are evaluated against the shipped
+    configuration (`config_defaults`). A gate whose symbol the configuration does not decide, or
+    whose polarity is unknown (`if_expr`), drops nothing — unknown is never read as off.
+
+    @brief Every macro name's definitions, those the default build skips removed.
+    @return {name: [rowids]}.
+    @version 1
+    """
+    by_name: dict[str, list[tuple[int, str, int]]] = {}
+    has_path = conn.execute("SELECT 1 FROM sqlite_master WHERE name = 'path'").fetchone()
+    query = (
+        "SELECT m.rowid, m.name, p.name, m.line FROM memberdef m "
+        "LEFT JOIN path p ON p.rowid = m.file_id WHERE m.kind = 'macro definition'"
+        if has_path
+        ## No file table: no gate can be located, so every definition is kept (never dropped).
+        else "SELECT rowid, name, '', 0 FROM memberdef WHERE kind = 'macro definition'"
+    )
+    for rowid, name, file_path, line in conn.execute(query):
+        by_name.setdefault(name, []).append((rowid, file_path or "", line or 0))
+    states = _shipped_states(conn)
+    out = {}
+    for name, defs in by_name.items():
+        kept = [
+            d for d in defs if len(defs) == 1 or _compiled(conn, d[1], d[2], states) is not False
+        ]
+        out[name] = [d[0] for d in (kept or defs)]
+    return out
+
+
+## @brief The shipped on/off state of every option a configuration header decides.
+## @param conn Open connection.
+## @return {macro: True for on, False for off}.
+## @version 1
+## @dg_internal
+def _shipped_states(conn: sqlite3.Connection) -> dict[str, bool]:
+    """@brief Read config_defaults. @return States."""
+    try:
+        return {
+            m: s == CONFIG_DEFAULT_ON
+            for m, s in conn.execute("SELECT macro, state FROM config_defaults")
+        }
+    except sqlite3.OperationalError:
+        return {}
+
+
+## @brief Whether the default build compiles a line: False only when a known gate excludes it.
+## @param conn Open connection.
+## @param file_path The definition's file.
+## @param line Its line.
+## @param states The shipped option states.
+## @return False (excluded), else None (not known to be excluded).
+## @version 1
+## @dg_internal
+def _compiled(
+    conn: sqlite3.Connection, file_path: str, line: int, states: dict[str, bool]
+) -> bool | None:
+    """@brief Evaluate covering gates. @return False or None."""
+    try:
+        gates = conn.execute(
+            "SELECT macro, form FROM kconfig_gates WHERE file_path = ? AND line <= ? AND ? < end_line",
+            (file_path, line, line),
+        ).fetchall()
+    except sqlite3.OperationalError:
+        return None
+    for macro, form in gates:
+        on = states.get(macro)
+        if on is None or form not in (KCONFIG_GATE_IFDEF, KCONFIG_GATE_IFNDEF):
+            continue
+        if on != (form == KCONFIG_GATE_IFDEF):
+            return False
+    return None
+
+
+## @brief A name's definitions, the referring file's own first when it has one.
+## @param rowids The name's kept definitions.
+## @param path_rowid The referring file.
+## @param conn Open connection.
+## @return The definitions credited.
+## @version 1
+## @dg_internal
+def _same_file_first(rowids: list[int], path_rowid: int, conn: sqlite3.Connection) -> list[int]:
+    """A REFERENCE IN THE FILE THAT DEFINES THE NAME means that file's definition; otherwise every
+    kept definition is credited — several rows rather than one arbitrary pick.
+
+    @brief Choose the credited definitions.
+    @return Rowids.
+    """
+    if len(rowids) <= 1:
+        return list(rowids)
+    marks = ",".join("?" * len(rowids))
+    own = [
+        r
+        for (r,) in conn.execute(
+            f"SELECT rowid FROM memberdef WHERE rowid IN ({marks}) AND file_id = ?",
+            (*rowids, path_rowid),
+        )
+    ]
+    return own or list(rowids)
+
+
+##
 # @brief Insert the macro references doxygen's xref pass did not record.
 # @param db Path to the index being built.
 # @param repo_root Repository the index describes.
 # @param cache Index cache, or None.
 # @return Number of xrefs rows inserted.
-# @version 3
+# v4 (2.0.0, UPERF T5): same-name macros resolve by build activity (`macro_definitions`), and a
+# reference in the defining file means that file's definition.
+# @version 4
 # @req REQ-DDB-PIPE-003
 def import_ast_macro_refs(db: Path, repo_root: Path, cache: IndexCache | None = None) -> int:
     """FILTERED AGAINST REAL MACRO ROWS, so an identifier that merely shares a name with nothing
@@ -238,17 +355,12 @@ def import_ast_macro_refs(db: Path, repo_root: Path, cache: IndexCache | None = 
     does a name resolve alone, and then only if no other function shares it.
 
     @return Rows inserted.
-    @version 3
+    @version 4
     """
     conn = sqlite3.connect(str(db))
     try:
         payloads = run_harvest(conn, repo_root, MacroRefHarvester(), cache)
-        macros = {
-            name: rowid
-            for rowid, name in conn.execute(
-                "SELECT rowid, name FROM memberdef WHERE kind='macro definition'"
-            )
-        }
+        macros = macro_definitions(conn)
         if not macros:
             logger.info("macro_refs: index holds no macro definitions — nothing to recover")
             return 0
@@ -272,11 +384,14 @@ def import_ast_macro_refs(db: Path, repo_root: Path, cache: IndexCache | None = 
         rows: list[tuple[int, int, str]] = []
         for path_rowid, payload in payloads:
             for fn_name, ident, _line in payload or ():
-                dst = macros.get(ident)
                 src = functions.get((path_rowid, fn_name), unique.get(fn_name))
-                if dst is None or src is None or src == dst:
+                if src is None:
                     continue
-                rows.append((src, dst, AST_REF_CONTEXT))
+                rows += [
+                    (src, dst, AST_REF_CONTEXT)
+                    for dst in _same_file_first(macros.get(ident, ()), path_rowid, conn)
+                    if dst != src
+                ]
 
         conn.executemany(
             "INSERT OR IGNORE INTO xrefs (src_rowid, dst_rowid, context) VALUES (?, ?, ?)",
