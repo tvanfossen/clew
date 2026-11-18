@@ -31,21 +31,29 @@ logger = logging.getLogger("clew")
 
 ## Path components whose events never wake the loop: version-control internals and the index's
 ## own writes (a refresh would otherwise re-trigger itself).
+## The repository's own declaration, which DOES change what the index holds.
+DECLARATION_NAME = ".clew.yaml"
 _IGNORED_PARTS = frozenset({".git", "__pycache__", ".pytest_cache", "node_modules"})
 
 
 ## @brief Whether a changed path should wake the refresh loop.
 ## @param path The changed path, as watchdog reports it.
-## @return True when it could be an indexed source file.
-## @version 1
+## @return True when it could be an indexed source file or the repository's declaration.
+## v2 (2.0.0, R5-CORE D12): `.clew.yaml` is relevant — the `.clew` prefix swallowed it.
+## @version 2
 ## @dg_internal
 def relevant(path: str) -> bool:
-    """@brief Filter out VCS internals, caches and clew's own index files. @return True if relevant."""
+    """THE TARGET'S DECLARATION IS NOT ONE OF CLEW'S OWN FILES. The `.clew` prefix exists for
+    clew's own writes, and it also matched `.clew.yaml`, so editing a declaration never woke the
+    refresh loop.
+
+    @brief Filter out VCS internals, caches and clew's own index files. @return True if relevant.
+    """
     parts = Path(path).parts
     if any(p in _IGNORED_PARTS for p in parts):
         return False
     name = parts[-1] if parts else ""
-    return not (
+    return name == DECLARATION_NAME or not (
         name.startswith(".clew")
         or ".idxcache" in name
         or name.endswith((".db", ".db-journal", ".db-wal"))

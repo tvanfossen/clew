@@ -113,3 +113,17 @@ async def test_a_query_waits_at_most_a_second_behind_another_build(
                 await anyio.sleep(0.05)
             tg.cancel_scope.cancel()
     assert elapsed and elapsed[0] < 2.0, f"the query waited {elapsed} s behind another build"
+
+
+def test_an_edited_declaration_wakes_the_loop() -> None:
+    """R5-CORE D12 (2.0.0): the `.clew` prefix that filters clew's own files also matched the
+    target's `.clew.yaml`, so editing a declaration never woke the refresh loop.
+
+    @brief `.clew.yaml` is relevant; clew's own `.clew*` files are not.
+    @return None.
+    @version 1
+    """
+    assert relevant("/repo/.clew.yaml")
+    assert relevant("/repo/sub/.clew.yaml")
+    assert not relevant("/repo/.clew")
+    assert not relevant("/repo/.clew-cache")
