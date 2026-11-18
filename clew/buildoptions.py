@@ -225,6 +225,8 @@ SECTION_DOCUMENT_OPTIONS: tuple[str, ...] = (
     "tests",
     ## S2/S3 (2.0.0): where CODEOWNERS / MAINTAINERS live, when not at their conventional paths.
     "owners",
+    ## R5-CORE C1 (2.0.0): a repository's own blocking primitives, ISR predicates, wait tokens.
+    "blocking",
 )
 
 ## Options renamed in 2.0.0, refused naming the replacement rather than as unknown.

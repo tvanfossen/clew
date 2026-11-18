@@ -185,7 +185,8 @@ def _call_payload(rel: str, path: Path, cache: IndexCache) -> Any:
 ## @param files {repo-relative path: path rowid} of the edited files.
 ## @param file_funcs The function spans per path rowid, from `refresh_outbound_calls`' maps.
 ## @return Rows inserted.
-## @version 1
+## v2: the blocking harvester is the repository's declared one (2.0.0, C1)
+## @version 2
 ## @req REQ-DDB-INDEX-006
 def refresh_blocking_calls(
     conn: sqlite3.Connection,
@@ -201,7 +202,7 @@ def refresh_blocking_calls(
     @return Rows inserted.
     @version 1
     """
-    from .blocking import blocking_harvester
+    from .blocking import declared_blocking_harvester
     from .call_edges import _ast_caller_at_line, _table_exists
     from .harvest import HarvestTally, _harvest_one_file
 
@@ -210,11 +211,10 @@ def refresh_blocking_calls(
     if not _table_exists(conn, "blocking_calls"):
         return 0
     inserted = 0
+    harvester = declared_blocking_harvester(repo_root)
     for rel, rowid in files.items():
         conn.execute("DELETE FROM blocking_calls WHERE path_rowid = ?", (rowid,))
-        payload = _harvest_one_file(
-            rel, repo_root / rel, blocking_harvester(), {}, cache, HarvestTally()
-        )
+        payload = _harvest_one_file(rel, repo_root / rel, harvester, {}, cache, HarvestTally())
         for record in payload or []:
             holder = _ast_caller_at_line(file_funcs.get(rowid, []), record[1])
             if holder is None:

@@ -380,6 +380,7 @@ doxyfile:             doxygen/project.doxyfile
 tests:                {paths: ["test/*", "*_test.cpp"], junit: [build/junit.xml]}  # + evidence: docs/WIKI.md
 vendored:             [third_party/json]
 owners:               {codeowners: meta/OWNERS}   # default: .github/CODEOWNERS etc. and MAINTAINERS
+blocking:             {primitives: [{name: os_sem_wait, timeout_arg_index: 1}], isr_predicates: [up_interrupt_context]}
 sub_indexes:          {deps-slam: {excludes: [deps/slam/third_party]}}
 guard:                {validate: {tags: {req: {cross_reference: true}}}}   # the gate: docs/GUARD.md
 wiki:                 {title: My project, flows: [{entry: main, depth: 2}]}  # the wiki: docs/WIKI.md

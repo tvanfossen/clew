@@ -240,7 +240,8 @@ def _current_build(db: Path) -> bool:
 ## @return {repo-relative path: (path rowid, old anchors, new anchors, old sha)} or None.
 ## v2 (phase 6): each plan carries the old content sha, the key to the corpus texts it replaces.
 ## v3: a declared whole-index input refuses the fast tier (2.0.0, R5-CFG W13)
-## @version 3
+## v4: passes the repository root to _line_anchors (2.0.0)
+## @version 4
 ## @dg_internal
 def _plan(
     conn: sqlite3.Connection, repo_root: Path, cache: IndexCache
@@ -253,7 +254,7 @@ def _plan(
         return None
     plans: dict[str, tuple[int, list[int], list[int], str]] = {}
     for rowid, rel, old_sha in edited:
-        anchors = _line_anchors(rel, repo_root / rel, old_sha, cache)
+        anchors = _line_anchors(rel, repo_root / rel, old_sha, cache, repo_root)
         if anchors is None:
             return None
         plans[rel] = (rowid, *anchors, old_sha)
@@ -351,10 +352,11 @@ def config_inputs(repo_root: Path) -> frozenset[str]:
 ## @return (old anchor lines, new anchor lines), aligned; None when the file refuses.
 ## v2: one shared parse warms both the anchor and the call-site payloads.
 ## v3: and the blocking-call payload.
-## @version 3
+## v4: the blocking harvester is the repository's declared one (2.0.0, C1)
+## @version 4
 ## @dg_internal
 def _line_anchors(
-    rel: str, path: Path, old_sha: str, cache: IndexCache
+    rel: str, path: Path, old_sha: str, cache: IndexCache, repo_root: Path | None = None
 ) -> tuple[list[int], list[int]] | None:
     """THE SAME HARVESTER ON BOTH SIDES, so the two anchor lists measure lines identically. The
     definitions must be the same SET in the same ORDER; anything else is a changed definition
@@ -364,7 +366,7 @@ def _line_anchors(
     @return Aligned anchors or None.
     @version 1
     """
-    from .blocking import blocking_harvester
+    from .blocking import declared_blocking_harvester
     from .call_edges import call_site_harvester
     from .harvest import HarvestTally, _cached_payload, _harvest_one_file, _shared_parse_one_file
 
@@ -377,7 +379,7 @@ def _line_anchors(
     _shared_parse_one_file(
         rel,
         path,
-        [harvester, call_site_harvester(), blocking_harvester()],
+        [harvester, call_site_harvester(), declared_blocking_harvester(repo_root or path.parent)],
         {},
         cache,
         HarvestTally(),

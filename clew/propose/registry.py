@@ -38,6 +38,7 @@ from ..declaration import (
     SECTION_DOXYFILE,
     SECTION_ENRICH,
     SECTION_ENTRY_PATTERNS,
+    SECTION_BLOCKING,
     SECTION_OWNERS,
     SECTION_TESTS,
     SECTION_EVENT_TAGS,
@@ -84,6 +85,13 @@ _DETECTED: tuple[tuple[str, Detector], ...] = (
 ## writes a specific, wrong claim into the graph, which is worse than an empty
 ## layer because nothing downstream can tell it from a measured fact.
 HAND_DECLARED: dict[str, str] = {
+    SECTION_BLOCKING: (
+        "whether a call can park its caller is a fact about the RTOS or library that defines it; "
+        "the built-ins cover Zephyr, FreeRTOS, RIOT and POSIX, read with the line that forbids "
+        "interrupt context beside each. A project's own primitive (`os_sem_wait(sem, ms)`), its "
+        "own ISR predicate (`up_interrupt_context()`) or its own wait spelling is stated here and "
+        "ADDED to them, never guessed (clew/blocking.py)."
+    ),
     SECTION_OWNERS: (
         "ownership is read from the CODEOWNERS and MAINTAINERS files the repository already keeps, "
         "at their conventional locations (.github/CODEOWNERS, CODEOWNERS, docs/CODEOWNERS, "

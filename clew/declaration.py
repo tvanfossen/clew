@@ -185,6 +185,11 @@ SECTION_TEST_PATHS = "test_paths"
 ## conventional locations; this section only names them when they live elsewhere
 ## (`{codeowners: path, maintainers: path}`). Read by `clew/owners.py` into the `owners` layer.
 SECTION_OWNERS = "owners"
+## THE BLOCKING VOCABULARY (R5-CORE C1, 2.0.0): a repository's own blocking primitives
+## (`{name, timeout_arg_index}`), ISR predicates and wait tokens (`{none, forever,
+## bounded_prefixes}`), ADDED to the built-in Zephyr / FreeRTOS / RIOT / POSIX facts. Every
+## sibling layer (locks, threads, shared keys) was declarable and this one was the exception.
+SECTION_BLOCKING = "blocking"
 ## Sections that moved in 2.0.0, refused naming their new home (never as "unknown").
 MOVED_SECTIONS = {SECTION_TEST_PATHS: f"`{SECTION_TESTS}.{TESTS_PATHS}`"}
 ## VENDORED THIRD-PARTY PATHS — a plain list of repo-relative directories the repository did
@@ -295,6 +300,7 @@ KNOWN_SECTIONS = frozenset(
         SECTION_ENTRY_PATTERNS,
         SECTION_TESTS,
         SECTION_OWNERS,
+        SECTION_BLOCKING,
         SECTION_VENDORED,
         SECTION_DISPATCH,
         SECTION_PREPROCESSOR,
@@ -338,6 +344,7 @@ SECTION_KEYS: dict[str, frozenset[str]] = {
     SECTION_KCONFIG: frozenset({"root"}),
     SECTION_TESTS: TESTS_KEYS,
     SECTION_OWNERS: frozenset({"codeowners", "maintainers"}),
+    SECTION_BLOCKING: frozenset({"primitives", "isr_predicates", "wait_tokens"}),
 }
 
 ## THE ESCAPE HATCH AN OLDER CLEW NEEDS (B5, 1.1.0 merge review). `guard:` is new in 1.1.0,

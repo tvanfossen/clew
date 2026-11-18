@@ -101,6 +101,7 @@ from .external import EXTERNAL_ROOTS_META_KEY, stamp_external_provenance
 from .declaration import (
     DECLARATION_NAME,
     SECTION_DOXYFILE,
+    SECTION_BLOCKING,
     SECTION_OWNERS,
     SECTION_TESTS,
     TESTS_PATHS,
@@ -1935,7 +1936,8 @@ def _doxygen_meta(args) -> dict[str, str]:
 ## v67 (round 4, R9): covering tests are classified by the resolved test scope.
 ## v68: the owners stage (2.0.0, S2/S3)
 ## v69: file_licenses and kerneldoc stages (2.0.0, S5/S6)
-## @version 69
+## v70: the blocking declaration reaches the plan (2.0.0, C1)
+## @version 70
 ## @req REQ-DDB-PIPE-001
 ## @req REQ-DDB-MCP-004
 ## @req REQ-DDB-CONFIG-007
@@ -2087,6 +2089,7 @@ def _build_stages(
         dispatch=dispatch,
         dispatch_key=manifest_key(dispatch_source),
         mqtt_dispatch=mqtt_dispatch,
+        blocking=section(decl, SECTION_BLOCKING),
     )
     warm_harvest_plan(output, repo_root, plan, cache, _resolve_jobs())
     timer.mark("shared_parse")

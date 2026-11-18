@@ -159,7 +159,8 @@ class HarvestPlan:
 ## @param dispatch_key Manifest-derived cache-key component for the dispatch harvest.
 ## @param mqtt_dispatch The --mqtt-dispatch manifest, or None.
 ## @return The assembled plan.
-## @version 6
+## v7: the blocking declaration (2.0.0, C1)
+## @version 7
 ## @req REQ-DDB-PIPE-003
 def build_harvest_plan(
     lock_patterns: Path | dict | None = None,
@@ -169,6 +170,7 @@ def build_harvest_plan(
     dispatch: DispatchManifest | None = None,
     dispatch_key: str = "",
     mqtt_dispatch: Path | dict | None = None,
+    blocking: dict | None = None,
 ) -> HarvestPlan:
     """Every declaration is resolved HERE, once, and a `DeclarationError` in any of
     them now refuses the build before doxygen's output is augmented rather than
@@ -192,7 +194,7 @@ def build_harvest_plan(
         ## stage genuinely finds the warmed row. A harvester built differently here would warm a
         ## row the stage then misses, and the only symptom would be the cost coming back.
         macro_refs=MacroRefHarvester(),
-        blocking=blocking_harvester(),
+        blocking=blocking_harvester(blocking),
         js_symbols=js_symbol_harvester(),
         script_symbols=script_symbol_harvester(),
         config_defaults=defaults_harvester(),
