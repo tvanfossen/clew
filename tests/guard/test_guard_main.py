@@ -33,7 +33,10 @@ class TestValidateFile:
         violations = validate_file(str(py_file), CONFIG_DEFAULTS, no_git=True)
         assert violations == []
 
-    def test_excluded_file(self, tmp_path):
+    def test_excluded_file(self, tmp_path, monkeypatch):
+        ## 2.0.0 (R5-CFG F18): excludes are repo-relative globs, so the gate runs from the repo root
+        ## (as pre-commit runs it); `gen/` is the directory at the root.
+        monkeypatch.chdir(tmp_path)
         c_file = tmp_path / "gen" / "auto.c"
         c_file.parent.mkdir()
         c_file.write_text("void Func(void) { }")

@@ -135,14 +135,14 @@ class TestLoadConfig:
                   version:
                     tag: "@ver"
                   exclude:
-                    - "^gen/"
+                    - "gen/**"
             """)
             )
         )
         config = load_config(config_file)
         assert "kotlin" in config["validate"]["languages"]
         assert config["validate"]["version"]["tag"] == "@ver"
-        assert config["validate"]["exclude"] == ["^gen/"]
+        assert config["validate"]["exclude"] == ["gen/**"]
         assert config["impact"]["report_dir"] == "docs/out/"
 
     def test_non_mapping_config_returns_defaults(self, tmp_path):
@@ -158,13 +158,14 @@ class TestLoadConfig:
                 dedent("""\
                 validate:
                   exclude:
-                    - "^gen/"
+                    - "re:^gen/"
                     - "vendor/"
             """)
             )
         )
+        ## 2.0.0 (R5-CFG F18): excludes are globs; a regex is written `re:`.
         config = load_config(config_file)
-        assert config["validate"]["exclude"] == ["^gen/", "vendor/"]
+        assert config["validate"]["exclude"] == ["re:^gen/", "vendor/"]
 
 
 class TestGetLanguageConfig:

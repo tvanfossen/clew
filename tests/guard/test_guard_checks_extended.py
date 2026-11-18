@@ -57,16 +57,21 @@ class TestCheckUnknownTags:
         assert "did you mean @version?" in violations[0].message
 
     def test_retired_tracer_tags_are_unknown(self):
-        """The diagram tags went with the tracer; a tag the tool cannot act on is unknown."""
-        func = _make_func("f", tags={"brief": ["desc"], "sends": ["EVENT_X"]})
+        """The diagram tags went with the tracer; a tag the tool cannot act on is unknown.
+
+        2.0.0 (R5-CFG F10): `@sends` and `@receives` are also EVENT words the index reads (they build
+        event edges), so they are known through the shared event vocabulary; a retired tracer tag
+        that is not an event word — `@participant` — stays unknown.
+        """
+        func = _make_func("f", tags={"brief": ["desc"], "participant": ["Bus"]})
         violations = check_unknown_tags(func, "a.c", BASE_CONFIG)
         assert len(violations) == 1
-        assert "@sends" in violations[0].message
+        assert "@participant" in violations[0].message
 
     def test_retired_tags_can_be_readmitted_via_extra_tags(self):
         """Migration path for repos still carrying them."""
-        config = deep_merge(BASE_CONFIG, {"validate": {"extra_tags": ["sends", "receives"]}})
-        func = _make_func("f", tags={"brief": ["d"], "sends": ["E"], "receives": ["E2"]})
+        config = deep_merge(BASE_CONFIG, {"validate": {"extra_tags": ["participant", "loop"]}})
+        func = _make_func("f", tags={"brief": ["d"], "participant": ["E"], "loop": ["E2"]})
         assert check_unknown_tags(func, "a.c", config) == []
 
     def test_extra_tags_accepted(self):

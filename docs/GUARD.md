@@ -63,8 +63,8 @@ requirements:                    # the catalog — one section the gate, the ind
 guard:
   validate:
     exclude:
-      - "^tests/"
-      - "^\\.venv/"
+      - "tests/**"
+      - ".venv/**"
     tags:
       req:
         pattern: "^REQ-[A-Z]+-[0-9]{3}$"
@@ -306,8 +306,37 @@ Every key below lives under the `guard:` section of `.clew.yaml`.
 | `version.tag` | string | `@version` | Tag used as the per-function revision counter |
 | `version.require_present` | bool | `true` | Require the revision tag |
 | `version.require_increment_on_change` | bool | `true` | Require a bump when the body changes |
-| `exclude` | list | `[]` | Regexes for files to skip (`clew guard files` shows the result) |
+| `exclude` | list | `[]` | Globs for files to skip (`tests/**`, `vendor/`), the syntax every other path filter uses; a regex is written `re:<regex>` (2.0.0 — a 1.x `^tests/` is refused with both forms). `clew guard files` shows the result |
 | `duplicate_tags_error` | bool | `true` | Flag a repeated `@brief`/`@version`/`@return`/`@file` |
+| `extra_tags` | list | `[]` | Further tag names to accept as known |
+| `known_tags_warn` | bool | `true` | Report a tag no rule knows (`false` silences the unknown-tag check) |
+| `bus.handlers` | list | — | Name globs of functions that cross a bus, which must carry a bus tag |
+| `bus.senders` | list | — | Calls that choose a topic; a function calling one must carry a bus tag |
+| `bus.vocabulary` | list | — | Allowed first words of a bus tag |
+
+The **bus tags are the event vocabulary** — the top-level `event_tags:` the index reads, or the
+index's built-in one when none is declared (2.0.0; `validate.bus.tags` is refused with that
+pointer). Those words are also known tags everywhere, and `@node` is known when `wiki.sources` is
+declared, so a convention one part of clew asks for is never an unknown tag to another.
+
+**`tags.<tag>`** — per-tag rules, for `req` or any tag you name (each key is checked):
+
+| Key | Type | Description |
+|---|---|---|
+| `pattern` | string | Regex the tag's value must match |
+| `require_prefix` | list | The value must start with one of these |
+| `require_contains` | string | The value must contain this |
+| `cross_reference` | bool | `req` only: ids must exist in the catalog |
+
+**`languages.<lang>`** — per-language parsing (each key is checked):
+
+| Key | Type | Description |
+|---|---|---|
+| `extensions` | list | File extensions of the language |
+| `function_pattern` | string | Regex locating a function definition |
+| `exclude_names` | list | Function names never required to carry a block |
+| `comment_style` | mapping | `start` / `end` regexes of a doc comment |
+| `require_return` | bool | Overrides `presence.require_return` |
 | `tags.req.cross_reference` | bool | `true` | `@req` ids must exist in the catalog |
 | `current_version` | string | — | The release the version gate compares against: `auto:git`, `auto:cmake`, or an explicit version (with `requirements.version_field`) |
 
@@ -441,7 +470,7 @@ clew guard -v coverage src/                # log which config sections were decl
    and use `validate.current_version` with `requirements.version_field` to require `@req` only
    on requirements from a given version on.
 2. Turn off `presence.require_return` during migration if needed.
-3. Exclude what you are not ready to cover (`validate.exclude: ["^vendor/", "^legacy/"]`).
+3. Exclude what you are not ready to cover (`validate.exclude: ["vendor/**", "legacy/**"]`).
 
 ## Requirement ids in clew's own catalog
 

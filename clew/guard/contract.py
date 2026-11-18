@@ -17,6 +17,7 @@ from typing import Any
 from .config import (
     _OPEN_DICT,
     CONFIG_DEFAULTS,
+    _MapOf,
     CONFIG_FILE_NAME,
     CONFIG_SCHEMA,
     CONFIG_SECTION,
@@ -28,6 +29,7 @@ from .config import (
     REQUIREMENTS_OPTIONAL_FIELDS,
     REQUIREMENTS_REQUIRED_FIELDS,
     REQUIREMENTS_ROOT_KEY,
+    NON_GUARD_KEYS,
     get_requirements,
     get_validate,
 )
@@ -61,15 +63,20 @@ logger = logging.getLogger(__name__)
 CONTRACT_VERSION = 6
 
 _OPEN_NODE = "<any>"
+## The key a `_MapOf` node is encoded under: "any name, each value shaped like this" (2.0.0).
+_MAP_KEY = "<name>"
 
 
 ## @brief Render a schema node as JSON-safe data.
-#  @version 1.1
+#  v1.2: encodes a _MapOf node (2.0.0)
+#  @version 1.2
 #  @req REQ-DDB-GUARD-015
 #  @return Type name, "<any>" for open nodes, or a nested dict
 def _encode_schema(node: Any) -> Any:
     if node is _OPEN_DICT:
         return _OPEN_NODE
+    if isinstance(node, _MapOf):
+        return {_MAP_KEY: _encode_schema(node.schema)}
     if isinstance(node, dict):
         return {k: _encode_schema(v) for k, v in node.items()}
     return node.__name__ if isinstance(node, type) else str(node)
@@ -140,19 +147,20 @@ def _strip_private(node: Any) -> Any:
 #  cannot silently omit a declaration the gate honours. A hand-written list of five keys
 #  left six honoured keys invisible to a consumer reading the obvious field.
 #  v2.2: reads the top-level requirements: section (2.0.0, R5-CFG F7)
-#  @version 2.2
+#  v2.3: strips every non-guard key (2.0.0)
+#  @version 2.3
 #  @req REQ-DDB-GUARD-015
 #  @return JSON-serializable description of the merged config and what it resolved to
 def build_effective_contract(config: dict[str, Any]) -> dict[str, Any]:
     validate = get_validate(config)
     resolved: dict[str, Any] = {"output_dir": config.get("output_dir")}
     for key, spec in CONFIG_SCHEMA["validate"].items():
-        if spec is _OPEN_DICT or isinstance(spec, dict):
+        if spec is _OPEN_DICT or isinstance(spec, dict | _MapOf):
             continue
         resolved[key] = validate.get(key)
     resolved["req_pattern"] = validate.get("tags", {}).get("req", {}).get("pattern")
     resolved["requirements"] = _effective_requirements(config)
-    guard_only = {k: v for k, v in config.items() if k != REQUIREMENTS_ROOT_KEY}
+    guard_only = {k: v for k, v in config.items() if k not in NON_GUARD_KEYS}
     return {
         "contract_version": CONTRACT_VERSION,
         "config": _strip_private(guard_only),

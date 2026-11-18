@@ -7,7 +7,6 @@
 from __future__ import annotations
 
 import logging
-import re
 import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -94,7 +93,8 @@ def _rglob_source_files(source_dir: str, extensions: set[str]) -> list[Path] | N
 
 ## @brief Find source files for configured languages, applying validate.exclude patterns.
 #  @details Also drops what the shared toolchain config ignores and binary files.
-#  @version 1.1
+#  v1.2: excludes are globs, re: for a regex (2.0.0, R5-CFG F18)
+#  @version 1.2
 #  @req REQ-DDB-GUARD-013
 #  @return Sorted source paths that survive the exclude patterns
 def find_source_files(source_dir: str, config: dict[str, Any]) -> list[Path]:
@@ -110,12 +110,12 @@ def find_source_files(source_dir: str, config: dict[str, Any]) -> list[Path]:
     if candidates is None:
         return []
 
-    from .filters import gate_exclusion
+    from .filters import excluded_by, gate_exclusion
 
     kept = sorted(
         f
         for f in candidates
-        if not any(re.search(p, str(f)) for p in exclude_patterns) and gate_exclusion(f) is None
+        if excluded_by(f, exclude_patterns) is None and gate_exclusion(f) is None
     )
     logger.info(
         "Source scan %s: %d candidate(s), %d kept after %d exclude pattern(s)",

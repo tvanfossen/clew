@@ -43,7 +43,7 @@ from .config import (
     validate_output_path,
 )
 from .errors import ConfigError, GuardError
-from .filters import gate_exclusion
+from .filters import excluded_by, gate_exclusion
 from .git import get_branch_diff_range, get_file_at_revision, git_add
 from .impact import (
     build_impact_report,
@@ -177,7 +177,8 @@ def _add_files_parser(subparsers: argparse._SubParsersAction) -> None:
 #  that pattern is stated in the gate's own config, in front of the owner reading it,
 #  where `toolchain.toml` is a statement made for every tool in the repo.
 #  @details v1.15: runs the bus-tag rule (W10).
-#  @version 1.15
+#  v1.16: excludes are globs, re: for a regex (2.0.0, R5-CFG F18)
+#  @version 1.16
 #  @req REQ-DDB-GUARD-001
 def validate_file(
     file_path: str,
@@ -187,10 +188,10 @@ def validate_file(
     skipped: list[str] | None = None,
 ) -> list[Violation]:
     validate = get_validate(config)
-    for pattern in validate.get("exclude", []):
-        if re.search(pattern, file_path):
-            logger.debug("Skipping %s — matches exclude pattern '%s'", file_path, pattern)
-            return []
+    pattern = excluded_by(file_path, validate.get("exclude", []))
+    if pattern is not None:
+        logger.debug("Skipping %s — matches exclude pattern '%s'", file_path, pattern)
+        return []
     skip = gate_exclusion(file_path)
     if skip is not None:
         logger.info("Skipping %s — %s", file_path, skip)

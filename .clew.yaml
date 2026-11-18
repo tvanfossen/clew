@@ -39,14 +39,14 @@ guard:
     report_dir: docs/generated/impact/
 
   validate:
-    exclude:
-      - "^\\.venv/"
-      - "^\\.claude/"
-      - "^workspace/"
-      - "^tests/"           # tests are exempt (fixtures, asserts)
-      - "^scripts/"         # dev helpers
-      - "^acceptance/"      # benchmark harness + evidence, not shipped code
-      - "^docs/generated/"
+    exclude:                # globs (2.0.0); a regex would be written `re:<regex>`
+      - ".venv/**"
+      - ".claude/**"
+      - "workspace/**"
+      - "tests/**"          # tests are exempt (fixtures, asserts)
+      - "scripts/**"        # dev helpers
+      - "acceptance/**"     # benchmark harness + evidence, not shipped code
+      - "docs/generated/**"
     # NOTE: this key was DUPLICATED — an empty `tags:` sat directly above the real
     # one. YAML takes the last, so the real block won and nothing broke, which is
     # why it survived. The trap is that a reorder or an insertion between them

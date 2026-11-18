@@ -18,8 +18,9 @@ from clew.guard.parser import DoxygenBlock, Function
 
 _BUS = {
     "validate": {
+        ## 2.0.0 (R5-CFG F10): the bus tags are the event vocabulary (`event_tags:` / the index's
+        ## built-in words); `validate.bus.tags` moved there.
         "bus": {
-            "tags": ["emits", "handles"],
             "vocabulary": ["MQTT", "HTTP"],
             "handlers": ["on_*"],
             "senders": ["publish"],

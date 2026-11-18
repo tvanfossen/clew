@@ -202,11 +202,19 @@ IMPACT_DEFAULTS: dict[str, Any] = {"report_dir": DEFAULT_REPORT_DIR}
 ## `requirements` is the top-level catalog section, carried in the loaded config so every gate
 ## reader finds it in one place; None means no catalog is declared. It is not a `guard:` key, and
 ## `config --effective` reports it under `resolved.requirements` rather than echoing it as input.
+## `event_tags` (the declaration's event vocabulary, R5-CFG F10) and `wiki_sources` (whether
+## `wiki.sources` is declared, R5-CFG F11) are read from the same `.clew.yaml` for the same reason:
+## facts the gate must agree with the index and the wiki about, not `guard:` keys.
 CONFIG_DEFAULTS: dict[str, Any] = {
     "validate": VALIDATE_DEFAULTS,
     "impact": IMPACT_DEFAULTS,
     "requirements": None,
+    "event_tags": None,
+    "wiki_sources": False,
 }
+
+## Keys of the loaded config that are not `guard:` keys (the cross-section facts above).
+NON_GUARD_KEYS = ("requirements", "event_tags", "wiki_sources")
 
 ## THE TOP-LEVEL `requirements:` SECTION (R5-CFG F6/F7/F14, 2.0.0): one catalog, read by the index,
 ## the gate and the wiki. Before, it lived in five places — a top-level path the index alone read,
@@ -239,6 +247,10 @@ MOVED_KEYS: dict[str, str] = {
     "validate.version_gate.version_field": "`requirements.version_field` (top level)",
     "validate.version_gate.current_version": "`guard.validate.current_version`",
     "output_dir": "`guard.impact.report_dir` (the directory the impact report is written to)",
+    "validate.bus.tags": (
+        "the top-level `event_tags:` section — the index's event vocabulary, which the gate reads "
+        "as its bus tags (undeclared: the index's built-in vocabulary)"
+    ),
     "impact.output": (
         "`guard.impact.report_dir`; `clew guard impact --write` writes impact.md and impact.json "
         "there, and without --write it prints (`--format markdown|json|text`)"
@@ -248,9 +260,68 @@ MOVED_KEYS: dict[str, str] = {
 
 _OPEN_DICT = object()
 
+
+## @brief A mapping whose KEYS are the user's (a tag name, a language name) and whose every VALUE
+## follows one schema (R5-CFG F12, 2.0.0). `validate.tags` and `validate.languages` were open
+## dicts, so `tags.req.patern` or `languages.c.extentions` passed silently.
+## @version 1
+class _MapOf:
+    ## @brief Hold the schema every entry of the mapping follows.
+    #  @version 1.0
+    #  @dg_internal
+    def __init__(self, schema: dict[str, Any]) -> None:
+        self.schema = schema
+
+
+## The keys one `validate.tags.<tag>` entry may carry.
+TAG_SCHEMA: dict[str, Any] = {
+    "pattern": str,
+    "require_prefix": list,
+    "require_contains": str,
+    ## `req` only: its ids must exist in the catalog.
+    "cross_reference": bool,
+}
+
+## The keys one `validate.languages.<lang>` entry may carry.
+LANGUAGE_SCHEMA: dict[str, Any] = {
+    "extensions": list,
+    "function_pattern": str,
+    "exclude_names": list,
+    "comment_style": {"start": str, "end": str},
+    "require_return": bool,
+}
+
+## The index's built-in event-tag vocabulary (clew/event_edges.py DEFAULT_EVENT_TAGS), restated
+## because `clew.guard` imports nothing from the pipeline (a layering decision, recorded in both
+## places); a test pins the two copies equal. A repository's declared `event_tags:` replaces it,
+## exactly as it does for the index (R5-CFG F10).
+DEFAULT_EVENT_TAG_NAMES: tuple[str, ...] = (
+    "emits",
+    "emit",
+    "publishes",
+    "publish",
+    "produces",
+    "sends",
+    "raises",
+    "fires",
+    "posts",
+    "handles",
+    "handle",
+    "subscribes",
+    "subscribe",
+    "consumes",
+    "receives",
+    "listens",
+    "observes",
+)
+
+## The prefix that marks a `validate.exclude` entry as a regex (R5-CFG F18): every other entry is
+## a glob, the syntax every other path filter in `.clew.yaml` uses.
+EXCLUDE_REGEX_PREFIX = "re:"
+
 CONFIG_SCHEMA: dict[str, Any] = {
     "validate": {
-        "languages": _OPEN_DICT,
+        "languages": _MapOf(LANGUAGE_SCHEMA),
         "comment_style": {"start": str, "end": str},
         "presence": {
             "require_doxygen": bool,
@@ -262,7 +333,7 @@ CONFIG_SCHEMA: dict[str, Any] = {
             "require_present": bool,
             "require_increment_on_change": bool,
         },
-        "tags": _OPEN_DICT,
+        "tags": _MapOf(TAG_SCHEMA),
         "exclude": list,
         "extra_tags": list,
         "known_tags_warn": bool,
@@ -270,7 +341,7 @@ CONFIG_SCHEMA: dict[str, Any] = {
         ## The release the version gate compares `requirements.version_field` against: a
         ## literal version, `auto:git` or `auto:cmake` (was `version_gate.current_version`).
         "current_version": str,
-        "bus": {"tags": list, "vocabulary": list, "handlers": list, "senders": list},
+        "bus": {"vocabulary": list, "handlers": list, "senders": list},
     },
     "impact": {
         "report_dir": str,
@@ -313,10 +384,13 @@ def _suggest_key(key: str, schema: dict) -> str:
 #  @details An explicit null is accepted for any node: it means "section not configured"
 #  and is the shape some defaults ship with (impact.requirements). Rejecting it made
 #  `config --effective` output invalid as input, so the contract could not round-trip.
-#  @version 1.5
+#  v1.6: a _MapOf node validates every value against one schema (2.0.0, R5-CFG F12)
+#  @version 1.6
 #  @req REQ-DDB-GUARD-012
 #  @return List of error strings for this node and its children
 def _validate_node(user: Any, schema: Any, path: str) -> list[str]:
+    if isinstance(schema, _MapOf) and user is not None:
+        return _validate_map_of(user, schema, path)
     unconstrained = schema is _OPEN_DICT or not isinstance(schema, type | dict)
     if unconstrained or user is None:
         return []
@@ -333,15 +407,49 @@ def _validate_node(user: Any, schema: Any, path: str) -> list[str]:
     )
 
 
+## @brief Validate a mapping of user-named entries against the schema every entry follows.
+#  @version 1.0
+#  @dg_internal
+#  @return Errors, each naming the entry's dotted path
+def _validate_map_of(user: Any, schema: _MapOf, path: str) -> list[str]:
+    if not isinstance(user, dict):
+        return [f"{path}: expected dict, got {type(user).__name__}"]
+    errors: list[str] = []
+    for name, entry in user.items():
+        errors.extend(_validate_node(entry, schema.schema, _config_path(path, str(name))))
+    return errors
+
+
+## @brief Refuse a 1.x regex-shaped `validate.exclude` entry, naming the two 2.0.0 forms.
+#  @version 1.0
+#  @dg_internal
+#  @return Errors
+def _exclude_errors(user_config: dict[str, Any]) -> list[str]:
+    validate = user_config.get("validate") if isinstance(user_config, dict) else None
+    excludes = validate.get("exclude") if isinstance(validate, dict) else None
+    if not isinstance(excludes, list):
+        return []  # a wrong type is the schema's to report
+    return [
+        f"guard.validate.exclude entry {e!r} reads as a regex; since 2.0.0 entries are globs "
+        f"(e.g. `tests/**`), and a regex is written with the `{EXCLUDE_REGEX_PREFIX}` prefix "
+        f"(e.g. `{EXCLUDE_REGEX_PREFIX}{e}`)"
+        for e in excludes
+        if isinstance(e, str)
+        and not e.startswith(EXCLUDE_REGEX_PREFIX)
+        and (e.startswith("^") or e.endswith("$") or "\\" in e)
+    ]
+
+
 ## @brief Validate user config keys and types against CONFIG_SCHEMA.
 #  @details v1.2 (2.0.0): a key in MOVED_KEYS is reported with where it went, and is not also
 #  reported as unknown.
-#  @version 1.2
+#  v1.3: 1.x regex excludes are refused with the glob and re: forms (2.0.0, R5-CFG F18)
+#  @version 1.3
 #  @req REQ-DDB-GUARD-012
 #  @return List of error strings, empty if config is valid
 def validate_config_schema(user_config: dict[str, Any]) -> list[str]:
     moved, rest = _moved_keys(user_config)
-    return moved + _validate_node(rest, CONFIG_SCHEMA, "")
+    return moved + _exclude_errors(rest) + _validate_node(rest, CONFIG_SCHEMA, "")
 
 
 ## @brief Split out the keys that moved in 2.0.0, each with a pointer to its new home.
@@ -489,7 +597,8 @@ def _warn_about_legacy_config(config_path: Path) -> None:
 #  either case an inert `.doxygen-guard.yaml` beside it is named as the probable cause.
 #  v3.2 (2.0.0): the top-level `requirements:` section rides along as `config["requirements"]`,
 #  read with or without a `guard:` section, so the gate and the index read one catalog.
-#  @version 3.2
+#  v3.3: reads the event vocabulary and wiki.sources from the same file (2.0.0, R5-CFG F10/F11)
+#  @version 3.3
 #  @req REQ-DDB-GUARD-012
 #  @return Merged config dict with defaults applied
 def load_config(config_path: Path | None = None) -> dict[str, Any]:
@@ -502,12 +611,15 @@ def load_config(config_path: Path | None = None) -> dict[str, Any]:
         return _fresh_defaults()
 
     logger.info("Loading config from %s", config_path)
-    requirements = read_requirements_section(config_path)
+    shared = {
+        REQUIREMENTS_ROOT_KEY: read_requirements_section(config_path),
+        **_shared_facts(config_path),
+    }
     user_config = read_guard_section(config_path)
     if user_config is None:
         logger.info("No %r section in %s, using defaults", CONFIG_SECTION, config_path)
         _warn_about_legacy_config(config_path)
-        return {**_fresh_defaults(), REQUIREMENTS_ROOT_KEY: requirements}
+        return {**_fresh_defaults(), **shared}
 
     errors = validate_config_schema(user_config)
     if errors:
@@ -517,8 +629,28 @@ def load_config(config_path: Path | None = None) -> dict[str, Any]:
 
     _log_declared_sections(user_config)
     merged = apply_opt_in_languages(deep_merge(_fresh_defaults(), user_config), user_config)
-    merged[REQUIREMENTS_ROOT_KEY] = requirements
+    merged.update(shared)
     return merged
+
+
+## @brief The facts the gate reads from the rest of `.clew.yaml`: the event vocabulary and sources.
+#  @version 1.0
+#  @dg_internal
+#  @return {"event_tags": declared mapping or None, "wiki_sources": bool}
+def _shared_facts(config_path: Path) -> dict[str, Any]:
+    try:
+        with open(config_path) as f:
+            document = yaml.safe_load(f) or {}
+    except (OSError, yaml.YAMLError):
+        return {}
+    if not isinstance(document, dict):
+        return {}
+    tags = document.get("event_tags")
+    wiki = document.get("wiki") if isinstance(document.get("wiki"), dict) else {}
+    return {
+        "event_tags": dict(tags) if isinstance(tags, dict) else None,
+        "wiki_sources": bool(wiki.get("sources")),
+    }
 
 
 ## @brief Read the raw `guard:` mapping out of a `.clew.yaml`.

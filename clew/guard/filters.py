@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import logging
 from functools import lru_cache
+import re
 from pathlib import Path
 from typing import Any
 
@@ -39,6 +40,42 @@ def toolchain_contract() -> dict[str, Any]:
     root = Path.cwd()
     config, _ = _gate_matcher(str(root))
     return {"toolchain_config": config.sources(root), "toolchain_ignores": list(config.gate_globs)}
+
+
+## @brief The `validate.exclude` entry that excludes a path, or None.
+#  @details GLOBS, LIKE EVERY OTHER PATH FILTER (R5-CFG F18, 2.0.0): an entry is matched with the
+#  toolchain's gitignore-style matcher against the repo-relative path (a directory pattern such as
+#  `tests/` or `tests/**` excludes everything under it); an entry prefixed `re:` is a regex
+#  searched in the path, the only way to write one. Before, every entry was a regex while every
+#  other path filter in `.clew.yaml` was a glob.
+#  @version 1.0
+#  @req REQ-DDB-GUARD-013
+#  @return The matching entry, or None
+def excluded_by(file_path: str | Path, patterns: list[str]) -> str | None:
+    if not patterns:
+        return None
+    from ..toolchain import compile_globs, matches
+    from .config import EXCLUDE_REGEX_PREFIX
+
+    path = Path(file_path)
+    try:
+        rel = (path.relative_to(Path.cwd()) if path.is_absolute() else path).as_posix()
+    except ValueError:
+        ## Outside the repository: no repo-relative path exists, so only a `re:` entry can match.
+        rel = path.as_posix()
+    parts = rel.split("/")
+    dirs = ["/".join(parts[:i]) for i in range(1, len(parts))]
+    for pattern in patterns:
+        if pattern.startswith(EXCLUDE_REGEX_PREFIX):
+            if re.search(pattern[len(EXCLUDE_REGEX_PREFIX) :], rel):
+                return pattern
+            continue
+        matcher = compile_globs((pattern,))
+        if matcher is not None and (
+            matches(matcher, rel) or any(matches(matcher, d, is_dir=True) for d in dirs)
+        ):
+            return pattern
+    return None
 
 
 ## @brief Why the gate should not read a file, or None when it should.

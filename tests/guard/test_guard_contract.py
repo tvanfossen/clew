@@ -38,9 +38,11 @@ class TestSchemaContract:
         assert (contract["config_file"], contract["config_section"]) == (".clew.yaml", "guard")
 
     def test_open_nodes_are_marked_not_dropped(self):
+        ## 2.0.0 (R5-CFG F12): `tags` and `languages` are no longer open — any NAME, each entry of
+        ## one checked shape — and the contract publishes that shape under "<name>".
         schema = build_schema_contract()["config_schema"]
-        assert schema["validate"]["languages"] == "<any>"
-        assert schema["validate"]["tags"] == "<any>"
+        assert schema["validate"]["languages"]["<name>"]["extensions"] == "list"
+        assert schema["validate"]["tags"]["<name>"]["pattern"] == "str"
 
     def test_types_encoded_by_name(self):
         schema = build_schema_contract()["config_schema"]
@@ -173,13 +175,13 @@ class TestResolvedIsGeneratedFromSchema:
     """
 
     def test_scalar_validate_keys_all_appear(self):
-        from clew.guard.config import _OPEN_DICT
+        from clew.guard.config import _OPEN_DICT, _MapOf
 
         resolved = build_effective_contract(CONFIG_DEFAULTS)["resolved"]
         expected = [
             k
             for k, spec in CONFIG_SCHEMA["validate"].items()
-            if spec is not _OPEN_DICT and not isinstance(spec, dict)
+            if spec is not _OPEN_DICT and not isinstance(spec, dict | _MapOf)
         ]
         assert expected, "expected scalar keys under validate.*"
         for key in expected:
@@ -187,12 +189,12 @@ class TestResolvedIsGeneratedFromSchema:
 
     def test_adding_a_schema_key_shows_up_without_touching_contract_py(self):
         """The property that makes drift impossible, asserted directly."""
-        from clew.guard.config import _OPEN_DICT
+        from clew.guard.config import _OPEN_DICT, _MapOf
 
         scalars = {
             k
             for k, v in CONFIG_SCHEMA["validate"].items()
-            if v is not _OPEN_DICT and not isinstance(v, dict)
+            if v is not _OPEN_DICT and not isinstance(v, dict | _MapOf)
         }
         resolved_keys = set(build_effective_contract(CONFIG_DEFAULTS)["resolved"])
         assert scalars <= resolved_keys
@@ -271,7 +273,8 @@ class TestFilesAgreesWithTheGate:
         (tmp_path / "src" / "a.c").write_text("void A(void) { }")
         (tmp_path / "tests" / "t.c").write_text("void T(void) { }")
         monkeypatch.chdir(tmp_path)
-        config = deep_merge(CONFIG_DEFAULTS, {"validate": {"exclude": ["^tests/"]}})
+        ## 2.0.0 (R5-CFG F18): excludes are globs; a regex is written `re:`.
+        config = deep_merge(CONFIG_DEFAULTS, {"validate": {"exclude": ["tests/**"]}})
 
         listed = build_files_contract(["."], config)["files"]
         assert not any("tests/t.c" in f for f in listed)
@@ -287,7 +290,8 @@ class TestFilesAgreesWithTheGate:
         (tmp_path / "src" / "tests").mkdir(parents=True)
         (tmp_path / "src" / "tests" / "n.c").write_text("void N(void) { }")
         monkeypatch.chdir(tmp_path)
-        config = deep_merge(CONFIG_DEFAULTS, {"validate": {"exclude": ["^tests/"]}})
+        ## 2.0.0 (R5-CFG F18): excludes are globs; a regex is written `re:`.
+        config = deep_merge(CONFIG_DEFAULTS, {"validate": {"exclude": ["tests/**"]}})
 
         listed = build_files_contract(["."], config)["files"]
         assert any("src/tests/n.c" in f for f in listed)

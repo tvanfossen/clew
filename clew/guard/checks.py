@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from .config import get_requirements, get_validate
+from .config import DEFAULT_EVENT_TAG_NAMES, get_requirements, get_validate
 
 if TYPE_CHECKING:
     from collections.abc import Set as AbstractSet
@@ -681,7 +681,9 @@ _KNOWN_TAGS: frozenset[str] = EXEMPTION_TAGS | frozenset(
 
 ## @brief Check for unknown tags with Levenshtein-based suggestions.
 #  @details v1.1: a configured bus tag (`validate.bus.tags`) is a known tag.
-#  @version 1.1
+#  v1.2 (2.0.0, R5-CFG F10/F11): the declaration's event vocabulary (or the index's built-in one)
+#  is known, and `@node` is known when `wiki.sources` is declared.
+#  @version 1.2
 #  @req REQ-DDB-GUARD-001
 def check_unknown_tags(
     func: Function,
@@ -696,7 +698,13 @@ def check_unknown_tags(
         return []
 
     extra = set(validate_config.get("extra_tags", []))
-    known = _KNOWN_TAGS | extra | set(validate_config.get("tags", {}).keys()) | _bus_tags(config)
+    known = (
+        _KNOWN_TAGS
+        | extra
+        | set(validate_config.get("tags", {}).keys())
+        | _event_tags(config)
+        | ({"node"} if config.get("wiki_sources") else set())
+    )
 
     violations: list[Violation] = []
     for tag_name in func.doxygen.tags:
@@ -1023,19 +1031,27 @@ def _first_code_line(lines: list[str]) -> int:
     return 1
 
 
-## Bus tags read when `validate.bus.tags` names none.
-_DEFAULT_BUS_TAGS: tuple[str, ...] = ("emits", "handles", "receives")
-
-
-## @brief The bus tags a configuration declares; empty when no `validate.bus` section exists.
+## @brief The event vocabulary: the declaration's `event_tags:`, else the index's built-in one.
+#  @details ONE VOCABULARY (R5-CFG F10, 2.0.0): the gate used its own `validate.bus.tags`, so a word
+#  the index read as an event (`publishes`, or a declared `broadcasts`) was an unknown tag here.
 #  @version 1.0
 #  @dg_internal
 #  @return Tag names
+def _event_tags(config: dict[str, Any]) -> set[str]:
+    declared = config.get("event_tags")
+    return {str(t).lower() for t in declared} if declared else set(DEFAULT_EVENT_TAG_NAMES)
+
+
+## @brief The bus tags a configuration enforces; empty when no `validate.bus` section exists.
+#  @details v1.1 (2.0.0): the tags are the event vocabulary (`_event_tags`); `validate.bus` only
+#  switches the rule on and scopes it.
+#  @version 1.1
+#  @dg_internal
+#  @return Tag names
 def _bus_tags(config: dict[str, Any]) -> set[str]:
-    bus = get_validate(config).get("bus")
-    if not bus:
+    if not get_validate(config).get("bus"):
         return set()
-    return set(bus.get("tags") or _DEFAULT_BUS_TAGS)
+    return _event_tags(config)
 
 
 ## @brief Verify that functions crossing a bus carry a bus tag naming a known bus.
