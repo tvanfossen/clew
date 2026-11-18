@@ -259,12 +259,70 @@ def _locate(repo_root: Path, declared: Any, candidates: tuple[str, ...], key: st
     return next((repo_root / c for c in candidates if (repo_root / c).is_file()), None)
 
 
+## @brief The repository's ownership rules, located and parsed once, asked per file.
+## @version 1
+class OwnerResolver:
+    """ONE RESOLVER FOR THE INDEX AND THE GATE (2.0.0). `record_owners` writes the `owners` layer
+    with it and `clew guard impact` names reviewers with it, so a dossier and an impact report can
+    never name different owners for one file. The gate needs no index to use it.
+
+    @brief CODEOWNERS + MAINTAINERS resolver.
+    @version 1
+    """
+
+    ## @brief Hold parsed rules.
+    ## @param rules CODEOWNERS rules.
+    ## @param stanzas MAINTAINERS stanzas.
+    ## @param sources The files read, for the log.
+    ## @version 1
+    ## @dg_internal
+    def __init__(self, rules: list, stanzas: list, sources: list[Path]) -> None:
+        self.rules = rules
+        self.stanzas = stanzas
+        self.sources = sources
+
+    ## @brief Locate and parse the repository's owners files.
+    ## @param repo_root The repository.
+    ## @param section The `owners:` declaration section, or None.
+    ## @return The resolver.
+    ## @version 1
+    ## @req REQ-DDB-INDEX-007
+    @classmethod
+    def from_repo(cls, repo_root: Path, section: dict | None = None) -> OwnerResolver:
+        """@brief Read the owners files. @return Resolver."""
+        section = section or {}
+        root = Path(repo_root)
+        co = _locate(root, section.get("codeowners"), CODEOWNERS_PATHS, "codeowners")
+        mt = _locate(root, section.get("maintainers"), MAINTAINERS_PATHS, "maintainers")
+        rules = parse_codeowners(co.read_text(encoding="utf-8", errors="replace")) if co else []
+        stanzas = parse_maintainers(mt.read_text(encoding="utf-8", errors="replace")) if mt else []
+        return cls(rules, stanzas, [p for p in (co, mt) if p])
+
+    ## @brief Whether the repository keeps any owners file.
+    ## @return True when one was read.
+    ## @version 1
+    ## @dg_internal
+    def has_sources(self) -> bool:
+        """@brief Any owners file. @return True when read."""
+        return bool(self.sources)
+
+    ## @brief One file's owners.
+    ## @param rel The file, repo-relative.
+    ## @return (owner, role, source, rule line, stanza), in rule order.
+    ## @version 1
+    ## @req REQ-DDB-INDEX-007
+    def owners_of(self, rel: str) -> list[tuple[str, str, str, int, str]]:
+        """@brief Resolve one path. @return Owner tuples."""
+        return [row[1:] for row in _rows_for(0, rel, self.rules, self.stanzas)]
+
+
 ## @brief Read CODEOWNERS and MAINTAINERS and record every indexed file's owners.
 ## @param conn Open index connection.
 ## @param repo_root The repository.
 ## @param section The `owners:` declaration section, or None.
 ## @return Rows written.
-## @version 1
+## v2: through `OwnerResolver`, shared with the gate's impact report (2.0.0)
+## @version 2
 ## @req REQ-DDB-INDEX-007
 def record_owners(conn: sqlite3.Connection, repo_root: Path, section: dict | None = None) -> int:
     """THE TABLE IS ALWAYS CREATED, empty when the repository keeps neither file: empty means "we
@@ -275,15 +333,10 @@ def record_owners(conn: sqlite3.Connection, repo_root: Path, section: dict | Non
     """
     conn.executescript(_DDL)
     conn.execute("DELETE FROM owners")
-    section = section or {}
-    root = Path(repo_root)
-    co = _locate(root, section.get("codeowners"), CODEOWNERS_PATHS, "codeowners")
-    mt = _locate(root, section.get("maintainers"), MAINTAINERS_PATHS, "maintainers")
-    rules = parse_codeowners(co.read_text(encoding="utf-8", errors="replace")) if co else []
-    stanzas = parse_maintainers(mt.read_text(encoding="utf-8", errors="replace")) if mt else []
+    resolver = OwnerResolver.from_repo(repo_root, section)
     rows = []
     for rowid, rel in conn.execute("SELECT rowid, name FROM path WHERE type = 1"):
-        rows += _rows_for(int(rowid), str(rel), rules, stanzas)
+        rows += _rows_for(int(rowid), str(rel), resolver.rules, resolver.stanzas)
     conn.executemany(
         "INSERT INTO owners(path_rowid, owner, role, source, rule_line, stanza) VALUES (?,?,?,?,?,?)",
         rows,
@@ -292,7 +345,7 @@ def record_owners(conn: sqlite3.Connection, repo_root: Path, section: dict | Non
     logger.info(
         "owners: %d row(s) from %s",
         len(rows),
-        ", ".join(str(p.name) for p in (co, mt) if p) or "no owners file",
+        ", ".join(str(p.name) for p in resolver.sources) or "no owners file",
     )
     return len(rows)
 

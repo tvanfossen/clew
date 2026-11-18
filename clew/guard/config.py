@@ -226,17 +226,20 @@ IMPACT_DEFAULTS: dict[str, Any] = {"report_dir": DEFAULT_REPORT_DIR, "base": DEF
 ## `config --effective` reports it under `resolved.requirements` rather than echoing it as input.
 ## `event_tags` (the declaration's event vocabulary, R5-CFG F10) and `wiki_sources` (whether
 ## `wiki.sources` is declared, R5-CFG F11) are read from the same `.clew.yaml` for the same reason:
-## facts the gate must agree with the index and the wiki about, not `guard:` keys.
+## facts the gate must agree with the index and the wiki about, not `guard:` keys. `owners` (the
+## top-level `owners:` section, 2.0.0) is how the impact report finds the same owners files the
+## index's `owners` layer reads.
 CONFIG_DEFAULTS: dict[str, Any] = {
     "validate": VALIDATE_DEFAULTS,
     "impact": IMPACT_DEFAULTS,
     "requirements": None,
     "event_tags": None,
     "wiki_sources": False,
+    "owners": None,
 }
 
 ## Keys of the loaded config that are not `guard:` keys (the cross-section facts above).
-NON_GUARD_KEYS = ("requirements", "event_tags", "wiki_sources")
+NON_GUARD_KEYS = ("requirements", "event_tags", "wiki_sources", "owners")
 
 ## THE TOP-LEVEL `requirements:` SECTION (R5-CFG F6/F7/F14, 2.0.0): one catalog, read by the index,
 ## the gate and the wiki. Before, it lived in five places — a top-level path the index alone read,
@@ -657,9 +660,10 @@ def load_config(config_path: Path | None = None) -> dict[str, Any]:
 
 
 ## @brief The facts the gate reads from the rest of `.clew.yaml`: the event vocabulary and sources.
-#  @version 1.0
+#  v1.1: the owners: section (2.0.0)
+#  @version 1.1
 #  @dg_internal
-#  @return {"event_tags": declared mapping or None, "wiki_sources": bool}
+#  @return {"event_tags": declared mapping or None, "wiki_sources": bool, "owners": mapping or None}
 def _shared_facts(config_path: Path) -> dict[str, Any]:
     try:
         with open(config_path) as f:
@@ -670,9 +674,12 @@ def _shared_facts(config_path: Path) -> dict[str, Any]:
         return {}
     tags = document.get("event_tags")
     wiki = document.get("wiki") if isinstance(document.get("wiki"), dict) else {}
+    owners = document.get("owners")
     return {
         "event_tags": dict(tags) if isinstance(tags, dict) else None,
         "wiki_sources": bool(wiki.get("sources")),
+        ## 2.0.0: the impact report's reviewers read the same `owners:` section the index does.
+        "owners": dict(owners) if isinstance(owners, dict) else None,
     }
 
 

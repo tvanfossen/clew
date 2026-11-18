@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+from ..owners import OwnerResolver
 
 from .config import (
     REQUIREMENTS_FORMAT_DEFAULT,
@@ -45,13 +46,15 @@ class ChangedFunction:
 
 
 ## @brief Groups changed functions by requirement for the impact report.
-#  @version 1.1
+#  v1.2: `reviewers`, the owners of the changed files; None when the repo names no owners (2.0.0)
+#  @version 1.2
 #  @dg_internal
 @dataclass
 class ImpactEntry:
     req_id: str
     req_name: str | None = None
     functions: list[ChangedFunction] = field(default_factory=list)
+    reviewers: list[str] | None = None
 
 
 ## @brief Collect all changed lines for a file from branch diff and/or staged changes.
@@ -446,11 +449,13 @@ def _rows_from_mapping(node: Any, path: str) -> dict[str, dict[str, str]]:
 
 
 ## @brief Group changed functions by requirement for the impact report.
-#  @version 1.1
+#  v1.2: names each requirement's reviewers through `owners` (2.0.0, S2/S3 served)
+#  @version 1.2
 #  @req REQ-DDB-GUARD-010
 def build_impact_report(
     changed_functions: list[ChangedFunction],
     config: dict[str, Any],
+    owners: OwnerResolver | None = None,
 ) -> list[ImpactEntry]:
     req_names = load_requirements(config)
 
@@ -460,9 +465,30 @@ def build_impact_report(
             req_funcs.setdefault(req, []).append(cf)
 
     return [
-        ImpactEntry(req_id=req_id, req_name=req_names.get(req_id), functions=funcs)
+        ImpactEntry(
+            req_id=req_id,
+            req_name=req_names.get(req_id),
+            functions=funcs,
+            reviewers=_reviewers(owners, funcs),
+        )
         for req_id, funcs in sorted(req_funcs.items())
     ]
+
+
+## @brief The owners of a requirement's changed files, first-seen order, each once.
+#  @details None when the repository keeps no owners file: "nobody" and "this repository names no
+#  owners" are different answers, so the key is left out rather than emptied.
+#  @version 1.0
+#  @dg_internal
+#  @return Owner names, or None
+def _reviewers(owners: OwnerResolver | None, funcs: list[ChangedFunction]) -> list[str] | None:
+    if owners is None or not owners.has_sources():
+        return None
+    names: dict[str, None] = {}
+    for cf in funcs:
+        for owner, *_rest in owners.owners_of(cf.file_path):
+            names.setdefault(owner, None)
+    return list(names)
 
 
 ## @brief Make one table cell out of repo-controlled text.
@@ -482,23 +508,31 @@ def _cell(text: str) -> str:
 
 
 ## @brief Render impact entries as a markdown table with summary.
-#  @version 1.3
+#  v1.4: reviewers from the owners files (2.0.0, S2/S3 served)
+#  @version 1.4
 #  @req REQ-DDB-GUARD-010
 #  @return Markdown-formatted impact report string
 def format_markdown(entries: list[ImpactEntry]) -> str:
     if not entries:
         return "No requirements affected.\n"
 
+    ## A Reviewers column only when the repository names owners: see `_reviewers`.
+    owned = any(e.reviewers is not None for e in entries)
     lines = ["## Change Impact Report", ""]
-    lines.append("| REQ | Name | Functions Changed |")
-    lines.append("|-----|------|-------------------|")
+    lines.append("| REQ | Name | Functions Changed |" + (" Reviewers |" if owned else ""))
+    lines.append("|-----|------|-------------------|" + ("-----------|" if owned else ""))
 
     total_funcs = 0
     for entry in entries:
         name = _cell(entry.req_name or "\u2014")
         func_names = ", ".join(_cell(f.name) for f in entry.functions)
         total_funcs += len(entry.functions)
-        lines.append(f"| {_cell(entry.req_id)} | {name} | {func_names} |")
+        who = (
+            f" {', '.join(_cell(r) for r in entry.reviewers or []) or chr(0x2014)} |"
+            if owned
+            else ""
+        )
+        lines.append(f"| {_cell(entry.req_id)} | {name} | {func_names} |{who}")
 
     lines.append("")
     lines.append(
@@ -508,7 +542,8 @@ def format_markdown(entries: list[ImpactEntry]) -> str:
 
 
 ## @brief Render impact entries as a JSON array.
-#  @version 1.2
+#  v1.3: reviewers from the owners files (2.0.0, S2/S3 served)
+#  @version 1.3
 #  @req REQ-DDB-GUARD-010
 #  @return JSON-formatted impact report string
 def format_json(entries: list[ImpactEntry]) -> str:
@@ -520,6 +555,7 @@ def format_json(entries: list[ImpactEntry]) -> str:
                 {"name": f.name, "file": f.file_path, "version": f.new_version}
                 for f in entry.functions
             ],
+            **({"reviewers": entry.reviewers} if entry.reviewers is not None else {}),
         }
         for entry in entries
     ]
@@ -565,7 +601,8 @@ def run_impact(
 
 
 ## @brief Collect the changed functions and map them to the requirements they implement.
-#  @version 1.0
+#  v1.1: reviewers from the owners files (2.0.0, S2/S3 served)
+#  @version 1.1
 #  @req REQ-DDB-GUARD-010
 #  @return One entry per changed function
 def impact_entries(
@@ -586,4 +623,6 @@ def impact_entries(
         staged=staged,
         run_command=run_command,
     )
-    return build_impact_report(changed, config)
+    ## The gate runs at the repository root (pre-commit's working directory).
+    owners = OwnerResolver.from_repo(Path.cwd(), config.get("owners"))
+    return build_impact_report(changed, config, owners)
