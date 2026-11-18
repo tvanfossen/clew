@@ -2123,7 +2123,9 @@ class _CallSiteHarvester(Harvester):
     ##     And (W1) a C/C++ receiver the calling function declares as a parameter or local is
     ##     recorded empty, so it can no longer take a same-named member's type.
     ## 16 (agent C's W6): a JS/TS `super.m()` is qualified by the enclosing class's first base.
-    stage_version = 16
+    ## 17 (2.0.0, R5-CORE D1): a Python method's receiver is its first parameter, so
+    ##    `this.helper()` is class-qualified; a payload cached at 16 carries it as a receiver.
+    stage_version = 17
     label = "tree-sitter"
 
     ## @brief Harvest one file's call sites.

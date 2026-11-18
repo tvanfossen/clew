@@ -884,6 +884,63 @@ def _own_nodes(body: Any) -> list[Any]:
     return found
 
 
+## @brief Whether a name, at a node, is the enclosing method's receiver.
+## @param node The node the name is read at.
+## @param name The identifier's text.
+## @param src_bytes The file's raw bytes.
+## @return True for `self` / `cls`, or the first parameter of the enclosing non-static method.
+## @version 1
+## @req REQ-DDB-PIPE-003
+def is_receiver(node: Any, name: str, src_bytes: bytes) -> bool:
+    """R5-CORE D1 (2.0.0): `SELF_NAMES` is PEP 8 convention, not grammar — `def m(this)`, a
+    metaclass's `mcs` and a `klass` receiver were missed. THE TREE STATES THE RECEIVER: the first
+    parameter of the nearest enclosing function, when that function is defined directly in a class
+    body and is not a `@staticmethod`. `self` / `cls` still count wherever they appear, as before.
+
+    @brief Receiver test.
+    @return Bool.
+    """
+    if name in SELF_NAMES:
+        return True
+    from .harvest import enclosing
+
+    func = enclosing(node, ("function_definition",))
+    return func is not None and _first_parameter(func, src_bytes) == name
+
+
+## @brief The receiver parameter of a method defined directly in a class body, or "".
+## @param func A `function_definition` node.
+## @param src_bytes The file's raw bytes.
+## @return The first parameter's name, or "" (not a method, a staticmethod, or no parameters).
+## @version 1
+## @dg_internal
+def _first_parameter(func: Any, src_bytes: bytes) -> str:
+    """@brief A method's receiver name. @return Name or ""."""
+    holder = func.parent
+    decorators: list[str] = []
+    if holder is not None and holder.type == "decorated_definition":
+        decorators = [node_text(d, src_bytes) for d in holder.children if d.type == "decorator"]
+        holder = holder.parent
+    in_class = holder is not None and holder.type == "block" and holder.parent is not None
+    if not in_class or holder.parent.type != "class_definition":
+        return ""
+    if any("staticmethod" in d for d in decorators):
+        return ""
+    params = func.child_by_field_name("parameters")
+    first = (
+        next((c for c in params.named_children if c.type != "comment"), None) if params else None
+    )
+    if first is not None and first.type in (
+        "typed_parameter",
+        "default_parameter",
+        "typed_default_parameter",
+    ):
+        first = first.child_by_field_name("name") or (
+            first.named_children[0] if first.named_children else None
+        )
+    return node_text(first, src_bytes) if first is not None and first.type == "identifier" else ""
+
+
 ## @brief What a Python call site says about the class it targets: a qualifier, or a receiver.
 ## @param callee The call's `function` child.
 ## @param name The callee's tail name.
@@ -891,7 +948,8 @@ def _own_nodes(body: Any) -> list[Any]:
 ## @param offset The call's start byte, for the enclosing-class lookup.
 ## @param src_bytes The file's raw bytes.
 ## @return (qualifier, receiver); at most one is non-empty.
-## @version 1
+## v2 (2.0.0, R5-CORE D1): the receiver is the method's first parameter (`is_receiver`).
+## @version 2
 ## @req REQ-DDB-PIPE-003
 def _call_scope(
     callee: Any,
@@ -918,14 +976,14 @@ def _call_scope(
 
     @brief Classify a Python call site as class-qualified or receiver-borne.
     @return (qualifier, receiver).
-    @version 1
+    @version 2
     """
     if callee is None or callee.type != "attribute":
         return "", ""
     obj = callee.child_by_field_name("object")
     if obj is None:
         return "", ""
-    if obj.type == "identifier" and node_text(obj, src_bytes) in SELF_NAMES:
+    if obj.type == "identifier" and is_receiver(obj, node_text(obj, src_bytes), src_bytes):
         owner = enclosing_class(ranges, offset)
         return (f"{owner}.{name}" if owner else ""), ""
     ## The tail of the receiver chain, matching the C rule one grammar over.
@@ -1052,7 +1110,8 @@ def _awaited_call_entry(
 ## @param src_bytes The file's raw bytes.
 ## @param class_name Enclosing class, for a `self.`-qualified entry.
 ## @return (qualified, tail), or None when the node names nothing static.
-## @version 1
+## v2: the receiver is the method's first parameter (2.0.0, R5-CORE D1)
+## @version 2
 ## @dg_internal
 def _named_entry_names(
     arg: Any, src_bytes: bytes, class_name: str | None
@@ -1067,7 +1126,7 @@ def _named_entry_names(
         return None
     tail = tail_name(dotted)
     head = dotted.partition(".")[0]
-    if head in SELF_NAMES and dotted.count(".") == 1 and class_name:
+    if is_receiver(arg, head, src_bytes) and dotted.count(".") == 1 and class_name:
         return f"{class_name}.{tail}", tail
     return dotted, tail
 

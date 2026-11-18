@@ -1315,7 +1315,9 @@ class _SpawnHarvester(Harvester):
     ##    and `_SENTINEL_ENTRIES` gained the avr-libc attribute tokens. MEASURED ON RIOT: 104
     ##    interrupt rows cold against 79 from a warm v6 payload — a quarter of the roster
     ##    missing, silently, with the conflict layer running over what survives.
-    stage_version = 7
+    ## 8 (2.0.0, R5-CORE D1): `target=this.loop` is qualified by the class when `this` is the
+    ##    method's first parameter; a payload cached at 7 holds it unqualified.
+    stage_version = 8
     label = "thread spawns"
 
     ## @brief Store the spawn-pattern map plus the manifest-derived cache key.
