@@ -1895,7 +1895,8 @@ _SPAWN_VERBS: tuple[str, ...] = ("create", "new", "begin", "spawn", "start", "la
 ## @param conn Open database connection.
 ## @param patterns The spawn patterns this build actually used.
 ## @return Candidate primitive names, sorted.
-## @version 3
+## v4 (2.0.0, R5-CORE D3): a name defined only in a `test_scope` file is not offered.
+## @version 4
 ## @req REQ-DDB-CONFIG-007
 def detect_undeclared_spawn_primitives(
     conn: sqlite3.Connection, patterns: list[SpawnPattern]
@@ -1945,9 +1946,12 @@ def detect_undeclared_spawn_primitives(
     (`thread_patterns`) and offers diagnostics as the secondary route, rather than promising a
     hint that a whole class of primitive cannot produce.
 
+    A NAME DEFINED ONLY IN A TEST FILE IS NOT OFFERED (2.0.0, R5-CORE D3): the `test_` prefix in
+    `_spawn_shaped` is one language's convention; `test_scope` knows the files.
+
     @brief Suggest spawn primitives this build's patterns did not cover.
     @return Candidate names, sorted.
-    @version 3
+    @version 4
     """
     covered = {p.name.lower() for p in patterns}
     ## A declared or default pattern may be dotted (`threading.Thread`) or qualified
@@ -1958,13 +1962,31 @@ def detect_undeclared_spawn_primitives(
         names = {
             row[0]
             for row in conn.execute(
-                "SELECT DISTINCT name FROM memberdef WHERE name<>'' AND kind IN (?, ?)",
+                "SELECT DISTINCT name FROM memberdef WHERE name<>'' AND kind IN (?, ?)"
+                + _OUTSIDE_TESTS.format(col="file_id") * _has_test_scope(conn),
                 _CALLABLE_KINDS,
             )
         }
     except sqlite3.Error:
         return []
     return [name for name in sorted(names) if name.lower() not in covered and _spawn_shaped(name)]
+
+
+## R5-CORE D3 (2.0.0): a definition in a file the build marks as a test (`test_scope`, from the
+## declared `tests.paths`) is not a spawn primitive, whatever its name.
+_OUTSIDE_TESTS = " AND ({col} IS NULL OR {col} NOT IN (SELECT path_rowid FROM test_scope))"
+
+
+## @brief Whether the index holds a `test_scope` table.
+## @param conn Open connection.
+## @return True when it exists (an absent table means "no layer", never "no tests").
+## @version 1
+## @dg_internal
+def _has_test_scope(conn: sqlite3.Connection) -> bool:
+    """@brief Table probe. @return Bool."""
+    return (
+        conn.execute("SELECT 1 FROM sqlite_master WHERE name = 'test_scope'").fetchone() is not None
+    )
 
 
 ## @brief Whether a name is SHAPED like a spawn primitive rather than merely mentioning one.
