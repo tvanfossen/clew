@@ -720,6 +720,10 @@ STAGE_SCRIPT_SYMBOLS = "script_symbols"
 ## worse than a gap: a gap yields "I do not know", and this yields a confident wrong answer.
 STAGE_CONFIG_DEFAULTS = "config_defaults"
 
+## EVERY C/C++ `#include`, read from the parse (clew/ast_includes.py), 2.0.0 (T3). doxygen's own
+## `includes` table held 2 of mbedtls's 17 includers of constant_time_internal.h.
+STAGE_INCLUDES = "includes"
+
 STAGE = Vocabulary(
     id="stage",
     values=(
@@ -739,6 +743,7 @@ STAGE = Vocabulary(
         STAGE_PY_DOCSTRINGS,
         STAGE_SCRIPT_SYMBOLS,
         STAGE_CONFIG_DEFAULTS,
+        STAGE_INCLUDES,
     ),
     means="extract_cache partition key — a typo is a permanent silent cache miss, not an error",
     rank={
@@ -758,6 +763,7 @@ STAGE = Vocabulary(
         STAGE_PY_DOCSTRINGS: 0,
         STAGE_SCRIPT_SYMBOLS: 0,
         STAGE_CONFIG_DEFAULTS: 0,
+        STAGE_INCLUDES: 0,
     },
 )
 

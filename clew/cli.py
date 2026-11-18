@@ -147,6 +147,7 @@ from .enrichment import enrich_database
 from .errors import DoxygenFailedError, DoxygenUnavailableError, RustdocUnavailableError
 from .event_edges import import_event_edges
 from .filedocs import ingest_file_docs
+from .ast_includes import import_ast_includes
 from .kerneldoc import ingest_kerneldoc
 from .licenses import ingest_file_licenses
 from .harvest_plan import build_harvest_plan, warm_harvest_plan
@@ -1938,7 +1939,8 @@ def _doxygen_meta(args) -> dict[str, str]:
 ## v69: file_licenses and kerneldoc stages (2.0.0, S5/S6)
 ## v70: the blocking declaration reaches the plan (2.0.0, C1)
 ## v71: the macro stage takes the build's test patterns (2.0.0)
-## @version 71
+## v72: the AST include stage (2.0.0, T3)
+## @version 72
 ## @req REQ-DDB-PIPE-001
 ## @req REQ-DDB-MCP-004
 ## @req REQ-DDB-CONFIG-007
@@ -2191,6 +2193,9 @@ def _build_stages(
     ## and a macro recovered by `ast_symbols` must already have its row (gh#9).
     import_ast_macro_refs(output, repo_root, cache, list(_test_paths(args, decl).values))
     timer.mark("macro_refs")
+    ## T3 (2.0.0): every `#include` from the parse, beside doxygen's `includes`.
+    import_ast_includes(output, repo_root, cache)
+    timer.mark("ast_includes")
     ## `preprocessor` is passed for gh#35: Layer 4 needs it to choose which `#if` branch a
     ## conditional function-pointer binding belongs to. It was resolved 60-odd lines above
     ## and reached only the Doxyfile and `build_meta`, so branch selection was making its

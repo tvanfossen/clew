@@ -116,6 +116,7 @@ TABLE_CLASSES: dict[str, str] = {
     "shared_key_edges": "shared_key_edges",
     "unresolved_inbound": "unresolved_inbound",
     "includes": "includes",
+    "ast_includes": "includes",
     "kconfig_gates": "kconfig_gates",
     "config_defaults": "config_defaults",
     "req_edges": "req_edges",

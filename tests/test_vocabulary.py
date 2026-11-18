@@ -225,6 +225,10 @@ def schema_db(tmp_path: Path) -> Path:
     ## one, so no consumer has to branch on existence to tell "nothing to report" from
     ## "this layer never ran".
     ensure_config_defaults_table(conn)
+    ## T3 (2.0.0): the AST include layer.
+    from clew.ast_includes import ensure_ast_includes_table
+
+    ensure_ast_includes_table(conn)
     _create_req_edges_table(conn)
     ## gh#351. Created unconditionally by its own stage — a target with no data model gets an
     ## empty table rather than none — so the fixture calls it unconditionally too.

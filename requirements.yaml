@@ -1187,6 +1187,18 @@ requirements:
     x-priority: P2
     x-status: implemented
     x-evidence: clew/licenses.py; tests/test_file_licenses.py.
+  REQ-DDB-INDEX-010:
+    subsystem: index
+    name: every C/C++ include directive is recorded from the parse
+    acceptance_criteria: >-
+      A build records each `#include "x"` and `#include <x>` of an indexed file in an
+      `ast_includes` table with its spec, line and quoting, resolved to an indexed file — beside the
+      includer first for a quoted spec, else the one indexed path ending in the spec — and with no
+      target when none or several match. A `#include MACRO` is skipped. The table exists, empty,
+      in a tree without includes; doxygen's `includes` table is untouched.
+    x-priority: P2
+    x-status: implemented
+    x-evidence: clew/ast_includes.py; tests/test_ast_includes.py.
   REQ-DDB-INDEX-009:
     subsystem: index
     name: kernel-doc comments are read into their own layer, beside doxygen's
