@@ -101,7 +101,8 @@ from .external import EXTERNAL_ROOTS_META_KEY, stamp_external_provenance
 from .declaration import (
     DECLARATION_NAME,
     SECTION_DOXYFILE,
-    SECTION_TEST_PATHS,
+    SECTION_TESTS,
+    TESTS_PATHS,
     SECTION_DATA_MODEL,
     SECTION_DISPATCH,
     SECTION_ENRICH,
@@ -381,7 +382,6 @@ _FOLDED_BUILD_DEFAULTS: dict[str, Any] = {
     "vendored": None,
     ## Same requirement as `vendored`: a dest is REQUIRED, and a test asserts every
     ## accepted option can actually be applied.
-    "test_paths": None,
     "index_cache": None,
     "no_index_cache": False,
 }
@@ -1224,12 +1224,13 @@ def _incremental_doxygen(
 ## @param args Parsed CLI arguments (uses --test-paths / the stated option).
 ## @param decl The repo's parsed `.clew.yaml`.
 ## @return The resolution: the pattern set plus the stated tier that won.
-## @version 1
+## v2 (2.0.0): reads `tests.paths` (R5-CFG F20).
+## @version 2
 ## @req REQ-DDB-CONFIG-006
 ## @req REQ-DDB-QUERY-003
 def _test_paths(args: argparse.Namespace, decl: dict) -> LayeredResolution:
     """`TEST_PATH_FACTS` enters as HEURISTICS, not facts, and the distinction is the whole
-    point of the tier rule here. A repo that declares `test_paths:` is stating its layout, so
+    point of the tier rule here. A repo that declares `tests.paths` is stating its layout, so
     the guesses must be DISPLACED rather than accumulated — otherwise declaring `t/*` would
     still leave `tests/*` and `*_test.*` in force, and an operator could not narrow the rule at
     all, only widen it.
@@ -1238,14 +1239,17 @@ def _test_paths(args: argparse.Namespace, decl: dict) -> LayeredResolution:
     statement. Reachability wants every plausible seed; this wants exactly the caller's notion
     of "test".
 
+    2.0.0 (R5-CFG F20): read from `tests.paths`. A stated `tests` section (tier 1) arrives merged
+    over the declaration (`_with_stated_sections`), like every section-document option.
+
     @brief Resolve the test-path patterns and their provenance.
-    @return The LayeredResolution for `test_paths`.
-    @version 1
+    @return The LayeredResolution for the test paths.
+    @version 2
     """
     return resolve_layered(
         facts=(),
-        explicit=getattr(args, "test_paths", None),
-        declared=decl.get(SECTION_TEST_PATHS),
+        explicit=None,
+        declared=(decl.get(SECTION_TESTS) or {}).get(TESTS_PATHS),
         heuristics=TEST_PATH_FACTS,
     )
 

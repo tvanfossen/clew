@@ -248,7 +248,8 @@ def _flow_problems(db: Path, config: WikiConfig) -> list[str]:
 ## v3: the W15/W16 imports: result reports, gcov and feature globs, the mapping file.
 ## v4: `before_tests` drops the reports a test run produces (round 3, P6c).
 ## @param before_tests True when the tests have not run yet.
-## @version 4
+## v5: names the top-level tests: section (2.0.0, R5-CFG F20)
+## @version 5
 ## @dg_internal
 def _evidence_problems(
     repo_root: Path, config: WikiConfig, before_tests: bool = False
@@ -287,7 +288,7 @@ def _evidence_problems(
     )
     for key, globs in globbed:
         problems += [
-            f"`wiki.tests.{key}` glob {g!r} matches no file"
+            f"`tests.{key}` glob {g!r} matches no file"
             for g in globs
             if not any(p.is_file() for p in repo_root.glob(g))
         ]

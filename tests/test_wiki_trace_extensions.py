@@ -125,6 +125,10 @@ def _wiki(pin: str) -> str:
 requirements:
   external:
     - {{repo: ../kv, rev: "{pin}", path: docs/requirements.yaml, name: kv}}
+tests:
+  junit: [build/junit.xml]
+  mutations: build/mutations.yaml
+
 wiki:
   title: Trace Demo
   docs: [README.md]
@@ -144,9 +148,6 @@ wiki:
       title: Timeouts are bounded
       status: adopted
       requirements: [REQ-W-001]
-  tests:
-    junit: [build/junit.xml]
-    mutations: build/mutations.yaml
 """
 
 
@@ -456,8 +457,8 @@ def test_the_site_names_a_declared_report_it_could_not_read(trace_repo, tmp_path
         (repo / ".clew.yaml")
         .read_text()
         .replace(
-            "    junit: [build/junit.xml]\n",
-            "    junit: [build/junit.xml]\n    coverage: build/nope.xml\n",
+            "  junit: [build/junit.xml]\n",  # 2.0.0: the top-level `tests:` section
+            "  junit: [build/junit.xml]\n  coverage: build/nope.xml\n",
         )
     )
     (repo / ".clew.yaml").write_text(text)

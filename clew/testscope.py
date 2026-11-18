@@ -22,7 +22,7 @@ facade-to-core call edge could not land on the real method at all.
 BUILT-IN DEFAULT PLUS A DECLARED OVERRIDE, WHICH IS THE ONLY SANCTIONED SHAPE. A
 hardcoded-only notion of "test path" is exactly what this project forbids: `tests/` is a
 convention, and repos legitimately use `test/`, `spec/`, `t/` or something else entirely. So
-the defaults below are HEURISTICS in the layered sense — a repo that declares `test_paths:`
+the defaults below are HEURISTICS in the layered sense — a repo that declares `tests.paths`
 displaces them rather than adding to them, because a repo naming its own layout is stating that
 layout rather than annotating ours.
 

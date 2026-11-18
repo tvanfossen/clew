@@ -36,7 +36,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-## Result formats `wiki.tests.results` may declare.
+## Result formats `tests.results` may declare.
 RESULT_FORMATS = ("ctest", "tap", "catch2", "pytest-json", "ceedling", "unity", "ctrf")
 ## Worst-first statuses (JUnit's rank).
 _RANK = {"error": 0, "failed": 1, "skipped": 2, "passed": 3}

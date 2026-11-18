@@ -48,7 +48,8 @@ WIKI_COMMAND = "wiki"
 ## v7: `trace-run` (round 3, P4b).
 ## v8: `build --format markdown --flavor` (round 3, P5b).
 ## v9: `check --before-tests` (round 3, P6c).
-## @version 9
+## v10: help text names the top-level tests: section (2.0.0)
+## @version 10
 ## @dg_internal
 def _parser() -> argparse.ArgumentParser:
     """@brief Build the parser. @return Parser."""
@@ -74,7 +75,7 @@ def _parser() -> argparse.ArgumentParser:
         "--target-only", nargs="*", default=[], help="test-name globs needing hardware"
     )
     trace.add_argument("--mutations", help="a mutation record: [{mechanism, test, killed}]")
-    trace.add_argument("--config", help="a file whose wiki.tests imports (W15/W16) apply")
+    trace.add_argument("--config", help="a file whose tests: imports (W15/W16) apply")
     trace.add_argument("--index")
     trace.add_argument("--repo-root")
     trace.add_argument("--indent", type=int, default=None)

@@ -143,7 +143,7 @@ overlay marks each step of the flow the index predicted as **confirmed** or **no
 lists calls the run made that the flow did not predict as **discovered**, and shows each
 assertion the test reached and where it failed. On the hub, a test's flow page offers the same
 as a button when `CLEW_WIKI_RUN=1` is set (it executes the repository's code). For other
-languages, export your test run's spans as OTLP JSON and list them under `wiki.tests.traces`: the
+languages, export your test run's spans as OTLP JSON and list them under `tests.traces`: the
 overlay is drawn into the static site.
 
 ## Publish it
@@ -200,6 +200,26 @@ requirements:
 ```
 
 ```yaml
+tests:                          # top level: the index and the wiki read it
+  paths: ["tests/*", "*_test.cpp"]   # where test code lives (the index's test scope)
+  junit: [build/junit.xml]
+  results:                    # each DECLARED: ctest | tap | catch2 | pytest-json | ceedling | unity | ctrf
+    - {format: ctest, path: build/Testing/Test.xml}
+  coverage: build/coverage.xml          # Cobertura
+  gcov: ["build/**/*.gcov", build/cov.json.gz]
+  mapping: docs/req_tests.yaml          # {REQ: [test]} or a `req,test` CSV
+  features: ["tests/features/**/*.feature"]      # Gherkin: @REQ-ID tags
+  layers: {unit: ["tests/unit/*"], bdd: ["tests/features/*"]}
+  min_layers: 2               # flag requirements tested in fewer layers
+  target_only: ["test_hw_*"]  # skipped on host by design: TARGET, not a gap
+  contexts: .coverage                   # coverage.py data/JSON (--cov-context=test), or LCOV with TN: per test
+  evidence_fields: [x-evidence, evidence]
+  infer_depth: 4              # cap call-graph links at N calls (omit = any depth; 0 = off)
+  mutations: build/mutations.yaml
+  traces: ["build/traces/*.json"]       # OTLP JSON test runs, drawn over their flows
+```
+
+```yaml
 wiki:
   title: Demo
   docs: [README.md, "docs/**/*.md"]
@@ -216,22 +236,6 @@ wiki:
       role: product             # product | threads | tooling | tests
   components:                   # the map's blocks; undeclared files join by coupling, submodules are Vendor; default = packages
     Query layer: ["src/query/*"]
-  tests:
-    junit: [build/junit.xml]
-    results:                    # each DECLARED: ctest | tap | catch2 | pytest-json | ceedling | unity | ctrf
-      - {format: ctest, path: build/Testing/Test.xml}
-    coverage: build/coverage.xml          # Cobertura
-    gcov: ["build/**/*.gcov", build/cov.json.gz]
-    mapping: docs/req_tests.yaml          # {REQ: [test]} or a `req,test` CSV
-    features: ["tests/features/**/*.feature"]      # Gherkin: @REQ-ID tags
-    layers: {unit: ["tests/unit/*"], bdd: ["tests/features/*"]}
-    min_layers: 2               # flag requirements tested in fewer layers
-    target_only: ["test_hw_*"]  # skipped on host by design: TARGET, not a gap
-    contexts: .coverage                   # coverage.py data/JSON (--cov-context=test), or LCOV with TN: per test
-    evidence_fields: [x-evidence, evidence]
-    infer_depth: 4              # cap call-graph links at N calls (omit = any depth; 0 = off)
-    mutations: build/mutations.yaml
-    traces: ["build/traces/*.json"]       # OTLP JSON test runs, drawn over their flows
   issues: {github: owner/repo, fetch: true}  # or {ado: org/project}; false = no issue links
   sources:                      # model files whose entries code realises (@node)
     - {name: keys, path: model/keys.toml, items: keys, doc: doc}

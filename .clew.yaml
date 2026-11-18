@@ -70,6 +70,15 @@ guard:
       req:
         pattern: "^REQ-DDB-[A-Z]+-[0-9]{3}$"
 
+# Where our tests live is the built-in default; what their runs leave is declared (2.0.0: one
+# top-level `tests:` section, read by the index and the wiki). The gate's own run is the
+# evidence: scripts/run_tests.py writes JUnit on every run, and CI's wiki job adds Cobertura
+# (`run_tests.py --coverage`).
+tests:
+  junit: [build/junit.xml]
+  coverage: build/coverage.xml
+  contexts: .coverage   # coverage.py's data file with per-test contexts: measured links
+
 # clew's own wiki (round 3, P6): clew documents itself with the site it generates. Human guides
 # are grouped by kind; the agent-facing documents (AGENTS.md, SKILLS.md) are kept apart. The MCP
 # tool handlers are declared as product flows, so the site shows what a `dossier` call does.
@@ -139,12 +148,6 @@ wiki:
       lanes: packages
       title: "build_wiki: how this site is built"
   tooling: ["scripts/*", "acceptance/*", "tools/*"]
-  # The gate's own run is the evidence: scripts/run_tests.py writes JUnit on every run, and CI's
-  # wiki job adds Cobertura (`run_tests.py --coverage`).
-  tests:
-    junit: [build/junit.xml]
-    coverage: build/coverage.xml
-    contexts: .coverage   # coverage.py's data file with per-test contexts: measured links
   issues: {github: tvanfossen/clew}
   links:
     template: "https://github.com/tvanfossen/clew/blob/{commit}/{file}#L{line}"

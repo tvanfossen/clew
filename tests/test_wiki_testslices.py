@@ -76,15 +76,17 @@ _CONTEXTS = {
     }
 }
 
+## FIXTURE CHANGED (2.0.0, R5-CFG F20): the test evidence is the top-level `tests:` section.
 _WIKI = """\
+tests:
+  contexts: coverage.json
+
 wiki:
   title: Slices
   docs: [README.md]
   flows:
     - entry: run
       depth: 1
-  tests:
-    contexts: coverage.json
 """
 
 

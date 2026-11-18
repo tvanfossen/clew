@@ -91,13 +91,19 @@ def test_the_wiki_guide_documents_every_key() -> None:
     """THE REFERENCE A READER CONFIGURES FROM covers every key the section accepts — the round-3
     keys were missing from it entirely.
 
-    @brief WIKI.md names every `wiki:` and `wiki.tests` key.
+    @brief WIKI.md names every `wiki:` and `tests:` key.
     """
-    from clew.wiki.config import _TESTS, _TOP
+    from clew.declaration import TESTS_KEYS
+    from clew.wiki.config import _TOP
 
     text = (REPO / "docs" / "WIKI.md").read_text()
     block = text[text.index("```yaml\nwiki:") :].split("```", 2)[1]
-    missing = [k for k in (*_TOP, *_TESTS) if not re.search(rf"^\s+{k}:", block, re.M)]
+    missing = [k for k in _TOP if not re.search(rf"^\s+{k}:", block, re.M)]
+    assert missing == [], missing
+    ## 2.0.0 (R5-CFG F20): the evidence keys are the top-level `tests:` section's, documented in
+    ## their own block.
+    tests = text[text.index("```yaml\ntests:") :].split("```", 2)[1]
+    missing = [k for k in TESTS_KEYS if not re.search(rf"^\s+{k}:", tests, re.M)]
     assert missing == [], missing
 
 

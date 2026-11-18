@@ -40,7 +40,7 @@ def test_every_gate_run_writes_junit_where_the_wiki_reads_it() -> None:
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     assert "--junitxml=build/junit.xml" in module.PYTEST_ARGS
-    tests = _clew_yaml()["wiki"]["tests"]
+    tests = _clew_yaml()["tests"]  # 2.0.0 (R5-CFG F20): the top-level tests: section
     assert tests["junit"] == ["build/junit.xml"]
     assert tests["coverage"] == "build/coverage.xml"
     ## Round 4 (owner 2026-11-17: tests are linked to source by coverage, never by a tag): the

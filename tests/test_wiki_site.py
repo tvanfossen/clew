@@ -147,7 +147,14 @@ requirements:
     acceptance_criteria: Every item is parsed once, then the load finishes.
 """
 
+## FIXTURE CHANGED (2.0.0, R5-CFG F20): the test evidence is the top-level `tests:` section.
 _WIKI = """\
+tests:
+  junit: [junit.xml]
+  features: ["tests/features/*.feature"]
+  layers: {unit: ["tests/test_*"], bdd: ["tests/features/*"]}
+  min_layers: 2
+
 wiki:
   title: Site Demo
   docs: [README.md]
@@ -155,11 +162,6 @@ wiki:
   flows:
     - entry: load
       depth: 2
-  tests:
-    junit: [junit.xml]
-    features: ["tests/features/*.feature"]
-    layers: {unit: ["tests/test_*"], bdd: ["tests/features/*"]}
-    min_layers: 2
   links:
     template: "https://example.invalid/blob/{commit}/{file}#L{line}"
   theme:

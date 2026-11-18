@@ -150,7 +150,37 @@ SECTION_ENTRY_PATTERNS = "entry_patterns"
 ## Declared rather than hardcoded because `tests/` is a convention: repos use `test/`,
 ## `spec/`, `t/` or colocate `foo_test.cpp` beside the code. A declaration DISPLACES the
 ## built-in guesses rather than extending them, per the layered rule.
+##
+## 2.0.0 (R5-CFG F20): WHERE TESTS LIVE AND WHAT THEIR RUNS LEAVE ARE ONE SECTION, `tests:`. The
+## paths were `test_paths:` (index) and again `wiki.tests.layers` (site), and the evidence a run
+## leaves — JUnit, coverage, per-test contexts — describes the repository's tests yet only the
+## wiki could read it. `tests.paths` is what `test_paths` was; `test_paths` is refused naming it.
+SECTION_TESTS = "tests"
+TESTS_PATHS = "paths"
+## Every key `tests:` may carry: `paths` for the index, and the evidence inputs the wiki reads.
+TESTS_KEYS = frozenset(
+    {
+        TESTS_PATHS,
+        "junit",
+        "coverage",
+        "target_only",
+        "mutations",
+        "results",
+        "gcov",
+        "mapping",
+        "features",
+        "layers",
+        "min_layers",
+        "evidence_fields",
+        "infer_depth",
+        "contexts",
+        "traces",
+    }
+)
+## The 1.x name, kept only so the refusal can name where it went.
 SECTION_TEST_PATHS = "test_paths"
+## Sections that moved in 2.0.0, refused naming their new home (never as "unknown").
+MOVED_SECTIONS = {SECTION_TEST_PATHS: f"`{SECTION_TESTS}.{TESTS_PATHS}`"}
 ## VENDORED THIRD-PARTY PATHS — a plain list of repo-relative directories the repository did
 ## not write but DOES own, because it committed them.
 ##
@@ -257,7 +287,7 @@ KNOWN_SECTIONS = frozenset(
         SECTION_ENRICH,
         SECTION_LOCKS,
         SECTION_ENTRY_PATTERNS,
-        SECTION_TEST_PATHS,
+        SECTION_TESTS,
         SECTION_VENDORED,
         SECTION_DISPATCH,
         SECTION_PREPROCESSOR,
@@ -280,7 +310,7 @@ ACCEPTED_SECTIONS = KNOWN_SECTIONS | NON_DECLARATION_SECTIONS
 ##
 ## A LIST section accepts one bare string as a one-item list, the precedent `wiki` already sets
 ## for `gcov` and `theme.css`; anything else that is not a list is refused.
-LIST_SECTIONS = frozenset({SECTION_ENTRY_PATTERNS, SECTION_TEST_PATHS, SECTION_VENDORED})
+LIST_SECTIONS = frozenset({SECTION_ENTRY_PATTERNS, SECTION_VENDORED})
 
 ## A PATH section names one repo-relative file.
 PATH_SECTIONS = frozenset({SECTION_DATA_MODEL, SECTION_ENRICH, SECTION_DOXYFILE})
@@ -299,6 +329,7 @@ MANIFEST_SECTIONS = frozenset(
 SECTION_KEYS: dict[str, frozenset[str]] = {
     SECTION_PREPROCESSOR: frozenset({"predefined", "config_header"}),
     SECTION_KCONFIG: frozenset({"root"}),
+    SECTION_TESTS: TESTS_KEYS,
 }
 
 ## THE ESCAPE HATCH AN OLDER CLEW NEEDS (B5, 1.1.0 merge review). `guard:` is new in 1.1.0,
@@ -336,7 +367,8 @@ def load_declaration(repo_root: Path | str | None) -> dict[str, Any]:
 ## v5 (1.4.0): the `wiki:` section is accepted and dropped, like `guard:`.
 ## v6 (2.0.0): every section's shape is checked (`_checked_sections`); manifest sections share
 ## tier 1's MANIFEST_SCHEMAS, so the in-tree file is no longer the least validated route.
-## @version 6
+## v7: a moved section is refused naming its new home (2.0.0)
+## @version 7
 ## @req REQ-DDB-CONFIG-001
 def load_declaration_located(
     repo_root: Path | str | None,
@@ -384,6 +416,12 @@ def load_declaration_located(
                 path,
                 ", ".join(experimental),
                 EXPERIMENTAL_PREFIX,
+            )
+        moved = sorted(str(key) for key in data if key in MOVED_SECTIONS)
+        if moved:
+            raise DeclarationError(
+                f"{path}: "
+                + "; ".join(f"`{k}` moved in 2.0.0 to {MOVED_SECTIONS[k]}" for k in moved)
             )
         unknown = sorted(
             str(key)
@@ -448,7 +486,8 @@ def _checked_sections(data: dict[str, Any], path: Path) -> dict[str, Any]:
 ## @param path The file it was read from.
 ## @return The (possibly normalised) value; raises DeclarationError on a wrong shape.
 ## v2: requirements: is checked against the gate's schema (2.0.0, R5-CFG F7)
-## @version 2
+## v3: tests.paths is a list section (2.0.0, R5-CFG F20)
+## @version 3
 ## @dg_internal
 def _checked_section(name: str, value: Any, path: Path) -> Any:
     """@brief Refuse a wrong-shaped section, naming it and the expected shape.
@@ -461,6 +500,11 @@ def _checked_section(name: str, value: Any, path: Path) -> Any:
         return _checked_list_section(name, value, path)
     if name == SECTION_REQUIREMENTS:
         return _checked_requirements(value, path)
+    if name == SECTION_TESTS and isinstance(value, dict) and TESTS_PATHS in value:
+        value = {
+            **value,
+            TESTS_PATHS: _checked_list_section(f"{name}.{TESTS_PATHS}", value[TESTS_PATHS], path),
+        }
     if name in PATH_SECTIONS:
         if not isinstance(value, str) or not value.strip():
             raise DeclarationError(

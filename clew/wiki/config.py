@@ -20,12 +20,13 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from ..declaration import TESTS_KEYS, TESTS_PATHS
+
 ## Every key the section, a flow, the tests block and an audience may carry.
 _TOP = {
     "title",
     "docs",
     "flows",
-    "tests",
     "links",
     "audiences",
     "sources",
@@ -75,7 +76,8 @@ _RENAMED = {"entry_points": "entry_point_depth"}
 _MOVED = {
     "catalogs": "`requirements.external` (entries {repo, rev, path, name})",
     "needs": "`requirements.needs`",
-    "impact": "the gate's report directory (`guard.output_dir`), which the wiki now reads",
+    "impact": "the gate's report directory (`guard.impact.report_dir`), which the wiki now reads",
+    "tests": "the top-level `tests:` section (where tests live and the evidence their runs leave)",
 }
 _FLOW = {"entry", "qualified", "depth", "lanes", "stop_at", "title", "animate", "file", "role"}
 ## The roles a flow is grouped under on the Flows page (round 3, P1e).
@@ -87,22 +89,9 @@ DEFAULT_ADRS = ("docs/adr/*.md", "doc/adr/*.md", "docs/decisions/*.md", "adr/*.m
 ## Paths whose entry points are tooling, unless `wiki.tooling` says otherwise.
 ## D2 (2.0.0): `acceptance/*` was this repository's own layout; it declares it for itself.
 DEFAULT_TOOLING = ("scripts/*", "tools/*", "benchmarks/*", "examples/*")
-_TESTS = {
-    "junit",
-    "coverage",
-    "target_only",
-    "mutations",
-    "results",
-    "gcov",
-    "mapping",
-    "features",
-    "layers",
-    "min_layers",
-    "evidence_fields",
-    "infer_depth",
-    "contexts",
-    "traces",
-}
+## The evidence keys of the top-level `tests:` section (2.0.0, R5-CFG F20) — the declaration's own
+## set, so the index and the wiki accept exactly the same keys; `paths` is the index's.
+_TESTS = set(TESTS_KEYS - {TESTS_PATHS})
 _RESULT = {"format", "path"}
 _SOURCE = {"name", "path", "items", "id", "doc", "req"}
 _RULE = {"id", "title", "status", "url", "requirements"}
@@ -132,7 +121,7 @@ class FlowSpec:
     role: str = ""
 
 
-## @brief The W15/W16 evidence imports of `wiki.tests`, as declared (paths relative to the repo).
+## @brief The W15/W16 evidence imports of the top-level `tests:`, as declared (paths relative to the repo).
 ## v2: `evidence_fields` — catalog fields whose test files link their tests; `infer_depth`
 ## (call-graph inference) and `contexts` (per-test coverage) — tests need no tag.
 ## v3: `traces` — OTLP JSON traces of test runs, drawn over their test flows (round 3, P4b).
@@ -289,7 +278,8 @@ class WikiConfig:
 ## type is a problem); `entry_points` renamed `entry_point_depth`, the old key refused with a pointer.
 ## v16 (2.0.0, R5-CFG F6/F7/F9): catalogs and needs come from the top-level `requirements:`;
 ## `wiki.catalogs`, `wiki.needs` and `wiki.impact` are refused with where they went.
-## @version 16
+## v17: tests come from the top-level tests: section; wiki.tests is refused (2.0.0, R5-CFG F20)
+## @version 17
 ## @req REQ-DDB-WIKI-003
 def load_wiki_config(
     repo_root: Path, config_path: Path | None = None
@@ -311,17 +301,17 @@ def load_wiki_config(
         Path(config_path or Path(repo_root) / ".clew.yaml"), problems
     )
     flows = tuple(_flow(f, i, problems) for i, f in enumerate(raw.get("flows") or []))
-    tests = raw.get("tests") or {}
-    problems += _unknown(tests, _TESTS, "wiki.tests")
+    tests = _top_level(Path(config_path or Path(repo_root) / ".clew.yaml"), "tests")
+    problems += _unknown(tests, set(TESTS_KEYS), "tests")
     links = raw.get("links") or {}
     problems += _unknown(links, _LINKS, "wiki.links")
     config = WikiConfig(
         title=str(raw.get("title") or "Wiki"),
         docs=_strings(raw, "docs", DEFAULT_DOCS, "wiki", problems),
         flows=tuple(f for f in flows if f is not None),
-        junit=_strings(tests, "junit", (), "wiki.tests", problems),
+        junit=_strings(tests, "junit", (), "tests", problems),
         coverage=str(tests["coverage"]) if tests.get("coverage") else None,
-        target_only=_strings(tests, "target_only", (), "wiki.tests", problems),
+        target_only=_strings(tests, "target_only", (), "tests", problems),
         link_template=str(links.get("template") or ""),
         audiences=_audiences(raw.get("audiences") or {}, problems),
         mutations=str(tests["mutations"]) if tests.get("mutations") else None,
@@ -473,6 +463,26 @@ def _requirements_section(path: Path, problems: list[str]) -> dict[str, Any]:
     except ConfigError as exc:
         problems.extend(f"`requirements`: {p}" for p in (exc.problems or [exc.message]))
         return {}
+
+
+## @brief A top-level section of the same file, as a mapping.
+## @param path The config file.
+## @param key The section.
+## @return The section, or {} when absent (a non-mapping is left to the declaration loader).
+## @version 1
+## @dg_internal
+def _top_level(path: Path, key: str) -> dict[str, Any]:
+    """@brief Read one top-level section. @return Mapping."""
+    import yaml
+
+    if not path.is_file():
+        return {}
+    try:
+        doc = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    except yaml.YAMLError:
+        return {}
+    value = doc.get(key) if isinstance(doc, dict) else None
+    return value if isinstance(value, dict) else {}
 
 
 ## @brief The impact report the gate section of the SAME file declares, when it declares one.
@@ -689,7 +699,8 @@ def _role(raw: Any, where: str, problems: list[str]) -> str:
 ## v3: traces.
 ## v4 (round 4): an omitted `infer_depth` is the full transitive closure (None), not 2 hops.
 ## v5 (2.0.0): list keys through `_strings`; `min_layers: 0` is 0, not "off".
-## @version 5
+## v6: names the top-level tests: section (2.0.0, R5-CFG F20)
+## @version 6
 ## @dg_internal
 def _inputs(tests: dict[str, Any], problems: list[str]) -> EvidenceInputs:
     """A RESULT FORMAT IS DECLARED, so an entry without one is a problem, never a sniffed guess.
@@ -702,20 +713,20 @@ def _inputs(tests: dict[str, Any], problems: list[str]) -> EvidenceInputs:
 
     results = _entries(tests, "results", _RESULT, ("format", "path"), _result, problems)
     problems += [
-        f"`wiki.tests.results`: format {fmt!r} is not known ({', '.join(RESULT_FORMATS)})"
+        f"`tests.results`: format {fmt!r} is not known ({', '.join(RESULT_FORMATS)})"
         for fmt, _path in results
         if fmt not in RESULT_FORMATS
     ]
     layers = tests.get("layers")
     if layers is not None and not isinstance(layers, dict):
-        problems.append("`wiki.tests.layers` must map a layer name to path globs")
+        problems.append("`tests.layers` must map a layer name to path globs")
         layers = None
     gcov = tests.get("gcov") or ()
     return EvidenceInputs(
         results=results,
         gcov=(str(gcov),) if isinstance(gcov, str) else tuple(str(g) for g in gcov),
         mapping=str(tests["mapping"]) if tests.get("mapping") else None,
-        features=_strings(tests, "features", (), "wiki.tests", problems),
+        features=_strings(tests, "features", (), "tests", problems),
         layers=None
         if layers is None
         else tuple((str(k), tuple(str(g) for g in v or ())) for k, v in layers.items()),
@@ -725,7 +736,7 @@ def _inputs(tests: dict[str, Any], problems: list[str]) -> EvidenceInputs:
         else EvidenceInputs.evidence_fields,
         infer_depth=_infer_depth(tests),
         contexts=str(tests["contexts"]) if tests.get("contexts") else None,
-        traces=_strings(tests, "traces", (), "wiki.tests", problems),
+        traces=_strings(tests, "traces", (), "tests", problems),
     )
 
 

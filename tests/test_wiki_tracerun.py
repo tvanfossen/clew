@@ -333,7 +333,7 @@ def test_an_imported_trace_is_drawn_over_its_test_flow(tmp_path: Path) -> None:
     db = tmp_path / "clew.db"
     _run_pipeline(_build_argparser().parse_args(["--output", str(db), "--repo-root", str(root)]))
     config = tmp_path / "wiki.yaml"
-    config.write_text(_WIKI.replace("  tests:\n", '  tests:\n    traces: ["traces/*.json"]\n'))
+    config.write_text(_WIKI.replace("tests:\n", 'tests:\n  traces: ["traces/*.json"]\n', 1))
     html = build_wiki(root, db, tmp_path / "out", config_path=config)
     page = (html / "flow-test_load-tests-test-data-py.html").read_text()
     panel = page[page.index('class="trace-panel imported"') :].split("</div>")[0]

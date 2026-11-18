@@ -375,7 +375,7 @@ event_tags:           {emits: producer, handles: consumer}
 entry_patterns:       ["%trampoline%", "on_%"]
 enrich:               docs/architecture_topics.yaml
 doxyfile:             doxygen/project.doxyfile
-test_paths:           ["test/*", "*_test.cpp"]
+tests:                {paths: ["test/*", "*_test.cpp"], junit: [build/junit.xml]}  # + evidence: docs/WIKI.md
 vendored:             [third_party/json]
 sub_indexes:          {deps-slam: {excludes: [deps/slam/third_party]}}
 guard:                {validate: {tags: {req: {cross_reference: true}}}}   # the gate: docs/GUARD.md

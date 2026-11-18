@@ -14,7 +14,7 @@ red". Each test the evidence names gets ITS OWN PAGE:
 
 REACHING IS NOT PROVING, and the page says so: a test can execute code whose behaviour none of its
 checks observe (pseudo-tested code — Niedermayr, Juergens & Wagner 2016; checked coverage — Schuler
-& Zeller 2011). Only a mutation record (`wiki.tests.mutations`) shows a test FAILING when its
+& Zeller 2011). Only a mutation record (`tests.mutations`) shows a test FAILING when its
 implementer breaks (DeMillo, Lipton & Sayward 1978); without one, the chain is labelled "reaches".
 
 @brief Write one page per test.

@@ -134,10 +134,6 @@ INLINE_LIST_OPTIONS: tuple[str, ...] = (
     "entry_patterns",
     "predefined",
     "vendored",
-    ## Reachable from an embedding caller and from MCP, not only from `.clew.yaml` — "a
-    ## declaration reachable only from argv is not a declaration", and the inverse holds
-    ## too: an option only a file can state is unreachable for a caller building in-process.
-    "test_paths",
 )
 
 ## Keys whose value is a MAPPING, applied inline. `event_tags` maps a tag name to a role.
@@ -224,7 +220,13 @@ SECTION_DOCUMENT_OPTIONS: tuple[str, ...] = (
     "kconfig",
     "index_scope",
     "sub_indexes",
+    ## 2.0.0 (R5-CFG F20): `tests: {paths: [...]}` replaced the `test_paths` list option, so the
+    ## option name is the section name, as for every other section.
+    "tests",
 )
+
+## Options renamed in 2.0.0, refused naming the replacement rather than as unknown.
+MOVED_OPTIONS: dict[str, str] = {"test_paths": "`tests: {paths: [...]}`"}
 
 
 ## @brief One list-of-entries key inside a manifest, and the keys its entries may carry.
@@ -413,7 +415,8 @@ def accepted_options() -> tuple[str, ...]:
 ## @brief Refuse a key that is not settable, naming why.
 ## @param key The offending option name.
 ## @return None; always raises.
-## @version 1
+## v2: names a 2.0.0 move (test_paths -> tests.paths)
+## @version 2
 ## @dg_internal
 def _refuse(key: str) -> None:
     """Split from the validation loop so the DERIVED case gets its own sentence. Reporting
@@ -425,6 +428,8 @@ def _refuse(key: str) -> None:
     """
     if key in DERIVED_OPTIONS:
         raise BuildOptionError(f"option {key!r} cannot be stated: {DERIVED_OPTIONS[key]}")
+    if key in MOVED_OPTIONS:
+        raise BuildOptionError(f"option {key!r} moved in 2.0.0 to {MOVED_OPTIONS[key]}")
     raise BuildOptionError(
         f"unknown build option {key!r} — accepted: {', '.join(accepted_options())}"
     )

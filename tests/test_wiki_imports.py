@@ -302,9 +302,10 @@ def test_before_tests_a_report_a_run_produces_is_not_yet_required(
     from clew.wiki.check import check_wiki
 
     (tmp_path / ".clew.yaml").write_text(
-        "wiki:\n  docs: []\n  tests:\n    junit: [build/junit.xml]\n"
-        "    coverage: build/coverage.xml\n    results: [{format: tap, path: build/t.tap}]\n"
-        "    gcov: ['build/*.gcov']\n    mapping: missing-map.yaml\n"
+        ## FIXTURE CHANGED (2.0.0, R5-CFG F20): the evidence is the top-level `tests:` section.
+        "wiki:\n  docs: []\ntests:\n  junit: [build/junit.xml]\n"
+        "  coverage: build/coverage.xml\n  results: [{format: tap, path: build/t.tap}]\n"
+        "  gcov: ['build/*.gcov']\n  mapping: missing-map.yaml\n"
     )
     early = "\n".join(check_wiki(tmp_path, traced, before_tests=True))
     assert "junit.xml" not in early and "coverage.xml" not in early and "t.tap" not in early
@@ -330,10 +331,10 @@ def test_check_names_every_missing_import(traced: Path, tmp_path: Path) -> None:
 
     (tmp_path / "map.yaml").write_text("R-A: [x]\nR-NOPE: [y]\n")
     (tmp_path / ".clew.yaml").write_text(
-        "wiki:\n  docs: []\n  tests:\n"
-        "    results: [{format: tap, path: missing.tap}, {format: nunit, path: n.xml}]\n"
-        "    gcov: ['build/*.gcov']\n    features: ['features/*.feature']\n"
-        "    mapping: map.yaml\n"
+        "wiki:\n  docs: []\ntests:\n"
+        "  results: [{format: tap, path: missing.tap}, {format: nunit, path: n.xml}]\n"
+        "  gcov: ['build/*.gcov']\n  features: ['features/*.feature']\n"
+        "  mapping: map.yaml\n"
     )
     problems = "\n".join(check_wiki(tmp_path, traced))
     assert "'missing.tap' does not exist" in problems
@@ -353,8 +354,8 @@ def test_the_trace_cli_reads_imports_from_the_config(
     (tmp_path / "map.yaml").write_text("R-B: [Store loads]\n")
     cfg = tmp_path / "wiki.yaml"
     cfg.write_text(
-        "wiki:\n  tests:\n    results: [{format: tap, path: r.tap}]\n    mapping: map.yaml\n"
-        "    layers: {cpp: ['Store *']}\n"
+        "tests:\n  results: [{format: tap, path: r.tap}]\n  mapping: map.yaml\n"
+        "  layers: {cpp: ['Store *']}\n"
     )
     argv = ["trace", "--index", str(traced), "--repo-root", str(tmp_path), "--config", str(cfg)]
     assert wiki_main(argv) == 0

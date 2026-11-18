@@ -38,7 +38,7 @@ from ..declaration import (
     SECTION_DOXYFILE,
     SECTION_ENRICH,
     SECTION_ENTRY_PATTERNS,
-    SECTION_TEST_PATHS,
+    SECTION_TESTS,
     SECTION_EVENT_TAGS,
     SECTION_KCONFIG,
     SECTION_LOCKS,
@@ -146,8 +146,8 @@ HAND_DECLARED: dict[str, str] = {
         "keeps them declared rather than guessed (clew/declaration.py, "
         "SECTION_ENTRY_PATTERNS)."
     ),
-    SECTION_TEST_PATHS: (
-        "these are glob patterns naming the paths that hold TEST code, so a bare ambiguous "
+    SECTION_TESTS: (
+        "`tests.paths` are glob patterns naming the paths that hold TEST code, so a bare ambiguous "
         "function name resolves to the library definition rather than a same-named test "
         "helper. Measured on a real C++ target: `run_turn` had four definitions and the "
         "resolver picked a file-local helper in tests/, because the real method is declared "

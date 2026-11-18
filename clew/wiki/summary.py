@@ -6,7 +6,7 @@ the requirements page — owner 2026-11-15: one page, not two).
 test piegraph"). The summary groups requirements by their id with the trailing number dropped
 (`REQ-W-001` → `REQ-W`) and counts, per group: requirements, IMPLEMENTED (an implementing function
 is tagged), TESTED (a test is linked, from any source), each evidence tier, and — when
-`wiki.tests.min_layers` is set — the tested requirements whose tests span FEWER LAYERS than that,
+`tests.min_layers` is set — the tested requirements whose tests span FEWER LAYERS than that,
 so single-layer coverage is visible instead of reading as tested.
 
 Two donuts summarise the whole trace: requirements by tier, and distinct tests by status.
