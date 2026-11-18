@@ -95,12 +95,68 @@ def _tail(node: Any) -> str:
     return ""
 
 
+## @brief Local names a file binds by importing from a PACKAGE (not a `./` or `../` path).
+## @param node Any node of the file.
+## @return The bound local names.
+## @version 1
+## @dg_internal
+def _package_bindings(node: Any) -> frozenset[str]:
+    """R5-CORE D7 (2.0.0): `import React from 'react'`, `import * as R from 'react'` and
+    `import { Component as C } from '@scope/ui'` bind `React`, `R` and `C` to code OUTSIDE the
+    repository. Only top-level `import_statement`s are read; a relative specifier is the
+    repository's own module and binds nothing here.
+
+    @brief Package-bound names.
+    @return Names.
+    """
+    root = node
+    while root.parent is not None:
+        root = root.parent
+    names: set[str] = set()
+    for stmt in root.named_children:
+        if stmt.type != "import_statement":
+            continue
+        source = next((c for c in stmt.named_children if c.type == "string"), None)
+        spec = _text(source).strip("'\"`") if source is not None else ""
+        if not spec or spec.startswith("."):
+            continue
+        clause = next((c for c in stmt.named_children if c.type == "import_clause"), None)
+        stack = list(clause.named_children) if clause is not None else []
+        while stack:
+            part = stack.pop()
+            if part.type == "identifier":
+                names.add(_text(part))
+            elif part.type == "import_specifier":
+                ids = [c for c in part.named_children if c.type == "identifier"]
+                if ids:
+                    names.add(_text(ids[-1]))
+            else:
+                stack.extend(part.named_children)
+    return frozenset(names)
+
+
+## @brief The root identifier of a dotted heritage expression (`React` of `React.Component`).
+## @param node An identifier or member expression.
+## @return The root name, or "".
+## @version 1
+## @dg_internal
+def _root_name(node: Any) -> str:
+    """@brief Root of a member chain. @return Name."""
+    while node is not None and node.type == "member_expression":
+        node = node.child_by_field_name("object")
+    return (
+        _text(node) if node is not None and node.type in ("identifier", "type_identifier") else ""
+    )
+
+
 ## Version 2: a heritage CALL (`mix(Base).with(A, B)`) contributes its argument classes.
+## Version 3 (2.0.0, R5-CORE D7): a base bound by a PACKAGE import is external and recorded
+## as nothing, so it cannot link to a same-named class of the repository's own.
 ##
 ## @brief The base names a class or interface declares (extends / implements).
 ## @param node A class-like declaration.
 ## @return Tail names of every base, in order.
-## @version 2
+## @version 3
 ## @dg_internal
 def _bases(node: Any) -> list[str]:
     """JavaScript writes `class A extends B` as a `class_heritage` holding the expression;
@@ -111,6 +167,7 @@ def _bases(node: Any) -> list[str]:
     @return The names.
     """
     bases: list[str] = []
+    external: frozenset[str] | None = None
     for child in node.named_children:
         if child.type not in ("class_heritage", "extends_type_clause"):
             continue
@@ -119,7 +176,9 @@ def _bases(node: Any) -> list[str]:
             part = stack.pop()
             name = _tail(part)
             if name:
-                bases.append(name)
+                external = _package_bindings(node) if external is None else external
+                if _root_name(part) not in external:
+                    bases.append(name)
             elif part.type == "call_expression":
                 bases.extend(_composed_bases(part))
             elif part.type in ("extends_clause", "implements_clause", "generic_type"):

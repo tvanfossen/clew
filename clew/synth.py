@@ -155,7 +155,9 @@ class _JsSymbolHarvester(Harvester):
     """
 
     stage = STAGE_JS_SYMBOLS
-    stage_version = 11
+    ## 12 (2.0.0, R5-CORE D7): a base bound by a package import is recorded as nothing; a
+    ## payload cached at 11 still names `Component` for `extends React.Component`.
+    stage_version = 12
     label = "js/ts definitions"
 
     ## @brief Harvest one file's definitions.
