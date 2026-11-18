@@ -187,6 +187,7 @@
    "generated_by": "GenerationRule | None",
    "owners": "list[OwnerRef]",
    "license": "LicenseRef | None",
+   "same_key_sites": "list[KeySite]",
    "candidates": "list[Candidate]",
    "threads": "list[Thread]",
    "is_terminus": "bool",
@@ -354,6 +355,12 @@
    "edge_triggered": "bool | None",
    "crosses_thread": "bool | None",
    "to_thread": "str | None"
+  },
+  "KeySite": {
+   "key": "str",
+   "holder": "str",
+   "file": "str",
+   "line": "int"
   },
   "LicenseRef": {
    "expression": "str",

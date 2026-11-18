@@ -229,6 +229,10 @@ def schema_db(tmp_path: Path) -> Path:
     from clew.ast_includes import ensure_ast_includes_table
 
     ensure_ast_includes_table(conn)
+    ## F1-mm (2.0.0): the property-key layer.
+    from clew.property_keys import ensure_property_keys_table
+
+    ensure_property_keys_table(conn)
     _create_req_edges_table(conn)
     ## gh#351. Created unconditionally by its own stage — a target with no data model gets an
     ## empty table rather than none — so the fixture calls it unconditionally too.

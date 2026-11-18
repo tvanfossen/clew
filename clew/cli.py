@@ -148,6 +148,7 @@ from .errors import DoxygenFailedError, DoxygenUnavailableError, RustdocUnavaila
 from .event_edges import import_event_edges
 from .filedocs import ingest_file_docs
 from .ast_includes import import_ast_includes
+from .property_keys import import_property_keys
 from .kerneldoc import ingest_kerneldoc
 from .licenses import ingest_file_licenses
 from .harvest_plan import build_harvest_plan, warm_harvest_plan
@@ -1940,7 +1941,8 @@ def _doxygen_meta(args) -> dict[str, str]:
 ## v70: the blocking declaration reaches the plan (2.0.0, C1)
 ## v71: the macro stage takes the build's test patterns (2.0.0)
 ## v72: the AST include stage (2.0.0, T3)
-## @version 72
+## v73: the property-key stage (2.0.0, F1-mm)
+## @version 73
 ## @req REQ-DDB-PIPE-001
 ## @req REQ-DDB-MCP-004
 ## @req REQ-DDB-CONFIG-007
@@ -2196,6 +2198,9 @@ def _build_stages(
     ## T3 (2.0.0): every `#include` from the parse, beside doxygen's `includes`.
     import_ast_includes(output, repo_root, cache)
     timer.mark("ast_includes")
+    ## F1-mm (2.0.0): every JS/TS property key, with its holder.
+    import_property_keys(output, repo_root, cache)
+    timer.mark("property_keys")
     ## `preprocessor` is passed for gh#35: Layer 4 needs it to choose which `#if` branch a
     ## conditional function-pointer binding belongs to. It was resolved 60-odd lines above
     ## and reached only the Doxyfile and `build_meta`, so branch selection was making its

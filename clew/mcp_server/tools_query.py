@@ -718,6 +718,8 @@ _DOSSIER_LISTS = (
     "includes",
     ## 2.0.0, S2/S3. A file's owners: MAINTAINERS lets several stanzas match one file.
     "owners",
+    ## 2.0.0, F1-mm. Rarity-gated per key, but a function writing many rare keys has a row each.
+    "same_key_sites",
     ## gh#372 — the lists the NON-FUNCTION subject kinds contribute. A key that is not in
     ## this tuple is a list nothing can trim, so a subject kind added without its lists
     ## reintroduces the unbounded payload one kind at a time. Named here rather than

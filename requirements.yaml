@@ -1192,13 +1192,27 @@ requirements:
     name: every C/C++ include directive is recorded from the parse
     acceptance_criteria: >-
       A build records each `#include "x"` and `#include <x>` of an indexed file in an
-      `ast_includes` table with its spec, line and quoting, resolved to an indexed file — beside the
-      includer first for a quoted spec, else the one indexed path ending in the spec — and with no
-      target when none or several match. A `#include MACRO` is skipped. The table exists, empty,
-      in a tree without includes; doxygen's `includes` table is untouched.
+      `ast_includes` table with its spec, line and quoting, resolved to an indexed file that
+      exists — beside the includer first for a quoted spec, else the one such path ending in the
+      spec — and with no target when none or several match; a path doxygen recorded for an include
+      it could not find is never a target. A `#include MACRO` is skipped. The table exists, empty,
+      in a tree without includes; doxygen's `includes` table is untouched; the fast tier rewrites an
+      edited file's rows, equal to a full build's.
     x-priority: P2
     x-status: implemented
-    x-evidence: clew/ast_includes.py; tests/test_ast_includes.py.
+    x-evidence: clew/ast_includes.py; tests/test_ast_includes.py; tests/test_file_includes.py.
+  REQ-DDB-INDEX-011:
+    subsystem: index
+    name: every JS/TS property key is recorded with the symbol that holds it
+    acceptance_criteria: >-
+      A build records each object-literal key (`key: v`, `{key}`) and each assigned member property
+      (`x.key = v`) in an indexed JS/TS file in a `property_keys` table with its line and its
+      holder, the nearest enclosing function, method, variable or class field. A function dossier
+      lists, for each key its body writes, the other holders outside test files, omitting a key
+      with more than five such holders. The table exists, empty, in a tree without JS/TS.
+    x-priority: P2
+    x-status: implemented
+    x-evidence: clew/property_keys.py; clew/query/keysites.py; tests/test_same_key_sites.py.
   REQ-DDB-INDEX-009:
     subsystem: index
     name: kernel-doc comments are read into their own layer, beside doxygen's

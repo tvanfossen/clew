@@ -1140,6 +1140,10 @@ def run_real_stages(db: Path, repo_root: Path) -> None:
     from clew.ast_includes import import_ast_includes
 
     import_ast_includes(db, repo_root)
+    ## F1-mm (2.0.0), by the real stage.
+    from clew.property_keys import import_property_keys
+
+    import_property_keys(db, repo_root)
     ## THE PARSE FRONT END, which this fixture never ran. `test_fixture_fidelity` caught it the
     ## moment that stage gained a table: `generated_files` is emitted by every real build and by
     ## no fixture, which is precisely the "licence to assert over a schema that does not exist"

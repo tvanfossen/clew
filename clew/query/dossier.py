@@ -41,6 +41,7 @@ from ._common import (
 )
 from .corpus import file_license, file_owners, generation_rule
 from .externcalls import external_callees
+from .keysites import same_key_sites
 from .kconfig import gates_covering
 from .locks import (
     context_conflicts_for_rowids,
@@ -523,7 +524,8 @@ def _anchored_pick(
 ## v10: declared_at; file is the body's file (2.0.0, T2)
 ## v11: generated_by from the body's file (2.0.0, T4)
 ## v12: owners and license of the body's file (2.0.0, S2/S3/S5 served)
-## @version 12
+## v13: same_key_sites (2.0.0, F1-mm)
+## @version 13
 ## @req REQ-DDB-QUERY-004
 ## @dg_internal
 def _dossier_conn(
@@ -599,6 +601,7 @@ def _dossier_conn(
         ## 2.0.0 (S2/S3/S5 served): the file's owners and licence, as its file dossier has them.
         owners=list(file_owners(conn, ident["file"]) or ()),
         license=file_license(conn, ident["file"]),
+        same_key_sites=same_key_sites(conn, ident["file"], ident["line_start"], ident["line_end"]),
         candidates=overloads,
         # Membership is per-rowid, and doxygen splits one function across a
         # declaration row and a definition row — so asking only the chosen

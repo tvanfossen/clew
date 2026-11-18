@@ -1056,7 +1056,7 @@ class Dossier:
     common case and not worth a key.
 
     @brief Composite per-function dossier.
-    @version 9
+    @version 10
     """
 
     name: str
@@ -1091,6 +1091,9 @@ class Dossier:
     ## 2.0.0 (S2/S3/S5 served): the owners and licence of the file `file` names.
     owners: list[OwnerRef] = field(default_factory=list)
     license: LicenseRef | None = None
+    ## F1-mm (2.0.0): for each JS/TS property key this function writes, the few other non-test
+    ## symbols carrying the same key (rarity-gated; see `query.keysites`).
+    same_key_sites: list[KeySite] = field(default_factory=list)
     candidates: list[Candidate] = field(default_factory=list)
     threads: list[Thread] = field(default_factory=list)
     is_terminus: bool = False
@@ -1453,6 +1456,23 @@ class MergedDeclaration:
     line: int | None
     bases: list[str] = field(default_factory=list)
     declaration: BodyExcerpt | None = None
+
+
+## @brief Another symbol carrying a property key this function writes.
+## @version 1
+@dataclass(frozen=True)
+class KeySite:
+    """F1-mm (2.0.0). `holder` is the nearest named construct around the key: a function, method,
+    variable or class field (`DEFAULT_CONFIG`). `line` is the key's own line.
+
+    @brief One same-key site.
+    @version 1
+    """
+
+    key: str
+    holder: str
+    file: str
+    line: int
 
 
 ## @brief Where a function is declared, apart from where it is defined.

@@ -724,6 +724,11 @@ STAGE_CONFIG_DEFAULTS = "config_defaults"
 ## `includes` table held 2 of mbedtls's 17 includers of constant_time_internal.h.
 STAGE_INCLUDES = "includes"
 
+## EVERY JS/TS PROPERTY KEY a symbol defines or assigns (clew/property_keys.py), 2.0.0 (F1-mm):
+## mattermost's `retryPolicyConfiguration` had no route from the function writing it to the
+## `DEFAULT_CONFIG` literal that sets its default.
+STAGE_PROPERTY_KEYS = "property_keys"
+
 STAGE = Vocabulary(
     id="stage",
     values=(
@@ -744,6 +749,7 @@ STAGE = Vocabulary(
         STAGE_SCRIPT_SYMBOLS,
         STAGE_CONFIG_DEFAULTS,
         STAGE_INCLUDES,
+        STAGE_PROPERTY_KEYS,
     ),
     means="extract_cache partition key — a typo is a permanent silent cache miss, not an error",
     rank={
@@ -764,6 +770,7 @@ STAGE = Vocabulary(
         STAGE_SCRIPT_SYMBOLS: 0,
         STAGE_CONFIG_DEFAULTS: 0,
         STAGE_INCLUDES: 0,
+        STAGE_PROPERTY_KEYS: 0,
     },
 )
 

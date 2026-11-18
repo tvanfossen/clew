@@ -76,6 +76,8 @@ STALE_LAYERS = (
     "kconfig_gates",
     "config_defaults",
     "req_edges",
+    ## F1-mm (2.0.0): per-file, but the full build's rows are what the rarity gate counts over.
+    "property_keys",
 )
 
 ## How every table of an index stands after a fast refresh (PR0, 2.0.0): FAST (rewritten for the
@@ -116,6 +118,7 @@ TABLE_CLASSES: dict[str, str] = {
     "shared_key_edges": "shared_key_edges",
     "unresolved_inbound": "unresolved_inbound",
     "includes": "includes",
+    "property_keys": "property_keys",
     "ast_includes": FAST,  # T3 served (2.0.0): the edited files' directives are re-read
     "kconfig_gates": "kconfig_gates",
     "config_defaults": "config_defaults",
