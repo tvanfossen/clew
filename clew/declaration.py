@@ -181,6 +181,10 @@ TESTS_KEYS = frozenset(
 )
 ## The 1.x name, kept only so the refusal can name where it went.
 SECTION_TEST_PATHS = "test_paths"
+## WHO OWNS A FILE (S2/S3, 2.0.0): the repository's own CODEOWNERS and MAINTAINERS, found at their
+## conventional locations; this section only names them when they live elsewhere
+## (`{codeowners: path, maintainers: path}`). Read by `clew/owners.py` into the `owners` layer.
+SECTION_OWNERS = "owners"
 ## Sections that moved in 2.0.0, refused naming their new home (never as "unknown").
 MOVED_SECTIONS = {SECTION_TEST_PATHS: f"`{SECTION_TESTS}.{TESTS_PATHS}`"}
 ## VENDORED THIRD-PARTY PATHS — a plain list of repo-relative directories the repository did
@@ -290,6 +294,7 @@ KNOWN_SECTIONS = frozenset(
         SECTION_LOCKS,
         SECTION_ENTRY_PATTERNS,
         SECTION_TESTS,
+        SECTION_OWNERS,
         SECTION_VENDORED,
         SECTION_DISPATCH,
         SECTION_PREPROCESSOR,
@@ -332,6 +337,7 @@ SECTION_KEYS: dict[str, frozenset[str]] = {
     SECTION_PREPROCESSOR: frozenset({"predefined", "config_header"}),
     SECTION_KCONFIG: frozenset({"root"}),
     SECTION_TESTS: TESTS_KEYS,
+    SECTION_OWNERS: frozenset({"codeowners", "maintainers"}),
 }
 
 ## THE ESCAPE HATCH AN OLDER CLEW NEEDS (B5, 1.1.0 merge review). `guard:` is new in 1.1.0,

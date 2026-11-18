@@ -223,6 +223,8 @@ SECTION_DOCUMENT_OPTIONS: tuple[str, ...] = (
     ## 2.0.0 (R5-CFG F20): `tests: {paths: [...]}` replaced the `test_paths` list option, so the
     ## option name is the section name, as for every other section.
     "tests",
+    ## S2/S3 (2.0.0): where CODEOWNERS / MAINTAINERS live, when not at their conventional paths.
+    "owners",
 )
 
 ## Options renamed in 2.0.0, refused naming the replacement rather than as unknown.

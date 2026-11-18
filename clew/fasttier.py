@@ -130,6 +130,9 @@ TABLE_CLASSES: dict[str, str] = {
     "requirement_links": UNAFFECTED,
     "data_model_keys": UNAFFECTED,  # the data model is a configuration input
     "meta": UNAFFECTED,  # doxygen's own run record
+    ## Read from CODEOWNERS / MAINTAINERS, which are not indexed source: an indexed-file edit
+    ## cannot change it. (An edit to those files is picked up by the next full build.)
+    "owners": UNAFFECTED,
 }
 
 ## Files whose edit changes how the WHOLE tree is indexed. Matched on the basename.

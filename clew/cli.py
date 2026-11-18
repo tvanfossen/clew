@@ -101,6 +101,7 @@ from .external import EXTERNAL_ROOTS_META_KEY, stamp_external_provenance
 from .declaration import (
     DECLARATION_NAME,
     SECTION_DOXYFILE,
+    SECTION_OWNERS,
     SECTION_TESTS,
     TESTS_PATHS,
     SECTION_DATA_MODEL,
@@ -148,6 +149,7 @@ from .filedocs import ingest_file_docs
 from .harvest_plan import build_harvest_plan, warm_harvest_plan
 from .doxygen_splice import include_expansion, splice_doxygen, xref_closure
 from .indexcache import IndexCache
+from .owners import record_owners
 from .testscope import TEST_PATH_FACTS, mark_test_scope
 from .datamodel import import_data_model_keys
 from .kconfig import import_kconfig
@@ -1929,7 +1931,8 @@ def _doxygen_meta(args) -> dict[str, str]:
 ## v66 (1.3.4): file docs, generated-file evidence, requirement mentions and code text read
 ## an unchanged file's result from the index cache.
 ## v67 (round 4, R9): covering tests are classified by the resolved test scope.
-## @version 67
+## v68: the owners stage (2.0.0, S2/S3)
+## @version 68
 ## @req REQ-DDB-PIPE-001
 ## @req REQ-DDB-MCP-004
 ## @req REQ-DDB-CONFIG-007
@@ -2384,6 +2387,12 @@ def _build_stages(
     with sqlite3.connect(output) as _ts_conn:
         mark_test_scope(_ts_conn, list(test_scope.values))
     timer.mark("test_scope")
+
+    ## S2/S3 (2.0.0): who owns each indexed file, from the repository's own CODEOWNERS and
+    ## MAINTAINERS. After the path table, like test_scope; the table exists even when empty.
+    with sqlite3.connect(output) as _ow_conn:
+        record_owners(_ow_conn, repo_root, section(decl, SECTION_OWNERS))
+    timer.mark("owners")
 
     # Stamp the build-version signature last so a partial build never leaves a
     # DB looking current. Consumers' freshness checks treat a mismatch as stale.

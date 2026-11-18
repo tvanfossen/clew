@@ -38,6 +38,7 @@ from ..declaration import (
     SECTION_DOXYFILE,
     SECTION_ENRICH,
     SECTION_ENTRY_PATTERNS,
+    SECTION_OWNERS,
     SECTION_TESTS,
     SECTION_EVENT_TAGS,
     SECTION_KCONFIG,
@@ -83,6 +84,13 @@ _DETECTED: tuple[tuple[str, Detector], ...] = (
 ## writes a specific, wrong claim into the graph, which is worse than an empty
 ## layer because nothing downstream can tell it from a measured fact.
 HAND_DECLARED: dict[str, str] = {
+    SECTION_OWNERS: (
+        "ownership is read from the CODEOWNERS and MAINTAINERS files the repository already keeps, "
+        "at their conventional locations (.github/CODEOWNERS, CODEOWNERS, docs/CODEOWNERS, "
+        ".gitlab/CODEOWNERS; MAINTAINERS) — this section only names them when they live "
+        "elsewhere. Who owns code is a fact the repository publishes, never one clew infers "
+        "(clew/owners.py)."
+    ),
     SECTION_VENDORED: (
         "whether a committed directory is code this project WROTE or code it merely SHIPS "
         "is a fact about authorship, and nothing in the tree carries it. `external` covers "

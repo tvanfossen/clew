@@ -1163,6 +1163,19 @@ requirements:
       one-comment edits, 2026-11-13), with outgoing AST call edges and code text refreshed
       in place — self 423 ms, mbedtls 355 ms, entropic 107 ms, mattermost-mobile 579 ms
       in-process; 293-924 ms wall including interpreter start.
+  REQ-DDB-INDEX-007:
+    subsystem: index
+    name: Who owns a file is read from the repository's own CODEOWNERS and MAINTAINERS
+    acceptance_criteria: >-
+      A build records, per indexed file, the owners its CODEOWNERS gives it (the last matching
+      gitignore-style rule, every owner on it) and the maintainers and reviewers of every
+      MAINTAINERS stanza that covers it (F: patterns, X: exclusions, N: regexes), with the source,
+      the rule's line and the stanza title. The files are found at their conventional locations
+      or where `owners:` names them; a declared file that does not exist is said and replaced by
+      nothing. The `owners` table exists, empty, when the repository keeps neither file.
+    x-priority: P2
+    x-status: implemented
+    x-evidence: clew/owners.py; tests/test_owners.py.
   REQ-DDB-INDEX-002:
     subsystem: pipeline
     name: Incremental/partial re-index for cheap refreshes

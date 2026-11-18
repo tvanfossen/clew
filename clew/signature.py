@@ -268,7 +268,12 @@ from .tiers import OPTIONS_META_PREFIX
 ##   as q; q.dossier()`) resolves to the one same-named function inside that package. Before it,
 ##   no edge was made, so clew's own MCP flows stopped at the query layer; an index built at 11
 ##   lacks those edges, and the bump makes it rebuild.
-CLEW_BUILD_VERSION = 12
+## 13 (2.0.0, the single index-row bump of the 2.0.0 plan, P2) — new layers and rows: `owners`
+##   (CODEOWNERS / MAINTAINERS), and every further P2 layer landing under this same number
+##   before the cut (file licences, kernel-doc, #if polarity, declared blocking primitives,
+##   languages.extensions). Nothing ships between those commits, so an index built mid-way is
+##   never published as current; an index built at 12 lacks the layers and rebuilds.
+CLEW_BUILD_VERSION = 13
 
 
 ## @brief Stamp the build version, scope, coverage and preprocessor config into build_meta.

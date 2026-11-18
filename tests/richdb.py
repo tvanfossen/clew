@@ -1182,6 +1182,11 @@ def run_real_stages(db: Path, repo_root: Path) -> None:
     ## fixture that hand-rolls the table instead would be free to drift from it.
     with sqlite3.connect(db) as _ts:
         mark_test_scope(_ts, list(TEST_PATH_FACTS))
+    ## The owners layer (2.0.0), by the real stage: the fidelity gate compares table sets.
+    from clew.owners import record_owners
+
+    with sqlite3.connect(db) as _ow:
+        record_owners(_ow, repo_root)
     write_build_signature(db)
 
 
