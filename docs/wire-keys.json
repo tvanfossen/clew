@@ -250,7 +250,9 @@
    "external_root": "str",
    "members_truncated": "bool",
    "generated_by": "GenerationRule | None",
-   "generates": "tuple[str, ...]"
+   "generates": "tuple[str, ...]",
+   "includes": "tuple[IncludeRef, ...] | None",
+   "included_by": "tuple[Includer, ...] | None"
   },
   "GenerationArg": {
    "literal": "str",
@@ -286,6 +288,16 @@
    "name": "str",
    "rowid": "int",
    "liveness": "str"
+  },
+  "IncludeRef": {
+   "spec": "str",
+   "file": "str | None",
+   "line": "int",
+   "local": "bool"
+  },
+  "Includer": {
+   "file": "str",
+   "line": "int"
   },
   "KconfigEntry": {
    "name": "str",

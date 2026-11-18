@@ -2170,6 +2170,37 @@ class FileMember:
     line: int = 0
 
 
+## @brief One `#include` directive a file contains, and the file it resolved to.
+## @version 1
+@dataclass(frozen=True)
+class IncludeRef:
+    """T3 served (2.0.0). `file` is None when no indexed file matches the spec: seen, not resolved.
+
+    @brief One include directive.
+    @version 1
+    """
+
+    spec: str
+    file: str | None
+    line: int
+    ## True for `"..."`, False for `<...>`.
+    local: bool
+
+
+## @brief One file that includes another, with the directive's line.
+## @version 1
+@dataclass(frozen=True)
+class Includer:
+    """T3 served (2.0.0).
+
+    @brief One includer.
+    @version 1
+    """
+
+    file: str
+    line: int
+
+
 ## @brief What the index holds about ONE file, as a dossier subject.
 ## @version 1
 @dataclass(frozen=True)
@@ -2198,7 +2229,7 @@ class FileSubject:
     reports once for the whole index rather than per file.
 
     @brief One file: its documentation, its symbols, whether anything was harvested, and the build rule that produces it.
-    @version 2
+    @version 3
     """
 
     path: str
@@ -2224,6 +2255,11 @@ class FileSubject:
     ## which is how they check they edited the right input. An empty tuple is a measurement — this
     ## index was read and this file generates nothing.
     generates: tuple[str, ...] = ()
+    ## T3 served (2.0.0; entropic F2, mbedtls F6): the include graph, both directions, from the AST
+    ## layer `ast_includes`. None (ABSENT) on an index built before the layer existed; an empty
+    ## tuple when the layer ran and this file includes nothing, or nothing includes it.
+    includes: tuple[IncludeRef, ...] | None = None
+    included_by: tuple[Includer, ...] | None = None
 
 
 ## The subject kinds `resolve_subject` can classify a name as, in PROBE ORDER. The order

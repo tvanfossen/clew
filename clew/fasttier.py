@@ -116,7 +116,7 @@ TABLE_CLASSES: dict[str, str] = {
     "shared_key_edges": "shared_key_edges",
     "unresolved_inbound": "unresolved_inbound",
     "includes": "includes",
-    "ast_includes": "includes",
+    "ast_includes": FAST,  # T3 served (2.0.0): the edited files' directives are re-read
     "kconfig_gates": "kconfig_gates",
     "config_defaults": "config_defaults",
     "req_edges": "req_edges",
@@ -504,7 +504,8 @@ def remap_line(line: int, old: list[int], new: list[int]) -> int:
 ## v2 (1.3.5 phase 5): re-folds the edited files' outgoing AST call edges after the shift.
 ## v3 (phase 6): replaces the edited files' code-corpus rows; returns the stale layers.
 ## v4 (phase 6): and their blocking call sites.
-## @version 4
+## v5: and their #include rows (2.0.0, T3 served)
+## @version 5
 ## @dg_internal
 def _apply(
     conn: sqlite3.Connection,
@@ -525,6 +526,7 @@ def _apply(
     @version 4
     """
     from .code_text import code_text_rows
+    from .ast_includes import refresh_ast_includes
     from .fasttier_calls import refresh_blocking_calls, refresh_outbound_calls
     from .fasttier_layers import refresh_code_text, refresh_text_layers
 
@@ -539,6 +541,7 @@ def _apply(
         files = {rel: p[0] for rel, p in plans.items()}
         maps = refresh_outbound_calls(conn, repo_root, cache, files)
         refresh_blocking_calls(conn, repo_root, cache, files, maps["file_funcs"])
+        refresh_ast_includes(conn, repo_root, cache, files)
         corpus_current = all(
             refresh_code_text(conn, repo_root, rel, cache, plan[3], before[rel])
             for rel, plan in plans.items()

@@ -24,6 +24,7 @@ from __future__ import annotations
 import fnmatch
 import re
 import sqlite3
+from typing import Any
 from pathlib import Path
 
 from ..vocabulary import EXTERNAL_ROOT_COLUMN, UNRESOLVED_PATH_COLUMN
@@ -48,6 +49,8 @@ from .models import (
     FileSubject,
     GenerationArg,
     GenerationRule,
+    IncludeRef,
+    Includer,
     IndexScope,
     MergedDeclaration,
     ProseHit,
@@ -294,7 +297,8 @@ def _was_harvested(conn: sqlite3.Connection, name: str) -> bool:
 ## @return The FileSubject, or None when the index knows of no such file.
 ## v2: carries the build rule that produces this file and the files it produces — the fact an
 ## index of what EXISTS structurally cannot hold, and the one mbedtls Q4's rubric calls decisive.
-## @version 2
+## v3: and its include graph, both directions (2.0.0, T3 served).
+## @version 3
 ## @req REQ-DDB-QUERY-004
 def file_subject(conn: sqlite3.Connection, name: str) -> FileSubject | None:
     """C1 of the 1.1.0 acceptance review, and the single largest item in it: 48 of 237 missed
@@ -314,7 +318,7 @@ def file_subject(conn: sqlite3.Connection, name: str) -> FileSubject | None:
 
     @brief Build the file subject by exact path.
     @return FileSubject or None.
-    @version 2
+    @version 3
     """
     if not is_indexed_file(conn, name):
         return None
@@ -338,7 +342,43 @@ def file_subject(conn: sqlite3.Connection, name: str) -> FileSubject | None:
         generated_by=generation_rule(conn, name),
         generates=generates_files(conn, name),
         members_truncated=len(members) > _FILE_MEMBER_CAP,
+        **_include_graph(conn, name),
     )
+
+
+## @brief One file's include graph, both directions, from `ast_includes`.
+## @param conn Open connection.
+## @param name The file's repo-relative path.
+## @return {includes, included_by}, or {} when the layer is absent.
+## @version 1
+## @req REQ-DDB-QUERY-004
+## @dg_internal
+def _include_graph(conn: sqlite3.Connection, name: str) -> dict[str, Any]:
+    """T3 served (2.0.0). The AST layer, not doxygen's `includes`: on mbedtls doxygen's table held 2
+    includers of `constant_time_internal.h` and `ast_includes` 18 (P2 measurement). An index
+    without the table returns {} so both fields stay ABSENT rather than reading as "none".
+
+    @brief Read the include graph.
+    @return Field values.
+    """
+    if not table_exists(conn, "ast_includes"):
+        return {}
+    out = conn.execute(
+        "SELECT i.spec, d.name, i.line, i.local FROM ast_includes i JOIN path s ON s.rowid = i.src_id "
+        "LEFT JOIN path d ON d.rowid = i.dst_id WHERE s.name = ? ORDER BY i.line",
+        (name,),
+    ).fetchall()
+    into = conn.execute(
+        "SELECT s.name, i.line FROM ast_includes i JOIN path s ON s.rowid = i.src_id "
+        "JOIN path d ON d.rowid = i.dst_id WHERE d.name = ? ORDER BY s.name, i.line",
+        (name,),
+    ).fetchall()
+    return {
+        "includes": tuple(
+            IncludeRef(spec=s, file=f, line=int(ln), local=bool(lo)) for s, f, ln, lo in out
+        ),
+        "included_by": tuple(Includer(file=str(f), line=int(ln)) for f, ln in into),
+    }
 
 
 ## @brief This file's file-level documentation, or '' when it carries none.

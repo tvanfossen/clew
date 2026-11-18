@@ -712,6 +712,10 @@ _DOSSIER_LISTS = (
     ## 2.0.0, T2. A function's declaration sites: one or two in practice (a header prototype),
     ## but a function redeclared across several headers has one row each, independent.
     "declared_at",
+    ## 2.0.0, T3 served. A file's include graph: a widely included header (`common.h` on mbedtls)
+    ## has an includer per translation unit, so `included_by` is bounded by the tree, not by clew.
+    "included_by",
+    "includes",
     ## gh#372 — the lists the NON-FUNCTION subject kinds contribute. A key that is not in
     ## this tuple is a list nothing can trim, so a subject kind added without its lists
     ## reintroduces the unbounded payload one kind at a time. Named here rather than

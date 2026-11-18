@@ -16,7 +16,7 @@ RESOLUTION, NEVER A GUESS. A quoted spec is tried beside the including file firs
 candidates resolve to none: picking one would assert an edge the build may not have.
 
 @brief The AST include layer.
-@version 1
+@version 2
 """
 
 from __future__ import annotations
@@ -143,12 +143,97 @@ class IncludeResolver:
         return candidates[0] if len(candidates) == 1 else None
 
 
+## @brief The rows one file's payload becomes.
+## @param resolver The resolver over the indexed path set.
+## @param src The including file's path rowid.
+## @param includer The including file's path.
+## @param payload The harvest payload, or None.
+## @return (src_id, dst_id, spec, local, line) rows.
+## @version 1
+## @dg_internal
+def _rows(resolver: IncludeResolver, src: int, includer: str, payload: Any) -> list[tuple]:
+    """ONE CONVERSION for the full stage and the fast tier, so a fast-refreshed row is the row a
+    full build writes for the same bytes.
+
+    @brief Payload to rows.
+    @return Rows.
+    """
+    return [
+        (src, resolver.resolve(spec, bool(quoted), includer), spec, quoted, line)
+        for spec, quoted, line in payload or ()
+    ]
+
+
+## @brief The resolver over this index's indexed files.
+## @param conn Open connection.
+## @return (resolver, {rowid: path}).
+## @version 1
+## @dg_internal
+def _resolver(conn: sqlite3.Connection) -> tuple[IncludeResolver, dict[int, str]]:
+    """ONLY FILES THAT EXIST resolve a spec. Doxygen writes a `path` row, `found = 0`, for every
+    include it could not find, so `<stdio.h>` has a row named `stdio.h`; resolving against those
+    rows turned "not in this tree" into an edge to a phantom file, and made a full build (which
+    has the phantom rows) disagree with a fast refresh (found by tests/test_file_includes.py).
+    `names` keeps every row, because an includer is named whatever its row says.
+
+    @brief Build the resolver. @return Resolver and names.
+    """
+    columns = {row[1] for row in conn.execute("PRAGMA table_info(path)")}
+    found = "AND COALESCE(found, 1) = 1" if "found" in columns else ""
+    names = {r: str(n) for r, n in conn.execute("SELECT rowid, name FROM path WHERE type = 1")}
+    real = {
+        r: str(n) for r, n in conn.execute(f"SELECT rowid, name FROM path WHERE type = 1 {found}")
+    }  # noqa: S608
+    return IncludeResolver(real), names
+
+
+_INSERT = (
+    "INSERT OR IGNORE INTO ast_includes (src_id, dst_id, spec, local, line) VALUES (?, ?, ?, ?, ?)"
+)
+
+
+## @brief Rewrite the edited files' `#include` rows (the fast tier).
+## @param conn Open connection, inside the fast tier's transaction.
+## @param repo_root The working tree.
+## @param cache The index cache.
+## @param files {repo-relative path: path rowid} of the edited files.
+## @return Rows written.
+## @version 1
+## @req REQ-DDB-INDEX-010
+def refresh_ast_includes(
+    conn: sqlite3.Connection, repo_root: Path, cache: IndexCache, files: dict[str, int]
+) -> int:
+    """EXACT, NOT APPROXIMATE (T3 served, 2.0.0). The fast tier runs only when the file set is
+    unchanged, so every spec resolves against the same paths a full build would see; only the
+    edited files' own directives can differ, and those are re-read here. NOT
+    `ensure_ast_includes_table`: its `executescript` would COMMIT mid-transaction, and an index
+    without the table never ran the layer.
+
+    @brief Refresh edited files' includes.
+    @return Rows written.
+    """
+    from .harvest import HarvestTally, _harvest_one_file
+
+    if conn.execute("SELECT 1 FROM sqlite_master WHERE name = 'ast_includes'").fetchone() is None:
+        return 0
+    resolver, _names = _resolver(conn)
+    written = 0
+    for rel, rowid in files.items():
+        conn.execute("DELETE FROM ast_includes WHERE src_id = ?", (rowid,))
+        payload = _harvest_one_file(
+            rel, repo_root / rel, includes_harvester(), {}, cache, HarvestTally()
+        )
+        written += conn.executemany(_INSERT, _rows(resolver, rowid, rel, payload)).rowcount
+    return written
+
+
 ## @brief Record every indexed file's `#include` directives.
 ## @param db_path The index.
 ## @param repo_root The repository.
 ## @param cache The run's index cache, or None.
 ## @return Directives recorded.
-## @version 1
+## v2: rows built by `_rows`, shared with the fast tier (2.0.0, T3 served)
+## @version 2
 ## @req REQ-DDB-INDEX-010
 def import_ast_includes(db_path: Path, repo_root: Path, cache: IndexCache | None = None) -> int:
     """@brief Fill ast_includes. @return Row count."""
@@ -156,17 +241,13 @@ def import_ast_includes(db_path: Path, repo_root: Path, cache: IndexCache | None
     try:
         ensure_ast_includes_table(conn)
         conn.execute("DELETE FROM ast_includes")
-        names = {r: str(n) for r, n in conn.execute("SELECT rowid, name FROM path WHERE type = 1")}
-        resolver = IncludeResolver(names)
+        resolver, names = _resolver(conn)
         rows = [
-            (src, resolver.resolve(spec, bool(quoted), names.get(src, "")), spec, quoted, line)
+            row
             for src, payload in run_harvest(conn, repo_root, includes_harvester(), cache)
-            for spec, quoted, line in payload or ()
+            for row in _rows(resolver, src, names.get(src, ""), payload)
         ]
-        conn.executemany(
-            "INSERT OR IGNORE INTO ast_includes (src_id, dst_id, spec, local, line) VALUES (?, ?, ?, ?, ?)",
-            rows,
-        )
+        conn.executemany(_INSERT, rows)
         conn.commit()
     finally:
         conn.close()
