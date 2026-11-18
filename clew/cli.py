@@ -78,7 +78,7 @@ from importlib.metadata import version as metadata_version
 from pathlib import Path
 from typing import Any
 
-from ._common import active_console, console, logger
+from ._common import active_console, console, logger, within_repo
 from .buildlog import build_log
 from .ast_symbols import recover_ast_symbols
 from .buildoptions import (
@@ -99,6 +99,8 @@ from .context import extract_context_conflicts
 from .coverage import report_index_coverage
 from .external import EXTERNAL_ROOTS_META_KEY, stamp_external_provenance
 from .declaration import (
+    DECLARATION_NAME,
+    SECTION_DOXYFILE,
     SECTION_TEST_PATHS,
     SECTION_DATA_MODEL,
     SECTION_DISPATCH,
@@ -3576,11 +3578,46 @@ def build_index(
         _run_pipeline(args)
 
 
+## @brief The Doxyfile the repo's own `.clew.yaml` declares, refused when missing or escaping.
+## @param repo_root The repo root.
+## @return The declared Doxyfile, or None when none is declared.
+## @version 1
+## @req REQ-DDB-CONFIG-001
+## @dg_internal
+def _declared_doxyfile(repo_root: Path) -> Path | None:
+    """REFUSED, NOT WARNED, when the declared file is missing or outside the repository: a
+    Doxyfile decides WHICH SOURCE is compiled into the index, so falling through to discovery or
+    synthesis builds a well-formed index of something else — the reason the tier-1 route already
+    refuses (`buildoptions.PATH_OPTIONS_MUST_EXIST`).
+
+    @brief Resolve the declared Doxyfile.
+    @return Path or None.
+    @version 1
+    """
+    declared = load_declaration(repo_root).get(SECTION_DOXYFILE)
+    if not declared:
+        return None
+    candidate = Path(declared).expanduser()
+    contained = within_repo(
+        candidate if candidate.is_absolute() else repo_root / candidate,
+        repo_root,
+        setting=SECTION_DOXYFILE,
+    )
+    if contained is None or not contained.is_file():
+        raise DeclarationError(
+            f"{DECLARATION_NAME}: {SECTION_DOXYFILE} names {declared}, which "
+            f"{'is outside the repository' if contained is None else 'does not exist'} — "
+            f"refusing rather than indexing a different file set through discovery or synthesis."
+        )
+    return contained
+
+
 ## @brief Resolve which Doxyfile to build with, and the repo root it belongs to.
 ## @param args Parsed CLI arguments.
 ## @param output Resolved --output path (its parent hosts a synthesized Doxyfile).
 ## @return (doxyfile, repo_root). Exits 1 when neither can be established.
-## @version 4
+## v5 (2.0.0): an in-tree `doxyfile:` declaration is read before discovery.
+## @version 5
 ## @dg_internal
 def _resolve_doxyfile_and_root(args: argparse.Namespace, output: Path) -> tuple[Path, Path]:
     """EXTRACTED from `_run_pipeline`, which the gh#3/gh#4 messaging work took to
@@ -3594,9 +3631,14 @@ def _resolve_doxyfile_and_root(args: argparse.Namespace, output: Path) -> tuple[
 
     @brief Decide the Doxyfile and repo root for this build.
     @return The resolved (doxyfile, repo_root) pair.
-    @version 4
+    @version 5
     """
     doxyfile = Path(args.doxyfile).resolve() if args.doxyfile else None
+    if doxyfile is None and args.repo_root:
+        ## R5-CFG F3 (2.0.0): the repo's own DECLARED Doxyfile comes before discovery. It was a
+        ## known section that only the tier-1 route applied, so an Mbed-TLS-shaped repo writing
+        ## the documented line got discovery or synthesis — an index of a different file set.
+        doxyfile = _declared_doxyfile(Path(args.repo_root).resolve())
     if doxyfile is None and args.repo_root:
         # Discover the repo's OWN Doxyfile before considering synthesis. Without
         # this the CLI jumped straight to a 3-line synthesized Doxyfile even for

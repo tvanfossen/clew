@@ -367,11 +367,11 @@ requirements:         docs/requirements.yaml
 thread_patterns:      {spawns: [{name: osThreadNew, entry_arg_index: 0}]}
 shared_key_patterns:  {writers: [{name_prefix: Store_Set}], readers: [{name_prefix: Store_Get}]}
 locks:                {locks: [{name: MyGuard, form: raii}]}
-dispatch:             {interfaces: [...]}
-mqtt_dispatch:        {subscribe_functions: [...]}
+dispatch:             {interfaces: [{interface: ops, binds: struct_ops, methods: [read, write]}]}
+mqtt_dispatch:        {subscribe_functions: [{fn_name: mqtt_subscribe, topic_arg_index: 0, handler_arg_index: 1}]}
 data_model:           tools/dm_full.toml
-kconfig:              {path: Kconfig}
-event_tags:           {emits: produce, handles: consume}
+kconfig:              {root: Kconfig}
+event_tags:           {emits: producer, handles: consumer}
 entry_patterns:       ["%trampoline%", "on_%"]
 enrich:               docs/architecture_topics.yaml
 doxyfile:             doxygen/project.doxyfile
