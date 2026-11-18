@@ -20,12 +20,32 @@
 #
 # EVERY CANDIDATE WAS VERIFIED BY HAND before it became a mark. The first survey of this tree
 # claimed `canViewArchivedChannels` had no callers; it has three, and Q4 is built on them.
+#
+# 2.0.0 (2026-11-17, the 2.0.0 rubric cross-check; every change re-read at the pin):
+#   Q1 m1   retyped retrieval — a literal in network_manager.ts:68-72, not an argued conclusion.
+#   Q1 m3   refs 175-180 -> 176-181 (the `if` is :176, `removePost` :181).
+#   Q1 m4   "Try Again" is the label (failed/index.tsx:51), not a phrase the answer must quote.
+#   Q2 m3   evidence adds the second guard, handlers/index.ts:156.
+#   Q3 m11  either exclusion suffices (the judge accepted one in three cells, refused it in a
+#           fourth). Weight stays 3: at 2 the set would carry 9/17 (>50%), which
+#           scripts/rubric_audit.py refuses.
+#   Q4 set  NARROWED to its evidence's own definition — direct callers of the two helpers. The
+#           old extract ("reading it, or calling a helper derived from it") admitted system.ts
+#           (it reads the key, :307/:311) and five files that branch on the value handed down as
+#           a prop (browse_channels.tsx:190, channel_dropdown.tsx:67, dropdown_slideup.tsx:74,
+#           archive.tsx:109/:121, category.ts:110); all 9 cells named at least one and precision
+#           was earned 0/9. Widening the set to those eleven instead was tried and refused by the
+#           audit (63% of the question).
+#   Q4 m8   the websocket path sets delete-at unconditionally (websocket/channel.ts:456).
+#   Q5 m6   WAS FALSE AT THE PIN: handlePosts (post.ts:516) and handleThreads (thread.ts:74) call
+#           `database.write` directly. Naming them is now correct, not a contradiction.
+#   Q5 set  weight 2 -> 1 (saturated 9/9; 8 of 16 points).
 
 schema: 1
 
 target: mattermost/mattermost-mobile
 commit: 4d842026f6917fb4af0fe3643ddbf2f5d2ae41c5
-version: 1.0.0
+version: 2.0.0
 
 ground_truth: |
   mattermost-mobile's own source at the commit above, read directly from an unmodified checkout.
@@ -68,12 +88,12 @@ questions:
       - text: >-
           explains that requests in general DO retry (exponential, limit 3, set by the network
           manager) and that posting opts out of it
-        type: conclusion
+        type: retrieval
         weight: 2
         evidence: |
           `retryPolicyConfiguration: {type: RetryTypes.EXPONENTIAL_RETRY, retryLimit: 3, ...}`
-          at managers/network_manager.ts:68-70.
-        refs: [["app/managers/network_manager.ts", 68, 70]]
+          at managers/network_manager.ts:68-72.
+        refs: [["app/managers/network_manager.ts", 68, 72]]
 
       - text: >-
           states that the post is written to the local database before it is sent, and on
@@ -93,17 +113,18 @@ questions:
         weight: 1
         evidence: |
           DELETED_ROOT_POST_ERROR, TOWN_SQUARE_READ_ONLY_ERROR, PLUGIN_DISMISSED_POST_ERROR →
-          `removePost`, actions/remote/post.ts:175-180.
-        refs: [["app/actions/remote/post.ts", 175, 180]]
+          `removePost`, actions/remote/post.ts:176-181 (the `if` at :176, `removePost` at :181).
+        refs: [["app/actions/remote/post.ts", 176, 181]]
 
       - text: >-
-          states that a retry happens only when the user chooses "Try Again" on the failed post,
-          and calls `retryFailedPost`
+          states that a retry happens only when the user picks the retry option on the failed
+          post's menu (labelled "Try Again"), which calls `retryFailedPost`
         type: retrieval
         weight: 2
         evidence: |
-          components/post_list/post/body/failed/index.tsx:46-48, text `mobile.post.failed_retry`
-          "Try Again"; the sibling option deletes the post (:53-59).
+          components/post_list/post/body/failed/index.tsx:46-48 calls `retryFailedPost`; the
+          item's text `mobile.post.failed_retry` "Try Again" is at :51; the sibling option deletes
+          the post (:53-59).
         refs: [["app/components/post_list/post/body/failed/index.tsx", 46, 59]]
 
       - text: >-
@@ -183,8 +204,10 @@ questions:
         evidence: |
           operator/utils/reaction.ts:22-57: with skipSync it returns `deleteReactions: []`
           (:49-50); otherwise every stored reaction absent from rawReactions is deleted (:54-57).
-          The added-event handler passes `skipSync: true` (actions/websocket/reactions.ts:28).
-        refs: [["app/database/operator/utils/reaction.ts", 22, 57], ["app/actions/websocket/reactions.ts", 28]]
+          The added-event handler passes `skipSync: true` (actions/websocket/reactions.ts:28), and
+          the operator's handler guards the deletion a second time with `deleteReactions?.length
+          && !skipSync` (server_data_operator/handlers/index.ts:156).
+        refs: [["app/database/operator/utils/reaction.ts", 22, 57], ["app/actions/websocket/reactions.ts", 28], ["app/database/operator/server_data_operator/handlers/index.ts", 156]]
 
       - text: >-
           notes that both handlers swallow any error silently (empty catch), so a failed write
@@ -255,9 +278,9 @@ questions:
         refs: [["app/components/navigation_header/index.tsx", 53], ["app/components/navigation_header/index.tsx", 128, 134]]
 
       - text: >-
-          does not count renderers of `Header` from `navigation_header/header.tsx` — a different
-          component in the same directory, rendered directly by a navigation hook and the thread
-          route — as renderers of NavigationHeader
+          states that `Header` (`navigation_header/header.tsx`) is a different component from
+          NavigationHeader, and that a file which renders `Header` directly (the navigation hook
+          or the thread route; naming either is enough) is not a NavigationHeader renderer
         type: conclusion
         weight: 3
         evidence: |
@@ -290,14 +313,16 @@ questions:
           queries/servers/system.ts:304, with the server-version rationale at :296-302.
         refs: [["app/queries/servers/system.ts", 296, 304]]
 
-      - text: every file whose behaviour depends on the setting
+      - text: every file that calls `canViewArchivedChannels` or `observeCanViewArchivedChannels`
         type: set
         weight: 1
         extract: |
-          List every source file path the answer names as having behaviour that depends on the
-          ExperimentalViewArchivedChannels setting (reading it, or calling a helper derived from
-          it). Paths only, one per line, exactly as the answer writes them. If it names none,
-          reply NONE.
+          List every source file path the answer names as CALLING one of the helpers derived from
+          the ExperimentalViewArchivedChannels setting (`canViewArchivedChannels` or
+          `observeCanViewArchivedChannels`). Do NOT list the file that defines them
+          (app/queries/servers/system.ts), a type declaration, or files that only receive the
+          result as a prop or argument. Paths only, one per line, exactly as the answer writes
+          them. If it names none, reply NONE.
         members:
           - {value: "app/actions/websocket/channel.ts", evidence: "canViewArchivedChannels at :463"}
           - {value: "app/actions/remote/channel.ts", evidence: "canViewArchivedChannels at :1397"}
@@ -309,18 +334,22 @@ questions:
           The key is read only in queries/servers/system.ts:306-315, by `canViewArchivedChannels`
           and `observeCanViewArchivedChannels`; the members are every caller of either, by
           `grep -rnw` over app/ and share_extension/, tests excluded. system.ts itself (the
-          definition) and types/api/config.d.ts (the type) are not behaviour and not members.
+          definition), types/api/config.d.ts (the type), and the five files that branch on the
+          derived value handed down as a prop (browse_channels.tsx:190, channel_dropdown.tsx:67,
+          dropdown_slideup.tsx:74, archive.tsx:109/:121, category.ts:110) are not members — the
+          extract excludes them by name, so naming them costs nothing.
 
       - text: >-
           states that when a channel is archived while archived channels are NOT viewable, the
           user is removed from it (and kicked out if it is the current channel); when viewable,
-          the channel is kept and marked deleted
+          the channel is kept locally with its delete-at set
         type: conclusion
         weight: 2
         evidence: |
-          websocket channel-deleted handler, actions/websocket/channel.ts:463-468;
-          `archiveChannel`, actions/remote/channel.ts:1397-1401.
-        refs: [["app/actions/websocket/channel.ts", 463, 468], ["app/actions/remote/channel.ts", 1397, 1401]]
+          websocket channel-deleted handler, actions/websocket/channel.ts:463-468 (it sets
+          delete-at at :456 in BOTH cases, before the check); `archiveChannel`,
+          actions/remote/channel.ts:1397-1401, sets it only when viewable.
+        refs: [["app/actions/websocket/channel.ts", 456, 468], ["app/actions/remote/channel.ts", 1397, 1401]]
 
       - text: >-
           states that post search sends the setting to the server as `include_deleted_channels`
@@ -340,8 +369,9 @@ questions:
 
       The conclusion asks where the handlers' writes go: every mixin is typed against
       `ServerDataOperatorBase`, so `this.batchRecords` inside any of them is
-      `BaseDataOperator.batchRecords`, the one place that opens a WatermelonDB write for the
-      operator — and `AppDataOperator` shares it.
+      `BaseDataOperator.batchRecords`, the shared place that opens a WatermelonDB write for the
+      operator — apart from two direct deletions, in `handlePosts` (post.ts:516) and
+      `handleThreads` (thread.ts:74) — and `AppDataOperator` shares it.
 
       THE SET IS THE THREE, NOT THE THIRTEEN. A thirteen-member set made one mark 88% of the
       question's weight, and the ten that sit together are not where the difficulty is.
@@ -375,7 +405,7 @@ questions:
 
       - text: every file outside the operator's own handlers directory that defines one of its handlers
         type: set
-        weight: 2
+        weight: 1
         extract: |
           List every source file path the answer names as defining a handler mixin of
           ServerDataOperator OUTSIDE app/database/operator/server_data_operator/handlers/. Paths
@@ -391,16 +421,22 @@ questions:
           group, post, properties, team, team_threads_sync, thread, user).
 
       - text: >-
-          concludes that every handler's writes go through `batchRecords` inherited from
-          `BaseDataOperator`, because each mixin is constrained to extend ServerDataOperatorBase
+          concludes that the handlers' batched writes go through the `batchRecords` they inherit
+          from `BaseDataOperator` (each mixin is constrained to / applied over
+          `ServerDataOperatorBase`, which extends `BaseDataOperator`), not a write of their own.
+          Naming the direct `database.write` deletions in `handlePosts` (post.ts:516) and
+          `handleThreads` (thread.ts:74) as exceptions is correct and does not count against the
+          answer
         type: conclusion
         weight: 3
         evidence: |
           Each mixin is `<TBase extends Constructor<ServerDataOperatorBase>>(superclass: TBase) =>
           class extends superclass`; `ServerDataOperatorBase extends BaseDataOperator`
           (handlers/index.ts:31); `batchRecords` performs `database.write(... writer.batch(...))`
-          at base_data_operator/index.ts:191-195.
-        refs: [["app/database/operator/server_data_operator/handlers/index.ts", 31], ["app/database/operator/base_data_operator/index.ts", 191, 195]]
+          at base_data_operator/index.ts:191-195. Two direct writes exist besides it:
+          server_data_operator/handlers/post.ts:516 and handlers/thread.ts:74 (`grep -rnE
+          "\.write\(" app/database/operator app/products/*/database/operators`, tests excluded).
+        refs: [["app/database/operator/server_data_operator/handlers/index.ts", 31], ["app/database/operator/base_data_operator/index.ts", 191, 195], ["app/database/operator/server_data_operator/handlers/post.ts", 516], ["app/database/operator/server_data_operator/handlers/thread.ts", 74]]
 
       - text: >-
           names AppDataOperator as the other subclass of BaseDataOperator, sharing the same write
