@@ -48,7 +48,7 @@ from pathlib import Path
 from typing import Any
 
 from ._common import logger
-from .config_defaults import ORIGIN_DECLARED
+from .query._common import decided_default
 from .harvest import Harvester, run_harvest
 from .indexcache import IndexCache
 from .vocabulary import (
@@ -264,7 +264,9 @@ def macro_definitions(
 ## @return {macro: True for on, False for off}, unanimous symbols only.
 ## v2 (2.0.0): only a unanimous state outside the test files decides (measured on mbedtls).
 ## v3 (2.0.0): where a macro has a row from a DECLARED config header, only declared rows vote.
-## @version 3
+## v4 (2.0.0): decided by `query._common.decided_default`, the query layer's rule, so a shipped
+## header settles a disagreement with an alternative profile here as it does in a dossier.
+## @version 4
 ## @dg_internal
 def _shipped_states(
     conn: sqlite3.Connection, test_patterns: tuple[str, ...] | list[str] | None = None
@@ -280,19 +282,22 @@ def _shipped_states(
     """
     try:
         rows = conn.execute(
-            "SELECT macro, state, file_path, origin FROM config_defaults"
+            "SELECT macro, state, file_path, line, origin FROM config_defaults"
         ).fetchall()
     except sqlite3.OperationalError:
         return {}
     tests = _test_files(conn, test_patterns, {r[2] for r in rows})
-    ## A DECLARED HEADER IS THE OPERATOR SAYING WHICH ONE THE BUILD READS: where a macro has a row
-    ## from one, only declared rows vote, so an alternative profile cannot make it undecided.
-    declared = {m for m, _s, f, origin in rows if origin == ORIGIN_DECLARED and f not in tests}
-    seen: dict[str, set[str]] = {}
-    for macro, state, file_path, origin in rows:
-        if file_path not in tests and (macro not in declared or origin == ORIGIN_DECLARED):
-            seen.setdefault(macro, set()).add(state)
-    return {m: states == {CONFIG_DEFAULT_ON} for m, states in seen.items() if len(states) == 1}
+    ## THE QUERY LAYER'S RULE (`query._common.decided_default`): declared rows, else shipped, else
+    ## all, deciding only when unanimous. One rule, so the definition a reference credits is the
+    ## one a dossier says the default build compiles.
+    by_macro: dict[str, list[tuple[str, str, int, str]]] = {}
+    for macro, state, file_path, line, origin in rows:
+        if file_path not in tests:
+            by_macro.setdefault(macro, []).append((state, file_path, int(line or 0), origin))
+    decided = {
+        m: d for m, macro_rows in by_macro.items() if (d := decided_default(macro_rows)) is not None
+    }
+    return {m: d[0] == CONFIG_DEFAULT_ON for m, d in decided.items()}
 
 
 ## @brief Whether the default build compiles a line: False only when a known gate excludes it.

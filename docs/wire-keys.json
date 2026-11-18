@@ -320,7 +320,8 @@
    "origin": "str",
    "end_line": "int",
    "default_state": "str",
-   "default_site": "str"
+   "default_site": "str",
+   "in_default_build": "bool | None"
   },
   "KconfigSpace": {
    "found": "bool",

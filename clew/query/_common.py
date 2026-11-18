@@ -877,6 +877,42 @@ def is_shipped_config(path: str) -> bool:
     return not any(part in lower for part in _NOT_SHIPPED_DIRS)
 
 
+## `config_defaults.ORIGIN_DECLARED`, spelled here because `query/` is stdlib-only and must not import
+## the pipeline; `tests/test_gate_polarity.py` pins the two equal.
+CONFIG_ORIGIN_DECLARED = "declared"
+
+
+## @brief The default state one macro's config rows decide, with the site that decides it.
+## @param rows (state, file_path, line, origin) for one macro, test configs already excluded.
+## @return (state, "path:line"), or None when the rows do not decide it.
+## @version 1
+## @req REQ-DDB-QUERY-013
+def decided_default(rows: list[tuple[str, str, int, str]]) -> tuple[str, str] | None:
+    """ONE RULE, TWO READERS (2.0.0, T5 served). The query layer (`kconfig._with_defaults`, what a
+    dossier says) and the build (`macro_refs`, which same-name definition a reference credits)
+    decided the same question differently: the query let the shipped header settle a
+    disagreement, the build required unanimity, so a dossier said MBEDTLS_PLATFORM_MEMORY is off
+    while both `mbedtls_calloc` definitions stayed credited. And the query kept the LAST row
+    whenever two declared or two shipped rows disagreed.
+
+    TIERS, MOST AUTHORITATIVE FIRST: rows from a DECLARED header (the operator named the build's
+    header); else rows from a SHIPPED one (`is_shipped_config`); else every row. The first
+    non-empty tier answers, and only when it is unanimous. Disagreement inside the deciding tier
+    is undecided, never the last row read.
+
+    @brief Decide a macro's default.
+    @return (state, site) or None.
+    """
+    declared = [r for r in rows if r[3] == CONFIG_ORIGIN_DECLARED]
+    shipped = [r for r in rows if is_shipped_config(r[1])]
+    tier = declared or shipped or rows
+    states = {r[0] for r in tier}
+    if len(states) != 1:
+        return None
+    state, path, line, _origin = sorted(tier, key=lambda r: (r[1], r[2]))[0]
+    return state, f"{path}:{line}"
+
+
 ## How much free prose a dossier carries before it says it stopped.
 ##
 ## MEASURED RATHER THAN GUESSED, on mbedtls: 4,268 rows carry detail, averaging 1,052 characters,

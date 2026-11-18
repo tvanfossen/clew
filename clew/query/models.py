@@ -1721,6 +1721,12 @@ class KconfigGate:
     ## detectors.
     default_site: str = ""
 
+    ## T5 SERVED (2.0.0; mbedtls F1): whether the code this row guards is compiled in a default
+    ## build, which is `form` and `default_state` combined: `ifdef` + on, or `ifndef` + off, is in.
+    ## The 1.4.0 grid showed readers combining the two wrongly. None (ABSENT) whenever either half
+    ## does not decide it: an `if_expr` has no polarity, and an undecided default is not off.
+    in_default_build: bool | None = None
+
 
 ## @brief A repo's configuration space, with the provenance of the answer.
 ## @version 1

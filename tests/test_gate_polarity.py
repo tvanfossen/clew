@@ -180,3 +180,48 @@ def test_a_declared_config_header_outvotes_heuristic_ones(tmp_path) -> None:
         "INSERT INTO config_defaults VALUES ('MEM', 'on', '', 'profile.h', 1, '', 'heuristic')"
     )
     assert macro_definitions(conn)["mem_calloc"] == [11], "declared off wins over a heuristic on"
+
+
+def test_the_shipped_header_decides_over_an_alternative_profile(tmp_path) -> None:
+    """THE QUERY LAYER'S RULE, AT BUILD TIME TOO (2.0.0, T5 served). `query.kconfig._with_defaults`
+    lets the shipped header settle a disagreement with an alternative profile, so a dossier said
+    MBEDTLS_PLATFORM_MEMORY is off while `macro_refs`, deciding by unanimity alone, kept both
+    `mbedtls_calloc` definitions. One rule now serves both (`query._common.decided_default`).
+
+    @brief A configs/ profile does not outvote the shipped header.
+    """
+    from clew.macro_refs import macro_definitions
+
+    conn = _macro_db(tmp_path)
+    conn.execute(
+        "INSERT INTO config_defaults VALUES ('MEM', 'on', '', 'configs/profile.h', 1, '', 'heuristic')"
+    )
+    assert macro_definitions(conn)["mem_calloc"] == [11], "shipped off wins over a configs/ on"
+
+
+def test_two_shipped_headers_that_disagree_decide_nothing_on_either_side(tmp_path) -> None:
+    """NO LAST-ROW-WINS ANYWHERE. Both sides used to differ here: the query layer kept whichever
+    shipped row it met last, the build kept both definitions. Now both say undecided.
+
+    @brief Disagreement within a tier is undecided, at build time and at query time.
+    """
+    from clew.macro_refs import macro_definitions
+    from clew.query.kconfig import _with_defaults
+    from clew.query.models import KconfigGate
+
+    conn = _macro_db(tmp_path)
+    conn.execute(
+        "INSERT INTO config_defaults VALUES ('MEM', 'on', '', 'include/adjust.h', 1, '', 'heuristic')"
+    )
+    assert sorted(macro_definitions(conn)["mem_calloc"]) == [10, 11]
+    gate = KconfigGate(symbol="MEM", macro="MEM", form="ifdef", file_path="platform.h", line=1)
+    (served,) = _with_defaults(conn, (gate,))
+    assert served.default_state == "" and served.in_default_build is None
+
+
+def test_the_query_layer_spells_the_declared_origin_as_the_pipeline_does() -> None:
+    """@brief One value, two spellings (query/ cannot import the pipeline): pinned equal."""
+    from clew.config_defaults import ORIGIN_DECLARED
+    from clew.query._common import CONFIG_ORIGIN_DECLARED
+
+    assert CONFIG_ORIGIN_DECLARED == ORIGIN_DECLARED
