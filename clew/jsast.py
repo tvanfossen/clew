@@ -95,44 +95,51 @@ def _tail(node: Any) -> str:
     return ""
 
 
-## @brief Local names a file binds by importing from a PACKAGE (not a `./` or `../` path).
+## @brief Local names a file binds by a NON-RELATIVE import, each with the package it names.
 ## @param node Any node of the file.
-## @return The bound local names.
-## @version 1
+## @return {local name: package name}.
+## v2 (2.0.0, D7 corrected): returns each binding's package; externality is decided at link time.
+## @version 2
 ## @dg_internal
-def _package_bindings(node: Any) -> frozenset[str]:
+def _package_bindings(node: Any) -> dict[str, str]:
     """R5-CORE D7 (2.0.0): `import React from 'react'`, `import * as R from 'react'` and
-    `import { Component as C } from '@scope/ui'` bind `React`, `R` and `C` to code OUTSIDE the
-    repository. Only top-level `import_statement`s are read; a relative specifier is the
-    repository's own module and binds nothing here.
+    `import { Component as C } from '@scope/ui/x'` bind `React`, `R` and `C` to the packages
+    `react` and `@scope/ui`. Only top-level `import_statement`s are read; a relative specifier is
+    the repository's own module and binds nothing here.
 
-    @brief Package-bound names.
-    @return Names.
+    A NON-RELATIVE SPECIFIER IS NOT NECESSARILY A PACKAGE: a tsconfig path alias
+    (`@database/operator/...`) names the repository's own code. Whether the package is EXTERNAL
+    is therefore decided at link time against the declared dependencies (`synth.inheritance`),
+    never here.
+
+    @brief Non-relative import bindings.
+    @return Name to package.
     """
     root = node
     while root.parent is not None:
         root = root.parent
-    names: set[str] = set()
+    names: dict[str, str] = {}
     for stmt in root.named_children:
         if stmt.type != "import_statement":
             continue
         source = next((c for c in stmt.named_children if c.type == "string"), None)
         spec = _text(source).strip("'\"`") if source is not None else ""
-        if not spec or spec.startswith("."):
+        if not spec or spec.startswith(".") or spec.startswith("/"):
             continue
+        package = "/".join(spec.split("/")[: 2 if spec.startswith("@") else 1])
         clause = next((c for c in stmt.named_children if c.type == "import_clause"), None)
         stack = list(clause.named_children) if clause is not None else []
         while stack:
             part = stack.pop()
             if part.type == "identifier":
-                names.add(_text(part))
+                names[_text(part)] = package
             elif part.type == "import_specifier":
                 ids = [c for c in part.named_children if c.type == "identifier"]
                 if ids:
-                    names.add(_text(ids[-1]))
+                    names[_text(ids[-1])] = package
             else:
                 stack.extend(part.named_children)
-    return frozenset(names)
+    return names
 
 
 ## @brief The root identifier of a dotted heritage expression (`React` of `React.Component`).
@@ -150,13 +157,11 @@ def _root_name(node: Any) -> str:
 
 
 ## Version 2: a heritage CALL (`mix(Base).with(A, B)`) contributes its argument classes.
-## Version 3 (2.0.0, R5-CORE D7): a base bound by a PACKAGE import is external and recorded
-## as nothing, so it cannot link to a same-named class of the repository's own.
 ##
 ## @brief The base names a class or interface declares (extends / implements).
 ## @param node A class-like declaration.
 ## @return Tail names of every base, in order.
-## @version 3
+## @version 2
 ## @dg_internal
 def _bases(node: Any) -> list[str]:
     """JavaScript writes `class A extends B` as a `class_heritage` holding the expression;
@@ -167,7 +172,6 @@ def _bases(node: Any) -> list[str]:
     @return The names.
     """
     bases: list[str] = []
-    external: frozenset[str] | None = None
     for child in node.named_children:
         if child.type not in ("class_heritage", "extends_type_clause"):
             continue
@@ -176,9 +180,7 @@ def _bases(node: Any) -> list[str]:
             part = stack.pop()
             name = _tail(part)
             if name:
-                external = _package_bindings(node) if external is None else external
-                if _root_name(part) not in external:
-                    bases.append(name)
+                bases.append(name)
             elif part.type == "call_expression":
                 bases.extend(_composed_bases(part))
             elif part.type in ("extends_clause", "implements_clause", "generic_type"):
@@ -665,9 +667,37 @@ def _value_record(name: str, value: Any, node: Any, owner: str) -> dict[str, Any
     }
 
 
+## @brief The package each directly named base is imported from, where one is.
+## @param node A class-like declaration.
+## @return {base tail name: package}, only for bases bound by a non-relative import.
+## @version 1
+## @dg_internal
+def _base_packages(node: Any) -> dict[str, str]:
+    """R5-CORE D7 (2.0.0): `extends React.Component` records `{Component: react}`; a relative or
+    same-file base records nothing. @brief Bases' packages. @return Map."""
+    bindings: dict[str, str] | None = None
+    out: dict[str, str] = {}
+    for child in node.named_children:
+        if child.type not in ("class_heritage", "extends_type_clause"):
+            continue
+        stack = list(child.named_children)
+        while stack:
+            part = stack.pop()
+            name = _tail(part)
+            if name:
+                bindings = _package_bindings(node) if bindings is None else bindings
+                package = bindings.get(_root_name(part))
+                if package:
+                    out[name] = package
+            elif part.type in ("extends_clause", "implements_clause", "generic_type"):
+                stack.extend(part.named_children)
+    return out
+
+
 ## @brief One class-like declaration as a JSON-safe record.
 ## @return The record.
-## @version 2
+## v3 (2.0.0, R5-CORE D7): `base_packages`, each base's import package.
+## @version 3
 ## @dg_internal
 def _class_record(node: Any, spec: Any, name: str, kind: str, outer: str | None) -> dict[str, Any]:
     return {
@@ -677,6 +707,7 @@ def _class_record(node: Any, spec: Any, name: str, kind: str, outer: str | None)
         "line": node.start_point[0] + 1,
         "col": node.start_point[1],
         "bases": [_mixin_base(node)] if _mixin_base(node) else _bases(node),
+        "base_packages": _base_packages(node),
         "doc": _doc_raw(node, spec),
     }
 
