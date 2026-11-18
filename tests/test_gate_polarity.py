@@ -103,3 +103,61 @@ def test_an_undecided_symbol_keeps_every_definition(tmp_path) -> None:
     conn = _macro_db(tmp_path)
     conn.execute("DELETE FROM config_defaults")
     assert sorted(macro_definitions(conn)["mem_calloc"]) == [10, 11]
+
+
+def test_a_macro_defined_in_a_source_file_is_invisible_to_other_files(tmp_path) -> None:
+    """A `#define` in a `.c` file exists only in that translation unit, so a reference from
+    another file never credits it (measured on mbedtls: `mbedtls_printf` refs from every file
+    were credited to ccm.c's local fallback define).
+
+    @brief Translation-unit visibility.
+    """
+    from clew.macro_refs import _same_file_first
+
+    conn = _macro_db(tmp_path)
+    conn.execute("INSERT INTO path VALUES (3, 'ccm.c'), (4, 'other.c')")
+    conn.execute("INSERT INTO memberdef VALUES (12, 'mem_calloc', 'macro definition', 3, 5)")
+    assert sorted(_same_file_first([10, 12], 4, conn)) == [10]
+    assert _same_file_first([10, 12], 3, conn) == [12]
+
+
+def test_conflicting_or_test_only_states_decide_nothing(tmp_path) -> None:
+    """MEASURED ON MBEDTLS: `config_defaults` holds rows from alternative profiles, the
+    `config_adjust_*` headers and test configs — 92 macros with conflicting states, and
+    `MBEDTLS_PSA_ACCEL_ALG_RSA_OAEP` "on" from a test-driver config alone. Taking the last row
+    dropped definitions the default build compiles. A symbol is decided only when every row
+    outside the test files agrees.
+
+    @brief Disagreeing or test-only states are unknown, so both definitions are kept.
+    """
+    from clew.macro_refs import macro_definitions
+
+    conn = _macro_db(tmp_path)
+    conn.execute(
+        "INSERT INTO config_defaults VALUES ('MEM', 'on', '', 'profile.h', 1, '', 'source')"
+    )
+    assert sorted(macro_definitions(conn)["mem_calloc"]) == [10, 11], "off vs on: undecided"
+    conn.execute("DELETE FROM config_defaults")
+    conn.executescript(
+        "INSERT INTO path VALUES (9, 'tests/cfg.h');"
+        "CREATE TABLE test_scope (path_rowid INTEGER PRIMARY KEY); INSERT INTO test_scope VALUES (9);"
+        "INSERT INTO config_defaults VALUES ('MEM', 'on', '', 'tests/cfg.h', 1, '', 'source');"
+    )
+    assert sorted(macro_definitions(conn)["mem_calloc"]) == [10, 11], (
+        "a test config decides nothing"
+    )
+
+
+def test_the_build_s_test_patterns_apply_before_test_scope_exists(tmp_path) -> None:
+    """The macro stage runs before `test_scope` is marked, so the build passes its patterns.
+    Measured on mbedtls: with only the table consulted, a test-driver config still decided
+    `MBEDTLS_PSA_ACCEL_ALG_RSA_OAEP` at build time and dropped definitions of MBEDTLS_RSA_C.
+
+    @brief Patterns, not the table, at build time.
+    """
+    from clew.macro_refs import macro_definitions
+
+    conn = _macro_db(tmp_path)
+    conn.execute("UPDATE config_defaults SET file_path = 'tests/cfg.h'")
+    assert sorted(macro_definitions(conn, ["tests/*"])["mem_calloc"]) == [10, 11]
+    assert macro_definitions(conn)["mem_calloc"] == [11], "no patterns, no table: the row decides"

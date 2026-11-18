@@ -1937,7 +1937,8 @@ def _doxygen_meta(args) -> dict[str, str]:
 ## v68: the owners stage (2.0.0, S2/S3)
 ## v69: file_licenses and kerneldoc stages (2.0.0, S5/S6)
 ## v70: the blocking declaration reaches the plan (2.0.0, C1)
-## @version 70
+## v71: the macro stage takes the build's test patterns (2.0.0)
+## @version 71
 ## @req REQ-DDB-PIPE-001
 ## @req REQ-DDB-MCP-004
 ## @req REQ-DDB-CONFIG-007
@@ -2188,7 +2189,7 @@ def _build_stages(
     timer.mark("ast_call_edges")
     ## AFTER the call-edge stages, because it joins recovered identifiers against `memberdef`
     ## and a macro recovered by `ast_symbols` must already have its row (gh#9).
-    import_ast_macro_refs(output, repo_root, cache)
+    import_ast_macro_refs(output, repo_root, cache, list(_test_paths(args, decl).values))
     timer.mark("macro_refs")
     ## `preprocessor` is passed for gh#35: Layer 4 needs it to choose which `#if` branch a
     ## conditional function-pointer binding belongs to. It was resolved 60-odd lines above

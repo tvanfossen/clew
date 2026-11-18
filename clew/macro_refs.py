@@ -218,10 +218,14 @@ def _identifiers_in(body: Any, src_bytes: bytes) -> list[tuple[str, int]]:
 ##
 # @brief Every macro name's definitions, those the default build does not compile removed.
 # @param conn Open index connection.
+# @param test_patterns The build's test-path patterns, or None to read `test_scope`.
 # @return {name: [memberdef rowids]}.
-# @version 1
+# v2: config states in test files decide nothing; the build passes its test patterns (2.0.0, measured on mbedtls)
+# @version 2
 # @req REQ-DDB-PIPE-003
-def macro_definitions(conn: sqlite3.Connection) -> dict[str, list[int]]:
+def macro_definitions(
+    conn: sqlite3.Connection, test_patterns: tuple[str, ...] | list[str] | None = None
+) -> dict[str, list[int]]:
     """UPERF T5 (2.0.0, mbedtls F3): `{name: rowid}` kept whichever same-name definition was read
     LAST, so `mbedtls_calloc` — defined in three `#if` branches of platform.h — was credited to an
     arbitrary one. A definition inside a branch the DEFAULT BUILD does not compile is dropped: its
@@ -244,7 +248,7 @@ def macro_definitions(conn: sqlite3.Connection) -> dict[str, list[int]]:
     )
     for rowid, name, file_path, line in conn.execute(query):
         by_name.setdefault(name, []).append((rowid, file_path or "", line or 0))
-    states = _shipped_states(conn)
+    states = _shipped_states(conn, test_patterns)
     out = {}
     for name, defs in by_name.items():
         kept = [
@@ -256,18 +260,32 @@ def macro_definitions(conn: sqlite3.Connection) -> dict[str, list[int]]:
 
 ## @brief The shipped on/off state of every option a configuration header decides.
 ## @param conn Open connection.
-## @return {macro: True for on, False for off}.
-## @version 1
+## @return {macro: True for on, False for off}, unanimous symbols only.
+## v2 (2.0.0): only a unanimous state outside the test files decides (measured on mbedtls).
+## @version 2
 ## @dg_internal
-def _shipped_states(conn: sqlite3.Connection) -> dict[str, bool]:
-    """@brief Read config_defaults. @return States."""
+def _shipped_states(
+    conn: sqlite3.Connection, test_patterns: tuple[str, ...] | list[str] | None = None
+) -> dict[str, bool]:
+    """ONLY A UNANIMOUS STATE DECIDES. `config_defaults` records every header that visibly
+    decides an option — the shipped config, alternative profiles, `config_adjust_*` headers and
+    test configs — and nothing in the index says which one the default build reads. Measured on
+    mbedtls: 92 macros carry conflicting states, and taking the last row dropped definitions the
+    default build compiles. Rows in test files (`test_scope`) are ignored; a symbol whose
+    remaining rows disagree is unknown, and unknown drops nothing.
+
+    @brief Read config_defaults. @return States.
+    """
     try:
-        return {
-            m: s == CONFIG_DEFAULT_ON
-            for m, s in conn.execute("SELECT macro, state FROM config_defaults")
-        }
+        rows = conn.execute("SELECT macro, state, file_path FROM config_defaults").fetchall()
     except sqlite3.OperationalError:
         return {}
+    tests = _test_files(conn, test_patterns, {r[2] for r in rows})
+    seen: dict[str, set[str]] = {}
+    for macro, state, file_path in rows:
+        if file_path not in tests:
+            seen.setdefault(macro, set()).add(state)
+    return {m: states == {CONFIG_DEFAULT_ON} for m, states in seen.items() if len(states) == 1}
 
 
 ## @brief Whether the default build compiles a line: False only when a known gate excludes it.
@@ -303,26 +321,95 @@ def _compiled(
 ## @param path_rowid The referring file.
 ## @param conn Open connection.
 ## @return The definitions credited.
-## @version 1
+## v2 (2.0.0): a definition in a source file is credited only from that file.
+## @version 2
 ## @dg_internal
 def _same_file_first(rowids: list[int], path_rowid: int, conn: sqlite3.Connection) -> list[int]:
     """A REFERENCE IN THE FILE THAT DEFINES THE NAME means that file's definition; otherwise every
     kept definition is credited — several rows rather than one arbitrary pick.
 
+    A DEFINITION IN A SOURCE FILE IS INVISIBLE OUTSIDE IT (translation-unit rule, a C fact): a
+    `#define` in `ccm.c` cannot be what `ssl_tls.c` expands. Measured on mbedtls before this
+    rule: references to `mbedtls_printf` from every file were credited to the local fallback
+    defines in `library/ccm.c` and `programs/test/udp_proxy.c` as well as platform.h's.
+
     @brief Choose the credited definitions.
     @return Rowids.
     """
-    if len(rowids) <= 1:
-        return list(rowids)
+    if not rowids:
+        return []
     marks = ",".join("?" * len(rowids))
-    own = [
-        r
-        for (r,) in conn.execute(
-            f"SELECT rowid FROM memberdef WHERE rowid IN ({marks}) AND file_id = ?",
-            (*rowids, path_rowid),
-        )
+    rows = (
+        conn.execute(
+            f"SELECT m.rowid, m.file_id, p.name FROM memberdef m LEFT JOIN path p ON p.rowid = m.file_id "
+            f"WHERE m.rowid IN ({marks})",
+            rowids,
+        ).fetchall()
+        if _has_path(conn)
+        else [(r, None, "") for r in rowids]
+    )
+    own = [r for r, file_id, _name in rows if file_id == path_rowid]
+    visible = [
+        r for r, file_id, name in rows if file_id == path_rowid or not _is_source_file(name or "")
     ]
-    return own or list(rowids)
+    return own or visible
+
+
+## @brief Which of these files are test code.
+## @param conn Open connection.
+## @param test_patterns The build's test-path patterns, or None to read `test_scope`.
+## @param files Candidate repo-relative paths.
+## @return The subset that is test code.
+## @version 1
+## @dg_internal
+def _test_files(
+    conn: sqlite3.Connection, test_patterns: tuple[str, ...] | list[str] | None, files: set[str]
+) -> set[str]:
+    """THE BUILD PASSES ITS PATTERNS because this stage runs before `test_scope` is marked (that
+    stage waits for the complete path table); a caller with a finished index reads the table.
+
+    @brief Test-file subset.
+    @return Paths.
+    """
+    if test_patterns is not None:
+        from .testscope import is_test_path
+
+        return {f for f in files if is_test_path(f, test_patterns)}
+    if (
+        not _has_path(conn)
+        or not conn.execute("SELECT 1 FROM sqlite_master WHERE name = 'test_scope'").fetchone()
+    ):
+        return set()
+    return {
+        r[0]
+        for r in conn.execute(
+            "SELECT p.name FROM test_scope t JOIN path p ON p.rowid = t.path_rowid"
+        )
+    }
+
+
+## C and C++ translation-unit suffixes: a macro defined in one is not visible to another file.
+_SOURCE_SUFFIXES = (".c", ".cc", ".cpp", ".cxx", ".c++")
+
+
+## @brief Whether a path is a translation unit rather than a header.
+## @param name The repo-relative path.
+## @return True for a C/C++ source file.
+## @version 1
+## @dg_internal
+def _is_source_file(name: str) -> bool:
+    """@brief Source-file test. @return Bool."""
+    return name.lower().endswith(_SOURCE_SUFFIXES)
+
+
+## @brief Whether the index holds a `path` table.
+## @param conn Open connection.
+## @return Bool.
+## @version 1
+## @dg_internal
+def _has_path(conn: sqlite3.Connection) -> bool:
+    """@brief Table probe. @return Bool."""
+    return conn.execute("SELECT 1 FROM sqlite_master WHERE name = 'path'").fetchone() is not None
 
 
 ##
@@ -330,12 +417,19 @@ def _same_file_first(rowids: list[int], path_rowid: int, conn: sqlite3.Connectio
 # @param db Path to the index being built.
 # @param repo_root Repository the index describes.
 # @param cache Index cache, or None.
+# @param test_patterns The build's test-path patterns (config states in test files decide nothing).
 # @return Number of xrefs rows inserted.
 # v4 (2.0.0, UPERF T5): same-name macros resolve by build activity (`macro_definitions`), and a
 # reference in the defining file means that file's definition.
-# @version 4
+# v5: config states in test files decide nothing; the build passes its test patterns (2.0.0, measured on mbedtls)
+# @version 5
 # @req REQ-DDB-PIPE-003
-def import_ast_macro_refs(db: Path, repo_root: Path, cache: IndexCache | None = None) -> int:
+def import_ast_macro_refs(
+    db: Path,
+    repo_root: Path,
+    cache: IndexCache | None = None,
+    test_patterns: tuple[str, ...] | list[str] | None = None,
+) -> int:
     """FILTERED AGAINST REAL MACRO ROWS, so an identifier that merely shares a name with nothing
     contributes nothing: the join is the filter, and the layer's size is bounded by how many
     macros the index actually holds.
@@ -360,7 +454,7 @@ def import_ast_macro_refs(db: Path, repo_root: Path, cache: IndexCache | None = 
     conn = sqlite3.connect(str(db))
     try:
         payloads = run_harvest(conn, repo_root, MacroRefHarvester(), cache)
-        macros = macro_definitions(conn)
+        macros = macro_definitions(conn, test_patterns)
         if not macros:
             logger.info("macro_refs: index holds no macro definitions — nothing to recover")
             return 0
