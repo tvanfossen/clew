@@ -6,13 +6,35 @@
 # ANSWER COMPONENT — what a complete answer to the question contains — not an artifact that some
 # tool happens to surface. That cuts both ways: a component does not earn a mark because the
 # index has a layer for it, and it does not earn one because a grep found it.
+#
+# 4.0.0 (2026-11-17, the 2.0.0 rubric cross-check; every change re-read at the pin):
+#   WRONG AT THE PIN, rewritten:
+#   Q3 m5  the pointers do NOT fail by default: platform.h:57 + :83-88 default them to libc
+#          calloc/free; they fail closed only under MBEDTLS_PLATFORM_NO_STD_FUNCTIONS. The
+#          correct answer was missed and two wrong ones were hit.
+#   Q1 m3  "a default build creates no threads at all" contradicted m6: benchmark.c:405-430
+#          spawns a Windows timer thread with no threading-config gate. SCOPED to the threading
+#          layer (owner ruling: a platform scope, not a reversal); the Windows case stays m6.
+#   Q4 m3  error.c DOES mark its generated bodies ("Begin/End Auto-Generated Code." at :186,
+#          :528, :549, :783); it does not name the generator. Intent fixed.
+#   Q2 m9  `tests` uses the macro in code (test_suite_psa_crypto.function:1329,
+#          test_suite_x509write.function:763); four cells lost precision for naming it.
+#   Q1 m4  library/threading.c compiles only under MBEDTLS_THREADING_C (:18).
+#   WORDING THAT GATED ON A PHRASE: Q1 m2, Q3 m1, Q3 m7, Q5 m4, Q5 m7, Q4 m4 (/**< accepted).
+#   EXTRACTS: Q3 m9 excludes test configurations; Q4 m8 names a directory, not a glob.
+#   PROMPT: Q4 now asks whether the machinery is present in a default build — m5/m6 were
+#   asked about nowhere and earned 0/9.
+#   COVERAGE: Q1 m7 accepts a library per-context lock (47 lock sites in library/); Q5 gains a
+#   mark for the per-architecture asm mask primitives (constant_time_impl.h:132-334).
+#   WEIGHTS (saturated or off-question): Q2 m2 3->2, m3 3->1, m6 3->2, m8 2->1; Q4 m2 3->2,
+#   m6 3->2, m7 2->1. Line drift: Q1 m6, Q3 m2/m3/m7, Q4 m3/m4/m6.
 
 schema: 1
 
 target: Mbed-TLS/mbedtls
 commit: 068ff080b369adfac81509f9b57b2afabaf82dc5
 ref: mbedtls-3.6.7
-version: 3.1.0
+version: 4.0.0
 
 ground_truth: |
   mbedtls source at the commit above, read directly. Every count and line number was taken from
@@ -47,8 +69,10 @@ questions:
   - id: Q1
     intent: |
       Probes whether the agent stops at "there are threads and mutexes" — which is a ctrl-F away
-      and which both arms reach in one step — or continues to "nothing runs concurrently as
-      shipped". The recorded failure on the previous rubric generation was exactly that stop:
+      and which both arms reach in one step — or continues to "nothing runs concurrently
+      through the threading layer as shipped" (the one exception, a Windows-only benchmark
+      timer, is gated on the platform rather than on the config, and has its own mark). The
+      recorded failure on the previous rubric generation was exactly that stop:
       answers named the spawn site and the entry function, and concluded mbedtls is threaded.
       The surface rung is worth 1 point and the conclusion rungs are worth 3, so an answer that
       stops early scores badly however much detail it gives about the site it did find.
@@ -69,8 +93,10 @@ questions:
           - ["include/mbedtls/mbedtls_config.h", 3740, 3787]
 
       - text: >-
-          states that the shipped mbedtls_config.h leaves BOTH threading macros undefined, so a
-          default build defines neither
+          states that the shipped mbedtls_config.h leaves both MBEDTLS_THREADING_C and
+          MBEDTLS_THREADING_PTHREAD off, so a default build defines neither ("commented out",
+          "undefined" and "off by default" all state this; also naming MBEDTLS_THREADING_ALT as
+          off does not detract)
         type: conclusion
         weight: 3
         evidence: |
@@ -97,21 +123,25 @@ questions:
           - ["include/mbedtls/mbedtls_config.h", 3787]
 
       - text: >-
-          concludes that a default build of mbedtls creates no threads at all, and that the
-          pthread example compiles to a stub main under that condition
+          concludes that nothing in a default build creates a thread through the threading
+          layer, and that the pthread example (ssl_pthread_server.c) compiles to a stub main()
+          that only prints "MBEDTLS_THREADING_PTHREAD not defined." under that condition
         type: conclusion
         weight: 3
         evidence: |
           programs/ssl/ssl_pthread_server.c:24 is
           `#elif !defined(MBEDTLS_THREADING_C) || !defined(MBEDTLS_THREADING_PTHREAD)`, whose
           body is a main() that prints "MBEDTLS_THREADING_PTHREAD not defined." and exits. The
-          threaded body begins at the `#else` on line 30.
+          threaded body begins at the `#else` on line 30. The Windows benchmark timer
+          (benchmark.c:405-430) is not gated by the threading config and is the subject of a
+          separate mark; it is not a contradiction of this one.
         refs:
           - ["programs/ssl/ssl_pthread_server.c", 24, 30]
 
       - text: >-
           states BOTH halves of the contrast: that nothing in library/ creates a thread, AND that
-          library/ nonetheless supplies the mutex abstraction used by threaded callers
+          library/ provides only the mutex abstraction (library/threading.c, compiled only when
+          MBEDTLS_THREADING_C is on) for callers that create their own threads
         type: conclusion
         weight: 3
         evidence: |
@@ -128,6 +158,7 @@ questions:
         refs:
           - ["programs/ssl/ssl_pthread_server.c", 277]
           - ["programs/test/benchmark.c", 430]
+          - ["library/threading.c", 18]
 
       - text: every source file containing a thread-creation site
         type: set
@@ -149,20 +180,24 @@ questions:
         weight: 2
         evidence: |
           programs/test/benchmark.c:430 uses _beginthread, a Windows CRT call. It is gated by a
-          platform condition, NOT by MBEDTLS_THREADING_*. An answer that says "no threads,
+          platform condition (`#if defined(_WIN32) && !defined(EFIX64) && !defined(EFI32)` at
+          :405), NOT by MBEDTLS_THREADING_*. An answer that says "no threads,
           because the threading macros are off" has the right conclusion by an incomplete
           argument — this mark is what separates the two.
         refs:
-          - ["programs/test/benchmark.c", 410, 430]
+          - ["programs/test/benchmark.c", 405, 430]
 
       - text: >-
-          identifies debug_mutex as serialising debug output so that concurrent connections do
-          not interleave their logging
+          identifies what at least one mutex protects once threading is enabled — e.g.
+          debug_mutex serialising ssl_pthread_server's log lines so concurrent connections do not
+          interleave, or a library per-context lock (ctr_drbg, entropy, ssl_cache, PSA key slots)
         type: conclusion
         weight: 2
         evidence: |
-          Declared programs/ssl/ssl_pthread_server.c:65; locked :73 and unlocked :80 around the
-          debug callback body; init :321; free :483.
+          debug_mutex: declared programs/ssl/ssl_pthread_server.c:65; locked :73 and unlocked :80
+          around the debug callback body; init :321; free :483. The library's own locks: 47
+          `mbedtls_mutex_lock` sites in 14 library files (`git grep -c mbedtls_mutex_lock --
+          library`), e.g. ctr_drbg, entropy, ssl_cache, psa_crypto_slot_management.
         refs:
           - ["programs/ssl/ssl_pthread_server.c", 65]
           - ["programs/ssl/ssl_pthread_server.c", 73, 80]
@@ -206,7 +241,7 @@ questions:
           states that by default the macro RENAMES the member to private_<member>, and that
           defining MBEDTLS_ALLOW_PRIVATE_ACCESS makes it expand to the member name unchanged
         type: conclusion
-        weight: 3
+        weight: 2
         evidence: |
           #ifndef MBEDTLS_ALLOW_PRIVATE_ACCESS -> `private_##member`; #else -> `member`. The
           DEFAULT branch is the renaming one, which is the direction an answer most often gets
@@ -219,7 +254,7 @@ questions:
           defines MBEDTLS_ALLOW_PRIVATE_ACCESS sees plain member names while an ordinary
           consumer of the public headers sees the renamed ones
         type: conclusion
-        weight: 3
+        weight: 1
         evidence: |
           The single macro serves both audiences from one header; which expansion you get is
           decided entirely by whether you defined the opt-in before including it.
@@ -259,7 +294,7 @@ questions:
           states that library-internal code turns the opt-out ON in a shared header, so every
           library translation unit sees plain member names
         type: conclusion
-        weight: 3
+        weight: 2
         evidence: |
           library/common.h:132 defines MBEDTLS_ALLOW_PRIVATE_ACCESS, with a docstring saying
           "Allow library to access its structs' private members". Every library .c includes it,
@@ -281,7 +316,7 @@ questions:
 
       - text: every file that turns the private-access opt-out on
         type: set
-        weight: 2
+        weight: 1
         extract: |
           List every file the answer says DEFINES the macro that disables the private-member
           renaming (that is, files that turn the opt-out on — not files that merely mention or
@@ -298,9 +333,9 @@ questions:
         type: set
         weight: 2
         extract: |
-          List every top-level directory the answer says contains uses of MBEDTLS_PRIVATE. One
-          per line, bare directory names as the answer writes them. If the answer names none,
-          reply NONE.
+          List every top-level directory the answer says contains code uses of MBEDTLS_PRIVATE
+          (not documentation). One per line, bare directory names as the answer writes them. If
+          the answer names none, reply NONE.
         members:
           - value: include
             evidence: "59 files"
@@ -308,6 +343,11 @@ questions:
             evidence: "5 files"
           - value: programs
             evidence: "2 files"
+          - value: tests
+            evidence: "2 .function files: test_suite_psa_crypto.function:1329, test_suite_x509write.function:763"
+        evidence: |
+          `git grep -l 'MBEDTLS_PRIVATE(' -- '*.h' '*.c' '*.function'`, first path segment
+          counted. docs/3.0-migration-guide.md:74 is prose, not a use.
 
   - id: Q3
     intent: |
@@ -328,8 +368,8 @@ questions:
 
     marks:
       - text: >-
-          states that MBEDTLS_PLATFORM_MEMORY is the gate, and that it is commented out in the
-          shipped mbedtls_config.h
+          states that MBEDTLS_PLATFORM_MEMORY is the gate and that the shipped mbedtls_config.h
+          leaves it undefined (off by default)
         type: retrieval
         weight: 1
         evidence: |
@@ -343,13 +383,13 @@ questions:
         type: conclusion
         weight: 3
         evidence: |
-          include/mbedtls/platform.h:165-168 is the `#else /* !MBEDTLS_PLATFORM_MEMORY */` branch:
-          it #undefs the names and defines them to `free` and `calloc`. This is the direction most
+          include/mbedtls/platform.h:163-167: the `#else /* !MBEDTLS_PLATFORM_MEMORY */` at :163,
+          the #undefs at :164-165, and the defines to `free` and `calloc` at :166-167. This is the direction most
           often gotten backwards — an answer that has read only platform.c sees function pointers
           and reports them as the normal case.
         refs:
           - ["include/mbedtls/platform.h", 138, 171]
-          - ["include/mbedtls/platform.h", 165, 168]
+          - ["include/mbedtls/platform.h", 163, 168]
 
       - text: >-
           distinguishes the two ways to substitute an allocator — a COMPILE-time pair of macros
@@ -357,9 +397,9 @@ questions:
         type: conclusion
         weight: 3
         evidence: |
-          platform.h:139-146: with both MBEDTLS_PLATFORM_CALLOC_MACRO and
+          platform.h:139-144: with both MBEDTLS_PLATFORM_CALLOC_MACRO and
           MBEDTLS_PLATFORM_FREE_MACRO defined, the names expand to those macros and no pointers
-          exist. Only the `#else` at :147 declares the extern functions and the setter.
+          exist. Only the `#else` at :145 declares the extern functions and the setter.
         refs:
           - ["include/mbedtls/platform.h", 139, 162]
 
@@ -381,16 +421,26 @@ questions:
           - ["library/platform.c", 18, 22]
 
       - text: >-
-          identifies that the pointers' defaults FAIL rather than fall back — an uninitialised
-          calloc returns NULL and an uninitialised free does nothing
+          identifies that the pointers start at MBEDTLS_PLATFORM_STD_CALLOC / _FREE — libc calloc
+          and free unless MBEDTLS_PLATFORM_NO_STD_FUNCTIONS is set — and that only with no
+          standard functions and no STD_ override do they fail closed (calloc returns NULL, free
+          does nothing)
         type: conclusion
         weight: 2
         evidence: |
-          library/platform.c:25-31 platform_calloc_uninit returns NULL; :36-39 platform_free_uninit
-          is a no-op; :44-45 install them as the initial values of mbedtls_calloc_func and
-          mbedtls_free_func when MBEDTLS_PLATFORM_STD_CALLOC/_FREE are not supplied.
+          include/mbedtls/platform.h:57 `#if !defined(MBEDTLS_PLATFORM_NO_STD_FUNCTIONS)` encloses
+          `#define MBEDTLS_PLATFORM_STD_CALLOC calloc` (:83-84) and `... _FREE free` (:86-87), and
+          platform.c includes platform.h; mbedtls_config.h:172-193 states the same defaulting.
+          The failing stubs — library/platform.c:25-31 platform_calloc_uninit returns NULL,
+          :36-39 platform_free_uninit is a no-op, installed at :44-45 — are compiled only when
+          MBEDTLS_PLATFORM_STD_CALLOC/_FREE end up undefined, i.e. under NO_STD_FUNCTIONS with no
+          override. An answer saying an unconfigured PLATFORM_MEMORY build fails every allocation
+          is wrong.
         refs:
+          - ["include/mbedtls/platform.h", 57]
+          - ["include/mbedtls/platform.h", 83, 88]
           - ["library/platform.c", 24, 45]
+          - ["include/mbedtls/mbedtls_config.h", 172, 193]
 
       - text: >-
           identifies the buffer allocator (MBEDTLS_MEMORY_BUFFER_ALLOC_C) as the only in-tree
@@ -410,12 +460,12 @@ questions:
           - ["library/memory_buffer_alloc.c", 566, 576]
 
       - text: >-
-          states that the buffer allocator installs a MUTEXED pair when MBEDTLS_THREADING_C is on
-          and a plain pair otherwise, chosen at compile time inside its init function
+          states that the buffer allocator installs a mutex-wrapped pair when MBEDTLS_THREADING_C
+          is defined and its plain pair otherwise (an #if inside mbedtls_memory_buffer_alloc_init)
         type: conclusion
         weight: 2
         evidence: |
-          memory_buffer_alloc.c:569-576 is a `#if defined(MBEDTLS_THREADING_C)` selecting
+          memory_buffer_alloc.c:570-576 is a `#if defined(MBEDTLS_THREADING_C)` selecting
           buffer_alloc_calloc_mutexed/buffer_alloc_free_mutexed (defined :541-563, each taking
           heap.mutex) over buffer_alloc_calloc/buffer_alloc_free.
         refs:
@@ -438,9 +488,10 @@ questions:
         type: set
         weight: 2
         extract: |
-          List every file path the answer names as taking part in deciding what mbedtls_calloc
-          resolves to, or in supplying a replacement for it. Paths only, one per line, exactly as
-          the answer writes them. If the answer names none, reply NONE.
+          List every file path in include/ or library/ that the answer names as deciding what
+          mbedtls_calloc expands to, or supplying the library's own replacement for it. Exclude
+          test configurations and test scripts. Paths only, one per line, exactly as the answer
+          writes them. If the answer names none, reply NONE.
         members:
           - value: include/mbedtls/platform.h
             evidence: ":138-171, the three-way #if that decides the name's expansion"
@@ -455,9 +506,11 @@ questions:
     intent: |
       BUILD PROVENANCE. The question looks like a straightforward "how do error strings work",
       and its surface is answerable from one header. What is not in any single file is that
-      library/error.c IS GENERATED — the file carries no banner saying so, so an answer that
-      reads it top to bottom will describe a hand-written lookup table and be wrong about where
-      a new error string comes from.
+      library/error.c IS GENERATED, and from what: error.c marks its switch bodies
+      `/* Begin Auto-Generated Code. */` (:186, :549) but does not name the generator; the
+      generator and its inputs are reachable only from library/Makefile:355-360,
+      library/CMakeLists.txt:130-147 or the script. An answer that treats the switch as
+      hand-maintained will be wrong about where a new error string comes from.
 
       Deliberately inverted against Q1 and Q3: here the feature is ON by default, so "check
       whether it is enabled" — a habit those questions reward — produces a different answer.
@@ -465,6 +518,7 @@ questions:
     prompt: |
       A caller gets back a negative integer from an mbedtls function. Walk through how that
       becomes a human-readable string, and say what a contributor has to do to add a new one.
+      Say whether that machinery is present in a default build.
 
     marks:
       - text: >-
@@ -482,7 +536,7 @@ questions:
           explains that a code carries TWO layers — a high-level module part and a low-level part
           — and that mbedtls_strerror renders both, joined, when both are present
         type: conclusion
-        weight: 3
+        weight: 2
         evidence: |
           error.h:26-32 gives the bit segmentation: 1 sign bit, 3 bits high-level module id,
           5 bits module-dependent code, 7 bits low-level. library/error.c:792 onward calls
@@ -497,29 +551,33 @@ questions:
         type: conclusion
         weight: 3
         evidence: |
-          library/Makefile:355-358 and library/CMakeLists.txt:130-147 both build error.c by
+          library/Makefile:355-360 and library/CMakeLists.txt:130-147 both build error.c by
           running scripts/generate_errors.pl over include/mbedtls/*.h plus
           scripts/data_files/error.fmt.
 
-          THE FILE ITSELF SAYS NOTHING. There is no "automatically generated" banner and no
-          "DO NOT EDIT" line anywhere in library/error.c at the pinned commit — verified by
-          searching for both. So this fact is reachable only from the build system or from the
-          script, never from the file an answer is most likely to read.
+          error.c itself marks its generated switch bodies — `/* Begin Auto-Generated Code. */`
+          at :186 and :549, `/* End Auto-Generated Code. */` at :528 and :783 — but names neither
+          the generator nor its inputs; those are reachable only from the build system or the
+          script. (Corrected in 4.0.0: an earlier version said the file carried no marker, from
+          a search that missed the hyphenated spelling.)
         refs:
-          - ["library/Makefile", 355, 358]
+          - ["library/Makefile", 355, 360]
           - ["library/CMakeLists.txt", 130, 147]
 
       - text: >-
-          concludes that adding a new error string means adding the /** */-documented #define to
-          the module's public header and re-running the generator, NOT editing library/error.c
+          concludes that adding a new error string means adding a doxygen-documented
+          MBEDTLS_ERR_<MODULE>_... #define (comment before it, or `/**<` after it) to the module's
+          public header and re-running the generator, NOT editing library/error.c
         type: conclusion
         weight: 3
         evidence: |
           Direct consequence of the generation step: the generator's inputs are the headers, so
           an edit to error.c is overwritten on the next regeneration. An answer that says "add a
           case to the switch in error.c" has described a change that does not survive a build.
+          The script parses before-comments (`/**`, `/*!`) and after-comments (`/**<`) at :51-85,
+          and the module must be in its hard-coded lists at :35-42.
         refs:
-          - ["scripts/generate_errors.pl", 1, 30]
+          - ["scripts/generate_errors.pl", 35, 85]
 
       - text: >-
           states that MBEDTLS_ERROR_C is ENABLED in the shipped mbedtls_config.h, so the string
@@ -538,25 +596,25 @@ questions:
           LINKABLE while the string table is compiled out, and states that it too is enabled by
           default
         type: conclusion
-        weight: 3
+        weight: 2
         evidence: |
           mbedtls_config.h:1170 is `#define MBEDTLS_ERROR_STRERROR_DUMMY`, uncommented, with the
           rationale at :1158-1164 ("make integration of third party libraries easier when
           MBEDTLS_ERROR_C is disabled"). library/error.c:12 opens on
-          `#if defined(MBEDTLS_ERROR_C) || defined(MBEDTLS_ERROR_STRERROR_DUMMY)` and :862-874 is
+          `#if defined(MBEDTLS_ERROR_C) || defined(MBEDTLS_ERROR_STRERROR_DUMMY)` and :862-876 is
           the `#else` providing a mbedtls_strerror that writes an empty string.
 
           The distinction being tested is between "the function is gone" and "the function is
           there and returns nothing" — a caller links either way, which is the entire point.
         refs:
           - ["include/mbedtls/mbedtls_config.h", 1158, 1170]
-          - ["library/error.c", 862, 874]
+          - ["library/error.c", 862, 876]
 
       - text: >-
           identifies MBEDTLS_ERROR_ADD / mbedtls_error_add as the way a high-level and a low-level
           code are combined, and notes that it captures __FILE__ and __LINE__
         type: conclusion
-        weight: 2
+        weight: 1
         evidence: |
           error.h:113-114 defines MBEDTLS_ERROR_ADD(high, low) as
           `mbedtls_error_add(high, low, __FILE__, __LINE__)`; :142-153 is the static inline that
@@ -570,8 +628,10 @@ questions:
         weight: 2
         extract: |
           List every file or directory the answer names as an INPUT to generating the error-string
-          code (the generator script, its template, or the sources it reads). One per line, as the
-          answer writes them. If the answer names none, reply NONE.
+          code (the generator script, its template, or the sources it reads). Name a directory of
+          scanned headers by its directory path (e.g. include/mbedtls), not as a glob or as
+          individual headers inside it. One per line, as the answer writes them. If the answer
+          names none, reply NONE.
         members:
           - value: scripts/generate_errors.pl
             evidence: "the generator, invoked by both Makefile and CMakeLists"
@@ -587,9 +647,11 @@ questions:
       assembly paths, a portable fallback that works by a completely different trick, and
       twenty-one consuming modules. No single file states the shape.
 
-      The specific trap is the fallback. An answer that reads constant_time_impl.h's asm blocks
-      concludes "constant time is implemented in assembly"; the non-asm path uses an extern
-      volatile global instead, and it is the path any non-GNU-C compiler takes.
+      The specific trap is the fallback. constant_time_impl.h has two kinds of asm: the empty
+      optimisation barrier in mbedtls_ct_compiler_opaque, and per-architecture mask primitives
+      (:132-334) that emit real instructions. An answer that reads those blocks concludes
+      "constant time is implemented in assembly"; the non-asm path uses an extern volatile
+      global instead, and it is the path any non-GNU-C compiler takes.
 
     prompt: |
       mbedtls has code that is written to run in constant time. How is that actually enforced at
@@ -638,9 +700,8 @@ questions:
           - ["library/constant_time.c", 29]
 
       - text: >-
-          states that MBEDTLS_CT_ASM is DERIVED rather than configured — it is set from
-          MBEDTLS_HAVE_ASM together with compiler predefined macros, not from an entry in
-          mbedtls_config.h
+          states that MBEDTLS_CT_ASM is set inside constant_time_impl.h from MBEDTLS_HAVE_ASM plus
+          compiler/architecture predefined macros (so the user does not configure it directly)
         type: conclusion
         weight: 3
         evidence: |
@@ -653,6 +714,18 @@ questions:
           config option has described a switch the user does not have.
         refs:
           - ["library/constant_time_impl.h", 39, 54]
+
+      - text: >-
+          states that the mask primitives (e.g. mbedtls_ct_bool, mbedtls_ct_if) have
+          per-architecture inline asm with a plain-C fallback
+        type: conclusion
+        weight: 2
+        evidence: |
+          library/constant_time_impl.h:132-334: twelve asm blocks emitting real instructions for
+          aarch64, arm/thumb, x86_64 and x86 (e.g. `neg` at :132, `and` at :210, `eor` at :275),
+          each under its MBEDTLS_CT_<ARCH>_ASM branch with a C expression in the #else.
+        refs:
+          - ["library/constant_time_impl.h", 132, 334]
 
       - text: >-
           concludes that the PUBLIC API surface is a single function, mbedtls_ct_memcmp, while the
@@ -687,9 +760,9 @@ questions:
           - ["library/constant_time_internal.h", 450]
 
       - text: >-
-          identifies that the constant-flow property is VERIFIED by a separate, off-by-default
-          testing facility built on MemorySanitizer or valgrind, and that it is explicitly not
-          part of the library API
+          identifies that the constant-flow property is verified by an off-by-default test
+          facility built on MemorySanitizer or valgrind (MBEDTLS_TEST_CONSTANT_FLOW_MEMSAN /
+          _VALGRIND)
         type: conclusion
         weight: 3
         evidence: |
@@ -702,7 +775,8 @@ questions:
           marking a secret buffer as undefined turns any branch or index that depends on it into
           a reported error. An answer that names the macros without saying what verifies the
           property has named a switch, not a method — but naming the sanitiser pair and their
-          off-by-default state satisfies this mark.
+          off-by-default state satisfies this mark. Both macros carry a \warning that they are
+          not part of the library's API; stating that is not required.
         refs:
           - ["include/mbedtls/mbedtls_config.h", 2108, 2142]
 
