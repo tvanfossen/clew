@@ -74,7 +74,28 @@ ENTRY_UNWRAP_TYPES = frozenset(
     {"pointer_expression", "parenthesized_expression", "cast_expression"}
 )
 
-_CPP_EXTS = (".cpp", ".cc", ".cxx", ".c++", ".hpp", ".hh", ".hxx", ".h++")
+# EVERY C++ SUFFIX DOXYGEN INDEXES (R5-CORE C2, 2.0.0): `.ipp` (Boost), `.inl` (header-only
+# libraries), the module suffixes `.ixx .cppm .cxxm .c++m` and preprocessed `.ii .i++` are in
+# `DOXYGEN_DEFAULT_FILE_PATTERNS`, so they carried doxygen rows while every AST layer (calls,
+# locks, threads, blocking, macro refs) returned None for them and saw no file.
+_CPP_EXTS = (
+    ".cpp",
+    ".cc",
+    ".cxx",
+    ".c++",
+    ".hpp",
+    ".hh",
+    ".hxx",
+    ".h++",
+    ".ipp",
+    ".inl",
+    ".ixx",
+    ".cppm",
+    ".cxxm",
+    ".c++m",
+    ".ii",
+    ".i++",
+)
 _C_EXTS = (".c", ".h")
 # doxygen indexes Python too, so a Python codebase already had memberdefs, prose and
 # doxygen call_edges — but NO tree-sitter layer, because this router returned

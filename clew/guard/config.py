@@ -66,7 +66,25 @@ VALIDATE_DEFAULTS: dict[str, Any] = {
             # files carried symbols, call edges and requirement links while the gate skipped
             # them with a DEBUG line nobody sees. `tests/test_gate_index_extension_parity.py`
             # is what keeps the two tables from drifting again, in either direction.
-            "extensions": [".cpp", ".hpp", ".cc", ".cxx", ".hh", ".hxx", ".c++", ".h++"],
+            # 2.0.0 (C2): and every other C++ suffix doxygen indexes, which the index now parses.
+            "extensions": [
+                ".cpp",
+                ".hpp",
+                ".cc",
+                ".cxx",
+                ".hh",
+                ".hxx",
+                ".c++",
+                ".h++",
+                ".ipp",
+                ".inl",
+                ".ixx",
+                ".cppm",
+                ".cxxm",
+                ".c++m",
+                ".ii",
+                ".i++",
+            ],
             "function_pattern": (
                 r"^\s*(?:(?:static|inline|extern(?:\s+\"C\")?|virtual|explicit|constexpr)\s+)*"
                 r"(?:template\s*<[^>]*>\s*)?"
