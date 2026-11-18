@@ -17,6 +17,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from dataclasses import dataclass, field, fields
+from typing import Any
 
 from ..vocabulary import (
     GATE_ORIGIN_UNDECLARED,
@@ -779,7 +780,7 @@ class ReqTrace:
     indexed file line that names it.
 
     @brief Requirement trace (metadata + implementers + tests + mentions + links).
-    @version 3
+    @version 4
     """
 
     req_id: str
@@ -796,6 +797,13 @@ class ReqTrace:
     ## that serve it. None when the index predates `requirement_links` — absent, not empty.
     satisfies: list[str] | None = None
     satisfied_by: list[str] | None = None
+    ## 2.0.0 (S4 served): the IEEE 29148 attributes, '' where the catalog does not state them.
+    status: str = ""
+    rationale: str = ""
+    verification: str = ""
+    parent: str = ""
+    ## Every catalog key the reader does not map, verbatim. None when the entry had none.
+    extra: dict[str, Any] | None = None
 
 
 ## @brief One indexed file line that names a requirement.

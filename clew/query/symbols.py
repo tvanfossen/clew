@@ -20,9 +20,11 @@ from `corpus` rather than duplicated here.
 
 from __future__ import annotations
 
+import json
 import re
 import sqlite3
 from collections.abc import Iterable
+from typing import Any
 
 from ..generated import self_declared_paths
 from ..vocabulary import (
@@ -2040,10 +2042,11 @@ def _req_links(conn: sqlite3.Connection, req_id: str) -> tuple[list[str], list[s
 
 ## Version 3: also every indexed file line naming the id (`mentioned_in`), from `req_mentions`.
 ## Version 4: also `satisfies` / `satisfied_by` from `requirement_links` (GH #68).
+## Version 5: also the IEEE 29148 attributes and `extra` (2.0.0, S4 served).
 ##
 ## @brief Requirement traceability: metadata + implementers + covering tests + mentions + links.
 ## @return ReqTrace bundling the requirement's metadata (empty strings when absent), its implementing functions, covering test names, mentions and links.
-## @version 4
+## @version 5
 ## @req REQ-DDB-QUERY-001
 def req_trace(db: DbSource, req_id: str) -> ReqTrace:
     """Trace one requirement to its implementing functions (with liveness)
@@ -2051,15 +2054,17 @@ def req_trace(db: DbSource, req_id: str) -> ReqTrace:
     requirements table has no matching row (a bare @req literal still traces).
 
     @brief Build a ReqTrace for one requirement id.
-    @version 3
+    @version 5
     """
     with connect(db) as conn:
         meta = None
+        attrs: dict[str, Any] = {}
         if table_exists(conn, "requirements"):
             meta = conn.execute(
                 "SELECT block, title, acceptance, priority FROM requirements WHERE id=?",
                 (req_id,),
             ).fetchone()
+            attrs = _req_attributes(conn, req_id)
         tests = (
             [
                 r[0]
@@ -2098,7 +2103,39 @@ def req_trace(db: DbSource, req_id: str) -> ReqTrace:
         mentioned_in=mentions,
         satisfies=links[0] if links else None,
         satisfied_by=links[1] if links else None,
+        **attrs,
     )
+
+
+## The IEEE 29148 columns P2 (S4) added to `requirements`.
+_REQ_ATTRIBUTES = ("status", "rationale", "verification", "parent")
+
+
+## @brief One requirement's 29148 attributes and its unmapped catalog keys.
+## @param conn Open connection.
+## @param req_id The requirement id.
+## @return ReqTrace keyword values; {} on an index from before the columns.
+## @version 1
+## @req REQ-DDB-QUERY-001
+## @dg_internal
+def _req_attributes(conn: sqlite3.Connection, req_id: str) -> dict[str, Any]:
+    """2.0.0 (S4 served). The columns exist only on an index built since S4, so they are probed
+    rather than assumed. `extra` is JSON in the table and a mapping on the wire.
+
+    @brief Read the attributes.
+    @return Field values.
+    """
+    if not has_columns(conn, "requirements", *_REQ_ATTRIBUTES, "extra"):
+        return {}
+    row = conn.execute(
+        f"SELECT {', '.join(_REQ_ATTRIBUTES)}, extra FROM requirements WHERE id=?",  # noqa: S608
+        (req_id,),
+    ).fetchone()
+    if row is None:
+        return {}
+    out: dict[str, Any] = {k: str(v or "") for k, v in zip(_REQ_ATTRIBUTES, row[:-1])}
+    out["extra"] = json.loads(row[-1]) if row[-1] else None
+    return out
 
 
 ## @brief The name-ambiguity behind one function's neighbour list, or None when clean.

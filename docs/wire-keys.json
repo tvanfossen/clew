@@ -462,7 +462,12 @@
    "tests": "list[str]",
    "mentioned_in": "list[ReqMention] | None",
    "satisfies": "list[str] | None",
-   "satisfied_by": "list[str] | None"
+   "satisfied_by": "list[str] | None",
+   "status": "str",
+   "rationale": "str",
+   "verification": "str",
+   "parent": "str",
+   "extra": "dict[str, Any] | None"
   },
   "SectionCall": {
    "callee": "str",
