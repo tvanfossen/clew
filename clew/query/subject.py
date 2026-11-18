@@ -964,7 +964,9 @@ def _chain_for(
 ## v4: a SIGNATURE passed as `qualified` is recovered to the qualified name it contains — all
 ## twelve selectors the 1.1.0 agents passed were signatures, and all twelve resolved to nothing.
 ## v5 (1.4.0, W1): `qualified` also scopes the depth>1 walk.
-## @version 5
+## v6 (2.0.0, T6): the qualified re-read also runs when the spelling resolved only to kinds
+## that are not a function, so a thread row named `Class::entry` no longer shadows the function.
+## @version 6
 ## @req REQ-DDB-QUERY-004
 ## @req REQ-DDB-QUERY-009
 ## @req REQ-DDB-QUERY-010
@@ -994,7 +996,7 @@ def dossier(
 
     @brief Describe one subject of any kind, with its adjacency.
     @return SubjectDossier or None.
-    @version 4
+    @version 6
     """
     if depth < 1 or depth > MAX_SUBJECT_DEPTH:
         raise ValueError(
@@ -1013,14 +1015,10 @@ def dossier(
                 qualified = recovered or (None if "(" in qualified else qualified)
     kinds = _rank_enum_over_mirror(db, subject, resolve_subject(db, subject))
     ## C7: a QUALIFIED spelling is one clew serves and used to refuse. Re-read only when the
-    ## string as given resolved to NOTHING and the caller supplied no selector of its own — a
-    ## caller that passed `qualified=` has disambiguated deliberately and must not have its
-    ## subject reinterpreted underneath it.
-    if not kinds and qualified is None:
-        split = _split_qualified(db, subject)
-        if split is not None:
-            subject, qualified = split
-            kinds = _rank_enum_over_mirror(db, subject, resolve_subject(db, subject))
+    ## caller supplied no selector of its own — a caller that passed `qualified=` has
+    ## disambiguated deliberately and must not have its subject reinterpreted underneath it.
+    if qualified is None:
+        subject, qualified, kinds = _qualified_reread(db, subject, kinds, kind)
     chosen = _chosen_kind(kinds, kind)
     if chosen is None:
         return None
@@ -1042,6 +1040,46 @@ def dossier(
         chain=_chain_for(db, chosen, subject, depth, direction, max_neighbors, qualified),
         **section,
     )
+
+
+## @brief Re-read a qualified spelling as (bare tail, selector) when that finds the function.
+## @param db Index.
+## @param subject The subject as given.
+## @param kinds What it resolved to as given.
+## @param kind The caller's kind filter, or None.
+## @return (subject, qualified, kinds): the re-read triple, or the input unchanged.
+## @version 1
+## @req REQ-DDB-QUERY-004
+## @dg_internal
+def _qualified_reread(
+    db: DbSource, subject: str, kinds: tuple[str, ...], kind: str | None
+) -> tuple[str, str | None, tuple[str, ...]]:
+    """TWO CASES, ONE TRANSFORMATION (C7, then T6).
+
+    NOTHING RESOLVED (C7): the qualified spelling is re-read as bare tail plus selector.
+
+    SOMETHING RESOLVED, BUT NOT A FUNCTION (T6, entropic F3): a `threads` row is NAMED by the
+    qualified entry (`HealthMonitor::monitor_loop`), so that string resolved as a thread and the
+    re-read never ran. The dossier was a 371-byte stub with no body and no `also`, while the
+    function the thread runs, whose body and callers a reader came for, sat one re-read away.
+    When the re-read finds a function, the function is the subject and the kinds the spelling
+    matched as given are kept, after it, so `also` names them.
+
+    NOT WHEN THE CALLER ASKED FOR ANOTHER KIND: `kind='thread'` with the qualified spelling must
+    still reach the thread, which the original subject, not the tail, names.
+
+    @brief Apply the qualified re-read.
+    @return The triple.
+    """
+    settled = bool(kinds) and ("function" in kinds or kind not in (None, "function"))
+    split = None if settled else _split_qualified(db, subject)
+    reread = None
+    if split is not None:
+        tail_kinds = _rank_enum_over_mirror(db, split[0], resolve_subject(db, split[0]))
+        if not kinds or "function" in tail_kinds:
+            merged = tail_kinds + tuple(k for k in kinds if k not in tail_kinds)
+            reread = (split[0], split[1], merged)
+    return reread or (subject, None, kinds)
 
 
 ## @brief Recover the qualified name from a SIGNATURE passed as the selector.
