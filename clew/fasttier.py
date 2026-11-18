@@ -17,9 +17,14 @@ WHAT THE FAST TIER DOES, for each edited file, inside ONE transaction on the liv
   * RECORDS `fast.*` in `build_meta` — the files and the layers it did NOT bring current — which
     the `derived` staleness axis serves on every reply until a full build replaces the database.
 
+WHAT IT RECONCILES (PR1, 2.0.0): an added, removed or renamed FUNCTION. A removed one is deleted
+with every row referencing it; an added one is written by the full build's own writer with a
+provisional rowid, named in `fast.provisional`, its outgoing edges computed now and its inbound
+edges left to the full build. See `clew.fasttier_defs`.
+
 WHAT IT REFUSES — each refusal is a full build, never a guess:
-  * a changed SET of definitions (added, removed, renamed, reordered): a new symbol needs a row,
-    a rowid and edges, which only the full pipeline allocates;
+  * any OTHER changed definition (a class, a variable, a macro), reshuffled overloads, or a
+    removed function that is a thread's entry point;
   * a file in a language with no anchor harvester, or no cached payload for its old content;
   * a configuration input (`.clew.yaml`, a Doxyfile, the requirements catalog, Kconfig, ...);
   * more than `FAST_MAX_FILES` edited files, none at all, or an index from another build version.
@@ -42,7 +47,20 @@ from pathlib import Path, PurePosixPath
 from typing import Any
 
 from ._common import logger
+from .fasttier_defs import (
+    MEMBERDEF_REFERENCES,
+    NOT_MEMBERDEF_COLUMNS,
+    DefinitionChanges,
+    FastRefusal,
+    add_definitions,
+    end_module_row,
+    reconcile,
+    remove_definitions,
+)
 from .indexcache import IndexCache
+
+## Re-exported: the reference columns a removed function cascades through (pinned by a test).
+__all__ = ["MEMBERDEF_REFERENCES", "NOT_MEMBERDEF_COLUMNS"]
 
 ## At most this many edited files take the fast tier; more is a full build.
 FAST_MAX_FILES = 4
@@ -191,7 +209,8 @@ class FastResult:
 ## @param cache_path The index cache sidecar.
 ## @return A FastResult, or None when the fast tier does not apply.
 ## v2 (phase 6): reports the layers this refresh actually left stale.
-## @version 2
+## v3 (2.0.0, PR1): a reconciliation that cannot be exact rolls back and builds in full.
+## @version 3
 ## @req REQ-DDB-INDEX-006
 def try_fast_refresh(db: Path, repo_root: Path, cache_path: Path) -> FastResult | None:
     """NONE IS THE SAFE ANSWER: every precondition that fails returns None and the caller builds
@@ -213,7 +232,12 @@ def try_fast_refresh(db: Path, repo_root: Path, cache_path: Path) -> FastResult 
             plans = _plan(conn, repo_root, cache)
             if plans is None:
                 return None
-            layers = _apply(conn, repo_root, cache, plans, started)
+            try:
+                layers = _apply(conn, repo_root, cache, plans, started)
+            except FastRefusal as refusal:
+                ## ROLLED BACK by `_apply`; the index is exactly as it was.
+                logger.info("fast tier: not applicable — %s", refusal)
+                return None
         finally:
             conn.close()
         cache.flush()
@@ -245,47 +269,82 @@ def _current_build(db: Path) -> bool:
 ## v2 (phase 6): each plan carries the old content sha, the key to the corpus texts it replaces.
 ## v3: a declared whole-index input refuses the fast tier (2.0.0, R5-CFG W13)
 ## v4: passes the repository root to _line_anchors (2.0.0)
-## @version 4
+## v5: each plan carries the file's function changes (2.0.0, PR1)
+## @version 5
 ## @dg_internal
 def _plan(
     conn: sqlite3.Connection, repo_root: Path, cache: IndexCache
-) -> dict[str, tuple[int, list[int], list[int], str]] | None:
+) -> dict[str, tuple[int, list[int], list[int], str, DefinitionChanges]] | None:
     """@brief Find the edited files and map each one's lines. @return Plans or None."""
     edited = _edited_files(conn, repo_root, cache)
     refusal = _refusal(edited, config_inputs(repo_root))
     if refusal:
         logger.info("fast tier: not applicable — %s", refusal)
         return None
-    plans: dict[str, tuple[int, list[int], list[int], str]] = {}
+    plans: dict[str, tuple[int, list[int], list[int], str, DefinitionChanges]] = {}
     for rowid, rel, old_sha in edited:
         anchors = _line_anchors(rel, repo_root / rel, old_sha, cache, repo_root)
         if anchors is None:
             return None
-        plans[rel] = (rowid, *anchors, old_sha)
+        plans[rel] = (rowid, anchors[0], anchors[1], old_sha, anchors[2])
     return plans
 
 
-## @brief Every indexed file whose content differs from what the last full build recorded.
+## @brief The content sha a pending fast refresh recorded for each file it refreshed.
+## @param conn Open index connection.
+## @return {repo-relative path: sha}; empty when no fast refresh is pending.
+## @version 1
+## @dg_internal
+def _fast_bases(conn: sqlite3.Connection) -> dict[str, str]:
+    """A full build writes a fresh database, so a base can only be one a pending fast refresh
+    left. Read only while `fast.pending` is 1, for the same reason `_record` accumulates.
+
+    @brief Read the fast baselines.
+    @return Shas by file.
+    """
+    pending = conn.execute(
+        "SELECT value FROM build_meta WHERE key = ?", (f"{FAST_META_PREFIX}pending",)
+    ).fetchone()
+    if not pending or pending[0] != "1":
+        return {}
+    prefix = f"{FAST_META_PREFIX}base."
+    return {
+        str(k)[len(prefix) :]: str(v)
+        for k, v in conn.execute(
+            "SELECT key, value FROM build_meta WHERE key LIKE ?", (f"{prefix}%",)
+        )
+    }
+
+
+## @brief Every indexed file whose content differs from what the index last described.
 ## @param conn Open index connection.
 ## @param repo_root The working tree.
 ## @param cache The index cache.
 ## @return (path rowid, repo-relative path, old content sha) per edited file.
-## @version 1
+## v2: the baseline is a pending fast refresh's `fast.base.<file>` when there is one (2.0.0, PR1)
+## @version 2
 ## @dg_internal
 def _edited_files(
     conn: sqlite3.Connection, repo_root: Path, cache: IndexCache
 ) -> list[tuple[int, str, str]]:
-    """THE CACHE'S RECORD IS THE BASELINE, not the database's mtime: the sha the last full build
-    stored for each file. A size/mtime prefilter skips hashing an untouched file.
+    """THE BASELINE IS THE CONTENT THE INDEX LAST DESCRIBED: the sha a pending fast refresh
+    recorded for the file (`fast.base.<file>`), else the sha the last full build stored in the
+    cache. A size/mtime prefilter skips hashing an untouched file.
 
-    @brief Diff the indexed files against the cache's record.
+    v2 (2.0.0, found by `incremental_probe fastcompare` in PR1): it was ALWAYS the full build's
+    sha, so a second fast refresh of one file mapped the full build's lines onto rows the first
+    had already moved (a double shift: `fetchWidget` at 6 where a full build has 4), and re-added a
+    function the first had added, which crashed `clew refresh` on a `refid` UNIQUE failure.
+
+    @brief Diff the indexed files against the index's own baseline.
     @return Edited files.
-    @version 1
+    @version 2
     """
+    bases = _fast_bases(conn)
     edited: list[tuple[int, str, str]] = []
     for rowid, name in conn.execute("SELECT rowid, name FROM path WHERE type = 1"):
         rel = str(name)
-        old = cache.previous_sha(rel)
+        old = bases.get(rel) or cache.previous_sha(rel)
         if old is None:
             continue
         new = cache.sha_for(rel, repo_root / rel)
@@ -357,11 +416,12 @@ def config_inputs(repo_root: Path) -> frozenset[str]:
 ## v2: one shared parse warms both the anchor and the call-site payloads.
 ## v3: and the blocking-call payload.
 ## v4: the blocking harvester is the repository's declared one (2.0.0, C1)
-## @version 4
+## v5: function changes are reconciled, not refused (2.0.0, PR1)
+## @version 5
 ## @dg_internal
 def _line_anchors(
     rel: str, path: Path, old_sha: str, cache: IndexCache, repo_root: Path | None = None
-) -> tuple[list[int], list[int]] | None:
+) -> tuple[list[int], list[int], DefinitionChanges] | None:
     """THE SAME HARVESTER ON BOTH SIDES, so the two anchor lists measure lines identically. The
     definitions must be the same SET in the same ORDER; anything else is a changed definition
     set, which the fast tier refuses rather than guesses at.
@@ -394,11 +454,11 @@ def _line_anchors(
         logger.info("fast tier: not applicable — no cached parse of %s's previous content", rel)
         return None
     old, new = _anchors(rel, old_payload), _anchors(rel, new_payload)
-    if [key for key, _line in old] != [key for key, _line in new]:
-        logger.info("fast tier: not applicable — %s's set of definitions changed", rel)
-        return None
-    pairs = sorted({(o, n) for (_k, o), (_k2, n) in zip(old, new, strict=True)})
-    return [o for o, _n in pairs], [n for _o, n in pairs]
+    ## PR1 (2.0.0): an added, removed or renamed FUNCTION is reconciled; any other change refuses.
+    plan = reconcile(rel.lower().endswith(_JS_SUFFIXES), old_payload, new_payload, old, new)
+    if plan is None:
+        logger.info("fast tier: not applicable — %s's non-function definitions changed", rel)
+    return plan
 
 
 ## @brief The harvester whose payload anchors a file's lines.
@@ -508,13 +568,16 @@ def remap_line(line: int, old: list[int], new: list[int]) -> int:
 ## v3 (phase 6): replaces the edited files' code-corpus rows; returns the stale layers.
 ## v4 (phase 6): and their blocking call sites.
 ## v5: and their #include rows (2.0.0, T3 served)
-## @version 5
+## v6: and their added and removed functions (2.0.0, PR1)
+## v7: and each file's new baseline sha, `fast.base.<file>` (2.0.0, PR1)
+## v8: and a JS/TS file's `__module__` row ends at its new last line (2.0.0, PR1)
+## @version 8
 ## @dg_internal
 def _apply(
     conn: sqlite3.Connection,
     repo_root: Path,
     cache: IndexCache,
-    plans: dict[str, tuple[int, list[int], list[int], str]],
+    plans: dict[str, tuple[int, list[int], list[int], str, DefinitionChanges]],
     started: float,
 ) -> tuple[str, ...]:
     """ONE TRANSACTION, `BEGIN IMMEDIATE`, so a reader sees the index before or after the whole
@@ -523,10 +586,13 @@ def _apply(
     v2 (phase 5): also replaces the edited files' outgoing AST call edges.
     v3 (phase 6): and their code-corpus rows; the corpus is named stale only if that failed.
     v4: and their blocking call sites.
+    v6 (PR1): removed functions are deleted BEFORE the shift (their rows still sit at the old
+    lines) and added ones written AFTER it (at the new lines), both before the call-edge and
+    corpus refreshes, which read `memberdef`. A `FastRefusal` rolls the whole refresh back.
 
     @brief Write the fast refresh.
     @return The layers left stale.
-    @version 4
+    @version 8
     """
     from .code_text import code_text_rows
     from .ast_includes import refresh_ast_includes
@@ -537,8 +603,13 @@ def _apply(
     try:
         ## The corpus rows BEFORE the shift: their old spans are the old texts' cache key.
         before = {rel: code_text_rows(conn, rel) for rel in plans}
-        for rel, (rowid, old, new, _sha) in plans.items():
+        provisional: list[str] = []
+        for rel, (rowid, old, new, _sha, changes) in plans.items():
+            js = rel.lower().endswith(_JS_SUFFIXES)
+            remove_definitions(conn, rowid, js, changes.removed)
             _shift_symbols(conn, rowid, old, new)
+            end_module_row(conn, rowid, changes.module_lines)
+            provisional += add_definitions(conn, rowid, rel, js, changes.added)
             refresh_text_layers(conn, repo_root, rel, cache)
         ## AFTER EVERY SHIFT: the fold places each call site by the spans it now reads.
         files = {rel: p[0] for rel, p in plans.items()}
@@ -550,7 +621,15 @@ def _apply(
             for rel, plan in plans.items()
         )
         layers = tuple(lay for lay in STALE_LAYERS if lay != "code_text" or not corpus_current)
-        _record(conn, tuple(sorted(plans)), layers, started)
+        _record(conn, tuple(sorted(plans)), layers, started, tuple(provisional))
+        ## THE NEW BASELINE for each refreshed file: the content the index now describes.
+        conn.executemany(
+            "INSERT OR REPLACE INTO build_meta (key, value) VALUES (?, ?)",
+            [
+                (f"{FAST_META_PREFIX}base.{rel}", cache.sha_for(rel, repo_root / rel) or "")
+                for rel in plans
+            ],
+        )
         conn.execute("COMMIT")
     except Exception:
         conn.execute("ROLLBACK")
@@ -606,6 +685,29 @@ def _shift_symbols(conn: sqlite3.Connection, rowid: int, old: list[int], new: li
             )
 
 
+## @brief The functions written with provisional rowids since the last full build.
+## @param conn Open connection.
+## @param names This refresh's added functions.
+## @param accumulate Whether an earlier fast refresh is still pending.
+## @return Comma-joined names, sorted.
+## @version 1
+## @dg_internal
+def _provisional(conn: sqlite3.Connection, names: tuple[str, ...], accumulate: bool) -> str:
+    """PR1 (2.0.0): an added function's inbound edges wait for the full build, so the record names
+    every function whose row is provisional, across every fast refresh still pending.
+
+    @brief Accumulate provisional names.
+    @return The value.
+    """
+    every = set(names)
+    if accumulate:
+        earlier = conn.execute(
+            "SELECT value FROM build_meta WHERE key = ?", (f"{FAST_META_PREFIX}provisional",)
+        ).fetchone()
+        every.update(n for n in str(earlier[0] if earlier else "").split(",") if n)
+    return ",".join(sorted(every))
+
+
 ## @brief Write the `fast.*` record the derived axis reads.
 ## @param conn Open index connection, inside the transaction.
 ## @param files The files refreshed.
@@ -613,10 +715,15 @@ def _shift_symbols(conn: sqlite3.Connection, rowid: int, old: list[int], new: li
 ## @param started perf_counter at the start.
 ## @return None.
 ## v2 (phase 6): records the layers this refresh actually left stale.
-## @version 2
+## v3: records fast.provisional (2.0.0, PR1)
+## @version 3
 ## @dg_internal
 def _record(
-    conn: sqlite3.Connection, files: tuple[str, ...], layers: tuple[str, ...], started: float
+    conn: sqlite3.Connection,
+    files: tuple[str, ...],
+    layers: tuple[str, ...],
+    started: float,
+    provisional: tuple[str, ...] = (),
 ) -> None:
     """A SECOND FAST REFRESH ACCUMULATES: its files join the earlier ones, because the stale
     layers still describe the tree before the FIRST of them.
@@ -649,6 +756,9 @@ def _record(
         "layers": ",".join(lay for lay in STALE_LAYERS if lay in stale),
         "generation": str(int(generation[0]) + 1 if generation else 1),
         "ms": str(int((time.perf_counter() - started) * 1000)),
+        "provisional": _provisional(
+            conn, provisional, bool(prior and pending and pending[0] == "1")
+        ),
     }
     conn.executemany(
         "INSERT OR REPLACE INTO build_meta (key, value) VALUES (?, ?)",

@@ -555,8 +555,9 @@ def whole_db_diff(a: Path, b: Path) -> list[str]:
 # @param out Database path to write.
 # @param extra Additional CLI arguments.
 # @return Elapsed milliseconds.
-# @version 1
-def _build(repo: Path, out: Path, extra: list[str] | None = None) -> int:
+# v2: verb: a leading subcommand such as refresh (2.0.0, PR1)
+# @version 2
+def _build(repo: Path, out: Path, extra: list[str] | None = None, verb: bool = False) -> int:
     """THROUGH THE CLI ON PURPOSE. A hand-wired call to the pipeline is what made #486 look
     like a live defect when it was only reachable in the scaffold, so the verification a
     release rests on drives the same entry point a user does.
@@ -565,8 +566,18 @@ def _build(repo: Path, out: Path, extra: list[str] | None = None) -> int:
     @return Elapsed ms.
     @version 1
     """
-    cmd = [sys.executable, "-m", "clew", "--repo-root", str(repo), "--output", str(out)]
-    cmd += extra or []
+    ## `verb`: `extra` leads, as a subcommand (`refresh`), rather than trailing as flags.
+    cmd = [
+        sys.executable,
+        "-m",
+        "clew",
+        *((extra or []) if verb else []),
+        "--repo-root",
+        str(repo),
+        "--output",
+        str(out),
+    ]
+    cmd += [] if verb else (extra or [])
     started = time.monotonic()
     proc = subprocess.run(cmd, cwd=str(REPO), capture_output=True, text=True, check=False)
     elapsed = int((time.monotonic() - started) * 1000)
@@ -728,6 +739,123 @@ def cmd_compare(args: argparse.Namespace) -> int:
 
 
 ##
+# @brief The fast tier's invariance check: an added function, refreshed fast, against full builds.
+# @param args Parsed arguments: the repo, the file to edit, the function text to append.
+# @return 0 when every check holds, 1 otherwise.
+# @version 1
+def cmd_fastcompare(args: argparse.Namespace) -> int:
+    """PR1 (2.0.0). The fast tier now reconciles an added function in place. Four indexes of one
+    edited tree, from two clones of the target (`--shared`; its own tree is never written):
+
+      A  full build, the edit, then `clew refresh` (the fast tier must run: `fast.pending`);
+      C  a full rebuild over A, the build that follows a fast refresh;
+      D  CONTROL: full build, the same edit, a full rebuild over it with NO fast refresh;
+      B  a full build of the edited tree from nothing.
+
+    THE INVARIANT IS C == D over the whole database (`whole_db_diff`): the fast refresh must leave
+    nothing a full build does not overwrite. C vs B is reported too, because measured on clew's own
+    index a full rebuild over ANY existing index already differs from a fresh one (D vs B), which
+    is a defect of the incremental full build, not of the fast tier, and must not be charged to it.
+
+    A == B on the edited file's function spans, EXCEPT the provisional rows (`fast.provisional`),
+    whose spans come from the parse where a full build's come from doxygen; they are printed.
+
+    @brief Fast-tier invariance on a real target.
+    @return Exit status.
+    """
+    import shutil
+
+    text = args.append_text.encode().decode("unicode_escape")
+    work = Path(tempfile.mkdtemp(prefix="clew-fastcompare-"))
+    try:
+        a, fast, fast_ms = _fastcompare_fast_arm(Path(args.repo), work, args.edit_file, text)
+        provisional = set(filter(None, fast.get("fast.provisional", "").split(",")))
+        spans_a = _file_spans(a, args.edit_file)
+        d, b = _fastcompare_full_arms(Path(args.repo), work, args.edit_file, text)
+        spans_b = _file_spans(b, args.edit_file)
+        _build(work / "a", a)
+        kept_a = [s for s in spans_a if s[0] not in provisional]
+        kept_b = [s for s in spans_b if s[0] not in provisional]
+        diff_cd, diff_cb = whole_db_diff(a, d), whole_db_diff(a, b)
+        ran = fast.get("fast.pending") == "1"
+        print(f"fast tier ran: {ran}  provisional: {sorted(provisional)}")
+        print(f"fast refresh: {fast.get('fast.ms')} ms recorded, {fast_ms} ms wall")
+        print(
+            f"edited file's matched function spans, fast vs full: {'equal' if kept_a == kept_b else 'DIFFER'}"
+        )
+        print(f"  provisional spans, fast: {[s for s in spans_a if s[0] in provisional]}")
+        print(f"  provisional spans, full: {[s for s in spans_b if s[0] in provisional]}")
+        print(
+            f"C (full over fast) vs D (full over no-fast control): {len(diff_cd)} divergence(s) {diff_cd}"
+        )
+        print(f"C vs B (fresh full build), for information: {len(diff_cb)} divergence(s) {diff_cb}")
+        return 0 if ran and kept_a == kept_b and diff_cd == [] else 1
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
+
+
+##
+# @brief The fast arm: clone, full build, edit, `clew refresh`.
+# @param repo The target.
+# @param work Scratch directory.
+# @param rel The file to edit.
+# @param text The function source to append.
+# @return (index, fast.* record, refresh wall ms).
+# @version 1
+def _fastcompare_fast_arm(repo: Path, work: Path, rel: str, text: str) -> tuple[Path, dict, int]:
+    """@brief Build A. @return Index, record, ms."""
+    clone = work / "a"
+    subprocess.run(["git", "clone", "-q", "--shared", str(repo.resolve()), str(clone)], check=True)
+    db = work / "a.db"
+    _build(clone, db)
+    with (clone / rel).open("a") as handle:
+        handle.write(text)
+    ms = _build(clone, db, ["refresh"], verb=True)
+    with sqlite3.connect(db) as conn:
+        fast = dict(conn.execute("SELECT key, value FROM build_meta WHERE key LIKE 'fast.%'"))
+    return db, fast, ms
+
+
+##
+# @brief The two full arms: D (full over a pre-edit index) and B (fresh), of the edited tree.
+# @param repo The target.
+# @param work Scratch directory.
+# @param rel The file to edit.
+# @param text The function source to append.
+# @return (D, B).
+# @version 1
+def _fastcompare_full_arms(repo: Path, work: Path, rel: str, text: str) -> tuple[Path, Path]:
+    """@brief Build D and B. @return Indexes."""
+    clone = work / "d"
+    subprocess.run(["git", "clone", "-q", "--shared", str(repo.resolve()), str(clone)], check=True)
+    d, b = work / "d.db", work / "b.db"
+    _build(clone, d)
+    with (clone / rel).open("a") as handle:
+        handle.write(text)
+    _build(clone, d)
+    _build(clone, b)
+    return d, b
+
+
+##
+# @brief (name, bodystart, bodyend) of every bodied function in one file.
+# @param db The index.
+# @param rel The file.
+# @return The spans.
+# @version 1
+def _file_spans(db: Path, rel: str) -> list[tuple[str, int, int]]:
+    """@brief Read a file's function spans. @return Spans."""
+    with sqlite3.connect(db) as conn:
+        return sorted(
+            conn.execute(
+                "SELECT m.name, m.bodystart, m.bodyend FROM memberdef m JOIN path p ON p.rowid = m.bodyfile_id "
+                "WHERE p.name = ? AND m.kind = 'function' AND m.bodystart > 0",
+                (rel,),
+            ).fetchall()
+        )
+
+
+##
 # @brief Build one unmodified tree twice and compare, to establish the harness's noise floor.
 # @param args Parsed arguments carrying the target repo.
 # @return 0 when two full builds of identical source agree on every compared table.
@@ -820,6 +948,13 @@ def main() -> int:
         default="",
         help="an #include to insert after the file's last one, making the new call legal C/C++",
     )
+    fc_p = sub.add_parser("fastcompare", help="fast tier (an added function) versus full builds")
+    fc_p.add_argument(
+        "--edit-file", required=True, help="repo-relative file to append a function to"
+    )
+    fc_p.add_argument(
+        "--append-text", required=True, help="the function's source (\\n escapes allowed)"
+    )
     args = parser.parse_args()
     return {
         "subset": cmd_subset,
@@ -829,6 +964,7 @@ def main() -> int:
         "autorefresh": cmd_autorefresh,
         "compare": cmd_compare,
         "control": cmd_control,
+        "fastcompare": cmd_fastcompare,
     }[args.cmd](args)
 
 

@@ -17,7 +17,7 @@ Prints one JSON object: cold ms, each refresh's total ms, and the per-stage ms o
 refresh, slowest first.
 
 @brief One-file refresh benchmark with per-stage timings.
-@version 1
+@version 2
 """
 
 from __future__ import annotations
@@ -37,6 +37,35 @@ REPO = Path(__file__).resolve().parent.parent
 
 ## Line-comment prefix by extension, so the edit is valid source in the file's language.
 _COMMENT = {".py": "#", ".sh": "#", ".cmake": "#", ".txt": "#"}
+
+## PR1 (2.0.0): `--edit function` appends a NEW FUNCTION instead of a comment, the structural edit
+## the fast tier used to refuse. One template per language family, `{i}` making each rep's unique.
+_FUNCTION = {
+    ".py": "\n\ndef refresh_bench_fn_{i}():\n    return {i}\n",
+    ".ts": "\nexport function refreshBenchFn{i}(): number {{\n  return {i};\n}}\n",
+    ".tsx": "\nexport function refreshBenchFn{i}(): number {{\n  return {i};\n}}\n",
+    ".js": "\nexport function refreshBenchFn{i}() {{\n  return {i};\n}}\n",
+    ".c": "\nint refresh_bench_fn_{i}(void)\n{{\n    return {i};\n}}\n",
+    ".cpp": "\nint refresh_bench_fn_{i}()\n{{\n    return {i};\n}}\n",
+    ".cc": "\nint refresh_bench_fn_{i}()\n{{\n    return {i};\n}}\n",
+}
+
+
+##
+# @brief The text one rep appends: a comment, or a new function.
+# @param target The edited file.
+# @param edit `comment` or `function`.
+# @param i The rep.
+# @return The text.
+# @version 1
+def _edit_text(target: Path, edit: str, i: int) -> str:
+    """@brief One rep's edit. @return Text."""
+    if edit == "function":
+        template = _FUNCTION.get(target.suffix)
+        if template is None:
+            raise SystemExit(f"--edit function has no template for {target.suffix}")
+        return template.format(i=i)
+    return f"\n{_COMMENT.get(target.suffix, '//')} refresh_bench edit {i}\n"
 
 
 ##
@@ -112,7 +141,8 @@ def _fast_ms(db: Path) -> int | None:
 ##
 # @brief Clone, build, edit-and-refresh N times, report, clean up.
 # @return Process exit code.
-# @version 1
+# v2: --edit function; fast_ran per rep (2.0.0, PR1)
+# @version 2
 def main() -> int:
     """@brief Entry point. @return 0."""
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
@@ -123,6 +153,12 @@ def main() -> int:
     parser.add_argument(
         "--fast", action="store_true", help="refresh with `clew refresh` (fast tier first)"
     )
+    parser.add_argument(
+        "--edit",
+        choices=("comment", "function"),
+        default="comment",
+        help="what each rep appends: a comment line, or a new function (PR1)",
+    )
     args = parser.parse_args()
     work = Path(tempfile.mkdtemp(prefix="clew-bench-"))
     try:
@@ -132,18 +168,25 @@ def main() -> int:
         )
         cold = _build(clone, db)
         target = clone / args.file
-        prefix = _COMMENT.get(target.suffix, "//")
         runs = []
         for i in range(args.reps):
             with target.open("a") as handle:
-                handle.write(f"\n{prefix} refresh_bench edit {i}\n")
+                handle.write(_edit_text(target, args.edit, i))
             wall = _build(clone, db, "refresh" if args.fast else "")
             stamped, stages = _stamped(db)
             ## A FAST REFRESH STAMPS `fast.ms`, not `refresh.*` (those describe the last FULL
-            ## build), so its cost is read from there.
+            ## build), so its cost is read from there. `fast_ran` SAYS WHICH: a refusal is a full
+            ## build, and its time must not be reported as the fast tier's.
             fast_ms = _fast_ms(db) if args.fast else None
             stamped = fast_ms if fast_ms is not None else stamped
-            runs.append({"wall_ms": wall, "duration_ms": stamped, "stages": stages})
+            runs.append(
+                {
+                    "wall_ms": wall,
+                    "duration_ms": stamped,
+                    "stages": stages,
+                    "fast_ran": fast_ms is not None,
+                }
+            )
         median = sorted(runs, key=lambda r: r["duration_ms"])[len(runs) // 2]
         print(
             json.dumps(
@@ -153,6 +196,8 @@ def main() -> int:
                     "cold_ms": cold,
                     "refresh_ms": [r["duration_ms"] for r in runs],
                     "refresh_wall_ms": [r["wall_ms"] for r in runs],
+                    "edit": args.edit,
+                    "fast_ran": [r["fast_ran"] for r in runs],
                     "median_refresh_ms": statistics.median(r["duration_ms"] for r in runs),
                     "median_stages": dict(sorted(median["stages"].items(), key=lambda kv: -kv[1])),
                 },

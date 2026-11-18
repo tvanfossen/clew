@@ -7,12 +7,13 @@ set of definitions — by shifting that file's symbol positions with the parser'
 anchors and recomputing its text layers, in one transaction on the live index. Whole-index layers
 are recorded as stale (`fast.*`, the `derived` axis) for the full refresh that follows.
 
-WHAT IT REFUSES, and each refusal is a full build rather than a guess: an added, removed or
-renamed definition (rowids and edges would move), a changed configuration input, more files than
-the tier is for, or nothing changed at all.
+WHAT IT REFUSES, and each refusal is a full build rather than a guess: a changed definition other
+than a function (added, removed and renamed functions are reconciled since PR1, 2.0.0; see
+tests/test_fast_tier_definitions.py), a changed configuration input, more files than the tier is
+for, or nothing changed at all.
 
 @brief Tests for clew.fasttier.
-@version 1
+@version 2
 """
 
 from __future__ import annotations
@@ -139,21 +140,10 @@ def test_the_edited_files_text_layers_are_current(tmp_path: Path) -> None:
     assert ("REQ-FT-002",) in found
 
 
-def test_an_added_definition_falls_back_to_a_full_build(tmp_path: Path) -> None:
-    """A NEW SYMBOL NEEDS A ROW, ROWIDS AND EDGES, none of which the fast tier allocates; a full
-    build answers it, and leaves no fast record behind.
-
-    @brief A changed definition set refuses the fast tier.
-    @return None.
-    @version 1
-    """
-    repo, out = _indexed(tmp_path)
-    (repo / "src" / "widget.ts").write_text(
-        _SOURCE + "\nexport function newWidget(): number {\n  return 0;\n}\n"
-    )
-    _build(repo, out, tier="auto")
-    assert _fast(out).get("pending") != "1"
-    assert _span(out, "newWidget")[0] > 0
+## `test_an_added_definition_falls_back_to_a_full_build` SPECIFIED THE 1.3.5 REFUSAL of an added
+## function. PR1 (2.0.0, owner-approved) replaced that behaviour: an added, removed or renamed
+## function is reconciled in place, and every other definition change still refuses. Both halves
+## are specified in tests/test_fast_tier_definitions.py.
 
 
 def test_a_full_build_clears_the_fast_record(tmp_path: Path) -> None:
