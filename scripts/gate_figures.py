@@ -11,10 +11,16 @@ below it. Baseline drift is printed beside, never folded in.
 
     .venv/bin/python scripts/gate_figures.py acceptance/runs/<run> acceptance/runs/1.3.0-final
 
+WITH ONE ARGUMENT the run stands alone (the 2.0.0 pre-registration, amended 2026-11-17): each
+repo's arms against that run's own baseline, per question too, and NO verdict — the release
+decision is the owner's, so a standalone report states figures only.
+
+    .venv/bin/python scripts/gate_figures.py acceptance/runs/2.0.0
+
 `tests/test_gate_figures.py` pins that this reproduces 1.3.0-final's published figures.
 
 @brief Per-repo token and separation figures, and the pre-registered gate.
-@version 1
+@version 2
 """
 
 from __future__ import annotations
@@ -101,13 +107,35 @@ def gate(comparator: dict, candidate: dict) -> tuple[bool, bool]:
     return cost, quality
 
 
-## @brief Print the per-repo table for a candidate run against a comparator run.
-## @param run The candidate run.
-## @param comparator The comparator run.
-## @return Exit status: 0 when every repo passes, 1 otherwise.
+## @brief Print one run's per-repo figures with no comparator and no verdict.
+## @param run The run.
+## @return Exit status 0.
 ## @version 1
-def main(run: Path, comparator: Path) -> int:
-    """@brief Print the gate. @return 0 or 1."""
+def standalone(run: Path) -> int:
+    """@brief Print figures only, per repo, arm and question. @return 0."""
+    print(f"{'repo':10} {'arm':10} {'tokens':>8} {'sep':>8}  per question")
+    for target in TARGETS:
+        fig = repo_figures(run, target)
+        for arm in ARMS:
+            a = fig[arm]
+            per_q = "  ".join(f"{q} {v:+.2f}" for q, v in a["clusters"].items())
+            print(f"{target:10} {arm:10} {a['tokens_pct']:+7.1f}% {a['separation']:+8.2f}  {per_q}")
+        print(
+            f"{target:10} baseline mean {fig['baseline_mean']:.2f}, tokens {fig['baseline_tokens']}"
+        )
+    return 0
+
+
+## @brief Print the per-repo table for a candidate run, against a comparator run when given.
+## @param run The candidate run.
+## @param comparator The comparator run, or None for a standalone run.
+## @return Exit status: 0 when every repo passes (always 0 standalone), 1 otherwise.
+## v2: the comparator is optional; a standalone run prints figures and no verdict.
+## @version 2
+def main(run: Path, comparator: Path | None = None) -> int:
+    """@brief Print the gate, or figures only. @return 0 or 1."""
+    if comparator is None:
+        return standalone(run)
     passed = True
     print(
         f"{'repo':10} {'arm':10} {'tok cmp':>8} {'tok new':>8} {'sep cmp':>8} {'sep new':>8}  gate"
@@ -134,4 +162,4 @@ def main(run: Path, comparator: Path) -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main(Path(sys.argv[1]), Path(sys.argv[2])))
+    sys.exit(main(Path(sys.argv[1]), Path(sys.argv[2]) if len(sys.argv) > 2 else None))

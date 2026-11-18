@@ -1,5 +1,38 @@
 # 2.0.0 — pre-registration
 
+## AMENDMENT, 2026-11-17 (owner ruling) — this section governs; the text below it is the record
+
+The 2.0.0 grid is a FULL FRESH RUN, "as if 1.4.0 was not planned — 1.4.0 has effectively become
+2.0.0". Everything below this section that contradicts it is superseded and kept only as the record
+of what was first registered.
+
+- **Arms** baseline, index_only, index — all three regenerated; nothing is reused or regraded.
+- **Replicates **5**** (was 3), seed 7, answering model `claude-haiku-5-5`.
+- **Standalone.** No 1.3.0-final or 1.4.0-final comparator, drift section or context columns; the
+  figures are this run's index arms against this run's baseline. (Earlier releases' figures stay
+  in their own RESULTS.md.)
+- **Grader** fingerprint `c10cf554ae6d` (set members on whole path segments).
+- **Judge** `claude-sonnet-5-5`, k=3 (provider-canonical and floating; disclosed, not controlled).
+- **Rubrics** (each corrected by the 2.0.0 cross-check, every change re-read at its pin; the
+  commit messages list every change and its source line):
+  mattermost 2.0.0, mbedtls 4.0.0, self 6.0.0, entropic 4.0.0.
+- **Provisioning** into an empty run directory: the 2026-11-16 pre-flight artifacts under
+  `acceptance/runs/2.0.0/<target>/` were built at an older index build and are not reused.
+- **Tool commit** is recorded by the harness as `clew_commit`; a dirty tree is refused.
+- **What changed for the measured arms** is listed at the cut, against the tree that is actually
+  run — the owner may still add 2.0.0 scope, so the list is not frozen here.
+- **Reported:** figures only, no verdicts (unchanged from below): per repo, per arm, total tokens
+  and their parts vs baseline, separation per repo and per question, wall time, judge error rate
+  (repair passes until ≤ 2%) and split rate.
+
+`tests/test_run_records.py::test_the_2_0_0_preregistration_pins_what_the_grid_runs` reads the
+grader fingerprint, each rubric's judge and version, and every `--replicates` in RUN-COMMAND.md
+from the tree, so this section cannot disagree with what the grid will run.
+
+---
+
+## As first registered (2026-11-16)
+
 Written BEFORE the grid (owner 2026-11-16: push approved; full grid held for 1am, after a usage
 reset). Everything in `acceptance/runs/1.4.0-pending/PRE-REGISTRATION.md` holds unchanged —
 targets (mattermost, mbedtls, self, entropic), arms, replicates 3, seed 7, grader fingerprint

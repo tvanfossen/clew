@@ -49,3 +49,18 @@ def test_the_gate_is_cost_lower_and_quality_within_tolerance() -> None:
     assert gate_figures.gate(base, {"tokens_pct": 9.9, "separation": -3.0}) == (True, True)
     assert gate_figures.gate(base, {"tokens_pct": 10.0, "separation": 0.0}) == (False, True)
     assert gate_figures.gate(base, {"tokens_pct": 0.0, "separation": -3.01}) == (True, False)
+
+
+def test_a_standalone_run_prints_figures_and_no_verdict(capsys: pytest.CaptureFixture[str]) -> None:
+    """The 2.0.0 run stands alone (owner ruling 2026-11-17: no comparator) and its figures are
+    reported without verdicts. With no comparator the script prints each repo's arms against
+    that run's own baseline, per question as well, and never a PASS or MISS.
+
+    @brief One run argument gives figures only.
+    """
+    run = REPO / "acceptance" / "runs" / "1.3.0-final"
+    assert gate_figures.main(run) == 0
+    out = capsys.readouterr().out
+    assert "PASS" not in out and "MISS" not in out
+    assert "+13.6%" in out and "-5.92" in out
+    assert "Q1" in out
