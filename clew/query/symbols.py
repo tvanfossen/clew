@@ -1694,7 +1694,8 @@ def _config_candidates(conn: sqlite3.Connection, query: str, tokens: list[str]) 
 ## @param text Query; whitespace-separated tokens must ALL match.
 ## @param limit Maximum hits to return (default DEFAULT_SEARCH_LIMIT).
 ## @return Ranked SymbolHit list, best match first; check `kind` — 'file' is a whole file, and 'variable', 'macro definition', 'typedef', 'enumeration' and 'config symbol' have no body, callers or callees.
-## @version 12
+## v13: delegates to search_counted, which also reports the uncut total (2.0.0, T1).
+## @version 13
 ## @req REQ-DDB-QUERY-001
 ## @req REQ-DDB-QUERY-012
 def search(db: DbSource, text: str, limit: int = DEFAULT_SEARCH_LIMIT) -> list[SymbolHit]:
@@ -1766,11 +1767,31 @@ def search(db: DbSource, text: str, limit: int = DEFAULT_SEARCH_LIMIT) -> list[S
     being called definitive.
 
     @brief Search functions, variables, classes, macros, types, config symbols and file docs, ranked.
-    @version 12
+    @version 13
+    """
+    return search_counted(db, text, limit)[0]
+
+
+## @brief `search`, plus how many rows matched before the limit cut them.
+## @param db Database path or open connection.
+## @param text Query; whitespace-separated tokens must ALL match.
+## @param limit Maximum hits to return.
+## @return (ranked hits, total matches before the cut).
+## @version 1
+## @req REQ-DDB-QUERY-001
+def search_counted(
+    db: DbSource, text: str, limit: int = DEFAULT_SEARCH_LIMIT
+) -> tuple[list[SymbolHit], int]:
+    """T1 (2.0.0): every candidate is already ranked before the slice, so the total is free — a
+    reply cut at its limit can say "25 of 140" instead of "25". See `search` for the corpora.
+
+    @brief Ranked search with its uncut total.
+    @return (hits, total).
+    @version 1
     """
     tokens = [t.lower() for t in text.split() if t]
     if not tokens:
-        return []
+        return [], 0
     query = text.strip().lower()
     with connect(db) as conn:
         ranked = (
@@ -1783,7 +1804,7 @@ def search(db: DbSource, text: str, limit: int = DEFAULT_SEARCH_LIMIT) -> list[S
     # ties alphabetical so results are stable across builds rather than dependent
     # on rowid order.
     ranked.sort(key=lambda r: (r[0], r[1], r[2]))
-    return [hit for _score, _tier, _name, hit in ranked[: max(1, limit)]]
+    return [hit for _score, _tier, _name, hit in ranked[: max(1, limit)]], len(ranked)
 
 
 ## Cap on tokens diagnosed after a zero-result search. The diagnosis costs one COUNT

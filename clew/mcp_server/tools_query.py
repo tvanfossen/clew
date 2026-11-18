@@ -1880,7 +1880,8 @@ class QueryTools:
     ## @param limit Maximum hits to return from a text corpus.
     ## @param target Repo root or slug to answer from; omit for the server's derived target.
     ## @return The corpus's own envelope: ranked rows for a text corpus, the inventory object for a layer corpus.
-    ## @version 8
+    ## v9: `limit` says a cut is disclosed with its total (2.0.0, T1).
+    ## @version 9
     ## @req REQ-DDB-MCP-003
     def search(
         self,
@@ -1901,7 +1902,15 @@ class QueryTools:
                 )
             ),
         ] = "symbols",
-        limit: Annotated[int, Field(description="Maximum rows returned.")] = 25,
+        limit: Annotated[
+            int,
+            Field(
+                description=(
+                    "Maximum rows returned. A reply cut by it says so in `_limited`, with "
+                    "`total_available` counting every match."
+                )
+            ),
+        ] = 25,
         target: Annotated[
             str | None,
             Field(description="Repo root or slug; omit for the default."),

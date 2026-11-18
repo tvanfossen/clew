@@ -12,16 +12,19 @@ index_scope:
 # section is what makes the req_edges layer of the fixture a DECLARED behaviour rather
 # than a built-in assumption.
 guard:
-  output_dir: docs/generated/
-
   validate:
     exclude:
-      - "^gen/"
+      - "gen/**"
     tags:
       req:
         pattern: "^REQ-[0-9]{4}$"
 
   impact:
-    requirements:
-      id_column: "id"
-      name_column: "title"
+    report_dir: docs/generated/
+
+# The catalog mapping. Top-level since 2.0.0 (it was `guard.impact.requirements`); the fixture
+# moved with the schema so the declaration above is still the one in force
+# (tests/test_fixture_config_current.py).
+requirements:
+  id_column: "id"
+  name_column: "title"

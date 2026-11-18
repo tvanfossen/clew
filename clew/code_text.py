@@ -392,7 +392,8 @@ def _lines(path: Path) -> list[str] | None:
 ## @param repo_root Where to read snippet lines from; None leaves snippets empty.
 ## @return Hits, or None when this index has no code corpus.
 ## Version 6 (1.3.10): file-scope matches follow function matches, as `kind: "file"` hits.
-## @version 6
+## v7: the MATCH expression is built by _match_query, shared with count_code (2.0.0, T1)
+## @version 7
 ## @utility
 def search_code(
     conn: sqlite3.Connection, text: str, limit: int, repo_root: Path | None = None
@@ -420,7 +421,7 @@ def search_code(
     ## EACH WORD MATCHES WHOLE (through the stemmer, so `retries` finds `retry`) OR AS A PREFIX,
     ## so a family named by its prefix — `MBEDTLS_ERR_`, `mbedtls_ct_` — finds its members. A
     ## prefix term is not stemmed, which is why both forms are asked.
-    query = " AND ".join(f'("{t}" OR "{t}"*)' for t in tokens)
+    query = _match_query(tokens)
     ## A BINDING'S SPAN is its declaration line through its recorded end; a function's is its body.
     start, end, extent = "m.bodystart", "m.bodyend", ""
     if _has_table(conn, DECL_EXTENT):
@@ -456,6 +457,52 @@ def search_code(
     if len(hits) < limit and _has_table(conn, FILE_TABLE):
         hits.extend(_file_hits(conn, query, tokens, limit - len(hits), repo_root))
     return hits
+
+
+## @brief The FTS expression for a word list: each word whole (stemmed) or as a prefix.
+## @param tokens The query words.
+## @return The MATCH expression.
+## @version 1
+## @dg_internal
+def _match_query(tokens: list[str]) -> str:
+    """ONE SPELLING for the search and its count, so the total counts what the search matches.
+
+    @brief Build the MATCH expression.
+    @return Text.
+    """
+    return " AND ".join(f'("{t}" OR "{t}"*)' for t in tokens)
+
+
+## @brief How many units `search_code` would return with no limit.
+## @param conn Open index connection.
+## @param text Words to match.
+## @return Function plus file-scope matches; 0 when the index has no code corpus.
+## @version 1
+## @req REQ-DDB-QUERY-014
+def count_code(conn: sqlite3.Connection, text: str) -> int:
+    """T1 (2.0.0): the same MATCH and the same joins as `search_code`, counted, so a cut reply can
+    state its total. Called only when a reply filled its limit; the common path pays nothing.
+
+    @brief Count code-corpus matches.
+    @return Count.
+    """
+    tokens = _QUERY_WORD.findall(text)
+    if not tokens or not _has_table(conn, TABLE):
+        return 0
+    query = _match_query(tokens)
+    total = conn.execute(
+        f"SELECT COUNT(*) FROM {TABLE} JOIN memberdef m ON m.rowid = {TABLE}.rowid "
+        "JOIN path p ON p.rowid = COALESCE(NULLIF(m.bodyfile_id, 0), m.file_id) "
+        f"WHERE {TABLE} MATCH ?",
+        (query,),
+    ).fetchone()[0]
+    if _has_table(conn, FILE_TABLE):
+        total += conn.execute(
+            f"SELECT COUNT(*) FROM {FILE_TABLE} JOIN path p ON p.rowid = {FILE_TABLE}.rowid "
+            f"WHERE {FILE_TABLE} MATCH ?",
+            (query,),
+        ).fetchone()[0]
+    return int(total)
 
 
 ## @brief Files whose file-scope text holds every word, as `kind: "file"` hits.
