@@ -68,7 +68,69 @@ STALE_LAYERS = (
     "unresolved_inbound",
     "coverage",
     "py_docstrings",
+    ## PR0 (2.0.0): found by `tests/test_fast_tier_layers.py`, which classifies every table of a
+    ## built index. These change with a one-file edit and the fast tier does not rewrite them, so
+    ## they were stale after a save while reading as current. Named, so the notice says so.
+    "doxygen_signatures",
+    "includes",
+    "kconfig_gates",
+    "config_defaults",
+    "req_edges",
 )
+
+## How every table of an index stands after a fast refresh (PR0, 2.0.0): FAST (rewritten for the
+## edited files), a STALE_LAYERS name (left as it was, named on every reply until the full
+## refresh), or UNAFFECTED (cannot change under the fast tier's own preconditions — the same file
+## set, the same definition set, no configuration input edited). A table with no class fails
+## `tests/test_fast_tier_layers.py`, so a new layer cannot go silently stale.
+FAST = "fast"
+UNAFFECTED = "unaffected"
+TABLE_CLASSES: dict[str, str] = {
+    ## Rewritten in place for the edited files.
+    "memberdef": FAST,
+    "compounddef": FAST,
+    "decl_extent": FAST,
+    "file_docs": FAST,
+    "generated_files": FAST,
+    "supplementary_docs": FAST,
+    "req_mentions": FAST,
+    "call_edges": FAST,  # outgoing AST edges; doxygen's own rows are `doxygen_call_edges`
+    "code_text": FAST,
+    "code_text_files": FAST,
+    "blocking_calls": FAST,
+    "build_meta": FAST,
+    ## Left as they were, and named.
+    "xrefs": "doxygen_call_edges",
+    "memberdef_param": "doxygen_signatures",
+    "param": "doxygen_signatures",
+    "reimplements": "doxygen_signatures",
+    "locks": "locks",
+    "lock_acquisitions": "locks",
+    "critical_section_calls": "locks",
+    "threads": "threads",
+    "thread_membership": "threads",
+    "symbol_liveness": "reachability",
+    "context_conflicts": "context_conflicts",
+    "shared_key_edges": "shared_key_edges",
+    "unresolved_inbound": "unresolved_inbound",
+    "includes": "includes",
+    "kconfig_gates": "kconfig_gates",
+    "config_defaults": "config_defaults",
+    "req_edges": "req_edges",
+    "req_test_edges": "req_edges",
+    ## Unchanged by an edit the fast tier accepts.
+    "path": UNAFFECTED,  # the file set is unchanged
+    "external_boundaries": UNAFFECTED,  # likewise
+    "test_scope": UNAFFECTED,  # path globs over that file set
+    "refid": UNAFFECTED,  # the definition set is unchanged
+    "member": UNAFFECTED,
+    "contains": UNAFFECTED,
+    "compoundref": UNAFFECTED,
+    "requirements": UNAFFECTED,  # the catalog is a configuration input (refused, W13)
+    "requirement_links": UNAFFECTED,
+    "data_model_keys": UNAFFECTED,  # the data model is a configuration input
+    "meta": UNAFFECTED,  # doxygen's own run record
+}
 
 ## Files whose edit changes how the WHOLE tree is indexed. Matched on the basename.
 _CONFIG_NAMES = frozenset(

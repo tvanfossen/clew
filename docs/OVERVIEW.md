@@ -144,9 +144,11 @@ index, and then reasons from a stale one — which is worse than not having it.
   doxygen's own call layer — is left as it was and NAMED on every reply as the `derived`
   staleness axis until a full refresh replaces the index. Measured with
   `scripts/refresh_bench.py --fast` (a shared clone, one cold build, three one-comment edits,
-  median): 423 ms on this repository, 355 ms on mbedtls, 107 ms on entropic and 579 ms on
-  mattermost-mobile, in-process. An added, removed or renamed definition, a configuration file,
-  or more than four edited files takes the full tier instead — 5 to 14 s on those repositories.
+  median; 2026-11-18 at 0f25ff05, editing `clew/cli.py`, `library/ssl_tls.c`,
+  `src/facade/entropic.cpp` and `app/actions/remote/post.ts` of the acceptance pins): 233 ms on
+  this repository, 364 ms on mbedtls, 239 ms on entropic and 324 ms on mattermost-mobile,
+  in-process. An added, removed or renamed definition, a configuration file, or more than four
+  edited files takes the full tier instead — 3.2 s, 4.1 s, 4.3 s and 8.4 s on those repositories.
   From a shell or an editor hook: `clew refresh`.
 - **Automatic.** The MCP server watches the repositories it has answered from (OS file events),
   so a save is refreshed by the fast tier within about a second and the full refresh follows in
