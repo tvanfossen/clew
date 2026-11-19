@@ -1019,3 +1019,15 @@ def test_a_test_page_pins_each_check_to_what_it_observes(site: dict[str, str]) -
     item = page.split('<ol class="asserts">', 1)[1].split("</ol>", 1)[0]
     assert "<code>assert load([]) == 1</code>" in item
     assert '<span class="pin pin-direct">observes <code>load</code></span>' in item
+
+
+def test_a_test_page_says_how_the_product_reaches_what_it_tests(site: dict[str, str]) -> None:
+    """OWNER (round 5, P5.5): context paths. `test_load` calls `load`; the product flow from
+    `main` reaches it, so the page shows that path and links the flow.
+
+    @brief P5.5: the product's path to the tested code.
+    """
+    (name,) = [k for k in site if k.startswith("test-") and k.endswith("test_load.html")]
+    context = site[name].split('<div class="context">', 1)[1].split("</div>", 1)[0]
+    assert "<code>main</code> → <code>load</code>" in context
+    assert 'href="flow-' in context

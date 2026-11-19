@@ -129,3 +129,35 @@ def test_a_pinned_check_shows_its_traced_value() -> None:
     html = _pinned(Pin("assert save(2) == 2", "direct", "save", line=12), "2")
     assert '<span class="traced">returned <code>2</code> in the recorded run</span>' in html
     assert "traced" not in _pinned(Pin("assert x", "not attributed", line=13), None)
+
+
+def test_a_test_no_product_flow_reaches_says_so() -> None:
+    """ABSENCE IS STATED (P5.5): a test whose calls no product flow reaches gets the sentence, not
+    an empty space; a tooling flow does not count as the product.
+
+    @brief Context paths: the negative.
+    """
+    from clew.wiki.flowpage import FlowPage
+    from clew.wiki.testpages import _context
+
+    tool = FlowPage("flow-gen", "gen", frozenset(), calls=(("gen", "helper"),), role="tooling")
+    product = FlowPage(
+        "flow-main", "main", frozenset(), calls=(("main", "run"), ("run", "save")), role="product"
+    )
+    assert "No product flow reaches" in _context({"helper"}, [tool, product])
+    html = _context({"save"}, [tool, product])
+    assert (
+        "<code>main</code> → <code>run</code> → <code>save</code>" in html
+        and 'href="flow-main.html"' in html
+    )
+
+
+def test_a_flow_that_only_starts_at_the_function_is_the_fallback() -> None:
+    """@brief A caller chain beats "is the entry"; the entry form is shown only alone."""
+    from clew.wiki.flowpage import FlowPage
+    from clew.wiki.testpages import _context
+
+    own = FlowPage("flow-save", "save", frozenset(), calls=(("save", "write"),), role="product")
+    main = FlowPage("flow-main", "main", frozenset(), calls=(("main", "save"),), role="product")
+    assert "<code>main</code> → <code>save</code>" in _context({"save"}, [own, main])
+    assert "<code>save</code> is the entry of the flow" in _context({"save"}, [own])

@@ -995,6 +995,16 @@ requirements:
     x-priority: P1
     x-status: implemented
     x-evidence: clew/wiki/checkpins.py; tests/test_wiki_checkpins.py.
+  REQ-DDB-WIKI-044:
+    subsystem: wiki
+    name: A test page says how the product reaches what it tests, or that it does not
+    acceptance_criteria: 'For each function a test calls, the test page shows the shortest path a
+      product flow takes from its entry to it, along that flow''s drawn steps, linked to the flow;
+      tooling, thread and test flows do not count as the product. When no product flow reaches any
+      of them, the page says so in words rather than leaving the section out.'
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/testpages.py _context / _shortest; tests/test_wiki_checkpins.py, tests/test_wiki_site.py.
   REQ-DDB-SCHEMA-013:
     subsystem: schema
     name: Kconfig structure tables, created independently of the gating table

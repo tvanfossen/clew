@@ -113,7 +113,8 @@ def build_wiki(
 ## v2: the map honours exclude_owners (2.0.0, P5)
 ## v3: product tree requirement ids link to their pages (2.0.0, P5.4)
 ## v4: test pages get the packaged runs (2.0.0, P5.5)
-## @version 4
+## v5: test pages get the product flows (2.0.0, P5.5)
+## @version 5
 ## @utility
 def _build_site(
     repo_root: Path,
@@ -233,6 +234,8 @@ def _build_site(
             "traced": set(traces),
             ## P5.5: the runs themselves, for each pinned check's traced value.
             "traces": traces,
+            ## P5.5: context paths — the product flows a test's calls are reached by.
+            "product_flows": [p for p in pages if p.role == "product"],
             "slices": _slices_by_test(pages),
         },
         source,

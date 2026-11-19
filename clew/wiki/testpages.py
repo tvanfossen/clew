@@ -311,7 +311,8 @@ def _result(name: str, ctx: dict[str, Any]) -> str:
 ## v2: links its file's page.
 ## v3: checks pinned by syntax tree (2.0.0, P5.5)
 ## v4: traced values on pinned checks (2.0.0, P5.5)
-## @version 4
+## v5: context paths (2.0.0, P5.5)
+## @version 5
 ## @utility
 def _definition(d: Any, graph: _Edges, ctx: dict[str, Any], repo_root: Path) -> str:
     """@brief Definition block. @return HTML."""
@@ -336,8 +337,96 @@ def _definition(d: Any, graph: _Edges, ctx: dict[str, Any], repo_root: Path) -> 
     count = len(pins) or len(checks)
     if count:
         out += f'<h2>What it checks ({count})</h2><ol class="asserts">{items}</ol>'
+    if candidates:
+        out += _context(candidates, ctx.get("product_flows") or [])
     out += _proof(d, graph, ctx, count)
     return out
+
+
+## @brief How the product reaches the functions a test calls, or that it does not.
+## @param candidates The names of the functions the test calls.
+## @param flows The site's flow pages (only `product` ones count).
+## @return HTML.
+## @version 1
+## @req REQ-DDB-WIKI-044
+def _context(candidates: set[str], flows: list) -> str:
+    """CONTEXT PATHS (owner, round 5, P5.5): for each function the test calls, the shortest path a
+    PRODUCT flow takes from its entry to it, along that flow's own drawn steps, linked to the flow.
+    A tooling or thread flow is not the product. ABSENCE IS STATED: when no product flow reaches
+    any of them the page says so — a test of code the product never runs is worth knowing about.
+
+    @brief Context paths.
+    @return HTML.
+    """
+    lines = []
+    for name in sorted(candidates):
+        found = _shortest([f for f in flows if f.role == "product"], name)
+        if found:
+            page, path = found
+            chain = (
+                " → ".join(f"<code>{escape(n)}</code>" for n in path)
+                if len(path) > 1
+                else f"<code>{escape(name)}</code> is the entry of the flow"
+            )
+            lines.append(f'<li>{chain} <a href="{escape(page)}.html">(flow)</a></li>')
+    body = (
+        f"<ul>{''.join(lines)}</ul>"
+        if lines
+        else "<p>No product flow reaches this code: no product entry point's flow calls any of "
+        "the functions this test calls.</p>"
+    )
+    return f'<h2>Where the product reaches it</h2><div class="context">{body}</div>'
+
+
+## @brief The shortest entry → name path over the product flows, and the flow it is in.
+## @param flows Product flow pages.
+## @param name The function to reach.
+## @return (flow page name, path), or None.
+## @version 1
+## @utility
+def _shortest(flows: list, name: str) -> tuple[str, list[str]] | None:
+    """@brief Breadth-first over each flow's steps from its entry. @return Best path."""
+    best: tuple[str, list[str]] | None = None
+    for flow in flows:
+        if not flow.calls:
+            continue
+        entry = flow.calls[0][0]
+        nexts: dict[str, list[str]] = {}
+        for a, b in flow.calls:
+            nexts.setdefault(a, []).append(b)
+        seen, queue = {entry}, [[entry]]
+        while queue:
+            path = queue.pop(0)
+            if path[-1] == name and _better(path, best):
+                best = (flow.name, path)
+                break
+            for nxt in nexts.get(path[-1], ()):
+                if nxt not in seen:
+                    seen.add(nxt)
+                    queue.append([*path, nxt])
+    return best
+
+
+## @brief Whether a found path beats the best so far.
+## @param path The new path.
+## @param best The best (flow, path) so far, or None.
+## @return True when the new one is better.
+## @version 1
+## @utility
+def _better(path: list[str], best: tuple[str, list[str]] | None) -> bool:
+    """A CALLER CHAIN BEATS A FLOW THAT MERELY STARTS AT THE FUNCTION: a one-step path says
+    nothing about how the product gets there, so it is kept only when no flow reaches it from above.
+    Among caller chains, the shorter wins.
+
+    @brief Rank paths.
+    @return Better.
+    """
+    if best is None:
+        return True
+    old = best[1]
+    if (len(path) == 1) != (len(old) == 1):
+        return len(old) == 1
+    return len(path) < len(old)
 
 
 ## @brief One pinned check: the statement, what it observes, and its traced value.
