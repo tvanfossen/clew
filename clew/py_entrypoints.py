@@ -190,7 +190,8 @@ def main_guard_harvester() -> Harvester:
 ## @brief Read `pyproject.toml` and return its declared console-script targets.
 ## @param repo_root Repo root to look in.
 ## @return Declared targets in `module.path:function` form.
-## @version 1
+## v2: delegates to console_scripts, shared with the wiki (2.0.0, D8)
+## @version 2
 ## @req REQ-DDB-PIPE-004
 def console_script_targets(repo_root: Path | str | None) -> list[str]:
     """Absent or unparseable `pyproject.toml` yields nothing, which is the norm
@@ -200,15 +201,30 @@ def console_script_targets(repo_root: Path | str | None) -> list[str]:
     @return List of `module:function` targets.
     @version 1
     """
+    return list(console_scripts(repo_root).values())
+
+
+## @brief Every declared console script, by name: PEP 621 and Poetry tables.
+## @param repo_root Repository root, or None.
+## @return {script name: `module:function`}; {} when there is no pyproject.toml.
+## @version 1
+## @req REQ-DDB-PIPE-004
+def console_scripts(repo_root: Path | str | None) -> dict[str, str]:
+    """ONE READER for the liveness seeds and the wiki's entry flows (2.0.0, D8): the wiki read
+    only PEP 621 `[project.scripts]`, missing every Poetry `[tool.poetry.scripts]` this reads.
+
+    @brief Read console scripts by name.
+    @return Mapping.
+    """
     if repo_root is None:
-        return []
-    path = Path(repo_root).expanduser() / "pyproject.toml"
-    doc = _read_toml(path)
-    targets: list[str] = []
+        return {}
+    doc = _read_toml(Path(repo_root).expanduser() / "pyproject.toml")
+    found: dict[str, str] = {}
     for table in _SCRIPT_TABLES:
-        scripts = _nested(doc, table)
-        targets.extend(str(v) for v in scripts.values() if isinstance(v, str))
-    return targets
+        for name, target in _nested(doc, table).items():
+            if isinstance(target, str):
+                found.setdefault(str(name), target)
+    return found
 
 
 ## @brief Parse a TOML file into a mapping, tolerating a bad file but not a missing parser.

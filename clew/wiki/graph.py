@@ -188,10 +188,11 @@ def _blocks(
     return owner, dict(placed)
 
 
-## @brief Files the index tags as belonging to a nested git tree (gh#335).
+## @brief Files the index tags as belonging to a nested git tree (gh#335), or the repo declares vendored.
 ## @param conn Open connection.
 ## @return Repo-relative paths of vendored files.
-## @version 1
+## v2 (2.0.0, W5): and every file under a declared `vendored:` root the build found.
+## @version 2
 ## @dg_internal
 def _vendored(conn: Any) -> set[str]:
     """A FACT, NOT A NAME GUESS: `clew/external.py` stamps the owning nested git tree onto `path`;
@@ -202,14 +203,40 @@ def _vendored(conn: Any) -> set[str]:
     @return Paths.
     """
     columns = {row[1] for row in conn.execute("PRAGMA table_info(path)")}
-    if EXTERNAL_ROOT_COLUMN not in columns:
-        return set()
-    return {
+    nested: set[str] = set()
+    if EXTERNAL_ROOT_COLUMN in columns:
+        nested = {
+            str(name)
+            for (name,) in conn.execute(
+                f"SELECT name FROM path WHERE type = 1 AND COALESCE({EXTERNAL_ROOT_COLUMN}, '') != ''"
+            )
+        }
+    roots = _declared_vendored_roots(conn)
+    declared = {
         str(name)
-        for (name,) in conn.execute(
-            f"SELECT name FROM path WHERE type = 1 AND COALESCE({EXTERNAL_ROOT_COLUMN}, '') != ''"
-        )
+        for (name,) in conn.execute("SELECT name FROM path WHERE type = 1")
+        if any(str(name) == r or str(name).startswith(f"{r}/") for r in roots)
     }
+    return nested | declared
+
+
+## @brief The `vendored:` roots the build found present (`scope.vendored_roots`).
+## @param conn Open connection.
+## @return Repo-relative roots, without a trailing slash.
+## @version 1
+## @dg_internal
+def _declared_vendored_roots(conn: Any) -> list[str]:
+    """W5 (2.0.0): the build records a declared `vendored:` here, and this module read only the
+    nested-git-tree stamp, so a copied-in library the repository calls vendored was drawn as
+    first-party code.
+
+    @brief Read declared vendored roots.
+    @return Roots.
+    """
+    if not conn.execute("SELECT 1 FROM sqlite_master WHERE name = 'build_meta'").fetchone():
+        return []
+    row = conn.execute("SELECT value FROM build_meta WHERE key = 'scope.vendored_roots'").fetchone()
+    return [r.strip().rstrip("/") for r in str(row[0] if row else "").split(",") if r.strip()]
 
 
 ## @brief Call counts between files, both directions.
