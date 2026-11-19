@@ -24,12 +24,18 @@ _PITCH = 26
 _GAP = 70
 _CHAR = 7.2
 _PAD = 10
+## ABOVE THIS MANY TESTS the diagram summarises by result (2.0.0, P5.4 follow-up). MEASURED on clew
+## at 788ea335: REQ-DDB-CONFIG-001 drew 553 tests and 7,758 edges, a 1.15 MB SVG ~14,000 px tall,
+## and the 140 requirement pages carried 14.6 MB of evidence SVG of 24.7 MB. 40 rows at the pitch
+## is ~1,050 px, about one screen; the full list stays in the page's tests table.
+SUMMARY_TESTS = 40
 
 
 ## @brief The SVG for one requirement's evidence, or "" when it has neither implementer nor test.
 ## @param row The requirement's evidence row.
 ## @return SVG HTML.
-## @version 1
+## v2 (2.0.0): above SUMMARY_TESTS tests, summarised by result (`_summary_svg`).
+## @version 2
 ## @req REQ-DDB-WIKI-022
 def evidence_svg(row: Any) -> str:
     """@brief Draw implementers, tests and results with the measured edges between them.
@@ -39,6 +45,8 @@ def evidence_svg(row: Any) -> str:
     tests = list(row.tests)
     if not impls and not tests:
         return ""
+    if len(tests) > SUMMARY_TESTS:
+        return _summary_svg(row, impls, tests)
     reached = {test: set(names) for test, names in (row.extent or ())}
     uncovered = set(row.implementers_uncovered or ())
     widths = [_width(impls), _width([t for t, _s in tests]), _width([s for _t, s in tests])]
@@ -61,6 +69,62 @@ def evidence_svg(row: Any) -> str:
     summary = f"{len(impls)} implementers, {len(tests)} tests, {sum(1 for _t, s in tests if s == 'passed')} passed"
     return (
         f'<svg class="req-evidence" role="img" aria-label="{escape(summary)}" '
+        f'viewBox="0 0 {total:.0f} {height}" width="{total:.0f}" height="{height}">'
+        + "".join(parts)
+        + "</svg>"
+    )
+
+
+## @brief The summary form: each implementer to result buckets with counts.
+## @param row The evidence row.
+## @param impls Its implementers.
+## @param tests Its (test, status) pairs.
+## @return SVG HTML.
+## @version 1
+## @req REQ-DDB-WIKI-022
+def _summary_svg(row: Any, impls: list[str], tests: list[tuple[str, str]]) -> str:
+    """SAYS IT IS A SUMMARY and where the whole list is, so a reader is never shown a cut-down
+    picture as if it were complete. An implementer → bucket edge means at least one test with
+    that result reaches it, from the same `extent` the full form draws.
+
+    @brief Summarised evidence.
+    @return SVG.
+    """
+    reached = {test: set(names) for test, names in (row.extent or ())}
+    uncovered = set(row.implementers_uncovered or ())
+    counts: dict[str, int] = {}
+    for _test, status in tests:
+        counts[status] = counts.get(status, 0) + 1
+    buckets = [f"{n} {s}" for s, n in sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))]
+    statuses = sorted(counts, key=lambda s: (-counts[s], s))
+    widths = [_width(impls), _width(buckets)]
+    xs = [0.0, widths[0] + 2 * _GAP]
+    rows = max(len(impls), len(buckets), 1)
+    height = _PITCH * rows + 2 * _PITCH
+    parts = [
+        f'<text class="head" x="0" y="12">implemented by</text>'
+        f'<text class="head" x="{xs[1]:.0f}" y="12">results ({len(tests)} tests)</text>'
+    ]
+    for i, name in enumerate(impls):
+        cls = "impl uncovered" if name in uncovered else "impl"
+        parts.append(_label(xs[0], _PITCH * (i + 1), name, cls))
+    for j, (label, status) in enumerate(zip(buckets, statuses, strict=True)):
+        parts.append(_label(xs[1], _PITCH * (j + 1), label, f"result r-{status}"))
+        for i, name in enumerate(impls):
+            if any(s == status and name in reached.get(t, ()) for t, s in tests):
+                parts.append(
+                    f'<line class="edge" data-edge="{escape(name)}→{escape(status)}" '
+                    f'x1="{widths[0] - _PAD + 6:.0f}" y1="{_PITCH * (i + 1)}" '
+                    f'x2="{xs[1] - 6:.0f}" y2="{_PITCH * (j + 1)}"/>'
+                )
+    parts.append(
+        f'<text class="note" x="0" y="{height - 6}">{len(tests)} tests, a summary by result: '
+        "every test is in the tests table below</text>"
+    )
+    total = max(xs[1] + widths[1] + _PAD, 420)
+    summary = f"{len(impls)} implementers, {len(tests)} tests: " + ", ".join(buckets)
+    return (
+        f'<svg class="req-evidence summary" role="img" aria-label="{escape(summary)}" '
         f'viewBox="0 0 {total:.0f} {height}" width="{total:.0f}" height="{height}">'
         + "".join(parts)
         + "</svg>"
