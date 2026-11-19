@@ -3054,7 +3054,8 @@ class DocsDbServer:
     ## @param options Tier-1 build options keyed by declaration-file section name; None states nothing.
     ## @param skip_if_fresh Skip when another process made the index current while waiting.
     ## @return Result dict (ok / built / doxyfile / output, plus error and traceback on a failure).
-    ## @version 2
+    ## v3: comment: the build without the lock builds privately (2.0.0)
+    ## @version 3
     ## @req REQ-DDB-CONFIG-008
     ## @utility
     def _run_build_walked(
@@ -3164,11 +3165,11 @@ class DocsDbServer:
                 ## into a skip, exactly as the in-process lock already does.
                 ##
                 ## FAILS OPEN IN EVERY DIRECTION. `held=False` means another process is building,
-                ## or locking is unavailable on this platform or filesystem — and in every one of
-                ## those cases this proceeds to build. That is deliberate: since 1.0.12 staging
-                ## paths carry the pid and the swap is atomic, so a duplicate build is merely
-                ## wasteful, while a lock that could block would be a new hang. Three releases in
-                ## a row were hangs; none of them will be this one.
+                ## `None` that locking is unavailable here — and in every case this proceeds to
+                ## build, because a lock that could block would be a new hang. Since 2.0.0 the
+                ## build that does NOT hold it builds privately (no shared index cache, its own
+                ## scratch directory), so proceeding is also SAFE; the in-process build re-enters
+                ## this lock rather than taking it twice (`buildlock.build_lock`).
                 with build_lock(Path(target.db_path)) as held:
                     ## RE-CHECKED WHETHER OR NOT THE LOCK WAS HELD, and the first version of this
                     ## got it wrong: it re-checked only on `not held`, so a waiter that eventually

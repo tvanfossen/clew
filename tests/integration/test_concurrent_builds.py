@@ -39,6 +39,7 @@ import os
 import sqlite3
 import subprocess
 import sys
+import time
 from pathlib import Path
 from unittest import mock
 
@@ -222,3 +223,51 @@ def test_the_staging_path_is_private_to_this_process(tmp_path: Path) -> None:
         f"either one's failure handler unlinks the other's work, and the measured result was a "
         f"12 KB index holding only build_meta"
     )
+
+
+##
+# @brief A second build started while the first runs doxygen: both succeed, the index is whole.
+# @param tmp_path Pytest temp dir.
+# @return None.
+# @version 1
+@pytest.mark.integration
+def test_a_build_overlapping_another_neither_crashes_nor_loses_rows(tmp_path: Path) -> None:
+    """DETERMINISTIC, unlike the race above (2.0.0, owner 2026-11-20). B starts once A's log
+    shows doxygen running, plus 8 s, so the two are certain to overlap. MEASURED BEFORE THE FIX
+    with this procedure (`.claude/tmp/r5/race_repro.py`): 4 of 4 runs crashed one build on
+    `database is locked`, in `IndexCache.__init__` or `extract_put`, because both shared
+    `<output>.idxcache` and neither held a lock. Now the lock owns that state: B waits for A, or
+    past the bound builds privately, and both exit 0 with the solo build's rows.
+
+    @brief Overlapping builds of one output both succeed and agree with a solo build.
+    @return None.
+    @version 1
+    """
+    reference = tmp_path / "single" / "clew.db"
+    reference.parent.mkdir(parents=True)
+    solo = _build_proc(REPO, reference)
+    solo.communicate(timeout=900)
+    assert solo.returncode == 0
+    expected = _graph_counts(reference)
+
+    out = tmp_path / "overlap" / "clew.db"
+    out.parent.mkdir(parents=True)
+    log = out.with_name(out.name + ".buildlog")
+    first = _build_proc(REPO, out)
+    deadline = time.monotonic() + 600
+    while first.poll() is None and "Running doxygen" not in (
+        log.read_text() if log.exists() else ""
+    ):
+        assert time.monotonic() < deadline, "A never reached doxygen"
+        time.sleep(0.05)
+    time.sleep(8)
+    assert first.poll() is None, "A finished before B started; the two did not overlap"
+    second = _build_proc(REPO, out)
+    results = [p.communicate(timeout=900) for p in (first, second)]
+    said = "\n".join(
+        f"  process {i}: exit {p.returncode}\n    "
+        + "\n    ".join(err.decode(errors="replace").splitlines()[-15:])
+        for i, (p, (_o, err)) in enumerate(zip((first, second), results, strict=True))
+    )
+    assert [first.returncode, second.returncode] == [0, 0], f"a build failed:\n{said}"
+    assert _graph_counts(out) == expected, f"{_graph_counts(out)} != solo {expected}\n{said}"

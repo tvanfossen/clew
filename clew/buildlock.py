@@ -7,11 +7,25 @@ So two sessions sharing a target performed two full redundant builds where the d
 build and one skip. That is ~11 s wasted on this repository and ~130 s on a 2,359-file C++ target,
 plus the shared doxygen scratch directory and sidecar written twice.
 
-**IT IS AN OPTIMISATION, NOT A CORRECTNESS MECHANISM, AND THAT DECIDES EVERY DESIGN CHOICE HERE.**
-Since 1.0.12 each build stages into `<output>.<pid>.tmp` and swaps with `os.replace`, so two
-concurrent builds are already SAFE — the last writer wins with a complete index either way. This
-only stops the waste. Which means: when anything about the lock is uncertain, the right answer is
-always to build, never to wait and never to fail.
+**IT OWNS THE TARGET'S SHARED BUILD STATE** (2.0.0, owner 2026-11-20). It was documented as "an
+optimisation, not a correctness mechanism", on the grounds that each build stages into
+`<output>.<pid>.tmp` and swaps atomically. That held for the staged database and NOT for the state
+every build of one output shares: `<output>.idxcache` and `<stem>.doxygen/`. Measured: 4 of 4
+overlapping builds of this repository crashed one build on `database is locked`, and the gate once
+saw a build exit 0 holding 43 of 10,430 memberdef rows. So `cli._run_pipeline` and the fast tier
+take this lock, and a build that does NOT hold it builds with no shared cache and a private scratch
+directory. When anything about the lock is uncertain the answer is still to build, never to wait
+unboundedly and never to fail — but without the lock, a build no longer touches what the holder
+is using.
+
+THREE ANSWERS, NOT TWO. True: held. False: another process holds it (or the lock file cannot be
+opened) — build privately. None: this platform has no advisory locking (`fcntl` absent), so
+contention cannot be told from its absence and the shared state is used as before.
+
+RE-ENTRANT WITHIN A PROCESS. The MCP server takes the lock and then builds in-process through the
+same pipeline, and a second `flock` on a fresh descriptor of the same file conflicts with the first
+even inside one process — the build would wait out the bound against itself and then build
+privately. A process that already holds the lock for an output is answered True at once.
 
 **flock, NOT A LOCKFILE, AND THAT IS THE WHOLE REASON THIS IS SAFE TO SHIP.** An `O_EXCL` lockfile
 needs a stale-lock story: a builder killed mid-run leaves the file behind, and every later process
@@ -25,8 +39,8 @@ not support locking; the state directory may be unwritable. Each of those return
 that lets the build proceed. A component that can only ever cost a duplicate build must not be
 able to block one.
 
-@brief Cross-process advisory locking for a target's build.
-@version 1
+@brief Cross-process advisory locking that owns a target's shared build state.
+@version 2
 """
 
 from __future__ import annotations
@@ -73,15 +87,45 @@ def lock_path(output: Path) -> Path:
     return output.with_name(output.name + LOCK_SUFFIX)
 
 
+## Outputs this process holds the lock for (resolved paths), which makes `build_lock` re-entrant.
+_HELD: set[str] = set()
+
+
 ##
 # @brief Hold an exclusive cross-process lock on one target's build, or report not holding it.
 # @param output The database the build will write.
 # @param wait_seconds How long to wait for another builder before proceeding regardless.
-# @return Yields True when this process holds the lock, False when it is proceeding unlocked.
-# @version 1
+# @return Yields True when held, False when another process holds it, None without locking.
+# v2 (2.0.0): re-entrant within a process; None when the platform has no advisory locking. The
+# body moved to `_os_lock` unchanged except for that None.
+# @version 2
 # @req REQ-DDB-INDEX-002
 @contextmanager
-def build_lock(output: Path, wait_seconds: float = DEFAULT_WAIT_SECONDS) -> Iterator[bool]:
+def build_lock(output: Path, wait_seconds: float = DEFAULT_WAIT_SECONDS) -> Iterator[bool | None]:
+    """@brief Re-entrant front of the OS lock. @return Yields True, False or None."""
+    key = str(output.resolve())
+    if key in _HELD:
+        yield True
+        return
+    with _os_lock(output, wait_seconds) as held:
+        if held:
+            _HELD.add(key)
+        try:
+            yield held
+        finally:
+            _HELD.discard(key)
+
+
+##
+# @brief Take the OS advisory lock for one output, bounded and failing open.
+# @param output The database the build will write.
+# @param wait_seconds How long to wait for another builder.
+# @return Yields True when held, False when not, None without locking.
+# v2 (2.0.0): was the body of `build_lock`; yields None, not False, when `fcntl` is absent.
+# @version 2
+# @utility the OS half of build_lock
+@contextmanager
+def _os_lock(output: Path, wait_seconds: float) -> Iterator[bool | None]:
     """YIELDS A BOOLEAN RATHER THAN RAISING, so the caller decides what a contended target means.
     The MCP server re-checks freshness and skips; the CLI builds regardless. Neither can be
     blocked by this.
@@ -104,7 +148,7 @@ def build_lock(output: Path, wait_seconds: float = DEFAULT_WAIT_SECONDS) -> Iter
         ## No advisory locking here. Proceed unlocked: a duplicate build is the cost, and it is
         ## the same cost this module exists to reduce rather than to guarantee away.
         logger.debug("build lock: fcntl unavailable — proceeding without a cross-process lock")
-        yield False
+        yield None
         return
 
     path = lock_path(output)
@@ -132,10 +176,10 @@ def build_lock(output: Path, wait_seconds: float = DEFAULT_WAIT_SECONDS) -> Iter
                 ## Held by another process. Wait for it, so this process can skip rather than
                 ## duplicate — but only up to the bound.
                 if time.monotonic() >= deadline:
-                    logger.info(
+                    logger.warning(
                         "build lock: another process has been building %s for over %.0f s — "
-                        "building anyway rather than waiting longer. Both builds are safe: "
-                        "staging paths are per-process and the swap is atomic.",
+                        "building anyway rather than waiting longer, WITHOUT the shared index "
+                        "cache and in a private scratch directory (slower, and safe).",
                         output.name,
                         wait_seconds,
                     )

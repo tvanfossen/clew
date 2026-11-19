@@ -79,6 +79,7 @@ from pathlib import Path
 from typing import Any
 
 from ._common import active_console, console, logger, within_repo
+from .buildlock import build_lock
 from .buildlog import build_log
 from .ast_symbols import recover_ast_symbols
 from .buildoptions import (
@@ -1682,7 +1683,8 @@ def _declared_or_flag(flag: str | dict | None, decl: dict, name: str) -> Path | 
 ## @brief The scratch directory this build makes doxygen write into.
 ## @param args Parsed CLI arguments (uses --output).
 ## @return Absolute directory beside the output database.
-## @version 4
+## v5: scratch dir via _scratch_dir: private when the build lock is not held (2.0.0)
+## @version 5
 ## @utility
 def _doxygen_out_dir(args: argparse.Namespace) -> Path:
     """Keep doxygen's sqlite3/xml output beside the database clew is
@@ -1706,7 +1708,24 @@ def _doxygen_out_dir(args: argparse.Namespace) -> Path:
     @version 4
     """
     base = Path(args.index_cache or args.output).resolve()
-    return base.parent / (base.stem + ".doxygen")
+    return _scratch_dir(base, args)
+
+
+## @brief The doxygen scratch directory beside `base`: shared, or this process's own.
+## @param base The index cache or output path the directory is named from.
+## @param args Parsed CLI arguments (`private_scratch`, set by `_run_pipeline`).
+## @return `<stem>.doxygen`, or `<stem>.<pid>.doxygen` for a build without the build lock.
+## @version 1
+## @req REQ-DDB-INDEX-002
+def _scratch_dir(base: Path, args: argparse.Namespace) -> Path:
+    """ONE NAMING RULE for both users of the directory (`_doxygen_out_dir` and the synthesized
+    Doxyfile), so a private build cannot put one of them in the shared directory.
+
+    @brief Resolve the shared or per-process doxygen scratch directory.
+    @return The directory path.
+    """
+    pid = f".{os.getpid()}" if getattr(args, "private_scratch", False) else ""
+    return base.parent / f"{base.stem}{pid}.doxygen"
 
 
 ## @brief Whether this build should use rustdoc instead of doxygen.
@@ -3247,7 +3266,11 @@ def _open_index_cache(
 
 
 ## @brief Execute the build pipeline, writing atomically to --output.
-## @version 19
+## v20 (2.0.0, owner 2026-11-20): THE BUILD LOCK OWNS THE SHARED STATE. Held: the shared index
+## cache and `<stem>.doxygen/`. Not held: no shared cache and a per-process scratch directory,
+## removed afterwards. Measured before: 4 of 4 overlapping builds crashed one on `database is
+## locked` (tests/test_build_shared_state.py has the account).
+## @version 20
 ## @req REQ-DDB-PIPE-001
 ## @req REQ-DDB-PIPE-002
 ## @req REQ-DDB-MCP-004
@@ -3264,12 +3287,46 @@ def _run_pipeline(args: argparse.Namespace) -> None:
     `output` is resolved twice, here and inside. It is idempotent and cheap, and the alternative
     is threading a resolved path through a signature that every caller would have to learn.
 
-    @brief Attach the build log, then run the pipeline.
-    @version 19
+    @brief Attach the build log, take the build lock, then run the pipeline.
+    @version 20
     """
     output = Path(args.output).resolve()
-    with build_log(output):
-        _run_pipeline_inner(args)
+    ## THE LOCK BEFORE THE LOG: `build_log` truncates `<output>.buildlog`, so a waiting build that
+    ## opened it first would erase the holder's log. A build without the lock logs to its own file.
+    with build_lock(output) as held:
+        args.private_scratch = held is False
+        logged_as = (
+            output.with_name(f"{output.name}.{os.getpid()}") if args.private_scratch else output
+        )
+        with build_log(logged_as):
+            ## SIBLINGS, NOT A WRAPPER: `_run_pipeline_inner` stays one call from here, so
+            ## `chain_trace('_run_pipeline')` still reaches `_build_stages` inside its default
+            ## neighbour cap (tests/integration/test_richness.py, Q1). A wrapper hop pushed it out.
+            _enter_private_build(args, output)
+            try:
+                _run_pipeline_inner(args)
+            finally:
+                if args.private_scratch:
+                    shutil.rmtree(_doxygen_out_dir(args), ignore_errors=True)
+
+
+## @brief Prepare a build that does not hold the build lock: no shared cache, said so.
+## @param args Parsed CLI arguments; `private_scratch` already set by `_run_pipeline`.
+## @param output The resolved output path.
+## @return None.
+## @version 1
+## @req REQ-DDB-INDEX-002
+def _enter_private_build(args: argparse.Namespace, output: Path) -> None:
+    """@brief Drop the shared index cache for a build without the lock, with a warning."""
+    if not args.private_scratch:
+        return
+    args.no_index_cache = True
+    logger.warning(
+        "build: another process holds the build lock for %s — building WITHOUT the shared "
+        "index cache, in the private scratch directory %s",
+        output.name,
+        _doxygen_out_dir(args),
+    )
 
 
 ## @brief Run every build stage and swap the result onto --output.
@@ -3689,7 +3746,8 @@ def _declared_doxyfile(repo_root: Path) -> Path | None:
 ## @param output Resolved --output path (its parent hosts a synthesized Doxyfile).
 ## @return (doxyfile, repo_root). Exits 1 when neither can be established.
 ## v5 (2.0.0): an in-tree `doxyfile:` declaration is read before discovery.
-## @version 5
+## v6: scratch dir via _scratch_dir: private when the build lock is not held (2.0.0)
+## @version 6
 ## @utility
 def _resolve_doxyfile_and_root(args: argparse.Namespace, output: Path) -> tuple[Path, Path]:
     """EXTRACTED from `_run_pipeline`, which the gh#3/gh#4 messaging work took to
@@ -3731,7 +3789,7 @@ def _resolve_doxyfile_and_root(args: argparse.Namespace, output: Path) -> tuple[
         # hook that actually derives roots) — synthesize a minimal one rather
         # than refusing to index a repo whose build is fully derivable.
         repo_root = Path(args.repo_root).resolve()
-        doxyfile = synthesize_doxyfile(repo_root, output.parent / (output.stem + ".doxygen"))
+        doxyfile = synthesize_doxyfile(repo_root, _scratch_dir(output, args))
     elif args.repo_root:
         # NEITHER a usable Doxyfile NOR a declared scope — synthesize one.
         #
@@ -3776,7 +3834,7 @@ def _resolve_doxyfile_and_root(args: argparse.Namespace, output: Path) -> tuple[
                 "whole-repo synthesis above is what will be indexed instead",
                 Path(args.doxyfile).resolve(),
             )
-        doxyfile = synthesize_doxyfile(repo_root, output.parent / (output.stem + ".doxygen"))
+        doxyfile = synthesize_doxyfile(repo_root, _scratch_dir(output, args))
     else:
         # gh#4. The old sentence here served all four resolution situations at once,
         # described none of them, and in the only case a user could actually reach by

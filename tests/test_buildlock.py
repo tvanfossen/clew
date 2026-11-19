@@ -1,16 +1,18 @@
 # SPDX-License-Identifier: MIT
 """The cross-process build lock, and above all the ways it must NOT block (#497).
 
-This lock is an OPTIMISATION. Since 1.0.12 staging paths carry the pid and the swap is atomic, so
-two concurrent builds are already safe — the last writer wins with a complete index. All this
-removes is the waste of building twice.
+This lock was written as an OPTIMISATION, on the grounds that staging paths carry the pid and the
+swap is atomic. 2.0.0 CORRECTED THAT (owner 2026-11-20): the index cache and doxygen scratch
+directory are shared by every build of one output, and 4 of 4 overlapping builds crashed one on
+`database is locked`. The lock now owns that state; a build without it builds privately
+(tests/test_build_shared_state.py, tests/integration/test_concurrent_builds.py).
 
 That makes the failure direction the important property, not the happy path: a lock that can only
 ever save a duplicate build must never be able to prevent one. Three releases immediately before
 this were hangs, so every test below is about proceeding rather than about excluding.
 
 @brief Tests for cross-process build locking.
-@version 1
+@version 2
 """
 
 from __future__ import annotations

@@ -47,6 +47,7 @@ from pathlib import Path, PurePosixPath
 from typing import Any
 
 from ._common import logger
+from .buildlock import build_lock
 from .fasttier_defs import (
     MEMBERDEF_REFERENCES,
     NOT_MEMBERDEF_COLUMNS,
@@ -210,16 +211,36 @@ class FastResult:
 ## @return A FastResult, or None when the fast tier does not apply.
 ## v2 (phase 6): reports the layers this refresh actually left stale.
 ## v3 (2.0.0, PR1): a reconciliation that cannot be exact rolls back and builds in full.
-## @version 3
+## v4 (2.0.0, owner 2026-11-20): takes the build lock, without waiting. The fast tier writes the
+## shared index cache and the live index, so without the lock it declines and the caller's full
+## build waits for the holder (tests/test_build_shared_state.py).
+## @version 4
 ## @req REQ-DDB-INDEX-006
 def try_fast_refresh(db: Path, repo_root: Path, cache_path: Path) -> FastResult | None:
     """NONE IS THE SAFE ANSWER: every precondition that fails returns None and the caller builds
     in full, so the worst a wrong refusal costs is time. The reason is logged at INFO.
 
-    @brief Fast in-place refresh entry point.
+    @brief Fast in-place refresh entry point, under the build lock.
     @return Result or None.
-    @version 1
+    @version 2
     """
+    with build_lock(db, wait_seconds=0) as held:
+        if held is False:
+            logger.info("fast tier: not applicable — another process holds the build lock")
+            return None
+        return _fast_refresh_locked(db, repo_root, cache_path)
+
+
+## @brief The fast tier itself, run by `try_fast_refresh` once the build lock is settled.
+## @param db The live index.
+## @param repo_root The working tree.
+## @param cache_path The index cache sidecar.
+## @return A FastResult, or None when the fast tier does not apply.
+## v1 (2.0.0): the body `try_fast_refresh` had at its v3, moved unchanged.
+## @version 1
+## @req REQ-DDB-INDEX-006
+def _fast_refresh_locked(db: Path, repo_root: Path, cache_path: Path) -> FastResult | None:
+    """@brief Refresh in place, or decline. @return Result or None."""
     started = time.perf_counter()
     if not (db.is_file() and cache_path.is_file()) or not _current_build(db):
         logger.info("fast tier: not applicable — no current index or no index cache")
