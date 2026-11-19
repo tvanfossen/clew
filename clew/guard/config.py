@@ -221,6 +221,10 @@ DEFAULT_IMPACT_BASE = "origin/main"
 
 IMPACT_DEFAULTS: dict[str, Any] = {"report_dir": DEFAULT_REPORT_DIR, "base": DEFAULT_IMPACT_BASE}
 
+## No floor unless declared (owner, 2.0.0): no standard sets a requirement ratio, and the measured
+## values differ by repository, so a built-in number would be one repository's tuning.
+COVERAGE_DEFAULTS: dict[str, Any] = {"min_req_ratio": None}
+
 ## `requirements` is the top-level catalog section, carried in the loaded config so every gate
 ## reader finds it in one place; None means no catalog is declared. It is not a `guard:` key, and
 ## `config --effective` reports it under `resolved.requirements` rather than echoing it as input.
@@ -232,14 +236,16 @@ IMPACT_DEFAULTS: dict[str, Any] = {"report_dir": DEFAULT_REPORT_DIR, "base": DEF
 CONFIG_DEFAULTS: dict[str, Any] = {
     "validate": VALIDATE_DEFAULTS,
     "impact": IMPACT_DEFAULTS,
+    "coverage": COVERAGE_DEFAULTS,
     "requirements": None,
     "event_tags": None,
     "wiki_sources": False,
     "owners": None,
+    "test_paths": None,
 }
 
 ## Keys of the loaded config that are not `guard:` keys (the cross-section facts above).
-NON_GUARD_KEYS = ("requirements", "event_tags", "wiki_sources", "owners")
+NON_GUARD_KEYS = ("requirements", "event_tags", "wiki_sources", "owners", "test_paths")
 
 ## THE TOP-LEVEL `requirements:` SECTION (R5-CFG F6/F7/F14, 2.0.0): one catalog, read by the index,
 ## the gate and the wiki. Before, it lived in five places — a top-level path the index alone read,
@@ -372,6 +378,9 @@ CONFIG_SCHEMA: dict[str, Any] = {
         "report_dir": str,
         "base": str,
     },
+    ## 2.0.0 (PG3): the requirement ratio floor. `object` here; `_ratio_errors` checks the value,
+    ## because the schema's type check would refuse a YAML `1` as "expected float, got int".
+    "coverage": {"min_req_ratio": object},
 }
 
 
@@ -466,16 +475,40 @@ def _exclude_errors(user_config: dict[str, Any]) -> list[str]:
     ]
 
 
+## @brief Refuse a `coverage.min_req_ratio` that is not a number in (0, 1].
+#  @version 1.0
+#  @utility
+#  @return Errors
+def _ratio_errors(user_config: dict[str, Any]) -> list[str]:
+    coverage = user_config.get("coverage") if isinstance(user_config, dict) else None
+    if not isinstance(coverage, dict) or coverage.get("min_req_ratio") is None:
+        return []
+    value = coverage["min_req_ratio"]
+    number = isinstance(value, int | float) and not isinstance(value, bool)
+    if number and 0 < value <= 1:
+        return []
+    return [
+        f"guard.coverage.min_req_ratio must be a number in (0, 1], the share of non-test "
+        f"functions carrying @req among those carrying @req or an exemption; got {value!r}"
+    ]
+
+
 ## @brief Validate user config keys and types against CONFIG_SCHEMA.
 #  @details v1.2 (2.0.0): a key in MOVED_KEYS is reported with where it went, and is not also
 #  reported as unknown.
 #  v1.3: 1.x regex excludes are refused with the glob and re: forms (2.0.0, R5-CFG F18)
-#  @version 1.3
+#  v1.4: a coverage.min_req_ratio outside (0, 1] is refused (2.0.0, PG3)
+#  @version 1.4
 #  @req REQ-DDB-GUARD-012
 #  @return List of error strings, empty if config is valid
 def validate_config_schema(user_config: dict[str, Any]) -> list[str]:
     moved, rest = _moved_keys(user_config)
-    return moved + _exclude_errors(rest) + _validate_node(rest, CONFIG_SCHEMA, "")
+    return (
+        moved
+        + _exclude_errors(rest)
+        + _ratio_errors(rest)
+        + _validate_node(rest, CONFIG_SCHEMA, "")
+    )
 
 
 ## @brief Split out the keys that moved in 2.0.0, each with a pointer to its new home.
@@ -661,7 +694,8 @@ def load_config(config_path: Path | None = None) -> dict[str, Any]:
 
 ## @brief The facts the gate reads from the rest of `.clew.yaml`: the event vocabulary and sources.
 #  v1.1: the owners: section (2.0.0)
-#  @version 1.1
+#  v1.2: the declared test paths (2.0.0, PG3)
+#  @version 1.2
 #  @utility
 #  @return {"event_tags": declared mapping or None, "wiki_sources": bool, "owners": mapping or None}
 def _shared_facts(config_path: Path) -> dict[str, Any]:
@@ -675,7 +709,11 @@ def _shared_facts(config_path: Path) -> dict[str, Any]:
     tags = document.get("event_tags")
     wiki = document.get("wiki") if isinstance(document.get("wiki"), dict) else {}
     owners = document.get("owners")
+    tests = document.get("tests") if isinstance(document.get("tests"), dict) else {}
     return {
+        ## 2.0.0 (PG3): the declared test paths, so the ratio floor leaves out the code the index
+        ## calls test code; None means the index's built-in guesses apply.
+        "test_paths": list(tests["paths"]) if isinstance(tests.get("paths"), list) else None,
         "event_tags": dict(tags) if isinstance(tags, dict) else None,
         "wiki_sources": bool(wiki.get("sources")),
         ## 2.0.0: the impact report's reviewers read the same `owners:` section the index does.

@@ -46,6 +46,8 @@ class TaggedFunction:
     # The function's identity, `Class::name(params)` (2.0.0, PG2): a declaration and its
     # definition share it, so coverage treats them as one function.
     qualified: str = ""
+    # Which exemption tags it carries, for the per-tag counts beside the ratio (2.0.0, PG3).
+    exemptions: tuple[str, ...] = ()
 
 
 ## @brief List tracked source files under a directory via git ls-files.
@@ -132,7 +134,8 @@ def find_source_files(source_dir: str, config: dict[str, Any]) -> list[Path]:
 
 ## @brief Build a TaggedFunction for a documented function, or None if undocumented.
 #  v1.2: carries the function's qualified identity (2.0.0, PG2)
-#  @version 1.2
+#  v1.3: and its exemption tags (2.0.0, PG3)
+#  @version 1.3
 #  @utility
 #  @return TaggedFunction for any function carrying a doxygen block, else None
 def _extract_tagged_function(func: Function, file_path: str) -> TaggedFunction | None:
@@ -145,6 +148,7 @@ def _extract_tagged_function(func: Function, file_path: str) -> TaggedFunction |
         reqs=tags.get("req", []),
         is_exempt=bool(EXEMPTION_TAGS & set(tags)),
         qualified=func.qualified,
+        exemptions=tuple(sorted(EXEMPTION_TAGS & set(tags))),
     )
 
 

@@ -435,7 +435,8 @@ def resolve_version_gate(config: dict[str, Any]) -> None:
 ## @brief Run all configured checks in pre-commit mode (no subcommand).
 #  v2.7: one report directory, guard.impact.report_dir; the writer is shared (2.0.0, R5-CFG F9)
 #  v2.8: diffs against guard.impact.base (2.0.0, R5-CFG W8)
-#  @version 2.8
+#  v2.9: runs the coverage gate (2.0.0, PG3)
+#  @version 2.9
 #  @req REQ-DDB-GUARD-001
 #  @return Exit code: 0 if no violations, 1 if violations found
 def run_precommit(file_paths: list[str], config: dict[str, Any]) -> int:
@@ -465,7 +466,32 @@ def run_precommit(file_paths: list[str], config: dict[str, Any]) -> int:
         git_add([str(p) for p in _write_report(entries, base_dir)])
         print(format_markdown(entries), file=sys.stderr)
 
-    return rc
+    ## COVERAGE IS PART OF THE HOOK (2.0.0, PG3, owner): uncovered catalog entries, `req` tag naming
+    ## no entry, and a ratio below the declared floor fail the commit, so coverage is never a
+    ## separate manual step. Run over the repository (pre-commit's working directory).
+    return max(rc, _coverage_gate(config))
+
+
+## @brief Run the coverage gate for the pre-commit hook.
+#  @details Only when the repository declares a catalog or a ratio floor: without either there is
+#  nothing to cover. The traceability line is printed every run, pass or fail; the full report
+#  only when the gate fails.
+#  @version 1.0
+#  @req REQ-DDB-GUARD-022
+#  @return 1 when the gate fails, else 0
+def _coverage_gate(config: dict[str, Any]) -> int:
+    from .coverage import analyze_coverage, coverage_gaps, format_coverage_text, traceability_line
+
+    floor = (config.get("coverage") or {}).get("min_req_ratio")
+    if not get_requirements(config) and floor is None:
+        return 0
+    report = analyze_coverage(["."], config)
+    failed = coverage_gaps(report)
+    print(
+        format_coverage_text(report) if failed else traceability_line(report["traceability"]),
+        file=sys.stderr,
+    )
+    return 1 if failed else 0
 
 
 _HELP_FLAGS = frozenset(("-h", "--help"))

@@ -35,6 +35,17 @@ repos:
         args: [validate]
         files: ^(clew|acceptance|tests)/.*\.py$
         require_serial: true
+      ## 2.0.0 (PG3): COVERAGE IS PART OF THE GATE. The published `clew-guard` hook runs it in
+      ## pre-commit mode; clew's own hook above runs `validate` (its impact report has a hook of
+      ## its own below), so the coverage gate is its own hook here. Uncovered catalog entries,
+      ## `@req` naming no entry, and a ratio below a declared floor fail the commit. ~1.4 s.
+      - id: clew-guard-coverage
+        name: clew guard coverage
+        entry: .venv/bin/python -m clew guard coverage .
+        language: system
+        pass_filenames: false
+        files: ^(clew/.*\.py|requirements\.yaml|\.clew\.yaml)$
+        require_serial: true
       ## round 3, P6c — clew adopts its own wiki and impact report, not only the gate.
       ## The impact report: what the staged change touched, for the wiki's Change impact page.
       ## Written to docs/generated/ (gitignored); never fails a commit — it is a report.

@@ -373,6 +373,29 @@ another tag and alias it: `version: {tag: "@revision"}` plus `extra_tags: ["revi
 | `report_dir` | string | `docs/generated/impact/` | Where the pre-commit run and `clew guard impact --write` write `impact.md` and `impact.json`, and where the wiki reads them |
 | `base` | string | `origin/main` | The branch the pre-commit impact report diffs against (merge-base to HEAD); a repository on `master`, `develop` or an `upstream` remote states its own |
 
+### `coverage`
+
+| Key | Type | Default | Description |
+|---|---|---|---|
+| `min_req_ratio` | number in (0, 1] | none (no floor) | Fail when the share of non-test functions carrying `@req`, among those carrying `@req` or an exemption (`@utility`, `@callback`), falls below this |
+
+The ratio counts one function per identity (`Class::name(params)`), so a declaration and its
+definition count once. Test code is the declared `tests.paths`, else the index's built-in test
+paths. There is no built-in floor: no standard sets one (DO-178C, ISO 26262 and IEC 62304
+require every function to trace to a requirement or be justified), and the right number is the
+repository's. Every run prints the counts, pass or fail. clew's own, measured with
+`clew guard coverage .` at the repository root on 2026-11-19 (feat/1.3.1, after the `@utility`
+fold):
+
+```
+Traceability: 1016 with @req, 1629 exempt (@utility 1629) — ratio 0.3841 (no floor declared)
+```
+
+**Coverage runs in the hook.** When a catalog or a floor is declared, `clew guard <files>` (the
+pre-commit entry) also runs the coverage gate over the repository. Uncovered catalog entries,
+`@req` naming no entry, and a ratio below the floor fail the commit. `clew guard coverage`
+reports the same, with the full lists.
+
 ### The top-level `requirements:` section
 
 The catalog is the repository's, not the gate's: one top-level section that the gate, the index
