@@ -104,7 +104,8 @@ def anchor(name: str) -> str:
 ## @return {(function, file): href} of the sections written.
 ## v2: test functions the evidence names get sections too (P2a).
 ## v3: `test_functions` is public (the build resolves directly linked tests to draw, P2b).
-## @version 3
+## v4: and the object list the `clew` domain puts in objects.inv (2.0.0, S8).
+## @version 4
 ## @req REQ-DDB-WIKI-025
 def symbol_pages(
     db: Path, repo_root: Path, keys: set[tuple[str, str]], ctx: dict[str, Any], source: Path
@@ -137,7 +138,24 @@ def symbol_pages(
             "",
         ]
         (Path(source) / f"{page_for(rel)}.md").write_text("\n".join(text), encoding="utf-8")
+    _write_objects(Path(source), sorted(written, key=lambda k: (k[1], k[0])))
     return {key: symbol_href(*key) for key in written}
+
+
+## @brief The symbol sections, as the `clew` Sphinx domain lists them in objects.inv.
+## @param source The Sphinx source directory.
+## @param written (function, file) pairs, each one section.
+## @return None.
+## @version 1
+## @dg_internal
+def _write_objects(source: Path, written: list[tuple[str, str]]) -> None:
+    """S8 (2.0.0): see `_sphinxsymbols`. @brief Write the object list. @return None."""
+    import json
+
+    from ._sphinxsymbols import OBJECTS_FILE
+
+    rows = [{"name": n, "file": f, "page": page_for(f), "anchor": anchor(n)} for n, f in written]
+    (source / OBJECTS_FILE).write_text(json.dumps(rows, separators=(",", ":")), encoding="utf-8")
 
 
 ## @brief The test functions the evidence names, found in test code.

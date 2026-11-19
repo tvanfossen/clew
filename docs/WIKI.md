@@ -165,6 +165,10 @@ root; `exports/requirements.reqif` (ReqIF 1.2), `exports/needs.json` (Sphinx-nee
 Sphinx-needs `needs.json` can also be imported (`requirements.needs`). The MCP server exposes the dense
 text and each flow as resources, `clew://wiki/{slug}/llms.txt` and `clew://wiki/{slug}/flow/{name}`.
 
+`objects.inv`, Sphinx's inventory, lists every symbol section as a `clew:function` object
+named `<file>::<name>`, plus the bare name where only one file defines it. Intersphinx and
+`sphobjinv` can then resolve a function to its section.
+
 ## Commands
 
 ```bash

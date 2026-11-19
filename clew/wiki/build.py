@@ -843,7 +843,8 @@ def commit_published(repo_root: Path, commit: str) -> bool | None:
 ## v3: `context` (the minimap, round 3 P1c-2).
 ## v4: `_extra` (the exports) copied to the site root.
 ## v5 (2.0.0, P5): no source copies; doctrees beside the site; built fresh and swapped in.
-## @version 5
+## v6 (2.0.0, S8): the `clew` domain extension.
+## @version 6
 ## @dg_internal
 def _render(
     source: Path, html: Path, config: WikiConfig, repo_root: Path, context: dict | None = None
@@ -863,7 +864,8 @@ def _render(
         ) from exc
     settings = {
         "project": config.title,
-        "extensions": ["myst_parser"],
+        ## S8 (2.0.0): the `clew` domain puts every symbol section in objects.inv.
+        "extensions": ["myst_parser", "clew.wiki._sphinxsymbols"],
         "source_suffix": {".rst": "restructuredtext", ".md": "markdown"},
         "exclude_patterns": ["_build"],
         "html_context": context or {},
