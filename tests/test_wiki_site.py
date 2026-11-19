@@ -685,6 +685,30 @@ def test_requirement_groups_are_cards_that_filter_the_list(site: dict[str, str])
     assert 'class="seg c-PASS"' in w[: w.index("</button>")]
 
 
+def test_each_requirement_group_has_its_own_page(site: dict[str, str]) -> None:
+    """OWNER (round 5, P5.4): requirement groups get pages, and the group cards link to them. A
+    group page is a URL a reader can share: its tier bar, its counts, and ONLY its own
+    requirements, each linking to the requirement's page.
+
+    @brief P5.4: one page per requirement group.
+    """
+    w, x = site["reqgroup-REQ-W.html"], site["reqgroup-REQ-X.html"]
+    assert "REQ-W-001" in w and "REQ-W-002" in w and "REQ-X-001" not in w
+    assert "REQ-X-001" in x and "REQ-W-001" not in x
+    assert 'href="req-REQ-W-001.html"' in w
+    assert 'class="seg c-PASS"' in w and "2 requirements" in w
+    assert 'href="requirements.html"' in w, "a group page leads back to the index"
+
+
+def test_a_group_card_links_to_its_group_page(site: dict[str, str]) -> None:
+    """@brief P5.4: each card keeps its filter and gains a link to the group's page."""
+    page = site["requirements.html"]
+    assert re.findall(r'<a class="g-page" href="reqgroup-([^"]+)\.html"', page) == [
+        "REQ-W",
+        "REQ-X",
+    ]
+
+
 def test_a_requirement_has_its_own_page_with_its_whole_trace(site: dict[str, str]) -> None:
     """THE ACCEPTANCE TEXT LEAVES THE TABLE (owner: the drop-down was noise) and lives on the
     requirement's OWN PAGE with everything else that requirement links to: implementers, tests

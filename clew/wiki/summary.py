@@ -60,10 +60,50 @@ def group_of(req_id: str) -> str:
     return _GROUP.sub("", req_id) or req_id
 
 
-## @brief One card per requirement group: its tier progress, counts, and a filter for the list.
+## @brief Requirement evidence rows by group, groups in order.
+## @param evidence Requirement evidence rows.
+## @return (group, rows) pairs.
+## @version 1
+## @req REQ-DDB-WIKI-022
+def groups_of(evidence: list) -> list[tuple[str, list]]:
+    """@brief One grouping, shared by the cards, the group pages and the counts. @return Pairs."""
+    groups: dict[str, list] = {}
+    for row in evidence:
+        groups.setdefault(group_of(row.req_id), []).append(row)
+    return sorted(groups.items())
+
+
+## @brief The page name of a requirement group.
+## @param group The group, e.g. `REQ-W`.
+## @return `reqgroup-<group>`, with the characters a URL carries.
+## @version 1
+## @req REQ-DDB-WIKI-022
+def group_page_of(group: str) -> str:
+    """@brief Group page name, keyed like a requirement's (`reqmodal._key`). @return Name."""
+    return "reqgroup-" + re.sub(r"[^\w.:-]", "_", group)
+
+
+## @brief A group's tier progress bar.
+## @param members The group's evidence rows.
+## @return HTML, one segment per tier present.
+## @version 1
+## @req REQ-DDB-WIKI-022
+def tier_bar(members: list) -> str:
+    """@brief Segments sized by count, one per tier. @return HTML."""
+    segs = "".join(
+        f'<span class="seg c-{t}" style="flex:{n}" title="{t} {n}"></span>'
+        for t in TIERS
+        if (n := sum(1 for r in members if r.tier == t))
+    )
+    return f'<span class="g-bar">{segs}</span>'
+
+
+## @brief One card per requirement group: its tier progress, counts, a filter, and its page.
 ## @param evidence Requirement evidence rows.
 ## @return HTML.
-## @version 1
+## v2 (2.0.0, P5.4): each card links to its group page; grouping and bar shared with that page.
+## The link sits BESIDE the button, since a link inside a button is invalid HTML.
+## @version 2
 ## @req REQ-DDB-WIKI-022
 def group_cards(evidence: list) -> str:
     """REQUIREMENTS FRONT AND CENTRE (owner 2026-11-15): the cards are the requirements page's
@@ -72,24 +112,18 @@ def group_cards(evidence: list) -> str:
     @brief Group cards.
     @return HTML.
     """
-    groups: dict[str, list] = {}
-    for row in evidence:
-        groups.setdefault(group_of(row.req_id), []).append(row)
     cards = []
-    for group, members in sorted(groups.items()):
-        segs = "".join(
-            f'<span class="seg c-{t}" style="flex:{n}" title="{t} {n}"></span>'
-            for t in TIERS
-            if (n := sum(1 for r in members if r.tier == t))
-        )
+    for group, members in groups_of(evidence):
         passing = sum(1 for r in members if r.tier == "PASS")
         cards.append(
+            f'<div class="group-card-wrap">'
             f'<button type="button" class="group-card" data-req-filter="{escape(group)}" '
             f'aria-pressed="false"><span class="g-name">{escape(group)}</span>'
             f'<span class="g-count">{passing}/{len(members)} passing</span>'
-            f'<span class="g-bar">{segs}</span>'
+            f"{tier_bar(members)}"
             f'<span class="g-sub">{sum(1 for r in members if r.implementers)} implemented · '
             f"{sum(1 for r in members if r.tests)} tested</span></button>"
+            f'<a class="g-page" href="{group_page_of(group)}.html">Group page →</a></div>'
         )
     return f'<div class="group-cards">{"".join(cards)}</div>'
 

@@ -109,6 +109,9 @@ button.group-card{display:flex;flex-direction:column;gap:6px;text-align:left;pad
 button.group-card:hover{border-color:var(--acc)}button.group-card[aria-pressed="true"]{border-color:var(--acc);box-shadow:0 0 0 2px var(--accbg)}
 .g-name{font:600 14px var(--mono)}.g-count{font:500 20px var(--serif);color:var(--accink)}.g-sub{color:var(--ink2);font-size:12px}
 .g-bar{display:flex;height:8px;border-radius:4px;overflow:hidden;background:var(--inset)}.g-bar .seg{background:var(--c)}
+.group-card-wrap{display:flex;flex-direction:column;gap:4px}.group-card-wrap>button.group-card{flex:1}
+a.g-page{align-self:flex-start;padding:2px 6px;font:600 12px var(--sans);color:var(--acc);text-decoration:none}a.g-page:hover{text-decoration:underline}
+.g-page-bar{max-width:480px;margin:6px 0 18px}.g-page-bar .g-bar{height:10px}
 .issue-link{margin:16px 0 0}.issue-link a{display:inline-block;padding:8px 14px;border-radius:9px;border:1px solid var(--acc);text-decoration:none;font-weight:600}
 tr[hidden]{display:none}
 /* Change impact (round 3, P1g). */

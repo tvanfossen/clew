@@ -33,7 +33,7 @@ from typing import Any
 
 from .catalogs import declared_catalog
 from .config import Audience, WikiConfig
-from .htmltable import code, linked, source_url, table, tag, text
+from .htmltable import code, linked, md_title, source_url, table, tag, text
 from .reqmodal import first, issue_links, requirement_cell, requirement_pages, test_link, via
 
 
@@ -264,7 +264,8 @@ def load_impact(path: Path) -> list[dict] | None:
 ## v4: open issues (P3a).
 ## v5: names each declared test report that was not there — unmeasured (round 3, P6c).
 ## v6 (round 4, R4): one page per requirement; the index links to them.
-## @version 6
+## v7: writes the group pages too (2.0.0, P5.4)
+## @version 7
 ## @req REQ-DDB-WIKI-012
 def requirements_page(
     trace: Trace,
@@ -281,6 +282,7 @@ def requirements_page(
     ev = trace.evidence
     ctx = {"trace": trace, "rules": rules, "flows": list(flows), "issues": issues}
     requirement_pages(trace, ctx, source)
+    group_pages(trace, ctx, source)
     origin = f" declared in `{trace.catalog_path}`" if trace.catalog_path else ""
     lines = [
         "# Requirements",
@@ -315,6 +317,49 @@ def requirements_page(
     lines += _catalogs_section(trace, rules)
     (source / "requirements.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
     return "requirements"
+
+
+## @brief Write one page per requirement group: its bar, its counts, its requirements.
+## @param trace The gathered trace.
+## @param ctx The page context, as for the requirement pages.
+## @param source The Sphinx source directory.
+## @return The page names written.
+## @version 1
+## @req REQ-DDB-WIKI-022
+def group_pages(trace: Trace, ctx: dict[str, Any], source: Path) -> list[str]:
+    """OWNER (round 5, P5.4): requirement groups get pages, linked from the group cards. ORPHAN
+    pages, like the requirement pages: a group is a URL a reader can share, and the index stays
+    the one place that lists every requirement.
+
+    @brief Write reqgroup-*.md.
+    @return Names.
+    """
+    from .summary import group_page_of, groups_of, tier_bar
+
+    names = []
+    for group, members in groups_of(trace.evidence):
+        name = group_page_of(group)
+        counts = (
+            f"{len(members)} requirements: {sum(1 for r in members if r.implementers)} "
+            f"implemented, {sum(1 for r in members if r.tests)} tested, "
+            f"{sum(1 for r in members if r.tier == 'PASS')} passing."
+        )
+        lines = [
+            "---",
+            "orphan: true",
+            "---",
+            "",
+            f"# {md_title(group)}",
+            "",
+            *_raw(
+                '<p class="crumbs"><a href="requirements.html">← Requirements</a></p>'
+                f'<p class="g-summary">{counts}</p><div class="g-page-bar">{tier_bar(members)}</div>'
+            ),
+            *_raw(_requirement_table(trace, ctx, members)),
+        ]
+        (source / f"{name}.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+        names.append(name)
+    return names
 
 
 ## @brief A sentence saying how the tested requirements' links were made.
@@ -355,14 +400,16 @@ def _link_kinds(ev: list) -> str:
 ## a long test list is its counts (the modal lists it).
 ## v3: short test lists link to the tests' sections (P2a).
 ## v4: an issues column (P3a).
-## @version 4
+## v5 (2.0.0, P5.4): takes the rows to render, so a group page renders only its own.
+## @version 5
 ## @utility
-def _requirement_table(trace: Trace, ctx: dict[str, Any]) -> str:
+def _requirement_table(trace: Trace, ctx: dict[str, Any], evidence: list | None = None) -> str:
     """@brief Render rows. @return HTML."""
     from .summary import group_of
 
+    evidence = trace.evidence if evidence is None else evidence
     rows = []
-    for row in trace.evidence:
+    for row in evidence:
         entry = trace.declared.get(row.req_id, {})
         rows.append(
             [
@@ -382,7 +429,7 @@ def _requirement_table(trace: Trace, ctx: dict[str, Any]) -> str:
             ]
         )
     head = ["requirement", "tier", "implemented by", "tests", "layers", "declared", "priority"]
-    groups = [f' data-group="{text(group_of(r.req_id))}"' for r in trace.evidence]
+    groups = [f' data-group="{text(group_of(r.req_id))}"' for r in evidence]
     return table(
         [*head, "model entries", "mutations", "issues"],
         rows,
