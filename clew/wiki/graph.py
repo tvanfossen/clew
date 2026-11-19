@@ -96,7 +96,8 @@ def package_of(rel: str, depth: int = 2) -> str:
 ## v2: `exclude_tests` (round 3, P1c: test code is a lens on the system, not boxes above it).
 ## v3 (round 4, R1): declared blocks win; undeclared files join by coupling (`inferred_files`).
 ## v4: the package depth is wiki.component_depth (2.0.0, R5-CFG C7)
-## @version 4
+## v5 (2.0.0, P5): a vendor area carries `vendor` and `calls_in`.
+## @version 5
 ## @req REQ-DDB-WIKI-019
 def build_graph(
     db: Path,
@@ -116,10 +117,15 @@ def build_graph(
         comp = {rowid: file_block[rel] for rowid, (_n, rel, _t) in funcs.items()}
         links = _links(conn, comp)
         threads = _threads(conn, comp)
+        calls_in = _vendor_calls_in(conn, funcs, comp)
     components = _components(funcs, comp, evidence, impact, threads)
     for cid, node in components.items():
         node["declared"] = any(cid == name for name, _g in declared)
         node["inferred_files"] = sorted(inferred.get(cid, ()))
+        if is_vendor(cid):
+            ## A VENDOR AREA IS SIZED BY USE (P5): the calls into it from first-party code.
+            node["vendor"] = True
+            node["calls_in"] = calls_in.get(cid, 0)
     if tested is not None:
         for rowid, cid in comp.items():
             components[cid].setdefault("tested_calls", 0)
@@ -142,7 +148,8 @@ def build_graph(
 ## v2 (OWNER 2026-11-17, "Vendor code is a block of its own"): an undeclared file the index tags
 ## as inside a nested git tree is the Vendor block — never a package, never joined by coupling.
 ## v3: the package depth is wiki.component_depth (2.0.0, R5-CFG C7)
-## @version 3
+## v4 (2.0.0, P5): one Vendor block PER AREA (`Vendor: <root>`), not one for every vendored file.
+## @version 4
 ## @req REQ-DDB-WIKI-019
 def _blocks(
     conn: Any, funcs: dict, declared: tuple, depth: int = 2
@@ -158,14 +165,14 @@ def _blocks(
     """
     files = {rel for _n, rel, _t in funcs.values()}
     named = {name for name, _g in declared}
-    vendored = _vendored(conn)
+    areas = vendor_areas(conn)
     owner = {
-        rel: VENDOR if rel in vendored and block not in named else block
+        rel: f"{VENDOR}: {areas[rel]}" if rel in areas and block not in named else block
         for rel, block in ((rel, component_of(rel, declared, depth)) for rel in files)
     }
     if not declared:
         return owner, {}
-    loose = {rel for rel, b in owner.items() if b not in named and b != VENDOR}
+    loose = {rel for rel, b in owner.items() if b not in named and not is_vendor(b)}
     pairs = _file_calls(conn, funcs)
     order = {name: i for i, (name, _g) in enumerate(declared)}
     placed: dict[str, set[str]] = defaultdict(set)
@@ -188,36 +195,52 @@ def _blocks(
     return owner, dict(placed)
 
 
+## @brief Whether a block id is a vendor area.
+## @param block The block id.
+## @return True for `Vendor` and `Vendor: <root>`.
+## @version 1
+## @dg_internal
+def is_vendor(block: str) -> bool:
+    """@brief Vendor block? @return Bool."""
+    return block == VENDOR or block.startswith(f"{VENDOR}: ")
+
+
+## @brief Every vendored file's area: its nested git tree, or the declared root it is under.
+## @param conn Open connection.
+## @return {file: area root}.
+## @version 1
+## @dg_internal
+def vendor_areas(conn: Any) -> dict[str, str]:
+    """ONE AREA PER TREE OR DECLARATION (OWNER, round 5: "one node per vendored area"). A file in a
+    nested git tree belongs to that tree (`clew/external.py` stamps it on `path`); a file under a
+    declared `vendored:` root belongs to that root (W5). An index built before gh#335 has no
+    stamp, and there nothing nested was indexed at all.
+
+    @brief Map vendored files to their areas.
+    @return Areas.
+    """
+    columns = {row[1] for row in conn.execute("PRAGMA table_info(path)")}
+    stamp = f"COALESCE({EXTERNAL_ROOT_COLUMN}, '')" if EXTERNAL_ROOT_COLUMN in columns else "''"
+    roots = _declared_vendored_roots(conn)
+    out: dict[str, str] = {}
+    for name, tree in conn.execute(f"SELECT name, {stamp} FROM path WHERE type = 1"):  # noqa: S608
+        rel = str(name)
+        declared = next((r for r in roots if rel == r or rel.startswith(f"{r}/")), "")
+        if tree or declared:
+            out[rel] = str(tree) or declared
+    return out
+
+
 ## @brief Files the index tags as belonging to a nested git tree (gh#335), or the repo declares vendored.
 ## @param conn Open connection.
 ## @return Repo-relative paths of vendored files.
 ## v2 (2.0.0, W5): and every file under a declared `vendored:` root the build found.
-## @version 2
+## v3 (2.0.0, P5): the keys of `vendor_areas`.
+## @version 3
 ## @dg_internal
 def _vendored(conn: Any) -> set[str]:
-    """A FACT, NOT A NAME GUESS: `clew/external.py` stamps the owning nested git tree onto `path`;
-    a copied-in file with no git tree of its own is first party. An index built before gh#335 has
-    no column, and there nothing nested was indexed at all, so the answer is empty by construction.
-
-    @brief Vendored files.
-    @return Paths.
-    """
-    columns = {row[1] for row in conn.execute("PRAGMA table_info(path)")}
-    nested: set[str] = set()
-    if EXTERNAL_ROOT_COLUMN in columns:
-        nested = {
-            str(name)
-            for (name,) in conn.execute(
-                f"SELECT name FROM path WHERE type = 1 AND COALESCE({EXTERNAL_ROOT_COLUMN}, '') != ''"
-            )
-        }
-    roots = _declared_vendored_roots(conn)
-    declared = {
-        str(name)
-        for (name,) in conn.execute("SELECT name FROM path WHERE type = 1")
-        if any(str(name) == r or str(name).startswith(f"{r}/") for r in roots)
-    }
-    return nested | declared
+    """@brief Vendored files. @return Paths."""
+    return set(vendor_areas(conn))
 
 
 ## @brief The `vendored:` roots the build found present (`scope.vendored_roots`).
@@ -237,6 +260,33 @@ def _declared_vendored_roots(conn: Any) -> list[str]:
         return []
     row = conn.execute("SELECT value FROM build_meta WHERE key = 'scope.vendored_roots'").fetchone()
     return [r.strip().rstrip("/") for r in str(row[0] if row else "").split(",") if r.strip()]
+
+
+## @brief Per vendor area, the distinct first-party functions-to-its-functions calls.
+## @param conn Open connection.
+## @param funcs rowid → (name, file, in test code).
+## @param comp rowid → component.
+## @return {vendor block: distinct (caller, callee) function pairs crossing into it}.
+## @version 1
+## @dg_internal
+def _vendor_calls_in(conn: Any, funcs: dict, comp: dict[int, str]) -> dict[str, int]:
+    """BY FUNCTION, NOT BY ROW: doxygen writes a declaration row and a definition row for one C
+    function, so one call reads as several rowid pairs. A pair is (name, file) on each side.
+
+    @brief Count calls into vendor areas.
+    @return Counts.
+    """
+    if not table_exists(conn, "call_edges"):
+        return {}
+    pairs: dict[str, set] = defaultdict(set)
+    for a, b in conn.execute(
+        "SELECT DISTINCT caller_rowid, callee_rowid FROM call_edges "
+        "WHERE source != 'binding' AND confidence != 'fuzzy'"
+    ):
+        into, out_of = comp.get(int(b)), comp.get(int(a))
+        if into and out_of and is_vendor(into) and not is_vendor(out_of):
+            pairs[into].add((funcs[int(a)][:2], funcs[int(b)][:2]))
+    return {block: len(p) for block, p in pairs.items()}
 
 
 ## @brief Call counts between files, both directions.

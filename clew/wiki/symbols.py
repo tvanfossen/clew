@@ -105,7 +105,8 @@ def anchor(name: str) -> str:
 ## v2: test functions the evidence names get sections too (P2a).
 ## v3: `test_functions` is public (the build resolves directly linked tests to draw, P2b).
 ## v4: and the object list the `clew` domain puts in objects.inv (2.0.0, S8).
-## @version 4
+## v5: a file page names its owners, unless the audience withholds them (2.0.0, P5).
+## @version 5
 ## @req REQ-DDB-WIKI-025
 def symbol_pages(
     db: Path, repo_root: Path, keys: set[tuple[str, str]], ctx: dict[str, Any], source: Path
@@ -115,6 +116,7 @@ def symbol_pages(
         tests = test_functions(conn, set(ctx.get("tests") or {}))
         defs = _definitions(conn, keys | tests)
         graph = _Edges(conn)
+        owned = _owners_by_file(conn, {d.file for d in defs}, ctx["rules"])
     ctx = {**ctx, "test_keys": tests}
     by_file: dict[str, dict[str, list[Definition]]] = defaultdict(lambda: defaultdict(list))
     for d in defs:
@@ -133,6 +135,7 @@ def symbol_pages(
             f"# `{rel}`",
             "",
             "```{raw} html",
+            *_owners_line(owned.get(rel)),
             *sections,
             "```",
             "",
@@ -140,6 +143,42 @@ def symbol_pages(
         (Path(source) / f"{page_for(rel)}.md").write_text("\n".join(text), encoding="utf-8")
     _write_objects(Path(source), sorted(written, key=lambda k: (k[1], k[0])))
     return {key: symbol_href(*key) for key in written}
+
+
+## @brief Each written file's owners, unless the audience withholds them.
+## @param conn Open connection.
+## @param files The files with sections.
+## @param rules The audience.
+## @return {file: owner names, in rule order}.
+## @version 1
+## @dg_internal
+def _owners_by_file(conn: Any, files: set[str], rules: Any) -> dict[str, list[str]]:
+    """P5 (2.0.0): the owners layer on the page a reader opens to ask who to talk to. Empty under
+    `exclude_owners`. @brief Read owners. @return Map."""
+    from ..query.corpus import file_owners
+
+    if getattr(rules, "exclude_owners", False):
+        return {}
+    out = {}
+    for rel in files:
+        names = list(dict.fromkeys(o.owner for o in file_owners(conn, rel) or ()))
+        if names:
+            out[rel] = names
+    return out
+
+
+## @brief The owners line at the top of a file page.
+## @param names Owner names, or None.
+## @return HTML lines (none when the file has no owners).
+## @version 1
+## @dg_internal
+def _owners_line(names: list[str] | None) -> list[str]:
+    """@brief Owners line. @return Lines."""
+    if not names:
+        return []
+    return [
+        f'<p class="owners">Owners: {", ".join(f"<code>{escape(n)}</code>" for n in names)}</p>'
+    ]
 
 
 ## @brief The symbol sections, as the `clew` Sphinx domain lists them in objects.inv.

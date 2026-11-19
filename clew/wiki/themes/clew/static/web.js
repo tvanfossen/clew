@@ -13,6 +13,8 @@ var rMax=G.r0+(D.max_ring+1)*G.band;
 function css(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim()||"#888";}
 var C={};function colors(){["--ink","--ink2","--faint","--rule","--rule2","--paper","--surface","--muted","--acc","--err","--warn","--root","--inset","--accbg"].forEach(function(n){C[n]=css(n);});}
 var TIER={PASS:"--acc",GAP:"--err",NOT_RUN:"--warn",TARGET:"--root",MISSING:"--inset",EXEMPT:"--rule"};
+var OWN=["--acc","--root","--warn","--ink2","--inset","--rule"];
+function hue(s){for(var h=0,i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))|0;return C[OWN[Math.abs(h)%OWN.length]];}
 var pending=0,snap=null,idle=0;function later(){if(!pending)pending=requestAnimationFrame(function(){pending=0;quick();});}
 function quick(){var d=devicePixelRatio||1;if(!snap){var im=document.createElement("canvas");im.width=cv.width;im.height=cv.height;im.getContext("2d").drawImage(cv,0,0);snap={im:im,x:cam.x,y:cam.y,k:cam.k};}
  var s=cam.k/snap.k,tx=((snap.x-cam.x)*cam.k+W()/2-s*W()/2)*d,ty=((snap.y-cam.y)*cam.k+H()/2-s*H()/2)*d;
@@ -37,7 +39,7 @@ function links(){var idx={};B.forEach(function(b,i){idx[b.id]=i;});var top=1;D.l
  D.links.forEach(function(l){var a=B[idx[l.from]],b=B[idx[l.to]];if(!a||!b)return;var p=mid(a),q=mid(b);
   ctx.beginPath();ctx.moveTo(p[0],p[1]);ctx.quadraticCurveTo((p[0]+q[0])*0.2,(p[1]+q[1])*0.2,q[0],q[1]);
   ctx.strokeStyle=C["--ink2"];ctx.globalAlpha=0.35;ctx.lineWidth=(1+5*Math.sqrt(l.calls/top))/cam.k;ctx.stroke();ctx.globalAlpha=1;});}
-function col(n){if(lens==="changed")return n.changed?C["--warn"]:C["--rule"];if(lens==="block")return n.block%2?C["--ink2"]:C["--faint"];return n.tier?C[TIER[n.tier]||"--faint"]:C["--faint"];}
+function col(n){if(lens==="owner")return n.owner?hue(n.owner):C["--faint"];if(lens==="changed")return n.changed?C["--warn"]:C["--rule"];if(lens==="block")return n.block%2?C["--ink2"]:C["--faint"];return n.tier?C[TIER[n.tier]||"--faint"]:C["--faint"];}
 function nodes(){var k=cam.k,rad=Math.max(1.6,3.2/Math.sqrt(k))/1;
  if(sel>=0){ctx.lineWidth=1.2/k;edgeSet(sel,outN,C["--acc"]);edgeSet(sel,inN,C["--root"]);}
  if(flow){ctx.beginPath();flow.steps.forEach(function(s,i){var n=N[s];if(i)ctx.lineTo(n.x,n.y);else ctx.moveTo(n.x,n.y);});ctx.strokeStyle=C["--err"];ctx.lineWidth=2/k;ctx.stroke();}
@@ -70,7 +72,7 @@ function hash(h){history.replaceState(null,"","#"+h);}
 function link(i){var n=N[i];return'<button type="button" data-go="'+i+'">'+esc(n.name)+"</button>";}
 function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
 function list(t,xs){return xs.length?"<h4>"+t+" ("+xs.length+")</h4><ul>"+xs.slice(0,40).map(function(j){return"<li>"+link(j)+"</li>";}).join("")+(xs.length>40?"<li>… "+(xs.length-40)+" more</li>":"")+"</ul>":"<h4>"+t+"</h4><p>none drawn</p>";}
-function show(i){var n=N[i],h='<button type="button" class="web-x" data-close aria-label="Close">×</button><h3>'+esc(n.name)+'</h3><p class="web-file">'+esc(n.file)+(n.line?":"+n.line:"")+"</p><p>"+esc(B[n.block].id)+" · ring "+n.ring+(n.tier?' · <span class="tier t-'+n.tier+'">'+n.tier+"</span>":"")+"</p>";
+function show(i){var n=N[i],h='<button type="button" class="web-x" data-close aria-label="Close">×</button><h3>'+esc(n.name)+'</h3><p class="web-file">'+esc(n.file)+(n.line?":"+n.line:"")+"</p>"+(n.owner?'<p class="web-owner">Owner '+esc(n.owner)+"</p>":"")+"<p>"+esc(B[n.block].id)+" · ring "+n.ring+(n.tier?' · <span class="tier t-'+n.tier+'">'+n.tier+"</span>":"")+"</p>";
  if(n.href)h+='<p><a href="'+esc(n.href)+'">Source and dossier →</a></p>';h+=list("Calls",outN[i])+list("Called by",inN[i]);panel.innerHTML=h;panel.hidden=false;}
 function blockPanel(i){var b=B[i],h='<button type="button" class="web-x" data-close aria-label="Close">×</button><h3>'+esc(b.id)+"</h3><p>"+b.functions+" functions · "+b.files+" files"+(b.declared?" · declared":"")+"</p>";
  if((b.inferred_files||[]).length)h+="<h4>Placed by coupling</h4><ul>"+b.inferred_files.map(function(f){return"<li><code>"+esc(f)+"</code></li>";}).join("")+"</ul>";

@@ -129,7 +129,7 @@ _RESULT = {"format", "path"}
 _SOURCE = {"name", "path", "items", "id", "doc", "req"}
 _RULE = {"id", "title", "status", "url", "requirements"}
 _LINKS = {"template"}
-_AUDIENCE = {"exclude_bodies", "exclude_requirement_text"}
+_AUDIENCE = {"exclude_bodies", "exclude_requirement_text", "exclude_owners"}
 ## Prose read when the section names none.
 DEFAULT_DOCS = ("README.md", "docs/**/*.md", "docs/**/*.rst")
 
@@ -201,6 +201,8 @@ class Audience:
 
     exclude_bodies: bool = False
     exclude_requirement_text: bool = False
+    ## P5 (2.0.0): who owns what (CODEOWNERS / MAINTAINERS) left off the map and the file pages.
+    exclude_owners: bool = False
 
 
 ## @brief One external node source (W7).
@@ -430,7 +432,8 @@ def _read_section(path: Path) -> tuple[dict[str, Any], list[str]]:
 ## @param raw The `audiences` mapping.
 ## @param problems Accumulated problems; appended to.
 ## @return {name: Audience}.
-## @version 1
+## v2: exclude_owners (2.0.0, P5)
+## @version 2
 ## @dg_internal
 def _audiences(raw: Any, problems: list[str]) -> dict[str, Audience]:
     """@brief Parse audiences. @return Rules by name."""
@@ -440,6 +443,7 @@ def _audiences(raw: Any, problems: list[str]) -> dict[str, Audience]:
         out[str(name)] = Audience(
             exclude_bodies=bool((rules or {}).get("exclude_bodies")),
             exclude_requirement_text=bool((rules or {}).get("exclude_requirement_text")),
+            exclude_owners=bool((rules or {}).get("exclude_owners")),
         )
     return out
 

@@ -275,12 +275,13 @@ wiki:
   component_depth: 2            # leading directories that name a package on the map
   web: {max_ring: 8}            # the deepest ring of the call web
   audiences:
-    partner: {exclude_bodies: true, exclude_requirement_text: true}
+    partner: {exclude_bodies: true, exclude_requirement_text: true, exclude_owners: true}
 ```
 
 `--audience NAME` applies an audience's redaction to every output, exports included:
 `exclude_bodies` removes function bodies, call text and assertions; `exclude_requirement_text`
-removes requirement titles and criteria. A source link is dropped when the repository has a
+removes requirement titles and criteria; `exclude_owners` removes the CODEOWNERS / MAINTAINERS
+names from the map's Owners lens and the file pages. A source link is dropped when the repository has a
 remote and no remote branch holds the commit it would name, so a published site never links a
 404.
 

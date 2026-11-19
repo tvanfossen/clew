@@ -120,22 +120,31 @@ def vendored_db(tmp_path_factory: pytest.TempPathFactory) -> Path:
     return out
 
 
-def test_vendored_code_is_one_block_never_joined_by_coupling(vendored_db: Path) -> None:
-    """@brief deps/zlib is called only from Core, yet it is the Vendor block, not part of Core."""
+## 2.0.0 (P5, OWNER round 5: "one node per vendored area"): the block is the AREA's,
+## `Vendor: deps/zlib`, where it was one `Vendor` for every vendored file. What these tests guard is
+## unchanged: vendored code is its own block, never joined by coupling, never a package.
+_ZLIB = "Vendor: deps/zlib"
+
+
+def test_vendored_code_is_its_areas_block_never_joined_by_coupling(vendored_db: Path) -> None:
+    """@brief deps/zlib is called only from Core, yet it is its own vendor block, not part of Core."""
     blocks = {c["id"]: c for c in build_graph(vendored_db, [], None, _DECLARED)["components"]}
-    assert blocks["Vendor"]["paths"] == ["deps/zlib/inflate.py", "deps/zlib/sub/crc.py"]
+    assert blocks[_ZLIB]["paths"] == ["deps/zlib/inflate.py", "deps/zlib/sub/crc.py"]
+    assert blocks[_ZLIB]["vendor"] is True
     assert not any(p.startswith("deps/") for p in blocks["Core"]["paths"])
-    assert blocks["Vendor"]["inferred_files"] == []
+    assert blocks[_ZLIB]["inferred_files"] == []
 
 
-def test_vendored_code_is_one_block_with_nothing_declared(vendored_db: Path) -> None:
-    """@brief No declaration: packages for first party, but one Vendor block, not deps/zlib."""
+def test_vendored_code_is_its_areas_block_with_nothing_declared(vendored_db: Path) -> None:
+    """@brief No declaration: packages for first party, the vendor area its own block, not deps/zlib."""
     ids = {c["id"] for c in build_graph(vendored_db, [], None)["components"]}
-    assert "Vendor" in ids and not any(i.startswith("deps") for i in ids)
+    assert _ZLIB in ids and not any(i.startswith("deps") for i in ids)
 
 
 def test_a_declared_block_still_wins_over_vendor(vendored_db: Path) -> None:
     """@brief A repo that names its vendored block keeps its own name for it."""
+    from clew.wiki.graph import is_vendor
+
     declared = (*_DECLARED, ("Third-party", ("deps/*",)))
     ids = {c["id"] for c in build_graph(vendored_db, [], None, declared)["components"]}
-    assert "Third-party" in ids and "Vendor" not in ids
+    assert "Third-party" in ids and not any(is_vendor(i) for i in ids)

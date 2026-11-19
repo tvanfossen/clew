@@ -110,7 +110,8 @@ def build_wiki(
 ## @param config_path An out-of-tree config.
 ## @return The HTML directory.
 ## The body of `build_wiki` before 2.0.0 (its history is recorded there).
-## @version 1
+## v2: the map honours exclude_owners (2.0.0, P5)
+## @version 2
 ## @dg_internal
 def _build_site(
     repo_root: Path,
@@ -262,6 +263,7 @@ def _build_site(
             written,
             source,
             config.web_max_ring,
+            owners=not rules.exclude_owners,
         ),
         _docs_page(source, _prose(repo_root, config, source), config, decisions),
     ]

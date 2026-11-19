@@ -56,10 +56,15 @@ _FLOOR = 0.025
 ## @param order Block ids in the order the repository declared them; others follow in graph order.
 ## @return Plain data for the page.
 ## v2: the ring cap is wiki.web.max_ring (2.0.0, R5-CFG C8)
-## @version 2
+## v3: owners overlay and vendor areas (2.0.0, P5)
+## @version 3
 ## @req REQ-DDB-WIKI-019
 def web_data(
-    db: Path, graph: dict[str, Any], order: list[str] | None = None, max_ring: int = MAX_RING
+    db: Path,
+    graph: dict[str, Any],
+    order: list[str] | None = None,
+    max_ring: int = MAX_RING,
+    owners: bool = True,
 ) -> dict[str, Any]:
     """@brief Compute the web. @return Data."""
     blocks = _ordered(graph["components"], order or [])
@@ -69,9 +74,15 @@ def web_data(
     with connect(db) as conn:
         funcs = _functions(conn, owner)
         edges = _edges(conn, funcs)
+        first_owner = _first_owners(conn) if owners else {}
     ring = _rings(funcs, edges, max_ring)
     _wedges(blocks, funcs, owner)
     nodes, slot = _place(blocks, index, funcs, owner, ring, facts)
+    ## P5 (2.0.0): THE OWNERS OVERLAY: each node carries its file's first owner, unless the
+    ## audience withholds them (`exclude_owners`), in which case no node carries one.
+    for node in nodes:
+        if node["file"] in first_owner:
+            node["owner"] = first_owner[node["file"]]
     return {
         "blocks": [_block_row(b) for b in blocks],
         "nodes": nodes,
@@ -84,6 +95,23 @@ def web_data(
         "max_ring": max(ring.values(), default=0),
         "geometry": {"r0": _R0, "band": _BAND},
     }
+
+
+## @brief Each file's first owner, in rule order, from the index's owners layer.
+## @param conn Open connection.
+## @return {file: owner}; empty when the layer is absent.
+## @version 1
+## @dg_internal
+def _first_owners(conn: Any) -> dict[str, str]:
+    """@brief Read owners. @return Map."""
+    if not table_exists(conn, "owners"):
+        return {}
+    out: dict[str, str] = {}
+    for rel, who in conn.execute(
+        "SELECT p.name, o.owner FROM owners o JOIN path p ON p.rowid = o.path_rowid ORDER BY o.rowid"
+    ):
+        out.setdefault(str(rel), str(who))
+    return out
 
 
 ## @brief Blocks in declared order, then the rest in graph order.
@@ -184,13 +212,19 @@ def _rings(funcs: dict, edges: set[tuple[int, int]], max_ring: int = MAX_RING) -
 ## @param funcs The drawn functions.
 ## @param owner file → block.
 ## @return None.
-## @version 1
+## v2: owners overlay and vendor areas (2.0.0, P5)
+## @version 2
 ## @dg_internal
 def _wedges(blocks: list[dict], funcs: dict, owner: dict[str, str]) -> None:
     """@brief Angles. @return None."""
     count: dict[str, int] = defaultdict(int)
     for _n, rel, _l in funcs.values():
         count[owner[rel]] += 1
+    ## A VENDOR AREA IS SIZED BY USE (P5, 2.0.0): the calls into it, not its function count, so a
+    ## large library the project barely touches stays a sliver at the edge of the system.
+    for b in blocks:
+        if b.get("vendor"):
+            count[b["id"]] = int(b.get("calls_in") or 0)
     total = max(1, sum(count.values()))
     shares = [max(count[b["id"]] / total, _FLOOR) for b in blocks]
     usable = 2 * math.pi - _GAP * len(blocks)
@@ -264,14 +298,15 @@ def _arc(a0: float, a1: float, r: int, n: int) -> list[tuple[float, float]]:
 ## @brief The block fields the page reads.
 ## @param b A block.
 ## @return The row.
-## @version 1
+## v2: owners overlay and vendor areas (2.0.0, P5)
+## @version 2
 ## @dg_internal
 def _block_row(b: dict) -> dict:
     """@brief Block row. @return Row."""
     keep = ("id", "a0", "a1", "functions", "files", "declared", "inferred_files", "requirements")
     row = {k: b[k] for k in keep if k in b}
     row["a0"], row["a1"] = round(row["a0"], 5), round(row["a1"], 5)
-    for key in ("req_ids", "threads", "changed", "tested_calls"):
+    for key in ("req_ids", "threads", "changed", "tested_calls", "vendor", "calls_in"):
         if key in b:
             row[key] = b[key]
     return row
@@ -280,7 +315,8 @@ def _block_row(b: dict) -> dict:
 ## @brief The web's HTML: toolbar, canvas, side panel, inline data, and the block table.
 ## @param data `web_data` output, optionally with `flows` and node `href`s added.
 ## @return HTML.
-## @version 1
+## v2: owners overlay and vendor areas (2.0.0, P5)
+## @version 2
 ## @req REQ-DDB-WIKI-021
 def web_html(data: dict[str, Any]) -> str:
     """THE DATA IS INLINE (`application/json`, never executed) and the script is local: the page
@@ -309,6 +345,7 @@ def web_html(data: dict[str, Any]) -> str:
         '<label>Lens <select data-web-lens><option value="tier">Requirements</option>'
         '<option value="block">Blocks</option>'
         + ('<option value="changed">Change</option>' if _has(data, "changed") else "")
+        + ('<option value="owner">Owners</option>' if _has(data, "owner") else "")
         + f"</select></label>{picker}</div>"
         '<div class="web-stage"><canvas class="web-canvas" aria-label="Repository web: blocks '
         'as wedges, functions on rings by call depth"></canvas>'
@@ -371,7 +408,8 @@ def _table(data: dict) -> str:
 ## @param source The Sphinx source directory.
 ## @return The page name, or "" when nothing is drawn.
 ## v2: the ring cap is wiki.web.max_ring (2.0.0, R5-CFG C8)
-## @version 2
+## v3: owners overlay and vendor areas (2.0.0, P5)
+## @version 3
 ## @req REQ-DDB-WIKI-021
 def web_page(
     db: Path,
@@ -381,6 +419,7 @@ def web_page(
     hrefs: dict[tuple[str, str], str],
     source: Path,
     max_ring: int = MAX_RING,
+    owners: bool = True,
 ) -> str:
     """A FLOW IS PLAYED BY ITS FUNCTIONS IN CALL ORDER: the camera visits each step; a step whose
     function is not drawn (test code, or outside the index) is skipped, never invented.
@@ -390,7 +429,7 @@ def web_page(
     """
     if not graph["components"]:
         return ""
-    data = web_data(db, graph, order, max_ring)
+    data = web_data(db, graph, order, max_ring, owners)
     slot = {(n["name"], n["file"]): i for i, n in enumerate(data["nodes"])}
     for n in data["nodes"]:
         href = hrefs.get((n["name"], n["file"]))
