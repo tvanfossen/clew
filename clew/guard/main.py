@@ -190,7 +190,8 @@ def _add_files_parser(subparsers: argparse._SubParsersAction) -> None:
 #  @details v1.15: runs the bus-tag rule (W10).
 #  v1.16: excludes are globs, re: for a regex (2.0.0, R5-CFG F18)
 #  v1.17: check_removed_tags (2.0.0, PG1)
-#  @version 1.17
+#  v1.18: a validate.exclude match is counted as not checked (2.0.0, PG6)
+#  @version 1.18
 #  @req REQ-DDB-GUARD-001
 def validate_file(
     file_path: str,
@@ -202,7 +203,11 @@ def validate_file(
     validate = get_validate(config)
     pattern = excluded_by(file_path, validate.get("exclude", []))
     if pattern is not None:
-        logger.debug("Skipping %s — matches exclude pattern '%s'", file_path, pattern)
+        ## COUNTED (2.0.0, PG6): a declared exclusion is a file the gate did not check, and the
+        ## report says so every run. It returned silently, so an excluded file vanished.
+        logger.info("Skipping %s — matches exclude pattern '%s'", file_path, pattern)
+        if skipped is not None:
+            skipped.append("excluded by validate.exclude")
         return []
     skip = gate_exclusion(file_path)
     if skip is not None:
