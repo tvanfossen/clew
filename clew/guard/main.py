@@ -1,4 +1,4 @@
-"""CLI entry point for doxygen-guard.
+"""CLI entry point for clew guard.
 
 @brief Argument parsing, file iteration, and subcommand dispatch.
 @version 1.1

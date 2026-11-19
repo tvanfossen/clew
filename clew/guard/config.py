@@ -12,6 +12,7 @@ from __future__ import annotations
 import copy
 import difflib
 import logging
+import re
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -34,6 +35,8 @@ CONFIG_SECTION = "guard"
 # the `@req` gate in particular goes from enforced to absent with no output at all, which is
 # the same silent-success failure as a skipped file reporting nothing.
 LEGACY_CONFIG_NAME = ".doxygen-guard.yaml"
+## A `doxygen-guard` hook id in a pre-commit config (2.0.0, PG4: refused, naming `clew-guard`).
+_LEGACY_HOOK_ID = re.compile(r"^\s*-?\s*id:\s*['\"]?doxygen-guard['\"]?\s*$", re.M)
 
 VALIDATE_DEFAULTS: dict[str, Any] = {
     "languages": {
@@ -646,51 +649,53 @@ def deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]
     return result
 
 
-## @brief Warn when an inert `.doxygen-guard.yaml` is the likely reason the gate is defaulted.
-#  @param config_path The `.clew.yaml` the gate just failed to find a `guard:` section in.
+## @brief Refuse to run while a doxygen-guard leftover is in the repository, naming it.
+#  @details 2.0.0 (PG4, owner): "a hard cut of doxygen-guard priors — clew only". A leftover
+#  `.doxygen-guard.yaml`, or a `doxygen-guard` hook id in `.pre-commit-config.yaml`, FAILS the gate
+#  instead of warning. FAIL CLOSED, as a missing catalog does: a stale config a contributor reads
+#  states rules the gate does not enforce (the entropic session's catalog went unnoticed for 15
+#  months because every consumer failed open). It replaces a warning that fired only when no
+#  `guard:` section existed.
 #  @version 1.0
 #  @req REQ-DDB-GUARD-012
-#  @utility
-def _warn_about_legacy_config(config_path: Path) -> None:
-    """SIGNPOSTED, NOT SUPPORTED. clew does not read the old file and this does not make it;
-    it names it, because the alternative is a repository whose gate quietly stopped enforcing
-    anything. Fires only when no `guard:` section exists — once one does, an undeleted legacy
-    file is explained, and warning on every commit is how an owner learns to ignore the
-    channel this warning needs.
-
-    @brief Name the legacy config when it is the probable cause of a defaulted gate.
-    """
-    legacy = config_path.parent / LEGACY_CONFIG_NAME
-    if not legacy.is_file():
-        return
-    logger.warning(
-        "%s exists but clew does not read it: the gate's config is now the `guard:` section "
-        "of %s, and this run used BUILT-IN DEFAULTS — so any `@req` enforcement, exclude "
-        "list or version gate it declared is NOT in effect. To migrate, add a `guard:` key to "
-        "%s and indent the old file's contents one level under it, then delete %s.",
-        legacy,
-        config_path.name,
-        config_path.name,
-        legacy.name,
-    )
+#  @return None; raises ConfigError naming every leftover
+def refuse_doxygen_guard_leftovers(root: Path) -> None:
+    problems = []
+    if (root / LEGACY_CONFIG_NAME).is_file():
+        problems.append(
+            f"{root / LEGACY_CONFIG_NAME} is a doxygen-guard config: clew 2.0.0 does not read it. "
+            'Move its contents under `guard:` in .clew.yaml (docs/GUARD.md, "Migrating from '
+            'doxygen-guard") and delete it.'
+        )
+    hooks = root / ".pre-commit-config.yaml"
+    text = hooks.read_text(encoding="utf-8", errors="replace") if hooks.is_file() else ""
+    if _LEGACY_HOOK_ID.search(text):
+        problems.append(
+            f"{hooks} declares the `doxygen-guard` hook id: since 2.0.0 the hook is `clew-guard`, "
+            "from the clew repository."
+        )
+    if problems:
+        raise ConfigError("doxygen-guard leftovers (clew 2.0.0 is clew only)", problems)
 
 
 ## @brief Load the `guard:` section of `.clew.yaml` and merge with built-in defaults.
-#  @details A missing file, or a file with no `guard:` section, runs on the defaults — and in
-#  either case an inert `.doxygen-guard.yaml` beside it is named as the probable cause.
+#  @details A missing file, or a file with no `guard:` section, runs on the defaults. A
+#  doxygen-guard leftover beside it is refused first (2.0.0, PG4: refuse_doxygen_guard_leftovers).
 #  v3.2 (2.0.0): the top-level `requirements:` section rides along as `config["requirements"]`,
 #  read with or without a `guard:` section, so the gate and the index read one catalog.
 #  v3.3: reads the event vocabulary and wiki.sources from the same file (2.0.0, R5-CFG F10/F11)
-#  @version 3.3
+#  v3.4: refuses a doxygen-guard leftover before any default applies (2.0.0, PG4)
+#  @version 3.4
 #  @req REQ-DDB-GUARD-012
 #  @return Merged config dict with defaults applied
 def load_config(config_path: Path | None = None) -> dict[str, Any]:
     if config_path is None:
         config_path = Path(CONFIG_FILE_NAME)
+    ## THE HARD CUT, on every path (2.0.0, PG4): before any default is applied.
+    refuse_doxygen_guard_leftovers(config_path.parent)
 
     if not config_path.exists():
         logger.info("No config file found at %s, using defaults", config_path)
-        _warn_about_legacy_config(config_path)
         return _fresh_defaults()
 
     logger.info("Loading config from %s", config_path)
@@ -701,7 +706,6 @@ def load_config(config_path: Path | None = None) -> dict[str, Any]:
     user_config = read_guard_section(config_path)
     if user_config is None:
         logger.info("No %r section in %s, using defaults", CONFIG_SECTION, config_path)
-        _warn_about_legacy_config(config_path)
         return {**_fresh_defaults(), **shared}
 
     errors = validate_config_schema(user_config)

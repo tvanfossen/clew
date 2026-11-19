@@ -89,11 +89,12 @@ def tool_tags_for(config: dict[str, Any]) -> list[str]:
 
 
 ## @brief Build the Doxyfile fragment for the given config.
-#  @version 1.0
+#  v1.1: hard cut of doxygen-guard priors (2.0.0, PG4)
+#  @version 1.1
 #  @req REQ-DDB-GUARD-017
 #  @return Doxyfile text declaring ALIASES and the mirroring warning settings
 def build_fragment(config: dict[str, Any]) -> str:
-    lines = [_HEADER, "# Tags doxygen-guard defines that doxygen does not."]
+    lines = [_HEADER, "# Tags clew guard defines that doxygen does not."]
 
     for tag in tool_tags_for(config):
         if tag in EXEMPTION_TAGS:
@@ -110,7 +111,7 @@ def build_fragment(config: dict[str, Any]) -> str:
         lines.append(f"{key} = {value}")
 
     lines.append("")
-    lines.append("# Policy, not validity — stricter than doxygen-guard. Opt in if you want it.")
+    lines.append("# Policy, not validity — stricter than clew guard. Opt in if you want it.")
     for key, why in _OPTIONAL_WARNINGS:
         lines.append(f"# {key} = YES   # {why}")
 

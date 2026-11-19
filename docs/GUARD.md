@@ -114,7 +114,11 @@ int Sensor_ReadTemperature(void) {
    `.clew.yaml` (beside `guard:`, not inside it). The `x-` passthrough is gone.
 4. If the hook passed `--config conf/doxygen-guard.yaml`, drop the argument (the gate reads
    `.clew.yaml` at the root) or point it at the moved file.
-5. Replace every `@dg_internal` with `@utility` (a plain text replace; the gate refuses the old
+5. The gate refuses to run while `.doxygen-guard.yaml` exists, or while
+   `.pre-commit-config.yaml` still names the `doxygen-guard` hook id, naming each leftover.
+   2.0.0 is the hard cut: nothing doxygen-guard wrote is read. (`clew index` only warns, since
+   it indexes repositories it must not change.)
+6. Replace every `@dg_internal` with `@utility` (a plain text replace; the gate refuses the old
    tag, naming the new one). Where a member's doc block sits inside a class body, the class may
    then ask for its own `@version` bump, because its body text changed.
 

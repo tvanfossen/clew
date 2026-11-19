@@ -1,4 +1,4 @@
-"""Requirement coverage analysis for doxygen-guard.
+"""Requirement coverage analysis for clew guard.
 
 @brief Cross-reference @req tags against requirements file and report coverage gaps.
 @version 1.0

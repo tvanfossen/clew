@@ -9,55 +9,51 @@ gate runs on built-in defaults, and everything LOOKS fine. The `@req` gate in pa
 from enforced to absent with no output, which is the same class of silent-success failure as
 B1 and the unconfigured-language skip.
 
-SIGNPOSTED, NOT SUPPORTED. clew does not read the legacy file, and nothing here makes it. The
-warning fires only when the old file exists AND no `guard:` section does, so a repository that
-has migrated and simply not deleted the old file is not nagged on every commit.
+SIGNPOSTED, NOT SUPPORTED, was the 1.1.0 rule: a warning, and only while no `guard:` section
+existed. 2.0.0 REPLACES IT (owner, 2026-11-19: "a hard cut of doxygen-guard priors — clew only"):
+the GATE REFUSES to run while the leftover exists, migrated or not, naming it and the fix — a
+stale config a contributor reads states rules the gate does not enforce. The INDEX still only
+warns: it indexes repositories it must not change. tests/guard/test_guard_hard_cut.py covers the
+hook-id half.
 
-@brief The legacy doxygen-guard config is named when it is the likely cause.
-@version 1
+@brief The legacy doxygen-guard config is refused by the gate and named by the index.
+@version 2
 """
 
 from __future__ import annotations
 
 import logging
 
+import pytest
+
 from clew.guard.config import LEGACY_CONFIG_NAME, load_config
+from clew.guard.errors import ConfigError
 
 
-def test_a_legacy_config_with_no_guard_section_is_named(tmp_path, monkeypatch, caplog):
-    """@brief The old file is named, with the migration. @version 1"""
+def test_a_legacy_config_with_no_guard_section_is_refused(tmp_path, monkeypatch):
+    """@brief No `guard:` section and the old file present: refused, naming the file and `guard:`."""
     (tmp_path / LEGACY_CONFIG_NAME).write_text("validate:\n  presence:\n    require_brief: true\n")
     ## FIXTURE CHANGED (2.0.0, R5-CFG F1): `thread_patterns: [worker]` was never read (a list
     ## under a mapping section) and is now refused; these tests only need a non-gate section.
     (tmp_path / ".clew.yaml").write_text("thread_patterns:\n  spawns:\n    - {name: worker}\n")
     monkeypatch.chdir(tmp_path)
-
-    with caplog.at_level(logging.WARNING, logger="clew.guard.config"):
+    with pytest.raises(ConfigError) as refused:
         load_config()
-
-    messages = " ".join(record.getMessage() for record in caplog.records)
-    assert LEGACY_CONFIG_NAME in messages, (
-        f"the gate ran on defaults with an inert legacy config present and said nothing: "
-        f"{messages!r}"
-    )
-    assert "guard:" in messages, "the warning must name what to do, not only what is wrong"
+    assert LEGACY_CONFIG_NAME in refused.value.details() and "guard:" in refused.value.details()
 
 
-def test_a_migrated_repo_is_not_nagged(tmp_path, monkeypatch, caplog):
-    """THE LIMIT. Once a `guard:` section exists the legacy file is explained — the owner has
-    migrated and merely not deleted it. Warning then is noise on every commit, which is how an
-    owner learns to ignore the channel the warning above needs.
+def test_a_migrated_repo_with_the_leftover_is_refused_too(tmp_path, monkeypatch):
+    """1.1.0 deliberately did NOT warn here ("not nagged on every commit"). 2.0.0 reverses it: a
+    leftover beside a migrated `guard:` section is still a file a contributor reads and believes,
+    and a refusal cannot be learned-to-ignore the way a repeated warning can — it is deleted once.
 
-    @brief No warning when a `guard:` section exists. @version 1
+    @brief A `guard:` section does not excuse the leftover. @version 2
     """
     (tmp_path / LEGACY_CONFIG_NAME).write_text("validate: {}\n")
     (tmp_path / ".clew.yaml").write_text("guard:\n  validate:\n    exclude: []\n")
     monkeypatch.chdir(tmp_path)
-
-    with caplog.at_level(logging.WARNING, logger="clew.guard.config"):
+    with pytest.raises(ConfigError):
         load_config()
-
-    assert LEGACY_CONFIG_NAME not in " ".join(r.getMessage() for r in caplog.records)
 
 
 def test_no_legacy_file_means_no_warning(tmp_path, monkeypatch, caplog):

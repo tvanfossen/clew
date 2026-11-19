@@ -439,7 +439,8 @@ def _resolve_output(args: argparse.Namespace) -> None:
 
 ## @brief Construct the argparse.ArgumentParser for the build script.
 ## v20 (2.0.0): the epilog lists `query`, `refresh`, `wiki` and `cull` too.
-## @version 20
+## v21: hard cut of doxygen-guard priors (2.0.0, PG4)
+## @version 21
 ## @req REQ-DDB-CLI-001
 ## @return Configured ArgumentParser with all build-script CLI arguments registered.
 def _build_argparser() -> argparse.ArgumentParser:
@@ -483,7 +484,7 @@ def _build_argparser() -> argparse.ArgumentParser:
             f"  {INIT_COMMAND:<10}register the MCP server and check it can run\n"
             f"  {PROPOSE_COMMAND:<10}propose a .clew.yaml declaration for a repository\n"
             f"  {EXPORT_COMMAND:<10}export an index\n"
-            f"  {GUARD_COMMAND:<10}validate doxygen comments (the absorbed doxygen-guard)\n"
+            f"  {GUARD_COMMAND:<10}validate doxygen comments: the gate (`clew guard --help`)\n"
             f"  {QUERY_COMMAND:<10}print a dossier, search or stats reply as JSON\n"
             f"  {REFRESH_COMMAND:<10}bring an index current after an edit\n"
             f"  {WIKI_COMMAND:<10}build or check the wiki\n"
@@ -505,7 +506,7 @@ def _build_argparser() -> argparse.ArgumentParser:
         "--repo-root",
         help=(
             "Repository to index (default: the current directory). It is the discovery root "
-            "for the repo's own `.clew.yaml` and doxygen-guard config, the source of "
+            "for the repo's own `.clew.yaml`, the source of "
             "supplementary docs (README, CHANGELOG, docs/*.md), and what --output defaults from."
         ),
     )

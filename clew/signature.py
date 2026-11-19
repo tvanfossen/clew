@@ -288,7 +288,8 @@ CLEW_BUILD_VERSION = 13
 ## @param diagnostics Optional {key: value} record of WHAT THE BUILD LOOKED FOR AND DID NOT FIND.
 ## @param data_model Optional {key: value} record of the generated DATA MODEL the repository declares.
 ## @param declaration Optional {key: value} record of the DOCUMENT an operator stated for this build.
-## @version 13
+## v14: docstring names the real scope sources (2.0.0, PG4)
+## @version 14
 ## @req REQ-DDB-PIPE-005
 ## @req REQ-DDB-CONFIG-006
 ## @req REQ-DDB-CONFIG-007
@@ -308,8 +309,8 @@ def write_build_signature(
 ) -> None:
     """WHY THE FILE SET IS WHAT IT IS, recorded rather than only logged.
 
-    `scope.DerivedScope` already carries the source (`declared` / `doxygen-guard` /
-    `doxyfile`), a human-readable reason, and the roots and excludes — and its own docstring
+    `scope.DerivedScope` already carries the source (`clew-declaration` /
+    `doxyfile` / `whole-repo`), a human-readable reason, and the roots and excludes — and its own docstring
     says it exists "so the BUILD LOG can always say which scope was used and why". The log is
     gone by the time anyone queries the index, so a consumer could see WHAT was indexed and
     never WHY.

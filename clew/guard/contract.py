@@ -1,4 +1,4 @@
-"""Machine-readable contract surface for consumers of the gate (formerly doxygen-guard).
+"""Machine-readable contract surface for consumers of the gate.
 
 @brief Emit the config schema, the effective config, and the resolved file set as JSON.
 @version 1.0

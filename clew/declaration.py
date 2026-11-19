@@ -54,7 +54,7 @@ from ._common import logger
 ## cycle, and it is the one section owner whose section NAME lives here rather than
 ## with the owner (its vocabulary is a declaration format, not an internal constant).
 from .event_edges import CONSUMER, PRODUCER
-from .guard.config import CONFIG_FILE_NAME, CONFIG_SECTION, _warn_about_legacy_config
+from .guard.config import CONFIG_FILE_NAME, CONFIG_SECTION, LEGACY_CONFIG_NAME
 from .vocabulary import DeclarationError
 
 ## The conventional filename. clew's OWN interface — not an assumption about any target's
@@ -391,7 +391,8 @@ def load_declaration(repo_root: Path | str | None) -> dict[str, Any]:
 ## v6 (2.0.0): every section's shape is checked (`_checked_sections`); manifest sections share
 ## tier 1's MANIFEST_SCHEMAS, so the in-tree file is no longer the least validated route.
 ## v7: a moved section is refused naming its new home (2.0.0)
-## @version 7
+## v8: hard cut of doxygen-guard priors (2.0.0, PG4)
+## @version 8
 ## @req REQ-DDB-CONFIG-001
 def load_declaration_located(
     repo_root: Path | str | None,
@@ -426,9 +427,6 @@ def load_declaration_located(
     root = Path(repo_root).expanduser()
     path = root / DECLARATION_NAME
     data = _read_mapping(path) if path.is_file() else {}
-    ## Captured BEFORE the `guard:` key is stripped below, because the question the legacy
-    ## warning asks is whether the file configures the gate at all.
-    configures_gate = SECTION_GUARD in data
     if data:
         experimental = sorted(str(key) for key in data if str(key).startswith(EXPERIMENTAL_PREFIX))
         if experimental:
@@ -474,8 +472,15 @@ def load_declaration_located(
     ##
     ## The GATE'S OWN helper, not a copy: this module already imports the gate's config for
     ## the section name, and two descriptions of one migration is how they drift.
-    if not configures_gate:
-        _warn_about_legacy_config(path)
+    ## 2.0.0 (PG4): the GATE refuses to run while a doxygen-guard leftover exists; the INDEX only
+    ## says so, because clew indexes repositories it must not change (third-party trees included).
+    if (path.parent / LEGACY_CONFIG_NAME).is_file():
+        logger.warning(
+            "%s is a doxygen-guard config: clew does not read it, and `clew guard` refuses to run "
+            "while it exists. Move its contents under `guard:` in %s and delete it.",
+            path.parent / LEGACY_CONFIG_NAME,
+            path.name,
+        )
     if data:
         data = _checked_sections(data, path)
         logger.info("declaration: %s declares %s", path, ", ".join(sorted(data)))

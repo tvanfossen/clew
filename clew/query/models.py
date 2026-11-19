@@ -1298,7 +1298,7 @@ class FileEntry:
 class IndexScope:
     """The compact answer to "what did you actually look at", which gh#21 needed
     an EMPTY result to carry. `source` and `reason` are the build-time derivation
-    (`declared` / `doxygen-guard` / `doxyfile`); `top_levels` and `extensions` are
+    (`clew-declaration` / `doxyfile` / `whole-repo`); `top_levels` and `extensions` are
     capped summaries of the covered file set, not the full inventory.
 
     `source` and `reason` are `""` — not absent — on an index built before the
