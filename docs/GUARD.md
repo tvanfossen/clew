@@ -332,6 +332,7 @@ Every key below lives under the `guard:` section of `.clew.yaml`.
 | `duplicate_tags_error` | bool | `true` | Flag a repeated `@brief`/`@version`/`@return`/`@file` |
 | `extra_tags` | list | `[]` | Further tag names to accept as known |
 | `known_tags_warn` | bool | `true` | Report a tag no rule knows (`false` silences the unknown-tag check) |
+| `exemption_reason` | `optional` \| `required` | `optional` | `required`: every `@utility` / `@callback` carries a one-line reason (`@utility parses the header for X`), the standards' "justified exception" form. Off by default; turn it on once a repository's reasons are written |
 | `bus.handlers` | list | — | Name globs of functions that cross a bus, which must carry a bus tag |
 | `bus.senders` | list | — | Calls that choose a topic; a function calling one must carry a bus tag |
 | `bus.vocabulary` | list | — | Allowed first words of a bus tag |

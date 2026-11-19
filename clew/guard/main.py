@@ -22,6 +22,7 @@ from .checks import (
     check_file_presence,
     check_presence,
     check_bus_tags,
+    check_exemption_reasons,
     check_removed_tags,
     check_req_coverage,
     check_req_exists,
@@ -191,7 +192,8 @@ def _add_files_parser(subparsers: argparse._SubParsersAction) -> None:
 #  v1.16: excludes are globs, re: for a regex (2.0.0, R5-CFG F18)
 #  v1.17: check_removed_tags (2.0.0, PG1)
 #  v1.18: a validate.exclude match is counted as not checked (2.0.0, PG6)
-#  @version 1.18
+#  v1.19: check_exemption_reasons (2.0.0, PG3b)
+#  @version 1.19
 #  @req REQ-DDB-GUARD-001
 def validate_file(
     file_path: str,
@@ -246,6 +248,7 @@ def validate_file(
     for func in functions:
         violations.extend(check_unknown_tags(func, file_path, config))
         violations.extend(check_removed_tags(func, file_path, config))
+        violations.extend(check_exemption_reasons(func, file_path, config))
         violations.extend(check_duplicate_tags(func, file_path, config))
         violations.extend(check_req_exists(func, file_path, config, req_ids))
 

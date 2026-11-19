@@ -221,6 +221,10 @@ DEFAULT_IMPACT_BASE = "origin/main"
 
 IMPACT_DEFAULTS: dict[str, Any] = {"report_dir": DEFAULT_REPORT_DIR, "base": DEFAULT_IMPACT_BASE}
 
+## `validate.exemption_reason` settings (2.0.0, PG3b). `optional` is the default: a repository
+## turns `required` on once its reasons are written (clew has ~1,629 unreasoned exemptions).
+EXEMPTION_REASON_SETTINGS: tuple[str, ...] = ("optional", "required")
+
 ## No floor unless declared (owner, 2.0.0): no standard sets a requirement ratio, and the measured
 ## values differ by repository, so a built-in number would be one repository's tuning.
 COVERAGE_DEFAULTS: dict[str, Any] = {"min_req_ratio": None}
@@ -368,6 +372,9 @@ CONFIG_SCHEMA: dict[str, Any] = {
         "exclude": list,
         "extra_tags": list,
         "known_tags_warn": bool,
+        ## 2.0.0 (PG3b): `required` makes every exemption tag carry a one-line reason. `object`
+        ## here, like `coverage.min_req_ratio`: `_reason_errors` checks the value.
+        "exemption_reason": object,
         "duplicate_tags_error": bool,
         ## The release the version gate compares `requirements.version_field` against: a
         ## literal version, `auto:git` or `auto:cmake` (was `version_gate.current_version`).
@@ -475,6 +482,21 @@ def _exclude_errors(user_config: dict[str, Any]) -> list[str]:
     ]
 
 
+## @brief Refuse an `exemption_reason` setting other than `required` or `optional`.
+#  @version 1.0
+#  @utility
+#  @return Errors
+def _reason_errors(user_config: dict[str, Any]) -> list[str]:
+    validate = user_config.get("validate") if isinstance(user_config, dict) else None
+    value = validate.get("exemption_reason") if isinstance(validate, dict) else None
+    if value is None or value in EXEMPTION_REASON_SETTINGS:
+        return []
+    return [
+        f"guard.validate.exemption_reason must be one of {', '.join(EXEMPTION_REASON_SETTINGS)}, "
+        f"got {value!r}"
+    ]
+
+
 ## @brief Refuse a `coverage.min_req_ratio` that is not a number in (0, 1].
 #  @version 1.0
 #  @utility
@@ -498,7 +520,8 @@ def _ratio_errors(user_config: dict[str, Any]) -> list[str]:
 #  reported as unknown.
 #  v1.3: 1.x regex excludes are refused with the glob and re: forms (2.0.0, R5-CFG F18)
 #  v1.4: a coverage.min_req_ratio outside (0, 1] is refused (2.0.0, PG3)
-#  @version 1.4
+#  v1.5: an exemption_reason other than required / optional is refused (2.0.0, PG3b)
+#  @version 1.5
 #  @req REQ-DDB-GUARD-012
 #  @return List of error strings, empty if config is valid
 def validate_config_schema(user_config: dict[str, Any]) -> list[str]:
@@ -507,6 +530,7 @@ def validate_config_schema(user_config: dict[str, Any]) -> list[str]:
         moved
         + _exclude_errors(rest)
         + _ratio_errors(rest)
+        + _reason_errors(rest)
         + _validate_node(rest, CONFIG_SCHEMA, "")
     )
 

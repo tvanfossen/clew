@@ -786,6 +786,34 @@ def check_removed_tags(func: Function, file_path: str, config: dict[str, Any]) -
     ]
 
 
+## @brief When `validate.exemption_reason` is `required`, refuse an exemption tag with no reason.
+#  @details The standards' form (DO-178C, ISO 26262, IEC 62304): code that does not trace to a
+#  requirement is acceptable when the exception is justified, so `@utility parses X for Y`, not a
+#  bare `@utility`. Off by default; see EXEMPTION_REASON_SETTINGS. 2.0.0, PG3b.
+#  @version 1.0
+#  @req REQ-DDB-GUARD-001
+#  @return One violation per bare exemption tag
+def check_exemption_reasons(
+    func: Function, file_path: str, config: dict[str, Any]
+) -> list[Violation]:
+    if func.doxygen is None or get_validate(config).get("exemption_reason") != "required":
+        return []
+    return [
+        Violation(
+            file=file_path,
+            line=func.doxygen.start_line + 1,
+            check="tag",
+            qualified=func.qualified,
+            message=(
+                f"@{tag} in {func.name}() needs a one-line reason "
+                f"(validate.exemption_reason is required): `@{tag} <why this has no requirement>`"
+            ),
+        )
+        for tag in sorted(EXEMPTION_TAGS & set(func.doxygen.tags))
+        if not any(v.strip() for v in func.doxygen.tags[tag])
+    ]
+
+
 # Tags that describe the function as a whole. A second occurrence is not additive:
 # downstream readers take tags[name][0], so a duplicate is silently ignored and can
 # carry a different value than the author intended.
