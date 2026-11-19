@@ -2968,6 +2968,36 @@ def _vendored_scope(root: Path, rel: Any, args: argparse.Namespace) -> dict[str,
     return out
 
 
+## @brief The declared test shapes, recorded for the wiki's test recognition.
+## @param root Repository root.
+## @return {"test_shapes": JSON} when `tests:` declares macros or function prefixes, else {}.
+## @version 1
+## @dg_internal
+def _test_shapes(root: Path) -> dict[str, str]:
+    """P4 (2.0.0; C6, W2). The wiki reads an index, not the declaration, so the shapes a
+    repository adds (`tests.macros`, `tests.function_prefixes`) are recorded where
+    `wiki.frameworks.TestRecognizer` finds them. Absent when nothing is declared.
+
+    @brief Record declared test shapes.
+    @return Mapping.
+    """
+    import json
+
+    from .declaration import TESTS_FUNCTION_PREFIXES, TESTS_MACROS
+
+    try:
+        tests = load_declaration(root).get(SECTION_TESTS) or {}
+    except Exception as exc:  # pragma: no cover - metadata must not break a built index
+        logger.warning("test shapes not recorded (%s)", exc)
+        return {}
+    shapes = {
+        k: tests[k]
+        for k in (TESTS_MACROS, TESTS_FUNCTION_PREFIXES)
+        if isinstance(tests, dict) and tests.get(k)
+    }
+    return {"test_shapes": json.dumps(shapes, sort_keys=True)} if shapes else {}
+
+
 ## @brief Read the target's own declared documentation scope.
 ## @param root Repository root, already resolved.
 ## @param rel Callable rendering a path repo-relative.
@@ -3039,7 +3069,8 @@ def _doxyfile_scope(root: Path, rel: Any, stated: str | None = None) -> dict[str
 ## @param repo_root Repository root, or None when unknown.
 ## @param args Parsed CLI arguments, which carry the tier the build actually took.
 ## @return {source, reason, roots, excludes, operator_excludes, doxyfile_*} as strings; empty when nothing was resolved.
-## @version 13
+## v14: records the declared test shapes (2.0.0, P4)
+## @version 14
 ## @req REQ-DDB-CONFIG-001
 def _scope_provenance(repo_root: Path | None, args: argparse.Namespace) -> dict[str, str]:
     """A PURE FUNCTION OF THE REPO AGAIN (gh#333). It used to read the tier from
@@ -3143,6 +3174,8 @@ def _scope_provenance(repo_root: Path | None, args: argparse.Namespace) -> dict[
         ## would be a schema change plus a filter that no query may honour — the emptiness
         ## rule: an answer that is silently filtered is worse than one that is merely absent.
         **_vendored_scope(root, _rel, args),
+        ## P4 (2.0.0): the declared test shapes the wiki's test recognition adds to its built-ins.
+        **_test_shapes(root),
         ## WHERE THE WALK GAVE UP, and it is a fact about the corpus rather than a curiosity.
         ## Past the depth limit nothing is pruned and nothing is checked for nested trees, so
         ## everything below is admitted wholesale — which on a deeply nested vendored dependency

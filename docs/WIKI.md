@@ -218,7 +218,16 @@ tests:                          # top level: the index and the wiki read it
   mutations: build/mutations.yaml
   traces: ["build/traces/*.json"]       # OTLP JSON test runs, drawn over their flows
   max_report_mb: 64            # refuse a report larger than this (per-test LCOV grows with tests)
+  macros:                      # test macros beyond the built-in Catch2 / GoogleTest / Boost sets
+    named: [MY_TEST_CASE]      #   first argument is the test's name, a string
+    suite: [MY_TEST_F]         #   (Suite, Case) identifiers
+    bare: [MY_CHECK_CASE]      #   one case identifier
+  function_prefixes: [spec_]   # plain test functions beyond `test*`
 ```
+
+A test is a function in test code (`paths`, the index's test scope) that a framework's shape
+names: a built-in or declared macro, or a name starting with `test` or a declared prefix.
+Declared macros and prefixes are added to the built-ins, never replacing them.
 
 ```yaml
 wiki:

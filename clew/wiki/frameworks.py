@@ -16,12 +16,13 @@ file): `SCENARIO` is a plausible name for anyone's function. A function whose na
 with `test` is a helper, not a test.
 
 @brief Recognise tests by framework shape.
-@version 2
+@version 3
 """
 
 from __future__ import annotations
 
 import re
+from typing import Any
 
 ## Macros whose first argument is the test's name (a string literal).
 _NAMED = {
@@ -49,15 +50,16 @@ _TEST_PATH = re.compile(
 ## @param path Its repo-relative file.
 ## @return (display name, names results are filed under), or None for a non-test.
 ## v2 (round 4): a plain `test*` name is a test only in test code, as the macros already were.
-## @version 2
+## v3 (2.0.0, P4): delegates to `TestRecognizer` with no index (path regex only).
+## @version 3
 ## @req REQ-DDB-WIKI-017
 def recognise_test(name: str, args: str, path: str) -> tuple[str, tuple[str, ...]] | None:
-    """@brief Recognise. @return Identity or None."""
-    reader = _MACROS.get(name)
-    if reader is not None:
-        return reader(args or "") if _TEST_PATH.search(path or "") else None
-    is_test = name.lower().startswith("test") and _TEST_PATH.search(path or "")
-    return (name, (name,)) if is_test else None
+    """THE PATH-ONLY FORM, for a caller with no index. Against an index, use
+    `TestRecognizer.for_conn`, which reads test code from `test_scope` and the declared shapes.
+
+    @brief Recognise. @return Identity or None.
+    """
+    return TestRecognizer(None, _MACROS, _FUNCTION_PREFIXES)(name, args, path)
 
 
 ## @brief A named-macro test: its first string literal.
@@ -117,3 +119,131 @@ _MACROS = {
     **dict.fromkeys(_BARE, _bare),
     "SCENARIO": _scenario,
 }
+
+## The reader for each declarable macro shape (`tests.macros`).
+_SHAPE_READERS = {"named": _named, "suite": _suite, "bare": _bare}
+## The built-in plain-test name prefixes (`tests.function_prefixes` adds to them).
+_FUNCTION_PREFIXES = ("test",)
+## The `build_meta` key the build records the declared test shapes under (`scope.` section).
+TEST_SHAPES_KEY = "scope.test_shapes"
+
+
+## @brief Test recognition for one index: its test code and its declared test shapes.
+## @version 1
+class TestRecognizer:
+    """P4 (2.0.0; W1, W2, C6 of the hard-coded-assumptions review).
+
+    W1: TEST CODE IS `test_scope`, which already honours a declared `tests.paths`. `recognise_test`
+    required its own `_TEST_PATH` regex on top, so an LLVM-shaped `unittests/ADT/FooTest.cpp`,
+    in `test_scope`, failed the regex and its GoogleTest cases were not tests. The regex is now
+    only the fallback for an index without the table.
+
+    C6 / W2: the macro sets and the `test` prefix were closed. A repository declares more under
+    `tests.macros` (`named` / `suite` / `bare`) and `tests.function_prefixes`, recorded by the
+    build as `scope.test_shapes`; both ADD to the built-ins, as `blocking:` does.
+
+    @brief Per-index test recogniser.
+    @version 1
+    """
+
+    __test__ = False  # not a pytest class, whatever its name says
+
+    ## @brief Hold the test files and the shapes.
+    ## @param test_files Repo-relative test files, or None to fall back to the path regex.
+    ## @param macros Macro name → reader.
+    ## @param prefixes Plain-test name prefixes, lower-cased.
+    ## @version 1
+    ## @dg_internal
+    def __init__(
+        self, test_files: frozenset[str] | None, macros: dict, prefixes: tuple[str, ...]
+    ) -> None:
+        self.test_files = test_files
+        self.macros = macros
+        self.prefixes = prefixes
+
+    ## @brief The recogniser for an open index, built once per connection.
+    ## @param conn Open connection.
+    ## @return The recogniser.
+    ## @version 1
+    ## @req REQ-DDB-WIKI-017
+    @classmethod
+    def for_conn(cls, conn: Any) -> TestRecognizer:
+        """IDENTITY-CHECKED CACHE: a connection supports no weak reference, and a wiki build asks
+        on every step of a caller walk, so the last few are held and matched by identity.
+
+        @brief Build or reuse.
+        @return The recogniser.
+        """
+        for held, recogniser in _HELD:
+            if held is conn:
+                return recogniser
+        made = cls(_test_files(conn), *_declared_shapes(conn))
+        _HELD.insert(0, (conn, made))
+        del _HELD[4:]
+        return made
+
+    ## @brief A function's test identity, if it is a test.
+    ## @param name The indexed name.
+    ## @param args Its argument string.
+    ## @param path Its repo-relative file.
+    ## @return (display name, names results are filed under), or None.
+    ## @version 1
+    ## @req REQ-DDB-WIKI-017
+    def __call__(self, name: str, args: str, path: str) -> tuple[str, tuple[str, ...]] | None:
+        """@brief Recognise. @return Identity or None."""
+        in_test = (
+            (path in self.test_files)
+            if self.test_files is not None
+            else bool(_TEST_PATH.search(path or ""))
+        )
+        if not in_test:
+            return None
+        reader = self.macros.get(name)
+        if reader is not None:
+            return reader(args or "")
+        return (name, (name,)) if name.lower().startswith(self.prefixes) else None
+
+
+## Recently built recognisers, most recent first: (connection, recogniser).
+_HELD: list[tuple[Any, TestRecognizer]] = []
+
+
+## @brief The index's test files, or None when it has no `test_scope`.
+## @param conn Open connection.
+## @return Paths or None.
+## @version 1
+## @dg_internal
+def _test_files(conn: Any) -> frozenset[str] | None:
+    """@brief Read test_scope. @return Paths or None."""
+    present = conn.execute("SELECT 1 FROM sqlite_master WHERE name = 'test_scope'").fetchone()
+    if not present:
+        return None
+    return frozenset(
+        str(n)
+        for (n,) in conn.execute(
+            "SELECT p.name FROM test_scope t JOIN path p ON p.rowid = t.path_rowid"
+        )
+    )
+
+
+## @brief The built-in shapes plus the declared ones the build recorded.
+## @param conn Open connection.
+## @return (macros, prefixes).
+## @version 1
+## @dg_internal
+def _declared_shapes(conn: Any) -> tuple[dict, tuple[str, ...]]:
+    """@brief Merge declared shapes. @return Macros and prefixes."""
+    import json
+
+    macros = dict(_MACROS)
+    prefixes = list(_FUNCTION_PREFIXES)
+    row = None
+    if conn.execute("SELECT 1 FROM sqlite_master WHERE name = 'build_meta'").fetchone():
+        row = conn.execute(
+            "SELECT value FROM build_meta WHERE key = ?", (TEST_SHAPES_KEY,)
+        ).fetchone()
+    shapes = json.loads(row[0]) if row and row[0] else {}
+    for shape, names in (shapes.get("macros") or {}).items():
+        macros.update(dict.fromkeys(names, _SHAPE_READERS[shape]))
+    prefixes += [str(p).lower() for p in shapes.get("function_prefixes") or ()]
+    return macros, tuple(dict.fromkeys(prefixes))

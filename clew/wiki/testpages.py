@@ -102,7 +102,8 @@ def test_pages(db: Path, repo_root: Path, ctx: dict[str, Any], source: Path) -> 
 ## @param conn Open connection.
 ## @param names Test names (a function's, or a framework's: a Catch2 scenario's string).
 ## @return Definitions named by the test's own name.
-## @version 1
+## v2: test code from test_scope and declared shapes (2.0.0, P4 W1)
+## @version 2
 ## @req REQ-DDB-WIKI-026
 def _test_definitions(conn: object, names: set[str]) -> list[Definition]:
     """RESOLVED AS THE EVIDENCE RESOLVES THEM (`frameworks.recognise_test`): a Catch2 `SCENARIO` /
@@ -113,7 +114,7 @@ def _test_definitions(conn: object, names: set[str]) -> list[Definition]:
     @brief Resolve tests to definitions.
     @return Definitions.
     """
-    from .frameworks import recognise_test
+    from .frameworks import TestRecognizer
 
     if not names or not table_exists(conn, "test_scope"):
         return []
@@ -125,7 +126,7 @@ def _test_definitions(conn: object, names: set[str]) -> list[Definition]:
     )
     out = []
     for rowid, name, args, rel, definition, brief, start, end, line in rows:
-        test = recognise_test(str(name), str(args), str(rel))
+        test = TestRecognizer.for_conn(conn)(str(name), str(args), str(rel))
         if test and test[0] in names:
             out.append(
                 Definition(

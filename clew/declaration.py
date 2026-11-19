@@ -157,6 +157,10 @@ SECTION_ENTRY_PATTERNS = "entry_patterns"
 ## wiki could read it. `tests.paths` is what `test_paths` was; `test_paths` is refused naming it.
 SECTION_TESTS = "tests"
 TESTS_PATHS = "paths"
+TESTS_MACROS = "macros"
+TESTS_FUNCTION_PREFIXES = "function_prefixes"
+## The macro shapes `tests.macros` may name, as `wiki.frameworks` reads them.
+TESTS_MACRO_SHAPES = frozenset({"named", "suite", "bare"})
 ## Every key `tests:` may carry: `paths` for the index, and the evidence inputs the wiki reads.
 TESTS_KEYS = frozenset(
     {
@@ -177,6 +181,10 @@ TESTS_KEYS = frozenset(
         "traces",
         ## R5-CFG C9 (2.0.0): the size cap on one report, in MiB (per-test LCOV grows with tests).
         "max_report_mb",
+        ## P4 (2.0.0; C6, W2): test shapes beyond the built-ins, ADDED to them —
+        ## `macros: {named|suite|bare: [MACRO, ...]}` and `function_prefixes: [prefix, ...]`.
+        TESTS_MACROS,
+        TESTS_FUNCTION_PREFIXES,
     }
 )
 ## The 1.x name, kept only so the refusal can name where it went.
@@ -502,7 +510,8 @@ def _checked_sections(data: dict[str, Any], path: Path) -> dict[str, Any]:
 ## @return The (possibly normalised) value; raises DeclarationError on a wrong shape.
 ## v2: requirements: is checked against the gate's schema (2.0.0, R5-CFG F7)
 ## v3: tests.paths is a list section (2.0.0, R5-CFG F20)
-## @version 3
+## v4: tests.macros and tests.function_prefixes are checked too (2.0.0, P4)
+## @version 4
 ## @dg_internal
 def _checked_section(name: str, value: Any, path: Path) -> Any:
     """@brief Refuse a wrong-shaped section, naming it and the expected shape.
@@ -515,11 +524,8 @@ def _checked_section(name: str, value: Any, path: Path) -> Any:
         return _checked_list_section(name, value, path)
     if name == SECTION_REQUIREMENTS:
         return _checked_requirements(value, path)
-    if name == SECTION_TESTS and isinstance(value, dict) and TESTS_PATHS in value:
-        value = {
-            **value,
-            TESTS_PATHS: _checked_list_section(f"{name}.{TESTS_PATHS}", value[TESTS_PATHS], path),
-        }
+    if name == SECTION_TESTS and isinstance(value, dict):
+        value = _checked_tests(value, path)
     if name in PATH_SECTIONS:
         if not isinstance(value, str) or not value.strip():
             raise DeclarationError(
@@ -539,6 +545,37 @@ def _checked_section(name: str, value: Any, path: Path) -> Any:
             raise DeclarationError(f"{path}: {exc}") from exc
     _check_section_keys(name, value, path)
     return value
+
+
+## @brief Check the list-shaped keys of `tests:`.
+## @param value The section.
+## @param path Source file.
+## @return The section, checked.
+## @version 1
+## @dg_internal
+def _checked_tests(value: dict[str, Any], path: Path) -> dict[str, Any]:
+    """`paths` and `function_prefixes` are lists; `macros` maps a SHAPE (`named` / `suite` /
+    `bare`) to a list. An unknown shape is refused by name: it would read as no macros at all.
+
+    @brief Check tests: lists and shapes.
+    @return The section.
+    """
+    out = dict(value)
+    for key in (TESTS_PATHS, TESTS_FUNCTION_PREFIXES):
+        if key in out:
+            out[key] = _checked_list_section(f"{SECTION_TESTS}.{key}", out[key], path)
+    macros = out.get(TESTS_MACROS)
+    if macros is not None:
+        if not isinstance(macros, dict) or set(macros) - TESTS_MACRO_SHAPES:
+            raise DeclarationError(
+                f"{path}: tests.macros must map a shape ({', '.join(sorted(TESTS_MACRO_SHAPES))}) to a "
+                f"list of macro names, got {macros!r}"
+            )
+        out[TESTS_MACROS] = {
+            shape: _checked_list_section(f"tests.macros.{shape}", names, path)
+            for shape, names in macros.items()
+        }
+    return out
 
 
 ## @brief Check the catalog section against the gate's own schema.

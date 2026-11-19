@@ -727,11 +727,12 @@ def _reaching_tests(conn: object, req_id: str, depth: int | None) -> dict[str, t
 ## @return The next frontier: non-test callers whose set grew.
 ## v2 (round 4): implementer sets propagate (extent); a node is re-walked when its set grows.
 ## v3: the nearest hop a test was found at, so the closest tests can be listed first.
-## @version 3
+## v4: test code from test_scope and declared shapes (2.0.0, P4 W1)
+## @version 4
 ## @dg_internal
 def _callers_step(conn: object, frontier: set, origins: dict, found: dict, hop: int = 1) -> set:
     """@brief Step back. @return Next frontier."""
-    from .frameworks import recognise_test
+    from .frameworks import TestRecognizer
 
     marks = ",".join("?" * len(frontier))
     rows = conn.execute(
@@ -743,7 +744,7 @@ def _callers_step(conn: object, frontier: set, origins: dict, found: dict, hop: 
     ).fetchall()
     nxt = set()
     for callee, rowid, name, args, rel in rows:
-        test = recognise_test(str(name), str(args), str(rel))
+        test = TestRecognizer.for_conn(conn)(str(name), str(args), str(rel))
         if test:
             entry = found.setdefault(test[0], [(test[0], str(rel), test[1]), set(), hop])
             entry[1].update(origins[callee])
@@ -772,11 +773,12 @@ def _of_kind(kinds: dict[str, str], kind: str) -> tuple[str, ...]:
 ## @param files Repo-relative paths.
 ## @return (test, file, lookup names).
 ## v2: framework recognition, not a `test_` name filter.
-## @version 2
+## v3: test code from test_scope and declared shapes (2.0.0, P4 W1)
+## @version 3
 ## @dg_internal
 def _tests_in_files(conn: object, files: tuple[str, ...]) -> list[tuple[str, str, tuple[str, ...]]]:
     """@brief Tests per file, recognised by framework. @return (test, file, lookup names)."""
-    from .frameworks import recognise_test
+    from .frameworks import TestRecognizer
 
     out = []
     for rel in files:
@@ -786,7 +788,7 @@ def _tests_in_files(conn: object, files: tuple[str, ...]) -> list[tuple[str, str
             (rel,),
         )
         for name, args in rows:
-            test = recognise_test(str(name), str(args), rel)
+            test = TestRecognizer.for_conn(conn)(str(name), str(args), rel)
             if test:
                 out.append((test[0], rel, test[1]))
     return out
@@ -797,7 +799,8 @@ def _tests_in_files(conn: object, files: tuple[str, ...]) -> list[tuple[str, str
 ## @param req_id The requirement.
 ## @return (test, file, lookup names), ordered.
 ## v2: framework names (a tagged `SCENARIO` row is its scenario).
-## @version 2
+## v3: test code from test_scope and declared shapes (2.0.0, P4 W1)
+## @version 3
 ## @dg_internal
 def _linked_tests(conn: object, req_id: str) -> list[tuple[str, str, tuple[str, ...]]]:
     """A FRAMEWORK CASE IS NAMED BY ITS FRAMEWORK: a tagged Catch2 `SCENARIO` row is the scenario's
@@ -806,7 +809,7 @@ def _linked_tests(conn: object, req_id: str) -> list[tuple[str, str, tuple[str, 
     @brief Linked tests.
     @return (test, file, lookup names).
     """
-    from .frameworks import recognise_test
+    from .frameworks import TestRecognizer
 
     if not table_exists(conn, "req_test_edges"):
         return []
@@ -819,7 +822,10 @@ def _linked_tests(conn: object, req_id: str) -> list[tuple[str, str, tuple[str, 
     )
     out = []
     for name, args, rel in rows:
-        test = recognise_test(str(name), str(args), str(rel)) or (str(name), (str(name),))
+        test = TestRecognizer.for_conn(conn)(str(name), str(args), str(rel)) or (
+            str(name),
+            (str(name),),
+        )
         out.append((test[0], str(rel), test[1]))
     return out
 
