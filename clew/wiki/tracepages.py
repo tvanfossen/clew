@@ -265,7 +265,8 @@ def load_impact(path: Path) -> list[dict] | None:
 ## v5: names each declared test report that was not there — unmeasured (round 3, P6c).
 ## v6 (round 4, R4): one page per requirement; the index links to them.
 ## v7: writes the group pages too (2.0.0, P5.4)
-## @version 7
+## v8: writes the S4 traceability checklist and links it (2.0.0, P5.4)
+## @version 8
 ## @req REQ-DDB-WIKI-012
 def requirements_page(
     trace: Trace,
@@ -283,6 +284,7 @@ def requirements_page(
     ctx = {"trace": trace, "rules": rules, "flows": list(flows), "issues": issues}
     requirement_pages(trace, ctx, source)
     group_pages(trace, ctx, source)
+    traceability_page(trace, source)
     origin = f" declared in `{trace.catalog_path}`" if trace.catalog_path else ""
     lines = [
         "# Requirements",
@@ -294,6 +296,10 @@ def requirements_page(
         _link_kinds(ev),
         "",
         *_missing_note(trace),
+        *_raw(
+            '<p>The <a href="traceability.html">traceability checklist</a> lists, per '
+            "requirement, the IEEE 29148 attributes it carries and its trace evidence.</p>"
+        ),
         "## Groups",
         "",
         "Each card is a requirement group; pick one to filter the list below to it.",
@@ -360,6 +366,90 @@ def group_pages(trace: Trace, ctx: dict[str, Any], source: Path) -> list[str]:
         (source / f"{name}.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
         names.append(name)
     return names
+
+
+## The checklist's columns: (data-check key, heading, the summary's phrase for a count of them).
+_CHECKS: tuple[tuple[str, str, str], ...] = (
+    ("rationale", "rationale", "carry a rationale"),
+    ("verification", "verification method", "name a verification method"),
+    ("parent", "parent", "name a parent"),
+    ("implemented", "implemented", "implemented"),
+    ("tested", "tested", "tested"),
+    ("passing", "passing", "passing"),
+)
+
+
+## @brief Whether one requirement shows one checklist item.
+## @param row The requirement's evidence row.
+## @param entry Its catalogue entry.
+## @param check A `_CHECKS` key.
+## @return True when present.
+## @version 1
+## @utility
+def _shows(row: Any, entry: dict, check: str) -> bool:
+    """@brief Catalogue attribute, or trace evidence. @return Present."""
+    from ..requirements import catalog_value
+
+    evidence = {
+        "implemented": bool(row.implementers),
+        "tested": bool(row.tests),
+        "passing": row.tier == "PASS",
+    }
+    return evidence[check] if check in evidence else bool(catalog_value(entry, check))
+
+
+## @brief Write the S4 traceability checklist: each requirement's attributes and evidence.
+## @param trace The gathered trace.
+## @param source The Sphinx source directory.
+## @return The page name.
+## @version 1
+## @req REQ-DDB-WIKI-022
+def traceability_page(trace: Trace, source: Path) -> str:
+    """S4 (owner-approved 2026-11-17): per requirement, which IEEE 29148 attributes the catalogue
+    gives it (rationale, verification method, parent) and whether the index shows it implemented,
+    tested and passing. SUPPORTS EVIDENCE, NEVER A CONFORMANCE CLAIM: it reports what a catalogue
+    and an index show, and conformance to a standard is an assessor's call, not a tool's.
+
+    @brief Write traceability.md.
+    @return Page name.
+    """
+    ev = trace.evidence
+    rows = []
+    for row in ev:
+        entry = trace.declared.get(row.req_id, {})
+        cells = "".join(
+            f'<td data-check="{key}" class="{"ok" if _shows(row, entry, key) else "gap"}">'
+            f"{'✓' if _shows(row, entry, key) else '—'}</td>"
+            for key, _h, _p in _CHECKS
+        )
+        rows.append(f'<tr data-req="{text(row.req_id)}"><td>{code(row.req_id)}</td>{cells}</tr>')
+    head = "".join(f"<th>{text(h)}</th>" for _k, h, _p in _CHECKS)
+    counts = " · ".join(
+        f"{sum(1 for r in ev if _shows(r, trace.declared.get(r.req_id, {}), key))} of {len(ev)} "
+        f"{phrase}"
+        for key, _h, phrase in _CHECKS
+    )
+    lines = [
+        "---",
+        "orphan: true",
+        "---",
+        "",
+        "# Traceability checklist",
+        "",
+        "This page supports evidence for a traceability review in the IEEE 29148 sense: for each "
+        "requirement, the attributes its catalogue entry carries and what the index shows about "
+        "its implementation and tests. It is evidence for a reviewer, not a statement of "
+        "conformance to any standard.",
+        "",
+        *_raw(
+            '<p class="crumbs"><a href="requirements.html">← Requirements</a></p>'
+            f'<p class="g-summary">{counts}</p>'
+            f'<div class="table-wrap"><table class="clew checklist"><thead><tr><th>requirement</th>'
+            f"{head}</tr></thead><tbody>{''.join(rows)}</tbody></table></div>"
+        ),
+    ]
+    (source / "traceability.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return "traceability"
 
 
 ## @brief A sentence saying how the tested requirements' links were made.

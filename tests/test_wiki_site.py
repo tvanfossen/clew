@@ -145,6 +145,9 @@ requirements:
   REQ-W-001:
     name: Load the data
     acceptance_criteria: Every item is parsed once, then the load finishes.
+    ## FIXTURE EXTENDED (2.0.0, S4): two IEEE 29148 attributes, for the traceability checklist.
+    rationale: A load that parses twice doubles startup.
+    verification: test
 """
 
 ## FIXTURE CHANGED (2.0.0, R5-CFG F20): the test evidence is the top-level `tests:` section.
@@ -931,3 +934,27 @@ def test_a_long_test_list_says_how_many_are_direct() -> None:
     )
     cell = _tests_cell(row, {})
     assert "3 direct · 3 reached through calls" in cell and "6 tests: 6 passed" in cell
+
+
+def test_the_traceability_checklist_states_each_requirements_evidence(site: dict[str, str]) -> None:
+    """S4 (owner-approved, 2026-11-17): an IEEE 29148 traceability checklist — per requirement,
+    which attributes it carries (rationale, verification method, parent) and whether it is
+    implemented, tested and passing. Worded as SUPPORTING EVIDENCE, never as compliance: the page
+    measures what a catalogue and an index show, and a standard's conformance is an assessor's call.
+
+    @brief P5.4 / S4: the traceability checklist page.
+    """
+    page = site["traceability.html"]
+    assert "supports evidence" in page and "compliant" not in page.lower()
+
+    def row(req: str) -> str:
+        return page.split(f'<tr data-req="{req}"', 1)[1].split("</tr>", 1)[0]
+
+    w1, x1 = row("REQ-W-001"), row("REQ-X-001")
+    assert (
+        'data-check="rationale" class="ok"' in w1 and 'data-check="verification" class="ok"' in w1
+    )
+    assert 'data-check="rationale" class="gap"' in x1
+    assert 'data-check="implemented" class="ok"' in w1
+    assert "1 of 3 carry a rationale" in page
+    assert 'href="traceability.html"' in site["requirements.html"], "the checklist is reachable"

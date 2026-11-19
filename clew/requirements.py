@@ -362,6 +362,24 @@ _COLUMN_KEYS: dict[str, tuple[str, ...]] = {
     "verification": ("verification", "verification_method", "x-verification"),
     "parent": ("parent", "x-parent"),
 }
+
+
+## @brief A catalogue entry's value for one column, through that column's aliases.
+## @param entry One catalogue entry, as written.
+## @param column A `_COLUMN_KEYS` column, e.g. `rationale`.
+## @return The first non-empty aliased value, or "".
+## @version 1
+## @req REQ-DDB-WIKI-022
+def catalog_value(entry: dict, column: str) -> object:
+    """ONE READING of a catalogue field, so the wiki's S4 checklist and the index's
+    `requirements` table cannot disagree about whether an entry carries one.
+
+    @brief Aliased catalogue lookup.
+    @return Value or "".
+    """
+    return next((entry[k] for k in _COLUMN_KEYS[column] if entry.get(k)), "")
+
+
 ## Keys a different reader consumes: `satisfies` (requirement_links), `version` (the gate's
 ## version field). Not "unread", so not disclosed as such.
 _READ_ELSEWHERE = ("satisfies", "version", "x-version")
