@@ -39,6 +39,11 @@ _DOXYFILE_FORCED_FLAGS = (
     "PLANTUML_JAR_PATH =\n"
     "PLANTUML_CFG_FILE =\n"
     "EXTRACT_ALL = YES\n"
+    ## 2.0.0 (PG1b, owner): doxygen's `\\internal` hides the rest of its block when this is off
+    ## (doxygen's default), so a repo using it for its real purpose lost every tag after the marker
+    ## from the index (measured: a `@version` and the detail below `@internal` stored as nothing).
+    ## The index describes all code (EXTRACT_ALL), internal sections included.
+    "INTERNAL_DOCS = YES\n"
     "EXTRACT_STATIC = YES\n"
     "EXTRACT_ANON_NSPACES = YES\n"
     "RECURSIVE = YES\n"
