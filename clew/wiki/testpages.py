@@ -309,10 +309,12 @@ def _result(name: str, ctx: dict[str, Any]) -> str:
 ## @param repo_root The repository.
 ## @return HTML.
 ## v2: links its file's page.
-## @version 2
+## v3: checks pinned by syntax tree (2.0.0, P5.5)
+## @version 3
 ## @utility
 def _definition(d: Any, graph: _Edges, ctx: dict[str, Any], repo_root: Path) -> str:
     """@brief Definition block. @return HTML."""
+    from .checkpins import pin_checks
     from .testfacts import assertions
 
     url = source_url(ctx["template"], ctx["commit"], d.file, max(d.start, 1))
@@ -321,11 +323,40 @@ def _definition(d: Any, graph: _Edges, ctx: dict[str, Any], repo_root: Path) -> 
     out = f'<p class="where">{where} · <a href="{_source_page(d)}">its file\'s page</a></p>'
     lines = _lines(repo_root, d)
     checks = assertions(lines) if lines and not ctx["rules"].exclude_bodies else []
-    if checks:
-        items = "".join(f"<li><code>{escape(a)}</code></li>" for a in checks)
-        out += f'<h2>What it checks ({len(checks)})</h2><ol class="asserts">{items}</ol>'
-    out += _proof(d, graph, ctx, len(checks))
+    ## P5.5: PINNED BY SYNTAX TREE when the language has a parser; the regex reading otherwise.
+    candidates = {graph.names[c][0] for c in graph.callees.get(d.rowid, ()) if c in graph.names}
+    pins = pin_checks(lines, d.file, candidates) if checks else []
+    items = "".join(_pinned(p) for p in pins) or "".join(
+        f"<li><code>{escape(a)}</code></li>" for a in checks
+    )
+    count = len(pins) or len(checks)
+    if count:
+        out += f'<h2>What it checks ({count})</h2><ol class="asserts">{items}</ol>'
+    out += _proof(d, graph, ctx, count)
     return out
+
+
+## @brief One pinned check: the statement and what it observes.
+## @param pin The Pin.
+## @return HTML.
+## @version 1
+## @req REQ-DDB-WIKI-043
+def _pinned(pin: Any) -> str:
+    """@brief `observes f`, `observes f via r`, or `not attributed`. @return HTML."""
+    from .checkpins import DIRECT, VIA_VARIABLE
+
+    if pin.kind == DIRECT:
+        badge = f"observes <code>{escape(pin.target)}</code>"
+    elif pin.kind == VIA_VARIABLE:
+        badge = (
+            f"observes <code>{escape(pin.target)}</code> via <code>{escape(pin.variable)}</code>"
+        )
+    else:
+        badge = "not attributed"
+    kind = pin.kind.replace(" ", "-")
+    return (
+        f'<li><code>{escape(pin.statement)}</code> <span class="pin pin-{kind}">{badge}</span></li>'
+    )
 
 
 ## @brief The chains from a test to each linked requirement's implementer, drawn.

@@ -984,6 +984,17 @@ requirements:
     x-priority: P2
     x-status: implemented
     x-evidence: clew/wiki/ears.py; tests/test_wiki_ears.py.
+  REQ-DDB-WIKI-043:
+    subsystem: wiki
+    name: A test's checks are pinned by syntax tree to the function each observes
+    acceptance_criteria: 'Each assertion in a test body is pinned, by a parser and never by regex,
+      to one of the functions the test calls: direct (the call is inside the assertion), via a
+      variable (the assertion reads a name assigned from that call earlier in the body), or not
+      attributed. Python is read with `ast`, C and C++ with tree-sitter over the common assertion
+      macros; another language pins nothing and its checks are listed unpinned.'
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/checkpins.py; tests/test_wiki_checkpins.py.
   REQ-DDB-SCHEMA-013:
     subsystem: schema
     name: Kconfig structure tables, created independently of the gating table

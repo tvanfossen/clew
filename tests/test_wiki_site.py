@@ -1006,3 +1006,16 @@ def test_a_requirement_page_draws_its_evidence_chain(site: dict[str, str]) -> No
 def test_a_requirement_page_links_to_its_map_overlay(site: dict[str, str]) -> None:
     """@brief P5.4: "Show on the map" opens the overlay for this requirement."""
     assert 'href="map.html#req=REQ-W-001"' in site["req-REQ-W-001.html"]
+
+
+def test_a_test_page_pins_each_check_to_what_it_observes(site: dict[str, str]) -> None:
+    """OWNER (round 5, P5.5): checks pinned by syntax tree. `test_load`'s one check,
+    `assert load([]) == 1`, observes `load` directly.
+
+    @brief P5.5: the pinned check on the test's page.
+    """
+    (name,) = [k for k in site if k.startswith("test-") and k.endswith("test_load.html")]
+    page = site[name]
+    item = page.split('<ol class="asserts">', 1)[1].split("</ol>", 1)[0]
+    assert "<code>assert load([]) == 1</code>" in item
+    assert '<span class="pin pin-direct">observes <code>load</code></span>' in item
