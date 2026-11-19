@@ -111,7 +111,8 @@ def build_wiki(
 ## @return The HTML directory.
 ## The body of `build_wiki` before 2.0.0 (its history is recorded there).
 ## v2: the map honours exclude_owners (2.0.0, P5)
-## @version 2
+## v3: product tree requirement ids link to their pages (2.0.0, P5.4)
+## @version 3
 ## @utility
 def _build_site(
     repo_root: Path,
@@ -268,7 +269,8 @@ def _build_site(
         _docs_page(source, _prose(repo_root, config, source), config, decisions),
     ]
     if config.catalogs:
-        sections.insert(1, _product_section(repo_root, db, config, rules, source))
+        linked = frozenset(r.req_id for r in trace.evidence)
+        sections.insert(1, _product_section(repo_root, db, config, rules, source, linked))
     if config.sources:
         sections.append(nodes_page(trace, config, source))
     _write_index(source, config, trace, [s for s in sections if s], len(pages))
@@ -297,18 +299,24 @@ def _build_site(
 ## @param config The section.
 ## @param rules The audience rules.
 ## @param source The Sphinx source directory.
+## @param pages Requirement ids that have a page in this site (P5.4: the tree links to them).
 ## @return The page name.
-## @version 1
+## @version 2
 ## @utility
 def _product_section(
-    repo_root: Path, db: Path, config: WikiConfig, rules: Audience, source: Path
+    repo_root: Path,
+    db: Path,
+    config: WikiConfig,
+    rules: Audience,
+    source: Path,
+    pages: frozenset[str] = frozenset(),
 ) -> str:
     """@brief Compose and write. @return Page name."""
     from .composite import compose
     from .productpage import product_page
 
     tree = compose(repo_root, repo_root.name, list(config.catalogs), root_db=db)
-    return product_page(tree, rules, source)
+    return product_page(tree, rules, source, pages)
 
 
 ## @brief The components each flow page lights on the minimap.

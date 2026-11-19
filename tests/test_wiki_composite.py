@@ -331,3 +331,19 @@ def test_a_dependency_requirement_implemented_here_is_served_not_unreached(tmp_p
     )
     assert "lib:REQ-LIB-002" in tree.implemented_here
     assert "lib:REQ-LIB-002" not in tree.unreached
+
+
+def test_a_requirement_with_a_page_here_links_to_it(tmp_path: Path) -> None:
+    """OWNER (round 5, P5.4): the product trace page gets links. A requirement that has a page in
+    THIS site links to it; one that does not (a dependency's, not implemented here) stays text, so
+    no link leads to a page that does not exist.
+
+    @brief Product trace: requirement ids link to their pages.
+    """
+    from clew.wiki.config import Audience
+    from clew.wiki.productpage import product_html
+
+    tree, _ = _tree(tmp_path)
+    html = product_html(tree, Audience(), pages=frozenset({"REQ-PRD-001"}))
+    assert '<a href="req-REQ-PRD-001.html"><code' in html
+    assert 'href="req-lib' not in html and 'href="req-REQ-PRD-002' not in html

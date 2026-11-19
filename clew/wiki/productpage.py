@@ -18,11 +18,25 @@ on the tree reaches.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from pathlib import Path
 
 from .composite import Composite, Node
 from .config import Audience
 from .htmltable import code, text
+from .reqmodal import page_of
+
+
+## @brief The requirement ids this site has a page for, and how the tree's refs map to them.
+## @version 1
+## @utility
+@dataclass(frozen=True)
+class _Links:
+    """@brief Ids with a page; root catalogue names, whose requirements are keyed by bare id."""
+
+    pages: frozenset[str] = frozenset()
+    roots: frozenset[str] = frozenset()
+
 
 _LEAD = (
     "This repository's requirements and, under each, the requirements of pinned dependencies that "
@@ -36,9 +50,12 @@ _LEAD = (
 ## @param rules The audience rules.
 ## @param source The Sphinx source directory.
 ## @return The page name.
-## @version 1
+## v2: product tree requirement ids link to their pages (2.0.0, P5.4)
+## @version 2
 ## @req REQ-DDB-WIKI-040
-def product_page(tree: Composite, rules: Audience, source: Path) -> str:
+def product_page(
+    tree: Composite, rules: Audience, source: Path, pages: frozenset[str] = frozenset()
+) -> str:
     """@brief Write product.md. @return Page name."""
     lines = [
         "# Product trace",
@@ -46,7 +63,7 @@ def product_page(tree: Composite, rules: Audience, source: Path) -> str:
         _LEAD,
         "",
         "```{raw} html",
-        product_html(tree, rules),
+        product_html(tree, rules, pages),
         "```",
         "",
     ]
@@ -59,20 +76,29 @@ def product_page(tree: Composite, rules: Audience, source: Path) -> str:
 ## @param rules The audience rules.
 ## @return HTML.
 ## v2: dependency requirements implemented here, in their own open fold.
-## @version 2
+## v3: product tree requirement ids link to their pages (2.0.0, P5.4)
+## @version 3
 ## @req REQ-DDB-WIKI-040
-def product_html(tree: Composite, rules: Audience) -> str:
-    """@brief Tree, problems, unreached. @return HTML."""
-    items = "".join(_item(tree, ref, rules, set()) for ref in tree.roots)
+def product_html(tree: Composite, rules: Audience, pages: frozenset[str] = frozenset()) -> str:
+    """A REQUIREMENT WITH A PAGE HERE LINKS TO IT (2.0.0, P5.4); one without a page stays text,
+    so no link leads nowhere. Function and test names stay text: the tree carries bare names with
+    no file, and a link to a same-named symbol elsewhere would be a confident wrong answer.
+
+    @brief Tree, problems, unreached.
+    @return HTML.
+    """
+    roots = frozenset(tree.nodes[r].catalog for r in tree.roots if r in tree.nodes)
+    links = _Links(pages, roots)
+    items = "".join(_item(tree, ref, rules, set(), links) for ref in tree.roots)
     parts = [f'<ul class="ptree">{items}</ul>', _problems(tree)]
     if tree.implemented_here:
-        rows = "".join(_line(tree.nodes[r], rules) for r in tree.implemented_here)
+        rows = "".join(_line(tree.nodes[r], rules, links=links) for r in tree.implemented_here)
         parts.append(
             f'<details class="implemented-here" open><summary>{len(tree.implemented_here)} '
             f"dependency requirement(s) this repository implements</summary><ul>{rows}</ul></details>"
         )
     if tree.unreached:
-        rows = "".join(_line(tree.nodes[r], rules) for r in tree.unreached)
+        rows = "".join(_line(tree.nodes[r], rules, links=links) for r in tree.unreached)
         parts.append(
             f'<details class="unreached"><summary>{len(tree.unreached)} dependency requirement(s) '
             f"nothing on this tree reaches</summary><ul>{rows}</ul></details>"
@@ -86,14 +112,17 @@ def product_html(tree: Composite, rules: Audience) -> str:
 ## @param rules The audience rules.
 ## @param path Refs above this one (a cycle is drawn once).
 ## @return HTML.
-## @version 1
+## v2: product tree requirement ids link to their pages (2.0.0, P5.4)
+## @version 2
 ## @utility
-def _item(tree: Composite, ref: str, rules: Audience, path: set[str]) -> str:
+def _item(
+    tree: Composite, ref: str, rules: Audience, path: set[str], links: _Links = _Links()
+) -> str:
     """@brief Item. @return HTML."""
     node = tree.nodes[ref]
     below = [r for r in node.satisfied_by if r not in path and r in tree.nodes]
-    kids = "".join(_item(tree, r, rules, path | {ref}) for r in below)
-    return _line(node, rules, f"<ul>{kids}</ul>" if kids else "")
+    kids = "".join(_item(tree, r, rules, path | {ref}, links) for r in below)
+    return _line(node, rules, f"<ul>{kids}</ul>" if kids else "", links)
 
 
 ## @brief One requirement's line: id, title, evidence.
@@ -101,13 +130,20 @@ def _item(tree: Composite, ref: str, rules: Audience, path: set[str]) -> str:
 ## @param rules The audience rules.
 ## @param kids Nested HTML.
 ## @return HTML.
-## @version 1
+## v2: product tree requirement ids link to their pages (2.0.0, P5.4)
+## @version 2
 ## @utility
-def _line(node: Node, rules: Audience, kids: str = "") -> str:
+def _line(node: Node, rules: Audience, kids: str = "", links: _Links = _Links()) -> str:
     """@brief Line. @return HTML."""
     title = "" if rules.exclude_requirement_text or not node.title else f" {text(node.title)}"
     chip = f'<span class="ev ev-{node.evidence}">{node.evidence}</span>'
-    return f"<li>{code(node.ref)}{title} {chip}{_evidence(node)}{kids}</li>"
+    ref = code(node.ref)
+    ## THIS SITE'S PAGES ARE KEYED BY THE BARE ID for the root catalogue's own requirements, and
+    ## by the namespaced ref for a dependency's (as this repository's code tags one).
+    key = node.req_id if node.catalog in links.roots else node.ref
+    if key in links.pages:
+        ref = f'<a href="{page_of(key)}.html">{ref}</a>'
+    return f"<li>{ref}{title} {chip}{_evidence(node)}{kids}</li>"
 
 
 ## @brief A node's evidence detail: functions and tests, or why there are none.
