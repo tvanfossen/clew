@@ -103,7 +103,13 @@ int Sensor_ReadTemperature(void) {
    old id was being held in place by a code comment naming a file that no longer exists,
    and nothing resolves the string programmatically. One tool, one name.
 2. Move the contents of `.doxygen-guard.yaml` under a `guard:` key in `.clew.yaml`, indented
-   one level, and delete `.doxygen-guard.yaml`. clew does not read it.
+   one level, and delete `.doxygen-guard.yaml`. clew does not read it. Three keys then move, and
+   each is refused, naming where it went, until it does:
+   - `output_dir` (and `impact.output`) → `guard.impact.report_dir`;
+   - `impact.requirements` → the top-level `requirements:` section, beside `guard:`;
+   - a `validate.exclude` regex such as `^gen/` → a glob (`gen/**`), or the `re:` prefix
+     (`re:^gen/`) to keep it a regex.
+   `clew guard validate` lists every refusal in one run, so one pass fixes them all.
 3. If the old file carried an `x-clew:` section, move its sections to the top level of
    `.clew.yaml` (beside `guard:`, not inside it). The `x-` passthrough is gone.
 4. If the hook passed `--config conf/doxygen-guard.yaml`, drop the argument (the gate reads

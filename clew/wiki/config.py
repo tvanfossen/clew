@@ -259,13 +259,17 @@ class RuleSpec:
 ## v14 (round 5): test_flows removed — tests are slices of the master flows.
 ## v15 (2.0.0): `needs` comes from `requirements.needs`; the orphan test_flows comment is gone.
 ## v16 (2.0.0): the tuning keys (R5-CFG C1-C5, C7-C9, W6).
-## @version 16
+## v17 (2.0.0): `docs_declared`.
+## @version 17
 @dataclass(frozen=True)
 class WikiConfig:
-    """@brief The whole `wiki:` section. @version 4"""
+    """@brief The whole `wiki:` section. @version 5"""
 
     title: str = "Wiki"
     docs: tuple[str, ...] = DEFAULT_DOCS
+    ## 2.0.0 (consumer finding): whether `wiki.docs` was declared. `clew wiki check` reports a
+    ## declared glob that matches nothing; a built-in default that matches nothing is no fault.
+    docs_declared: bool = False
     flows: tuple[FlowSpec, ...] = ()
     junit: tuple[str, ...] = ()
     coverage: str | None = None
@@ -331,7 +335,8 @@ class WikiConfig:
 ## `wiki.catalogs`, `wiki.needs` and `wiki.impact` are refused with where they went.
 ## v17: tests come from the top-level tests: section; wiki.tests is refused (2.0.0, R5-CFG F20)
 ## v18: reads the tuning keys (2.0.0, R5-CFG C1-C9)
-## @version 18
+## v19: records docs_declared (2.0.0)
+## @version 19
 ## @req REQ-DDB-WIKI-003
 def load_wiki_config(
     repo_root: Path, config_path: Path | None = None
@@ -360,6 +365,7 @@ def load_wiki_config(
     config = WikiConfig(
         title=str(raw.get("title") or "Wiki"),
         docs=_strings(raw, "docs", DEFAULT_DOCS, "wiki", problems),
+        docs_declared="docs" in raw,
         flows=tuple(f for f in flows if f is not None),
         junit=_strings(tests, "junit", (), "tests", problems),
         coverage=str(tests["coverage"]) if tests.get("coverage") else None,

@@ -204,10 +204,16 @@ def _mutation_problems(repo_root: Path, db: Path, config: WikiConfig) -> list[st
 ## @param repo_root The repository.
 ## @param config The section.
 ## @return Problems.
-## @version 1
+## v2: only declared globs are checked (2.0.0)
+## @version 2
 ## @dg_internal
 def _docs_problems(repo_root: Path, config: WikiConfig) -> list[str]:
-    """@brief Check prose globs. @return Problems."""
+    """ONLY A DECLARED GLOB (2.0.0, consumer finding): a repository with Markdown prose and no
+    `wiki:` section was told the built-in default `docs/**/*.rst` "matches no file", a glob it
+    never wrote. @brief Check prose globs. @return Problems.
+    """
+    if not config.docs_declared:
+        return []
     return [
         f"`wiki.docs` entry {pattern!r} matches no file"
         for pattern in config.docs
