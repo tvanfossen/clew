@@ -392,15 +392,15 @@ def check_req_coverage(
 #  sharing a class — without it, every "react(Event)" overload in a tinyfsm-style
 #  dispatch class collided on the same key, so all but the last-parsed overload matched
 #  the wrong sibling's HEAD body and was flagged stale on an untouched tree (#11). A
-#  function whose signature itself changed since HEAD is treated as new (no match found)
-#  rather than matched to a differently-shaped prior version — the same "skip if absent"
-#  behaviour as a genuinely new function.
+#  function whose signature itself changed finds no match HERE; since 2.0.0 `_pair_by_name`
+#  then pairs it by name when it is not overloaded, so a changed parameter list needs a bump.
+#  Version 3.1: that comment; the old one said such a function was simply treated as new.
 #
 #  Version 3.0 (gh#63): a LIST per key, in file order. One file can define the same function
 #  twice under exclusive `#ifdef`/`#else` branches; a dict kept only the last copy, so every
 #  earlier copy was compared with it — a false "body changed" on a byte-identical file, and a
 #  missed unbumped edit when the copies carried different versions.
-#  @version 3.0
+#  @version 3.1
 #  @utility
 #  @return Mapping from (enclosing_class, name, signature) to that identity's Functions, in order
 def _index_by_identity(
@@ -410,6 +410,34 @@ def _index_by_identity(
     for f in functions:
         index.setdefault((f.enclosing_class, f.name, f.signature), []).append(f)
     return index
+
+
+## @brief Pair a function left unmatched by identity with its HEAD self, by name, if unambiguous.
+#  @details A CHANGED SIGNATURE IS A CHANGE (2.0.0, owner Q/A 2026-11-20). Matching by (class,
+#  name, signature) alone made a function whose parameters changed look new, so it needed no bump:
+#  `def f(x)` → `def f(x, y=0)` with a changed body passed. The fallback pairs it only when exactly
+#  ONE copy of (class, name) exists on each side and the HEAD copy is not already paired — an
+#  overload set keeps the exact match, so #11 (a sibling paired with the wrong HEAD body) cannot
+#  return.
+#  @version 1.0
+#  @req REQ-DDB-GUARD-002
+#  @return Mapping from id(current Function) to its HEAD Function, for the pairs this adds
+def _pair_by_name(
+    functions: list[Function], head_functions: list[Function], paired: dict[int, Function]
+) -> dict[int, Function]:
+    taken = {id(h) for h in paired.values()}
+    head_by_name: dict[tuple[str | None, str], list[Function]] = {}
+    for h in head_functions:
+        head_by_name.setdefault((h.enclosing_class, h.name), []).append(h)
+    current_by_name: dict[tuple[str | None, str], list[Function]] = {}
+    for f in functions:
+        current_by_name.setdefault((f.enclosing_class, f.name), []).append(f)
+    added: dict[int, Function] = {}
+    for key, (func,) in ((k, v) for k, v in current_by_name.items() if len(v) == 1):
+        head = head_by_name.get(key, [])
+        if id(func) not in paired and len(head) == 1 and id(head[0]) not in taken:
+            added[id(func)] = head[0]
+    return added
 
 
 ## @brief Pair one identity's current copies with its HEAD copies.
@@ -535,7 +563,9 @@ def _check_one_version(
 #
 #  Version 2.2 (gh#63): a same-identity duplicate (`#ifdef`/`#else` copies) is paired with its
 #  own HEAD copy via `_pair_copies`, not with whichever copy was parsed last.
-#  @version 2.2
+#  Version 2.3 (2.0.0, owner 2026-11-20): a function whose SIGNATURE changed is paired by name
+#  (`_pair_by_name`) when it is not overloaded, so a changed parameter list needs a bump.
+#  @version 2.3
 #  @req REQ-DDB-GUARD-002
 #  @return Violations for functions whose body changed since HEAD without a version bump
 def check_version_staleness(
@@ -570,6 +600,7 @@ def check_version_staleness(
     paired: dict[int, Function] = {}
     for key, copies in current_index.items():
         paired.update(_pair_copies(copies, head_index.get(key, []), ctx))
+    paired.update(_pair_by_name(functions, head_functions, paired))
 
     violations: list[Violation] = []
     for func in functions:

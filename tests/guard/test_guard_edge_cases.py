@@ -525,3 +525,38 @@ class TestPreprocessorDuplicates:
     def test_removed_copy_leaves_remaining_copy_clean(self):
         current = _copy("#ifdef FEATURE_X", "1", "return *old + 1;") + "#endif\n"
         assert _stale(self._BOTH, current) == []
+
+
+def _sig(params: str, version: str, body: str) -> str:
+    """One documented `scale` definition with these parameters."""
+    return (
+        f"/**\n * @brief Scale.\n * @version {version}\n * @return v\n */\n"
+        f"int scale({params})\n{{\n    {body}\n}}\n"
+    )
+
+
+class TestChangedSignature:
+    """2.0.0 (owner Q/A 2026-11-20): A CHANGED SIGNATURE IS A CHANGE. HEAD functions were matched
+    only by (class, name, signature), so a function whose parameter list changed found no HEAD
+    match, counted as new, and needed no bump: `def f(x)` → `def f(x, y=0)` with a changed body
+    passed rc 0. Found in this repository when four functions went unflagged. Now an unmatched
+    function falls back to its name when exactly one copy exists on each side (not overloaded);
+    overloads keep the exact match, so #11 stays fixed.
+    """
+
+    def test_a_changed_signature_without_a_bump_is_stale(self):
+        violations = _stale(
+            _sig("int x", "1", "return x;"), _sig("int x, int y", "1", "return x * y;")
+        )
+        assert [v.check for v in violations] == ["version"], violations
+
+    def test_a_changed_signature_with_a_bump_is_clean(self):
+        assert (
+            _stale(_sig("int x", "1", "return x;"), _sig("int x, int y", "2", "return x * y;"))
+            == []
+        )
+
+    def test_an_overload_set_keeps_the_exact_match(self):
+        head = _sig("int x", "1", "return x;") + _sig("double x", "1", "return 0;")
+        current = _sig("int x", "1", "return x;") + _sig("float x", "1", "return 1;")
+        assert _stale(head, current) == [], "an overload's new sibling is new, as #11 requires"
