@@ -125,7 +125,9 @@ Every function in a staged file is checked for:
 - **Presence**: `@brief`, the revision tag (`@version`), and `@return` on non-void functions.
 - **Version staleness**: when the function body changed against git `HEAD`, the revision tag
   must have been incremented.
-- **Tag syntax**: tag values match the configured patterns.
+- **Tag syntax**: tag values match the configured patterns. Every doxygen built-in command
+  (`@p`, `@c`, `@code`, `@sa`, `@retval` ...) is a known tag; an unknown one is a typo or a
+  project tag, which `validate.extra_tags` declares (and `clew guard doxyfile` aliases).
 - **Requirement coverage**: `@req`, or an exemption tag.
 
 **A C/C++ declaration and its definition are one function.** A prototype that carries its own

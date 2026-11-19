@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from .doxygen_commands import DOXYGEN_COMMANDS
 from .config import DEFAULT_EVENT_TAG_NAMES, get_requirements, get_validate
 
 if TYPE_CHECKING:
@@ -714,7 +715,8 @@ _KNOWN_TAGS: frozenset[str] = EXEMPTION_TAGS | frozenset(
 #  is known, and `@node` is known when `wiki.sources` is declared.
 #  v1.3: Violation names the function (qualified) for machine-format fingerprints (2.0.0, S1)
 #  v1.4: a removed tag (REMOVED_TAGS) is left to check_removed_tags (2.0.0, PG1)
-#  @version 1.4
+#  v1.5: doxygen's built-in commands are known (2.0.0, PG7, a consumer finding)
+#  @version 1.5
 #  @req REQ-DDB-GUARD-001
 def check_unknown_tags(
     func: Function,
@@ -739,8 +741,13 @@ def check_unknown_tags(
 
     violations: list[Violation] = []
     for tag_name in func.doxygen.tags:
-        ## A removed tag is `check_removed_tags`' to refuse, once, with its replacement.
-        if tag_name not in known and tag_name not in REMOVED_TAGS:
+        ## A removed tag is `check_removed_tags`' to refuse, once, with its replacement. A doxygen
+        ## command is known (PG7) but never a SUGGESTION: "did you mean @tparam?" helps nobody.
+        if (
+            tag_name not in known
+            and tag_name not in REMOVED_TAGS
+            and tag_name not in DOXYGEN_COMMANDS
+        ):
             suggestion = _suggest_tag(tag_name, known)
             hint = f" — did you mean @{suggestion}?" if suggestion else ""
             violations.append(
