@@ -254,7 +254,10 @@ def _is_rust_unit_fn(func: Function, lines: list[str]) -> bool:
 
 ## @brief Check if a function returns void based on its definition lines.
 #  @details A parser that knows (JS/TS) sets Function.returns_void, which wins.
-#  @version 1.4
+#  v1.5 (2.0.0, found by entropic): the C prefix is everything from the function's first line up
+#  to its name, so a return type on its own line (`EXPORT void` / `name(...)`, GNU style) is read.
+#  A name in column 0 used to be skipped, so that `void` was never seen.
+#  @version 1.5
 #  @req REQ-DDB-GUARD-005
 #  @return True if the function returns void/None
 def _is_void_function(func: Function, lines: list[str]) -> bool:
@@ -268,9 +271,9 @@ def _is_void_function(func: Function, lines: list[str]) -> bool:
             break
         line = lines[idx]
         name_pos = line.find(func.name)
-        if name_pos <= 0:
+        if name_pos < 0 or (name_pos == 0 and offset == 0):
             continue
-        prefix = line[:name_pos]
+        prefix = " ".join([*lines[func.def_line : idx], line[:name_pos]])
         is_c_void = bool(_VOID_PATTERNS.search(prefix))
         is_python_none = bool(_PYTHON_NONE_RETURN.search(line))
         is_python_untyped = line.strip().startswith("def ") and "->" not in line
