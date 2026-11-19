@@ -985,3 +985,19 @@ def test_wiki_check_prints_ears_notes_without_failing_on_them(repo, capsys) -> N
     assert "note: REQ-W-001 is in no EARS pattern:" in err
     assert "note:" not in out, "notes are not problems"
     assert rc == (1 if check_wiki(root, db) else 0)
+
+
+def test_a_requirement_page_draws_its_evidence_chain(site: dict[str, str]) -> None:
+    """OWNER (round 5, P5.4): the requirement's evidence as a diagram — implementers → tests →
+    result. Edges come from the row's `extent` (which implementers each test exercises), so a
+    drawn line is a measured or tagged link, never a guess. REQ-W-001: `test_load` passed and
+    exercises `load`.
+
+    @brief P5.4: the implementers → tests → result diagram.
+    """
+    page = site["req-REQ-W-001.html"]
+    svg = page[page.index('<svg class="req-evidence"') :]
+    svg = svg[: svg.index("</svg>")]
+    assert 'role="img"' in svg and "aria-label=" in svg
+    assert ">load</text>" in svg and ">test_load</text>" in svg and ">passed</text>" in svg
+    assert 'data-edge="test_load→load"' in svg

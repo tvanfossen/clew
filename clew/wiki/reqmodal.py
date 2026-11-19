@@ -243,6 +243,19 @@ def page_of(req_id: str) -> str:
     return "req-" + _key(req_id)
 
 
+## @brief The evidence diagram for a requirement page (implementers → tests → result).
+## @param row The evidence row.
+## @return One HTML line, or none when the requirement has neither.
+## @version 1
+## @req REQ-DDB-WIKI-022
+def _evidence_line(row: Any) -> list[str]:
+    """@brief The diagram in a scrolling figure. @return Lines."""
+    from .reqdiagram import evidence_svg
+
+    svg = evidence_svg(row)
+    return [f'<figure class="req-evidence-fig">{svg}</figure>'] if svg else []
+
+
 ## @brief The EARS badge line for a requirement page, when `wiki.check.ears` is on.
 ## @param row The evidence row.
 ## @param entry Its catalogue entry.
@@ -267,7 +280,8 @@ def _ears_line(row: Any, entry: dict, ctx: dict[str, Any]) -> list[str]:
 ## @param source The Sphinx source directory.
 ## @return The page names written.
 ## v2: EARS badge and check notes (2.0.0, S9)
-## @version 2
+## v3: evidence diagram (2.0.0, P5.4)
+## @version 3
 ## @req REQ-DDB-WIKI-022
 def requirement_pages(trace: Any, ctx: dict[str, Any], source: Any) -> list[str]:
     """ORPHAN PAGES (linked from the index, not from the toctree), one per requirement, so a
@@ -299,6 +313,7 @@ def requirement_pages(trace: Any, ctx: dict[str, Any], source: Any) -> list[str]
             "```{raw} html",
             '<p class="crumbs"><a href="requirements.html">← Requirements</a></p>',
             *_ears_line(row, entry, ctx),
+            *_evidence_line(row),
             f'<div class="req-page">{_body(row, entry, title, ctx)}</div>',
             "```",
             "",
