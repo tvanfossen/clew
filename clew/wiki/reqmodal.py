@@ -243,17 +243,27 @@ def page_of(req_id: str) -> str:
     return "req-" + _key(req_id)
 
 
-## @brief The evidence diagram for a requirement page (implementers → tests → result).
+## @brief The evidence diagram for a requirement page, and its map overlay link.
 ## @param row The evidence row.
-## @return One HTML line, or none when the requirement has neither.
-## @version 1
+## @return HTML lines, or none when the requirement has neither implementer nor test.
+## v2 (2.0.0, P5.4): "Show on the map" opens the requirement overlay.
+## @version 2
 ## @req REQ-DDB-WIKI-022
 def _evidence_line(row: Any) -> list[str]:
     """@brief The diagram in a scrolling figure. @return Lines."""
+    from urllib.parse import quote
+
     from .reqdiagram import evidence_svg
 
     svg = evidence_svg(row)
-    return [f'<figure class="req-evidence-fig">{svg}</figure>'] if svg else []
+    lines = [f'<figure class="req-evidence-fig">{svg}</figure>'] if svg else []
+    ## THE OVERLAY (P5.4): only with implementers, so the link never opens an empty map.
+    if row.implementers:
+        lines.append(
+            f'<p class="req-map"><a href="map.html#req={quote(row.req_id, safe="")}">'
+            "Show on the map</a></p>"
+        )
+    return lines
 
 
 ## @brief The EARS badge line for a requirement page, when `wiki.check.ears` is on.

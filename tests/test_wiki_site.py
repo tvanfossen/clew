@@ -1001,3 +1001,8 @@ def test_a_requirement_page_draws_its_evidence_chain(site: dict[str, str]) -> No
     assert 'role="img"' in svg and "aria-label=" in svg
     assert ">load</text>" in svg and ">test_load</text>" in svg and ">passed</text>" in svg
     assert 'data-edge="test_load→load"' in svg
+
+
+def test_a_requirement_page_links_to_its_map_overlay(site: dict[str, str]) -> None:
+    """@brief P5.4: "Show on the map" opens the overlay for this requirement."""
+    assert 'href="map.html#req=REQ-W-001"' in site["req-REQ-W-001.html"]

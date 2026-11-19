@@ -58,7 +58,8 @@ _FLOOR = 0.025
 ## v2: the ring cap is wiki.web.max_ring (2.0.0, R5-CFG C8)
 ## v3: owners overlay and vendor areas (2.0.0, P5)
 ## v4: vendor areas outside the boundary (2.0.0, P5, owner round-5 ruling)
-## @version 4
+## v5: requirement overlay (2.0.0, P5.4)
+## @version 5
 ## @req REQ-DDB-WIKI-019
 def web_data(
     db: Path,
@@ -91,7 +92,9 @@ def web_data(
     for node in nodes:
         if node["file"] in first_owner:
             node["owner"] = first_owner[node["file"]]
+    req_ids = _index_requirements(nodes, facts)
     return {
+        "req_ids": req_ids,
         "blocks": [_block_row(b) for b in blocks],
         "nodes": nodes,
         "edges": sorted({(slot[a], slot[b]) for a, b in edges if a in slot and b in slot}),
@@ -323,6 +326,28 @@ def _place(blocks, index, funcs, owner, ring, facts) -> tuple[list[dict], dict[i
             slot[rowid] = len(nodes)
             nodes.append(node)
     return nodes, slot
+
+
+## @brief Give each implementing node indices into one sorted table of requirement ids.
+## @param nodes The placed nodes (gain `r`).
+## @param facts (name, file) → the graph's point, carrying `reqs`.
+## @return The table: every requirement id a node implements, sorted.
+## @version 1
+## @req REQ-DDB-WIKI-022
+def _index_requirements(nodes: list[dict], facts: dict) -> list[str]:
+    """COMPACT: one id table and small integers per node, rather than the id strings repeated on
+    every function that implements them (P5.1's weight budget; clew's own map has ~3,000 nodes).
+
+    @brief Requirement overlay data.
+    @return Ids.
+    """
+    table = sorted({r for p in facts.values() for r in p.get("reqs") or ()})
+    at = {r: i for i, r in enumerate(table)}
+    for node in nodes:
+        reqs = (facts.get((node["name"], node["file"])) or {}).get("reqs")
+        if reqs:
+            node["r"] = [at[r] for r in reqs]
+    return table
 
 
 ## @brief Positions for n functions on one ring of one wedge.

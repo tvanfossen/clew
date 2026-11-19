@@ -6,7 +6,7 @@ var root=document.querySelector("[data-web]");if(!root)return;
 var D=JSON.parse(document.getElementById("web-data").textContent);
 var cv=root.querySelector("canvas"),ctx=cv.getContext("2d"),panel=root.querySelector("[data-web-panel]");
 var tip=root.querySelector("[data-web-tip]"),reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
-var N=D.nodes,B=D.blocks,G=D.geometry,LOD=0.55,cam={x:0,y:0,k:1},sel=-1,lens="tier",flow=null,lit={};
+var N=D.nodes,B=D.blocks,G=D.geometry,LOD=0.55,cam={x:0,y:0,k:1},sel=-1,lens="tier",flow=null,lit={},rq=-1;
 var outN=[],inN=[];N.forEach(function(){outN.push([]);inN.push([]);});
 D.edges.forEach(function(e){outN[e[0]].push(e[1]);inN[e[1]].push(e[0]);});
 var rMax=G.r0+(D.max_ring+1)*G.band,BD=D.boundary||[],rOut=BD.reduce(function(m,b){return Math.max(m,Math.hypot(b.x,b.y)+b.r);},rMax);
@@ -43,7 +43,7 @@ function links(){var idx={},bx={};B.forEach(function(b,i){idx[b.id]=i;});BD.forE
  D.links.forEach(function(l){var a=B[idx[l.from]],b=B[idx[l.to]];if(!a||(!b&&!bx[l.to]))return;var p=mid(a),q=b?mid(b):bx[l.to];
   ctx.beginPath();ctx.moveTo(p[0],p[1]);ctx.quadraticCurveTo((p[0]+q[0])*0.2,(p[1]+q[1])*0.2,q[0],q[1]);
   ctx.strokeStyle=C["--ink2"];ctx.globalAlpha=0.35;ctx.lineWidth=(1+5*Math.sqrt(l.calls/top))/cam.k;ctx.stroke();ctx.globalAlpha=1;});}
-function col(n){if(lens==="owner")return n.owner?hue(n.owner):C["--faint"];if(lens==="changed")return n.changed?C["--warn"]:C["--rule"];if(lens==="block")return n.block%2?C["--ink2"]:C["--faint"];return n.tier?C[TIER[n.tier]||"--faint"]:C["--faint"];}
+function col(n){if(rq>=0)return n.r&&n.r.indexOf(rq)>=0?C["--acc"]:C["--rule"];if(lens==="owner")return n.owner?hue(n.owner):C["--faint"];if(lens==="changed")return n.changed?C["--warn"]:C["--rule"];if(lens==="block")return n.block%2?C["--ink2"]:C["--faint"];return n.tier?C[TIER[n.tier]||"--faint"]:C["--faint"];}
 function nodes(){var k=cam.k,rad=Math.max(1.6,3.2/Math.sqrt(k))/1;
  if(sel>=0){ctx.lineWidth=1.2/k;edgeSet(sel,outN,C["--acc"]);edgeSet(sel,inN,C["--root"]);}
  if(flow){ctx.beginPath();flow.steps.forEach(function(s,i){var n=N[s];if(i)ctx.lineTo(n.x,n.y);else ctx.moveTo(n.x,n.y);});ctx.strokeStyle=C["--err"];ctx.lineWidth=2/k;ctx.stroke();}
@@ -98,7 +98,7 @@ cv.addEventListener("pointerleave",function(){tip.hidden=true;});
 cv.addEventListener("wheel",function(e){e.preventDefault();var r=cv.getBoundingClientRect(),sx=e.clientX-r.left,sy=e.clientY-r.top,w=toW(sx,sy),f=Math.exp(-e.deltaY*0.0015);
  cam.k=Math.min(fitK()*60,Math.max(fitK()*0.5,cam.k*f));var w2=toW(sx,sy);cam.x+=w[0]-w2[0];cam.y+=w[1]-w2[1];later();},{passive:false});
 root.addEventListener("click",function(e){var g=e.target.closest("[data-go]");if(g){focusNode(+g.dataset.go,true);return;}
- if(e.target.closest("[data-close]")){panel.hidden=true;sel=-1;lit={};draw();return;}
+ if(e.target.closest("[data-close]")){panel.hidden=true;sel=-1;lit={};rq=-1;draw();return;}
  var z=e.target.closest("[data-web-zoom]");if(z)fly(cam.x,cam.y,cam.k*+z.dataset.webZoom);if(e.target.closest("[data-web-fit]")){sel=-1;lit={};panel.hidden=true;fit();}});
 var lensSel=root.querySelector("[data-web-lens]");if(lensSel)lensSel.addEventListener("change",function(){lens=lensSel.value;draw();});
 var q=root.querySelector("[data-web-search]");q.addEventListener("keydown",function(e){if(e.key!=="Enter")return;var t=q.value.trim().toLowerCase();if(!t)return;
@@ -106,7 +106,9 @@ var q=root.querySelector("[data-web-search]");q.addEventListener("keydown",funct
 var fsel=root.querySelector("[data-web-flow]");if(fsel)fsel.addEventListener("change",function(){var f=D.flows[+fsel.value];flow=f||null;if(!f){draw();return;}var i=0;
  (function next(){if(flow!==f||i>=f.steps.length)return;sel=f.steps[i];show(sel);var n=N[sel];fly(n.x,n.y,Math.max(cam.k,fitK()*7),function(){i++;setTimeout(next,reduce?0:450);});})();});
 document.addEventListener("keydown",function(e){if(e.key==="Escape"&&!panel.hidden){panel.hidden=true;sel=-1;lit={};draw();}});
-function fromHash(){var h=decodeURIComponent(location.hash.slice(1));if(h.indexOf("lens=")===0){var l=h.slice(5)==="change"?"changed":h.slice(5);if(lensSel&&[].some.call(lensSel.options,function(o){return o.value===l;})){lens=l;lensSel.value=l;fly(0,0,fitK()*2.4);}return;}if(h.indexOf("b=")===0){var b=+h.slice(2);if(B[b])focusBlock(b);}
+/* The requirement overlay (round 5, P5.4): #req=<id> lights the functions implementing it. */
+function reqLens(id){rq=(D.req_ids||[]).indexOf(id);var m=N.filter(function(n){return rq>=0&&n.r&&n.r.indexOf(rq)>=0;});if(!m.length){draw();return;}var x=0,y=0;m.forEach(function(n){x+=n.x;y+=n.y;});fly(x/m.length,y/m.length,fitK()*2.4);}
+function fromHash(){var h=decodeURIComponent(location.hash.slice(1));if(h.indexOf("req=")===0){reqLens(h.slice(4));return;}if(h.indexOf("lens=")===0){var l=h.slice(5)==="change"?"changed":h.slice(5);if(lensSel&&[].some.call(lensSel.options,function(o){return o.value===l;})){lens=l;lensSel.value=l;fly(0,0,fitK()*2.4);}return;}if(h.indexOf("b=")===0){var b=+h.slice(2);if(B[b])focusBlock(b);}
  else if(h.indexOf("n=")===0){var p=h.slice(2).split("@"),i=N.findIndex(function(n){return n.name===p[0]&&(!p[1]||n.file===p[1]);});if(i>=0)focusNode(i,true);}}
 colors();new ResizeObserver(size).observe(cv);cam.k=fitK()||1;size();cam.k=fitK();draw();var keep=reduce;reduce=true;fromHash();reduce=keep;
 function retheme(){colors();later();}matchMedia("(prefers-color-scheme: dark)").addEventListener("change",retheme);

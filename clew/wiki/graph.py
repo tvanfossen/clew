@@ -583,7 +583,8 @@ def _barycentre(c: str, down: dict[str, set[str]], pos: dict[str, float]) -> flo
 ## @param impact Impact entries or None.
 ## @return Points.
 ## v2: points start below the name band, so the Code level keeps the box's name legible.
-## @version 2
+## v3 (2.0.0, P5.4): a point carries the ids of the requirements it implements (`reqs`).
+## @version 3
 ## @utility
 def _points(funcs, comp, components, evidence, impact) -> list[dict[str, Any]]:
     """A GRID PER BOX, by file then name, so neighbours in the cloud are neighbours in the source.
@@ -592,9 +593,11 @@ def _points(funcs, comp, components, evidence, impact) -> list[dict[str, Any]]:
     @return Points.
     """
     tier_of: dict[tuple[str, str], str] = {}
+    reqs_of: dict[tuple[str, str], set[str]] = defaultdict(set)
     for row in evidence:
         for name, rel, _line in row.implementer_sites:
             tier_of[(name, rel)] = row.tier
+            reqs_of[(name, rel)].add(row.req_id)
     changed = {
         (f.get("name"), f.get("file")) for e in impact or [] for f in e.get("functions") or []
     }
@@ -617,6 +620,7 @@ def _points(funcs, comp, components, evidence, impact) -> list[dict[str, Any]]:
             }
             if (name, rel) in tier_of:
                 point["tier"] = tier_of[(name, rel)]
+                point["reqs"] = sorted(reqs_of[(name, rel)])
             if impact is not None:
                 point["changed"] = (name, rel) in changed
             points.append(point)

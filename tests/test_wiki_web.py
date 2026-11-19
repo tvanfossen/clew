@@ -167,3 +167,30 @@ def test_a_flow_is_played_by_its_functions_in_call_order(db: Path) -> None:
     )
     steps = [data["nodes"][i]["name"] for i in _flow(page, slot)["steps"]]
     assert steps == ["handle", "save", "clean"]
+
+
+def test_each_function_carries_the_requirements_it_implements(db: Path) -> None:
+    """OWNER (round 5, P5.4): the requirement overlay. A requirement page's "Show on the map"
+    opens `map.html#req=<id>`, which lights that requirement's implementing functions. The map
+    data carries ONE table of ids and, per function, indices into it: a site of thousands of
+    functions does not repeat each id string on every node it implements.
+
+    @brief P5.4: per-function requirement ids, compact, and the `#req=` hash.
+    """
+    from types import SimpleNamespace
+
+    rows = [
+        SimpleNamespace(
+            req_id="R-2", tier="PASS", implementer_sites=(("save", "pkg/core/store.py", 4),)
+        ),
+        SimpleNamespace(
+            req_id="R-1",
+            tier="UNTESTED",
+            implementer_sites=(("save", "pkg/core/store.py", 4), ("clean", "pkg/util.py", 1)),
+        ),
+    ]
+    data = web_data(db, build_graph(db, rows, None, _DECLARED, exclude_tests=True))
+    assert data["req_ids"] == ["R-1", "R-2"]
+    by_name = {n["name"]: n.get("r") for n in data["nodes"]}
+    assert by_name["save"] == [0, 1] and by_name["clean"] == [0] and by_name["handle"] is None
+    assert "req=" in WEB_JS, "the map reads the overlay's hash"
