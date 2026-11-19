@@ -81,7 +81,7 @@ CLASS_KINDS = ("class", "struct", "union", "interface", "enum")
 ## @param pattern fnmatch pattern; matched against the full path and the basename.
 ## @return True when either the whole path or its basename matches.
 ## @version 2
-## @dg_internal
+## @utility
 def _matches(path: str, pattern: str) -> bool:
     """Match the FULL repo-relative path first (so `app/src/*` and `*.cpp`
     both work), then fall back to the basename (so a bare `Battery*` finds a
@@ -118,7 +118,7 @@ def _matches(path: str, pattern: str) -> bool:
 ## @param text Snippet text from FTS5.
 ## @return Single-spaced text.
 ## @version 1
-## @dg_internal
+## @utility
 def _collapse(text: str | None) -> str:
     """Prose is markdown, not doxygen markup: a `<stdio.h>` or a generic
     `<T>` inside a documentation snippet is CONTENT, so only whitespace runs
@@ -200,7 +200,7 @@ _FILE_MEMBER_CAP = 400
 ## @param name The repo-relative path.
 ## @return An SQL fragment and its parameters, for use after `WHERE`.
 ## @version 1
-## @dg_internal
+## @utility
 def _one_file_clause(conn: sqlite3.Connection, name: str) -> tuple[str, list[object]]:
     """THE GRACEFUL-DEGRADATION CONTRACT, and it caught this function's first draft. This
     repository's minimal test indexes create `path (rowid, name)` and nothing more, so a query
@@ -257,7 +257,7 @@ def is_indexed_file(conn: sqlite3.Connection, name: str) -> bool:
 ## @param name The repo-relative path.
 ## @return True when the file resolved to content; False when it is a name the index could not read.
 ## @version 1
-## @dg_internal
+## @utility
 def _was_harvested(conn: sqlite3.Connection, name: str) -> bool:
     """NOT `symbol_count > 0`, and the distinction is the reason `FileSubject` exists in the
     shape it does. A header recorded from an `#include` doxygen never resolved carries zero
@@ -402,7 +402,7 @@ def file_license(conn: sqlite3.Connection, name: str) -> LicenseRef | None:
 ## @return {includes, included_by}, or {} when the layer is absent.
 ## @version 1
 ## @req REQ-DDB-QUERY-004
-## @dg_internal
+## @utility
 def _include_graph(conn: sqlite3.Connection, name: str) -> dict[str, Any]:
     """T3 served (2.0.0). The AST layer, not doxygen's `includes`: on mbedtls doxygen's table held 2
     includers of `constant_time_internal.h` and `ast_includes` 18 (P2 measurement). An index
@@ -436,7 +436,7 @@ def _include_graph(conn: sqlite3.Connection, name: str) -> dict[str, Any]:
 ## @param name The repo-relative path.
 ## @return The documentation text, or '' when absent or the corpus is not in this index.
 ## @version 1
-## @dg_internal
+## @utility
 def _file_documentation(conn: sqlite3.Connection, name: str) -> str:
     """@brief Read one `file_docs` row by exact path.
     @return The documentation, or ''.
@@ -456,7 +456,7 @@ def _file_documentation(conn: sqlite3.Connection, name: str) -> str:
 ## @param name The repo-relative path.
 ## @return One FileMember per DISTINCT symbol name, in name order.
 ## @version 1
-## @dg_internal
+## @utility
 def _file_members(conn: sqlite3.Connection, name: str) -> list[FileMember]:
     """DISTINCT BY NAME, to match what `FileEntry.symbol_count` counts. doxygen writes
     several `memberdef` rows for one name — a declaration in a header and a definition in the
@@ -862,7 +862,7 @@ def indexed_extensions(db: DbSource) -> tuple[str, ...]:
 ## @param paths Repo-relative paths.
 ## @return Sorted extension tuple.
 ## @version 1
-## @dg_internal
+## @utility
 def _extensions(paths: list[str]) -> tuple[str, ...]:
     """Splits on the BASENAME's last dot, so a dotted directory
     (`.github/workflows/ci.yml`) contributes `.yml` and not `.github/workflows/ci`.
@@ -879,7 +879,7 @@ def _extensions(paths: list[str]) -> tuple[str, ...]:
 ## @param conn Open connection.
 ## @return Mapping of scope key to value; {} when build_meta is absent or older.
 ## @version 1
-## @dg_internal
+## @utility
 def _scope_provenance(conn: sqlite3.Connection) -> dict[str, str]:
     """{} rather than an exception on an older index, matching the query layer's
     standing rule that a degraded database answers thinly instead of failing.
@@ -898,7 +898,7 @@ def _scope_provenance(conn: sqlite3.Connection) -> dict[str, str]:
 ## @param conn Open connection.
 ## @return Repo-relative path list.
 ## @version 1
-## @dg_internal
+## @utility
 def _indexed_paths(conn: sqlite3.Connection) -> list[str]:
     """@brief List the real indexed file paths.
     @return Repo-relative paths.
@@ -918,7 +918,7 @@ def _indexed_paths(conn: sqlite3.Connection) -> list[str]:
 ## @param limit Maximum rows.
 ## @return Result rows (file_path, heading, snippet).
 ## @version 2
-## @dg_internal
+## @utility
 def _fts_match(conn: sqlite3.Connection, text: str, limit: int) -> list[tuple]:
     """Execute the MATCH query. FTS5 rejects unbalanced quotes and bare
     operators with an OperationalError, so a failed query is retried once with
@@ -946,7 +946,7 @@ def _fts_match(conn: sqlite3.Connection, text: str, limit: int) -> list[tuple]:
 ## @param text Caller's query text.
 ## @return Lower-cased tokens, empty ones dropped.
 ## @version 1
-## @dg_internal
+## @utility
 def _query_tokens(text: str) -> tuple[str, ...]:
     """Each token is re-quoted as a literal phrase before it reaches FTS5, so the
     characters stripped here are the ones that would otherwise be read as OPERATORS
@@ -1161,7 +1161,7 @@ def gate_symbol_rows(
 ## @param wanted The name the caller asked for.
 ## @return Sort key tuple; lower sorts first.
 ## @version 2
-## @dg_internal
+## @utility
 def _class_rank(row: tuple, wanted: str) -> tuple:
     """Rank so a project class always outranks the `std::` noise doxygen
     harvests from system headers, an exact name beats a qualified tail match,
@@ -1193,7 +1193,7 @@ def _class_rank(row: tuple, wanted: str) -> tuple:
 ## @param rowid compounddef rowid.
 ## @return List of ClassMember; empty when the `member` relation is absent.
 ## @version 2
-## @dg_internal
+## @utility
 def _members(conn: sqlite3.Connection, rowid: int) -> list[ClassMember]:
     """SELECTS THE DESCRIPTION COLUMNS (gh#16). It did not, and the class view was
     therefore the one subject kind that returned a symbol's members with their
@@ -1250,7 +1250,7 @@ def _members(conn: sqlite3.Connection, rowid: int) -> list[ClassMember]:
 ## @param rowid compounddef rowid.
 ## @return (bases, derived) name lists; both empty when `compoundref` is absent.
 ## @version 2
-## @dg_internal
+## @utility
 def _hierarchy(conn: sqlite3.Connection, rowid: int) -> tuple[list[str], list[str]]:
     """@brief Read the inheritance neighbours of one compound.
     @return (base names, derived names).
@@ -1271,7 +1271,7 @@ def _hierarchy(conn: sqlite3.Connection, rowid: int) -> tuple[list[str], list[st
 ## @param ranked Candidate rows already sorted best-first by `_class_rank`.
 ## @return Up to MAX_CANDIDATES ClassCandidate rows, or [] when one compound matched.
 ## @version 2
-## @dg_internal
+## @utility
 def _compound_candidates(ranked: list[tuple]) -> list[ClassCandidate]:
     """Collapses on the QUALIFIED NAME, which is a compound's identity the way a
     signature is a function's — and is also the string a consumer passes back to
@@ -1372,7 +1372,7 @@ def lookup_class(db: DbSource, name: str, repo_root: Path | str | None = None) -
 ## @param repo_root Working tree for declaration heads, or None.
 ## @return MergedDeclaration rows; empty when nothing merges with the chosen compound.
 ## @version 1
-## @dg_internal
+## @utility
 def _merged(
     conn: sqlite3.Connection, ranked: list[tuple], best: tuple, repo_root: Path | str | None
 ) -> list[MergedDeclaration]:

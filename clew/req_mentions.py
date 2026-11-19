@@ -81,7 +81,7 @@ def record_req_mentions(
 ## @param conn Open connection.
 ## @return The ids.
 ## @version 1
-## @dg_internal
+## @utility
 def _known_ids(conn: sqlite3.Connection) -> set[str]:
     """@brief Known ids. @return The set."""
     ids: set[str] = set()
@@ -100,7 +100,7 @@ def _known_ids(conn: sqlite3.Connection) -> set[str]:
 ## @return (req_id, file, line, text) rows.
 ## v2 (1.3.4): each file's mentions are memoized on its content and the id set.
 ## @version 2
-## @dg_internal
+## @utility
 def _scan(
     conn: sqlite3.Connection,
     repo_root: Path,
@@ -148,7 +148,7 @@ def _scan(
 ## @param conn Open connection.
 ## @return Repo-relative paths, sorted.
 ## @version 1
-## @dg_internal
+## @utility
 def _indexed_files(conn: sqlite3.Connection) -> list[str]:
     """PROSE IS NOT IN `path`: markdown and reStructuredText are read into `supplementary_docs`
     without a path row, and a design document is the commonest place a requirement is named.
@@ -169,7 +169,7 @@ def _indexed_files(conn: sqlite3.Connection) -> list[str]:
 ## @param skip The resolved catalog path, or None.
 ## @return The text or None.
 ## @version 1
-## @dg_internal
+## @utility
 def _text_of(path: Path, skip: Path | None) -> str | None:
     """@brief Read a scannable file. @return Text or None."""
     try:
@@ -187,7 +187,7 @@ def _text_of(path: Path, skip: Path | None) -> str | None:
 ## @param pattern The whole-id pattern.
 ## @return (req_id, line, text) per mention; empty when the file is not scannable.
 ## @version 1
-## @dg_internal
+## @utility
 def _mentions_of(path: Path, pattern: re.Pattern[str]) -> list[list[Any]]:
     """@brief Read and scan one file. @return Mentions."""
     text = _text_of(path, None)
@@ -199,7 +199,7 @@ def _mentions_of(path: Path, pattern: re.Pattern[str]) -> list[list[Any]]:
 ## @param pattern The whole-id pattern.
 ## @return (req_id, line number, stripped line) per mention, in order.
 ## @version 1
-## @dg_internal
+## @utility
 def _file_mentions(text: str, pattern: re.Pattern[str]) -> list[list[Any]]:
     """A TAG LINE IS NOT A MENTION: `@req` lines are already `req_edges`, and counting them here
     would list every implementer twice. Lists, not tuples, because the result round-trips through

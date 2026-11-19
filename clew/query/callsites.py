@@ -138,7 +138,7 @@ def call_sequence(
 ## @return (repo-relative file, body start, body end, nested spans) or None.
 ## v2: `selected`.
 ## @version 2
-## @dg_internal
+## @utility
 def _body_of(
     conn: sqlite3.Connection, name: str, qualified: str | None, selected: list[int] | None = None
 ) -> tuple[str, int, int, list[tuple[int, int]]] | None:
@@ -177,7 +177,7 @@ def _body_of(
 ## @param spans (start, end) spans.
 ## @return True when contained.
 ## @version 1
-## @dg_internal
+## @utility
 def _in_any(line: int, spans: list[tuple[int, int]]) -> bool:
     """@brief Span membership. @return True when inside one."""
     return any(s <= line <= e for s, e in spans)
@@ -188,7 +188,7 @@ def _in_any(line: int, spans: list[tuple[int, int]]) -> bool:
 ## @param rel The repo-relative file.
 ## @return (tree, source bytes) or None.
 ## @version 1
-## @dg_internal
+## @utility
 def _parse(repo_root: Path, rel: str) -> tuple[Any, bytes] | None:
     """@brief Parse a file. @return Tree and bytes, or None."""
     from ..harvest import _ast_parse_one_file
@@ -202,7 +202,7 @@ def _parse(repo_root: Path, rel: str) -> tuple[Any, bytes] | None:
 ## @param end Last line of interest.
 ## @return Frames sorted outermost first (by start line, then by length descending).
 ## @version 1
-## @dg_internal
+## @utility
 def _frames(root: Any, start: int, end: int) -> list[Frame]:
     """@brief Collect frames in a span. @return Frames."""
     found: list[Frame] = []

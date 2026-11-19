@@ -62,7 +62,7 @@ class _CodeownersRule:
     ## @param owners Its owners.
     ## @param line Its 1-based line.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def __init__(self, pattern: str, owners: list[str], line: int) -> None:
         """@brief Store. @return None."""
         self.pattern, self.owners, self.line = pattern, owners, line
@@ -73,7 +73,7 @@ class _CodeownersRule:
 ## @param pattern The pattern.
 ## @return The regex.
 ## @version 1
-## @dg_internal
+## @utility
 def _codeowners_regex(pattern: str) -> re.Pattern[str]:
     """GITIGNORE RULES, as CODEOWNERS documents them: a leading `/` anchors at the root; a pattern
     with no other `/` matches at any depth; a trailing `/` (or no glob at all, for a directory)
@@ -107,7 +107,7 @@ def _codeowners_regex(pattern: str) -> re.Pattern[str]:
 ## @param text The file.
 ## @return Rules, in file order.
 ## @version 1
-## @dg_internal
+## @utility
 def parse_codeowners(text: str) -> list[_CodeownersRule]:
     """A line is `pattern owner...`; `#` starts a comment; a line with no owners is a rule that
     UNSETS ownership (GitHub's documented meaning), kept so the last-match rule still sees it.
@@ -130,7 +130,7 @@ def parse_codeowners(text: str) -> list[_CodeownersRule]:
 ## @param rel Repo-relative path.
 ## @return (owners, line), or None when no rule matches.
 ## @version 1
-## @dg_internal
+## @utility
 def codeowners_for(rules: list[_CodeownersRule], rel: str) -> tuple[list[str], int] | None:
     """@brief Apply the last-match rule. @return Owners and line, or None."""
     for rule in reversed(rules):
@@ -146,7 +146,7 @@ class _Stanza:
     ## @param title Its title line.
     ## @param line Its first line.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def __init__(self, title: str, line: int) -> None:
         """@brief Store. @return None."""
         self.title, self.line = title, line
@@ -159,7 +159,7 @@ class _Stanza:
     ## @param rel Repo-relative path.
     ## @return True when an F: or N: matches and no X: does.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def covers(self, rel: str) -> bool:
         """@brief Match. @return Covered."""
         hit = any(f.match(rel) for f in self.files) or any(n.search(rel) for n in self.names)
@@ -170,7 +170,7 @@ class _Stanza:
 ## @param pattern The pattern.
 ## @return The regex.
 ## @version 1
-## @dg_internal
+## @utility
 def _maintainers_regex(pattern: str) -> re.Pattern[str]:
     """The kernel's rules (Documentation/process/maintainers.rst): a trailing `/` is the directory
     and everything below; `*` and `?` match within one level; anything else is that file.
@@ -187,7 +187,7 @@ def _maintainers_regex(pattern: str) -> re.Pattern[str]:
 ## @param text The file.
 ## @return Stanzas with at least one file record.
 ## @version 1
-## @dg_internal
+## @utility
 def parse_maintainers(text: str) -> list[_Stanza]:
     """A stanza is a title line followed by `X:` records, ended by a blank line; the preamble
     before the first record-bearing stanza (the file's own prose) carries no records and drops.
@@ -216,7 +216,7 @@ def parse_maintainers(text: str) -> list[_Stanza]:
 ## @param value Its value.
 ## @return None.
 ## @version 1
-## @dg_internal
+## @utility
 def _record(stanza: _Stanza, kind: str, value: str) -> None:
     """@brief Record. @return None."""
     if kind in ("M", "R") and value:
@@ -241,7 +241,7 @@ def _record(stanza: _Stanza, kind: str, value: str) -> None:
 ## @param key The key, for the message.
 ## @return The file, or None.
 ## @version 1
-## @dg_internal
+## @utility
 def _locate(repo_root: Path, declared: Any, candidates: tuple[str, ...], key: str) -> Path | None:
     """A DECLARED path that does not exist is said, not silently replaced by a conventional one.
 
@@ -275,7 +275,7 @@ class OwnerResolver:
     ## @param stanzas MAINTAINERS stanzas.
     ## @param sources The files read, for the log.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def __init__(self, rules: list, stanzas: list, sources: list[Path]) -> None:
         self.rules = rules
         self.stanzas = stanzas
@@ -301,7 +301,7 @@ class OwnerResolver:
     ## @brief Whether the repository keeps any owners file.
     ## @return True when one was read.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def has_sources(self) -> bool:
         """@brief Any owners file. @return True when read."""
         return bool(self.sources)
@@ -357,7 +357,7 @@ def record_owners(conn: sqlite3.Connection, repo_root: Path, section: dict | Non
 ## @param stanzas MAINTAINERS stanzas.
 ## @return Rows.
 ## @version 1
-## @dg_internal
+## @utility
 def _rows_for(rowid: int, rel: str, rules: list, stanzas: list) -> list[tuple]:
     """@brief Rows for one path. @return Rows."""
     out = []

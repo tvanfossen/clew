@@ -115,7 +115,7 @@ def _sibling_prose(conn: sqlite3.Connection, fn: str) -> tuple[str, str]:
 ## Calls the shared `_common.capped_detail` since C1; the cap and the notice are unchanged.
 ## v5 (2.0.0, T2): `file` is the body's file when a body is recorded.
 ## @version 5
-## @dg_internal
+## @utility
 def _identity(conn: sqlite3.Connection, rowid: int) -> dict | None:
     """@brief Read one function's identity columns (definition row already chosen).
 
@@ -172,7 +172,7 @@ def _identity(conn: sqlite3.Connection, rowid: int) -> dict | None:
 ## @return Distinct declaration sites, by file then line; empty when there are none.
 ## @version 1
 ## @req REQ-DDB-QUERY-004
-## @dg_internal
+## @utility
 def _declaration_sites(
     conn: sqlite3.Connection, ids: list[int], body_file: str
 ) -> list[DeclarationSite]:
@@ -234,7 +234,7 @@ def _reqs_and_tests(conn: sqlite3.Connection, fn: str) -> tuple[list[ReqRef], li
 ## @brief Liveness status for a resolved rowid ('' when unknown).
 ## @return The symbol_liveness status string for the rowid, or '' when unknown or the table is absent.
 ## @version 1
-## @dg_internal
+## @utility
 def _liveness(conn: sqlite3.Connection, rowid: int) -> str:
     """@brief Read one rowid's symbol_liveness status, or ''."""
     if not table_exists(conn, "symbol_liveness"):
@@ -253,7 +253,7 @@ def _liveness(conn: sqlite3.Connection, rowid: int) -> str:
 ## @param max_body_lines Cap on the body excerpt's line count.
 ## @return (body excerpt or None, ExternalCallee rows).
 ## @version 1
-## @dg_internal
+## @utility
 def _body_and_external(
     conn: sqlite3.Connection,
     rowid: int,
@@ -380,7 +380,7 @@ MACRO_COLLISION_NOTE = (
 ## @param line_start The chosen identity's recorded body start, or None when it has none.
 ## @return The note, or '' when the shape does not apply.
 ## @version 1
-## @dg_internal
+## @utility
 def _macro_collision(macros: list[MacroDef], line_start: int | None) -> str:
     """TWO DATABASE FACTS AND NO HEURISTIC. The name is `#define`d somewhere in this index,
     and the row this dossier chose records no body extent. Both are read off columns; neither
@@ -470,7 +470,7 @@ def function_dossier(
 ## @param max_body_lines Excerpt cap, forwarded so the probe reads what the panel would.
 ## @return The rowid the dossier should describe.
 ## @version 1
-## @dg_internal
+## @utility
 def _anchored_pick(
     conn: sqlite3.Connection,
     cands: list[tuple],
@@ -527,7 +527,7 @@ def _anchored_pick(
 ## v13: same_key_sites (2.0.0, F1-mm)
 ## @version 13
 ## @req REQ-DDB-QUERY-004
-## @dg_internal
+## @utility
 def _dossier_conn(
     conn: sqlite3.Connection,
     fn: str,

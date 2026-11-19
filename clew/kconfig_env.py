@@ -65,7 +65,7 @@ _FUNCTIONS_MODULE = "clew.kconfig_env"
 ## @param command The command text the Kconfig asked to run.
 ## @return None.
 ## @version 1
-## @dg_internal
+## @utility
 def _record(command: str) -> None:
     """@brief Append a refusal to this thread's parse record. @version 1"""
     refusals = getattr(_state, "refusals", None)

@@ -98,7 +98,7 @@ def parse_kerneldoc(text: str) -> list[dict]:
 ## @param body The block's lines, comment furniture removed.
 ## @return The fields, or None.
 ## @version 1
-## @dg_internal
+## @utility
 def _block(body: list[str]) -> dict | None:
     """A PARAMETER OR SECTION CONTINUES onto following indented lines, as the format allows.
 
@@ -131,7 +131,7 @@ def _block(body: list[str]) -> dict | None:
 ## @param fields The block, filled in place.
 ## @return None.
 ## @version 1
-## @dg_internal
+## @utility
 def _sections(lines: list[str], fields: dict) -> None:
     """@brief Read the body. @return None."""
     target: tuple[str, str] | None = None
@@ -160,7 +160,7 @@ def _sections(lines: list[str], fields: dict) -> None:
 ## @param text The continuation.
 ## @return None.
 ## @version 1
-## @dg_internal
+## @utility
 def _append(fields: dict, target: tuple[str, str], text: str) -> None:
     """@brief Continue a field. @return None."""
     key, name = target
@@ -176,7 +176,7 @@ def _append(fields: dict, target: tuple[str, str], text: str) -> None:
 ## @param rel The file.
 ## @return The blocks.
 ## @version 1
-## @dg_internal
+## @utility
 def kerneldoc_of(cache: IndexCache | None, repo_root: Path, rel: str) -> list[dict]:
     """@brief Memoized read. @return Blocks."""
     path = repo_root / rel
@@ -241,7 +241,7 @@ _INSERT = (
 ## @param b The block.
 ## @return The row.
 ## @version 1
-## @dg_internal
+## @utility
 def _row(rel: str, b: dict) -> tuple:
     """@brief Row. @return Tuple."""
     return (

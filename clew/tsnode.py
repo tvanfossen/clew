@@ -36,7 +36,7 @@ import lang_parsing_substrate as _lps
 
 ## @brief A parser for one substrate language key, shaped like py-tree-sitter's Parser.
 ## @version 1
-## @dg_internal
+## @utility
 class Parser:
     """@brief `Parser(key).parse(source_bytes)` returns a tree with a `root_node`."""
 
@@ -45,7 +45,7 @@ class Parser:
     ## @brief Bind the parser to one substrate language key.
     ## @param language_key A key `lang_parsing_substrate.parse_tree` accepts.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def __init__(self, language_key: str) -> None:
         self.language_key = language_key
 
@@ -53,7 +53,7 @@ class Parser:
     ## @param source File contents as bytes.
     ## @return The substrate's FlatTree, whose `root_node` walks like py-tree-sitter's.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def parse(self, source: bytes) -> Any:
         """@brief Parse through the substrate."""
         return _lps.parse_tree(self.language_key, bytes(source))

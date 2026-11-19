@@ -117,7 +117,7 @@ def web_data(
 ## @param ring rowid → ring, for the outer radius.
 ## @return (boundary rows, [[caller node, boundary index], ...]).
 ## @version 1
-## @dg_internal
+## @utility
 def _boundary(
     vendors, funcs, edges, owner, nodes, slot, ring
 ) -> tuple[list[dict], list[list[int]]]:
@@ -159,7 +159,7 @@ def _boundary(
 ## @param conn Open connection.
 ## @return {file: owner}; empty when the layer is absent.
 ## @version 1
-## @dg_internal
+## @utility
 def _first_owners(conn: Any) -> dict[str, str]:
     """@brief Read owners. @return Map."""
     if not table_exists(conn, "owners"):
@@ -177,7 +177,7 @@ def _first_owners(conn: Any) -> dict[str, str]:
 ## @param order Declared block ids.
 ## @return Components, ordered.
 ## @version 1
-## @dg_internal
+## @utility
 def _ordered(comps: list[dict], order: list[str]) -> list[dict]:
     """@brief Order blocks. @return Blocks."""
     rank = {name: i for i, name in enumerate(order)}
@@ -192,7 +192,7 @@ def _ordered(comps: list[dict], order: list[str]) -> list[dict]:
 ## @param owner file → block.
 ## @return The map.
 ## @version 1
-## @dg_internal
+## @utility
 def _functions(conn: Any, owner: dict[str, str]) -> dict[int, tuple[str, str, int]]:
     """@brief Read functions. @return Map."""
     rows = conn.execute(
@@ -208,7 +208,7 @@ def _functions(conn: Any, owner: dict[str, str]) -> dict[int, tuple[str, str, in
 ## @param funcs The drawn functions.
 ## @return (caller, callee) rowid pairs.
 ## @version 1
-## @dg_internal
+## @utility
 def _edges(conn: Any, funcs: dict) -> set[tuple[int, int]]:
     """A BINDING IS NOT A CALL and a fuzzy edge is a guess, as for the graph's links.
 
@@ -233,7 +233,7 @@ def _edges(conn: Any, funcs: dict) -> set[tuple[int, int]]:
 ## @return rowid → ring.
 ## v2: the ring cap is wiki.web.max_ring (2.0.0, R5-CFG C8)
 ## @version 2
-## @dg_internal
+## @utility
 def _rings(funcs: dict, edges: set[tuple[int, int]], max_ring: int = MAX_RING) -> dict[int, int]:
     """BREADTH FIRST from every function nothing drawn calls. A function reached only around a
     cycle has no entry point; the lowest rowid of what is left seeds another walk, so every
@@ -273,7 +273,7 @@ def _rings(funcs: dict, edges: set[tuple[int, int]], max_ring: int = MAX_RING) -
 ## v2: owners overlay and vendor areas (2.0.0, P5)
 ## v3: vendor areas outside the boundary (2.0.0, P5, owner round-5 ruling)
 ## @version 3
-## @dg_internal
+## @utility
 def _wedges(blocks: list[dict], funcs: dict, owner: dict[str, str]) -> None:
     """@brief Angles. @return None."""
     count: dict[str, int] = defaultdict(int)
@@ -298,7 +298,7 @@ def _wedges(blocks: list[dict], funcs: dict, owner: dict[str, str]) -> None:
 ## @param facts (name, file) → the graph's point (tier, changed).
 ## @return (node rows, rowid → node index).
 ## @version 1
-## @dg_internal
+## @utility
 def _place(blocks, index, funcs, owner, ring, facts) -> tuple[list[dict], dict[int, int]]:
     """FILE THEN NAME along each ring of a wedge; a crowded ring spreads over sub-rows inside its
     band rather than overlapping, so every function stays a distinct target.
@@ -332,7 +332,7 @@ def _place(blocks, index, funcs, owner, ring, facts) -> tuple[list[dict], dict[i
 ## @param n How many.
 ## @return (x, y) per function.
 ## @version 1
-## @dg_internal
+## @utility
 def _arc(a0: float, a1: float, r: int, n: int) -> list[tuple[float, float]]:
     """@brief Spread on the arc. @return Points."""
     pad = min(0.01, (a1 - a0) / 6)
@@ -354,7 +354,7 @@ def _arc(a0: float, a1: float, r: int, n: int) -> list[tuple[float, float]]:
 ## @return The row.
 ## v2: owners overlay and vendor areas (2.0.0, P5)
 ## @version 2
-## @dg_internal
+## @utility
 def _block_row(b: dict) -> dict:
     """@brief Block row. @return Row."""
     keep = ("id", "a0", "a1", "functions", "files", "declared", "inferred_files", "requirements")
@@ -415,7 +415,7 @@ def web_html(data: dict[str, Any]) -> str:
 ## @param key The key.
 ## @return True when one does.
 ## @version 1
-## @dg_internal
+## @utility
 def _has(data: dict, key: str) -> bool:
     """@brief Probe. @return Bool."""
     return any(key in n for n in data["nodes"])
@@ -426,7 +426,7 @@ def _has(data: dict, key: str) -> bool:
 ## @return HTML.
 ## v2: vendor areas outside the boundary (2.0.0, P5, owner round-5 ruling)
 ## @version 2
-## @dg_internal
+## @utility
 def _table(data: dict) -> str:
     """@brief Table view. @return HTML."""
     rows = []
@@ -514,7 +514,7 @@ def web_page(
 ## @param slot (function, file) → node index.
 ## @return {title, page, steps}.
 ## @version 1
-## @dg_internal
+## @utility
 def _flow(page: Any, slot: dict[tuple[str, str], int]) -> dict[str, Any]:
     """@brief Flow steps. @return Flow."""
     steps: list[int] = []

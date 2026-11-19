@@ -293,7 +293,7 @@ _OPEN_DICT = object()
 class _MapOf:
     ## @brief Hold the schema every entry of the mapping follows.
     #  @version 1.0
-    #  @dg_internal
+    #  @utility
     def __init__(self, schema: dict[str, Any]) -> None:
         self.schema = schema
 
@@ -377,7 +377,7 @@ CONFIG_SCHEMA: dict[str, Any] = {
 
 ## @brief Build a dotted config path from parent path and key.
 #  @version 1.0
-#  @dg_internal
+#  @utility
 def _config_path(parent: str, key: str) -> str:
     return f"{parent}.{key}" if parent else key
 
@@ -399,7 +399,7 @@ def _validate_dict_node(user: dict, schema: dict, path: str) -> list[str]:
 
 ## @brief Suggest the closest known schema key for a misspelled one.
 #  @version 1.0
-#  @dg_internal
+#  @utility
 #  @return A " — did you mean 'x'?" fragment, or empty string if nothing is close
 def _suggest_key(key: str, schema: dict) -> str:
     matches = difflib.get_close_matches(key, list(schema.keys()), n=1, cutoff=0.6)
@@ -435,7 +435,7 @@ def _validate_node(user: Any, schema: Any, path: str) -> list[str]:
 
 ## @brief Validate a mapping of user-named entries against the schema every entry follows.
 #  @version 1.0
-#  @dg_internal
+#  @utility
 #  @return Errors, each naming the entry's dotted path
 def _validate_map_of(user: Any, schema: _MapOf, path: str) -> list[str]:
     if not isinstance(user, dict):
@@ -448,7 +448,7 @@ def _validate_map_of(user: Any, schema: _MapOf, path: str) -> list[str]:
 
 ## @brief Refuse a 1.x regex-shaped `validate.exclude` entry, naming the two 2.0.0 forms.
 #  @version 1.0
-#  @dg_internal
+#  @utility
 #  @return Errors
 def _exclude_errors(user_config: dict[str, Any]) -> list[str]:
     validate = user_config.get("validate") if isinstance(user_config, dict) else None
@@ -480,7 +480,7 @@ def validate_config_schema(user_config: dict[str, Any]) -> list[str]:
 
 ## @brief Split out the keys that moved in 2.0.0, each with a pointer to its new home.
 #  @version 1.0
-#  @dg_internal
+#  @utility
 #  @return (errors naming each moved key, the config without them)
 def _moved_keys(user_config: dict[str, Any]) -> tuple[list[str], dict[str, Any]]:
     errors: list[str] = []
@@ -550,7 +550,7 @@ def parse_version(version_str: str) -> tuple[int, ...]:
 
 ## @brief Compare two version tuples, padding shorter one with zeros.
 #  @version 1.0
-#  @dg_internal
+#  @utility
 def compare_versions(a: tuple[int, ...], b: tuple[int, ...]) -> int:
     max_len = max(len(a), len(b))
     a_padded = a + (0,) * (max_len - len(a))
@@ -593,7 +593,7 @@ def deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]
 #  @param config_path The `.clew.yaml` the gate just failed to find a `guard:` section in.
 #  @version 1.0
 #  @req REQ-DDB-GUARD-012
-#  @dg_internal
+#  @utility
 def _warn_about_legacy_config(config_path: Path) -> None:
     """SIGNPOSTED, NOT SUPPORTED. clew does not read the old file and this does not make it;
     it names it, because the alternative is a repository whose gate quietly stopped enforcing
@@ -662,7 +662,7 @@ def load_config(config_path: Path | None = None) -> dict[str, Any]:
 ## @brief The facts the gate reads from the rest of `.clew.yaml`: the event vocabulary and sources.
 #  v1.1: the owners: section (2.0.0)
 #  @version 1.1
-#  @dg_internal
+#  @utility
 #  @return {"event_tags": declared mapping or None, "wiki_sources": bool, "owners": mapping or None}
 def _shared_facts(config_path: Path) -> dict[str, Any]:
     try:
@@ -735,35 +735,35 @@ def _log_declared_sections(user_config: dict[str, Any]) -> None:
 
 ## @brief Access the validate section of config.
 #  @version 1.0
-#  @dg_internal
+#  @utility
 def get_validate(config: dict[str, Any]) -> dict[str, Any]:
     return config.get("validate", {})
 
 
 ## @brief Access the impact section of config.
 #  @version 1.0
-#  @dg_internal
+#  @utility
 def get_impact(config: dict[str, Any]) -> dict[str, Any]:
     return config.get("impact", {})
 
 
 ## @brief The directory the impact report is written to and read from.
 #  @version 1.0
-#  @dg_internal
+#  @utility
 def report_dir(config: dict[str, Any] | None) -> str:
     return str(((config or {}).get("impact") or {}).get("report_dir") or DEFAULT_REPORT_DIR)
 
 
 ## @brief The ref the impact report diffs against (`guard.impact.base`).
 #  @version 1.0
-#  @dg_internal
+#  @utility
 def impact_base(config: dict[str, Any] | None) -> str:
     return str(((config or {}).get("impact") or {}).get("base") or DEFAULT_IMPACT_BASE)
 
 
 ## @brief Access the requirements catalog section (the top-level `requirements:`).
 #  @version 1.0
-#  @dg_internal
+#  @utility
 def get_requirements(config: dict[str, Any] | None) -> dict[str, Any]:
     return (config or {}).get(REQUIREMENTS_ROOT_KEY) or {}
 

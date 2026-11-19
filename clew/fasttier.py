@@ -253,7 +253,7 @@ def try_fast_refresh(db: Path, repo_root: Path, cache_path: Path) -> FastResult 
 ## @param db The index.
 ## @return True when current.
 ## @version 1
-## @dg_internal
+## @utility
 def _current_build(db: Path) -> bool:
     """@brief Compare the stamped build version. @return True when it matches."""
     from .signature import CLEW_BUILD_VERSION, read_build_signature
@@ -271,7 +271,7 @@ def _current_build(db: Path) -> bool:
 ## v4: passes the repository root to _line_anchors (2.0.0)
 ## v5: each plan carries the file's function changes (2.0.0, PR1)
 ## @version 5
-## @dg_internal
+## @utility
 def _plan(
     conn: sqlite3.Connection, repo_root: Path, cache: IndexCache
 ) -> dict[str, tuple[int, list[int], list[int], str, DefinitionChanges]] | None:
@@ -294,7 +294,7 @@ def _plan(
 ## @param conn Open index connection.
 ## @return {repo-relative path: sha}; empty when no fast refresh is pending.
 ## @version 1
-## @dg_internal
+## @utility
 def _fast_bases(conn: sqlite3.Connection) -> dict[str, str]:
     """A full build writes a fresh database, so a base can only be one a pending fast refresh
     left. Read only while `fast.pending` is 1, for the same reason `_record` accumulates.
@@ -323,7 +323,7 @@ def _fast_bases(conn: sqlite3.Connection) -> dict[str, str]:
 ## @return (path rowid, repo-relative path, old content sha) per edited file.
 ## v2: the baseline is a pending fast refresh's `fast.base.<file>` when there is one (2.0.0, PR1)
 ## @version 2
-## @dg_internal
+## @utility
 def _edited_files(
     conn: sqlite3.Connection, repo_root: Path, cache: IndexCache
 ) -> list[tuple[int, str, str]]:
@@ -358,7 +358,7 @@ def _edited_files(
 ## @return The refusal reason, or "".
 ## v2: a declared whole-index input refuses the fast tier (2.0.0, R5-CFG W13)
 ## @version 2
-## @dg_internal
+## @utility
 def _refusal(edited: list[tuple[int, str, str]], declared: frozenset[str] = frozenset()) -> str:
     """@brief Apply the file-set preconditions. @return Reason or ""."""
     if not edited:
@@ -418,7 +418,7 @@ def config_inputs(repo_root: Path) -> frozenset[str]:
 ## v4: the blocking harvester is the repository's declared one (2.0.0, C1)
 ## v5: function changes are reconciled, not refused (2.0.0, PR1)
 ## @version 5
-## @dg_internal
+## @utility
 def _line_anchors(
     rel: str, path: Path, old_sha: str, cache: IndexCache, repo_root: Path | None = None
 ) -> tuple[list[int], list[int], DefinitionChanges] | None:
@@ -465,7 +465,7 @@ def _line_anchors(
 ## @param rel Repo-relative path.
 ## @return The harvester, or None for a language the fast tier does not anchor.
 ## @version 1
-## @dg_internal
+## @utility
 def _anchor_harvester(rel: str) -> Any:
     """@brief Pick JS or AST anchors by extension. @return Harvester or None."""
     from .ast_symbols import function_definition_harvester
@@ -484,7 +484,7 @@ def _anchor_harvester(rel: str) -> Any:
 ## @param payload A harvester payload.
 ## @return [((kind, name, field, ordinal), line), ...] sorted by kind, name, ordinal.
 ## @version 1
-## @dg_internal
+## @utility
 def _anchors(rel: str, payload: Any) -> list[tuple[tuple[Any, ...], int]]:
     """KEYED BY IDENTITY, NOT POSITION, with an ordinal for repeated names: two payloads align
     only when they hold the same definitions, which is the precondition being tested.
@@ -507,7 +507,7 @@ def _anchors(rel: str, payload: Any) -> list[tuple[tuple[Any, ...], int]]:
 ## @param payload A harvester payload.
 ## @return The facts.
 ## @version 1
-## @dg_internal
+## @utility
 def _records(rel: str, payload: Any) -> list[tuple[str, str, int, int]]:
     """@brief Read line facts out of either payload shape. @return Facts."""
     facts: list[tuple[str, str, int, int]] = []
@@ -541,7 +541,7 @@ def _records(rel: str, payload: Any) -> list[tuple[str, str, int, int]]:
 ## @param new The aligned new anchor lines.
 ## @return The new line.
 ## @version 1
-## @dg_internal
+## @utility
 def remap_line(line: int, old: list[int], new: list[int]) -> int:
     """THE NEAREST ANCHOR AT OR ABOVE THE LINE carries it: everything between two definitions
     moved with the one above. A line above the first anchor (a file header) did not move. Zero —
@@ -572,7 +572,7 @@ def remap_line(line: int, old: list[int], new: list[int]) -> int:
 ## v7: and each file's new baseline sha, `fast.base.<file>` (2.0.0, PR1)
 ## v8: and a JS/TS file's `__module__` row ends at its new last line (2.0.0, PR1)
 ## @version 8
-## @dg_internal
+## @utility
 def _apply(
     conn: sqlite3.Connection,
     repo_root: Path,
@@ -644,7 +644,7 @@ def _apply(
 ## @param new New anchors.
 ## @return None.
 ## @version 1
-## @dg_internal
+## @utility
 def _shift_symbols(conn: sqlite3.Connection, rowid: int, old: list[int], new: list[int]) -> None:
     """THE ROWS STAY, ONLY THEIR LINES MOVE, so every edge, requirement link and membership that
     points at them is still pointing at the right symbol.
@@ -691,7 +691,7 @@ def _shift_symbols(conn: sqlite3.Connection, rowid: int, old: list[int], new: li
 ## @param accumulate Whether an earlier fast refresh is still pending.
 ## @return Comma-joined names, sorted.
 ## @version 1
-## @dg_internal
+## @utility
 def _provisional(conn: sqlite3.Connection, names: tuple[str, ...], accumulate: bool) -> str:
     """PR1 (2.0.0): an added function's inbound edges wait for the full build, so the record names
     every function whose row is provisional, across every fast refresh still pending.
@@ -717,7 +717,7 @@ def _provisional(conn: sqlite3.Connection, names: tuple[str, ...], accumulate: b
 ## v2 (phase 6): records the layers this refresh actually left stale.
 ## v3: records fast.provisional (2.0.0, PR1)
 ## @version 3
-## @dg_internal
+## @utility
 def _record(
     conn: sqlite3.Connection,
     files: tuple[str, ...],

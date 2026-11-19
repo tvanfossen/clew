@@ -137,7 +137,7 @@ def dotted_name(node: Any, src_bytes: bytes) -> str | None:
 ## @param node An identifier / attribute / dotted_name node.
 ## @return Whether the chain contains only names (no call, subscript, literal).
 ## @version 1
-## @dg_internal
+## @utility
 def _is_static_chain(node: Any) -> bool:
     """Walks down the `object` side of an `attribute` chain. `dotted_name` is
     always static (the grammar only builds it from identifiers), and an
@@ -231,7 +231,7 @@ class PyBindings:
 
     ## @brief Start with an empty binding table.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def __init__(self) -> None:
         self.names: dict[str, str] = {}
 
@@ -299,7 +299,7 @@ def collect_bindings(tree: Any, src_bytes: bytes) -> PyBindings:
 ## @param types Node types to collect.
 ## @return Matching nodes, ordered by start byte.
 ## @version 1
-## @dg_internal
+## @utility
 def _collect_by_type(root: Any, types: tuple[str, ...]) -> list[Any]:
     """Document order matters for bindings: a later rebinding of the same name
     should win, which only holds if the nodes are visited as written.
@@ -323,7 +323,7 @@ def _collect_by_type(root: Any, types: tuple[str, ...]) -> list[Any]:
 ## @param src_bytes The file's raw bytes.
 ## @param bindings Table mutated in place.
 ## @version 1
-## @dg_internal
+## @utility
 def _bind_import(node: Any, src_bytes: bytes, bindings: PyBindings) -> None:
     """`import a.b` binds the HEAD (`a`), because that is the name that becomes
     usable; `import a.b as c` binds `c` to the full path instead.
@@ -349,7 +349,7 @@ def _bind_import(node: Any, src_bytes: bytes, bindings: PyBindings) -> None:
 ## v2 (round 5): `from .. import x` binds `..x`, not `...x` (the extra dot climbed one package
 ## too far, so the package-alias rule could only match by tree-wide suffix).
 ## @version 2
-## @dg_internal
+## @utility
 def _bind_import_from(node: Any, src_bytes: bytes, bindings: PyBindings) -> None:
     """The imported name binds to `<module>.<name>`, so a relative import
     (`from .models import Thread`) yields `.models.Thread` — deliberately a
@@ -388,7 +388,7 @@ def _bind_import_from(node: Any, src_bytes: bytes, bindings: PyBindings) -> None
 ## @param src_bytes The file's raw bytes.
 ## @return (local binding name, imported name), or (None, None) for a wildcard.
 ## @version 2
-## @dg_internal
+## @utility
 def _import_from_pair(child: Any, src_bytes: bytes) -> tuple[str | None, str | None]:
     """@brief Resolve one from-import clause to its local and imported names.
 
@@ -414,7 +414,7 @@ def _import_from_pair(child: Any, src_bytes: bytes) -> tuple[str | None, str | N
 ## @param bindings Table mutated in place (and read, to resolve the constructor).
 ## @param producers Receiver-producing functions → the type they return.
 ## @version 1
-## @dg_internal
+## @utility
 def _bind_receiver(
     node: Any,
     src_bytes: bytes,
@@ -443,7 +443,7 @@ def _bind_receiver(
 ## @param node An `assignment` or `as_pattern` node.
 ## @return (target, value), either element None when the shape is not a simple bind.
 ## @version 1
-## @dg_internal
+## @utility
 def _binding_target_and_value(node: Any) -> tuple[Any, Any]:
     """`assignment` names the target on the left; `as_pattern` puts it in an
     `as_pattern_target` AFTER the value. A destructuring target (a tuple
@@ -556,7 +556,7 @@ def callee_tail(callee: Any, src_bytes: bytes) -> tuple[str, bool] | None:
 ## @return One [name, line, source_binding] row per bare-identifier keyword value.
 ## v3: a value naming a parameter or local is not a binding.
 ## @version 3
-## @dg_internal
+## @utility
 def _keyword_bindings(
     call_node: Any, src_bytes: bytes, source_binding: str, local: frozenset[str] = frozenset()
 ) -> list[list[Any]]:
@@ -713,7 +713,7 @@ def import_bindings(tree: Any, src_bytes: bytes) -> PyBindings:
 ## @param imports The file's import bindings.
 ## @return The dotted module path (`..query.export`, `pkg.query.export`), or None.
 ## @version 1
-## @dg_internal
+## @utility
 def _receiver_module(callee: Any, src_bytes: bytes, imports: PyBindings) -> str | None:
     """THE OBJECT MUST BE A PLAIN DOTTED NAME (`_export`, `pkg.query.export`): a call result or a
     subscript names no module. Whether the path IS a module, and not an imported function, is the
@@ -735,7 +735,7 @@ def _receiver_module(callee: Any, src_bytes: bytes, imports: PyBindings) -> str 
 ## @param node Any node.
 ## @return The `function_definition` node or None.
 ## @version 1
-## @dg_internal
+## @utility
 def _enclosing_function(node: Any) -> Any:
     """@brief Walk up. @return Function node or None."""
     parent = node.parent
@@ -750,7 +750,7 @@ def _enclosing_function(node: Any) -> Any:
 ## @param cache Names per function start byte; updated.
 ## @return The names.
 ## @version 1
-## @dg_internal
+## @utility
 def _locals_of(func: Any, src_bytes: bytes, cache: dict[int, frozenset[str]]) -> frozenset[str]:
     """A PARAMETER OR LOCAL SHADOWS a function of the same name: `cwd=repo_root` inside
     `def commit(repo_root)` passes the parameter along. Locals are assignment, loop,
@@ -797,7 +797,7 @@ _NESTED_SCOPES = ("function_definition", "lambda", "class_definition")
 ## @param cache Per-function cache, keyed by start byte.
 ## @return The names.
 ## @version 1
-## @dg_internal
+## @utility
 def _own_locals(func: Any, src_bytes: bytes, cache: dict[int, frozenset[str]]) -> frozenset[str]:
     """STRICTER THAN `_locals_of`, deliberately. That set over-reads into nested functions, which
     only ever withholds a keyword binding; here it would withhold a CALL. Python makes a name
@@ -832,7 +832,7 @@ def _own_locals(func: Any, src_bytes: bytes, cache: dict[int, frozenset[str]]) -
 ## @param src_bytes The file's raw bytes.
 ## @return Names: a bare identifier, or each name in a tuple / list pattern.
 ## @version 1
-## @dg_internal
+## @utility
 def _bound_names(target: Any, src_bytes: bytes) -> list[str]:
     """A SUBSCRIPT OR ATTRIBUTE TARGET BINDS NOTHING: `found[rel_key(p)] = p` assigns into
     `found`; reading every identifier in it made `rel_key` a "local" and dropped a real call
@@ -863,7 +863,7 @@ def _bound_names(target: Any, src_bytes: bytes) -> list[str]:
 ## @param body The function body, or None.
 ## @return Assignment-like nodes.
 ## @version 1
-## @dg_internal
+## @utility
 def _own_nodes(body: Any) -> list[Any]:
     """@brief Own binders. @return Nodes."""
     targets = (
@@ -913,7 +913,7 @@ def is_receiver(node: Any, name: str, src_bytes: bytes) -> bool:
 ## @param src_bytes The file's raw bytes.
 ## @return The first parameter's name, or "" (not a method, a staticmethod, or no parameters).
 ## @version 1
-## @dg_internal
+## @utility
 def _first_parameter(func: Any, src_bytes: bytes) -> str:
     """@brief A method's receiver name. @return Name or ""."""
     holder = func.parent
@@ -1089,7 +1089,7 @@ def entry_names(arg: Any, src_bytes: bytes, class_name: str | None) -> tuple[str
 ## @param class_name Enclosing class, for a `self.`-qualified callee.
 ## @return (qualified, tail), or None when the inner callee names nothing.
 ## @version 1
-## @dg_internal
+## @utility
 def _awaited_call_entry(
     arg: Any, src_bytes: bytes, class_name: str | None
 ) -> tuple[str, str] | None:
@@ -1112,7 +1112,7 @@ def _awaited_call_entry(
 ## @return (qualified, tail), or None when the node names nothing static.
 ## v2: the receiver is the method's first parameter (2.0.0, R5-CORE D1)
 ## @version 2
-## @dg_internal
+## @utility
 def _named_entry_names(
     arg: Any, src_bytes: bytes, class_name: str | None
 ) -> tuple[str, str] | None:
@@ -1137,7 +1137,7 @@ def _named_entry_names(
 ## @param class_name Enclosing class, for a `self.`-qualified callee.
 ## @return (qualified, tail), or None when the body has zero or several calls.
 ## @version 1
-## @dg_internal
+## @utility
 def _lambda_entry(node: Any, src_bytes: bytes, class_name: str | None) -> tuple[str, str] | None:
     """A body with EXACTLY ONE call is that thread's entry; more than one is
     ambiguous ("which is the loop?") and stays fail-closed so a thread is never

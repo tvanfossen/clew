@@ -204,7 +204,7 @@ def parse_contexts(path: Path, repo_root: Path) -> dict[str, dict[int, set[str]]
 ## v2: only the run phase names a test.
 ## v3 (2.0.0, W11): the key keeps the test's file.
 ## @version 3
-## @dg_internal
+## @utility
 def _context_test(context: str) -> str:
     """PARAMETERS ARE CUT AT THE FIRST "[" before the name is taken: a parameter id may itself
     hold "::" and "]" (`test_x[a::b[c]-enhanced]` read as a test called `enhanced]`). ONLY THE
@@ -307,7 +307,7 @@ def parse_features(repo_root: Path, globs: Iterable[str]) -> list[Scenario]:
 ## @param text Its content.
 ## @return Scenarios.
 ## @version 1
-## @dg_internal
+## @utility
 def _scenarios(rel: str, text: str) -> list[Scenario]:
     """FEATURE TAGS APPLY TO EVERY SCENARIO, a Rule's to the scenarios under it; an Examples
     block's tags select example rows, not requirements, and are dropped.
@@ -339,7 +339,7 @@ def _scenarios(rel: str, text: str) -> list[Scenario]:
 ## @param token The token.
 ## @return The tag.
 ## @version 1
-## @dg_internal
+## @utility
 def _tag(token: str) -> str:
     """@brief Normalise a tag. @return Tag."""
     tag = token[1:]
@@ -351,7 +351,7 @@ def _tag(token: str) -> str:
 ## @return The text.
 ## v2: the cap is this build's tests.max_report_mb (2.0.0, R5-CFG C9)
 ## @version 2
-## @dg_internal
+## @utility
 def _text(path: Path) -> str:
     """@brief Read capped. @return Text."""
     from .evidence import check_report_size
@@ -367,7 +367,7 @@ def _text(path: Path) -> str:
 ## @param text The report.
 ## @return (name, status, message) cases.
 ## @version 1
-## @dg_internal
+## @utility
 def _ctest(text: str) -> list[tuple[str, str, str]]:
     """@brief Read CTest. @return Cases."""
     return [
@@ -380,7 +380,7 @@ def _ctest(text: str) -> list[tuple[str, str, str]]:
 ## @param text The report.
 ## @return Cases.
 ## @version 1
-## @dg_internal
+## @utility
 def _catch2(text: str) -> list[tuple[str, str, str]]:
     """A CASE THAT SKIPPED (`skips > 0`) is skipped even though Catch2 counts it a success.
 
@@ -403,7 +403,7 @@ def _catch2(text: str) -> list[tuple[str, str, str]]:
 ## @param text The report.
 ## @return Cases named by their test function.
 ## @version 1
-## @dg_internal
+## @utility
 def _ceedling(text: str) -> list[tuple[str, str, str]]:
     """@brief Read Ceedling. @return Cases."""
     root = ET.fromstring(text)
@@ -423,7 +423,7 @@ def _ceedling(text: str) -> list[tuple[str, str, str]]:
 ## @param text The output.
 ## @return Cases.
 ## @version 1
-## @dg_internal
+## @utility
 def _unity(text: str) -> list[tuple[str, str, str]]:
     """@brief Read Unity. @return Cases."""
     out = []
@@ -438,7 +438,7 @@ def _unity(text: str) -> list[tuple[str, str, str]]:
 ## @param text The stream.
 ## @return Cases; `# SKIP` and `# TODO` are skipped (a TODO is an expected failure).
 ## @version 1
-## @dg_internal
+## @utility
 def _tap(text: str) -> list[tuple[str, str, str]]:
     """@brief Read TAP. @return Cases."""
     out = []
@@ -456,7 +456,7 @@ def _tap(text: str) -> list[tuple[str, str, str]]:
 ## @param text The report.
 ## @return Cases named by function, parameters dropped.
 ## @version 1
-## @dg_internal
+## @utility
 def _pytest_json(text: str) -> list[tuple[str, str, str]]:
     """@brief Read pytest-json-report. @return Cases."""
     out = []
@@ -499,7 +499,7 @@ def parse_needs(path: Path) -> dict[str, dict[str, str]]:
 ## @param text The report.
 ## @return Cases named by test, parameters dropped.
 ## @version 1
-## @dg_internal
+## @utility
 def _ctrf(text: str) -> list[tuple[str, str, str]]:
     """`pending` IS A SKIP AND `other` AN ERROR — never a pass.
 
@@ -521,7 +521,7 @@ def _ctrf(text: str) -> list[tuple[str, str, str]]:
 ## @param root The resolved repository root.
 ## @return (file, line, hits) rows; non-executable lines are not rows.
 ## @version 1
-## @dg_internal
+## @utility
 def _gcov_text(path: Path, root: Path) -> list[tuple[str, int, int]]:
     """@brief Read .gcov. @return Rows."""
     rel, rows = "", []
@@ -543,7 +543,7 @@ def _gcov_text(path: Path, root: Path) -> list[tuple[str, int, int]]:
 ## @param root The resolved repository root.
 ## @return Rows.
 ## @version 1
-## @dg_internal
+## @utility
 def _gcov_json(path: Path, root: Path) -> list[tuple[str, int, int]]:
     """@brief Read gcov JSON. @return Rows."""
     doc = json.loads(_text(path))
@@ -561,7 +561,7 @@ def _gcov_json(path: Path, root: Path) -> list[tuple[str, int, int]]:
 ## @param root The resolved repository root.
 ## @return The repo-relative path, or the name as written.
 ## @version 1
-## @dg_internal
+## @utility
 def _relative(name: str, base: Path, root: Path) -> str:
     """AN ABSOLUTE PATH needs only to lie under the repository; a RELATIVE one must resolve to a
     file there, from the root first, then from the report's base.

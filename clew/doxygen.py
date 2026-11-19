@@ -463,7 +463,7 @@ class DoxyfileResolution:
 
     ## @brief Store the classified kind, its message, and whether it is fatal.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def __init__(self, kind: str, message: str, is_error: bool) -> None:
         self.kind = kind
         self.message = message
@@ -501,7 +501,7 @@ def rejected_doxyfile_candidates(repo: Path) -> list[Path]:
 ## @param candidates Doxyfiles found but not adopted.
 ## @return One of the DOXYFILE_* situation constants.
 ## @version 1
-## @dg_internal
+## @utility
 def _doxyfile_situation(
     explicit: Path | None,
     repo_root: Path | None,
@@ -527,7 +527,7 @@ def _doxyfile_situation(
 ## @brief Phrase the explicit-but-absent --doxyfile situation.
 ## @return The message naming the path tried and the flag that changes the outcome.
 ## @version 1
-## @dg_internal
+## @utility
 def _msg_explicit_missing(explicit: Path | None, _root: Path | None, _cands: list[Path]) -> str:
     """@brief Message for a --doxyfile path that is not on disk."""
     return (
@@ -542,7 +542,7 @@ def _msg_explicit_missing(explicit: Path | None, _root: Path | None, _cands: lis
 ## @brief Phrase the no-flags-at-all situation.
 ## @return The message naming --repo-root as the missing input.
 ## @version 1
-## @dg_internal
+## @utility
 def _msg_no_target(_explicit: Path | None, _root: Path | None, _cands: list[Path]) -> str:
     """@brief Message for neither --doxyfile nor --repo-root."""
     return (
@@ -556,7 +556,7 @@ def _msg_no_target(_explicit: Path | None, _root: Path | None, _cands: list[Path
 ## @brief Phrase the found-but-not-trusted situation, carrying the refusal's reasoning.
 ## @return The message naming where candidates were found and why they were declined.
 ## @version 1
-## @dg_internal
+## @utility
 def _msg_rejected(_explicit: Path | None, repo_root: Path | None, candidates: list[Path]) -> str:
     """@brief Message for stray Doxyfiles discovery declined to adopt."""
     root = Path(repo_root) if repo_root is not None else None
@@ -575,7 +575,7 @@ def _msg_rejected(_explicit: Path | None, repo_root: Path | None, candidates: li
 ## @brief Phrase the genuinely-Doxyfile-less situation as the supported path it is.
 ## @return The message stating synthesis will be used.
 ## @version 1
-## @dg_internal
+## @utility
 def _msg_absent(_explicit: Path | None, repo_root: Path | None, _cands: list[Path]) -> str:
     """@brief Message for a repo that ships no Doxyfile."""
     return (
@@ -839,7 +839,7 @@ def _exclude_lines(paths: list[str]) -> str:
 ## @param kind Which key they are destined for, for the warning.
 ## @return The paths safe to inline, in order.
 ## @version 1
-## @dg_internal
+## @utility
 def _inlineable(paths: list[str], kind: str) -> list[str]:
     """DOXYGEN'S CONFIG IS LINE-BASED, so a path containing a newline TERMINATES the
     assignment and everything after it becomes a new directive. POSIX allows every byte
@@ -880,7 +880,7 @@ def _inlineable(paths: list[str], kind: str) -> list[str]:
 ## @param predefined Pre-rendered `PREDEFINED +=` text from the target's declaration.
 ## @return The same text with injected directive lines removed.
 ## @version 1
-## @dg_internal
+## @utility
 def _safe_predefined(predefined: str) -> str:
     """A `PREDEFINED` block is a sequence of `PREDEFINED += ...` continuation lines and nothing
     else. Any line that instead assigns some OTHER doxygen key got there by injection: the
@@ -917,7 +917,7 @@ def _safe_predefined(predefined: str) -> str:
 ## @brief Bucket a doxygen-stdout line: warning, file, phase, or other.
 ## @version 1
 ## @return One of "warning", "file", "phase", or "other" classifying the line.
-## @dg_internal
+## @utility
 def _classify_doxygen_line(line: str) -> str:
     """Bucket a doxygen-stdout line: warning, file, phase, or other."""
     lower = line.lower()
@@ -939,7 +939,7 @@ _ABANDONED_OUTPUT_DIRS = ("xml", "html", "latex", "rtf", "man", "docbook")
 ## @param output_dir The forced doxygen output directory for this target.
 ## @return Number of directories removed.
 ## @version 1
-## @dg_internal
+## @utility
 def _prune_abandoned_output(output_dir: Path) -> int:
     """MEASURED WASTE, not hygiene theatre: 1,017 MB across 14,630 files sat in one target's
     `clew.doxygen/xml/`, produced before `GENERATE_XML = NO` became a forced flag and never
@@ -981,7 +981,7 @@ def _prune_abandoned_output(output_dir: Path) -> int:
 ## @param proc The running doxygen process, spawned as its own session leader.
 ## @return None.
 ## @version 1
-## @dg_internal
+## @utility
 def _reap_process_group(proc: subprocess.Popen) -> None:
     """KILLS THE GROUP, NOT THE PID. `proc.kill()` reaches the process we hold and nothing it
     spawned; the observed leak was a child outliving the call entirely, at multi-GB resident,
@@ -1013,7 +1013,7 @@ def _reap_process_group(proc: subprocess.Popen) -> None:
 ## @param content The complete generated Doxyfile text.
 ## @return None.
 ## @version 1
-## @dg_internal
+## @utility
 def _write_doxyfile_stdin(proc: subprocess.Popen, content: str) -> None:
     """RUNS ON A THREAD SO BOTH PIPES ARE SERVICED AT ONCE. Writing the config from the main
     thread and only then reading stdout deadlocks whenever the config exceeds the pipe buffer and
@@ -1070,7 +1070,7 @@ class DoxygenOutput:
 ## v2: also keeps a bounded tail and a parsed-file count, because a crash's own message was
 ## classified `other` and discarded, leaving a failure report with nothing in it.
 ## @version 2
-## @dg_internal
+## @utility
 def _consume_doxygen_output(proc: subprocess.Popen) -> DoxygenOutput:
     """Drive a progress bar from doxygen's stdout, and keep what a failure report needs.
 
@@ -1111,7 +1111,7 @@ def _consume_doxygen_output(proc: subprocess.Popen) -> DoxygenOutput:
 
 ## @brief Print first warnings + count of any suppressed.
 ## @version 2
-## @dg_internal
+## @utility
 def _surface_doxygen_warnings(warn_count: int, first_warnings: list[str]) -> None:
     """Print first warnings + count of any suppressed, onto whichever console is
     active — this is one of the two writers in the build path that renders outside
@@ -1556,7 +1556,7 @@ _SANITIZE_TARGETS = (
 ## @brief Repair one text column's invalid-UTF-8 rows; return the count fixed.
 ## @version 2
 ## @return Number of rows in table.col whose invalid UTF-8 bytes were replaced.
-## @dg_internal
+## @utility
 def _repair_utf8_column(conn: sqlite3.Connection, table: str, col: str) -> int:
     """UPDATE rows of `table.col` whose bytes aren't valid UTF-8 to the
     errors='replace' form. Reads under text_factory=bytes."""
@@ -1768,7 +1768,7 @@ def warn_if_no_function_bodies(db_path: Path) -> int:
 ## @param repo_root Repository root.
 ## @return Relative name, or None when the path lies outside the repo.
 ## @version 2
-## @dg_internal
+## @utility
 def _under_root(path: Path, repo_root: Path) -> str | None:
     """@brief Make an absolute stored path repo-root-relative.
 
@@ -1787,7 +1787,7 @@ def _under_root(path: Path, repo_root: Path) -> str | None:
 ## @param repo_root Repository root.
 ## @return Relative name, or None when no prefix reconstructs an existing file.
 ## @version 1
-## @dg_internal
+## @utility
 def _reattached(name: str, strip_dirs: list[Path], repo_root: Path) -> str | None:
     """@brief Re-attach each STRIP_FROM_PATH prefix until one names a real file.
 
@@ -1809,7 +1809,7 @@ def _reattached(name: str, strip_dirs: list[Path], repo_root: Path) -> str | Non
 ## @param repo_root Repository root.
 ## @return The relative name, or None when it cannot be reconstructed.
 ## @version 2
-## @dg_internal
+## @utility
 def _relative_name(name: str, strip_dirs: list[Path], repo_root: Path) -> str | None:
     """Handles the ABSOLUTE case first, because the obvious "is it already fine?"
     test cannot see it: `Path("/repo") / "/abs/p"` returns `/abs/p`, which exists,

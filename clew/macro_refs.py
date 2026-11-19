@@ -119,7 +119,7 @@ class MacroRefHarvester(Harvester):
 # @param src_bytes File bytes.
 # @return (body node, function name) pairs.
 # @version 1
-# @dg_internal
+# @utility
 def _function_bodies(root: Any, src_bytes: bytes) -> list[tuple[Any, str]]:
     """The BODY node, not the whole definition, so a macro in the return type or a parameter
     default is not attributed to the function. gh#9's reporter conceded that return-type use is
@@ -149,7 +149,7 @@ def _function_bodies(root: Any, src_bytes: bytes) -> list[tuple[Any, str]]:
 # @param src_bytes File bytes.
 # @return The bare name, or "" when it cannot be read.
 # @version 4
-# @dg_internal
+# @utility
 def _definition_name(node: Any, src_bytes: bytes) -> str:
     """ONE UNWRAPPER, SHARED. `ast_symbols._function_declarator` is the single place that knows
     how a definition's declarator nests, and it is used here rather than re-implemented — an
@@ -195,7 +195,7 @@ def _definition_name(node: Any, src_bytes: bytes) -> str:
 # @param src_bytes File bytes.
 # @return (identifier text, 1-based line) pairs.
 # @version 1
-# @dg_internal
+# @utility
 def _identifiers_in(body: Any, src_bytes: bytes) -> list[tuple[str, int]]:
     """@brief Collect identifier text and line from a subtree.
     @return (name, line) pairs.
@@ -267,7 +267,7 @@ def macro_definitions(
 ## v4 (2.0.0): decided by `query._common.decided_default`, the query layer's rule, so a shipped
 ## header settles a disagreement with an alternative profile here as it does in a dossier.
 ## @version 4
-## @dg_internal
+## @utility
 def _shipped_states(
     conn: sqlite3.Connection, test_patterns: tuple[str, ...] | list[str] | None = None
 ) -> dict[str, bool]:
@@ -307,7 +307,7 @@ def _shipped_states(
 ## @param states The shipped option states.
 ## @return False (excluded), else None (not known to be excluded).
 ## @version 1
-## @dg_internal
+## @utility
 def _compiled(
     conn: sqlite3.Connection, file_path: str, line: int, states: dict[str, bool]
 ) -> bool | None:
@@ -335,7 +335,7 @@ def _compiled(
 ## @return The definitions credited.
 ## v2 (2.0.0): a definition in a source file is credited only from that file.
 ## @version 2
-## @dg_internal
+## @utility
 def _same_file_first(rowids: list[int], path_rowid: int, conn: sqlite3.Connection) -> list[int]:
     """A REFERENCE IN THE FILE THAT DEFINES THE NAME means that file's definition; otherwise every
     kept definition is credited — several rows rather than one arbitrary pick.
@@ -373,7 +373,7 @@ def _same_file_first(rowids: list[int], path_rowid: int, conn: sqlite3.Connectio
 ## @param files Candidate repo-relative paths.
 ## @return The subset that is test code.
 ## @version 1
-## @dg_internal
+## @utility
 def _test_files(
     conn: sqlite3.Connection, test_patterns: tuple[str, ...] | list[str] | None, files: set[str]
 ) -> set[str]:
@@ -408,7 +408,7 @@ _SOURCE_SUFFIXES = (".c", ".cc", ".cpp", ".cxx", ".c++")
 ## @param name The repo-relative path.
 ## @return True for a C/C++ source file.
 ## @version 1
-## @dg_internal
+## @utility
 def _is_source_file(name: str) -> bool:
     """@brief Source-file test. @return Bool."""
     return name.lower().endswith(_SOURCE_SUFFIXES)
@@ -418,7 +418,7 @@ def _is_source_file(name: str) -> bool:
 ## @param conn Open connection.
 ## @return Bool.
 ## @version 1
-## @dg_internal
+## @utility
 def _has_path(conn: sqlite3.Connection) -> bool:
     """@brief Table probe. @return Bool."""
     return conn.execute("SELECT 1 FROM sqlite_master WHERE name = 'path'").fetchone() is not None

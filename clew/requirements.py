@@ -191,7 +191,7 @@ def _is_flat_req_list(data: object, id_col: str) -> bool:
 ## @brief Create (or reset) the `requirements` table.
 ## v2 (2.0.0, S4): the 29148 columns and `extra`.
 ## @version 2
-## @dg_internal
+## @utility
 def _create_requirements_table(conn: sqlite3.Connection) -> None:
     """Create the requirements table schema, dropping any prior rows.
 
@@ -224,7 +224,7 @@ def _create_requirements_table(conn: sqlite3.Connection) -> None:
 
 ## @brief Create (or reset) the `requirement_links` table (GH #68).
 ## @version 1
-## @dg_internal
+## @utility
 def _create_links_table(conn: sqlite3.Connection) -> None:
     """ALWAYS CREATED, even with no catalogue: an empty table means "looked, no links"; an absent
     one means an index from before the layer.
@@ -269,7 +269,7 @@ def satisfies_ids(value: object) -> list[str]:
 ## @param keys Candidate keys, most specific first.
 ## @return The first truthy value, or None.
 ## @version 2
-## @dg_internal
+## @utility
 def _first(entry: dict, *keys: str) -> object | None:
     """ONE CATALOG, TWO VOCABULARIES. Our own flat shape says `{block, title, acceptance,
     priority}`; doxygen-guard's keyed YAML catalog says `{subsystem, name,
@@ -371,7 +371,7 @@ _READ_ELSEWHERE = ("satisfies", "version", "x-version")
 ## @param value The catalog value.
 ## @return Text, or None.
 ## @version 1
-## @dg_internal
+## @utility
 def _scalar(value: object) -> str | None:
     """@brief Column text. @return Text or None."""
     if value is None or isinstance(value, str):
@@ -513,7 +513,7 @@ _SENTENCE_TAIL = ".,;:"
 ## @return The matching id, or '' when the token denotes none.
 ## @version 1
 ## @req REQ-DDB-SCHEMA-006
-## @dg_internal
+## @utility
 def _matched_req_id(token: str, req_id_pattern: re.Pattern[str]) -> str:
     """GREEDY FIRST, AND THAT ORDER IS THE WHOLE SAFETY ARGUMENT (gh#20). A `@req` that
     follows `@brief` with no blank line continues the brief paragraph, and doxygen appends
@@ -612,7 +612,7 @@ def _extract_xref_req_tags(
 
 ## @brief Create (or reset) the `req_edges` table + indexes.
 ## @version 3
-## @dg_internal
+## @utility
 def _create_req_edges_table(conn: sqlite3.Connection) -> None:
     """Create the req_edges table schema, dropping any prior rows.
 
@@ -696,7 +696,7 @@ def import_req_edges(
 ## @param file_path Indexed file path (relative to repo root).
 ## @return True if the name/path matches common test-function conventions.
 ## @version 1
-## @dg_internal
+## @utility
 def _looks_like_test_function(name: str, file_path: str | None) -> bool:
     """Test-name heuristic: `test_` prefix, or the file path contains 'test'.
 
@@ -713,7 +713,7 @@ def _looks_like_test_function(name: str, file_path: str | None) -> bool:
 
 ## @brief Create (or reset) the `req_test_edges` table.
 ## @version 1
-## @dg_internal
+## @utility
 def _create_req_test_edges_table(conn: sqlite3.Connection) -> None:
     """Create the req_test_edges table schema, dropping any prior rows.
 
@@ -796,7 +796,7 @@ def import_req_test_edges(db_path: Path, test_patterns: tuple[str, ...] | None =
 ## @brief Return True if a table exists in the connected DB.
 ## @version 1
 ## @return True if a table with the given name exists in the connected DB, else False.
-## @dg_internal
+## @utility
 def _table_exists(conn: sqlite3.Connection, name: str) -> bool:
     """Check whether a table exists (build-time equivalent of the docs
     server's `_has_table`).
@@ -932,7 +932,7 @@ def resolve_catalog_path(guard_cfg: dict | None, repo_root: Path) -> Path | None
 ## @return The declared path string, or '' when nothing is declared.
 ## v3: reads the top-level requirements: section (2.0.0, R5-CFG F7)
 ## @version 3
-## @dg_internal
+## @utility
 def _declared_catalog_field(guard_cfg: dict | None) -> str:
     """Split out purely to keep `declared_catalog_path` inside the max-3-returns
     standard, which the combined form breached at four.
@@ -1029,7 +1029,7 @@ def read_catalog_at(repo_root: Path | str, source: str | dict) -> dict[str, dict
 ## @param text The source.
 ## @return None.
 ## @version 1
-## @dg_internal
+## @utility
 def _refuse_url(text: str) -> None:
     """@brief URL check. @return None."""
     if _URLISH.match(text.strip()):
@@ -1043,7 +1043,7 @@ def _refuse_url(text: str) -> None:
 ## @param data The parsed document.
 ## @return {id: row}.
 ## @version 1
-## @dg_internal
+## @utility
 def _catalog_rows(data: object) -> dict[str, dict[str, str]]:
     """@brief Rows. @return Mapping."""
     if isinstance(data, dict) and isinstance(data.get("requirements"), dict):

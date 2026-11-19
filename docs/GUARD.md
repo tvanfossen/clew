@@ -114,6 +114,9 @@ int Sensor_ReadTemperature(void) {
    `.clew.yaml` (beside `guard:`, not inside it). The `x-` passthrough is gone.
 4. If the hook passed `--config conf/doxygen-guard.yaml`, drop the argument (the gate reads
    `.clew.yaml` at the root) or point it at the moved file.
+5. Replace every `@dg_internal` with `@utility` (a plain text replace; the gate refuses the old
+   tag, naming the new one). Where a member's doc block sits inside a class body, the class may
+   then ask for its own `@version` bump, because its body text changed.
 
 ## What it checks
 
@@ -127,9 +130,12 @@ Every function in a staged file is checked for:
 
 | Exemption tag | Effect |
 |---|---|
-| `@dg_internal` | Exempt from `@req`; left out of the coverage report's unmapped list |
-| `@utility` | Exempt from `@req` |
-| `@callback` | Exempt from `@req` |
+| `@utility` | Exempt from `@req`, and left out of the coverage report's unmapped list: a helper with no requirement behind it |
+| `@callback` | Exempt from `@req`, and left out of the unmapped list: a function a framework calls |
+
+`@dg_internal`, doxygen-guard's tag, was removed in 2.0.0 and is refused with a pointer to
+`@utility`. It is not `@internal` on purpose: doxygen's `\internal` hides every tag after it in
+the block when `INTERNAL_DOCS` is off, which is doxygen's default.
 
 These are tool vocabulary, not doxygen commands; `clew guard doxyfile` emits the `ALIASES`
 that keep doxygen quiet about them. `@internal` is recognised but grants no exemption (it

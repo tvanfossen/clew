@@ -536,11 +536,13 @@ class TestExemptionTagsAreToolOwned:
     Doxygen's \\internal suppresses everything after it in the block when INTERNAL_DOCS
     is off, while this tool kept reading tags past it — so a block written to satisfy
     the gate silently lost its @return in generated documentation. Exemption now uses
-    @dg_internal, which doxygen has no meaning for.
+    @utility, which doxygen has no meaning for.
     """
 
-    def test_dg_internal_exempts(self):
-        assert "dg_internal" in EXEMPTION_TAGS
+    def test_utility_exempts_and_the_removed_dg_internal_does_not(self):
+        """2.0.0 (PG1, owner): `dg_internal` folded into `utility`; see test_guard_utility_fold."""
+        assert "utility" in EXEMPTION_TAGS
+        assert "dg_internal" not in EXEMPTION_TAGS
 
     def test_internal_no_longer_exempts(self):
         assert "internal" not in EXEMPTION_TAGS
@@ -550,7 +552,8 @@ class TestExemptionTagsAreToolOwned:
         func = _make_func(tags={"brief": ["B."], "version": ["1.0"], "internal": [""]})
         assert check_unknown_tags(func, "a.c", CONFIG_DEFAULTS) == []
 
-    def test_dg_internal_is_a_recognised_tag(self):
+    def test_dg_internal_is_left_to_the_removal_check(self):
+        """2.0.0 (PG1): not an unknown tag; `check_removed_tags` refuses it, naming `@utility`."""
         func = _make_func(tags={"brief": ["B."], "version": ["1.0"], "dg_internal": [""]})
         assert check_unknown_tags(func, "a.c", CONFIG_DEFAULTS) == []
 
@@ -566,7 +569,7 @@ class TestExemptionTagsAreToolOwned:
         violations = check_req_coverage([func], "a.c", config)
         assert violations
         message = violations[0].message
-        assert "@dg_internal" in message
+        assert "@utility" in message
         assert "@internal," not in message
 
 

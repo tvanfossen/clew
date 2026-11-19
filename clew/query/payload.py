@@ -37,7 +37,7 @@ from . import _common
 ## moment a model had been told its name was ambiguous, so it steered the retry into a guaranteed
 ## miss. It now names the field the code accepts.
 ## @version 2
-## @dg_internal
+## @utility
 def _ambiguity_block(db: Path, built: Any) -> dict[str, Any] | None:
     """`candidates` DISAMBIGUATES THE IDENTITY; NOTHING DISAMBIGUATES THE EDGES. That
     sentence is this repo's own recorded finding (gh#26): `dossier('_classify')` names
@@ -104,7 +104,7 @@ _NO_SEED_NOTE = (
 ## @param also The other kinds this same name resolves to.
 ## @return A note string, or "" when the empty list can be trusted.
 ## @version 2
-## @dg_internal
+## @utility
 def _empty_callers_note(payload: dict[str, Any], also: tuple[str, ...]) -> str:
     """gh#4, AND IT CHANGED A REAL DECISION. A reporter asked `dossier("ProgressBar")`, got the
     constructor with `callers: []`, and reported the class as having two production callers in a
@@ -144,7 +144,7 @@ def _empty_callers_note(payload: dict[str, Any], also: tuple[str, ...]) -> str:
 ## @param sites The recorded unresolved inbound site count, or None when unmeasured.
 ## @return The note, or "" when there is nothing measured to report.
 ## @version 1
-## @dg_internal
+## @utility
 def _refusal_note(sites: Any) -> str:
     """None IS NOT ZERO. An index built before the measurement existed reports None, and reading
     that as "nothing was refused" would assert a clean bill of health from a detector that could
@@ -171,7 +171,7 @@ def _refusal_note(sites: Any) -> str:
 ## @param also The other kinds this same name resolves to.
 ## @return The note, or "" when this is not the constructor case.
 ## @version 1
-## @dg_internal
+## @utility
 def _constructor_note(also: tuple[str, ...]) -> str:
     """gh#4's rule, kept because it answers on an index that carries no measurement — and
     because it names a DIFFERENT missing thing: not a call whose receiver went unresolved, but a
@@ -208,7 +208,7 @@ _MAX_CANDIDATES = _common.MAX_CANDIDATES
 ## @param name The bare name.
 ## @return The count, or 0 when it cannot be read.
 ## @version 1
-## @dg_internal
+## @utility
 def _distinct_identities(db: Path, name: str) -> int:
     """COUNTED FROM THE SAME PREDICATE `candidate_rows` SLICES, so the total and the sample cannot
     describe different sets. Tolerates any failure with 0, because this runs while decorating an
@@ -243,7 +243,7 @@ def _distinct_identities(db: Path, name: str) -> int:
 ## REJECTED. Advertising a parameter that does not exist is the same defect in a second place, so
 ## that clause is gone rather than reworded.
 ## @version 2
-## @dg_internal
+## @utility
 def _candidates_capped(db: Path | None, payload: dict[str, Any]) -> dict[str, Any] | None:
     """SILENT TRUNCATION ON THE ONE FIELD WHOSE JOB IS DISAMBIGUATION. `MAX_CANDIDATES` is 8 and
     `candidate_rows` slices to it with no disclosure, so `dossier("main")` on mbedtls returned 8 of
@@ -296,7 +296,7 @@ def _candidates_capped(db: Path | None, payload: dict[str, Any]) -> dict[str, An
 ## v7: a requirement's `mentioned_in` is dropped when the index never scanned for mentions.
 ## v8: likewise `satisfies` / `satisfied_by` before the links layer existed (GH #68).
 ## @version 8
-## @dg_internal
+## @utility
 def _flatten_subject(built: Any, db: Path | None = None, depth: int = 1) -> dict[str, Any] | None:
     """FLAT, NOT NESTED, and the reason is the budget rather than taste. Every trimmer on
     this surface — `_DOSSIER_LISTS`, `_shrink_to_budget`, `_budget_batch` — addresses
@@ -387,7 +387,7 @@ _BUILD_WIDE_KEYS = ("configured_macros", "configured_macros_source", "config_hea
 ## call, because the model receives up to eight negatives at once with no indication which
 ## were near misses.
 ## @version 2
-## @dg_internal
+## @utility
 def _hoist_build_wide(entries: list[dict[str, Any]], out: dict[str, Any]) -> None:
     """FIRES ONLY ON UNANIMITY, which is the guard that makes this safe rather than merely
     smaller. If two entries disagree about a key, that key is not build-wide in this reply — it is
@@ -417,7 +417,7 @@ def _hoist_build_wide(entries: list[dict[str, Any]], out: dict[str, Any]) -> Non
 ## @param not_attempted Symbols beyond the per-payload cap, never looked up.
 ## @return The disclosure, or None when every gate resolved.
 ## @version 1
-## @dg_internal
+## @utility
 def _gate_definition_gaps(no_sites: list[str], not_attempted: list[str]) -> dict[str, Any] | None:
     """TWO GAPS THAT LOOKED IDENTICAL AND MEAN OPPOSITE THINGS.
 
@@ -465,7 +465,7 @@ def _gate_definition_gaps(no_sites: list[str], not_attempted: list[str]) -> dict
 ## @param payload The flattened dossier payload, read for its gate rows.
 ## @return Mapping of gate symbol to its definition sites, or {} when nothing resolves.
 ## @version 3
-## @dg_internal
+## @utility
 def _gate_definitions(db: Any, payload: dict[str, Any]) -> dict[str, Any]:
     """A NAMED UNKNOWN IN A PAYLOAD IS AN INSTRUCTION TO GO LOOKING. `gated_by` said the code is
     conditional on `MBEDTLS_ALLOW_PRIVATE_ACCESS` and never said where that symbol is DEFINED, so
@@ -573,7 +573,7 @@ _DOSSIER_OPTIONAL = (
 ## @param unresolved Unsupported kinds the index nevertheless holds for the name.
 ## @return A sentence to append, or "" when the name is genuinely absent.
 ## @version 1
-## @dg_internal
+## @utility
 def _kind_limitation_clause(unresolved: tuple[str, ...]) -> str:
     """gh#6. `SUBJECT_KINDS` has no `enumeration`, while `SEARCHED_MEMBERDEF_KINDS` does — so
     `search` finds a C enum, its enumerators and a C++ `enum class`, and `dossier` calls the same
@@ -612,7 +612,7 @@ def _kind_limitation_clause(unresolved: tuple[str, ...]) -> str:
 ## from what the index already held. A batched miss needs it MORE than a single one, because the
 ## model gets eight negatives at once and no indication which were near misses.
 ## @version 3
-## @dg_internal
+## @utility
 def _batch_miss(name: str, unresolved: tuple[str, ...] = (), hint: str = "") -> dict[str, Any]:
     """PER SYMBOL, NEVER PER CALL. One unresolvable name in a batch of five must not
     fail the other four, and it must not vanish either: a dropped entry would silently
@@ -645,7 +645,7 @@ def _batch_miss(name: str, unresolved: tuple[str, ...] = (), hint: str = "") -> 
 ## v2 (1.3.10, owner ruling 2026-11-13): over the cap is ANSWERED for the first
 ## `MAX_BATCH_SYMBOLS` and the rest are returned to be named in `not_answered`, not refused.
 ## @version 2
-## @dg_internal
+## @utility
 def _accepted_batch(names: list[str], qualified: str | None) -> tuple[list[str], list[str]]:
     """TWO REFUSALS REMAIN, one rule changed. An empty list would answer `count: 0` to a request
     that asked for something, and `qualified` beside a list would scope every dossier by one
@@ -679,7 +679,7 @@ def _accepted_batch(names: list[str], qualified: str | None) -> tuple[list[str],
 ## @param overflow The names over the cap.
 ## @return None.
 ## @version 1
-## @dg_internal
+## @utility
 def disclose_overflow(out: dict[str, Any], overflow: list[str]) -> None:
     """ABSENT WHEN NOTHING WAS LEFT OUT, so an ordinary batch carries nothing.
 
@@ -706,7 +706,7 @@ _GATE_INVARIANTS = ("symbol", "macro", "form", "default_state", "default_site", 
 ## @param payload A serialized config reply.
 ## @return The same payload with shared gate fields hoisted to `gates_shared`.
 ## @version 1
-## @dg_internal
+## @utility
 def _compact_gate_panel(payload: dict[str, Any]) -> dict[str, Any]:
     """MEASURED on the rebuilt mbedtls index: `dossier("MBEDTLS_THREADING_C")` serves 154 gate
     rows at 39,884 bytes, and `symbol`, `macro`, `form`, `default_state` and `default_site` each
@@ -761,7 +761,7 @@ def _compact_gate_panel(payload: dict[str, Any]) -> dict[str, Any]:
 ## v2: chains `_compact_gate_panel`, so all three routes that serialize a `KconfigSpace` inherit
 ## the compaction — the lesson of the `found` collision, where fixing one route left two broken.
 ## @version 2
-## @dg_internal
+## @utility
 def _config_found_on_the_wire(payload: dict[str, Any]) -> dict[str, Any]:
     """Split out of `_search_config` so the re-keying is testable without a tool set, and so the
     one place the two meanings are reconciled is named rather than inline.
@@ -834,7 +834,7 @@ def compact_neighbours(payload: dict[str, Any]) -> dict[str, Any]:
 ## @param rows Every neighbour row of the reply.
 ## @return {field: most common value}.
 ## @version 1
-## @dg_internal
+## @utility
 def _edge_defaults(rows: list[dict[str, Any]]) -> dict[str, Any]:
     """@brief Pick per-field modal values. @return Defaults."""
     from collections import Counter
@@ -854,7 +854,7 @@ def _edge_defaults(rows: list[dict[str, Any]]) -> dict[str, Any]:
 ## @param defaults The reply's edge defaults.
 ## @return [{"file", "rows"}] in first-seen file order.
 ## @version 1
-## @dg_internal
+## @utility
 def _grouped(rows: list[Any], defaults: dict[str, Any]) -> list[dict[str, Any]]:
     """@brief Group and strip. @return Groups."""
     groups: dict[str | None, list[dict[str, Any]]] = {}
@@ -920,7 +920,7 @@ def compact_docs(payload: dict[str, Any]) -> dict[str, Any]:
 ## @param lines The served body lines.
 ## @return The uncarried sentences ([] when all are carried), or None when NO sentence is carried.
 ## @version 1
-## @dg_internal
+## @utility
 def _uncarried_sentences(text: str, lines: list[str]) -> list[str] | None:
     """ORDERED CONTAINMENT, NOT OVERLAP: a sentence is carried only when its words occur, as one
     contiguous run, in the body's words — the words of a sentence that is not in the body can all

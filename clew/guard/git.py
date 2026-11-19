@@ -34,7 +34,7 @@ GIT_ERRORS = (
 
 ## @brief Default command runner using subprocess.
 #  @version 1.3
-#  @dg_internal
+#  @utility
 def _default_run_command(cmd: list[str]) -> str:
     result = subprocess.run(
         cmd,
@@ -194,7 +194,7 @@ def get_branch_diff_range(
 
 ## @brief Get the current HEAD commit SHA.
 #  @version 1.1
-#  @dg_internal
+#  @utility
 def _rev_parse_head(run_command: RunCommand | None) -> str | None:
     result = run_git(["git", "rev-parse", "HEAD"], run_command)
     return result.strip() if result is not None else None

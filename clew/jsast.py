@@ -60,7 +60,7 @@ _COMPOUND_KINDS = {
 ## @param tree A parsed tree.
 ## @return True for a `program`-rooted tree with no bash-only node.
 ## @version 2
-## @dg_internal
+## @utility
 def is_js_tree(tree: Any) -> bool:
     """`program` IS ALSO BASH'S ROOT, so the root alone called every shell script JavaScript.
     A node kind only bash has settles it; `tree.kinds` lists every kind the parse produced.
@@ -76,7 +76,7 @@ def is_js_tree(tree: Any) -> bool:
 ## @brief Decoded text of a node, or "" for None.
 ## @return The node's UTF-8 text.
 ## @version 1
-## @dg_internal
+## @utility
 def _text(node: Any) -> str:
     return node.text.decode("utf-8", errors="replace") if node is not None and node.text else ""
 
@@ -85,7 +85,7 @@ def _text(node: Any) -> str:
 ## @param node An identifier or member expression.
 ## @return The tail name, or "" when the expression has none.
 ## @version 1
-## @dg_internal
+## @utility
 def _tail(node: Any) -> str:
     """@brief Tail name of a dotted expression."""
     while node is not None and node.type == "member_expression":
@@ -100,7 +100,7 @@ def _tail(node: Any) -> str:
 ## @return {local name: package name}.
 ## v2 (2.0.0, D7 corrected): returns each binding's package; externality is decided at link time.
 ## @version 2
-## @dg_internal
+## @utility
 def _package_bindings(node: Any) -> dict[str, str]:
     """R5-CORE D7 (2.0.0): `import React from 'react'`, `import * as R from 'react'` and
     `import { Component as C } from '@scope/ui/x'` bind `React`, `R` and `C` to the packages
@@ -146,7 +146,7 @@ def _package_bindings(node: Any) -> dict[str, str]:
 ## @param node An identifier or member expression.
 ## @return The root name, or "".
 ## @version 1
-## @dg_internal
+## @utility
 def _root_name(node: Any) -> str:
     """@brief Root of a member chain. @return Name."""
     while node is not None and node.type == "member_expression":
@@ -162,7 +162,7 @@ def _root_name(node: Any) -> str:
 ## @param node A class-like declaration.
 ## @return Tail names of every base, in order.
 ## @version 2
-## @dg_internal
+## @utility
 def _bases(node: Any) -> list[str]:
     """JavaScript writes `class A extends B` as a `class_heritage` holding the expression;
     TypeScript nests `extends_clause` / `implements_clause` inside it, and an interface uses
@@ -192,7 +192,7 @@ def _bases(node: Any) -> list[str]:
 ## @param call A `call_expression` in a class's heritage, e.g. `mix(Base).with(A, B)`.
 ## @return The argument names, innermost call first; never the helpers' own names.
 ## @version 1
-## @dg_internal
+## @utility
 def _composed_bases(call: Any) -> list[str]:
     """`extends mix(Base).with(A, B)` evaluates to a class composed FROM its arguments, so those
     are the bases; `mix` and `with` are the helpers that compose them. Reading the arguments, not
@@ -219,7 +219,7 @@ def _composed_bases(call: Any) -> list[str]:
 ## @param node A `class` expression node.
 ## @return The arrow function / function expression whose body is, or returns, the class.
 ## @version 1
-## @dg_internal
+## @utility
 def _mixin_function(node: Any) -> Any | None:
     """THE TWO FORMS A MIXIN TAKES, and only those: the class as an arrow's expression body
     (`(s) => class extends s {}`), and `return class ...` directly in a function's block. Any
@@ -242,7 +242,7 @@ def _mixin_function(node: Any) -> Any | None:
 ## @param node A class-like node.
 ## @return The name, or "" for an anonymous class that is not a mixin.
 ## @version 1
-## @dg_internal
+## @utility
 def _class_name(node: Any) -> str:
     """A MIXIN'S CLASS IS NAMED FOR ITS BINDING. `const ClientFiles = (s) => class extends s {}`
     is how the codebase refers to it — `mix(Base).with(ClientFiles)` — so the binding is its
@@ -266,7 +266,7 @@ def _class_name(node: Any) -> str:
 ## @param node A mixin's `class` expression.
 ## @return The constraint's class name, or "" when the chain is not declared.
 ## @version 1
-## @dg_internal
+## @utility
 def _mixin_base(node: Any) -> str:
     """FOLLOWS THE DECLARATION, NEVER THE NAME: `extends superclass` → the parameter
     `superclass: TBase` → the type parameter `TBase extends Constructor<ClientBase>` →
@@ -287,7 +287,7 @@ def _mixin_base(node: Any) -> str:
 
 ## @brief The bare identifier a class expression extends, or "".
 ## @version 1
-## @dg_internal
+## @utility
 def _heritage_identifier(node: Any) -> str:
     """@brief The `extends <identifier>` name. @return The name or ""."""
     for heritage in node.named_children:
@@ -301,7 +301,7 @@ def _heritage_identifier(node: Any) -> str:
 
 ## @brief The declared type name of one parameter of a function, or "".
 ## @version 1
-## @dg_internal
+## @utility
 def _parameter_type(func: Any, name: str) -> str:
     """@brief A parameter's type identifier. @return The type name or ""."""
     params = func.child_by_field_name("parameters")
@@ -320,7 +320,7 @@ def _parameter_type(func: Any, name: str) -> str:
 
 ## @brief The class a type parameter's `Constructor<X>`-style constraint names, or "".
 ## @version 1
-## @dg_internal
+## @utility
 def _constraint_class(func: Any, type_name: str) -> str:
     """ANY GENERIC CONSTRAINT WITH ONE TYPE ARGUMENT, not only one spelled `Constructor`: the
     alias is a project's own (`Constructor`, `Ctor`, `GConstructor`), and what identifies the
@@ -388,7 +388,7 @@ def harvest_definitions(tree: Any, src_bytes: bytes) -> dict[str, list[dict[str,
 ##
 ## @brief Recursive collection of classes and functions under a node.
 ## @version 6
-## @dg_internal
+## @utility
 def _walk(node: Any, spec: Any, cls: str | None, out: dict[str, list[dict[str, Any]]]) -> None:
     from .guard.ts_parser import _function_carrier, _produced_class, _resolve_function_node
 
@@ -430,7 +430,7 @@ def _walk(node: Any, spec: Any, cls: str | None, out: dict[str, list[dict[str, A
 ## @param cls The enclosing class name, or None.
 ## @return Variable records, each with its declared type (possibly empty) in `ret`.
 ## @version 3
-## @dg_internal
+## @utility
 def _typed_members(node: Any, cls: str | None) -> list[dict[str, Any]]:
     """THE RECEIVER'S DECLARED TYPE, which is what lets `this.svc.getUser()` be resolved at all.
     Two forms: a typed field (`repo: UserService;`), and a constructor parameter property
@@ -472,7 +472,7 @@ def _typed_members(node: Any, cls: str | None) -> list[dict[str, Any]]:
 ## @param bound Names the file already defines as module-level functions.
 ## @return Records; a type alias carries `kind='typedef'`.
 ## @version 1
-## @dg_internal
+## @utility
 def _module_values(root: Any, bound: set[str]) -> list[dict[str, Any]]:
     """WHAT A READER LOOKS UP AND THE INDEX DID NOT HOLD: `export type SearchRef = {...}` and
     `const WebsocketEvents = {REACTION_ADDED: ...}` were definitive negatives on mattermost-mobile,
@@ -514,7 +514,7 @@ def _module_values(root: Any, bound: set[str]) -> list[dict[str, Any]]:
 
 ## @brief One module-level binding as a declaration record.
 ## @version 1
-## @dg_internal
+## @utility
 def _value_binding(node: Any, name_node: Any, kind: str, declarator: Any = None) -> dict[str, Any]:
     """@brief A module binding record. @return Record."""
     annotation = (declarator or node).child_by_field_name("type")
@@ -538,7 +538,7 @@ def _value_binding(node: Any, name_node: Any, kind: str, declarator: Any = None)
 ##
 ## @brief One member as a variable record, or None when it has no name.
 ## @version 2
-## @dg_internal
+## @utility
 def _variable_record(node: Any, name_node: Any, cls: str) -> dict[str, Any] | None:
     """@brief A member variable record. @return Record or None."""
     annotation = node.child_by_field_name("type")
@@ -568,7 +568,7 @@ def _variable_record(node: Any, name_node: Any, cls: str) -> dict[str, Any] | No
 ## @param cls The enclosing class or interface name, or None.
 ## @return The record, or None when the node is neither.
 ## @version 1
-## @dg_internal
+## @utility
 def _member_record(node: Any, spec: Any, cls: str | None) -> dict[str, Any] | None:
     """INDEX-ONLY SHAPES, kept out of the gate's rule by living here (owner's ruling: the gate
     does not demand documentation for a type signature or an object's callback property).
@@ -601,7 +601,7 @@ _FUNCTION_VALUES = ("arrow_function", "function_expression", "function", "genera
 ## @brief An interface method or function-typed property signature as a declaration record.
 ## @return The record, or None for a data property.
 ## @version 1
-## @dg_internal
+## @utility
 def _signature_record(node: Any, spec: Any, cls: str) -> dict[str, Any] | None:
     """@brief Record one interface signature. @return Record or None."""
     shape = node
@@ -636,7 +636,7 @@ def _signature_record(node: Any, spec: Any, cls: str) -> dict[str, Any] | None:
 
 ## @brief The nearest enclosing `const`/`let` binding's name, or "".
 ## @version 1
-## @dg_internal
+## @utility
 def _binding_of(node: Any) -> str:
     """@brief Enclosing binding name. @return The name or ""."""
     parent = node.parent
@@ -649,7 +649,7 @@ def _binding_of(node: Any) -> str:
 
 ## @brief A function-valued property as a definition record.
 ## @version 1
-## @dg_internal
+## @utility
 def _value_record(name: str, value: Any, node: Any, owner: str) -> dict[str, Any] | None:
     """@brief Record an object-literal function. @return Record or None."""
     if not name or value.child_by_field_name("body") is None:
@@ -671,7 +671,7 @@ def _value_record(name: str, value: Any, node: Any, owner: str) -> dict[str, Any
 ## @param node A class-like declaration.
 ## @return {base tail name: package}, only for bases bound by a non-relative import.
 ## @version 1
-## @dg_internal
+## @utility
 def _base_packages(node: Any) -> dict[str, str]:
     """R5-CORE D7 (2.0.0): `extends React.Component` records `{Component: react}`; a relative or
     same-file base records nothing. @brief Bases' packages. @return Map."""
@@ -698,7 +698,7 @@ def _base_packages(node: Any) -> dict[str, str]:
 ## @return The record.
 ## v3 (2.0.0, R5-CORE D7): `base_packages`, each base's import package.
 ## @version 3
-## @dg_internal
+## @utility
 def _class_record(node: Any, spec: Any, name: str, kind: str, outer: str | None) -> dict[str, Any]:
     return {
         "name": name,
@@ -715,7 +715,7 @@ def _class_record(node: Any, spec: Any, name: str, kind: str, outer: str | None)
 ## @brief One function as a JSON-safe record, or None without a name or body.
 ## @return The record, or None.
 ## @version 1
-## @dg_internal
+## @utility
 def _function_record(func: Any, spec: Any, cls: str | None) -> dict[str, Any] | None:
     from .guard.ts_parser import _extract_function_name, _extract_signature, _function_carrier
 
@@ -743,7 +743,7 @@ def _function_record(func: Any, spec: Any, cls: str | None) -> dict[str, Any] | 
 ## @param spec The jsdoc LanguageSpec.
 ## @return The block's raw text.
 ## @version 1
-## @dg_internal
+## @utility
 def _doc_raw(node: Any, spec: Any) -> str:
     """Reuses the gate's lookup, which already climbs `export` and `const` wrappers."""
     from .guard.ts_parser import _find_preceding_doxygen
@@ -758,7 +758,7 @@ def _doc_raw(node: Any, spec: Any) -> str:
 ## @param root The program node.
 ## @return (start_byte, end_byte, name) per class.
 ## @version 2
-## @dg_internal
+## @utility
 def _class_ranges(root: Any) -> list[tuple[int, int, str]]:
     """@brief Class spans, for `this.m()` qualification."""
     ranges = []
@@ -776,7 +776,7 @@ def _class_ranges(root: Any) -> list[tuple[int, int, str]]:
 ## @brief The innermost class whose span holds a byte offset.
 ## @return The class name, or "".
 ## @version 1
-## @dg_internal
+## @utility
 def _enclosing_class(ranges: list[tuple[int, int, str]], byte: int) -> str:
     inside = [r for r in ranges if r[0] <= byte < r[1]]
     return max(inside)[2] if inside else ""
@@ -854,7 +854,7 @@ _JS_SCOPES = (
 ## @param cache Per-scope {name: is a value} tables, keyed by start byte.
 ## @return True when the nearest scope declaring the name declares a parameter or a value.
 ## @version 1
-## @dg_internal
+## @utility
 def _shadowed(node: Any, name: str, cache: dict[int, dict[str, bool]]) -> bool:
     """LEXICAL, NEAREST DECLARATION WINS. `function run(done) { done() }` calls its parameter;
     `const helper = () => 1; helper()` calls a nested closure the index holds (TS round F2), so a
@@ -880,7 +880,7 @@ def _shadowed(node: Any, name: str, cache: dict[int, dict[str, bool]]) -> bool:
 ## @param scope A function node.
 ## @return {name: True for a value or parameter, False for a function}.
 ## @version 1
-## @dg_internal
+## @utility
 def _scope_names(scope: Any) -> dict[str, bool]:
     """@brief Scope table. @return Names."""
     names: dict[str, bool] = {}
@@ -910,7 +910,7 @@ def _scope_names(scope: Any) -> dict[str, bool]:
 ## @return True for a function literal, a wrapper around one (`useCallback(() => ...)`), or an
 ##         import (`require(...)`), whose names bind another module's functions.
 ## @version 1
-## @dg_internal
+## @utility
 def _is_function_value(value: Any) -> bool:
     """THE SAME RULE THE DEFINITIONS USE (`ts_parser._unwrap_component`): a call whose first
     argument is a function literal binds that function. Without it, `const openURL =
@@ -933,7 +933,7 @@ def _is_function_value(value: Any) -> bool:
 ## @param value The declarator's value node.
 ## @return True for an import.
 ## @version 1
-## @dg_internal
+## @utility
 def _is_import_call(value: Any) -> bool:
     """A DESTRUCTURED `require` IS AN IMPORT (found vetting mattermost-mobile): `const { f } =
     require('./m')` binds the module's `f`, so calling it is a call, wherever it is written.
@@ -957,7 +957,7 @@ def _is_import_call(value: Any) -> bool:
 ## @param node A parameter list or binding pattern, or None.
 ## @return The names.
 ## @version 1
-## @dg_internal
+## @utility
 def _identifiers(node: Any) -> list[str]:
     """TYPE ANNOTATIONS ARE `type_identifier`, so they are skipped; a default value's identifiers
     are read too, which can only over-shadow (withhold an edge), never invent one.
@@ -984,7 +984,7 @@ _JSX_ELEMENTS = ("jsx_opening_element", "jsx_self_closing_element")
 ## @param node A `jsx_opening_element` or `jsx_self_closing_element`.
 ## @return The component's bare name, or None.
 ## @version 1
-## @dg_internal
+## @utility
 def _jsx_component(node: Any) -> str | None:
     """REACT'S OWN RULE DECIDES WHAT IS A COMPONENT. A capitalised identifier (`<Card/>`) or a
     member expression (`<Menu.Item/>`) is a component; a lowercase identifier (`<div/>`) is a DOM
@@ -1011,7 +1011,7 @@ def _jsx_component(node: Any) -> str | None:
 ## @return The site without its line, or None.
 ## v2 (W6): `super.m()` is qualified by the enclosing class's first base.
 ## @version 2
-## @dg_internal
+## @utility
 def _call_site(
     node: Any, ranges: list, plain: str, member: str, imported: frozenset[str] = frozenset()
 ) -> list[Any] | None:
@@ -1045,7 +1045,7 @@ def _call_site(
 ## @param node A node inside a class body.
 ## @return The base's tail name.
 ## @version 1
-## @dg_internal
+## @utility
 def _super_base(node: Any) -> str:
     """@brief Base of the enclosing class. @return Name."""
     cur = node.parent
@@ -1058,7 +1058,7 @@ def _super_base(node: Any) -> str:
 ## @brief Bare function names passed as arguments, as binding sites.
 ## @return Binding sites.
 ## @version 1
-## @dg_internal
+## @utility
 def _argument_bindings(node: Any, line: int, binding: str) -> list[list[Any]]:
     args = node.child_by_field_name("arguments")
     if args is None:

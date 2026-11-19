@@ -86,7 +86,7 @@ MAX_SUBJECT_DEPTH = 6
 ## @param name Bare symbol name.
 ## @return True when at least one `kind='function'` memberdef row carries the name.
 ## @version 1
-## @dg_internal
+## @utility
 def _is_function(conn: sqlite3.Connection, name: str) -> bool:
     """Through `function_candidates` rather than its own SQL, so "what counts as a
     function here" has ONE definition. A second copy of that predicate is the drift
@@ -104,7 +104,7 @@ def _is_function(conn: sqlite3.Connection, name: str) -> bool:
 ## @param name Bare symbol name.
 ## @return True when the name has at least one `#define` row.
 ## @version 1
-## @dg_internal
+## @utility
 def _is_macro(conn: sqlite3.Connection, name: str) -> bool:
     """@brief Probe the macro corpus.
     @return True when the name names a macro.
@@ -121,7 +121,7 @@ def _is_macro(conn: sqlite3.Connection, name: str) -> bool:
 ## @param kind The memberdef kind to read: `variable` or `typedef`.
 ## @return Rows of (rowid, type, definition, file, line, static, extern, initializer, brief, detail).
 ## @version 3
-## @dg_internal
+## @utility
 def _variable_rows(conn: sqlite3.Connection, name: str, kind: str = "variable") -> list[tuple]:
     """ORDERED DEFINITION-FIRST, by the same rule `function_candidates` uses and for the
     same reason: an `extern` declaration in a header and the definition in a translation
@@ -183,7 +183,7 @@ def _variable_rows(conn: sqlite3.Connection, name: str, kind: str = "variable") 
 ## @param name Bare or qualified compound name.
 ## @return True when a class/struct/union/interface matches exactly or as a qualified tail.
 ## @version 3
-## @dg_internal
+## @utility
 def _is_compound(conn: sqlite3.Connection, name: str) -> bool:
     """EXACT OR QUALIFIED-TAIL, never `lookup_class`'s substring fallback. That fallback
     is right for a caller who has ASKED for a class and typed a fragment; it is wrong as
@@ -224,7 +224,7 @@ def _is_compound(conn: sqlite3.Connection, name: str) -> bool:
 ## @param name Candidate requirement id.
 ## @return True when the id appears in the catalog or on any tag edge.
 ## @version 1
-## @dg_internal
+## @utility
 def _is_requirement(conn: sqlite3.Connection, name: str) -> bool:
     """BOTH TABLES, because they populate independently and this repo has already been
     caught reading one of them: `req_edges` come from TAGS and the catalog comes from a
@@ -254,7 +254,7 @@ def _is_requirement(conn: sqlite3.Connection, name: str) -> bool:
 ## @param name Lock name as written in the source.
 ## @return True when the locks table holds a row of that name.
 ## @version 1
-## @dg_internal
+## @utility
 def _is_lock(conn: sqlite3.Connection, name: str) -> bool:
     """@brief Probe the lock corpus.
     @return True when the name names a lock.
@@ -270,7 +270,7 @@ def _is_lock(conn: sqlite3.Connection, name: str) -> bool:
 ## @param name Thread name or entry-function name.
 ## @return True when the threads table holds a row of that name.
 ## @version 1
-## @dg_internal
+## @utility
 def _is_thread(conn: sqlite3.Connection, name: str) -> bool:
     """@brief Probe the thread corpus.
     @return True when the name names a thread.
@@ -288,7 +288,7 @@ def _is_thread(conn: sqlite3.Connection, name: str) -> bool:
 ## @param name CONFIG symbol name.
 ## @return True when the symbol is declared, or gated on anywhere in the tree.
 ## @version 2
-## @dg_internal
+## @utility
 def _is_config(conn: sqlite3.Connection, name: str) -> bool:
     """GATED-ON SYMBOLS ARE SUBJECTS TOO, since gh#390. This used to read "DECLARED
     symbols only ... a gate naming a symbol no Kconfig declares is not a subject, because
@@ -421,7 +421,7 @@ def unresolved_kinds(db: DbSource, name: str) -> tuple[str, ...]:
 ## @param name A candidate enumerator name.
 ## @return The declaring enum's name, or None.
 ## @version 1
-## @dg_internal
+## @utility
 def _declaring_enum(conn: sqlite3.Connection, name: str) -> str | None:
     """`scope` carries the relation, because a C enum is a `memberdef` and not a
     `compounddef` — there is no compound for a `member` link to point at, so the recovery
@@ -445,7 +445,7 @@ def _declaring_enum(conn: sqlite3.Connection, name: str) -> str | None:
 ## @param enum_name The enum's name.
 ## @return Enumerator records; empty on an index built before they were recovered.
 ## @version 1
-## @dg_internal
+## @utility
 def _enumerators_of_enum(conn: sqlite3.Connection, enum_name: str) -> tuple[Enumerator, ...]:
     """EMPTY IS A THIN ANSWER HERE, NOT A WRONG ONE, and that is unusually true for this
     surface: the enum's BODY still lists every value verbatim, so an index predating the
@@ -472,7 +472,7 @@ def _enumerators_of_enum(conn: sqlite3.Connection, enum_name: str) -> tuple[Enum
 ## @param name The bare enum name.
 ## @return The row, or None.
 ## @version 1
-## @dg_internal
+## @utility
 def _enum_row(conn: sqlite3.Connection, name: str) -> tuple | None:
     """`kind='enumeration'` is doxygen's OWN vocabulary value for an enum type, so this
     adds no column and no table. DEFINITION-PREFERRING like every other resolution here:
@@ -575,7 +575,7 @@ def _enum_subject(
 ## @param qualified Optional selector naming one declaration by its definition spelling.
 ## @return The VariableSubject, or None when the name names no such row.
 ## @version 3
-## @dg_internal
+## @utility
 def _variable_subject(
     conn: sqlite3.Connection,
     name: str,
@@ -633,7 +633,7 @@ def _variable_subject(
 ## @param qualified The selector, or None.
 ## @return (rows, note); note is None when no selector was given or it applied.
 ## @version 1
-## @dg_internal
+## @utility
 def _select_variable_rows(
     rows: list[tuple], qualified: str | None
 ) -> tuple[list[tuple], str | None]:
@@ -662,7 +662,7 @@ def _select_variable_rows(
 ## @param name Lock name as written in the source.
 ## @return The LockSubject, or None when no lock carries the name.
 ## @version 1
-## @dg_internal
+## @utility
 def _lock_subject(db: DbSource, name: str) -> LockSubject | None:
     """Composed from `lock_roster` and `runs_under_lock`, the two functions that already
     answer the two halves — this adds no SQL. The roster row is what keeps the identity
@@ -759,7 +759,7 @@ _KIND_NO_SUBJECT: dict[str, str] = {}
 ## @param wanted The caller's explicit kind, or None to take the best-first pick.
 ## @return The kind to build, or None when the name resolves to nothing usable.
 ## @version 3
-## @dg_internal
+## @utility
 def _chosen_kind(kinds: tuple[str, ...], wanted: str | None) -> str | None:
     """AN EXPLICIT KIND IS A FILTER, NOT AN OVERRIDE. Asking for `kind='variable'` on a
     name that is only a function returns nothing, rather than the function relabelled —
@@ -803,7 +803,7 @@ _PY_ENUM_BASES = frozenset({"Enum", "IntEnum", "StrEnum", "IntFlag", "Flag", "Re
 ## @param rowid A `compounddef` rowid.
 ## @return True when the compound has at least one base and every one is an enum base.
 ## @version 1
-## @dg_internal
+## @utility
 def _derives_from_py_enum(conn: sqlite3.Connection, rowid: int) -> bool:
     """@brief Read one compound's bases and test them against `_PY_ENUM_BASES`.
     @return True when it subclasses a Python enum.
@@ -823,7 +823,7 @@ def _derives_from_py_enum(conn: sqlite3.Connection, rowid: int) -> bool:
 ## @param name The bare name being resolved.
 ## @return True when there is at least one class-kind match and all of them subclass an enum.
 ## @version 1
-## @dg_internal
+## @utility
 def _class_side_is_only_enum_mirrors(conn: sqlite3.Connection, name: str) -> bool:
     """MATCHES WHAT `_is_compound` MATCHED, exact-or-qualified-tail, so the set tested here
     is the set that made `class` resolve in the first place. A different match rule would
@@ -853,7 +853,7 @@ def _class_side_is_only_enum_mirrors(conn: sqlite3.Connection, name: str) -> boo
 ## @param kinds The kinds the name resolves to, in `SUBJECT_KINDS` order.
 ## @return The same kinds, with `enumeration` moved directly above `class` when it applies.
 ## @version 1
-## @dg_internal
+## @utility
 def _rank_enum_over_mirror(db: DbSource, name: str, kinds: tuple[str, ...]) -> tuple[str, ...]:
     """gh#29. `dossier("AgentState")` returned the generated ctypes `IntEnum` in
     `python/src/entropic/_bindings.py` and not the C++ `enum class` in
@@ -909,7 +909,7 @@ def _rank_enum_over_mirror(db: DbSource, name: str, kinds: tuple[str, ...]) -> t
 ## @return The Chain, or None when depth is 1 or the subject has no traversal seed.
 ## v2 (1.4.0, W1): passes `qualified` to an identity-scoped walk.
 ## @version 2
-## @dg_internal
+## @utility
 def _chain_for(
     db: DbSource,
     kind: str,
@@ -1050,7 +1050,7 @@ def dossier(
 ## @return (subject, qualified, kinds): the re-read triple, or the input unchanged.
 ## @version 1
 ## @req REQ-DDB-QUERY-004
-## @dg_internal
+## @utility
 def _qualified_reread(
     db: DbSource, subject: str, kinds: tuple[str, ...], kind: str | None
 ) -> tuple[str, str | None, tuple[str, ...]]:
@@ -1088,7 +1088,7 @@ def _qualified_reread(
 ## @return The qualified name, or "" when nothing better than the bare name can be recovered.
 ## @version 1
 ## @req REQ-DDB-QUERY-010
-## @dg_internal
+## @utility
 def _selector_from_signature(subject: str, selector: str) -> str:
     """EVERY `qualified` VALUE THE 1.1.0 AGENTS PASSED WAS A SIGNATURE — twelve distinct pairs
     across the frozen grid, all carrying a return type, every one resolving to nothing. They were
@@ -1130,7 +1130,7 @@ def _selector_from_signature(subject: str, selector: str) -> str:
 ## @return (bare tail, the qualified spelling) when the split resolves, else None.
 ## @version 1
 ## @req REQ-DDB-QUERY-010
-## @dg_internal
+## @utility
 def _split_qualified(db: DbSource, subject: str) -> tuple[str, str] | None:
     """clew SERVED THE SPELLING AND THEN REFUSED IT (C7).
 
@@ -1182,7 +1182,7 @@ def _split_qualified(db: DbSource, subject: str) -> tuple[str, str] | None:
 ## @param subject The partially qualified spelling the caller passed.
 ## @return Every indexed qualified name the spelling identifies; usually zero or one.
 ## @version 1
-## @dg_internal
+## @utility
 def _qualified_suffix_matches(conn: sqlite3.Connection, tail: str, subject: str) -> list[str]:
     """A SUFFIX MATCH, BECAUSE TWO QUALIFIED SPELLINGS ARE IN CIRCULATION AND ONLY ONE WAS
     ACCEPTED. Found by replaying C7's first version against the live entropic index, where it
@@ -1282,7 +1282,7 @@ def dossiers(
 ## @param name Thread name.
 ## @return The Thread, or None when the roster holds no row of that name.
 ## @version 1
-## @dg_internal
+## @utility
 def _thread_subject(conn: sqlite3.Connection, name: str) -> Thread | None:
     """Filters the roster rather than querying `threads` directly, so a thread subject
     carries the same `member_count`, origin tag and spawn site the roster reports. A
@@ -1300,7 +1300,7 @@ def _thread_subject(conn: sqlite3.Connection, name: str) -> Thread | None:
 ## @param name CONFIG symbol name.
 ## @return The KconfigSpace, or None when the symbol is neither declared nor gated on.
 ## @version 2
-## @dg_internal
+## @utility
 def _config_subject(conn: sqlite3.Connection, name: str) -> KconfigSpace | None:
     """Returns the WHOLE envelope, gates narrowed to this symbol, because
     `KconfigSpace`'s `found`/`source`/`error` fields are what separate "this repo has no
@@ -1332,7 +1332,7 @@ def _config_subject(conn: sqlite3.Connection, name: str) -> KconfigSpace | None:
 ## commented-out shipped default could never appear there; the reply named a TFM profile
 ## header and omitted the shipped config, reading as enabled when the default is off.
 ## @version 3
-## @dg_internal
+## @utility
 def _macro_subject(conn: sqlite3.Connection, name: str) -> Dossier | None:
     """THE EMPTY-LIST COUPLING MADE EXPLICIT (gh#404). `_macro_dossier` indexes `macros[0]`
     unguarded, and today it cannot be reached with an empty list because `_is_macro` gated the
@@ -1430,7 +1430,7 @@ class _BuildContext:
     ## @brief The positional arguments `_dossier_conn` takes, unchanged.
     ## @return The tuple to splat into `_dossier_conn`.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     @property
     def function_args(self) -> tuple:
         """Spelled out here so the function path's call is VERBATIM what the

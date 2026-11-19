@@ -146,7 +146,7 @@ def seeds_reachability(name: str) -> bool:
 ## @param pattern The LIKE pattern.
 ## @return True when the pattern matches the whole name.
 ## @version 1
-## @dg_internal
+## @utility
 def _like(lowered: str, pattern: str) -> bool:
     """@brief Evaluate a `%`-only LIKE pattern."""
     parts = pattern.lower().split("%")
@@ -160,7 +160,7 @@ def _like(lowered: str, pattern: str) -> bool:
 ## @param parts The pattern split on `%`.
 ## @return True when every segment occurs in order with the anchors honoured.
 ## @version 1
-## @dg_internal
+## @utility
 def _like_parts(lowered: str, parts: list[str]) -> bool:
     """@brief Sequentially match a LIKE pattern's literal segments."""
     if not lowered.startswith(parts[0]) or not lowered.endswith(parts[-1]):
@@ -206,7 +206,7 @@ def candidate_dirs(ctx: Context, tracked: frozenset[str] | None) -> list[NotInde
 ## @param buckets Directory name -> accumulated counts.
 ## @return Records sorted by definition count, largest first.
 ## @version 1
-## @dg_internal
+## @utility
 def _as_dirs(buckets: dict[str, dict]) -> list[NotIndexedDir]:
     """@brief Freeze the candidate-directory accumulator."""
     return sorted(
@@ -299,7 +299,7 @@ def report_not_indexed(ctx: Context, sections: Sequence[SectionProposal]) -> Sec
 ## @param dirs Candidate directories.
 ## @return Report lines.
 ## @version 1
-## @dg_internal
+## @utility
 def _dir_lines(dirs: Sequence[NotIndexedDir]) -> list[str]:
     """@brief Describe each out-of-scope directory and what indexing it would do."""
     if not dirs:

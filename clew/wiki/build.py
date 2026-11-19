@@ -112,7 +112,7 @@ def build_wiki(
 ## The body of `build_wiki` before 2.0.0 (its history is recorded there).
 ## v2: the map honours exclude_owners (2.0.0, P5)
 ## @version 2
-## @dg_internal
+## @utility
 def _build_site(
     repo_root: Path,
     db: Path,
@@ -299,7 +299,7 @@ def _build_site(
 ## @param source The Sphinx source directory.
 ## @return The page name.
 ## @version 1
-## @dg_internal
+## @utility
 def _product_section(
     repo_root: Path, db: Path, config: WikiConfig, rules: Audience, source: Path
 ) -> str:
@@ -318,7 +318,7 @@ def _product_section(
 ## @return {page name: [component ids]}.
 ## v2 (round 4, R1): blocks from the graph's placement, inferred files included.
 ## @version 2
-## @dg_internal
+## @utility
 def _lit(pages: list, graph: dict, config: WikiConfig) -> dict[str, list[str]]:
     """THE GRAPH'S OWN PLACEMENT (round 4, R1), so a file joined to a block by coupling lights
     that block, as the map draws it.
@@ -338,7 +338,7 @@ def _lit(pages: list, graph: dict, config: WikiConfig) -> dict[str, list[str]]:
 ## @return ({requirement: issues} or None when not fetched, unlinked issues, a note).
 ## v2: a listing cut at its page cap is disclosed (2.0.0, R5-CFG D14)
 ## @version 2
-## @dg_internal
+## @utility
 def _fetch_issues(config: WikiConfig, target: Any, evidence: list) -> tuple[Any, list, str]:
     """THE BUILD'S ONLY NETWORK USE, and only when `wiki.issues.fetch` is true. A failure is SAID
     on the page — never a crash, and never an empty list that would read "no open issues".
@@ -373,7 +373,7 @@ def _fetch_issues(config: WikiConfig, target: Any, evidence: list) -> tuple[Any,
 ## @param linked {requirement: issues}, or None when not fetched (no count at all).
 ## @return None.
 ## @version 1
-## @dg_internal
+## @utility
 def _issues_into(graph: dict, linked: Any) -> None:
     """@brief Count per component. @return None."""
     if linked is None:
@@ -388,7 +388,7 @@ def _issues_into(graph: dict, linked: Any) -> None:
 ## @param config The section.
 ## @return {file: {line: tests}}, or None (unmeasured).
 ## @version 1
-## @dg_internal
+## @utility
 def _coverage(repo_root: Path, config: Any) -> dict | None:
     """@brief Read contexts. @return Contexts or None."""
     from .imports import parse_contexts
@@ -454,7 +454,7 @@ def _test_flows(db: Path, facts: dict, traced: frozenset = frozenset(), depth: i
 ## @param config The section (`tooling` globs).
 ## @return The flow, its role set.
 ## @version 1
-## @dg_internal
+## @utility
 def _with_role(spec: Any, config: WikiConfig) -> Any:
     """@brief Classify. @return Spec."""
     import dataclasses
@@ -470,7 +470,7 @@ def _with_role(spec: Any, config: WikiConfig) -> Any:
 ## @param evidence Requirement evidence rows.
 ## @return {(function, file): [requirement ids]}.
 ## @version 1
-## @dg_internal
+## @utility
 def _requirements_of(evidence: list) -> dict[tuple[str, str], list[str]]:
     """@brief Invert implementer sites. @return Map."""
     out: dict[tuple[str, str], list[str]] = {}
@@ -487,7 +487,7 @@ def _requirements_of(evidence: list) -> dict[tuple[str, str], list[str]]:
 ## @return Flow specs.
 ## v2 (2.0.0): `entry_points` renamed `entry_point_depth`.
 ## @version 2
-## @dg_internal
+## @utility
 def _all_flows(repo_root: Path, db: Path, config: WikiConfig) -> list:
     """A DECLARED FLOW WINS for its function: its title, depth and lanes are the repository's
     choice, so the derived one for the same entry is dropped.
@@ -513,7 +513,7 @@ def _all_flows(repo_root: Path, db: Path, config: WikiConfig) -> list:
 ## @param config The section.
 ## @return (version, heading) pairs.
 ## @version 1
-## @dg_internal
+## @utility
 def _milestones(repo_root: Path, config: WikiConfig) -> list[tuple[str, str]]:
     """@brief Read milestones. @return Pairs."""
     from .charts import roadmap_milestones
@@ -528,7 +528,7 @@ def _milestones(repo_root: Path, config: WikiConfig) -> list[tuple[str, str]]:
 ## @param milestones Roadmap milestones.
 ## @return SVG markup.
 ## @version 1
-## @dg_internal
+## @utility
 def _burndown(out_dir: Path, version: str, snapshot: dict, milestones: list) -> str:
     """@brief Draw the burndown. @return SVG."""
     from .charts import burndown
@@ -542,7 +542,7 @@ def _burndown(out_dir: Path, version: str, snapshot: dict, milestones: list) -> 
 ## @param audience The name, or None.
 ## @return The rules.
 ## @version 1
-## @dg_internal
+## @utility
 def _audience(config: WikiConfig, audience: str | None) -> Audience:
     """@brief Resolve an audience. @return Rules."""
     if audience is None:
@@ -562,7 +562,7 @@ def _audience(config: WikiConfig, audience: str | None) -> Audience:
 ## html / md content).
 ## v3: AGENTS.md included; ADRs copied; pages returned with their paths (round 3, P3c).
 ## @version 3
-## @dg_internal
+## @utility
 def _prose(repo_root: Path, config: WikiConfig, source: Path) -> list[tuple[str, str]]:
     """AS WRITTEN: Markdown through MyST, reStructuredText natively, HTML embedded as it is.
     AGENTS.md is included when present even if no glob names it — agent docs are kept apart on
@@ -596,7 +596,7 @@ def _prose(repo_root: Path, config: WikiConfig, source: Path) -> list[tuple[str,
 ## @param source The Sphinx source directory.
 ## @return Its page name.
 ## @version 1
-## @dg_internal
+## @utility
 def copy_prose(root: Path, rel: str, source: Path) -> str:
     """@brief Copy prose. @return Page name."""
     path = root / rel
@@ -617,7 +617,7 @@ def copy_prose(root: Path, rel: str, source: Path) -> str:
 ## @param decisions The repository's decision records.
 ## @return The page name, or "" when there is nothing to show.
 ## @version 1
-## @dg_internal
+## @utility
 def _docs_page(
     source: Path, pages: list[tuple[str, str]], config: WikiConfig, decisions: list
 ) -> str:
@@ -669,7 +669,7 @@ _KINDS = (
 ## @param path The document.
 ## @return MyST text.
 ## @version 1
-## @dg_internal
+## @utility
 def _html_page(path: Path) -> str:
     """@brief Embed HTML. @return Page text."""
     import re
@@ -699,7 +699,7 @@ _DOCS_LEAD = "The repository's own documentation, as written."
 ## v6: the Product trace card (GH #68).
 ## v7 (round 4): the map card describes the repository web.
 ## @version 7
-## @dg_internal
+## @utility
 def _write_index(
     source: Path, config: WikiConfig, trace: object, sections: list[str], flow_count: int
 ) -> None:
@@ -762,7 +762,7 @@ def _write_index(
 ## @param line Line number.
 ## @return Markdown.
 ## @version 1
-## @dg_internal
+## @utility
 def _link(template: str, commit: str, rel: str, line: int) -> str:
     """@brief Format a link. @return Markdown."""
     where = f"{rel}:{line}"
@@ -775,7 +775,7 @@ def _link(template: str, commit: str, rel: str, line: int) -> str:
 ## @param repo_root The repository.
 ## @return The full sha.
 ## @version 1
-## @dg_internal
+## @utility
 def _commit(repo_root: Path) -> str:
     """FULL IDS, through the hardened git environment (#67: commit-correct links).
 
@@ -847,7 +847,7 @@ def commit_published(repo_root: Path, commit: str) -> bool | None:
 ## v5 (2.0.0, P5): no source copies; doctrees beside the site; built fresh and swapped in.
 ## v6 (2.0.0, S8): the `clew` domain extension.
 ## @version 6
-## @dg_internal
+## @utility
 def _render(
     source: Path, html: Path, config: WikiConfig, repo_root: Path, context: dict | None = None
 ) -> Path:

@@ -341,7 +341,7 @@ def resolve_layered(
 ## @param heuristics Tier-5 values.
 ## @return (winning tier name, that tier's values).
 ## @version 1
-## @dg_internal
+## @utility
 def _stated_layer(
     explicit: Sequence[str] | None,
     declared: Sequence[str] | None,
@@ -362,7 +362,7 @@ def _stated_layer(
 ## @param values The concatenated layers.
 ## @return Order-preserving unique tuple.
 ## @version 1
-## @dg_internal
+## @utility
 def _ordered_unique(values: Iterable[str]) -> tuple[str, ...]:
     """A stated tier may legitimately restate a fact (`--entry-patterns main …`),
     and a duplicated SQL LIKE pattern would add a redundant `OR name LIKE ?` term
@@ -503,7 +503,7 @@ def recorded_document(section: Mapping[str, str], option: str) -> str | dict[str
 ## @param raw The stored canonical JSON.
 ## @return The path string or the document mapping.
 ## @version 1
-## @dg_internal
+## @utility
 def _decoded_document(option: str, raw: str) -> str | dict[str, Any]:
     """THE TYPE IS CHECKED, not just the syntax. A row decoding to a list or a number
     is well-formed JSON that no loader can read, and handing it on would push the

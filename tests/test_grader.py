@@ -582,7 +582,11 @@ def test_grader_fingerprint_is_the_value_published_runs_recorded() -> None:
     ## members match on whole path segments (`_matches`) instead of the last segment, which folded
     ## `include/mbedtls/*.h` to `*.h`. 1.4.0-final was graded at `72a6c7bd363d`; its RESULTS.md and
     ## the 2.0.0 pre-registration record the move.
-    published = "c10cf554ae6d"
+    ## MOVED AGAIN, 2026-11-19, from `c10cf554ae6d` (owner-approved): COMMENT-ONLY, behaviour
+    ## unchanged — the 2.0.0 hard cut re-tagged `## @dg_internal` to `## @utility` above
+    ## `judge._cache_entry`. No run was graded at `c10cf554ae6d` (0 run files carry it; the 2.0.0
+    ## grid has not run), so no published run loses re-gradability. The pre-registration records it.
+    published = "1ac344ae8cf3"
 
     ## THE MESSAGE USED TO STATE A FALSEHOOD, and it is worth more than a wording fix: it said
     ## "every graded cell ... recorded {published}", which was never true of any value this

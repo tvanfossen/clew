@@ -147,7 +147,7 @@ def _test_definitions(conn: object, names: set[str]) -> list[Definition]:
 ## @param d The definition.
 ## @return Href.
 ## @version 1
-## @dg_internal
+## @utility
 def _source_page(d: Definition) -> str:
     """@brief Href. @return Href."""
     return symbol_href(d.name, d.file).split("#", 1)[0]
@@ -159,7 +159,7 @@ def _source_page(d: Definition) -> str:
 ## @return HTML ("" when the test has no recorded run).
 ## v2 (round 5): only a traced test has a flow of its own, so only a replay is linked.
 ## @version 2
-## @dg_internal
+## @utility
 def _replay(name: str, ctx: dict[str, Any]) -> str:
     """A PACKAGED RUN IS REPLAYED ON THE FLOW (owner 2026-11-16: "take run results/logs that were
     included/packaged with it and replay them"): the expected calls, the calls the run made, and
@@ -221,7 +221,7 @@ def _exercises(name: str, ctx: dict[str, Any], defs: list | None = None) -> str:
 ## @param files The files of the name's definitions on this page.
 ## @return [(definition file or "", key)], definitions first, in their order.
 ## @version 1
-## @dg_internal
+## @utility
 def _slice_groups(name: str, slices: dict, files: list[str]) -> list[tuple[str, str]]:
     """BY PATH SUFFIX, EITHER WAY: a pytest node id's file is relative to pytest's rootdir, which
     need not be the repository root, so `tests/test_a.py` and `pkg/tests/test_a.py` are one file.
@@ -249,7 +249,7 @@ def _slice_groups(name: str, slices: dict, files: list[str]) -> list[tuple[str, 
 ## @param cuts [(flow page, slice)], most exercised first.
 ## @return HTML.
 ## @version 1
-## @dg_internal
+## @utility
 def _slices_html(key: str, cuts: list) -> str:
     """@brief Draw one key's slices. @return HTML."""
     from urllib.parse import quote
@@ -278,7 +278,7 @@ def _slices_html(key: str, cuts: list) -> str:
 ## @param ctx The page context.
 ## @return HTML.
 ## @version 1
-## @dg_internal
+## @utility
 def _result(name: str, ctx: dict[str, Any]) -> str:
     """ABSENT IS NOT PASSED: a test no packaged report names reads "not in the run".
 
@@ -310,7 +310,7 @@ def _result(name: str, ctx: dict[str, Any]) -> str:
 ## @return HTML.
 ## v2: links its file's page.
 ## @version 2
-## @dg_internal
+## @utility
 def _definition(d: Any, graph: _Edges, ctx: dict[str, Any], repo_root: Path) -> str:
     """@brief Definition block. @return HTML."""
     from .testfacts import assertions
@@ -336,7 +336,7 @@ def _definition(d: Any, graph: _Edges, ctx: dict[str, Any], repo_root: Path) -> 
 ## @return HTML.
 ## v2: one path depth, wiki.path_depth (2.0.0, R5-CFG C3)
 ## @version 2
-## @dg_internal
+## @utility
 def _proof(d: Any, graph: _Edges, ctx: dict[str, Any], checks: int) -> str:
     """ONE ROW PER REQUIREMENT: test → the calls it makes → the implementer. A requirement it is
     linked to with no call path (a tag, a mapping, a scenario) is listed, never drawn as a path
@@ -379,7 +379,7 @@ def _proof(d: Any, graph: _Edges, ctx: dict[str, Any], checks: int) -> str:
 ## @param checks How many checks the test makes.
 ## @return SVG.
 ## @version 1
-## @dg_internal
+## @utility
 def _chains_svg(test: str, chains: list, status: str, checks: int) -> str:
     """A LONG CHAIN IS SHORTENED IN THE MIDDLE, never at its ends: the implementer is what a reader
     needs; "… 4 calls …" stands for what was folded. The test is drawn ONCE, its checks counted
@@ -440,7 +440,7 @@ def _chains_svg(test: str, chains: list, status: str, checks: int) -> str:
 ## @param label The label.
 ## @return Width in px.
 ## @version 1
-## @dg_internal
+## @utility
 def _width(label: str) -> float:
     """@brief Width. @return Px."""
     return 22 + 7.6 * len(label)
@@ -451,7 +451,7 @@ def _width(label: str) -> float:
 ## @param ctx The page context.
 ## @return HTML.
 ## @version 1
-## @dg_internal
+## @utility
 def _requirements(name: str, ctx: dict[str, Any]) -> str:
     """@brief Requirement table. @return HTML."""
     facts = ctx["tests"][name]
@@ -481,7 +481,7 @@ def _requirements(name: str, ctx: dict[str, Any]) -> str:
 ## @param test The test.
 ## @return HTML.
 ## @version 1
-## @dg_internal
+## @utility
 def _extent(ctx: dict[str, Any], req: str, test: str) -> str:
     """@brief Extent. @return HTML."""
     known = ctx["extent"].get(req)

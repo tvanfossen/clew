@@ -99,7 +99,7 @@ _FINGERPRINT_CHARS = 12
 ## @brief The installed package's source directory.
 ## @return Path to the `clew` package root.
 ## @version 1
-## @dg_internal
+## @utility
 def package_source_root() -> Path:
     """The directory the RUNNING process imported from, whatever install shape put it
     there. Under `pipx install --editable` that is the working tree, which is the whole
@@ -197,7 +197,7 @@ _DISTRIBUTION = "clew-trace"
 ## @brief The package version this process is running.
 ## @return Version string, or "unknown" when the metadata cannot be read.
 ## @version 3
-## @dg_internal
+## @utility
 def package_version() -> str:
     """Read from installed metadata, so the version cannot drift from `pyproject.toml`.
     "unknown" rather than a raise: this is called on the way out of replies that already
@@ -255,7 +255,7 @@ def code_identity() -> dict[str, object]:
 ## @param raw The stored `duration_ms` value, as the string it is persisted as.
 ## @return A phrase like "8 min 27 s", or the raw milliseconds when it is not a number.
 ## @version 1
-## @dg_internal
+## @utility
 def _humanise_ms(raw: str) -> str:
     """KEEPS MILLISECONDS BELOW TEN SECONDS, because at that scale they are the informative
     unit and rounding a 2.7 s refresh to "3 s" throws away the thing that makes it obviously
@@ -300,7 +300,7 @@ _DOMINANT_SHARE = 33
 ## @param refresh The persisted `refresh.*` section, or None.
 ## @return A clause naming the measured cost, or one saying it has not been measured.
 ## @version 4
-## @dg_internal
+## @utility
 def _cost_clause(refresh: Mapping[str, str] | None) -> str:
     """GROUNDED IN THIS TARGET'S OWN HISTORY, not a constant (gh#9). An agent that
     cannot measure the correction must estimate it, and it estimates badly — that is
@@ -346,7 +346,7 @@ def _cost_clause(refresh: Mapping[str, str] | None) -> str:
 ## @param refresh The persisted `refresh.*` section, or None.
 ## @return e.g. ', 66% of it doxygen', or '' when the timings cannot say.
 ## @version 1
-## @dg_internal
+## @utility
 def _dominant_clause(refresh: Mapping[str, str] | None) -> str:
     """WHAT A READER NEEDS IN ORDER TO ACT. The duration says whether to run a refresh; the
     dominant stage says what would change it — and that trimming the changed-file set will
@@ -386,7 +386,7 @@ def _dominant_clause(refresh: Mapping[str, str] | None) -> str:
 ## @param status A `db_status` payload.
 ## @return One notice, or None when the database describes the current sources.
 ## @version 2
-## @dg_internal
+## @utility
 def _data_notice(status: Mapping[str, object]) -> dict[str, str] | None:
     """Fires on `source_changed_files`, which `db_status` has measured correctly all
     along — this only says what to DO about it, with the cost attached so the decision
@@ -417,7 +417,7 @@ def _data_notice(status: Mapping[str, object]) -> dict[str, str] | None:
 ## @param status A `db_status` payload.
 ## @return One notice, or None when the index is not partial.
 ## @version 1
-## @dg_internal
+## @utility
 def _partial_notice(status: Mapping[str, object]) -> dict[str, str] | None:
     """A STAMP NOBODY READS CHANGES NOTHING. A build whose doxygen failed now completes without
     the C/C++ layer and records `diagnostics.doxygen = failed`; this is what puts that in front of
@@ -451,7 +451,7 @@ def _partial_notice(status: Mapping[str, object]) -> dict[str, str] | None:
 ## @param status A `db_status` payload.
 ## @return One notice, or None when no fast refresh is pending.
 ## @version 1
-## @dg_internal
+## @utility
 def _derived_notice(status: Mapping[str, object]) -> dict[str, str] | None:
     """NAMES THE FILES AND THE LAYERS, because both decide what a reader may trust: the edited
     files' symbols, bodies and outgoing calls are current; the named whole-index layers (and any
@@ -485,7 +485,7 @@ def _derived_notice(status: Mapping[str, object]) -> dict[str, str] | None:
 ## @param status A `db_status` payload.
 ## @return One notice, or None when the versions agree.
 ## @version 2
-## @dg_internal
+## @utility
 def _schema_notice(status: Mapping[str, object]) -> dict[str, str] | None:
     """THE DIRECTION DECIDES THE ADVICE, and getting it backwards is worse than
     silence. `expected < actual` means the SERVER predates the INDEX: rebuilding
@@ -523,7 +523,7 @@ def _schema_notice(status: Mapping[str, object]) -> dict[str, str] | None:
 ## @param code A `code_identity` payload.
 ## @return One notice, or None when the process matches the source tree.
 ## @version 2
-## @dg_internal
+## @utility
 def _code_notice(code: Mapping[str, object]) -> dict[str, str] | None:
     """THE AXIS THAT HAD NO SIGNAL AT ALL, and whose available signal pointed the other
     way (gh#29). It has now cost this loop three separate debugging sessions: a fix

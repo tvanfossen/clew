@@ -85,7 +85,7 @@ MAX_LINES_PER_CALLEE = 6
 ## @param file Repo-relative source path as the index recorded it.
 ## @return List of `[callee_name, line, source, qualifier]` sites, or None on any failure.
 ## @version 2
-## @dg_internal
+## @utility
 def _harvest_file(repo_root: Path, file: str) -> list[list[Any]] | None:
     """Parses the WHOLE FILE rather than the body slice, which costs more and is the
     right trade. A body slice is not a valid translation unit: an out-of-line C++
@@ -120,7 +120,7 @@ def _harvest_file(repo_root: Path, file: str) -> list[list[Any]] | None:
 ## @param sites Harvested `[name, line, ...]` sites already filtered to one body.
 ## @return Ordered mapping of callee name to its ascending call lines.
 ## @version 2
-## @dg_internal
+## @utility
 def _by_name(sites: list[list[Any]]) -> dict[str, list[int]]:
     """SORTED BY LINE FIRST, because the harvester walks the tree with a STACK and
     therefore emits a body's call sites in roughly reverse source order — the first
@@ -148,7 +148,7 @@ def _by_name(sites: list[list[Any]]) -> dict[str, list[int]]:
 ## @param is_python True when the enclosing file's grammar is Python.
 ## @return The subset worth naming.
 ## @version 1
-## @dg_internal
+## @utility
 def _reportable(sites: list[list[Any]], is_python: bool) -> list[list[Any]]:
     """See the module docstring for why each filter exists and what each costs. Both are
     applied HERE rather than at the grouping step so that a reader can see the whole
@@ -172,7 +172,7 @@ def _reportable(sites: list[list[Any]], is_python: bool) -> list[list[Any]]:
 ## @param name A harvested callee name.
 ## @return True when the name is unknown to the index.
 ## @version 1
-## @dg_internal
+## @utility
 def _unindexed(conn: sqlite3.Connection, name: str) -> bool:
     """ANY kind, not just `function`. A macro is a `define` memberdef and the macro-hop
     layer already reaches through it; a name matching an indexed macro is therefore

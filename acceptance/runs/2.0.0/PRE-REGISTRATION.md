@@ -11,7 +11,7 @@ of what was first registered.
 - **Standalone.** No 1.3.0-final or 1.4.0-final comparator, drift section or context columns; the
   figures are this run's index arms against this run's baseline. (Earlier releases' figures stay
   in their own RESULTS.md.)
-- **Grader** fingerprint `c10cf554ae6d` (set members on whole path segments).
+- **Grader** fingerprint `1ac344ae8cf3` (set members on whole path segments; 2026-11-19 comment-only re-tag, see the amendment below).
 - **Judge** `claude-sonnet-5-5`, k=3 (provider-canonical and floating; disclosed, not controlled).
 - **Rubrics** (each corrected by the 2.0.0 cross-check, every change re-read at its pin; the
   commit messages list every change and its source line):
@@ -106,3 +106,5 @@ answer it; P0's Python fixes also change self's call graph. A self quality chang
 about the index.
 
 > **Grader fingerprint (2026-11-17):** `c10cf554ae6d` — set members match on whole path segments (`_matches`), replacing the last-segment key that folded `include/mbedtls/*.h` to `*.h` (found by the rubric cross-check; owner-approved). Supersedes `72a6c7bd363d` named above.
+
+> **Grader fingerprint (2026-11-19):** `1ac344ae8cf3` — a COMMENT-ONLY change, behaviour unchanged: the 2.0.0 hard cut of doxygen-guard priors re-tagged `## @dg_internal` to `## @utility` above `judge._cache_entry`, and `grader_fingerprint` hashes the grader's source text. No run was graded at `c10cf554ae6d` and the grid has not started, so no published cell loses re-gradability (owner-approved). Supersedes `c10cf554ae6d`.

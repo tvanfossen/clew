@@ -382,7 +382,7 @@ _OUTPUT_CAP = 16_000
 ## @param text The captured stream, exactly as the pipeline emitted it.
 ## @return The same text, or a collapsed and capped rendering that says what it dropped.
 ## @version 1
-## @dg_internal
+## @utility
 def _bounded_output(text: str) -> str:
     """gh#37. TWO REFRESH REPLIES OVERFLOWED THE CLIENT'S RESULT LIMIT — 253,867 and 100,199
     characters — and were written to disk instead of returned. An incremental refresh reply for
@@ -641,7 +641,7 @@ def register_query_tools(mcp: MCPServer, tools: QueryTools, before: Any = None) 
 ## @param description Tool description.
 ## @return None.
 ## @version 1
-## @dg_internal
+## @utility
 def _add_tool(mcp: MCPServer, fn: Any, name: str, description: str) -> None:
     """1.3.8 (token cost). pydantic stamps a `title` on every parameter ("Sub Index", "Max Body
     Lines") that restates the property name a model already reads; across the four tools that is
@@ -662,7 +662,7 @@ def _add_tool(mcp: MCPServer, fn: Any, name: str, description: str) -> None:
 ## @param schema A JSON schema fragment, or anything else (ignored).
 ## @return None.
 ## @version 1
-## @dg_internal
+## @utility
 def _strip_titles(schema: Any) -> None:
     """A PROPERTY NAMED `title` IS KEPT: only the schema keyword, which sits beside `type`, goes.
 
@@ -839,7 +839,7 @@ class FirstBuild:
     ## @brief One sentence for a refusal describing this build.
     ## @return The sentence, or "" once the build has succeeded.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def describe(self) -> str:
         """@brief Describe the build for a message. @return The sentence. @version 1"""
         part = self.building if self.building is not None else self.asked
@@ -864,7 +864,7 @@ class FirstBuild:
 ## @param repo Resolved repository root.
 ## @return The derived names, first-party first; empty when the repository is not split.
 ## @version 1
-## @dg_internal
+## @utility
 def _buildable_sub_indexes(repo: Path) -> tuple[str, ...]:
     """ONE SOURCE FOR THE REFUSAL AND THE LISTING. gh#35 needs it to say what a mistyped name
     should have been and gh#38 needs it to list what is buildable but unbuilt; deriving the set
@@ -884,7 +884,7 @@ def _buildable_sub_indexes(repo: Path) -> tuple[str, ...]:
 ## @param repo Resolved repository root.
 ## @return One line naming the top-level sub-indexes, with nested counts.
 ## @version 1
-## @dg_internal
+## @utility
 def _offered_sub_indexes(repo: Path) -> str:
     """gh#41. THE FULL LIST IS CORRECT AND UNREADABLE. On a repository vendoring boost, opencv
     and pcl the recursive split reaches ~300 names — every boost sub-library from
@@ -932,7 +932,7 @@ def _offered_sub_indexes(repo: Path) -> str:
 ## @return A refusal naming the alternatives, or None to proceed.
 ## v4 (2.0.0): the leftover is dropped with `clew cull`; `index(action='cull')` was retired.
 ## @version 4
-## @dg_internal
+## @utility
 def _sub_index_rejection(target: Target, repo: Path) -> str | None:
     """gh#35. `refresh(sub_index='no-such-tree')` DID NOT REFUSE. It registered a slug, took the
     repository's build lock, and built the WHOLE repository into it — boost, opencv and pcl
@@ -998,7 +998,7 @@ def _sub_index_rejection(target: Target, repo: Path) -> str | None:
 ## @param options The caller's tier-1 options, forwarded unchanged for a whole-repo target.
 ## @return (exclude, options) to pass to `build_index`.
 ## @version 8
-## @dg_internal
+## @utility
 def _sub_index_scope(
     target: Target,
     repo: Path,
@@ -1107,7 +1107,7 @@ TARGETS_CAP = 60
 ## @param names Every recorded derived name for one repository.
 ## @return The top-level names, in the recorded order.
 ## @version 1
-## @dg_internal
+## @utility
 def _top_level_names(names: tuple[str, ...]) -> list[str]:
     """DERIVED FROM THE NAMES THEMSELVES, because that is all the registry recorded and it is
     enough: `_sub_index_name` builds a name from the tree's repo-relative path, so a nested
@@ -1131,7 +1131,7 @@ def _top_level_names(names: tuple[str, ...]) -> list[str]:
 ## @param names Every recorded derived name for the repository.
 ## @return The count of names nested under it.
 ## @version 1
-## @dg_internal
+## @utility
 def _nested_under(parent: str, names: tuple[str, ...]) -> int:
     """@brief Count one name's descendants.
     @return The count.
@@ -1146,7 +1146,7 @@ def _nested_under(parent: str, names: tuple[str, ...]) -> int:
 ## @param nested How many further names sit under it.
 ## @return The listing row.
 ## @version 1
-## @dg_internal
+## @utility
 def _buildable_row(repo_path: str, name: str, nested: int) -> dict[str, Any]:
     """TWO FACTS AND NO MEASUREMENT. An unbuilt sub-index has a name and the fact that it is not
     built; the full `db_status` projection additionally carried a staleness block explaining
@@ -1170,7 +1170,7 @@ def _buildable_row(repo_path: str, name: str, nested: int) -> dict[str, Any]:
 ## @param rows Every row the listing would carry.
 ## @return The rows, with a final note when any were dropped.
 ## @version 1
-## @dg_internal
+## @utility
 def _capped_listing(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """BUILT TARGETS FIRST, because they are the ones a caller can query right now — a cap that
     dropped a built index to make room for a buildable one would be the wrong way round.
@@ -1211,7 +1211,7 @@ class DocsDbServer:
     ## v10 (1.3.6): holds the file watcher and the loop's wake event.
     ## v11: holds the wiki hub while it runs (round 3, P4c-2a).
     ## @version 11
-    ## @dg_internal
+    ## @utility
     def __init__(self, registry: TargetRegistry | None = None) -> None:
         self.registry = registry if registry is not None else TargetRegistry()
         self.active: Target | None = None
@@ -1435,7 +1435,7 @@ class DocsDbServer:
     ## @param resolved The index.
     ## @return None.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     async def _full_refresh(self, resolved: Target) -> None:
         """MOVED OUT OF `_refresh_stale` UNCHANGED (1.3.5), so the data-stale and the
         derived-pending branches run the one build path.
@@ -1476,7 +1476,7 @@ class DocsDbServer:
     ## @param resolved The index.
     ## @return True when it refreshed in place; False when a full build is needed.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def _try_fast(self, resolved: Target) -> bool:
         """NEVER RAISES: a fast tier that failed is a full build, not a failed query.
 
@@ -1502,7 +1502,7 @@ class DocsDbServer:
     ## @param resolved The index.
     ## @return True when `fast.pending` is recorded.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def _derived_pending(self, resolved: Target) -> bool:
         """@brief Read fast.pending without raising. @return True when pending."""
         from ..query._common import meta_section
@@ -1556,7 +1556,7 @@ class DocsDbServer:
     ## @brief How many background first builds have not finished.
     ## @return Count of started-but-unfinished first builds.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def _first_builds_in_flight(self) -> int:
         """Counted from the jobs rather than from the semaphore, because a job WAITING for a
         slot is as much of a commitment as one holding it: it occupies a thread and will run.
@@ -1725,7 +1725,7 @@ class DocsDbServer:
     ## @brief Wake the refresh loop from a file-watch thread.
     ## @return None.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def _on_file_change(self) -> None:
         """CALLED ON WATCHDOG'S THREAD, so the event is set through the loop's token. Never raises:
         an event arriving while the loop is shutting down is dropped.
@@ -1956,7 +1956,7 @@ class DocsDbServer:
     ## @param asked The index whose database is absent.
     ## @return The build's description, or "" when none was started for it.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def _background_note(self, asked: Target) -> str:
         """MATCHED ON WHAT IS BEING BUILT AS WELL AS WHAT WAS ASKED, because a bare call on a
         split repository asks for the whole target and the worker builds first-party — and the
@@ -2210,7 +2210,7 @@ class DocsDbServer:
     ## @param ctx MCP request context.
     ## @return The client's roots (empty when unavailable for any reason).
     ## @version 3
-    ## @dg_internal
+    ## @utility
     async def _roots(self, ctx: Context) -> list[Any]:
         """FAILS CLOSED, FOUR WAYS, because this runs inside an ordinary tool call
         and a target-resolution problem must degrade to "no target" rather than to a
@@ -2254,7 +2254,7 @@ class DocsDbServer:
     ## @param ctx MCP request context.
     ## @return True when the request is worth sending.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def _roots_askable(self, ctx: Context) -> bool:
         """The two refusals that are decidable WITHOUT sending anything: a client that
         advertises no roots capability, and a protocol revision that cannot carry the
@@ -2294,7 +2294,7 @@ class DocsDbServer:
     ## @param ctx MCP request context.
     ## @return Path string of the first local directory, or None.
     ## @version 2
-    ## @dg_internal
+    ## @utility
     async def _target_from_roots(self, ctx: Context) -> str | None:
         """Takes the FIRST root that verifies as a local directory. A client may
         advertise several (Claude Code adds one per `--add-dir`), and there is no
@@ -2899,7 +2899,7 @@ class DocsDbServer:
     ## @return Whatever the underlying method returns.
     ## v5 (2.0.0): three actions, cull and stats retired.
     ## @version 5
-    ## @dg_internal
+    ## @utility
     async def _index_action(
         self,
         ctx: Context,
@@ -3024,7 +3024,7 @@ class DocsDbServer:
     ## @return Result dict (ok / built / doxyfile / output, plus error and traceback on a failure).
     ## @version 14
     ## @req REQ-DDB-CONFIG-008
-    ## @dg_internal
+    ## @utility
     def _run_build(
         self,
         target: Target,
@@ -3056,7 +3056,7 @@ class DocsDbServer:
     ## @return Result dict (ok / built / doxyfile / output, plus error and traceback on a failure).
     ## @version 2
     ## @req REQ-DDB-CONFIG-008
-    ## @dg_internal
+    ## @utility
     def _run_build_walked(
         self,
         target: Target,
@@ -3255,7 +3255,7 @@ class DocsDbServer:
     ## @param ignore_declaration Detect as if the repo declared nothing.
     ## @return Result dict (ok / draft / statement / measured_against, plus error and traceback on a failure).
     ## @version 5
-    ## @dg_internal
+    ## @utility
     def _run_propose(self, target: Target, ignore_declaration: bool) -> dict[str, Any]:
         """Every dry run re-runs a pipeline importer, and those render a rich progress
         bar — which on this server would land in the JSON-RPC stream. `captured_output`

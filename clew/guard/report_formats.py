@@ -90,7 +90,7 @@ class ViolationRenderer:
     ## @param v The violation.
     ## @return The record (format-specific).
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def record(self, v: Violation) -> object:
         """@brief Per-violation record. @return Record."""
         raise NotImplementedError
@@ -100,7 +100,7 @@ class ViolationRenderer:
     ## @param violations The violations they came from, in the same order.
     ## @return The document text.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def wrap(self, records: list, violations: list[Violation]) -> str:
         """@brief Default: a JSON array. @return Text."""
         return json.dumps(records, indent=2, sort_keys=True) + "\n"
@@ -117,7 +117,7 @@ class SarifRenderer(ViolationRenderer):
     ## @param v The violation.
     ## @return The result object.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def record(self, v: Violation) -> object:
         """@brief SARIF result. @return Dict."""
         return {
@@ -145,7 +145,7 @@ class SarifRenderer(ViolationRenderer):
     ## @param violations The violations.
     ## @return The log text.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def wrap(self, records: list, violations: list[Violation]) -> str:
         """Every check class the guard has is a rule, whether or not it fired, so a rule's
         index is stable across runs.
@@ -181,7 +181,7 @@ class GitLabRenderer(ViolationRenderer):
     ## @param v The violation.
     ## @return The issue object.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def record(self, v: Violation) -> object:
         """@brief Code Quality issue. @return Dict."""
         return {
@@ -204,7 +204,7 @@ class GitHubRenderer(ViolationRenderer):
     ## @param v The violation.
     ## @return The command line.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def record(self, v: Violation) -> object:
         """Escaped as the runner requires: `%`, CR and LF everywhere; `:` and `,` also in a
         property value.
@@ -222,7 +222,7 @@ class GitHubRenderer(ViolationRenderer):
     ## @param violations The violations.
     ## @return Text.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def wrap(self, records: list, violations: list[Violation]) -> str:
         """@brief Join lines. @return Text."""
         return "".join(f"{r}\n" for r in records)
@@ -232,7 +232,7 @@ class GitHubRenderer(ViolationRenderer):
 ## @param text The text.
 ## @return Escaped text.
 ## @version 1
-## @dg_internal
+## @utility
 def _data(text: str) -> str:
     """@brief Escape data. @return Text."""
     return text.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
@@ -242,7 +242,7 @@ def _data(text: str) -> str:
 ## @param text The text.
 ## @return Escaped text.
 ## @version 1
-## @dg_internal
+## @utility
 def _prop(text: str) -> str:
     """@brief Escape a property. @return Text."""
     return _data(text).replace(":", "%3A").replace(",", "%2C")

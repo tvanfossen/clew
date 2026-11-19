@@ -196,7 +196,7 @@ _STALENESS_MINIMAL_MESSAGE = "stale — call status"
 ## @param found The full notice list.
 ## @return The notices to attach — full prose, compacted, or minimal.
 ## @version 2
-## @dg_internal
+## @utility
 def _staleness_within_budget(
     payload: dict[str, Any], found: list[dict[str, str]]
 ) -> list[dict[str, str]]:
@@ -359,7 +359,7 @@ _DEFINITIVE_SPLIT = r"(?i)this is a definitive|(?<!not )a definitive negative|do
 ## @param names Every name.
 ## @return At most `MAX_LISTED_SIBLINGS` names, plus one "+N more" entry when any were dropped.
 ## @version 1
-## @dg_internal
+## @utility
 def _bounded_names(names: tuple[str, ...]) -> list[str]:
     """@brief Cap a name list for a reply. @return The capped list. @version 1"""
     shown = list(names[:MAX_LISTED_SIBLINGS])
@@ -461,7 +461,7 @@ def _scope_definitive(payload: dict[str, Any], answered_from: str, others: bool 
 ## @param ceiling Byte ceiling this ONE payload must fit, or None for the whole-response default.
 ## @return (kept rows, `_limited` block or None).
 ## @version 2
-## @dg_internal
+## @utility
 
 
 ## The key `_shrink_to_budget` reports a depth step under. NOT a field name — it is the one
@@ -474,7 +474,7 @@ CHAIN_DEPTH_CUT = "chain_depth"
 ## @param payload The dossier payload, possibly carrying a `chain` block.
 ## @return The depth that was dropped, or None when there is nothing left to step.
 ## @version 1
-## @dg_internal
+## @utility
 def _step_chain_depth(payload: dict[str, Any]) -> int | None:
     """gh#383. THE CHAIN WAS NEVER BUDGETED AT ALL, which is a sharper statement than the
     plan's "step depth before halving". `_DOSSIER_LISTS` holds TOP-LEVEL keys and
@@ -529,7 +529,7 @@ def _step_chain_depth(payload: dict[str, Any]) -> int | None:
 ## @param ceiling Byte ceiling this ONE payload must fit, or None for the whole-response default.
 ## @return Field name → ORIGINAL length for each field cut, plus `chain_depth` when a ring went.
 ## @version 3
-## @dg_internal
+## @utility
 def _shrink_to_budget(
     payload: dict[str, Any], list_keys: tuple[str, ...], ceiling: int | None = None
 ) -> dict[str, int]:
@@ -604,7 +604,7 @@ def _shrink_to_budget(
 ## @param cap The per-list limit.
 ## @return The dossier.
 ## @version 1
-## @dg_internal
+## @utility
 def _capped_neighbors(doss: dict[str, Any] | None, cap: int) -> dict[str, Any] | None:
     """THE PARAMETER SAID IT CAPPED, AND AT DEPTH 1 IT DID NOT. `max_neighbors` reached only a
     depth > 1 walk, so a depth-1 reply listed every caller up to the byte budget. Capped here, and
@@ -646,7 +646,7 @@ def _capped_neighbors(doss: dict[str, Any] | None, cap: int) -> dict[str, Any] |
 ## @param how_to_narrow Advice for retrieving the rest.
 ## @return The disclosure block.
 ## @version 1
-## @dg_internal
+## @utility
 def _limited_block(field_name: str, was: int, now: int, how_to_narrow: str) -> dict[str, Any]:
     """Names the FIELD and its before/after count, so the degradation is
     reproducible and reversible by the caller rather than a hidden policy; reports
@@ -829,7 +829,7 @@ def _wire_shape(doss: dict[str, Any] | None) -> dict[str, Any] | None:
 ## @param doss Serialized dossier, or None.
 ## @return The dossier, trimmed and annotated when it exceeded the budget.
 ## @version 4
-## @dg_internal
+## @utility
 def _budgeted_dossier(doss: dict[str, Any] | None) -> dict[str, Any] | None:
     """`dossier` is the tool a model is told to CALL FIRST, and it was the largest
     unbounded response in the surface: **125,559 bytes measured** for a symbol with
@@ -905,7 +905,7 @@ _BATCH_LIMITED_ALLOWANCE = 2_400
 ## @param total Bytes available to all of them together.
 ## @return Per-payload byte ceiling, same order.
 ## @version 1
-## @dg_internal
+## @utility
 def _fair_shares(sizes: list[int], total: int) -> list[int]:
     """MAX-MIN FAIR, not equal, and the difference is the whole point of the function.
 
@@ -950,7 +950,7 @@ def _fair_shares(sizes: list[int], total: int) -> list[int]:
 ## @param overhead Bytes the surrounding envelope already commits.
 ## @return The `_limited` block naming every symbol/field pair that lost rows, or None.
 ## @version 1
-## @dg_internal
+## @utility
 def _budget_batch(entries: list[dict[str, Any]], overhead: int) -> dict[str, Any] | None:
     """N DOSSIERS SHARE THE CAP, THEY DO NOT MULTIPLY IT. `_budgeted_dossier` trims one
     payload against the whole-response ceiling, which is correct for one and catastrophic
@@ -997,7 +997,7 @@ def _budget_batch(entries: list[dict[str, Any]], overhead: int) -> dict[str, Any
 ## v10 (1.3.1): the envelope and its emptiness notes moved to `clew.query.export.envelope`, shared
 ## with the export API; this adds only the byte budget, which belongs to the MCP boundary.
 ## @version 10
-## @dg_internal
+## @utility
 def _many(
     items: Any,
     *,
@@ -1085,7 +1085,7 @@ class QueryTools:
     ## @param answerer Callable resolving a caller-supplied target string, or None for a single-repository tool set.
     ## v5: `wiki_linker`, set while the wiki hub runs.
     ## @version 5
-    ## @dg_internal
+    ## @utility
     def __init__(
         self,
         db_provider: DbProvider,
@@ -1104,7 +1104,7 @@ class QueryTools:
     ## @param target Target string the caller supplied.
     ## @return The repository that answers for it.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def _route(self, target: str, sub_index: str | None = None) -> Answering:
         """Refusing beats falling back. A tool set with no answerer is bound to one
         database, and serving that database for a call that named a different one would
@@ -1192,7 +1192,7 @@ class QueryTools:
     ## @param sub_index Name of the part to read, or None for the whole repository.
     ## @return Repo root, or None when no working tree is bound or resolvable.
     ## @version 2
-    ## @dg_internal
+    ## @utility
     def _repo_or_none(self, target: str | None = None, sub_index: str | None = None) -> Path | None:
         """NON-RAISING, unlike `repo()`, and that is the whole reason it exists.
 
@@ -1224,7 +1224,7 @@ class QueryTools:
     ## @param answering The routed repository, or None when the derived one answered.
     ## @return Repo root as a string, falling back to the database path.
     ## @version 3
-    ## @dg_internal
+    ## @utility
     def _target_name(self, answering: Answering | None) -> str:
         """Non-raising by contract, unlike `repo()`. It is called on the way OUT of
         every reply, including replies that succeeded, so it must never be the thing
@@ -1253,7 +1253,7 @@ class QueryTools:
     ## @param sub_index Name of the part the call named, or None.
     ## @return A hint sentence, or "" when the index holds no neighbour.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def _recovery_for(
         self, subject: str | None, target: str | None, sub_index: str | None = None
     ) -> str:
@@ -1281,7 +1281,7 @@ class QueryTools:
     ## @param sub_index Name of the part the call named, or None.
     ## @return The unsupported kinds, or () when there are none or nothing can be read.
     ## @version 2
-    ## @dg_internal
+    ## @utility
     def _unresolved_for(
         self, subject: str | None, target: str | None, sub_index: str | None = None
     ) -> tuple[str, ...]:
@@ -1318,7 +1318,7 @@ class QueryTools:
     ## v10 (1.4.0 grid): the note no longer says "call status" — this reply already carries
     ## `staleness` when the index is stale; 29 status calls in 126 index-arm cells followed it.
     ## @version 10
-    ## @dg_internal
+    ## @utility
     def _answered(
         self,
         payload: dict[str, Any] | None,
@@ -1429,7 +1429,7 @@ class QueryTools:
     ## @brief The default target's routing record, or None when it cannot be resolved.
     ## @return The Answering for the default target, or None.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def _default(self) -> Answering | None:
         """NON-RAISING, like `_target_name`: it attributes a reply that has already been
         answered, so a default that cannot be resolved costs the attribution, never the answer.
@@ -1451,7 +1451,7 @@ class QueryTools:
     ## @param answering The routed repository, or None when the derived one answered.
     ## @return Notices to attach; empty when current, unmeasurable, or unbound.
     ## @version 2
-    ## @dg_internal
+    ## @utility
     def _staleness(
         self, payload: dict[str, Any], answering: Answering | None = None
     ) -> list[dict[str, str]]:
@@ -1492,7 +1492,7 @@ class QueryTools:
     ## this adds the batch budget and the absent-panel elision after it.
     ## v9 (1.3.7): each entry takes the compact neighbour shape when `CLEW_WIRE=compact`.
     ## @version 9
-    ## @dg_internal
+    ## @utility
     def _batched_dossiers(
         self,
         subjects: list[str],
@@ -1743,7 +1743,7 @@ class QueryTools:
     ## @param reply The stamped reply.
     ## @return The reply.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def _with_wiki_url(self, reply: dict[str, Any]) -> dict[str, Any]:
         """ADDITIVE AND ONLY WHILE SERVING: no linker, no key; a miss or a non-function subject
         gets none. A linker that fails costs the link, never the answer.
@@ -1769,7 +1769,7 @@ class QueryTools:
     ## @return Serialized LockInventory, always present so an empty layer says why.
     ## @version 6
     ## @req REQ-DDB-MCP-003
-    ## @dg_internal
+    ## @utility
     def _lock_inventory(
         self, target: str | None = None, sub_index: str | None = None
     ) -> dict[str, Any]:
@@ -1826,7 +1826,7 @@ class QueryTools:
     ## that serialize this dataclass reconcile the two meanings of `found` the same way.
     ## @version 4
     ## @req REQ-DDB-MCP-003
-    ## @dg_internal
+    ## @utility
     def _config_space(
         self,
         symbol: str | None = None,
@@ -1982,7 +1982,7 @@ class QueryTools:
     ## @param subject Subject for a None reply's miss envelope.
     ## @return The stamped reply.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def _corpus(
         self,
         corpus: str,
@@ -2021,7 +2021,7 @@ class QueryTools:
     ## @return `_many` envelope of CodeHit rows; a stated absence when the index has no corpus.
     ## v2 (1.3.1): built by `clew.query.export.corpus_payload`, shared with the export API.
     ## @version 2
-    ## @dg_internal
+    ## @utility
     def _search_code(
         self, text: str, limit: int, target: str | None, sub_index: str | None = None
     ) -> dict[str, Any]:
@@ -2042,7 +2042,7 @@ class QueryTools:
     ## @return `_many` envelope of SymbolHit rows, graded when empty.
     ## v2 (1.3.1): built by `clew.query.export.corpus_payload`, shared with the export API.
     ## @version 2
-    ## @dg_internal
+    ## @utility
     def _search_symbols(
         self, text: str, limit: int, target: str | None, sub_index: str | None = None
     ) -> dict[str, Any]:
@@ -2061,7 +2061,7 @@ class QueryTools:
     ## @return `_many` envelope of ProseHit rows, with `matched` when the query was widened.
     ## v5 (1.3.1): built by `clew.query.export.corpus_payload`, shared with the export API.
     ## @version 5
-    ## @dg_internal
+    ## @utility
     def _search_prose(
         self, text: str, limit: int, target: str | None, sub_index: str | None = None
     ) -> dict[str, Any]:
@@ -2090,7 +2090,7 @@ class QueryTools:
     ## v2 (1.3.1): built by `clew.query.export.corpus_payload`, shared with the export API.
     ## @version 2
     ## @req REQ-DDB-QUERY-011
-    ## @dg_internal
+    ## @utility
     def _search_threads(
         self, text: str, limit: int, target: str | None, sub_index: str | None = None
     ) -> dict[str, Any]:
@@ -2114,7 +2114,7 @@ class QueryTools:
     ## @return Serialized DirectoryInventory, or the matching FileEntry rows for a glob.
     ## v4 (1.3.1): built by `clew.query.export.corpus_payload`, shared with the export API.
     ## @version 4
-    ## @dg_internal
+    ## @utility
     def _search_files(
         self, text: str, limit: int, target: str | None, sub_index: str | None = None
     ) -> dict[str, Any]:
@@ -2149,7 +2149,7 @@ class QueryTools:
     ## @return Mapping with the directory inventory and the declared doc scope.
     ## v2 (1.3.1): built by `clew.query.export.corpus_payload`, shared with the export API.
     ## @version 2
-    ## @dg_internal
+    ## @utility
     def _files_context(self, target: str | None, sub_index: str | None = None) -> dict[str, Any]:
         """A BIGGER PAYLOAD IS THE CHEAP SIDE OF THIS TRADE. Measured 2026-08-14 on this harness: a
         turn re-reads the whole accumulated context at roughly 55-85k tokens, while these two blocks
@@ -2179,7 +2179,7 @@ class QueryTools:
     ## @return A note naming what this corpus holds and where else to ask.
     ## v2 (1.3.1): built by `clew.query.export.corpus_payload`, shared with the export API.
     ## @version 2
-    ## @dg_internal
+    ## @utility
     def _files_miss(self, text: str) -> str:
         """ROUTE, DO NOT CLAIM EXHAUSTION. The default `_many` wording — "a definitive empty result
         from the database … Do not retry this query or fall back to guessing" — is TRUE of this
@@ -2210,7 +2210,7 @@ class QueryTools:
     ## matching symbols beside `found: false` is what three mbedtls Q1 cells abandoned.
     ## v4 (1.3.1): built by `clew.query.export.corpus_payload`, shared with the export API.
     ## @version 4
-    ## @dg_internal
+    ## @utility
     def _search_config(
         self, text: str, limit: int, target: str | None, sub_index: str | None = None
     ) -> dict[str, Any]:

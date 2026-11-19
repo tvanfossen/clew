@@ -118,7 +118,7 @@ class DefinitionChanges:
     ## @brief Whether anything was added or removed.
     ## @return True when either list holds a record.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def __bool__(self) -> bool:
         """@brief Any change. @return True when changed."""
         return bool(self.added or self.removed)
@@ -129,7 +129,7 @@ class DefinitionChanges:
 ## @param payload A harvester payload.
 ## @return {(name, ordinal): record}.
 ## @version 1
-## @dg_internal
+## @utility
 def _function_records(js: bool, payload: Any) -> dict[tuple[str, int], Any]:
     """THE ANCHOR SPELLING: `cls.name` for JS/TS, the qualified name (record[1]) for the AST
     payload, and an ordinal counted in payload order, as `fasttier._anchors` counts it.
@@ -217,7 +217,7 @@ def end_module_row(conn: sqlite3.Connection, path_rowid: int, lines: int | None)
 ## @param record The removed record.
 ## @return Rowids.
 ## @version 1
-## @dg_internal
+## @utility
 def _rows_of(conn: sqlite3.Connection, path_rowid: int, js: bool, record: Any) -> list[int]:
     """@brief Find a record's rows. @return Rowids."""
     name, line = (record["name"], int(record["line"])) if js else (str(record[0]), int(record[4]))
@@ -322,7 +322,7 @@ def add_definitions(
 ## @param cls The class name ('' for a free function).
 ## @return The compound rowid, or None.
 ## @version 1
-## @dg_internal
+## @utility
 def _owner(conn: sqlite3.Connection, path_rowid: int, cls: str) -> int | None:
     """@brief Find the owning class. @return Rowid or None."""
     if not cls:

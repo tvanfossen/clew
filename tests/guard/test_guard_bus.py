@@ -3,7 +3,7 @@
 A function that CROSSES A BUS must say so with a bus tag (`@emits MQTT cmd/req`, `@handles ...`).
 The rule is SCOPED, never blanket — only functions whose name matches a configured handler glob, or
 whose body calls a configured sender — and it HONOURS THE EXISTING EXEMPTIONS (`@callback`,
-`@utility`, `@dg_internal`). A bus name outside the configured vocabulary is refused. With no
+`@utility`, `@utility`). A bus name outside the configured vocabulary is refused. With no
 `validate.bus` section the rule does nothing.
 
 @brief Tests for clew.guard.checks.check_bus_tags.

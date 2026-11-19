@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 ## @brief The toolchain config and compiled gate matcher for one working directory.
 #  @version 1.0
-#  @dg_internal
+#  @utility
 #  @return (ToolchainConfig, PathIgnore or None)
 @lru_cache(maxsize=4)
 def _gate_matcher(root: str) -> tuple[Any, Any]:

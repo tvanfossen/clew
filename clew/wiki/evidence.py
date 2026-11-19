@@ -74,7 +74,7 @@ def report_limit(megabytes: int) -> Iterator[None]:
 ## @param path The report.
 ## @return None; raises ValueError naming the limit and the key that raises it.
 ## @version 1
-## @dg_internal
+## @utility
 def check_report_size(path: Path) -> None:
     """@brief Apply the cap. @return None."""
     limit = _REPORT_MB.get() * 1024 * 1024
@@ -169,7 +169,7 @@ def parse_junit(paths: list[Path]) -> dict[str, CaseResult]:
 ## @param case The element.
 ## @return The name the index knows the test by.
 ## @version 1
-## @dg_internal
+## @utility
 def _case_name(case: ET.Element) -> str:
     """CATCH2'S OWN JUNIT REPORTER names one case per SECTION PATH ("Scenario: X/Given: a") under
     classname `<binary>.global`; the test is the part before the first "/". Found on
@@ -302,7 +302,7 @@ class _Reports:
     ## @param catalog Requirement → test files its catalog evidence field names.
     ## @param infer (per-test coverage contexts, call-graph inference depth).
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def __init__(self, results, hits, records, mapping, scenarios, layers, catalog, infer) -> None:
         """@brief Store. @return None."""
         self.catalog = catalog
@@ -325,7 +325,7 @@ class _Reports:
     ## v3: a declared report that does not exist is unmeasured, not an error (round 3, P6c).
     ## v4: no contexts report is None (unmeasured), not {} (round 4).
     ## @version 4
-    ## @dg_internal
+    ## @utility
     @classmethod
     def read(cls, junit, coverage, mutations, inputs, repo_root) -> _Reports:
         """COVERAGE IS None ONLY WHEN NO REPORT OF EITHER KIND WAS GIVEN; Cobertura and gcov hits
@@ -382,7 +382,7 @@ class _Reports:
     ## v2: catalog evidence files, per-test coverage, call-graph inference.
     ## v3 (round 4): the inferred tests' reached implementers are returned for the extent.
     ## @version 3
-    ## @dg_internal
+    ## @utility
     def linked_tests(self, conn, req_id: str, impls: list) -> tuple[list, dict[str, str]]:
         """LINKS BY STRENGTH: a test tagged, mapped or a tagged scenario; else MEASURED (per-test
         coverage ran a line of an implementer); else named by the CATALOG's evidence file; else
@@ -420,7 +420,7 @@ class _Reports:
     ## @return (test, file, lookup names).
     ## v2: through `_hits`, shared with the per-test extent.
     ## @version 2
-    ## @dg_internal
+    ## @utility
     def _measured(self, impls: list) -> list[tuple[str, str, tuple[str, ...]]]:
         """@brief Measured tests. @return Pairs."""
         return [(t, t, (t,)) for t in sorted(self._hits(impls))]
@@ -430,7 +430,7 @@ class _Reports:
     ## @return {test: implementer names it executed}; empty when no contexts.
     ## v2: per-test keys normalised to names (2.0.0, W11)
     ## @version 2
-    ## @dg_internal
+    ## @utility
     def _hits(self, impls: list) -> dict[str, set[str]]:
         """@brief Per-test implementer hits. @return Map."""
         from .slices import test_name
@@ -450,7 +450,7 @@ class _Reports:
     ## @param inferred {test: (row, implementers reached)} from the call graph.
     ## @return ((test, implementers), ...) ordered, or None when neither source ran.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def extent(self, impls: list, inferred: dict) -> tuple[tuple[str, tuple[str, ...]], ...] | None:
         """MEASURED WINS: a test with per-test coverage reports the implementers it EXECUTED; one
         without reports those its calls reach. UNKNOWN IS ABSENT: with no contexts and inference
@@ -470,7 +470,7 @@ class _Reports:
     ## @param names The names to look up.
     ## @return The status.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def status(self, test: str, names: tuple[str, ...]) -> str:
         """@brief Look up. @return Status."""
         found = next((self.results[n] for n in names if n in self.results), None)
@@ -480,7 +480,7 @@ class _Reports:
     ## @param linked The requirement's linked tests.
     ## @return (layer, count) pairs in layer order, or None when no layers are configured.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def layers_of(self, linked) -> tuple[tuple[str, int], ...] | None:
         """A TEST MATCHING NO LAYER is counted in none — it is not a layer of its own.
 
@@ -501,7 +501,7 @@ class _Reports:
 ## @param b Results.
 ## @return The merge.
 ## @version 1
-## @dg_internal
+## @utility
 def _merge(a: dict[str, CaseResult], b: dict[str, CaseResult]) -> dict[str, CaseResult]:
     """@brief Merge. @return Results."""
     out = dict(a)
@@ -517,7 +517,7 @@ def _merge(a: dict[str, CaseResult], b: dict[str, CaseResult]) -> dict[str, Case
 ## @param b Hits.
 ## @return The sum.
 ## @version 1
-## @dg_internal
+## @utility
 def _sum_hits(
     a: dict[str, dict[int, int]], b: dict[str, dict[int, int]]
 ) -> dict[str, dict[int, int]]:
@@ -535,7 +535,7 @@ def _sum_hits(
 ## @param impls The requirement's implementers.
 ## @return (mechanism, test, killed|survived) tuples, or None.
 ## @version 1
-## @dg_internal
+## @utility
 def _mutations_for(
     records: list[tuple[str, str, bool]] | None, impls: list[tuple[str, str, int, int]]
 ) -> tuple[tuple[str, str, str], ...] | None:
@@ -553,7 +553,7 @@ def _mutations_for(
 ## @param target_only Target-only test-name globs.
 ## @return The tier.
 ## @version 1
-## @dg_internal
+## @utility
 def _tier(statuses: tuple[tuple[str, str], ...], target_only: tuple[str, ...]) -> str:
     """@brief Apply the tier rules in order. @return Tier."""
     if not statuses:
@@ -607,7 +607,7 @@ def exempt_by_status(
 ## v3: `status="disabled"` / `"skipped"` is a skip; a rerun-only failure
 ## (`flakyFailure`, `rerunFailure`) passed — it has no `failure` child (P3c).
 ## @version 3
-## @dg_internal
+## @utility
 def _case_status(case: ET.Element) -> tuple[str, str]:
     """GOOGLETEST'S `status="notrun"` (a disabled test) has no child element: it is a skip, not a
     pass.
@@ -629,7 +629,7 @@ def _case_status(case: ET.Element) -> tuple[str, str]:
 ## @return The XML root.
 ## v2: the cap is this build's tests.max_report_mb (2.0.0, R5-CFG C9)
 ## @version 2
-## @dg_internal
+## @utility
 def _root(path: Path) -> ET.Element:
     """@brief Read XML with a size cap. @return Root element."""
     check_report_size(path)
@@ -640,7 +640,7 @@ def _root(path: Path) -> ET.Element:
 ## @param conn Open connection.
 ## @return (id, title) pairs, ordered.
 ## @version 1
-## @dg_internal
+## @utility
 def _requirement_ids(conn: object) -> list[tuple[str, str]]:
     """THE CATALOG AND EVERY TAGGED ID, so a `@req` literal with no catalog row is still graded.
 
@@ -664,7 +664,7 @@ def _requirement_ids(conn: object) -> list[tuple[str, str]]:
 ## @param fields The catalog fields to read (`x-evidence`, `evidence`).
 ## @return {requirement: path-shaped tokens}.
 ## @version 1
-## @dg_internal
+## @utility
 def _catalog_files(root: Path, fields: tuple[str, ...]) -> dict[str, tuple[str, ...]]:
     """EVIDENCE TEXT IS PROSE ("src/a.c impl; tests/x.py."): every path-shaped token is kept,
     and only a path the INDEX holds test functions in links anything (`_tests_in_files`).
@@ -734,7 +734,7 @@ def _reaching_tests(conn: object, req_id: str, depth: int | None) -> dict[str, t
 ## v3: the nearest hop a test was found at, so the closest tests can be listed first.
 ## v4: test code from test_scope and declared shapes (2.0.0, P4 W1)
 ## @version 4
-## @dg_internal
+## @utility
 def _callers_step(conn: object, frontier: set, origins: dict, found: dict, hop: int = 1) -> set:
     """@brief Step back. @return Next frontier."""
     from .frameworks import TestRecognizer
@@ -767,7 +767,7 @@ def _callers_step(conn: object, frontier: set, origins: dict, found: dict, hop: 
 ## @param kind The kind.
 ## @return Tests, ordered.
 ## @version 1
-## @dg_internal
+## @utility
 def _of_kind(kinds: dict[str, str], kind: str) -> tuple[str, ...]:
     """@brief Filter. @return Tests."""
     return tuple(sorted(t for t, k in kinds.items() if k == kind))
@@ -780,7 +780,7 @@ def _of_kind(kinds: dict[str, str], kind: str) -> tuple[str, ...]:
 ## v2: framework recognition, not a `test_` name filter.
 ## v3: test code from test_scope and declared shapes (2.0.0, P4 W1)
 ## @version 3
-## @dg_internal
+## @utility
 def _tests_in_files(conn: object, files: tuple[str, ...]) -> list[tuple[str, str, tuple[str, ...]]]:
     """@brief Tests per file, recognised by framework. @return (test, file, lookup names)."""
     from .frameworks import TestRecognizer
@@ -806,7 +806,7 @@ def _tests_in_files(conn: object, files: tuple[str, ...]) -> list[tuple[str, str
 ## v2: framework names (a tagged `SCENARIO` row is its scenario).
 ## v3: test code from test_scope and declared shapes (2.0.0, P4 W1)
 ## @version 3
-## @dg_internal
+## @utility
 def _linked_tests(conn: object, req_id: str) -> list[tuple[str, str, tuple[str, ...]]]:
     """A FRAMEWORK CASE IS NAMED BY ITS FRAMEWORK: a tagged Catch2 `SCENARIO` row is the scenario's
     own name, not "SCENARIO"; a row no framework recognises keeps its indexed name.
@@ -841,7 +841,7 @@ def _linked_tests(conn: object, req_id: str) -> list[tuple[str, str, tuple[str, 
 ## @return (name, file, start, end) per implementer.
 ## v2 (round 4): a tagged function in TEST CODE is a test of the requirement, not an implementer.
 ## @version 2
-## @dg_internal
+## @utility
 def _implementer_spans(conn: object, req_id: str) -> list[tuple[str, str, int, int]]:
     """A TEST IS NEVER ITS REQUIREMENT'S IMPLEMENTER: counting it made a test's extent read
     "1 of 2" where the requirement has one implementer and the test exercises it.
@@ -873,7 +873,7 @@ def _implementer_spans(conn: object, req_id: str) -> list[tuple[str, str, int, i
 ## @param end Body end.
 ## @return True when a line in the span has hits > 0.
 ## @version 1
-## @dg_internal
+## @utility
 def _covered(hits: dict[str, dict[int, int]], rel: str, start: int, end: int) -> bool:
     """@brief Span coverage. @return Covered?"""
     lines = hits.get(rel) or {}

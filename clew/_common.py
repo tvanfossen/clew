@@ -49,7 +49,7 @@ _render_target: ContextVar[Console | None] = ContextVar("clew_render_target", de
 ## @param memo The caller's per-loop memo, or None.
 ## @return Its real path.
 ## @version 1
-## @dg_internal
+## @utility
 def _real(path: str, memo: dict[str, str] | None) -> str:
     """@brief realpath, optionally memoized. @return The real path."""
     if memo is None:
@@ -65,7 +65,7 @@ def _real(path: str, memo: dict[str, str] | None) -> str:
 ## @param memo The caller's per-loop memo, or None.
 ## @return Its real path.
 ## @version 1
-## @dg_internal
+## @utility
 def _real_file(path: str, memo: dict[str, str] | None) -> str:
     """A SYMLINK IS RESOLVED IN FULL, every time: it is the case the containment check exists for.
 
@@ -186,7 +186,7 @@ class _OwnThreadHandler(logging.StreamHandler):
     ## @brief Bind the handler to a stream and to the creating thread.
     ## @param stream Stream the records are written to.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def __init__(self, stream: io.StringIO) -> None:
         """@brief Record which thread's output this handler accepts."""
         super().__init__(stream)
@@ -195,7 +195,7 @@ class _OwnThreadHandler(logging.StreamHandler):
     ## @brief Emit only when the record came from the owning thread.
     ## @param record The record being handled.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def emit(self, record: logging.LogRecord) -> None:
         """@brief Drop records raised on any other thread."""
         if record.thread == self.owner:

@@ -67,7 +67,7 @@ def sphinx_settings(spec: ThemeSpec, repo_root: Path, source: Path) -> dict[str,
 ## @param static The source tree's `_static`.
 ## @return Stylesheets to link, in order.
 ## @version 1
-## @dg_internal
+## @utility
 def _clew_assets(spec: ThemeSpec, static: Path) -> list[str]:
     """THE OVERRIDE SELECTOR MATCHES the dark scheme's, so a token a repository sets applies in
     both colour schemes rather than only in light.

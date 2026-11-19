@@ -399,7 +399,7 @@ _FOLDED_BUILD_DEFAULTS: dict[str, Any] = {
 # @param args Parsed arguments, mutated in place.
 # @return None.
 # @version 1
-# @dg_internal
+# @utility
 def _resolve_output(args: argparse.Namespace) -> None:
     """THE TWO SURFACES DISAGREED ON WHERE AN INDEX LIVES. The MCP tools name a REPOSITORY and
     derive the database path from it; the CLI demanded a FILE and knew nothing about that
@@ -575,7 +575,7 @@ JOBS_ENV = "CLEW_JOBS"
 ## @param env Environment to read; injected for testing.
 ## @return A worker count of at least 1.
 ## @version 1
-## @dg_internal
+## @utility
 def _resolve_jobs(env: dict[str, str] | None = None) -> int:
     """CAPPED AT 8 RATHER THAN cpu_count(). Each worker holds its own grammars and parsed trees,
     and the corpora that make this worth doing are the large ones, so opening a 32-core machine's
@@ -611,7 +611,7 @@ def _resolve_jobs(env: dict[str, str] | None = None) -> int:
 ## @return The option names applied, sorted, for logging.
 ## @version 2
 ## @req REQ-DDB-CONFIG-008
-## @dg_internal
+## @utility
 def _apply_declared_document(args: argparse.Namespace) -> list[str]:
     """ONE ROUTE, NOT A SECOND ONE. This does not parse, resolve or interpret anything: it
     reads the YAML and hands the whole mapping to `apply_options`, the same function the
@@ -680,7 +680,7 @@ def _apply_declared_document(args: argparse.Namespace) -> list[str]:
 
 ## @brief Route logging through Rich so summary INFOs share progress styling.
 ## @version 1
-## @dg_internal
+## @utility
 def _configure_logging(verbose: bool) -> None:
     """Route logging through Rich so summary INFOs share progress styling."""
     from rich.logging import RichHandler
@@ -993,7 +993,7 @@ def _operator_excludes(args: argparse.Namespace, output: Path, repo_root: Path) 
 ## @param predefined Pre-rendered PREDEFINED Doxyfile text, empty when none is declared.
 ## @return Path to the generated doxygen SQLite database.
 ## @version 4
-## @dg_internal
+## @utility
 def _run_doxygen_from_args(doxyfile: Path, args: argparse.Namespace, predefined: str = "") -> Path:
     """@brief Run doxygen for the parsed CLI arguments."""
     return run_doxygen(
@@ -1401,7 +1401,7 @@ _DECLARED_PATH_SECTIONS: tuple[str, ...] = (SECTION_ENRICH,)
 ## @version 1
 ## @req REQ-DDB-CONFIG-001
 ## @req REQ-DDB-CONFIG-008
-## @dg_internal
+## @utility
 def _apply_declared_paths(args: argparse.Namespace, decl: dict, repo_root: Path) -> list[str]:
     """TIER 1 WINS BY BEING CHECKED FIRST, which is the whole of the precedence rule and the
     reason this is `is not None` rather than truthiness. `requirements: ""` states "no
@@ -1682,7 +1682,7 @@ def _declared_or_flag(flag: str | dict | None, decl: dict, name: str) -> Path | 
 ## @param args Parsed CLI arguments (uses --output).
 ## @return Absolute directory beside the output database.
 ## @version 4
-## @dg_internal
+## @utility
 def _doxygen_out_dir(args: argparse.Namespace) -> Path:
     """Keep doxygen's sqlite3/xml output beside the database clew is
     building, NEVER inside the target repo. A repo's Doxyfile legitimately
@@ -1712,7 +1712,7 @@ def _doxygen_out_dir(args: argparse.Namespace) -> Path:
 ## @param repo_root Repository root.
 ## @return True when `repo_root` has a Cargo.toml and no discoverable Doxyfile.
 ## @version 2
-## @dg_internal
+## @utility
 def _is_rust_only_repo(repo_root: Path) -> bool:
     """Thin alias over `rustdoc.uses_rustdoc` — kept so callers in this module
     read as a build-routing decision rather than reaching into `rustdoc.py`
@@ -1735,7 +1735,7 @@ def _is_rust_only_repo(repo_root: Path) -> bool:
 ## "skipped, no C here" from "ran" and from "failed" — before, skipping was an INFO line only.
 ## v14: the empty stand-in database is written beside the index, not into a leaked `mkdtemp`.
 ## @version 14
-## @dg_internal
+## @utility
 def _doxygen_stage(
     doxyfile: Path,
     repo_root: Path,
@@ -1865,7 +1865,7 @@ DOXYGEN_FAILED = "failed"
 ## @return A doxygen-schema database: real, or empty when doxygen did not run or failed.
 ## Version 2: the empty stand-in database is written beside the index, not into a leaked `mkdtemp`.
 ## @version 2
-## @dg_internal
+## @utility
 def _doxygen_or_partial(doxyfile, repo_root, args, cache, preprocessor, timer) -> Path:
     """ONE DOXYGEN CRASH USED TO COST THE WHOLE INDEX. `run_doxygen` exited the process, so a
     mixed repository — a TypeScript app carrying a little native code — got nothing, though
@@ -1903,7 +1903,7 @@ def _doxygen_or_partial(doxyfile, repo_root, args, cache, preprocessor, timer) -
 ## @param args Parsed build arguments.
 ## @return build_meta diagnostics entries.
 ## @version 1
-## @dg_internal
+## @utility
 def _doxygen_meta(args) -> dict[str, str]:
     """ABSENT, NOT BLANK, WHEN THE STAGE NEVER RAN — a rustdoc build has no doxygen stage, and a
     `doxygen` key there would claim a fact about something that was not attempted.
@@ -2585,7 +2585,7 @@ def _doxygen_has_source(in_scope: dict[str, Path]) -> bool:
 ## @param args Parsed build arguments; they locate the build's doxygen scratch directory.
 ## @return Path to the database.
 ## @version 2
-## @dg_internal
+## @utility
 def _empty_doxygen_database(args: argparse.Namespace) -> Path:
     """IN THE BUILD'S OWN SCRATCH DIRECTORY, beside the index, and replaced each build. It was a
     `mkdtemp` nothing removed: one directory per TypeScript build and per test that ran one, and
@@ -2643,7 +2643,7 @@ def _cache_key_extra() -> list[str]:
 ## @brief The installed lang-parsing-substrate version, or a named unknown.
 ## @return A version string, never empty.
 ## @version 1
-## @dg_internal
+## @utility
 def _substrate_version() -> str:
     """@brief Resolve the substrate's distribution version. @return The version, or "unknown"."""
     try:
@@ -2808,7 +2808,7 @@ _SKIPPED_SAMPLE = 10
 ## @param args Parsed CLI arguments, carrying the count measured during enumeration.
 ## @return Mapping with `files_in_scope`, empty when nothing enumerated the tree.
 ## @version 1
-## @dg_internal
+## @utility
 def _in_scope_count(args: argparse.Namespace) -> dict[str, str]:
     """THE DENOMINATOR THE INDEX NEVER HAD. `coverage.indexed_files` answers "how many
     first-party files produced rows", which reads like the size of the job and is not: doxygen
@@ -2883,7 +2883,7 @@ def _not_indexed_scope(output: Path, args: argparse.Namespace) -> dict[str, str]
 ## @param rel Callable rendering a path repo-relative.
 ## @return Mapping of `depth_limited_*` keys, empty when the limit was never reached.
 ## @version 1
-## @dg_internal
+## @utility
 def _depth_limit_scope(rel: Any) -> dict[str, str]:
     """EMPTY WHEN IT NEVER FIRED, so the falsy-drop rule renders the ordinary case as absence
     rather than as a recorded zero. That distinction is this repo's most-repeated lesson in
@@ -2913,7 +2913,7 @@ def _depth_limit_scope(rel: Any) -> dict[str, str]:
 ## @param args Parsed CLI arguments, carrying the guard config and any stated sections.
 ## @return Mapping of `vendored_*` keys, empty when nothing was declared.
 ## @version 2
-## @dg_internal
+## @utility
 def _vendored_scope(root: Path, rel: Any, args: argparse.Namespace) -> dict[str, str]:
     """ONLY PATHS THAT EXIST ARE NAMED, and the rest are COUNTED. gh#335 nearly published a
     machine path this way: the nested-tree walk saw every directory on disk including ones
@@ -2972,7 +2972,7 @@ def _vendored_scope(root: Path, rel: Any, args: argparse.Namespace) -> dict[str,
 ## @param root Repository root.
 ## @return {"test_shapes": JSON} when `tests:` declares macros or function prefixes, else {}.
 ## @version 1
-## @dg_internal
+## @utility
 def _test_shapes(root: Path) -> dict[str, str]:
     """P4 (2.0.0; C6, W2). The wiki reads an index, not the declaration, so the shapes a
     repository adds (`tests.macros`, `tests.function_prefixes`) are recorded where
@@ -3004,7 +3004,7 @@ def _test_shapes(root: Path) -> dict[str, str]:
 ## @param stated The Doxyfile the build resolved, when there is one.
 ## @return Mapping of `doxyfile_*` keys, empty when the repo declares no doc scope.
 ## @version 1
-## @dg_internal
+## @utility
 def _doxyfile_scope(root: Path, rel: Any, stated: str | None = None) -> dict[str, str]:
     """The scope the REPOSITORY declares for its own documentation, as opposed to the scope
     this index used. Three keys, all absent when the repo ships no Doxyfile.
@@ -3654,7 +3654,7 @@ def build_index(
 ## @return The declared Doxyfile, or None when none is declared.
 ## @version 1
 ## @req REQ-DDB-CONFIG-001
-## @dg_internal
+## @utility
 def _declared_doxyfile(repo_root: Path) -> Path | None:
     """REFUSED, NOT WARNED, when the declared file is missing or outside the repository: a
     Doxyfile decides WHICH SOURCE is compiled into the index, so falling through to discovery or
@@ -3689,7 +3689,7 @@ def _declared_doxyfile(repo_root: Path) -> Path | None:
 ## @return (doxyfile, repo_root). Exits 1 when neither can be established.
 ## v5 (2.0.0): an in-tree `doxyfile:` declaration is read before discovery.
 ## @version 5
-## @dg_internal
+## @utility
 def _resolve_doxyfile_and_root(args: argparse.Namespace, output: Path) -> tuple[Path, Path]:
     """EXTRACTED from `_run_pipeline`, which the gh#3/gh#4 messaging work took to
     cognitive complexity 16 against a ceiling of 15.

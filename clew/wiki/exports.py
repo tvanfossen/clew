@@ -50,7 +50,7 @@ class _SequenceWriter(ABC):
     ## @param flow The flow.
     ## @return The diagram text.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def render(self, flow: Any) -> str:
         """@brief Render. @return Text."""
         ids = {lane.id: f"P{i}" for i, lane in enumerate(flow.lanes)}
@@ -77,7 +77,7 @@ class _SequenceWriter(ABC):
     ## @param depth Open blocks.
     ## @return Spaces.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def indent(self, depth: int) -> str:
         """@brief Indent. @return Spaces."""
         return "    " * (depth + 1)
@@ -87,7 +87,7 @@ class _SequenceWriter(ABC):
     ## @param line Its line.
     ## @return Text.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def block(self, kind: str, line: int) -> str:
         """@brief Block. @return Text."""
         return f"{_BLOCK.get(kind, 'opt')} {kind} (line {line})"
@@ -95,7 +95,7 @@ class _SequenceWriter(ABC):
     ## @brief The diagram's opening lines.
     ## @return Lines.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     @abstractmethod
     def head(self) -> list[str]:
         """@brief Head. @return Lines."""
@@ -103,7 +103,7 @@ class _SequenceWriter(ABC):
     ## @brief The diagram's closing lines.
     ## @return Lines.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     @abstractmethod
     def tail(self) -> list[str]:
         """@brief Tail. @return Lines."""
@@ -113,7 +113,7 @@ class _SequenceWriter(ABC):
     ## @param label Its label.
     ## @return Text.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     @abstractmethod
     def participant(self, pid: str, label: str) -> str:
         """@brief Participant. @return Text."""
@@ -124,7 +124,7 @@ class _SequenceWriter(ABC):
     ## @param text The callee.
     ## @return Text.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     @abstractmethod
     def message(self, a: str, b: str, text: str) -> str:
         """@brief Message. @return Text."""
@@ -138,7 +138,7 @@ class _Mermaid(_SequenceWriter):
     ## @brief Head.
     ## @return Lines.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def head(self) -> list[str]:
         """@brief Head. @return Lines."""
         return ["sequenceDiagram", "    autonumber"]
@@ -146,7 +146,7 @@ class _Mermaid(_SequenceWriter):
     ## @brief Tail.
     ## @return Lines.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def tail(self) -> list[str]:
         """@brief Tail. @return Lines."""
         return []
@@ -156,7 +156,7 @@ class _Mermaid(_SequenceWriter):
     ## @param label Label.
     ## @return Text.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def participant(self, pid: str, label: str) -> str:
         """@brief Participant. @return Text."""
         return f'    participant {pid} as "{label}"'
@@ -167,7 +167,7 @@ class _Mermaid(_SequenceWriter):
     ## @param text Callee.
     ## @return Text.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def message(self, a: str, b: str, text: str) -> str:
         """@brief Message. @return Text."""
         return f"{a}->>{b}: {text}"
@@ -181,7 +181,7 @@ class _PlantUml(_SequenceWriter):
     ## @brief Head.
     ## @return Lines.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def head(self) -> list[str]:
         """@brief Head. @return Lines."""
         return ["@startuml", "autonumber"]
@@ -189,7 +189,7 @@ class _PlantUml(_SequenceWriter):
     ## @brief Tail.
     ## @return Lines.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def tail(self) -> list[str]:
         """@brief Tail. @return Lines."""
         return ["@enduml"]
@@ -199,7 +199,7 @@ class _PlantUml(_SequenceWriter):
     ## @param label Label.
     ## @return Text.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def participant(self, pid: str, label: str) -> str:
         """@brief Participant. @return Text."""
         return f'participant "{label}" as {pid}'
@@ -210,7 +210,7 @@ class _PlantUml(_SequenceWriter):
     ## @param text Callee.
     ## @return Text.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def message(self, a: str, b: str, text: str) -> str:
         """@brief Message. @return Text."""
         return f"{a} -> {b}: {text}"
@@ -220,7 +220,7 @@ class _PlantUml(_SequenceWriter):
     ## @param line Its line.
     ## @return Text.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def block(self, kind: str, line: int) -> str:
         """@brief Block. @return Text."""
         word = {"loop": "loop", "if": "alt", "else": "alt", "case": "alt"}.get(kind, "group")
@@ -253,7 +253,7 @@ def flow_plantuml(flow: Any) -> str:
 ## @param rules The audience rules.
 ## @return (title, text).
 ## @version 1
-## @dg_internal
+## @utility
 def _words(row: Any, entry: dict, rules: Audience) -> tuple[str, str]:
     """@brief Title and text. @return Pair."""
     from .reqmodal import first

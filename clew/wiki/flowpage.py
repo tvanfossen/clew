@@ -117,7 +117,7 @@ _STYLE = (
 ## @param coverage {file: {line: tests}}.
 ## @return {file: lines}.
 ## @version 1
-## @dg_internal
+## @utility
 def _executed(coverage: dict[str, dict[int, set[str]]]) -> dict[str, set[int]]:
     """@brief Union of all tests' lines. @return Lines."""
     return {
@@ -311,7 +311,7 @@ def test_node(spec: FlowSpec) -> str:
 ## @param spec The flow.
 ## @return The page name.
 ## @version 1
-## @dg_internal
+## @utility
 def page_name(spec: FlowSpec) -> str:
     """@brief Name a page. @return Name."""
     import re
@@ -368,7 +368,7 @@ def step_data(
 ## a dialog of its own; the diagram pans and zooms.
 ## v3: a test's flow names its test (`data-test-node`), so the hub can run it traced (P4b).
 ## @version 3
-## @dg_internal
+## @utility
 def _block(flow: Flow, data: list[dict[str, Any]], animate: bool, node: str = "") -> str:
     """`<` IS ESCAPED IN THE JSON so no repository text can close the script element.
 
@@ -397,7 +397,7 @@ def _block(flow: Flow, data: list[dict[str, Any]], animate: bool, node: str = ""
 ## v2: the brief as plain text — doxygen stores it as XML (`<para>…</para>`), which the step modal
 ## printed verbatim (round 3, P1b screenshots).
 ## @version 2
-## @dg_internal
+## @utility
 def _signatures(db: Path, flow: Flow) -> dict[tuple[str, str], tuple[str, str]]:
     """@brief Read signatures. @return Map."""
     from ..query._common import connect, identity_rowids
@@ -427,7 +427,7 @@ def _signatures(db: Path, flow: Flow) -> dict[tuple[str, str], tuple[str, str]]:
 ## @param line The call's line.
 ## @return The text, or "" when the file cannot be read.
 ## @version 1
-## @dg_internal
+## @utility
 def _call_text(repo_root: Path, rel: str, line: int) -> str:
     """@brief Read the call. @return Text."""
     try:
@@ -450,7 +450,7 @@ def _call_text(repo_root: Path, rel: str, line: int) -> str:
 ## @param name The page name.
 ## @return Markdown lines.
 ## @version 1
-## @dg_internal
+## @utility
 def _diagram_exports(flow: Flow, source: Path, name: str) -> list[str]:
     """@brief Diagram exports. @return Lines."""
     from .exports import flow_mermaid, flow_plantuml
@@ -470,7 +470,7 @@ def _diagram_exports(flow: Flow, source: Path, name: str) -> list[str]:
 ## @param functions (function, file) pairs.
 ## @return Markdown lines.
 ## @version 1
-## @dg_internal
+## @utility
 def _functions(functions: set[tuple[str, str]]) -> list[str]:
     """ONE BODY PER FUNCTION, on its symbol section: the flow page links there rather than
     repeating it — the repeated dossier per function was 37 of 86 s of clew's own build
@@ -491,7 +491,7 @@ def _functions(functions: set[tuple[str, str]]) -> list[str]:
 ## @param reqs Requirement ids.
 ## @return HTML ("" for none).
 ## @version 1
-## @dg_internal
+## @utility
 def _badges(reqs: Any) -> str:
     """@brief Badges. @return HTML."""
     return " ".join(
@@ -561,7 +561,7 @@ def flows_index(
 ## @return HTML.
 ## v2: the tests role folds too (P2b).
 ## @version 2
-## @dg_internal
+## @utility
 def _role_block(role: str, members: list[FlowPage]) -> str:
     """@brief Role block. @return HTML."""
     rows = [

@@ -129,7 +129,7 @@ class SubIndex:
 ## @param repo_root Absolute repository root.
 ## @return A unique, stable, path-safe name.
 ## @version 1
-## @dg_internal
+## @utility
 def _sub_index_name(nested: Path, repo_root: Path) -> str:
     """DERIVED FROM THE RELATIVE PATH, NOT THE BASENAME, because two vendored trees can share a
     basename — `a/dep` and `b/dep` — and colliding names would land both on one database, which
@@ -151,7 +151,7 @@ def _sub_index_name(nested: Path, repo_root: Path) -> str:
 ## @param roots Resolved paths to test against.
 ## @return True when `path` is a root or lies under one.
 ## @version 1
-## @dg_internal
+## @utility
 def _under_any(path: Path, roots: set[Path]) -> bool:
     """EQUALITY AS WELL AS CONTAINMENT. An exclusion names the directory itself, so testing only
     `parents` would keep a nested tree that IS the excluded path — and `build/_deps/catch2-src`
@@ -171,7 +171,7 @@ def _under_any(path: Path, roots: set[Path]) -> bool:
 ## v2: reads `.paths` off the `IgnoreSweep` `_gitignored_paths` now returns. This call site
 ## needs only the paths; the asked/unaskable distinction is reported by `whole_repo_scope`.
 ## @version 2
-## @dg_internal
+## @utility
 def _nested_trees_recursive(under: Path, ignored: set[Path]) -> list[Path]:
     """`nested_repo_roots` ITSELF ALREADY STOPS DESCENT at the first `.git` it finds — by
     design, so a submodule's OWN internals are not walked for the boundary that owns them.
@@ -214,7 +214,7 @@ def _nested_trees_recursive(under: Path, ignored: set[Path]) -> list[Path]:
 ## @param all_nested Every nested tree found anywhere in the repo (any depth).
 ## @return The nearest ancestor — `root` itself, or the closest containing nested tree.
 ## @version 1
-## @dg_internal
+## @utility
 def _direct_parent(tree: Path, root: Path, all_nested: list[Path]) -> Path:
     """A TREE'S OWN SUB-INDEX MUST EXCLUDE ITS DIRECT CHILDREN ONLY, mirroring exactly what
     first-party already does relative to depth 1: `roots=[tree]` bounds a build's INPUT to
@@ -326,7 +326,7 @@ def derive_sub_indexes(repo_root: Path) -> list[SubIndex]:
 ## @param git_ignored Every ignored path known, from this tree and any others.
 ## @return The tree's own ignores, sorted.
 ## @version 1
-## @dg_internal
+## @utility
 def _own_ignores(tree: Path, children: list[Path], git_ignored: set[Path]) -> list[Path]:
     """@brief A tree's own ignores. @return Sorted paths. @version 1"""
     kids = set(children)
@@ -341,7 +341,7 @@ def _own_ignores(tree: Path, children: list[Path], git_ignored: set[Path]) -> li
 ## @param git_ignored Ignored paths; only the root's own survive the filter.
 ## @return The first-party SubIndex.
 ## @version 1
-## @dg_internal
+## @utility
 def _first_party(root: Path, direct: list[Path], git_ignored: set[Path]) -> SubIndex:
     """ONE RULE FOR BOTH ROUTES, so the full split and the shortcut cannot drift into naming two
     different first-party scopes.
@@ -431,7 +431,7 @@ _INDEX_SCOPE_KEYS = frozenset({"roots", "excludes"})
 
 ## @brief A declaration that WAS present and could not be used, carrying why.
 ## @version 1
-## @dg_internal
+## @utility
 class _Rejected(str):
     """A `str` subclass so it is the reason itself, not a wrapper something must unpack.
 
@@ -509,7 +509,7 @@ class DerivedScope:
 ## @param name Directory base name.
 ## @return True for dot-directories and known cache/vendor directories.
 ## @version 1
-## @dg_internal
+## @utility
 def _skip_dir(name: str) -> bool:
     """@brief Prune dot-directories and cache directories from the walk."""
     return name.startswith(".") or name in _SKIP_DIR_NAMES
@@ -902,7 +902,7 @@ class IgnoreSweep:
 ## @param vendored Vendored-looking trees the walk found it was about to index.
 ## @return A leading-space sentence, or "" when there is nothing to report.
 ## @version 1
-## @dg_internal
+## @utility
 def _vendored_clause(root: Path, vendored: list[Path]) -> str:
     """ONLY THE OUTERMOST. `pkg/vendor/foo/vendor` is one vendored tree, not two, so a match
     nested inside another match is dropped before counting — otherwise the count overstates how
@@ -938,7 +938,7 @@ def _vendored_clause(root: Path, vendored: list[Path]) -> str:
 ## @param sweep The root's ignore sweep.
 ## @return One sentence.
 ## @version 1
-## @dg_internal
+## @utility
 def _ignore_clause(sweep: IgnoreSweep) -> str:
     """THE CLAUSE MUST NOT OUTRUN THE MEASUREMENT. It used to read "less the paths git ignores"
     unconditionally, so a tree git could not answer for got a reason claiming an exclusion that
@@ -965,7 +965,7 @@ def _ignore_clause(sweep: IgnoreSweep) -> str:
 ## ignored" with "nobody could ask" and a caller was asserting the first while logging the
 ## second.
 ## @version 4
-## @dg_internal
+## @utility
 def _gitignored_paths(root: Path) -> IgnoreSweep:
     """`.gitignore` is the one scope declaration essentially every repo already
     writes, and it names exactly the trees the whole-repo tier must not swallow: the
@@ -1035,7 +1035,7 @@ def _gitignored_paths(root: Path) -> IgnoreSweep:
 ## v4: also reports indexed trees whose name conventionally holds third-party code, on the walk
 ## that already runs, so the scope reason can say so without paying for a second walk.
 ## @version 4
-## @dg_internal
+## @utility
 def _pruned_dirs(
     root: Path,
     already: set[Path],
@@ -1099,7 +1099,7 @@ def _pruned_dirs(
 ## @param found Accumulator for newly-excluded directories.
 ## @return The child names the walk should descend into.
 ## @version 2
-## @dg_internal
+## @utility
 def _descendable(
     here: Path, dirnames: list[str], already: set[Path], found: list[Path]
 ) -> list[str]:
@@ -1129,7 +1129,7 @@ def _descendable(
 ## @param root Resolved repo root.
 ## @return A DerivedScope when `index_scope:` is declared and usable, else None.
 ## @version 9
-## @dg_internal
+## @utility
 def _declared_index_scope(root: Path, stated: dict | None = None) -> DerivedScope | None:
     """Read an explicit `index_scope:` declaration::
 
@@ -1219,7 +1219,7 @@ def _declared_index_scope(root: Path, stated: dict | None = None) -> DerivedScop
 ## @param input_root Declared INPUT root to search under.
 ## @return Absolute paths of nested repository directories, outermost first.
 ## @version 3
-## @dg_internal
+## @utility
 def _nested_repos_under(input_root: Path) -> list[Path]:
     """A BOUNDED walk, not `rglob`. `rglob` would descend into the object stores of the
     repositories it finds and swallow an unreadable directory silently — and a swallowed
@@ -1260,7 +1260,7 @@ def _nested_repos_under(input_root: Path) -> list[Path]:
 ## @param directory Directory to test.
 ## @return True when the directory holds a `.git` entry of either kind.
 ## @version 2
-## @dg_internal
+## @utility
 def _holds_git_tree(directory: Path) -> bool:
     """A SUBMODULE'S `.git` IS A FILE, NOT A DIRECTORY, and missing that made the
     whole nested-tree feature blind to the case it was built for. A `git submodule`
@@ -1296,7 +1296,7 @@ def _holds_git_tree(directory: Path) -> bool:
 ## @param directory Candidate nested-tree directory.
 ## @return True when the parent tracks it as mode 160000; False when it tracks its files, or on any doubt.
 ## @version 3
-## @dg_internal
+## @utility
 def _is_dependency_of_parent(directory: Path) -> bool:
     """ASKS THE PARENT, because the parent is the only thing that knows whether this directory
     is a dependency it declared or code it owns. `git ls-files -s` on the path prints the mode:
@@ -1358,7 +1358,7 @@ def _is_dependency_of_parent(directory: Path) -> bool:
 ## @brief Report a directory the nested-repository check could not read.
 ## @param error The OSError os.walk raised.
 ## @version 1
-## @dg_internal
+## @utility
 def _warn_unwalkable(error: OSError) -> None:
     """@brief Warn that a directory was unreadable, so a gap never reads as a pass."""
     logger.warning(
@@ -1373,7 +1373,7 @@ def _warn_unwalkable(error: OSError) -> None:
 ## @param ancestor Path that may contain it.
 ## @return True when `path` is `ancestor` or lies beneath it.
 ## @version 1
-## @dg_internal
+## @utility
 def _is_within(path: Path, ancestor: Path) -> bool:
     """@brief Containment test used to suppress already-declared exclusions."""
     return path == ancestor or ancestor in path.parents
@@ -1385,7 +1385,7 @@ def _is_within(path: Path, ancestor: Path) -> bool:
 ## @param label Word used in the warning for a rejected entry.
 ## @return Absolute paths that exist and lie within `root`.
 ## @version 2
-## @dg_internal
+## @utility
 def _existing_paths(root: Path, entries: list, label: str) -> list[Path]:
     """RESOLVE, THEN CONTAIN, THEN STAT — in that order, because the other orders are the
     bug (1.1.0 security audit, H5). `roots:` is repo-relative BY CONTRACT and nothing here

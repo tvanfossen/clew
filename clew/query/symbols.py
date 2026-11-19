@@ -155,7 +155,7 @@ _KEY_R1_COLUMNS = ("dispatch_mode", "edge_triggered", "crosses_thread", "to_thre
 ## @param conn Open connection.
 ## @return (select-list fragment for dispatch_mode/edge_triggered/crosses_thread/to_thread, threads JOIN clause).
 ## @version 2
-## @dg_internal
+## @utility
 def _key_r1_projection(conn: sqlite3.Connection) -> tuple[str, str]:
     """Two independent degradations, both silent-crash sources before this
     existed. A stale database predating R1 has no `dispatch_mode` at all — the
@@ -187,7 +187,7 @@ def _key_r1_projection(conn: sqlite3.Connection) -> tuple[str, str]:
 ## @param as_writer True selects the rows where `fn` writes the key; False, where it reads.
 ## @return Rows of (other_name, key_name, edge_kind, source, confidence, dispatch_mode, edge_triggered, crosses_thread, to_thread_name); empty when the table is absent.
 ## @version 3
-## @dg_internal
+## @utility
 def _key_edge_rows(conn: sqlite3.Connection, fn: str, *, as_writer: bool) -> list[tuple]:
     """The ONE per-function shared-key JOIN. Three surfaces need the identical
     JOIN + R1 column list — `key_edges` (→ KeyEdge, for dossier's split
@@ -224,7 +224,7 @@ def _key_edge_rows(conn: sqlite3.Connection, fn: str, *, as_writer: bool) -> lis
 ## @param as_writer True to list the readers of what `fn` writes; False, the writers of what it reads.
 ## @return List of CallEdge tagged `edge_class='key'`, carrying the R1 semantics.
 ## @version 2
-## @dg_internal
+## @utility
 def _dataflow_edges(conn: sqlite3.Connection, fn: str, *, as_writer: bool) -> list[CallEdge]:
     """Map the shared-key rows into the SAME dataclass the call rows use so the
     two can be merged into one neighbour list (#46). `confidence` is None and the
@@ -262,7 +262,7 @@ def _dataflow_edges(conn: sqlite3.Connection, fn: str, *, as_writer: bool) -> li
 ## @param confidence The row's call_match value (may be None).
 ## @return (confidence rank, negated declared-layer position) — higher is stronger.
 ## @version 1
-## @dg_internal
+## @utility
 def _variant_rank(source: str, confidence: str | None) -> tuple[int, int]:
     """Ranks by resolution confidence first, then by the layer's position in the
     DECLARED `CALL_SOURCE` order as a deterministic tie-break. That order is the
@@ -289,7 +289,7 @@ def _variant_rank(source: str, confidence: str | None) -> tuple[int, int]:
 ## @param variants Non-empty list of (source, confidence) for ONE endpoint.
 ## @return (strongest source, its confidence).
 ## @version 4
-## @dg_internal
+## @utility
 def _collapse_variants(variants: list[tuple[str, str | None]]) -> tuple[str, str | None]:
     """The #38 fix, in ONE place because both the per-function surface
     (`_direct_call_edges`) and the traversal surface (`traversal._call_hops`) must
@@ -319,7 +319,7 @@ def _collapse_variants(variants: list[tuple[str, str | None]]) -> tuple[str, str
 ## @param rows Endpoint rows as (name, definition, rowid, has_body, source, confidence).
 ## @return (name, qualified) -> (definition-preferring rowid, layer variants).
 ## @version 1
-## @dg_internal
+## @utility
 def _endpoint_identities(
     rows: list[tuple[str, str, int, int, str, str | None]],
 ) -> dict[tuple[str, str], tuple[int, list[tuple[str, str | None]]]]:
@@ -404,7 +404,7 @@ def unresolved_inbound_for_rowids(conn: sqlite3.Connection, ids: Iterable[int]) 
 ## rather than one `dossier` per neighbour — the last unfixed mark in the negative-gap set.
 ## v16 (1.3.7): publishes the shortest unique boundary-aligned suffix as `qualified`.
 ## @version 16
-## @dg_internal
+## @utility
 def _direct_call_edges(
     conn: sqlite3.Connection, fn: str, want_callers: bool, qualified: str | None = None
 ) -> list[CallEdge]:
@@ -541,7 +541,7 @@ def _direct_call_edges(
 ## the endpoint's file; a fixed-arity unpack here turned that widening into `too many values to
 ## unpack` at this line, which is exactly what it did.
 ## @version 2
-## @dg_internal
+## @utility
 def _macros_by_identity(
     conn: sqlite3.Connection,
     raw: list[tuple],
@@ -762,7 +762,7 @@ def overridden_by(db: DbSource, fn: str, qualified: str | None = None) -> list[O
 ## @param qualified Optional identity selector for the focal side; narrows the CALL half only (see body).
 ## @return List of CallEdge sorted by (name, edge_class, key_name) — byte-identical to the traversal layer's neighbour order.
 ## @version 3
-## @dg_internal
+## @utility
 def _call_edges(
     conn: sqlite3.Connection,
     fn: str,
@@ -923,7 +923,7 @@ _THREAD_SPAWNER_COLUMNS = f"{_THREAD_SITE_COLUMNS}, t.spawn_function"
 ## @param conn Open connection.
 ## @return The column list, with the spawn-site and spawner columns only when they exist.
 ## @version 2
-## @dg_internal
+## @utility
 def _thread_columns(conn: sqlite3.Connection) -> str:
     """An index predating build version 35 has no spawn-site columns, and one predating build 48
     has no `spawn_function`; selecting either raises `OperationalError` rather than degrading —
@@ -944,7 +944,7 @@ def _thread_columns(conn: sqlite3.Connection) -> str:
 ## @brief Assemble a Thread dataclass from a threads row (+ member count).
 ## @return Thread built from the row, with the entry function name resolved, its spawn site and spawning function attributed and its membership count populated.
 ## @version 3
-## @dg_internal
+## @utility
 def _build_thread(conn: sqlite3.Connection, row: tuple) -> Thread:
     """A SHORT ROW IS FOLDED, NOT REJECTED. The spawn-site columns arrive at build version 35,
     so a six-element row is a pre-35 index rather than a bug — and its threads really are
@@ -989,7 +989,7 @@ def _build_thread(conn: sqlite3.Connection, row: tuple) -> Thread:
 ## @param path_rowid The spawn site's `path` rowid, or None.
 ## @return (repo-relative path or '', external root or '').
 ## @version 1
-## @dg_internal
+## @utility
 def _spawn_attribution(conn: sqlite3.Connection, path_rowid: int | None) -> tuple[str, str]:
     """Two values from one lookup, because they come from the same row and a caller that had to
     ask twice could get an external root for a file it did not resolve.
@@ -1153,7 +1153,7 @@ def thread_roster(db: DbSource) -> ThreadInventory:
 ## @param threads The roster.
 ## @return Origins: the external root, '' first party, None when the spawn site did not resolve.
 ## @version 1
-## @dg_internal
+## @utility
 def _thread_origins(threads: tuple[Thread, ...]) -> list[str | None]:
     """`spawn_file` EMPTY MEANS UNRESOLVED, not first party, and that distinction is the whole
     point of gh#346 — the rows it separates are the ones that used to inflate the first-party
@@ -1171,7 +1171,7 @@ def _thread_origins(threads: tuple[Thread, ...]) -> list[str | None]:
 ## @param attributable False when this index carries no spawn sites at all.
 ## @return The `row_meaning` text.
 ## @version 4
-## @dg_internal
+## @utility
 def _roster_meaning(origin: OriginSplit, attributable: bool) -> str:
     """The sentence is what a model QUOTES, so a correct `origin` field beside a sentence naming
     only the total would preserve the wrong attribution — the lesson `lock_roster.row_meaning`
@@ -1232,7 +1232,7 @@ DEFAULT_SEARCH_LIMIT = 25
 ## @param tokens Lower-cased query tokens.
 ## @return Sort score; larger means a better match.
 ## @version 2
-## @dg_internal
+## @utility
 def _search_rank(name: str, brief: str, query: str, tokens: list[str], path: str = "") -> int:
     """Order by how much of the match landed in the NAME, which is what a
     caller actually asked about — a token found only in prose is weaker
@@ -1354,7 +1354,7 @@ _Candidate = tuple[int, int, str, SymbolHit]
 ## @param doc Full file-level documentation text.
 ## @return Text of at most FILE_BRIEF_CHARS characters, ellipsised when cut.
 ## @version 1
-## @dg_internal
+## @utility
 def _doc_brief(doc: str) -> str:
     """@brief Trim file-level documentation to brief length.
     @return Possibly-ellipsised brief text.
@@ -1371,7 +1371,7 @@ def _doc_brief(doc: str) -> str:
 ## @param text Raw non-XML prose (a macro expansion), or None.
 ## @return One-line text of at most FILE_BRIEF_CHARS characters, ellipsised when cut.
 ## @version 1
-## @dg_internal
+## @utility
 def _one_line(text: str | None) -> str:
     """gh#373. A macro expansion is C source and routinely spans several lines glued
     by trailing backslashes, so pasting it into a `brief` slot verbatim would put
@@ -1408,7 +1408,7 @@ def _one_line(text: str | None) -> str:
 ## v5: a symbol in a self-declared generated file loses half a name-token match, so it loses ties
 ## to hand-written code without ever being hidden.
 ## @version 5
-## @dg_internal
+## @utility
 def _memberdef_candidates(
     conn: sqlite3.Connection,
     query: str,
@@ -1518,7 +1518,7 @@ def _memberdef_candidates(
 ## @param conn Open connection.
 ## @return `COALESCE(m.initializer,'')`, or `''` when `memberdef` has no `initializer`.
 ## @version 1
-## @dg_internal
+## @utility
 def _expansion_sql(conn: sqlite3.Connection) -> str:
     """Degrades to the empty literal rather than to no macro corpus at all: a database
     without the column can still match a macro BY NAME, and losing the reverse
@@ -1539,7 +1539,7 @@ def _expansion_sql(conn: sqlite3.Connection) -> str:
 ## @param tokens Lower-cased query tokens.
 ## @return Ranked candidate tuples across all kinds in SEARCHED_MEMBERDEF_KINDS.
 ## @version 1
-## @dg_internal
+## @utility
 def _memberdef_corpora(conn: sqlite3.Connection, query: str, tokens: list[str]) -> list[_Candidate]:
     """ONE LOOP OVER ONE TABLE, replacing the three one-line wrappers this file grew as
     corpora were added a gh at a time (`_symbol_candidates`, `_variable_candidates`,
@@ -1577,7 +1577,7 @@ def _memberdef_corpora(conn: sqlite3.Connection, query: str, tokens: list[str]) 
 ## registers — is reachable in the DEFAULT corpus and not only through `corpus="files"`.
 ## v3: a self-declared generated file takes the same search penalty as the symbols in it.
 ## @version 3
-## @dg_internal
+## @utility
 def _file_candidates(conn: sqlite3.Connection, query: str, tokens: list[str]) -> list[_Candidate]:
     """gh#10. The file's PATH is scored where a symbol's name is scored and its
     documentation where a brief is, so one weight table serves both corpora and a
@@ -1629,7 +1629,7 @@ def _file_candidates(conn: sqlite3.Connection, query: str, tokens: list[str]) ->
 ## @param tokens Lower-cased query tokens.
 ## @return Ranked candidate tuples whose kind is 'class', 'struct', 'union' or 'interface'.
 ## @version 1
-## @dg_internal
+## @utility
 def _class_candidates(conn: sqlite3.Connection, query: str, tokens: list[str]) -> list[_Candidate]:
     """gh#315. A compound's NAME is scored where a function's name is scored and its
     BRIEF where a function's brief is, so the single weight table in `_search_rank`
@@ -1659,7 +1659,7 @@ def _class_candidates(conn: sqlite3.Connection, query: str, tokens: list[str]) -
 ## @param tokens Lower-cased query tokens.
 ## @return Ranked candidate tuples whose kind is 'config symbol'.
 ## @version 1
-## @dg_internal
+## @utility
 def _config_candidates(conn: sqlite3.Connection, query: str, tokens: list[str]) -> list[_Candidate]:
     """gh#394. Scored through the SAME `_search_rank` as every other corpus so no corpus
     can win by being ranked on its own scale — with an empty brief, because a gate row is a
@@ -1852,7 +1852,7 @@ def token_hit_counts(db: DbSource, tokens: list[str]) -> dict[str, int]:
 ## @param token One lower-cased token.
 ## @return Number of distinct symbol names, variables, macros, types, classes and files the token alone matches.
 ## @version 5
-## @dg_internal
+## @utility
 def _one_token_count(conn: sqlite3.Connection, token: str) -> int:
     """Counts over EVERY corpus `search` reads, because a token matching only a
     file's documentation is still a token that did not empty the query, and saying
@@ -1966,7 +1966,7 @@ def unsearched_corpora(db: DbSource, tokens: list[str]) -> dict[str, int]:
 ## @param searched The kinds of that table `search` DOES read.
 ## @return Mapping of unread kind to distinct matching names.
 ## @version 1
-## @dg_internal
+## @utility
 def _unread_kind_counts(
     conn: sqlite3.Connection, table: str, tokens: list[str], searched: set[str]
 ) -> dict[str, int]:
@@ -1999,7 +1999,7 @@ def _unread_kind_counts(
 ## @brief Implementers of a requirement (excluding covering test functions).
 ## @return List of Implementer @req-linked to the requirement (with rowid, confidence, liveness), minus any names in `tests`.
 ## @version 2
-## @dg_internal
+## @utility
 def _req_implementers(conn: sqlite3.Connection, req_id: str, tests: set[str]) -> list[Implementer]:
     """@brief Build Implementer rows for a req, minus its covering tests."""
     if not table_exists(conn, "req_edges"):
@@ -2117,7 +2117,7 @@ _REQ_ATTRIBUTES = ("status", "rationale", "verification", "parent")
 ## @return ReqTrace keyword values; {} on an index from before the columns.
 ## @version 1
 ## @req REQ-DDB-QUERY-001
-## @dg_internal
+## @utility
 def _req_attributes(conn: sqlite3.Connection, req_id: str) -> dict[str, Any]:
     """2.0.0 (S4 served). The columns exist only on an index built since S4, so they are probed
     rather than assumed. `extra` is JSON in the table and a mapping on the wire.
@@ -2178,7 +2178,7 @@ def name_ambiguity(db: DbSource, fn: str, *, want_callers: bool = True) -> NameA
 ## @param want_callers True to count the inbound side, False for outbound.
 ## @return (candidate signature count, shared neighbour count); shared is 0 when unambiguous.
 ## @version 2
-## @dg_internal
+## @utility
 def _ambiguity_counts(conn: sqlite3.Connection, fn: str, *, want_callers: bool) -> tuple[int, int]:
     """Split out from `name_ambiguity` to keep both inside the max-3-returns standard,
     which the combined form breached at four — and the split is the better shape anyway,

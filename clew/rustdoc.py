@@ -152,7 +152,7 @@ def uses_rustdoc(repo_root: Path) -> bool:
 
 ## @brief Refuse before spawning cargo, naming exactly what is missing.
 ## @version 2
-## @dg_internal
+## @utility
 def _require_nightly_rustdoc() -> None:
     """rustdoc's JSON output has required `-Z unstable-options` (nightly-only)
     since the format was introduced, and still does as of the toolchain this was
@@ -197,7 +197,7 @@ def _require_nightly_rustdoc() -> None:
 ## @param repo_root Repository root (a package or a workspace).
 ## @return One target per package lib (if any) plus one per bin target.
 ## @version 3
-## @dg_internal
+## @utility
 def _discover_targets(repo_root: Path) -> list[_CargoTarget]:
     """Only `--no-deps` packages — the workspace's OWN crates, never a
     dependency — matching doxygen's own INPUT scoping, which never reaches into
@@ -252,7 +252,7 @@ def _discover_targets(repo_root: Path) -> list[_CargoTarget]:
 ##        into the tree it is indexing (mirrors `_doxygen_out_dir`'s rule for doxygen).
 ## @return Path to the generated `<target>.json`.
 ## @version 3
-## @dg_internal
+## @utility
 def _run_rustdoc_json(repo_root: Path, target: _CargoTarget, scratch_dir: Path) -> Path:
     """Invoke `cargo +nightly rustdoc --output-format json` for one target.
 
@@ -304,7 +304,7 @@ def _run_rustdoc_json(repo_root: Path, target: _CargoTarget, scratch_dir: Path) 
 # @param json_name The crate's name with hyphens replaced by underscores.
 # @return Path to the generated JSON.
 # @version 1
-# @dg_internal
+# @utility
 def _find_rustdoc_json(scratch_dir: Path, json_name: str) -> Path:
     """CARGO MOVES THE OUTPUT WHEN CROSS-COMPILING. A crate built for the host lands in
     `<target-dir>/doc/`, but one built for another triple lands in
@@ -353,7 +353,7 @@ def _find_rustdoc_json(scratch_dir: Path, json_name: str) -> Path:
 ## @param ty A rustdoc JSON `Type` value, or None for a unit/void type.
 ## @return An approximate Rust-syntax rendering. Never raises on an unrecognized shape.
 ## @version 1
-## @dg_internal
+## @utility
 def _render_type(ty: dict[str, Any] | None) -> str:
     """Best-effort only: doxygen's `argsstring`/`type` columns exist for a reader
     to skim, not for anything downstream to parse structurally (call edges come
@@ -392,7 +392,7 @@ def _render_type(ty: dict[str, Any] | None) -> str:
 ## @param sig A rustdoc JSON function `sig` object.
 ## @return A parenthesized, comma-separated parameter list.
 ## @version 1
-## @dg_internal
+## @utility
 def _render_argsstring(sig: dict[str, Any]) -> str:
     """@brief Best-effort `(type name, type name)` rendering of a function signature."""
     parts = [f"{_render_type(param_ty)} {name}" for name, param_ty in sig.get("inputs", [])]
@@ -403,7 +403,7 @@ def _render_argsstring(sig: dict[str, Any]) -> str:
 ## @param docs Raw markdown docs text, or None.
 ## @return The first non-blank line, or "" when there are no docs.
 ## @version 1
-## @dg_internal
+## @utility
 def _brief(docs: str | None) -> str:
     """Plain text, not `<para>`-wrapped: `query/_common.py`'s tag-stripping regex
     (`re.sub(r"<[^>]+>", " ", ...)`) already treats untagged text as a no-op, so
@@ -491,7 +491,7 @@ class _Impl:
 ##        independent item-id numbering).
 ## @return Every function/static/constant item with a real source span.
 ## @version 2
-## @dg_internal
+## @utility
 def _symbols_from_json(doc: dict[str, Any], doc_prefix: str) -> list[_Symbol]:
     """An item with `span: null` is either external (a blanket `impl<T> From<T>
     for T`, a trait default method inherited from `core`/`std`) or otherwise not
@@ -573,7 +573,7 @@ def _symbols_from_json(doc: dict[str, Any], doc_prefix: str) -> list[_Symbol]:
 ## @param doc_prefix Prefix making this document's item ids globally unique.
 ## @return Every struct/enum/trait item with a real source span.
 ## @version 1
-## @dg_internal
+## @utility
 def _compounds_from_json(doc: dict[str, Any], doc_prefix: str) -> list[_Compound]:
     """@brief Resolve one rustdoc document's struct/enum/trait items to compounds."""
     compounds: list[_Compound] = []
@@ -608,7 +608,7 @@ def _compounds_from_json(doc: dict[str, Any], doc_prefix: str) -> list[_Compound
 ## @param doc_prefix Prefix making this document's item ids globally unique.
 ## @return Every impl block whose target type is defined in this crate.
 ## @version 1
-## @dg_internal
+## @utility
 def _impls_from_json(doc: dict[str, Any], doc_prefix: str) -> list[_Impl]:
     """`is_synthetic`/`blanket_impl` filter out the auto-generated impls rustdoc
     reports for every type regardless of what the crate wrote (`impl Send for
@@ -657,7 +657,7 @@ def _impls_from_json(doc: dict[str, Any], doc_prefix: str) -> list[_Impl]:
 ## @return One `_Impl`-shaped record per trait, so `_write_compounds` needs no
 ##         separate trait-membership code path.
 ## @version 1
-## @dg_internal
+## @utility
 def _trait_self_membership(doc: dict[str, Any], doc_prefix: str) -> list[_Impl]:
     """`trait Greet { fn hello(&self); }` needs `hello` linked to `Greet`'s own
     `compounddef` — the same `member` relationship an impl block's methods get
@@ -691,7 +691,7 @@ def _trait_self_membership(doc: dict[str, Any], doc_prefix: str) -> list[_Impl]:
 ## @param db_path Database file to create (overwritten if it already exists).
 ## @return An open connection to the new database.
 ## @version 1
-## @dg_internal
+## @utility
 def create_doxygen_schema(db_path: Path) -> sqlite3.Connection:
     """@brief Load doxygen's own schema (clew/data/doxygen_schema.sql) into a fresh db."""
     db_path.parent.mkdir(parents=True, exist_ok=True)
@@ -736,7 +736,7 @@ class _WriteState:
 ## @param file Repo-relative POSIX path.
 ## @return The file's `path.rowid`.
 ## @version 1
-## @dg_internal
+## @utility
 def _path_id(conn: sqlite3.Connection, state: _WriteState, file: str) -> int:
     """@brief Resolve (or create) one file's `path` row."""
     if file not in state.path_rowids:
@@ -754,7 +754,7 @@ def _path_id(conn: sqlite3.Connection, state: _WriteState, file: str) -> int:
 ## @param symbols Every symbol collected across every target's rustdoc JSON.
 ## @return Shared rowid state, continued by `_write_compounds`.
 ## @version 2
-## @dg_internal
+## @utility
 def _write_symbols(conn: sqlite3.Connection, symbols: list[_Symbol]) -> _WriteState:
     """De-duplicates on `(file, line, name)`: a package's lib and bin targets can
     both re-document a shared module (a `bin` that is a thin `fn main` calling
@@ -824,7 +824,7 @@ def _write_symbols(conn: sqlite3.Connection, symbols: list[_Symbol]) -> _WriteSt
 ## @param compounds Every struct/enum/trait collected across every target's JSON.
 ## @return None.
 ## @version 1
-## @dg_internal
+## @utility
 def _write_compound_rows(
     conn: sqlite3.Connection, state: _WriteState, compounds: list[_Compound]
 ) -> None:
@@ -861,7 +861,7 @@ def _write_compound_rows(
 ## @param impls Every impl block (plus each trait's own self-membership).
 ## @return A trait's item id -> {method name: memberdef rowid}, for `_write_reimplements`.
 ## @version 1
-## @dg_internal
+## @utility
 def _write_member_rows(
     conn: sqlite3.Connection,
     state: _WriteState,
@@ -921,7 +921,7 @@ def _write_member_rows(
 ## @param trait_methods_by_name From `_write_member_rows`: trait item id -> {name: rowid}.
 ## @return None.
 ## @version 1
-## @dg_internal
+## @utility
 def _write_reimplements_rows(
     conn: sqlite3.Connection,
     state: _WriteState,
@@ -954,7 +954,7 @@ def _write_reimplements_rows(
 ## @param impls Every impl block (plus each trait's own self-membership) collected.
 ## @return None.
 ## @version 3
-## @dg_internal
+## @utility
 def _write_compounds(
     conn: sqlite3.Connection,
     state: _WriteState,

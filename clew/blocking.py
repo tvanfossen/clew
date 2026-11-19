@@ -86,7 +86,7 @@ _BOUNDED_PREFIXES = (
 ## @param predicates The predicate names.
 ## @return The compiled regex.
 ## @version 1
-## @dg_internal
+## @utility
 def _isr_call(predicates: tuple[str, ...]) -> re.Pattern[str]:
     """@brief Compile the predicate-call regex. @return Regex."""
     return re.compile(r"(?<![A-Za-z0-9_])(?:" + "|".join(map(re.escape, predicates)) + r")\s*\(")
@@ -114,7 +114,7 @@ class BlockingPattern:
     ## @param name The callee identifier as written at the call site.
     ## @param timeout_arg_index 0-based index of the timeout argument, or None.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def __init__(self, name: str, timeout_arg_index: int | None = None) -> None:
         self.name = name
         self.timeout_arg_index = timeout_arg_index
@@ -228,7 +228,7 @@ class BlockingVocabulary:
     ## @brief Build the vocabulary from the built-ins and a declaration.
     ## @param declared The `blocking:` section, or None.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def __init__(self, declared: dict | None = None) -> None:
         declared = _checked_blocking(declared or {})
         tokens = declared.get("wait_tokens") or {}
@@ -253,7 +253,7 @@ _PRIMITIVE_KEYS = frozenset({"name", "timeout_arg_index"})
 ## @param declared The section.
 ## @return The section; raises DeclarationError naming what is wrong.
 ## @version 1
-## @dg_internal
+## @utility
 def _checked_blocking(declared: dict) -> dict:
     """AN UNKNOWN KEY OR A WRONG SHAPE IS REFUSED, never defaulted: a misspelled
     `timeout_arg` would silently make a timed wait read as unconditional.
@@ -300,7 +300,7 @@ _BUILT_IN = None
 ## @brief The built-in vocabulary, built once.
 ## @return The vocabulary.
 ## @version 1
-## @dg_internal
+## @utility
 def _built_in() -> BlockingVocabulary:
     """@brief Built-in vocabulary. @return It."""
     global _BUILT_IN
@@ -316,7 +316,7 @@ def _built_in() -> BlockingVocabulary:
 ## @return A BLOCKING_WAIT member.
 ## v2 (2.0.0, C1): the wait tokens come from the vocabulary (built-ins plus a declaration).
 ## @version 2
-## @dg_internal
+## @utility
 def classify_wait(operand: str, has_timeout: bool, vocab: BlockingVocabulary | None = None) -> str:
     """Read off the TEXT, never off the callee name: the same primitive is legal or illegal in
     an interrupt depending on this one argument.
@@ -346,7 +346,7 @@ def classify_wait(operand: str, has_timeout: bool, vocab: BlockingVocabulary | N
 ## @param text Condition or operand text.
 ## @return True when a predicate is called in it.
 ## @version 1
-## @dg_internal
+## @utility
 def _names_isr_predicate(text: str, vocab: BlockingVocabulary | None = None) -> bool:
     """A SUBSTRING IS NOT A CALL (agent C's W7): `in_irq` sits inside `within_irq_window(dev)`, and
     reading that as a guard downgraded a real blocking-in-ISR conflict to "guarded".
@@ -365,7 +365,7 @@ def _names_isr_predicate(text: str, vocab: BlockingVocabulary | None = None) -> 
 ## v2 (W7): a predicate counts only when CALLED (`_names_isr_predicate`).
 ## v3 (2.0.0, C1): the predicates come from the vocabulary.
 ## @version 3
-## @dg_internal
+## @utility
 def _enclosing_condition(node: Any, src: bytes, vocab: BlockingVocabulary | None = None) -> str:
     """Three levels up at most. A guard further away than that is not a guard a reader would
     call one, and the point is to SHOW the condition rather than to evaluate it.
@@ -478,7 +478,7 @@ class _BlockingHarvester(Harvester):
     ## @brief Store the pattern map.
     ## v2 (2.0.0, C1): and the vocabulary.
     ## @version 2
-    ## @dg_internal
+    ## @utility
     def __init__(
         self, patterns_by_name: dict, extra_key: str = "", vocab: BlockingVocabulary | None = None
     ) -> None:
@@ -499,7 +499,7 @@ class _BlockingHarvester(Harvester):
 ## @param repo_root The repository.
 ## @return The harvester (built-in vocabulary when nothing is declared or the file is unreadable).
 ## @version 1
-## @dg_internal
+## @utility
 def declared_blocking_harvester(repo_root: Path) -> Harvester:
     """THE FAST TIER'S CONSTRUCTION SITE (2.0.0, C1): it must read an edited file with the same
     vocabulary the full build used, or a save would drop the declared sites of that file. A

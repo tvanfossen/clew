@@ -399,7 +399,7 @@ def load_wiki_config(
 ## @param problems Appended to.
 ## @return (name, globs) pairs.
 ## @version 1
-## @dg_internal
+## @utility
 def _components(raw: Any, problems: list[str]) -> tuple[tuple[str, tuple[str, ...]], ...]:
     """@brief Parse groupings. @return Pairs."""
     if not isinstance(raw, dict):
@@ -418,7 +418,7 @@ def _components(raw: Any, problems: list[str]) -> tuple[tuple[str, tuple[str, ..
 ## @param path The file; absent means an empty section.
 ## @return (section, problems).
 ## @version 1
-## @dg_internal
+## @utility
 def _read_section(path: Path) -> tuple[dict[str, Any], list[str]]:
     """@brief Read YAML. @return Section and problems."""
     import yaml
@@ -440,7 +440,7 @@ def _read_section(path: Path) -> tuple[dict[str, Any], list[str]]:
 ## @return {name: Audience}.
 ## v2: exclude_owners (2.0.0, P5)
 ## @version 2
-## @dg_internal
+## @utility
 def _audiences(raw: Any, problems: list[str]) -> dict[str, Audience]:
     """@brief Parse audiences. @return Rules by name."""
     out = {}
@@ -463,7 +463,7 @@ def _audiences(raw: Any, problems: list[str]) -> dict[str, Audience]:
 ## @param problems Accumulated problems; appended to.
 ## @return The specs.
 ## @version 1
-## @dg_internal
+## @utility
 def _entries(
     raw: dict[str, Any],
     key: str,
@@ -489,7 +489,7 @@ def _entries(
 ## @param e The entry.
 ## @return The spec.
 ## @version 1
-## @dg_internal
+## @utility
 def _source(e: dict[str, Any]) -> SourceSpec:
     """@brief Build. @return Spec."""
     return SourceSpec(
@@ -507,7 +507,7 @@ def _source(e: dict[str, Any]) -> SourceSpec:
 ## @param problems Appended to when the section is invalid.
 ## @return The section, or {} when undeclared or invalid.
 ## @version 1
-## @dg_internal
+## @utility
 def _requirements_section(path: Path, problems: list[str]) -> dict[str, Any]:
     """THE GATE'S OWN READER, so the wiki can never accept a catalog section the gate refuses.
 
@@ -531,7 +531,7 @@ def _requirements_section(path: Path, problems: list[str]) -> dict[str, Any]:
 ## @param key The section.
 ## @return The section, or {} when absent (a non-mapping is left to the declaration loader).
 ## @version 1
-## @dg_internal
+## @utility
 def _top_level(path: Path, key: str) -> dict[str, Any]:
     """@brief Read one top-level section. @return Mapping."""
     import yaml
@@ -550,7 +550,7 @@ def _top_level(path: Path, key: str) -> dict[str, Any]:
 ## @param path The config file the wiki was given.
 ## @return `<guard.impact.report_dir>/impact.json`, or None to use the repository's own gate config.
 ## @version 1
-## @dg_internal
+## @utility
 def _declared_report(path: Path) -> str | None:
     """AN OUT-OF-TREE CONFIG (`clew wiki build --config FILE`) carries its own `guard:` section, so
     the report directory is read from that file rather than from the repository's (R5-CFG F9).
@@ -575,7 +575,7 @@ def _declared_report(path: Path) -> str | None:
 ## @param requirements The top-level section.
 ## @return Specs, in the order written.
 ## @version 1
-## @dg_internal
+## @utility
 def _pinned_catalogs(requirements: dict[str, Any]) -> tuple[CatalogSpec, ...]:
     """ONE SHAPE (R5-CFG F6): `{repo, rev, path, name?}` replaced `wiki.catalogs`'
     `{name, repo, pin, catalog}`. A path-only entry is this repository's own file and adds no
@@ -600,7 +600,7 @@ def _pinned_catalogs(requirements: dict[str, Any]) -> tuple[CatalogSpec, ...]:
 ## @param e The entry.
 ## @return The spec.
 ## @version 1
-## @dg_internal
+## @utility
 def _rule(e: dict[str, Any]) -> RuleSpec:
     """@brief Build. @return Spec."""
     return RuleSpec(
@@ -618,7 +618,7 @@ def _rule(e: dict[str, Any]) -> RuleSpec:
 ## @param where Its dotted location, for the message.
 ## @return Problems.
 ## @version 1
-## @dg_internal
+## @utility
 def _unknown(mapping: Any, allowed: set[str], where: str) -> list[str]:
     """@brief Name unknown keys. @return Problems."""
     if not isinstance(mapping, dict):
@@ -636,7 +636,7 @@ def _unknown(mapping: Any, allowed: set[str], where: str) -> list[str]:
 ## @return Problems.
 ## v2: also names keys that moved to requirements: / report_dir (2.0.0)
 ## @version 2
-## @dg_internal
+## @utility
 def _renamed(mapping: Any, where: str) -> list[str]:
     """@brief Point a renamed or moved key at its new home. @return Problems."""
     if not isinstance(mapping, dict):
@@ -658,7 +658,7 @@ def _renamed(mapping: Any, where: str) -> list[str]:
 ## @param problems Appended to.
 ## @return The strings.
 ## @version 1
-## @dg_internal
+## @utility
 def _strings(
     mapping: dict[str, Any], key: str, default: tuple[str, ...], where: str, problems: list[str]
 ) -> tuple[str, ...]:
@@ -694,7 +694,7 @@ def _strings(
 ## v5 (2.0.0): `depth: 0` is a problem, not 3; `stop_at` through `_strings`.
 ## v6: measured_depth and max_steps per flow (2.0.0, R5-CFG C1/C2)
 ## @version 6
-## @dg_internal
+## @utility
 def _flow(raw: Any, index: int, problems: list[str]) -> FlowSpec | None:
     """@brief Parse one flow. @return Spec or None."""
     where = f"wiki.flows[{index}]"
@@ -725,7 +725,7 @@ def _flow(raw: Any, index: int, problems: list[str]) -> FlowSpec | None:
 ## @param problems Appended to.
 ## @return WikiConfig keyword arguments.
 ## @version 1
-## @dg_internal
+## @utility
 def _tuning(raw: dict[str, Any], tests: dict[str, Any], problems: list[str]) -> dict[str, Any]:
     """ONE RULE (R5-CFG, 2.0.0): absent is the former constant; anything but an integer of at least
     1 is a problem and the default stands — never a silent 0 that would draw nothing.
@@ -753,7 +753,7 @@ def _tuning(raw: dict[str, Any], tests: dict[str, Any], problems: list[str]) -> 
 ## @param problems Appended to.
 ## @return The value.
 ## @version 1
-## @dg_internal
+## @utility
 def _count(mapping: dict[str, Any], key: str, default: int, where: str, problems: list[str]) -> int:
     """@brief Read one count. @return Count."""
     value = mapping.get(key, default)
@@ -769,7 +769,7 @@ def _count(mapping: dict[str, Any], key: str, default: int, where: str, problems
 ## @param problems Appended to.
 ## @return The depth.
 ## @version 1
-## @dg_internal
+## @utility
 def _depth(raw: dict[str, Any], where: str, problems: list[str]) -> int:
     """R5-CFG F16: `depth: 0` used to read 3 (`int(raw.get("depth") or 3)`). A depth of 0 draws
     nothing, so it is reported; the flow keeps the default rather than being dropped.
@@ -790,7 +790,7 @@ def _depth(raw: dict[str, Any], where: str, problems: list[str]) -> int:
 ## @param problems Appended to.
 ## @return The role, or "" when undeclared or unknown.
 ## @version 1
-## @dg_internal
+## @utility
 def _role(raw: Any, where: str, problems: list[str]) -> str:
     """@brief Parse a role. @return Role."""
     if raw is None:
@@ -811,7 +811,7 @@ def _role(raw: Any, where: str, problems: list[str]) -> str:
 ## v5 (2.0.0): list keys through `_strings`; `min_layers: 0` is 0, not "off".
 ## v6: names the top-level tests: section (2.0.0, R5-CFG F20)
 ## @version 6
-## @dg_internal
+## @utility
 def _inputs(tests: dict[str, Any], problems: list[str]) -> EvidenceInputs:
     """A RESULT FORMAT IS DECLARED, so an entry without one is a problem, never a sniffed guess.
 
@@ -854,7 +854,7 @@ def _inputs(tests: dict[str, Any], problems: list[str]) -> EvidenceInputs:
 ## @param tests The block.
 ## @return None (omitted: the full transitive closure), or the declared cap (0 = off).
 ## @version 1
-## @dg_internal
+## @utility
 def _infer_depth(tests: dict[str, Any]) -> int | None:
     """@brief Read the cap. @return Depth or None."""
     raw = tests.get("infer_depth")
@@ -865,7 +865,7 @@ def _infer_depth(tests: dict[str, Any]) -> int | None:
 ## @param e The entry.
 ## @return The pair.
 ## @version 1
-## @dg_internal
+## @utility
 def _result(e: dict[str, Any]) -> tuple[str, str]:
     """@brief Build. @return Pair."""
     return (str(e["format"]), str(e["path"]))
@@ -877,7 +877,7 @@ def _result(e: dict[str, Any]) -> tuple[str, str]:
 ## @return The spec.
 ## v2 (2.0.0): readable palette tokens mapped to the CSS names; old abbreviations refused.
 ## @version 2
-## @dg_internal
+## @utility
 def _theme(raw: Any, problems: list[str]) -> ThemeSpec:
     """A PALETTE TOKEN THE THEME DOES NOT DEFINE is a problem: it would be a silent no-op.
 
@@ -923,7 +923,7 @@ def _theme(raw: Any, problems: list[str]) -> ThemeSpec:
 ## @return (provider, project), or None when not declared.
 ## v2: `fetch` beside or instead of a tracker (P3a).
 ## @version 2
-## @dg_internal
+## @utility
 def _issues(raw: Any, problems: list[str]) -> tuple[str, str] | None:
     """`fetch` MAY STAND ALONE (the tracker then comes from the origin remote) or beside one
     tracker; two trackers, or an unknown key, is a problem.
@@ -954,7 +954,7 @@ def _issues(raw: Any, problems: list[str]) -> tuple[str, str] | None:
 ## @param problems Appended to.
 ## @return (glob, kind) pairs, in the order written.
 ## @version 1
-## @dg_internal
+## @utility
 def _doc_kinds(raw: Any, problems: list[str]) -> tuple[tuple[str, str], ...]:
     """@brief Parse kinds. @return Pairs."""
     if not isinstance(raw, dict):

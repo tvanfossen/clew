@@ -208,7 +208,7 @@ def self_declared_paths(conn: sqlite3.Connection) -> frozenset[str]:
 ## @param rel Its repo-relative path.
 ## @return The evidence, or None when unreadable or not generated.
 ## @version 1
-## @dg_internal
+## @utility
 def _evidence_of(path: Path, rel: str) -> str | None:
     """@brief Read the head and test it. @return Evidence or None."""
     try:

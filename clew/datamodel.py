@@ -278,7 +278,7 @@ class ManifestSet:
     ## @brief Prose naming what a present dialect declares and this index does not resolve.
     ## @return The note, or "" when every declared field was resolved.
     ## @version 2
-    ## @dg_internal
+    ## @utility
     def _unresolved_note(self) -> str:
         """SAY IT IN THE PAYLOAD, because the alternative is a consumer reading a NULL and
         concluding the manifest was silent. The note is generated from the rows — it appears
@@ -379,7 +379,7 @@ def observed_match(declared: str, observed: frozenset[str]) -> bool:
 ## @param path The candidate document.
 ## @return Its text, or None when it exceeds the ceiling or cannot be decoded.
 ## @version 1
-## @dg_internal
+## @utility
 def _small_text(path: Path) -> str | None:
     """SIZE FIRST, from `stat()`, before a byte is read. Reading and then measuring would
     already have paid the cost the ceiling exists to avoid, and on the measured case that cost
@@ -401,7 +401,7 @@ def _small_text(path: Path) -> str | None:
 ## @param paths Candidate documents.
 ## @return How many are larger than `_MAX_DOCUMENT_BYTES`.
 ## @version 1
-## @dg_internal
+## @utility
 def _oversized_count(paths: Iterable[Path]) -> int:
     """@brief Count documents refused unread for their size.
 
@@ -420,7 +420,7 @@ def _oversized_count(paths: Iterable[Path]) -> int:
 ## @param value The default as the manifest declares it.
 ## @return A string, or None when the manifest omitted the field.
 ## @version 1
-## @dg_internal
+## @utility
 def _scalar(value: object) -> str | None:
     """TOML distinguishes `false` from `0` and this keeps that distinction, because a boolean
     default and a zero default are different facts about a key and `str(False)` is not
@@ -482,7 +482,7 @@ def parse_ingot_manifest(path: Path, repo_root: Path) -> tuple[DeclaredKey, ...]
 ## @param classes The parsed `classes` value.
 ## @return True when at least one entry carries both an `id` and a `keys` list.
 ## @version 1
-## @dg_internal
+## @utility
 def _is_ingot_class_list(classes: list) -> bool:
     """@brief Recognise the ingot class-list shape.
 
@@ -500,7 +500,7 @@ def _is_ingot_class_list(classes: list) -> bool:
 ## @param manifest Repo-relative manifest path.
 ## @return One DeclaredKey per `[[classes.keys]]` table carrying an id.
 ## @version 2
-## @dg_internal
+## @utility
 def _ingot_keys(classes: list, namespace: str, manifest: str) -> Iterable[DeclaredKey]:
     """A key with no `id` is SKIPPED rather than stored under an empty name: its define name
     would collide with every other id-less key in the same class, merging unrelated keys into
@@ -544,7 +544,7 @@ def _ingot_keys(classes: list, namespace: str, manifest: str) -> Iterable[Declar
 ## @param path The candidate YAML document.
 ## @return The parsed mapping, or None when the document is not one of these manifests.
 ## @version 1
-## @dg_internal
+## @utility
 def _udm_document(path: Path) -> dict | None:
     """ONE shape gate for this dialect, in one place, because the alternative is a recogniser
     and a parser that can drift apart — and the drift would be silent in the direction that
@@ -610,7 +610,7 @@ def parse_udm_manifest(path: Path, repo_root: Path) -> tuple[DeclaredKey, ...] |
 ## @param manifest Repo-relative manifest path.
 ## @return One DeclaredKey per `classes[].data[]` entry carrying a name.
 ## @version 1
-## @dg_internal
+## @utility
 def _udm_keys(classes: list, namespace: str, manifest: str) -> Iterable[DeclaredKey]:
     """THE NAME IS THE IDENTITY, never the optional int `id`: 4 of 233 classes and 14 of 1,606
     keys in the measured corpus carry one, so keying off it would key off a field the corpus
@@ -659,7 +659,7 @@ def _udm_keys(classes: list, namespace: str, manifest: str) -> Iterable[Declared
 ## @param type_block The key's `type` mapping, empty when it has none.
 ## @return The unresolved field names, in a stable order.
 ## @version 1
-## @dg_internal
+## @utility
 def _udm_unresolved(key: dict, type_block: dict) -> tuple[str, ...]:
     """PRESENCE, not value — that is the whole contract. A key that declares no default at all
     (280 of 1,606 in the measured corpus) gets an EMPTY tuple, and a key that declares one or
@@ -718,7 +718,7 @@ def read_key_list(path: Path) -> frozenset[str] | None:
 ## @param excludes Subtrees the BUILD excluded, pruned during the descent.
 ## @return (TOML candidates, YAML candidates), both sorted for a stable build.
 ## @version 3
-## @dg_internal
+## @utility
 def _candidates(repo_root: Path, excludes: tuple[Path, ...] = ()) -> tuple[list[Path], list[Path]]:
     """NESTED GIT TREES ARE EXCLUDED BY THEIR TREE, not by their name. A vendored generator
     is somebody else's repository and its example manifests are its own; `external_roots`
@@ -790,7 +790,7 @@ class DeclaredModelError(RuntimeError):
 ## @param repo_root Root the stored manifest path is relative to.
 ## @return (manifest key, declared keys).
 ## @version 1
-## @dg_internal
+## @utility
 def _declared_manifest(declared: Path, repo_root: Path) -> tuple[str, tuple[DeclaredKey, ...]]:
     """DECLINING IS RIGHT FOR A WALK AND WRONG FOR A STATEMENT. Both parsers return None for
     "not this kind of document", which is what lets discovery pass over a lint config without
@@ -903,7 +903,7 @@ _DM_STAGE_VERSION = 1
 ## @brief The `DeclaredKey` field order, used as the manifest cache's shape key.
 ## @return Comma-joined field names.
 ## @version 1
-## @dg_internal
+## @utility
 def _declared_key_shape() -> str:
     """@brief Render the dataclass's field order.
     @return The shape key.
@@ -920,7 +920,7 @@ def _declared_key_shape() -> str:
 ## @param compute Callable producing the value when the cache cannot serve it.
 ## @return The derivation, cached or fresh.
 ## @version 1
-## @dg_internal
+## @utility
 def _cached_document(
     cache: Any,
     repo_root: Path,
@@ -970,7 +970,7 @@ def _cached_document(
 ## @param keys The parsed keys, or None when the parser declined the document.
 ## @return A list of field lists, or None.
 ## @version 1
-## @dg_internal
+## @utility
 def _keys_as_rows(keys: tuple[DeclaredKey, ...] | None) -> list[list[Any]] | None:
     """NONE AND [] STAY DIFFERENT ANSWERS, exactly as they do in the self-edge guard: None is
     "this parser declined the document" and an empty tuple is "a manifest that declares nothing".
@@ -989,7 +989,7 @@ def _keys_as_rows(keys: tuple[DeclaredKey, ...] | None) -> list[list[Any]] | Non
 ## @param rows The stored rows, or None.
 ## @return The keys, or None when the document was declined.
 ## @version 1
-## @dg_internal
+## @utility
 def _keys_from_rows(rows: list[list[Any]] | None) -> tuple[DeclaredKey, ...] | None:
     """`unresolved_fields` IS A TUPLE and JSON returns a list, so it is restored by name rather
     than by position — the dataclass is frozen and compared by value, and a list where a tuple
@@ -1017,7 +1017,7 @@ def _keys_from_rows(rows: list[list[Any]] | None) -> tuple[DeclaredKey, ...] | N
 ## @param cache Live index cache, or None.
 ## @return True when the document is a UDM manifest candidate.
 ## @version 1
-## @dg_internal
+## @utility
 def _is_udm_candidate(path: Path, repo_root: Path | None, cache: Any) -> bool:
     """THE SHAPE GATE IS A SECOND FULL PARSE of every document the key-list gate declined, and
     on a real repository that is most of them — 45 YAML files produced 90 `safe_load` calls.
@@ -1046,7 +1046,7 @@ def _is_udm_candidate(path: Path, repo_root: Path | None, cache: Any) -> bool:
 ## @param yaml_paths Every YAML candidate under the repository.
 ## @return (every listed define name, how many lists, the UDM manifest paths).
 ## @version 1
-## @dg_internal
+## @utility
 def _classify_yaml(
     yaml_paths: list[Path],
     repo_root: Path | None = None,
@@ -1094,7 +1094,7 @@ def _classify_yaml(
 ## @param repo_root Root the stored manifest paths are relative to.
 ## @return (repo-relative manifest path, its declared keys) per document that parsed.
 ## @version 1
-## @dg_internal
+## @utility
 def _parsed_manifests(
     toml_paths: list[Path],
     udm_paths: list[Path],
@@ -1134,7 +1134,7 @@ def _parsed_manifests(
 ## @param list_count How many key lists were discovered.
 ## @return The selected manifest set.
 ## @version 2
-## @dg_internal
+## @utility
 def _select(
     toml_paths: list[Path],
     udm_paths: list[Path],
@@ -1224,7 +1224,7 @@ def _ensure_table(conn: sqlite3.Connection) -> None:
 ## @param conn Open connection to the database being built.
 ## @return Distinct `shared_key_edges.key_name` values, empty when the table does not exist.
 ## @version 1
-## @dg_internal
+## @utility
 def _observed_keys(conn: sqlite3.Connection) -> frozenset[str]:
     """Tolerates a MISSING TABLE rather than requiring one, because `shared_key_edges` is
     created by whichever of its own two stages runs first and a target with no accessor
@@ -1315,7 +1315,7 @@ def import_data_model_keys(
 ## @param observed The observed shared-key vocabulary.
 ## @return None.
 ## @version 1
-## @dg_internal
+## @utility
 def _log(found: ManifestSet, observed: frozenset[str]) -> None:
     """The UNSELECTED count is logged at WARNING, because it is the one state an operator can
     act on: manifests exist and no key list vouches for them, so the catalog is empty for a

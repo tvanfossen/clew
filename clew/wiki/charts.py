@@ -81,7 +81,7 @@ def donut(counts: list[tuple[str, int]], title: str) -> str:
 ## @param sweep Sweep angle (radians).
 ## @return SVG markup.
 ## @version 1
-## @dg_internal
+## @utility
 def _arc(
     label: str, n: int, geometry: tuple[int, int, int, int], start: float, sweep: float
 ) -> str:
@@ -186,7 +186,7 @@ def burndown(series: list[tuple[str, dict[str, int]]], milestones: list[tuple[st
 ## @param bottom The axis baseline.
 ## @return SVG parts.
 ## @version 1
-## @dg_internal
+## @utility
 def _milestone_marks(
     columns: list[str], xs: list[float], milestones: list[tuple[str, str]], bottom: int
 ) -> list[str]:
@@ -210,7 +210,7 @@ def _milestone_marks(
 ## @param key The recorded key.
 ## @return True when equal, ignoring a leading `v`.
 ## @version 1
-## @dg_internal
+## @utility
 def _same(version: str, key: str) -> bool:
     """@brief Compare. @return Equal?"""
     return version.lstrip("vV") == key.lstrip("vV")

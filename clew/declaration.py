@@ -487,7 +487,7 @@ def load_declaration_located(
 ## @param path The file it was read from, for the message.
 ## @return The declaration with list sections as lists; raises DeclarationError on a wrong shape.
 ## @version 1
-## @dg_internal
+## @utility
 def _checked_sections(data: dict[str, Any], path: Path) -> dict[str, Any]:
     """ONE VALIDATOR FOR BOTH ROUTES (R5-CFG F1): manifest sections go through
     `buildoptions.check_manifest_document`, the check tier 1 already had, so a key refused from
@@ -512,7 +512,7 @@ def _checked_sections(data: dict[str, Any], path: Path) -> dict[str, Any]:
 ## v3: tests.paths is a list section (2.0.0, R5-CFG F20)
 ## v4: tests.macros and tests.function_prefixes are checked too (2.0.0, P4)
 ## @version 4
-## @dg_internal
+## @utility
 def _checked_section(name: str, value: Any, path: Path) -> Any:
     """@brief Refuse a wrong-shaped section, naming it and the expected shape.
     @return The checked value.
@@ -552,7 +552,7 @@ def _checked_section(name: str, value: Any, path: Path) -> Any:
 ## @param path Source file.
 ## @return The section, checked.
 ## @version 1
-## @dg_internal
+## @utility
 def _checked_tests(value: dict[str, Any], path: Path) -> dict[str, Any]:
     """`paths` and `function_prefixes` are lists; `macros` maps a SHAPE (`named` / `suite` /
     `bare`) to a list. An unknown shape is refused by name: it would read as no macros at all.
@@ -583,7 +583,7 @@ def _checked_tests(value: dict[str, Any], path: Path) -> dict[str, Any]:
 ## @param path Source file.
 ## @return The section as a mapping; raises DeclarationError on an unknown key or wrong type.
 ## @version 1
-## @dg_internal
+## @utility
 def _checked_requirements(value: Any, path: Path) -> dict[str, Any]:
     """@brief Validate `requirements:` with REQUIREMENTS_SCHEMA. @return Mapping."""
     from .guard.config import REQUIREMENTS_SCHEMA, _validate_node
@@ -606,7 +606,7 @@ def _checked_requirements(value: Any, path: Path) -> dict[str, Any]:
 ## @param path Source file.
 ## @return The list of strings; raises DeclarationError for any other type.
 ## @version 1
-## @dg_internal
+## @utility
 def _checked_list_section(name: str, value: Any, path: Path) -> list[str]:
     """@brief Normalise a list section. @return Strings."""
     if isinstance(value, str):
@@ -624,7 +624,7 @@ def _checked_list_section(name: str, value: Any, path: Path) -> list[str]:
 ## @param path Source file.
 ## @return None; raises DeclarationError naming the unknown key(s).
 ## @version 1
-## @dg_internal
+## @utility
 def _check_section_keys(name: str, value: dict[str, Any], path: Path) -> None:
     """R5-CFG F4: `preprocessor: {predefine: [FOO]}` recorded a DECLARED configuration with no
     macros, and `kconfig: {path: ...}` (once the documented spelling) was ignored in favour of the
@@ -648,7 +648,7 @@ def _check_section_keys(name: str, value: dict[str, Any], path: Path) -> None:
 ## @param path File to read.
 ## @return The mapping, or {} when unreadable, malformed, empty, or not a mapping.
 ## @version 2
-## @dg_internal
+## @utility
 def _read_mapping(path: Path) -> dict[str, Any]:
     """AN EMPTY OR COMMENT-ONLY FILE IS NOT MALFORMED (gh#48). It is exactly what
     `propose_declaration` hands an owner — a draft written entirely as comments so that committing
@@ -674,7 +674,7 @@ def _read_mapping(path: Path) -> dict[str, Any]:
 ## @param path File to read.
 ## @return The mapping ({} when empty), and a phrase naming why it is unusable, or None.
 ## @version 1
-## @dg_internal
+## @utility
 def _parsed_declaration(path: Path) -> tuple[dict[str, Any], str | None]:
     """ONE PARSE FOR THE BUILD AND FOR THE MESSAGES that describe it, so a refusal saying
     "comments only" and a build honouring nothing cannot disagree about the same file.

@@ -72,7 +72,7 @@ _SECTION_FROM = """
 ## @param conn Open connection.
 ## @return True when L1 and L2 tables both exist.
 ## @version 1
-## @dg_internal
+## @utility
 def _layer_present(conn: sqlite3.Connection) -> bool:
     """Checks BOTH tables, not just one. A database built between L1 and L2
     carries `lock_acquisitions` and no `critical_section_calls`, and a query
@@ -90,7 +90,7 @@ def _layer_present(conn: sqlite3.Connection) -> bool:
 ## @param acquisition_id The `lock_acquisitions` row id.
 ## @return Ordered SectionCall tuple; empty when the extent was unresolved.
 ## @version 1
-## @dg_internal
+## @utility
 def _calls_for(conn: sqlite3.Connection, acquisition_id: int) -> tuple[SectionCall, ...]:
     """@brief Load one section's member calls, in source order."""
     rows = conn.execute(
@@ -106,7 +106,7 @@ def _calls_for(conn: sqlite3.Connection, acquisition_id: int) -> tuple[SectionCa
 ## @param row A row shaped by `_SECTION_COLUMNS`.
 ## @return The populated CriticalSection.
 ## @version 1
-## @dg_internal
+## @utility
 def _build_section(conn: sqlite3.Connection, row: tuple) -> CriticalSection:
     """@brief Build one section model, loading its member calls."""
     acq_id, name, scope, kind, holder, path, start, end, form, mode, confidence = row
@@ -398,7 +398,7 @@ _ROSTER_SQL = """
 ## @param conn Open connection.
 ## @return Executable SQL text.
 ## @version 1
-## @dg_internal
+## @utility
 def _roster_sql(conn: sqlite3.Connection) -> str:
     """`''` for a pre-gh#335 index, which reads as "every lock is first party" — TRUE for such an
     index, because it excluded nested trees outright rather than tagging them. The same
@@ -428,7 +428,7 @@ _NO_NESTING_MEANING = (
 ## @param nestings Every site, as `nestings_on` returns them.
 ## @return One pair per distinct (outer, outer_scope, inner, inner_scope), site counts kept.
 ## @version 1
-## @dg_internal
+## @utility
 def _nesting_pairs(nestings: list[LockNesting]) -> tuple[LockNestingPair, ...]:
     """THE EXEMPLAR IS THE FIRST RESOLVED SITE WHEN THE PAIR HAS ONE, and that is the whole
     reason this is not a plain `dict` insertion. `nestings_on` orders by scope and name, not
@@ -474,7 +474,7 @@ def _nesting_pairs(nestings: list[LockNesting]) -> tuple[LockNestingPair, ...]:
 ## @param sites How many call sites those pairs were collapsed from.
 ## @return The sentence for `LockInventory.nesting_meaning`.
 ## @version 2
-## @dg_internal
+## @utility
 def _nesting_meaning(pairs: tuple[LockNestingPair, ...], sites: int) -> str:
     """THE WEAK-EVIDENCE COUNT IS STATED, NOT FILTERED, and stating it is the whole reason this
     sentence exists rather than a bare count. A nesting is only as good as the call that creates
@@ -506,7 +506,7 @@ def _nesting_meaning(pairs: tuple[LockNestingPair, ...], sites: int) -> str:
 ## @param rows Rows shaped by `_ROSTER_SQL`.
 ## @return One LockEntry per row, in the SQL's order.
 ## @version 1
-## @dg_internal
+## @utility
 def _entries(rows: list[tuple]) -> tuple[LockEntry, ...]:
     """Split out of `lock_roster` when the nestings folded in, purely to keep that function
     at one readable job. The unpack is spelled out rather than positional-sliced because
@@ -648,7 +648,7 @@ def lock_roster(db: DbSource) -> LockInventory:
 ## @param entries The roster rows.
 ## @return A sentence naming where the objects are, or how to reach them.
 ## @version 2
-## @dg_internal
+## @utility
 def _object_route(entries: Sequence[LockEntry]) -> str:
     """ROUTING, NOT A DISCLAIMER, and the difference is measured in round trips. "This layer does
     not model lock objects" leaves a reader to hunt or — worse, and this is what happened — to
@@ -707,7 +707,7 @@ def _object_route(entries: Sequence[LockEntry]) -> str:
 ## @param entries Every roster row.
 ## @return One origin per (name, scope): the external root, '' first party, None unresolved.
 ## @version 1
-## @dg_internal
+## @utility
 def _origin_per_mutex(entries: tuple[LockEntry, ...]) -> list[str | None]:
     """SPLIT THE NUMBER THE PAYLOAD TELLS CALLERS TO QUOTE, which is `distinct_mutexes` and not
     `rows`. Splitting rows instead would produce buckets that sum to a total nobody quotes, and a
@@ -762,7 +762,7 @@ _CONFLICT_SUBJECT = (
 ## @param conn Open connection.
 ## @return True when context_conflicts exists.
 ## @version 1
-## @dg_internal
+## @utility
 def _context_layer_present(conn: sqlite3.Connection) -> bool:
     """An index built before gh#47 has no table, and that is NOT the same as a repository with
     no interrupt handler — the first cannot say, the second measured zero. The accessors return

@@ -63,7 +63,7 @@ def check_wiki(
 ## @param config The section.
 ## @return Problems.
 ## @version 1
-## @dg_internal
+## @utility
 def _site_problems(repo_root: Path, config: WikiConfig) -> list[str]:
     """@brief Check theme and roadmap paths. @return Problems."""
     named = [
@@ -136,7 +136,7 @@ def trace_problems(repo_root: Path, db: Path, config: WikiConfig) -> list[str]:
 ## @param known Every requirement id declared or tagged.
 ## @return Problems; [] when no mapping is declared or it does not exist (reported elsewhere).
 ## @version 1
-## @dg_internal
+## @utility
 def _mapping_problems(repo_root: Path, config: WikiConfig, known: set[str]) -> list[str]:
     """@brief Check mapping ids. @return Problems."""
     from .imports import parse_mapping
@@ -159,7 +159,7 @@ def _mapping_problems(repo_root: Path, config: WikiConfig, known: set[str]) -> l
 ## @param db The index.
 ## @return Ids.
 ## @version 1
-## @dg_internal
+## @utility
 def _known_requirements(db: Path) -> set[str]:
     """@brief Collect ids. @return Ids."""
     from ..query._common import connect
@@ -175,7 +175,7 @@ def _known_requirements(db: Path) -> set[str]:
 ## @param config The section.
 ## @return Problems.
 ## @version 1
-## @dg_internal
+## @utility
 def _mutation_problems(repo_root: Path, db: Path, config: WikiConfig) -> list[str]:
     """A MECHANISM THE INDEX DOES NOT HOLD attaches to no requirement, so the record's strongest
     evidence would silently vanish from the trace — named instead.
@@ -206,7 +206,7 @@ def _mutation_problems(repo_root: Path, db: Path, config: WikiConfig) -> list[st
 ## @return Problems.
 ## v2: only declared globs are checked (2.0.0)
 ## @version 2
-## @dg_internal
+## @utility
 def _docs_problems(repo_root: Path, config: WikiConfig) -> list[str]:
     """ONLY A DECLARED GLOB (2.0.0, consumer finding): a repository with Markdown prose and no
     `wiki:` section was told the built-in default `docs/**/*.rst` "matches no file", a glob it
@@ -226,7 +226,7 @@ def _docs_problems(repo_root: Path, config: WikiConfig) -> list[str]:
 ## @param config The section.
 ## @return Problems.
 ## @version 1
-## @dg_internal
+## @utility
 def _flow_problems(db: Path, config: WikiConfig) -> list[str]:
     """@brief Check flows against the index. @return Problems."""
     from ..query._common import connect, identity_rowids
@@ -256,7 +256,7 @@ def _flow_problems(db: Path, config: WikiConfig) -> list[str]:
 ## @param before_tests True when the tests have not run yet.
 ## v5: names the top-level tests: section (2.0.0, R5-CFG F20)
 ## @version 5
-## @dg_internal
+## @utility
 def _evidence_problems(
     repo_root: Path, config: WikiConfig, before_tests: bool = False
 ) -> list[str]:

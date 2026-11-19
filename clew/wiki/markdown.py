@@ -35,7 +35,7 @@ class _Flavor(ABC):
     ## @param label The link text.
     ## @return Markdown.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     @abstractmethod
     def link(self, page: str, label: str) -> str:
         """@brief Link. @return Markdown."""
@@ -44,7 +44,7 @@ class _Flavor(ABC):
     ## @param source The Mermaid text.
     ## @return Markdown.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     @abstractmethod
     def mermaid(self, source: str) -> str:
         """@brief Diagram. @return Markdown."""
@@ -54,7 +54,7 @@ class _Flavor(ABC):
     ## @param pages (page, label) pairs in order.
     ## @return None.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     @abstractmethod
     def order(self, out: Path, pages: list[tuple[str, str]]) -> None:
         """@brief Order. @return None."""
@@ -70,7 +70,7 @@ class _GitHub(_Flavor):
     ## @param label Text.
     ## @return Markdown.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def link(self, page: str, label: str) -> str:
         """@brief Link. @return Markdown."""
         return f"[{label}]({page})"
@@ -79,7 +79,7 @@ class _GitHub(_Flavor):
     ## @param source Mermaid.
     ## @return Markdown.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def mermaid(self, source: str) -> str:
         """@brief Diagram. @return Markdown."""
         return f"```mermaid\n{source.rstrip()}\n```"
@@ -89,7 +89,7 @@ class _GitHub(_Flavor):
     ## @param pages Pairs.
     ## @return None.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def order(self, out: Path, pages: list[tuple[str, str]]) -> None:
         """@brief Sidebar. @return None."""
         lines = [f"- {self.link(page, label)}" for page, label in pages]
@@ -106,7 +106,7 @@ class _Ado(_Flavor):
     ## @param label Text.
     ## @return Markdown.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def link(self, page: str, label: str) -> str:
         """@brief Link. @return Markdown."""
         return f"[{label}](./{page}.md)"
@@ -115,7 +115,7 @@ class _Ado(_Flavor):
     ## @param source Mermaid.
     ## @return Markdown.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def mermaid(self, source: str) -> str:
         """@brief Diagram. @return Markdown."""
         return f"::: mermaid\n{source.rstrip()}\n:::"
@@ -125,7 +125,7 @@ class _Ado(_Flavor):
     ## @param pages Pairs.
     ## @return None.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def order(self, out: Path, pages: list[tuple[str, str]]) -> None:
         """@brief Order file. @return None."""
         (out / ".order").write_text("\n".join(p for p, _l in pages) + "\n", encoding="utf-8")
@@ -189,7 +189,7 @@ def build_markdown(
 ## @param text Its Markdown.
 ## @return None.
 ## @version 1
-## @dg_internal
+## @utility
 def _write(out: Path, page: str, text: str) -> None:
     """@brief Write. @return None."""
     (out / f"{page}.md").write_text(text.rstrip() + "\n", encoding="utf-8")
@@ -203,7 +203,7 @@ def _write(out: Path, page: str, text: str) -> None:
 ## @param pages (page, label) of the top pages.
 ## @return Markdown.
 ## @version 1
-## @dg_internal
+## @utility
 def _home(title: str, trace: Any, flows: int, dialect: _Flavor, pages: list) -> str:
     """@brief Home. @return Markdown."""
     ev = trace.evidence
@@ -228,7 +228,7 @@ def _home(title: str, trace: Any, flows: int, dialect: _Flavor, pages: list) -> 
 ## @param rules The audience rules.
 ## @return Markdown.
 ## @version 1
-## @dg_internal
+## @utility
 def _requirements(trace: Any, rules: Any) -> str:
     """WITHHELD TEXT IS A WITHHELD COLUMN: under `exclude_requirement_text` the title column is
     not drawn at all.
@@ -285,7 +285,7 @@ def _requirements(trace: Any, rules: Any) -> str:
 ## @param out The wiki directory.
 ## @return (page, label, role).
 ## @version 1
-## @dg_internal
+## @utility
 def _flow_page(
     repo_root: Path, db: Path, spec: Any, dialect: _Flavor, out: Path
 ) -> tuple[str, str, str]:
@@ -326,7 +326,7 @@ def _flow_page(
 ## @param dialect The host's dialect.
 ## @return Markdown.
 ## @version 1
-## @dg_internal
+## @utility
 def _flows_index(flows: list[tuple[str, str, str]], dialect: _Flavor) -> str:
     """@brief Flows. @return Markdown."""
     lines = ["# Flows", ""]
@@ -347,7 +347,7 @@ def _flows_index(flows: list[tuple[str, str, str]], dialect: _Flavor) -> str:
 ## @param rules The audience rules.
 ## @return Markdown.
 ## @version 1
-## @dg_internal
+## @utility
 def _impact(trace: Any, rules: Any) -> str:
     """@brief Impact. @return Markdown."""
     lines = ["# Change impact", ""]
@@ -364,7 +364,7 @@ def _impact(trace: Any, rules: Any) -> str:
 ## @param cells The cells.
 ## @return The row.
 ## @version 1
-## @dg_internal
+## @utility
 def _row(cells: list[str]) -> str:
     """@brief Row. @return Markdown."""
     return "| " + " | ".join(cells) + " |"
@@ -374,7 +374,7 @@ def _row(cells: list[str]) -> str:
 ## @param text The text.
 ## @return The text, pipes and newlines escaped.
 ## @version 1
-## @dg_internal
+## @utility
 def _cell(text: str) -> str:
     """@brief Cell. @return Text."""
     return text.replace("|", "\\|").replace("\n", " ")

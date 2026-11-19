@@ -87,7 +87,7 @@ def product_html(tree: Composite, rules: Audience) -> str:
 ## @param path Refs above this one (a cycle is drawn once).
 ## @return HTML.
 ## @version 1
-## @dg_internal
+## @utility
 def _item(tree: Composite, ref: str, rules: Audience, path: set[str]) -> str:
     """@brief Item. @return HTML."""
     node = tree.nodes[ref]
@@ -102,7 +102,7 @@ def _item(tree: Composite, ref: str, rules: Audience, path: set[str]) -> str:
 ## @param kids Nested HTML.
 ## @return HTML.
 ## @version 1
-## @dg_internal
+## @utility
 def _line(node: Node, rules: Audience, kids: str = "") -> str:
     """@brief Line. @return HTML."""
     title = "" if rules.exclude_requirement_text or not node.title else f" {text(node.title)}"
@@ -114,7 +114,7 @@ def _line(node: Node, rules: Audience, kids: str = "") -> str:
 ## @param node The node.
 ## @return HTML.
 ## @version 1
-## @dg_internal
+## @utility
 def _evidence(node: Node) -> str:
     """@brief Evidence. @return HTML."""
     if node.implementers is None:
@@ -129,7 +129,7 @@ def _evidence(node: Node) -> str:
 ## @param tree The composite.
 ## @return HTML, or "" when there are none.
 ## @version 1
-## @dg_internal
+## @utility
 def _problems(tree: Composite) -> str:
     """@brief Problems. @return HTML."""
     rows = [

@@ -421,7 +421,7 @@ def accepted_options() -> tuple[str, ...]:
 ## @return None; always raises.
 ## v2: names a 2.0.0 move (test_paths -> tests.paths)
 ## @version 2
-## @dg_internal
+## @utility
 def _refuse(key: str) -> None:
     """Split from the validation loop so the DERIVED case gets its own sentence. Reporting
     a correctly-spelled derived key as "unknown" is worse than useless — it sends the reader
@@ -444,7 +444,7 @@ def _refuse(key: str) -> None:
 ## @param value The mapping supplied.
 ## @return The mapping, unchanged, when every entry is valid.
 ## @version 1
-## @dg_internal
+## @utility
 def _checked_mapping(key: str, value: Any) -> dict[str, str]:
     """THE ENTRY-LEVEL GATE, and the reason it exists is that this level is the quiet one.
     A document-level slip is loud; `{"broadcasts": "produce"}` is a valid mapping that no
@@ -475,7 +475,7 @@ def _checked_mapping(key: str, value: Any) -> dict[str, str]:
 ## @param value The list supplied.
 ## @return The list as strings.
 ## @version 1
-## @dg_internal
+## @utility
 def _checked_list(key: str, value: Any) -> list[str]:
     """A bare string is the likely slip and is refused rather than accepted as a
     one-character-per-item list, which is what `list("app_main")` would silently produce.
@@ -496,7 +496,7 @@ def _checked_list(key: str, value: Any) -> list[str]:
 ## @param value The document supplied.
 ## @return The document, unchanged.
 ## @version 1
-## @dg_internal
+## @utility
 def _checked_section_document(key: str, value: Any) -> dict:
     """A MAPPING AND NOTHING MORE, deliberately, and it is NOT `_checked_mapping`. That one
     is the `event_tags` validator: it requires every value to be an event ROLE and refuses an
@@ -532,7 +532,7 @@ def _checked_section_document(key: str, value: Any) -> dict:
 ## @param repo_root Root to resolve a relative path against, or None.
 ## @return Absolute path as a string.
 ## @version 2
-## @dg_internal
+## @utility
 def _checked_path(key: str, value: Any, repo_root: Path | None) -> str:
     """Relative paths resolve against the REPO, not the process's working directory: a
     caller states the path they would write in the declaration file, and an MCP server's
@@ -573,7 +573,7 @@ def _checked_path(key: str, value: Any, repo_root: Path | None) -> str:
 ## @param value The mapping supplied.
 ## @return The mapping, unchanged, when the whole document is valid.
 ## @version 1
-## @dg_internal
+## @utility
 def _checked_document(key: str, value: dict[str, Any]) -> dict[str, Any]:
     """The DOCUMENT half of the two-level gate. A manifest with no schema here is one whose
     own loader refuses unknown keys at both levels (`dispatch`), so it passes through — but
@@ -626,7 +626,7 @@ def check_manifest_document(key: str, value: dict[str, Any]) -> dict[str, Any]:
 ## @param schema The entry schema for one of its lists.
 ## @return None; raises on the first offending entry.
 ## @version 1
-## @dg_internal
+## @utility
 def _checked_entries(key: str, document: dict[str, Any], schema: EntrySchema) -> None:
     """THE QUIET LEVEL, and the whole reason the inline route is validated harder than the
     file route. `key_arg_idx` for `key_arg_index` is a valid mapping that every loader reads
@@ -656,7 +656,7 @@ def _checked_entries(key: str, document: dict[str, Any], schema: EntrySchema) ->
 ## @param schema The entry schema.
 ## @return None; raises when the entry is shaped wrongly.
 ## @version 1
-## @dg_internal
+## @utility
 def _checked_entry(key: str, where: str, entry: Any, schema: EntrySchema) -> None:
     """@brief Check one manifest entry's keys against the allowed and required sets.
     @version 1
@@ -692,7 +692,7 @@ def _checked_entry(key: str, where: str, entry: Any, schema: EntrySchema) -> Non
 ## @param repo_root Root to resolve a relative path against, or None.
 ## @return An absolute path string, or the validated mapping.
 ## @version 1
-## @dg_internal
+## @utility
 def _checked_manifest(key: str, value: Any, repo_root: Path | None) -> str | dict[str, Any]:
     """BOTH FORMS REACH THE SAME PARSER. Every loader behind these options already accepts
     `Path | dict`, because a `.clew.yaml` section arrives as a mapping — so the

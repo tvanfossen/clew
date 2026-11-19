@@ -1825,7 +1825,7 @@ requirements:
   REQ-DDB-GUARD-004:
     subsystem: guard
     name: Req coverage enforcement
-    acceptance_criteria: Functions without req or an exemption tag (utility/dg_internal/callback) produce
+    acceptance_criteria: Functions without req or an exemption tag (utility/callback) produce
       coverage violations
     x-priority: P1
     x-status: implemented
@@ -2030,7 +2030,7 @@ requirements:
     acceptance_criteria: >-
       With `validate.bus` declared, a documented function whose name matches a `handlers` glob or
       whose body calls a `senders` name must carry one of the bus tags (`tags`, default emits /
-      handles / receives) or an exemption (@callback, @utility, @dg_internal); a sender itself is
+      handles / receives) or an exemption (@callback, @utility); a sender itself is
       not in scope. A bus tag whose first word is not in `vocabulary` is a violation. Configured
       bus tags are known tags. Without `validate.bus` nothing is checked.
     x-priority: P1

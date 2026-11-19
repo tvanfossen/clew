@@ -116,7 +116,7 @@ def slices_of(flow: Flow, contexts: Contexts) -> dict[str, Slice]:
 ## @param exercised Exercised step indices, ascending.
 ## @return The slice.
 ## @version 1
-## @dg_internal
+## @utility
 def _slice(flow: Flow, exercised: tuple[int, ...]) -> Slice:
     """@brief Entries from exercised steps. @return Slice."""
     called = {flow.steps[i].callee_qualified or flow.steps[i].callee for i in exercised}
@@ -165,7 +165,7 @@ def slice_svg(flow: Flow, cut: Slice, pad: int = 2) -> str:
 ## @param n The flow's step count.
 ## @return [(lo, hi)], hi exclusive, ascending and disjoint.
 ## @version 1
-## @dg_internal
+## @utility
 def _windows(exercised: tuple[int, ...], pad: int, n: int) -> list[tuple[int, int]]:
     """W10 (2.0.0): ONE window from the first exercised step to the last drew every dimmed step
     between, 38 of them for a test that ran steps 2 and 40. A gap the two paddings do not close
@@ -191,7 +191,7 @@ def _windows(exercised: tuple[int, ...], pad: int, n: int) -> list[tuple[int, in
 ## @param hi One past its last.
 ## @return {window index: classes}.
 ## @version 1
-## @dg_internal
+## @utility
 def _marks(flow: Flow, cut: Slice, lo: int, hi: int) -> dict[int, str]:
     """@brief Mark steps. @return Classes."""
     lit, entered, seen = set(cut.exercised), set(cut.entered), set()
@@ -212,7 +212,7 @@ def _marks(flow: Flow, cut: Slice, lo: int, hi: int) -> dict[int, str]:
 ## @return HTML, or "" for none.
 ## v2: counts steps between windows (2.0.0, W10)
 ## @version 2
-## @dg_internal
+## @utility
 def _hidden(n: int, where: str) -> str:
     """@brief Count hidden steps. @return HTML."""
     steps = f"step{'s' if n != 1 else ''}"

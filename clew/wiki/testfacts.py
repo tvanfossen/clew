@@ -74,7 +74,7 @@ def gather(evidence: list) -> dict[str, TestFacts]:
 ## @param test The test.
 ## @return `measured`, `catalog`, `inferred` or `tag`.
 ## @version 1
-## @dg_internal
+## @utility
 def link_kind(row: Any, test: str) -> str:
     """@brief Link kind. @return Kind."""
     for kind, tests in (
@@ -142,7 +142,7 @@ def render_scenario(text: str, line: int) -> str:
 ## @param at The scenario's index.
 ## @return Lines.
 ## @version 1
-## @dg_internal
+## @utility
 def _context(lines: list[str], at: int) -> list[str]:
     """@brief Heading lines. @return Lines."""
     keep: list[str] = []
@@ -161,7 +161,7 @@ def _context(lines: list[str], at: int) -> list[str]:
 ## @param line The line.
 ## @return True for a Rule.
 ## @version 1
-## @dg_internal
+## @utility
 def _is_rule(line: str) -> bool:
     """@brief Rule? @return Bool."""
     return line.strip().startswith("Rule:")
@@ -172,7 +172,7 @@ def _is_rule(line: str) -> bool:
 ## @param at The line's index.
 ## @return Tag lines.
 ## @version 1
-## @dg_internal
+## @utility
 def _tags_above(lines: list[str], at: int) -> list[str]:
     """@brief Tags. @return Lines."""
     out = []
@@ -188,7 +188,7 @@ def _tags_above(lines: list[str], at: int) -> list[str]:
 ## @param at The scenario's index.
 ## @return The count.
 ## @version 1
-## @dg_internal
+## @utility
 def _scenario_end(lines: list[str], at: int) -> int:
     """THE NEXT SCENARIO, RULE OR FEATURE ends it — and the tag lines just above that block
     belong to it, not to this scenario.
@@ -211,7 +211,7 @@ def _scenario_end(lines: list[str], at: int) -> int:
 ## @param lines The lines.
 ## @return HTML.
 ## @version 1
-## @dg_internal
+## @utility
 def _render(lines: list[str]) -> str:
     """@brief Render. @return HTML."""
     out, table, doc = [], [], None
@@ -243,7 +243,7 @@ def _render(lines: list[str]) -> str:
 ## @param line The stripped line.
 ## @return HTML.
 ## @version 1
-## @dg_internal
+## @utility
 def _line(line: str) -> str:
     """@brief Render a line. @return HTML."""
     if line.startswith("@"):
@@ -267,7 +267,7 @@ def _line(line: str) -> str:
 ## @param rows Cell rows; the first is the header.
 ## @return HTML.
 ## @version 1
-## @dg_internal
+## @utility
 def _table(rows: list[list[str]]) -> str:
     """@brief Table. @return HTML."""
     head = "".join(f"<th>{escape(c)}</th>" for c in rows[0])

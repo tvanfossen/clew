@@ -101,7 +101,7 @@ def index_defect(db_path: Path) -> str:
 ## @param count Rows in `memberdef` (0 when the table is absent).
 ## @return The defect reason, or "" when the index is usable.
 ## @version 2
-## @dg_internal
+## @utility
 def _defect_reason(has_table: bool, count: int) -> str:
     """@brief Describe what is wrong with an index, if anything."""
     if not has_table:
@@ -116,7 +116,7 @@ def _defect_reason(has_table: bool, count: int) -> str:
 ## @param sql Full COUNT statement to run.
 ## @return The count, or 0 when the table does not exist.
 ## @version 1
-## @dg_internal
+## @utility
 def _count(conn: sqlite3.Connection, sql: str) -> int:
     """@brief Run one COUNT, degrading to 0 on a table-less database."""
     try:
@@ -129,7 +129,7 @@ def _count(conn: sqlite3.Connection, sql: str) -> int:
 ## @param conn Open connection.
 ## @return Set of (thread name, entry memberdef rowid or None).
 ## @version 1
-## @dg_internal
+## @utility
 def _thread_keys(conn: sqlite3.Connection) -> set[tuple[str, int | None]]:
     """@brief Snapshot the threads table for a before/after diff."""
     try:
@@ -186,7 +186,7 @@ def measure_threads(
 ## @param param_names Parameter identifiers of the candidate wrappers.
 ## @return Counter mapping.
 ## @version 1
-## @dg_internal
+## @utility
 def _thread_metrics(
     conn: sqlite3.Connection, before: set[tuple[str, int | None]], param_names: frozenset[str]
 ) -> dict[str, int]:
@@ -247,7 +247,7 @@ def measure_shared_key(db_path: Path, repo_root: Path, section: dict | None) -> 
 ## @param conn Open connection.
 ## @return Mapping of key name to edge count.
 ## @version 1
-## @dg_internal
+## @utility
 def _key_counts(conn: sqlite3.Connection) -> dict[str, int]:
     """@brief Read the per-key shared-key edge distribution."""
     try:

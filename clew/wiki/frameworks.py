@@ -66,7 +66,7 @@ def recognise_test(name: str, args: str, path: str) -> tuple[str, tuple[str, ...
 ## @param args The argument string.
 ## @return Identity or None.
 ## @version 1
-## @dg_internal
+## @utility
 def _named(args: str) -> tuple[str, tuple[str, ...]] | None:
     """@brief Catch2 / doctest. @return Identity."""
     found = _STRING.search(args)
@@ -77,7 +77,7 @@ def _named(args: str) -> tuple[str, tuple[str, ...]] | None:
 ## @param args The argument string.
 ## @return Identity or None.
 ## @version 1
-## @dg_internal
+## @utility
 def _suite(args: str) -> tuple[str, tuple[str, ...]] | None:
     """@brief GoogleTest. @return Identity."""
     idents = _IDENTS.findall(args)
@@ -90,7 +90,7 @@ def _suite(args: str) -> tuple[str, tuple[str, ...]] | None:
 ## @param args The argument string.
 ## @return Identity or None.
 ## @version 1
-## @dg_internal
+## @utility
 def _bare(args: str) -> tuple[str, tuple[str, ...]] | None:
     """@brief Boost.Test. @return Identity."""
     idents = _IDENTS.findall(args)
@@ -101,7 +101,7 @@ def _bare(args: str) -> tuple[str, tuple[str, ...]] | None:
 ## @param args The argument string.
 ## @return Identity or None.
 ## @version 1
-## @dg_internal
+## @utility
 def _scenario(args: str) -> tuple[str, tuple[str, ...]] | None:
     """ROUND 4, found on sassafras-class: Catch2's JUnit reporter and ctest's discovered tests
     both name a SCENARIO "Scenario: <string>"; without that form its result was never found.
@@ -153,7 +153,7 @@ class TestRecognizer:
     ## @param macros Macro name → reader.
     ## @param prefixes Plain-test name prefixes, lower-cased.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def __init__(
         self, test_files: frozenset[str] | None, macros: dict, prefixes: tuple[str, ...]
     ) -> None:
@@ -212,7 +212,7 @@ _HELD: list[tuple[Any, TestRecognizer]] = []
 ## @param conn Open connection.
 ## @return Paths or None.
 ## @version 1
-## @dg_internal
+## @utility
 def _test_files(conn: Any) -> frozenset[str] | None:
     """@brief Read test_scope. @return Paths or None."""
     present = conn.execute("SELECT 1 FROM sqlite_master WHERE name = 'test_scope'").fetchone()
@@ -230,7 +230,7 @@ def _test_files(conn: Any) -> frozenset[str] | None:
 ## @param conn Open connection.
 ## @return (macros, prefixes).
 ## @version 1
-## @dg_internal
+## @utility
 def _declared_shapes(conn: Any) -> tuple[dict, tuple[str, ...]]:
     """@brief Merge declared shapes. @return Macros and prefixes."""
     import json

@@ -55,7 +55,8 @@ _TARGETS_2_0_0 = ("mattermost", "mbedtls", "self", "entropic")
 ## @version 1
 def test_the_2_0_0_preregistration_pins_what_the_grid_runs() -> None:
     """Owner ruling 2026-11-17: a full fresh run, 5 replicates, standalone (no 1.4.0 comparator),
-    grader `c10cf554ae6d`, judge `claude-sonnet-5-5`. Each is read from the tree, not restated:
+    grader `c10cf554ae6d` (then `1ac344ae8cf3`, a comment-only re-tag, 2026-11-19), judge
+    `claude-sonnet-5-5`. Each is read from the tree, not restated:
     the fingerprint from the grader, the judge and version from each rubric, the replicate
     count from every command in RUN-COMMAND.md.
 

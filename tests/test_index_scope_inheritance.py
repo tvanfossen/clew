@@ -48,7 +48,7 @@ _GATE_ONLY_PYTHON = """\
 ## @param root Repo root to populate.
 ## @return The repo root.
 ## @version 1
-## @dg_internal
+## @utility
 def _repo_with_exempt_fixture(root: Path) -> Path:
     """@brief Materialise a repo whose gate is narrower than its interesting code."""
     (root / "src").mkdir(parents=True, exist_ok=True)
@@ -207,7 +207,7 @@ def test_an_already_excluded_nested_repository_is_not_re_reported(tmp_path: Path
 ## @param root Repo root to populate.
 ## @return The nested repository's directory.
 ## @version 2
-## @dg_internal
+## @utility
 def _undeclared_repo_with_nested_clone(root: Path) -> Path:
     """No pre-commit config and no clew declaration, which is what puts the build on the
     whole-repo path: the repo root itself becomes the one INPUT root, so the nested tree is inside

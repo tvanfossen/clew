@@ -89,7 +89,7 @@ def symbol_href(name: str, rel: str) -> str:
 ## @param name The function.
 ## @return The id.
 ## @version 1
-## @dg_internal
+## @utility
 def anchor(name: str) -> str:
     """@brief Anchor id. @return Id."""
     return "s-" + re.sub(r"[^\w.-]", "_", name)
@@ -151,7 +151,7 @@ def symbol_pages(
 ## @param rules The audience.
 ## @return {file: owner names, in rule order}.
 ## @version 1
-## @dg_internal
+## @utility
 def _owners_by_file(conn: Any, files: set[str], rules: Any) -> dict[str, list[str]]:
     """P5 (2.0.0): the owners layer on the page a reader opens to ask who to talk to. Empty under
     `exclude_owners`. @brief Read owners. @return Map."""
@@ -171,7 +171,7 @@ def _owners_by_file(conn: Any, files: set[str], rules: Any) -> dict[str, list[st
 ## @param names Owner names, or None.
 ## @return HTML lines (none when the file has no owners).
 ## @version 1
-## @dg_internal
+## @utility
 def _owners_line(names: list[str] | None) -> list[str]:
     """@brief Owners line. @return Lines."""
     if not names:
@@ -186,7 +186,7 @@ def _owners_line(names: list[str] | None) -> list[str]:
 ## @param written (function, file) pairs, each one section.
 ## @return None.
 ## @version 1
-## @dg_internal
+## @utility
 def _write_objects(source: Path, written: list[tuple[str, str]]) -> None:
     """S8 (2.0.0): see `_sphinxsymbols`. @brief Write the object list. @return None."""
     import json
@@ -228,7 +228,7 @@ def test_functions(conn: Any, names: set[str]) -> set[tuple[str, str]]:
 ## @param keys (function, file) pairs.
 ## @return Definitions.
 ## @version 1
-## @dg_internal
+## @utility
 def _definitions(conn: Any, keys: set[tuple[str, str]]) -> list[Definition]:
     """@brief Resolve keys. @return Definitions."""
     out = []
@@ -263,7 +263,7 @@ class _Edges:
     ## @brief Load edges and names.
     ## @param conn Open connection.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def __init__(self, conn: Any) -> None:
         """A BINDING IS NOT A CALL and a fuzzy edge is a guess: neither is drawn.
 
@@ -294,7 +294,7 @@ class _Edges:
     ## @param side `callers` or `callees`.
     ## @return (name, file) pairs.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def around(self, rowid: int, side: str) -> list[tuple[str, str]]:
         """@brief Neighbours. @return Pairs."""
         edges = self.callers if side == "callers" else self.callees
@@ -304,7 +304,7 @@ class _Edges:
     ## @param key (function, file).
     ## @return Rowids.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def rowids(self, key: tuple[str, str]) -> list[int]:
         """@brief Look up. @return Rowids."""
         return self.by_key.get(key, [])
@@ -321,7 +321,7 @@ class _Edges:
 ## v2: a test's section adds what it tests (round 3, P2a).
 ## v3: neighbours and the web link replace the ego-graph (round 4, R3).
 ## @version 3
-## @dg_internal
+## @utility
 def _section(
     name: str,
     defs: list[Definition],
@@ -380,7 +380,7 @@ def _section(
 ## @return HTML.
 ## v2: one path depth, wiki.path_depth (2.0.0, R5-CFG C3)
 ## @version 2
-## @dg_internal
+## @utility
 def _test_block(d: Definition, graph: _Edges, ctx: dict[str, Any], repo_root: Path) -> str:
     """ASSERTIONS ARE SOURCE TEXT, withheld under `exclude_bodies`; the verified requirements and
     paths are the index's facts and stay.
@@ -415,7 +415,7 @@ def _test_block(d: Definition, graph: _Edges, ctx: dict[str, Any], repo_root: Pa
 ## @return Function names along the path, or [] when none is found within the depth.
 ## v2 (round 4, R7): the depth is a parameter; test pages search as far as the extent reaches.
 ## @version 2
-## @dg_internal
+## @utility
 def _path(
     graph: _Edges, start: int, targets: set[tuple[str, str]], depth: int = _PATH_DEPTH
 ) -> list[str]:
@@ -448,7 +448,7 @@ def _path(
 ## @param end The last node.
 ## @return Names, first to last.
 ## @version 1
-## @dg_internal
+## @utility
 def _unwind(graph: _Edges, prev: dict[int, int], end: int) -> list[str]:
     """@brief Unwind. @return Names."""
     out = [end]
@@ -464,7 +464,7 @@ def _unwind(graph: _Edges, prev: dict[int, int], end: int) -> list[str]:
 ## @return HTML.
 ## Round 4, R3: replaces the per-symbol ego-graph; the repository web is the one graph view.
 ## @version 1
-## @dg_internal
+## @utility
 def _near(d: Definition, graph: _Edges, written: set[tuple[str, str]]) -> str:
     """@brief Neighbours. @return HTML."""
     from urllib.parse import quote
@@ -494,7 +494,7 @@ def _near(d: Definition, graph: _Edges, written: set[tuple[str, str]]) -> str:
 ## v2: the extent read and checked by `_lines`, shared with the test block.
 ## v3: collapsed in a details element (2.0.0, P5)
 ## @version 3
-## @dg_internal
+## @utility
 def _body(repo_root: Path, d: Definition) -> str:
     """END 0 IS EXTENT UNKNOWN, never "covers nothing": no body is bundled rather than a guess.
     A STALE EXTENT IS SAID: when the recorded lines no longer name the function (the file changed
@@ -529,7 +529,7 @@ def _body(repo_root: Path, d: Definition) -> str:
 ## @param d The definition.
 ## @return Lines, [] or None.
 ## @version 1
-## @dg_internal
+## @utility
 def _lines(repo_root: Path, d: Definition) -> list[str] | None:
     """THE RECORDED EXTENT MUST STILL NAME THE FUNCTION in its first lines, else the file changed
     after the index was built and the lines are someone else's.

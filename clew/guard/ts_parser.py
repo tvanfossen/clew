@@ -64,7 +64,7 @@ _CALLBACK_CONSUMING_GLOBALS = frozenset(
 ## @brief Every local name a file's import statements bind.
 #  @details Default, namespace and named imports (with aliases), `import type` included.
 #  @version 1.0
-#  @dg_internal
+#  @utility
 #  @return The bound local names
 def _imported_names(node: Node) -> frozenset[str]:
     root = node
@@ -90,7 +90,7 @@ def _imported_names(node: Node) -> frozenset[str]:
 
 ## @brief Whether a call consumes its callback and returns something else.
 #  @version 1.1
-#  @dg_internal
+#  @utility
 #  @return True when the call's value is not the function it is given
 def _consumes_callback(callee: Node) -> bool:
     if callee.type == "identifier":
@@ -121,7 +121,7 @@ def _consumes_callback(callee: Node) -> bool:
 #  A call with no function-literal argument, or one passing a function BY NAME, is not a
 #  definition: its value is a call's result, or another binding's function.
 #  @version 2.0
-#  @dg_internal
+#  @utility
 #  @return The innermost function-valued node, or None when the value is not one
 def _unwrap_component(value: Node | None) -> Node | None:
     while value is not None and value.type == "call_expression":
@@ -139,7 +139,7 @@ def _unwrap_component(value: Node | None) -> Node | None:
 
 ## @brief The function an immediately-invoked function expression returns, or None.
 #  @version 1.0
-#  @dg_internal
+#  @utility
 #  @return The returned function-valued node, or None
 def _iife_result(paren: Node) -> Node | None:
     inner = next((c for c in paren.named_children if c.type != "comment"), None)
@@ -181,7 +181,7 @@ def _bound_function(node: Node) -> Node | None:
 ## @brief The node that carries a function's `body` and `parameters`.
 #  @details Itself, except for a JS/TS binding, whose function is its value.
 #  @version 1.0
-#  @dg_internal
+#  @utility
 #  @return The node to read the body and parameters from
 def _function_carrier(func_node: Node) -> Node:
     return _bound_function(func_node) or func_node
@@ -230,7 +230,7 @@ def _resolve_comment_node(prev: Node | None, spec: LanguageSpec) -> Node | None:
 
 ## @brief Unwrap a decorated_definition to get the inner definition.
 #  @version 1.0
-#  @dg_internal
+#  @utility
 def _unwrap_decorated(node: Node) -> Node:
     if node.type == "decorated_definition":
         for child in node.children:
@@ -241,7 +241,7 @@ def _unwrap_decorated(node: Node) -> Node:
 
 ## @brief Extract function name from an AST function node.
 #  @version 1.0
-#  @dg_internal
+#  @utility
 def _extract_function_name(node: Node, spec: LanguageSpec) -> str | None:
     name_node = node.child_by_field_name("name")
     if name_node:
@@ -271,7 +271,7 @@ def _extract_signature(node: Node) -> str:
 
 ## @brief Extract the identifier from a C/C++ function_declarator node.
 #  @version 1.1
-#  @dg_internal
+#  @utility
 def _name_from_declarator(declarator: Node) -> str | None:
     leaf_types = ("identifier", "field_identifier", "destructor_name")
     if declarator.type in leaf_types:
@@ -333,7 +333,7 @@ def _collect_python_comments(
 
 ## @brief Collect C-style doxygen comment block preceding a node.
 #  @version 1.1
-#  @dg_internal
+#  @utility
 def _collect_c_comment(
     prev: Node | None,
     spec: LanguageSpec,
@@ -455,7 +455,7 @@ def _collect_rust_doc(prev: Node | None) -> list[Node] | None:
 #  @details A Rust line comment's node INCLUDES its newline, so it ends at column 0 of the
 #  next row; counting that row would make a blank line after it look like no gap at all.
 #  @version 1.0
-#  @dg_internal
+#  @utility
 #  @return 0-indexed row of the node's last character
 def _last_row(node: Node) -> int:
     row, column = node.end_point
@@ -464,7 +464,7 @@ def _last_row(node: Node) -> int:
 
 ## @brief The attribute texts written directly above a Rust item, e.g. ["test", "cfg(test)"].
 #  @version 1.0
-#  @dg_internal
+#  @utility
 #  @return Attribute bodies (the text between `#[` and `]`), nearest first
 def _rust_attributes(node: Node) -> list[str]:
     attrs: list[str] = []
@@ -545,7 +545,7 @@ def _find_python_docstring_block(func_node: Node) -> DoxygenBlock | None:
 
 ## @brief Locate the docstring string-node at the head of a Python function body.
 #  @version 1.0
-#  @dg_internal
+#  @utility
 #  @return The string AST node, or None if the body has no leading docstring
 def _find_python_docstring_node(func_node: Node) -> Node | None:
     body = func_node.child_by_field_name("body")
@@ -562,7 +562,7 @@ _DOCSTRING_QUOTE_RE = re.compile(r'^[rRbBuU]{0,2}("""|\'\'\'|"|\')')
 
 ## @brief Strip surrounding quotes from a Python string literal for tag parsing.
 #  @version 1.0
-#  @dg_internal
+#  @utility
 def _strip_docstring_quotes(raw: str) -> str:
     stripped = raw.strip()
     match = _DOCSTRING_QUOTE_RE.match(stripped)
@@ -607,7 +607,7 @@ def parse_functions_ts(
 ## @return The `class` expression node, or None.
 ## Moved here from clew/jsast.py in 1.3.0 so the index and the gate share ONE mixin rule.
 ## @version 1
-## @dg_internal
+## @utility
 def _produced_class(func: Node) -> Node | None:
     """@brief The class a mixin function returns. @return The class node or None."""
     body = _function_carrier(func).child_by_field_name("body")
@@ -702,7 +702,7 @@ def _js_returns_void(func_node: Node) -> bool:
 #  @details Rust has no class: an `impl` block names its self type and a `trait` its own
 #  name, and those play the role of the enclosing class. JS/TS classes name themselves.
 #  @version 1.3
-#  @dg_internal
+#  @utility
 #  @return Class/struct name if node is a class definition, else parent value
 def _enclosing_class_for(child: Node, parent: str | None) -> str | None:
     if child.type in (
@@ -727,7 +727,7 @@ def _enclosing_class_for(child: Node, parent: str | None) -> str | None:
 #  @details Keys overloads apart in the staleness check: two impls each defining `new`
 #  must not share an identity.
 #  @version 1.0
-#  @dg_internal
+#  @utility
 #  @return The type name, or None when the impl has no readable type
 def _rust_impl_self_type(impl_node: Node) -> str | None:
     type_node = impl_node.child_by_field_name("type")
@@ -740,7 +740,7 @@ def _rust_impl_self_type(impl_node: Node) -> str | None:
 
 ## @brief Extract enclosing class from a qualified function declarator (Foo::bar).
 #  @version 1.0
-#  @dg_internal
+#  @utility
 #  @return Class name from qualifier prefix, or None if not qualified
 def _qualified_enclosing(func_node: Node) -> str | None:
     declarator = func_node.child_by_field_name("declarator")

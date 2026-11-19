@@ -166,7 +166,7 @@ def ensure_kconfig_gates_table(conn: sqlite3.Connection) -> None:
 ## @param node A `preproc_ifdef` node.
 ## @return The matching KCONFIG_GATE_* form.
 ## @version 1
-## @dg_internal
+## @utility
 def _ifdef_form(node: Any) -> str:
     """The grammar uses ONE node type for both directives, so the sense lives only in
     the leading token. Reading it is not a nicety: `#ifndef CONFIG_X` means the code
@@ -187,7 +187,7 @@ def _ifdef_form(node: Any) -> str:
 ## @return True when the guarded block immediately defines the same symbol.
 ## v2 (2.0.0, UPERF T5): also the spelled-out `#if !defined(X)` form.
 ## @version 2
-## @dg_internal
+## @utility
 def _is_include_guard(node: Any, guarded: str | None = None) -> bool:
     """STRUCTURAL, NOT A NAME HEURISTIC. `#ifndef FOO_H` / `#define FOO_H` is the C
     idiom for "include me once", and the discriminator is that the guarded block DEFINES
@@ -229,7 +229,7 @@ def _is_include_guard(node: Any, guarded: str | None = None) -> bool:
 ## @return List of (symbol, macro, form, line, end_line) tuples; empty when it names none.
 ## v5 (2.0.0, UPERF T5): a single-symbol `#if [!]defined(X)` has a polarity.
 ## @version 5
-## @dg_internal
+## @utility
 def _gates_from_node(node: Any) -> list[tuple[str, str, str, int, int]]:
     """Reads the DIRECTIVE's own text, not the guarded block's. A `preproc_ifdef`
     node spans everything up to its `#endif`, so matching `CONFIG_` over
@@ -301,7 +301,7 @@ def _gates_from_node(node: Any) -> list[tuple[str, str, str, int, int]]:
 ## @param macros The macro tokens the parent condition named.
 ## @return (symbol, macro, form, line, end_line) tuples for the else branch.
 ## @version 1
-## @dg_internal
+## @utility
 def _else_branch_gates(alternative: Any, form: str, macros: Any) -> list[tuple]:
     """AN `#else` IS A GATE, WITH THE POLARITY THE OTHER WAY. Without these rows the else
     branch reads as ungated — an under-report — and with the parent's own extent it reads as
@@ -330,7 +330,7 @@ def _else_branch_gates(alternative: Any, form: str, macros: Any) -> list[tuple]:
 ## @param macro The token as the source wrote it.
 ## @return The symbol name.
 ## @version 1
-## @dg_internal
+## @utility
 def _bare_symbol(macro: str) -> str:
     """`kconfig_gates.symbol` joins `kconfig_symbols.name`, which stores the symbol WITHOUT
     Kconfig's `CONFIG_` prefix — so the prefix is stripped for exactly the names that carry
@@ -357,7 +357,7 @@ _IF_NODE = "preproc_if"
 ## @param text The condition's text.
 ## @return (macro, ifdef|ifndef), or None for anything else.
 ## @version 1
-## @dg_internal
+## @utility
 def _single_defined(text: str) -> tuple[str, str] | None:
     """UPERF T5 (2.0.0, mbedtls F1): `#if defined(MBEDTLS_PLATFORM_MEMORY)` and its `#else` were
     both `if_expr` ("polarity unknown") though the condition tests exactly one symbol, so which
@@ -453,7 +453,7 @@ def gate_harvester() -> Harvester:
 ## @param declared Macro names the target's preprocessor declaration supplies.
 ## @return A GATE_ORIGIN_* value.
 ## @version 1
-## @dg_internal
+## @utility
 def _origin(symbol: str, macro: str, declared: frozenset[str]) -> str:
     """Kconfig's prefix wins first because it is a UNIVERSAL convention rather than a
     per-repo statement — a `CONFIG_X` is Kconfig's whatever else a target declares, and
@@ -479,7 +479,7 @@ def _origin(symbol: str, macro: str, declared: frozenset[str]) -> str:
 ## @param macros Declared entries, doxygen PREDEFINED style (`NAME` or `NAME=value`).
 ## @return The bare names.
 ## @version 2
-## @dg_internal
+## @utility
 def declared_macro_names(macros: Iterable[str]) -> frozenset[str]:
     """PREDEFINED entries carry an optional `=value`, and a value is not part of the
     identity a gate is matched on: a header defining `MBEDTLS_X 1` and a conditional
@@ -567,7 +567,7 @@ def import_kconfig_gates(
 ## @param harvested (path_rowid, payload) pairs from run_harvest.
 ## @return (symbol, macro, form, file_path, line, end_line) tuples.
 ## @version 2
-## @dg_internal
+## @utility
 def _rows_from_harvest(
     conn: sqlite3.Connection, harvested: list[tuple[int, Any]]
 ) -> list[tuple[str, str, str, str, int, int]]:

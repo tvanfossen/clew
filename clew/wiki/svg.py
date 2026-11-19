@@ -135,7 +135,7 @@ def flow_svg(
 ## @return (first step, how many) per drawn arrow, in order.
 ## v2 (round 5): a test's exercised call never folds with a dimmed one.
 ## @version 2
-## @dg_internal
+## @utility
 def _runs(steps: tuple[Step, ...], marks: dict[int, str] | None = None) -> list[tuple[int, int]]:
     """A RUN IS THE SAME CALL REPEATED WITH NOTHING UNDER IT: same caller, callee, lanes, depth and
     frames, and no deeper step after any member (a call with a subtree is never folded — its
@@ -183,7 +183,7 @@ class _Layout:
     ## @brief Compute lane columns, event rows and activation spans.
     ## @param flow The flow.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def __init__(self, flow: Flow) -> None:
         """@brief Lay out. @return None."""
         self.flow = flow
@@ -200,7 +200,7 @@ class _Layout:
     ## @brief Lane centres, each column fitted to its label and its neighbours' messages.
     ## @return {lane: x}.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def _columns(self) -> dict[str, float]:
         """@brief Fit columns. @return Centres."""
         width = {lane: _clamp(_text_w(_short(lane)) + 40) for lane in self.lanes}
@@ -224,7 +224,7 @@ class _Layout:
     ## @param lane The lane.
     ## @return Pixels.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def _half(self, lane: str) -> float:
         """@brief Half width. @return Px."""
         return self._width[lane] / 2
@@ -232,7 +232,7 @@ class _Layout:
     ## @brief Walk the steps into call and return events with their rows.
     ## @return None.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def _timeline(self) -> None:
         """@brief Build the timeline. @return None."""
         y = float(_TOP)
@@ -258,7 +258,7 @@ class _Layout:
     ## @param last The step whose group carries the return arrow.
     ## @return The next row.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def _close(self, i: int, y: float, nesting: dict[str, int], last: int) -> float:
         """@brief Close. @return Row."""
         step = self.flow.steps[i]
@@ -272,7 +272,7 @@ class _Layout:
     ## @brief The entry function's lane.
     ## @return The lane id.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def _entry_lane(self) -> str:
         """@brief Entry lane. @return Lane."""
         return self.flow.steps[0].from_lane if self.flow.steps else self.lanes[0]
@@ -281,7 +281,7 @@ class _Layout:
     ## @return SVG parts.
     ## v2: themed head labels, rounder heads.
     ## @version 2
-    ## @dg_internal
+    ## @utility
     def lanes_markup(self) -> list[str]:
         """@brief Draw lanes. @return Parts."""
         parts = []
@@ -305,7 +305,7 @@ class _Layout:
     ## @brief Activation bars: the entry's, then one per step.
     ## @return SVG parts.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def activations_markup(self) -> list[str]:
         """@brief Draw bars. @return Parts."""
         entry = self.x[self._entry_lane()]
@@ -317,7 +317,7 @@ class _Layout:
     ## @brief Frame boxes around the steps each loop / if / try encloses.
     ## @return SVG parts.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def frames_markup(self) -> list[str]:
         """A FRAME IS ONE SPAN OF ONE CALLER'S BODY: steps share it when the same caller's call
         sites sit inside the same frame (kind and line). Nested frames inset by their depth.
@@ -349,7 +349,7 @@ class _Layout:
     ## @param times How many calls it stands for.
     ## @return SVG markup.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def repeat_frame(self, i: int, times: int) -> str:
         """@brief Frame a fold. @return Markup."""
         step = self.flow.steps[i]
@@ -366,7 +366,7 @@ class _Layout:
     ## @param i The drawn step.
     ## @return SVG markup.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def entry_marker(self, i: int) -> str:
         """@brief Mark the entry. @return Markup."""
         step = self.flow.steps[i]
@@ -384,7 +384,7 @@ class _Layout:
     ## v3 (round 5): a folded arrow keeps its first step's number and reads `callee ×N`.
     ## v4 (round 5): a `not_run` stub reads "… N calls not run".
     ## @version 4
-    ## @dg_internal
+    ## @utility
     def step_markup(self, i: int, number: int, times: int = 1) -> str:
         """@brief Draw a step. @return Markup."""
         step = self.flow.steps[i]
@@ -429,7 +429,7 @@ class _Layout:
     ## @param j The step returning.
     ## @return SVG markup.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def _return(self, j: int) -> str:
         """@brief Draw a return. @return Markup."""
         step = self.flow.steps[j]
@@ -451,7 +451,7 @@ class _Layout:
 ## @param offset Its nesting offset.
 ## @return SVG markup.
 ## @version 1
-## @dg_internal
+## @utility
 def _bar(x: float, top: float, bottom: float, offset: int) -> str:
     """@brief Draw a bar. @return Markup."""
     height = max(8.0, bottom - top)
@@ -467,7 +467,7 @@ def _bar(x: float, top: float, bottom: float, offset: int) -> str:
 ## @param box (left, top, right, bottom).
 ## @return SVG markup.
 ## @version 1
-## @dg_internal
+## @utility
 def _frame(operator: str, line: int, box: tuple[float, float, float, float]) -> str:
     """@brief Draw a frame. @return Markup."""
     left, top, right, bottom = box
@@ -495,7 +495,7 @@ def _frame(operator: str, line: int, box: tuple[float, float, float, float]) -> 
 ## v4 (round 5): a `not_run` stub's group is classed `nr` (dimmed).
 ## v5 (round 5): extra classes (a test slice's `ex` / `dim` / `entry`).
 ## @version 5
-## @dg_internal
+## @utility
 def _step_group(
     index: int, step: Step, shape: str, animate: bool, drawn: tuple[int, int, str] = (-1, 1, "")
 ) -> str:
@@ -520,7 +520,7 @@ def _step_group(
 ## @param times How many calls a folded arrow stands for.
 ## @return The label.
 ## @version 1
-## @dg_internal
+## @utility
 def _message(step: Step, times: int) -> str:
     """@brief Arrow label. @return Text."""
     if step.not_run:
@@ -532,7 +532,7 @@ def _message(step: Step, times: int) -> str:
 ## @param text The label.
 ## @return Pixels.
 ## @version 1
-## @dg_internal
+## @utility
 def _text_w(text: str) -> float:
     """@brief Estimate width. @return Px."""
     return 7.0 * len(text)
@@ -542,7 +542,7 @@ def _text_w(text: str) -> float:
 ## @param width Wanted width.
 ## @return Clamped width.
 ## @version 1
-## @dg_internal
+## @utility
 def _clamp(width: float) -> float:
     """@brief Clamp. @return Px."""
     return max(_MIN_COL, min(_MAX_COL, width))
@@ -553,7 +553,7 @@ def _clamp(width: float) -> float:
 ## @return The label.
 ## v2: 40 characters (heads are fitted to their labels now).
 ## @version 2
-## @dg_internal
+## @utility
 def _short(lane: str) -> str:
     """@brief Keep the tail of a long path. @return Label."""
     return lane if len(lane) <= 40 else "…" + lane[-39:]

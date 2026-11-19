@@ -175,7 +175,7 @@ def derive_flow(
 ## @param file The entry's file, or None.
 ## @return Rowids; [] when nothing matches.
 ## @version 1
-## @dg_internal
+## @utility
 def _entry_rowids(
     conn: sqlite3.Connection, walker: _Walker, entry: str, qualified: str | None, file: str | None
 ) -> list[int]:
@@ -216,7 +216,7 @@ class _Walker:
     ## v2 (round 5): coverage (`executed`), the step cap and whether it was hit.
     ## v3 (2.0.0): `measured_levels` (R5-CFG C1).
     ## @version 3
-    ## @dg_internal
+    ## @utility
     def __init__(
         self, conn: sqlite3.Connection, repo_root: Path, lanes: str, stop_at: frozenset[str]
     ) -> None:
@@ -245,7 +245,7 @@ class _Walker:
     ## v4 (round 5): a measured caller emits only the calls that ran, then one `not_run` stub; a
     ## caller whose FILE the coverage does not hold was not measured and is walked statically.
     ## @version 4
-    ## @dg_internal
+    ## @utility
     def walk(
         self,
         name: str,
@@ -293,7 +293,7 @@ class _Walker:
     ## @param missed How many calls.
     ## @return None.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def _stub(self, name: str, qual: str, caller: tuple[str, str], level: int, missed: int) -> None:
         """@brief Record a not-run stub. @return None."""
         if self.max_steps and len(self.steps) >= self.max_steps:
@@ -327,7 +327,7 @@ class _Walker:
     ## v3 (round 5): a call measured as run expands past the depth, up to MEASURED_LEVELS.
     ## v4 (2.0.0): up to the walker's `measured_levels` (`wiki.measured_depth`, R5-CFG C1).
     ## @version 4
-    ## @dg_internal
+    ## @utility
     def _emit(
         self,
         name: str,
@@ -369,7 +369,7 @@ class _Walker:
     ## @param rowid The function's rowid.
     ## @return The lane id.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def lane(self, rowid: int) -> str:
         """@brief Lane for a function. @return Lane id."""
         if rowid not in self._lane_cache:
@@ -385,7 +385,7 @@ class _Walker:
     ## v2: `packages` lanes are the map's components (round 3, P1e): a flow inside one top-level
     ## package drew a single lane.
     ## @version 2
-    ## @dg_internal
+    ## @utility
     def _lane_for(self, rowid: int) -> str:
         """@brief Lane by strategy. @return Lane id."""
         if self.lanes == "threads":
@@ -407,7 +407,7 @@ class _Walker:
     ## @param rowid The function's rowid.
     ## @return Repo-relative path, or "".
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def file_of(self, rowid: int) -> str:
         """@brief File of a function. @return Path or ""."""
         return self._file(rowid)
@@ -416,7 +416,7 @@ class _Walker:
     ## @param rowid The function's rowid.
     ## @return Repo-relative path, or "".
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def _file(self, rowid: int) -> str:
         """@brief File of a function. @return Path or ""."""
         row = self.conn.execute(

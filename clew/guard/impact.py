@@ -35,7 +35,7 @@ logger = logging.getLogger(__name__)
 
 ## @brief Tracks a changed function with its requirement tags and version info.
 #  @version 1.0
-#  @dg_internal
+#  @utility
 @dataclass
 class ChangedFunction:
     name: str
@@ -48,7 +48,7 @@ class ChangedFunction:
 ## @brief Groups changed functions by requirement for the impact report.
 #  v1.2: `reviewers`, the owners of the changed files; None when the repo names no owners (2.0.0)
 #  @version 1.2
-#  @dg_internal
+#  @utility
 @dataclass
 class ImpactEntry:
     req_id: str
@@ -59,7 +59,7 @@ class ImpactEntry:
 
 ## @brief Collect all changed lines for a file from branch diff and/or staged changes.
 #  @version 1.0
-#  @dg_internal
+#  @utility
 def _collect_changed_lines(
     file_path: str,
     staged: bool,
@@ -81,7 +81,7 @@ def _collect_changed_lines(
 
 ## @brief Get raw diff output for a single file.
 #  @version 1.2
-#  @dg_internal
+#  @utility
 def _get_file_diff(
     file_path: str,
     staged: bool,
@@ -394,7 +394,7 @@ def _load_csv_full(path: str, id_col: str) -> dict[str, dict[str, str]]:
 
 ## @brief Parse JSON array into req_id -> full row mapping.
 #  @version 1.2
-#  @dg_internal
+#  @utility
 def _load_json_full(path: str, id_col: str) -> dict[str, dict[str, str]]:
     with open(path) as f:
         data = json.load(f)
@@ -479,7 +479,7 @@ def build_impact_report(
 #  @details None when the repository keeps no owners file: "nobody" and "this repository names no
 #  owners" are different answers, so the key is left out rather than emptied.
 #  @version 1.0
-#  @dg_internal
+#  @utility
 #  @return Owner names, or None
 def _reviewers(owners: OwnerResolver | None, funcs: list[ChangedFunction]) -> list[str] | None:
     if owners is None or not owners.has_sources():
@@ -500,7 +500,7 @@ def _reviewers(owners: OwnerResolver | None, funcs: list[ChangedFunction]) -> li
 #  still reported, because a name a gate silently rewrote is a name nobody can grep for.
 #  `clew.guard` shares no code with the pipeline, so `_inlineable` is deliberately not reused.
 #  @version 1.0
-#  @dg_internal
+#  @utility
 #  @return The text with CR/LF/tab collapsed and pipes escaped
 def _cell(text: str) -> str:
     collapsed = text.replace("\r", " ").replace("\n", " ").replace("\t", " ")
@@ -576,7 +576,7 @@ def format_text(entries: list[ImpactEntry]) -> str:
 ## @brief Dispatch to the appropriate formatter based on config.
 #  v1.3: the format is a parameter, not impact.output.format (2.0.0, R5-CFG F9)
 #  @version 1.3
-#  @dg_internal
+#  @utility
 def format_report(entries: list[ImpactEntry], fmt: str = "markdown") -> str:
     formatters = {"json": format_json, "text": format_text}
     return formatters.get(fmt, format_markdown)(entries)

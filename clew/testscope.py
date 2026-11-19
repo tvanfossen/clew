@@ -97,7 +97,7 @@ CREATE TABLE IF NOT EXISTS test_scope (
 # @param patterns The globs.
 # @return The compiled alternation.
 # @version 1
-# @dg_internal
+# @utility
 @functools.lru_cache(maxsize=32)
 def _matcher(patterns: tuple[str, ...]) -> re.Pattern[str]:
     """`fnmatch.fnmatch` IS `normcase` + the translated regex; on POSIX `normcase` is the identity,
@@ -117,7 +117,7 @@ def _matcher(patterns: tuple[str, ...]) -> re.Pattern[str]:
 # v2 (1.3.4): one compiled alternation instead of two `fnmatch` calls per pattern per path —
 # measured 1.27 s of a one-file refresh on this repository, for a pure function of path names.
 # @version 2
-# @dg_internal
+# @utility
 def is_test_path(rel: str, patterns: tuple[str, ...] | list[str]) -> bool:
     """Matched against BOTH the full relative path and the basename, because the two pattern
     families in `TEST_PATH_FACTS` mean different things: `tests/*` is about location and

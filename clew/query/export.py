@@ -311,7 +311,7 @@ def export_dossier(
 ## @return The corpus envelope; a stated absence when the index has no corpus.
 ## v2: T1 (2.0.0): a limit cut is disclosed with its total
 ## @version 2
-## @dg_internal
+## @utility
 def _code_corpus(
     db: Path, text: str, limit: int, repo_root: Path | None, wrap: Wrapper
 ) -> dict[str, Any]:
@@ -354,7 +354,7 @@ def _code_corpus(
 ## @param wrap The list envelope to use.
 ## @return The envelope, with `matched` when the query was widened.
 ## @version 1
-## @dg_internal
+## @utility
 def _prose_corpus(db: Path, text: str, limit: int, wrap: Wrapper) -> dict[str, Any]:
     """THE GRADED FORM, so the reply can say when the answer came from a relaxed query: "these
     matched SOME of your terms" is a weaker claim than "all of them", and a reader who cannot tell
@@ -423,7 +423,7 @@ def with_limit_disclosure(payload: dict[str, Any], total: int) -> dict[str, Any]
 ## @param wrap The list envelope to use.
 ## @return The envelope.
 ## @version 1
-## @dg_internal
+## @utility
 def _symbol_corpus(db: Path, text: str, limit: int, wrap: Wrapper) -> dict[str, Any]:
     """@brief Search symbols. @return Envelope."""
     hits, total = q.search_counted(db, text, limit=limit)
@@ -489,7 +489,7 @@ def files_context(db: Path) -> dict[str, Any]:
 ## @param wrap The list envelope to use.
 ## @return The rollup or the glob envelope.
 ## @version 1
-## @dg_internal
+## @utility
 def _files_corpus(db: Path, text: str, wrap: Wrapper) -> dict[str, Any]:
     """THE ROLLUP IS THE WHOLE REPLY for an empty glob, so `inventory` is dropped rather than
     merged — it carries the same rows and sentence a second time. Moved from

@@ -164,7 +164,7 @@ def resolve_fixpoint(
 ## @param evidence This round's evidence, by candidate name.
 ## @return True when the round changed anything, so another round is warranted.
 ## @version 1
-## @dg_internal
+## @utility
 def _apply_round(
     known: dict[str, Derived],
     refused: dict[str, tuple[int, ...]],
@@ -201,7 +201,7 @@ def _apply_round(
 ## @param seeds Names of the built-in primitives (never redefined).
 ## @return Candidate name -> its per-definition evidence.
 ## @version 1
-## @dg_internal
+## @utility
 def _collect_evidence(
     defs: dict[str, list[FuncDef]], known: dict[str, Derived], seeds: frozenset[str]
 ) -> dict[str, list[_Evidence]]:
@@ -221,7 +221,7 @@ def _collect_evidence(
 ## @param known Currently resolved spawn conventions.
 ## @return Zero or more evidence records.
 ## @version 1
-## @dg_internal
+## @utility
 def _definition_evidence(fdef: FuncDef, known: dict[str, Derived]) -> list[_Evidence]:
     """@brief Read one definition's forwarding calls against the known map."""
     found: list[_Evidence] = []
@@ -244,7 +244,7 @@ def _definition_evidence(fdef: FuncDef, known: dict[str, Derived]) -> list[_Evid
 ## @param items Every definition's evidence for one candidate name.
 ## @return The resolved convention, or None when definitions disagree on the entry index.
 ## @version 3
-## @dg_internal
+## @utility
 def _resolve_one(items: Sequence[_Evidence]) -> Derived | None:
     """Disagreement is handled per FIELD, because the failure modes differ. A
     disagreeing `entry_arg_index` makes the whole declaration meaningless and
@@ -338,7 +338,7 @@ def classify_sites(sites: Sequence[CallSite], entry_idx: int) -> Census:
 ## @param entry_idx The entry-argument position.
 ## @return "concrete", "forwarding" or "opaque".
 ## @version 1
-## @dg_internal
+## @utility
 def _site_kind(site: CallSite, entry_idx: int) -> str:
     """@brief Classify one spawn call site's entry argument."""
     if entry_idx < 0 or entry_idx >= len(site.arg_texts):
@@ -353,7 +353,7 @@ def _site_kind(site: CallSite, entry_idx: int) -> str:
 ## @param token Argument text with `&` and whitespace already stripped.
 ## @return True when the token names something rather than computing it.
 ## @version 1
-## @dg_internal
+## @utility
 def _is_name(token: str) -> bool:
     """@brief Test an argument token for bare-identifier shape."""
     head = token.replace("::", "_")

@@ -542,7 +542,7 @@ def index_unusable_reason(db_path: Path | str) -> str:
 ## @param path Candidate index path.
 ## @return Reason string, empty when the path is at least a non-empty file.
 ## @version 1
-## @dg_internal
+## @utility
 def _filesystem_problem(path: Path) -> str:
     """Checked in this order because each step is the precondition for the next:
     `stat()` raises on a missing path, so the existence test cannot be folded in
@@ -569,7 +569,7 @@ def _filesystem_problem(path: Path) -> str:
 ## @param path A path already known to be a non-empty file.
 ## @return Reason string, empty when the file is a database holding the sentinel table.
 ## @version 1
-## @dg_internal
+## @utility
 def _sqlite_problem(path: Path) -> str:
     """Opened READ-ONLY via a `file:` URI on purpose: the whole point of this
     helper is that the ordinary `sqlite3.connect(path)` CREATES a database, so

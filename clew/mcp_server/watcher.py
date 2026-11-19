@@ -41,7 +41,7 @@ _IGNORED_PARTS = frozenset({".git", "__pycache__", ".pytest_cache", "node_module
 ## @return True when it could be an indexed source file or the repository's declaration.
 ## v2 (2.0.0, R5-CORE D12): `.clew.yaml` is relevant — the `.clew` prefix swallowed it.
 ## @version 2
-## @dg_internal
+## @utility
 def relevant(path: str) -> bool:
     """THE TARGET'S DECLARATION IS NOT ONE OF CLEW'S OWN FILES. The `.clew` prefix exists for
     clew's own writes, and it also matched `.clew.yaml`, so editing a declaration never woke the
@@ -74,7 +74,7 @@ class RepoWatcher:
     ## @brief Prepare a watcher that calls `on_change` from watchdog's thread.
     ## @param on_change Thread-safe callback taking no arguments.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def __init__(self, on_change: Callable[[], None]) -> None:
         self._on_change = on_change
         self._observer: Any = None
@@ -111,7 +111,7 @@ class RepoWatcher:
     ## @brief Stop watching everything.
     ## @return None.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def stop(self) -> None:
         """@brief Stop the observer thread. @return None."""
         if self._observer is not None:
@@ -123,7 +123,7 @@ class RepoWatcher:
     ## @brief The running observer, started on first use; None when watchdog cannot start one.
     ## @return The observer or None.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def _ensure_observer(self) -> Any:
         """@brief Lazily start the observer. @return Observer or None."""
         if self._observer is None:
@@ -141,7 +141,7 @@ class RepoWatcher:
     ## @brief A watchdog event handler that forwards relevant changes.
     ## @return The handler.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def _handler(self) -> Any:
         """@brief Build the forwarding handler. @return Handler."""
         from watchdog.events import FileSystemEventHandler

@@ -61,7 +61,7 @@ class ClewDomain(Domain):
     ## @param docname A document being re-read.
     ## @return None.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def clear_doc(self, docname: str) -> None:
         """@brief No per-document state. @return None."""
 
@@ -70,7 +70,7 @@ class ClewDomain(Domain):
 ## @param path The list.
 ## @return Rows.
 ## @version 1
-## @dg_internal
+## @utility
 def _rows(path: Path) -> list[dict[str, str]]:
     """@brief Read the list. @return Rows."""
     if not path.is_file():

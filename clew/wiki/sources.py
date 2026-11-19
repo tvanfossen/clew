@@ -112,7 +112,7 @@ def node_references(db: Path | str) -> dict[str, tuple[str, ...]]:
 ## @param path The file.
 ## @return The parsed document.
 ## @version 1
-## @dg_internal
+## @utility
 def _parse(path: Path) -> Any:
     """@brief Read JSON, TOML or YAML. @return Document."""
     suffix = path.suffix.lower()
@@ -137,7 +137,7 @@ def _parse(path: Path) -> Any:
 ## @param dotted The path; empty means the whole document.
 ## @return The items (a mapping or a list).
 ## @version 1
-## @dg_internal
+## @utility
 def _items(doc: Any, dotted: str) -> Any:
     """@brief Resolve the items path. @return Items."""
     for part in [p for p in dotted.split(".") if p]:
@@ -156,7 +156,7 @@ def _items(doc: Any, dotted: str) -> Any:
 ## @return Nodes.
 ## v2: a scalar list entry is its own id.
 ## @version 2
-## @dg_internal
+## @utility
 def _nodes(spec: SourceSpec, items: Any, problems: list[str]) -> list[Node]:
     """@brief Build nodes. @return Nodes."""
     pairs = items.items() if isinstance(items, dict) else ((None, e) for e in items)
@@ -186,7 +186,7 @@ def _nodes(spec: SourceSpec, items: Any, problems: list[str]) -> list[Node]:
 ## @param id_field The declared id field.
 ## @return The id, or None.
 ## @version 1
-## @dg_internal
+## @utility
 def _entry_id(entry: Any, fields: dict[str, Any], id_field: str) -> Any:
     """@brief A scalar is its own id; a mapping names it. @return Id or None."""
     if isinstance(entry, (str, int, float)) and not isinstance(entry, bool):

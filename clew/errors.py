@@ -43,7 +43,7 @@ class DoxygenFailedError(SystemExit):
     ## @brief Carry the exit code callers already expect and the reason the stamp records.
     ## @param reason One line saying what went wrong, for build_meta.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def __init__(self, reason: str) -> None:
         """@brief Build the error.
         @param reason Why doxygen produced no database.

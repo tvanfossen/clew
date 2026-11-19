@@ -253,7 +253,7 @@ def script_symbol_harvester() -> Harvester:
 ## v3 (C5): the no-grammar source types, so a file this toolchain cannot read is still a file it
 ## can name. See `UNPARSED_EXTS` for the census that set the list.
 ## @version 3
-## @dg_internal
+## @utility
 def claims(rel: str) -> bool:
     """Every type this front end registers in `path`, whether or not it will carry
     symbols: a YAML file is claimed so that it is in the file set, and harvested by
@@ -270,7 +270,7 @@ def claims(rel: str) -> bool:
 ## @param rel Path, any separator.
 ## @return True for a shell or CMake source file.
 ## @version 1
-## @dg_internal
+## @utility
 def script_claims(rel: str) -> bool:
     """@brief Shell/CMake extension-or-name test."""
     lower = rel.lower()
@@ -281,7 +281,7 @@ def script_claims(rel: str) -> bool:
 ## @param rel Path, any separator.
 ## @return True for a source type registered by name only.
 ## @version 1
-## @dg_internal
+## @utility
 def unparsed_claims(rel: str) -> bool:
     """Split from `claims` because the two answer different questions and only one of them
     decides a stored value: `claims` decides whether the file is in the SET, this decides whether
@@ -493,7 +493,7 @@ def ensure_decl_extent_table(conn: sqlite3.Connection) -> None:
 ## @brief Whether any registered file is one this front end claims.
 ## @return True when a JS/TS path row exists.
 ## @version 1
-## @dg_internal
+## @utility
 def _has_claimed_path(conn: sqlite3.Connection) -> bool:
     return any(claims(r[0]) for r in conn.execute("SELECT name FROM path WHERE type = 1"))
 
@@ -502,7 +502,7 @@ def _has_claimed_path(conn: sqlite3.Connection) -> bool:
 ## @param rel Repo-relative path.
 ## @return The module path.
 ## @version 1
-## @dg_internal
+## @utility
 def module_of(rel: str) -> str:
     """@brief Dotted module path of a file."""
     stem = rel
@@ -522,7 +522,7 @@ _DEPENDENCY_KEYS = ("dependencies", "devDependencies", "peerDependencies", "opti
 ## @param repo_root The repository.
 ## @return Package names.
 ## @version 1
-## @dg_internal
+## @utility
 def declared_dependencies(conn: sqlite3.Connection, repo_root: Path) -> frozenset[str]:
     """The root manifest and every indexed `package.json` outside `node_modules` (a workspace's
     packages). An unreadable manifest contributes nothing — never a guess.
@@ -556,7 +556,7 @@ class _Writer:
     ## @brief Start a writer on an open connection.
     ## v2 (2.0.0, D7): pending bases carry their import packages.
     ## @version 2
-    ## @dg_internal
+    ## @utility
     def __init__(self, conn: sqlite3.Connection) -> None:
         self.conn = conn
         self.functions = 0
@@ -567,7 +567,7 @@ class _Writer:
     ## @brief Allocate a refid row for one definition.
     ## @return The new rowid.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def _refid(self, key: str) -> int:
         """`refid.refid` is NOT NULL UNIQUE; the key is file, position and name, which no
         two definitions share."""
@@ -579,7 +579,7 @@ class _Writer:
     ##
     ## @brief Write one file's harvested classes and functions.
     ## @version 3
-    ## @dg_internal
+    ## @utility
     def file(self, path_rowid: int, payload: dict[str, Any], prefix: str = "js") -> None:
         rel = self.conn.execute("SELECT name FROM path WHERE rowid = ?", (path_rowid,)).fetchone()[
             0
@@ -605,7 +605,7 @@ class _Writer:
     ## @return Its rowid.
     ## v2 (2.0.0, D7): records the class's base packages for `inheritance`.
     ## @version 2
-    ## @dg_internal
+    ## @utility
     def _compound(self, path_rowid: int, module: str, cls: dict[str, Any], prefix: str) -> int:
         rowid = self._refid(f"{prefix}cls_{path_rowid}_{cls['line']}_{cls['col']}_{cls['name']}")
         owner = f"{cls['outer']}::" if cls["outer"] else ""
@@ -627,7 +627,7 @@ class _Writer:
     ##
     ## @brief Insert one function memberdef row, and its member link.
     ## @version 3
-    ## @dg_internal
+    ## @utility
     def _function(
         self,
         path_rowid: int,
@@ -684,7 +684,7 @@ class _Writer:
     ## @param dependencies Package names the repository declares it depends on.
     ## v2 (2.0.0, R5-CORE D7): a base imported from a declared dependency links nothing.
     ## @version 2
-    ## @dg_internal
+    ## @utility
     def inheritance(self, dependencies: frozenset[str] = frozenset()) -> None:
         """A base resolves only when exactly one JS/TS class of that name exists: an
         ambiguous base links nothing rather than linking the wrong class.
@@ -756,7 +756,7 @@ def render_doc(raw: str) -> tuple[str, str]:
 ## @brief The prose paragraphs of a JSDoc block, before its first tag line.
 ## @return The paragraphs, joined per paragraph.
 ## @version 1
-## @dg_internal
+## @utility
 def _prose_paragraphs(raw: str) -> list[str]:
     paragraphs: list[list[str]] = [[]]
     for line in raw.splitlines():

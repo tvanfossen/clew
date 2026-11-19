@@ -117,7 +117,7 @@ class IncludeResolver:
     ## @brief Index the path table by name and by every suffix.
     ## @param names {rowid: repo-relative path}.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def __init__(self, names: dict[int, str]) -> None:
         self.by_name = {name: rowid for rowid, name in names.items()}
         self.by_suffix: dict[str, list[int]] = {}
@@ -150,7 +150,7 @@ class IncludeResolver:
 ## @param payload The harvest payload, or None.
 ## @return (src_id, dst_id, spec, local, line) rows.
 ## @version 1
-## @dg_internal
+## @utility
 def _rows(resolver: IncludeResolver, src: int, includer: str, payload: Any) -> list[tuple]:
     """ONE CONVERSION for the full stage and the fast tier, so a fast-refreshed row is the row a
     full build writes for the same bytes.
@@ -168,7 +168,7 @@ def _rows(resolver: IncludeResolver, src: int, includer: str, payload: Any) -> l
 ## @param conn Open connection.
 ## @return (resolver, {rowid: path}).
 ## @version 1
-## @dg_internal
+## @utility
 def _resolver(conn: sqlite3.Connection) -> tuple[IncludeResolver, dict[int, str]]:
     """ONLY FILES THAT EXIST resolve a spec. Doxygen writes a `path` row, `found = 0`, for every
     include it could not find, so `<stdio.h>` has a row named `stdio.h`; resolving against those

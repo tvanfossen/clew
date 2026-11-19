@@ -199,7 +199,7 @@ def _blocks(
 ## @param block The block id.
 ## @return True for `Vendor` and `Vendor: <root>`.
 ## @version 1
-## @dg_internal
+## @utility
 def is_vendor(block: str) -> bool:
     """@brief Vendor block? @return Bool."""
     return block == VENDOR or block.startswith(f"{VENDOR}: ")
@@ -209,7 +209,7 @@ def is_vendor(block: str) -> bool:
 ## @param conn Open connection.
 ## @return {file: area root}.
 ## @version 1
-## @dg_internal
+## @utility
 def vendor_areas(conn: Any) -> dict[str, str]:
     """ONE AREA PER TREE OR DECLARATION (OWNER, round 5: "one node per vendored area"). A file in a
     nested git tree belongs to that tree (`clew/external.py` stamps it on `path`); a file under a
@@ -237,7 +237,7 @@ def vendor_areas(conn: Any) -> dict[str, str]:
 ## v2 (2.0.0, W5): and every file under a declared `vendored:` root the build found.
 ## v3 (2.0.0, P5): the keys of `vendor_areas`.
 ## @version 3
-## @dg_internal
+## @utility
 def _vendored(conn: Any) -> set[str]:
     """@brief Vendored files. @return Paths."""
     return set(vendor_areas(conn))
@@ -247,7 +247,7 @@ def _vendored(conn: Any) -> set[str]:
 ## @param conn Open connection.
 ## @return Repo-relative roots, without a trailing slash.
 ## @version 1
-## @dg_internal
+## @utility
 def _declared_vendored_roots(conn: Any) -> list[str]:
     """W5 (2.0.0): the build records a declared `vendored:` here, and this module read only the
     nested-git-tree stamp, so a copied-in library the repository calls vendored was drawn as
@@ -268,7 +268,7 @@ def _declared_vendored_roots(conn: Any) -> list[str]:
 ## @param comp rowid → component.
 ## @return {vendor block: distinct (caller, callee) function pairs crossing into it}.
 ## @version 1
-## @dg_internal
+## @utility
 def _vendor_calls_in(conn: Any, funcs: dict, comp: dict[int, str]) -> dict[str, int]:
     """BY FUNCTION, NOT BY ROW: doxygen writes a declaration row and a definition row for one C
     function, so one call reads as several rowid pairs. A pair is (name, file) on each side.
@@ -294,7 +294,7 @@ def _vendor_calls_in(conn: Any, funcs: dict, comp: dict[int, str]) -> dict[str, 
 ## @param funcs rowid → (name, file, in test code).
 ## @return {file: {other file: calls}}.
 ## @version 1
-## @dg_internal
+## @utility
 def _file_calls(conn: Any, funcs: dict) -> dict[str, dict[str, int]]:
     """A BINDING IS NOT A CALL and a fuzzy edge is a guess, as for links.
 
@@ -319,7 +319,7 @@ def _file_calls(conn: Any, funcs: dict) -> dict[str, dict[str, int]]:
 ## @param conn Open connection.
 ## @return The map.
 ## @version 1
-## @dg_internal
+## @utility
 def _functions(conn: Any) -> dict[int, tuple[str, str, bool]]:
     """@brief Read functions. @return Map."""
     tests = set()
@@ -337,7 +337,7 @@ def _functions(conn: Any) -> dict[int, tuple[str, str, bool]]:
 ## @param funcs rowid → (name, file, in test code).
 ## @return {callee rowid: distinct test callers}.
 ## @version 1
-## @dg_internal
+## @utility
 def _tested_calls(conn: Any, funcs: dict[int, tuple[str, str, bool]]) -> dict[int, int]:
     """A BINDING IS NOT A CALL and a fuzzy edge is a guess, as for links.
 
@@ -361,7 +361,7 @@ def _tested_calls(conn: Any, funcs: dict[int, tuple[str, str, bool]]) -> dict[in
 ## @param comp rowid → component.
 ## @return {(from, to): {calls, keys}}.
 ## @version 1
-## @dg_internal
+## @utility
 def _links(conn: Any, comp: dict[int, str]) -> dict[tuple[str, str], dict[str, int]]:
     """A BINDING IS NOT A CALL and a fuzzy edge is a guess: neither weighs a component link.
 
@@ -390,7 +390,7 @@ def _links(conn: Any, comp: dict[int, str]) -> dict[tuple[str, str], dict[str, i
 ## @param kind `calls` or `keys`.
 ## @return None.
 ## @version 1
-## @dg_internal
+## @utility
 def _bump(out: dict, a: str | None, b: str | None, kind: str) -> None:
     """@brief Count. @return None."""
     if a and b and a != b:
@@ -402,7 +402,7 @@ def _bump(out: dict, a: str | None, b: str | None, kind: str) -> None:
 ## @param comp rowid → component.
 ## @return {component: thread names}.
 ## @version 1
-## @dg_internal
+## @utility
 def _threads(conn: Any, comp: dict[int, str]) -> dict[str, set[str]]:
     """@brief Thread membership. @return Map."""
     out: dict[str, set[str]] = defaultdict(set)
@@ -425,7 +425,7 @@ def _threads(conn: Any, comp: dict[int, str]) -> dict[str, set[str]]:
 ## @return {component: node}.
 ## v2: `paths` — the component's files, listed (the map's box modal names them).
 ## @version 2
-## @dg_internal
+## @utility
 def _components(funcs, comp, evidence, impact, threads) -> dict[str, dict[str, Any]]:
     """@brief Component nodes. @return Nodes."""
     nodes: dict[str, dict[str, Any]] = {}
@@ -455,7 +455,7 @@ def _components(funcs, comp, evidence, impact, threads) -> dict[str, dict[str, A
 ## @return None.
 ## v2: `req_ids` — each requirement with its tier, for links from the map.
 ## @version 2
-## @dg_internal
+## @utility
 def _requirements_into(nodes: dict, file_comp: dict[str, str], evidence: list) -> None:
     """A REQUIREMENT COUNTS ONCE PER COMPONENT, however many of its implementers live there.
 
@@ -475,7 +475,7 @@ def _requirements_into(nodes: dict, file_comp: dict[str, str], evidence: list) -
 ## @param impact Impact entries.
 ## @return None.
 ## @version 1
-## @dg_internal
+## @utility
 def _impact_into(nodes: dict, file_comp: dict[str, str], impact: list[dict]) -> None:
     """MEASURED ZERO when the report exists: every component gets `changed`.
 
@@ -496,7 +496,7 @@ def _impact_into(nodes: dict, file_comp: dict[str, str], impact: list[dict]) -> 
 ## @param links The component links.
 ## @return Component ids in drawing order.
 ## @version 1
-## @dg_internal
+## @utility
 def _layout(components: dict[str, dict], links: dict) -> list[str]:
     """Layer = longest path from a source over the de-cycled call direction; within a layer,
     components are ordered by the mean position of their callers, ties by name.
@@ -523,7 +523,7 @@ def _layout(components: dict[str, dict], links: dict) -> list[str]:
 ## @param links Component links.
 ## @return {component: components it points down to}.
 ## @version 1
-## @dg_internal
+## @utility
 def _downward(links: dict) -> dict[str, set[str]]:
     """OF TWO COMPONENTS CALLING EACH OTHER, the heavier direction is "down"; a tie goes to the
     alphabetically earlier caller, so the result never depends on dict order.
@@ -544,7 +544,7 @@ def _downward(links: dict) -> dict[str, set[str]]:
 ## @param down The downward direction.
 ## @return {layer: component ids}.
 ## @version 1
-## @dg_internal
+## @utility
 def _layers(names: list[str], down: dict[str, set[str]]) -> dict[int, list[str]]:
     """@brief Assign layers. @return Rows."""
     layer = dict.fromkeys(names, 0)
@@ -568,7 +568,7 @@ def _layers(names: list[str], down: dict[str, set[str]]) -> dict[int, list[str]]
 ## @param pos Placed positions.
 ## @return The barycentre.
 ## @version 1
-## @dg_internal
+## @utility
 def _barycentre(c: str, down: dict[str, set[str]], pos: dict[str, float]) -> float:
     """@brief Mean caller position. @return Value."""
     callers = [pos[a] for a in pos if c in down.get(a, ())]
@@ -584,7 +584,7 @@ def _barycentre(c: str, down: dict[str, set[str]], pos: dict[str, float]) -> flo
 ## @return Points.
 ## v2: points start below the name band, so the Code level keeps the box's name legible.
 ## @version 2
-## @dg_internal
+## @utility
 def _points(funcs, comp, components, evidence, impact) -> list[dict[str, Any]]:
     """A GRID PER BOX, by file then name, so neighbours in the cloud are neighbours in the source.
 

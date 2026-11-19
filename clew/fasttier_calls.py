@@ -94,7 +94,7 @@ def refresh_outbound_calls(
 ## @param conn Open index connection.
 ## @return The maps, keyed as `_fold_all_files` reads them, plus identity_of/defined.
 ## @version 1
-## @dg_internal
+## @utility
 def _resolution_maps(conn: sqlite3.Connection) -> dict[str, Any]:
     """THE FULL STAGE'S OWN CONSTRUCTORS, called the same way (`import_ast_call_edges`), so an
     edge resolved here is the edge the full build resolves for the same index.
@@ -145,7 +145,7 @@ def _resolution_maps(conn: sqlite3.Connection) -> dict[str, Any]:
 ## @param callers Function rowids of the edited files.
 ## @return None.
 ## @version 1
-## @dg_internal
+## @utility
 def _delete_fold_edges(conn: sqlite3.Connection, callers: list[int]) -> None:
     """ONLY THE FOLD'S SOURCES: doxygen's rows and the callback layer's are not this phase's to
     replace, and deleting them would leave a hole the fold does not refill.
@@ -169,7 +169,7 @@ def _delete_fold_edges(conn: sqlite3.Connection, callers: list[int]) -> None:
 ## @param cache The index cache.
 ## @return The payload, or None when the file is not parseable.
 ## @version 1
-## @dg_internal
+## @utility
 def _call_payload(rel: str, path: Path, cache: IndexCache) -> Any:
     """@brief Harvest one file's call sites. @return Payload or None."""
     from .call_edges import call_site_harvester

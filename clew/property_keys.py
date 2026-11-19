@@ -48,7 +48,7 @@ KIND_ASSIGN = "assign"
 ## @param node The key or property node.
 ## @return The key.
 ## @version 1
-## @dg_internal
+## @utility
 def _key_text(node: Any) -> str:
     """@brief Read a key. @return Text or ""."""
     if node is None or node.type not in _KEY_NODES:
@@ -61,7 +61,7 @@ def _key_text(node: Any) -> str:
 ## @param node A node.
 ## @return The name, or None.
 ## @version 1
-## @dg_internal
+## @utility
 def _holder_name(node: Any) -> str | None:
     """@brief Name a holder. @return Name or None."""
     field = _HOLDERS.get(node.type)
@@ -73,7 +73,7 @@ def _holder_name(node: Any) -> str | None:
 ## @param node A node.
 ## @return (key, kind), or None.
 ## @version 1
-## @dg_internal
+## @utility
 def _site(node: Any) -> tuple[str, str] | None:
     """`pair` (`key: v`) and shorthand (`{key}`) are literal keys; an assignment whose left side
     is a member expression assigns its property. Anything else names no key.

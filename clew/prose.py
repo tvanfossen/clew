@@ -175,7 +175,7 @@ def chunk_rst(text: str, file_path: str) -> list[tuple[str, str]]:
 ## @param root The document's root node.
 ## @return (section node, 1-based level) pairs.
 ## @version 1
-## @dg_internal
+## @utility
 def _rst_levels(root: Any) -> list[tuple[Any, int]]:
     """A STYLE is the adornment character plus whether the title is overlined; levels are
     handed out in the order styles first appear, which is docutils' own rule. The walk
@@ -202,7 +202,7 @@ def _rst_levels(root: Any) -> list[tuple[Any, int]]:
 ## @param section A `section` node.
 ## @return (adornment character, overlined).
 ## @version 1
-## @dg_internal
+## @utility
 def _rst_style(section: Any) -> tuple[str, bool]:
     """@brief A section's adornment style."""
     kids = section.children
@@ -215,7 +215,7 @@ def _rst_style(section: Any) -> tuple[str, bool]:
 ## @param section A `section` node.
 ## @return The title, or "" when the node has none.
 ## @version 1
-## @dg_internal
+## @utility
 def _rst_title(section: Any) -> str:
     """@brief A section's title."""
     for kid in section.children:
@@ -228,7 +228,7 @@ def _rst_title(section: Any) -> str:
 ## @param section A `section` node.
 ## @return The byte after the last title or adornment line.
 ## @version 1
-## @dg_internal
+## @utility
 def _heading_end(section: Any) -> int:
     """Measured from the title and its adornments rather than from the section node, so a
     grammar whose section spans its whole body still yields the body.
@@ -243,7 +243,7 @@ def _heading_end(section: Any) -> int:
 ## @param section A `section` node.
 ## @return The start byte of the run of internal targets directly above it, or its own.
 ## @version 1
-## @dg_internal
+## @utility
 def _labelled_start(section: Any) -> int:
     """Only INTERNAL targets (`.. _name:`, nothing after the colon) label a section. An
     external, indirect or anonymous target is a link destination for the text that
@@ -263,7 +263,7 @@ def _labelled_start(section: Any) -> int:
 ## @param node A `target` node.
 ## @return True when it carries a name and no link.
 ## @version 1
-## @dg_internal
+## @utility
 def _is_internal_target(node: Any) -> bool:
     """@brief Internal-target test."""
     kinds = {k.type for k in node.children}
@@ -276,7 +276,7 @@ def _is_internal_target(node: Any) -> bool:
 ## @param end Byte after the last.
 ## @return The text, stripped.
 ## @version 1
-## @dg_internal
+## @utility
 def _span_text(data: bytes, start: int, end: int) -> str:
     """@brief Text of a byte span."""
     return data[start:end].decode("utf-8").strip() if end > start else ""
@@ -288,7 +288,7 @@ def _span_text(data: bytes, start: int, end: int) -> str:
 ## carried in the payload and logged on every build, so a cached skip is never a silent one.
 ## @brief Read + chunk one prose file; insert chunks; return chunk count.
 ## @version 5
-## @dg_internal
+## @utility
 def _ingest_one_doc_file(
     conn: sqlite3.Connection,
     file_path: Path,
@@ -333,7 +333,7 @@ def _ingest_one_doc_file(
 ## @param rel_path Its repo-relative path; selects the chunker.
 ## @return {"chunks": [[heading, content], ...], "warning": str or None}.
 ## @version 1
-## @dg_internal
+## @utility
 def _chunks_of(file_path: Path, rel_path: str) -> dict[str, Any]:
     """STRICT UTF-8, as before: a file that is not valid UTF-8 is skipped with the offending byte
     named, never decoded with replacement characters that a model would then cite.

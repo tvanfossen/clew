@@ -327,7 +327,7 @@ def propose(
 ## @param ctx Shared detector inputs.
 ## @return One SectionProposal per `.clew.yaml` section.
 ## @version 1
-## @dg_internal
+## @utility
 def _sections(ctx: Context) -> tuple[SectionProposal, ...]:
     """@brief Run the detectors, then the hand-declared and report-only sections."""
     blocking = _blocking(ctx)
@@ -343,7 +343,7 @@ def _sections(ctx: Context) -> tuple[SectionProposal, ...]:
 ## @param ctx Shared detector inputs.
 ## @return (status, reason) when detection is impossible, else None.
 ## @version 4
-## @dg_internal
+## @utility
 def _blocking(ctx: Context) -> tuple[SectionStatus, str] | None:
     """Ordered most-fundamental first, so the reported reason is the root cause
     rather than a downstream symptom of it (a missing grammar also produces zero
@@ -381,7 +381,7 @@ def _blocking(ctx: Context) -> tuple[SectionStatus, str] | None:
 ## @param blocking (status, reason) from `_blocking`.
 ## @return The SectionProposal standing in for the detector.
 ## @version 1
-## @dg_internal
+## @utility
 def _blocked_section(name: str, blocking: tuple[SectionStatus, str]) -> SectionProposal:
     """@brief Report a detector that was never able to look."""
     status, reason = blocking
@@ -394,7 +394,7 @@ def _blocked_section(name: str, blocking: tuple[SectionStatus, str]) -> SectionP
 ## @param reason Why clew will not propose it.
 ## @return The SectionProposal.
 ## @version 2
-## @dg_internal
+## @utility
 def _hand_section(ctx: Context, name: str, reason: str) -> SectionProposal:
     """A declared section reports ALREADY_DECLARED rather than repeating the
     refusal: the owner has clearly already read this, and the draft's job then is
@@ -417,7 +417,7 @@ def _hand_section(ctx: Context, name: str, reason: str) -> SectionProposal:
 ## @param detected The detector sections (for cross-section conflict warnings).
 ## @return The REPORT_ONLY SectionProposal.
 ## @version 1
-## @dg_internal
+## @utility
 def _index_scope_section(ctx: Context, detected: tuple[SectionProposal, ...]) -> SectionProposal:
     """`report_not_indexed` derives its directory list from the AST corpus, so
     with no corpus its "nothing outside the scope" line would be an artefact of

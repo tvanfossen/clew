@@ -40,7 +40,7 @@ def body_end_line(src: bytes, start: int) -> int | None:
 
 ## @brief One pass over the text from a body's opening brace.
 ## @version 1
-## @dg_internal
+## @utility
 class _Scanner:
     """A cursor and the two counters the match needs: brace depth, and how many conditional
     groups deep the cursor is inside a SKIPPED branch.
@@ -51,7 +51,7 @@ class _Scanner:
 
     ## @brief Start at a body's opening brace.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def __init__(self, src: bytes, start: int) -> None:
         self.src = src
         self.pos = start
@@ -63,7 +63,7 @@ class _Scanner:
     ## @brief Scan until the opening brace's match.
     ## @return The closing line, or None.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def run(self) -> int | None:
         """@brief Scan. @return Line or None."""
         src = self.src
@@ -88,7 +88,7 @@ class _Scanner:
     ## @brief Whether the cursor is at the first non-blank character of a line.
     ## @return True when only spaces or tabs precede it on its line.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def _at_line_start(self) -> bool:
         """@brief Line start. @return True or False."""
         line_start = self.src.rfind(b"\n", 0, self.pos) + 1
@@ -97,7 +97,7 @@ class _Scanner:
     ## @brief Consume a preprocessor directive line, updating the conditional groups.
     ## @return True when a directive was consumed.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def _directive(self) -> bool:
         """@brief Consume a directive. @return True when one was."""
         if self.src[self.pos : self.pos + 1] != b"#":
@@ -117,7 +117,7 @@ class _Scanner:
     ## @brief The offset just past a directive line, following backslash continuations.
     ## @return Byte offset.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def _line_end(self) -> int:
         """@brief Directive end. @return Offset."""
         pos = self.pos
@@ -132,7 +132,7 @@ class _Scanner:
     ## @brief Skip a comment or a string/character literal at the cursor.
     ## @return True when one was skipped.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def _skip_literal_or_comment(self) -> bool:
         """@brief Skip a literal or comment. @return True when skipped."""
         src, pos = self.src, self.pos
@@ -158,7 +158,7 @@ class _Scanner:
 ## @param quote The quote byte.
 ## @return Offset past the closing quote, or the line end for an unterminated literal.
 ## @version 1
-## @dg_internal
+## @utility
 def _literal_end(src: bytes, pos: int, quote: bytes) -> int:
     """@brief Literal end. @return Offset."""
     i = pos + 1

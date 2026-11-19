@@ -36,7 +36,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 # @brief Load the counter script as a module without making `scripts/` a package.
 # @return The loaded module.
 # @version 1
-# @dg_internal
+# @utility
 def _load() -> ModuleType:
     """@brief Load `scripts/selector_waste.py`.
     @return The module.

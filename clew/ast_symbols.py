@@ -417,7 +417,7 @@ class ParsedVariable:
 ## @param src_bytes The file's raw bytes.
 ## @return True when one of the node's children is the `static` storage class.
 ## @version 1
-## @dg_internal
+## @utility
 def _is_static(node: Any, src_bytes: bytes) -> bool:
     """@brief Detect a `static` function definition.
 
@@ -446,7 +446,7 @@ _DECLARATOR_NODES = frozenset(
 ## @param node A `function_definition` node.
 ## @return The `function_declarator` node, or None when the shape is not one.
 ## @version 2
-## @dg_internal
+## @utility
 def _function_declarator(node: Any) -> Any | None:
     """A pointer- OR reference-returning definition nests the declarator
     (`Slot* Owner::acquire()` puts the sigil INSIDE the declarator, which is the
@@ -485,7 +485,7 @@ def _function_declarator(node: Any) -> Any | None:
 ## @param src_bytes The file's raw bytes.
 ## @return (bare name, qualified name), or None when no static name is identifiable.
 ## @version 3
-## @dg_internal
+## @utility
 def _declared_names(declarator: Any, src_bytes: bytes) -> tuple[str, str] | None:
     """Refuses anything that is not a plain `identifier` or a `qualified_identifier`
     — an `operator_name`, a `destructor_name`, or a declarator doxygen would have
@@ -514,7 +514,7 @@ def _declared_names(declarator: Any, src_bytes: bytes) -> tuple[str, str] | None
 ## @param src_bytes The file's raw bytes.
 ## @return The ParsedFunction, or None when the node has no body or no usable name.
 ## @version 2
-## @dg_internal
+## @utility
 def _parsed_function(node: Any, src_bytes: bytes) -> ParsedFunction | None:
     """REQUIRES AN ACTUAL BODY, and this was found by measurement rather than by
     reading the grammar. `W(W&&) = default;` and `W(const W&) = delete;` are
@@ -607,7 +607,7 @@ _C_KEYWORDS = frozenset(
 ## @param src_bytes The file's raw bytes.
 ## @return The definition, its `end` corrected when the braces say otherwise.
 ## @version 1
-## @dg_internal
+## @utility
 def _brace_extent(parsed: ParsedFunction, node: Any, src_bytes: bytes) -> ParsedFunction:
     """THE PARSE'S EXTENT IS WRONG BOTH WAYS on mbedtls 068ff080: 2163-3688 for a function
     ending at 2542, and 1182-1639 for one ending at 1665. Only error-recovered nodes are
@@ -630,7 +630,7 @@ def _brace_extent(parsed: ParsedFunction, node: Any, src_bytes: bytes) -> Parsed
 ## @param found Definitions in walk order.
 ## @return The survivors, in document order.
 ## @version 1
-## @dg_internal
+## @utility
 def _settled(found: list[ParsedFunction]) -> list[ParsedFunction]:
     """INSIDE A KEPT SPAN IS A FRAGMENT: once a recovered definition's end is corrected, the
     pieces of its body the parse had split off — `if` blocks under an `#if` — sit inside it.
@@ -652,7 +652,7 @@ def _settled(found: list[ParsedFunction]) -> list[ParsedFunction]:
 ## @param node A declarator node being unwrapped.
 ## @return The next declarator down, or None at the end of the chain.
 ## @version 1
-## @dg_internal
+## @utility
 def _next_declarator(node: Any) -> Any | None:
     """`child_by_field_name('declarator')` reaches the next link for every wrapper
     EXCEPT `parenthesized_declarator`, which holds its inner declarator as an unnamed
@@ -679,7 +679,7 @@ def _next_declarator(node: Any) -> Any | None:
 ## @param declarator One `declarator`-field child of a `declaration` node.
 ## @return The `identifier` node naming a variable, or None when this is not one.
 ## @version 1
-## @dg_internal
+## @utility
 def _declared_variable_name(declarator: Any) -> Any | None:
     """THE PROTOTYPE/FUNCTION-POINTER DISCRIMINATOR LIVES HERE, and it is the one
     judgement in this stage that a wrong answer makes actively harmful rather than
@@ -724,7 +724,7 @@ def _declared_variable_name(declarator: Any) -> Any | None:
 ## @param src_bytes The file's raw bytes.
 ## @return ParsedVariable records, one per declared name.
 ## @version 1
-## @dg_internal
+## @utility
 def _parsed_variables(node: Any, src_bytes: bytes) -> list[ParsedVariable]:
     """ONE DECLARATION CAN DECLARE SEVERAL NAMES. `int multi_a, multi_b;` gives the
     node TWO `declarator`-field children, so reading `child_by_field_name` — singular
@@ -761,7 +761,7 @@ def _parsed_variables(node: Any, src_bytes: bytes) -> list[ParsedVariable]:
 ## @param src_bytes The file's raw bytes.
 ## @return The declarator text without its `= value` tail.
 ## @version 1
-## @dg_internal
+## @utility
 def _declarator_text(declarator: Any, src_bytes: bytes) -> str:
     """STRIPS THE INITIALISER by descending through an `init_declarator` to its own
     declarator field, rather than by cutting the text at the first `=`. A textual cut
@@ -887,7 +887,7 @@ def harvest_type_definitions(tree: Any, src_bytes: bytes) -> list[ParsedVariable
 ## @param src_bytes The file's raw bytes.
 ## @return ParsedVariable, or None when no name can be read.
 ## @version 1
-## @dg_internal
+## @utility
 def _parsed_typedef(node: Any, src_bytes: bytes) -> ParsedVariable | None:
     """Reads the LAST `type_identifier` child, because that is where the introduced name
     sits: `typedef struct mbedtls_threading_mutex_t { ... } mbedtls_threading_mutex_t;` has
@@ -1016,7 +1016,7 @@ def harvest_macro_definitions(tree: Any, src_bytes: bytes) -> list[ParsedMacro]:
 ## @param src_bytes The file's raw bytes.
 ## @return ParsedMacro, or None when the node carries no readable name.
 ## @version 1
-## @dg_internal
+## @utility
 def _parsed_macro(node: Any, src_bytes: bytes) -> ParsedMacro | None:
     """Fail closed on a nameless node. An error-recovered tree can produce a
     `preproc_def` whose `name` field is absent, and a row named `''` would collide with
@@ -1258,7 +1258,7 @@ def harvest_enumerators(tree: Any, src_bytes: bytes) -> list[ParsedEnumerator]:
 ## @param src_bytes The file's raw bytes.
 ## @return The name, or '' when the enum is anonymous and untypedef'd.
 ## @version 1
-## @dg_internal
+## @utility
 def _enum_name(node: Any, src_bytes: bytes) -> str:
     """@brief Name an enum_specifier, following an enclosing typedef.
     @return The name, or ''.
@@ -1282,7 +1282,7 @@ def _enum_name(node: Any, src_bytes: bytes) -> str:
 ## @param src_bytes The file's raw bytes.
 ## @return ParsedEnumerator records for this body.
 ## @version 1
-## @dg_internal
+## @utility
 def _enumerators_of(body: Any, enum_name: str, src_bytes: bytes) -> list[ParsedEnumerator]:
     """@brief Read one enum body's values.
     @return ParsedEnumerator records.
@@ -1401,7 +1401,7 @@ def harvest_python_class_fields(tree: Any, src_bytes: bytes) -> list[ParsedClass
 ## @param src_bytes The file's raw bytes.
 ## @return ParsedClassField records for this body.
 ## @version 1
-## @dg_internal
+## @utility
 def _class_body_fields(body: Any, class_name: str, src_bytes: bytes) -> list[ParsedClassField]:
     """Split out so `harvest_python_class_fields` stays a walk and this stays a shape
     test — and so the "direct children only" rule is expressed as iterating ONE node's
@@ -1428,7 +1428,7 @@ def _class_body_fields(body: Any, class_name: str, src_bytes: bytes) -> list[Par
 ## @param src_bytes The file's raw bytes.
 ## @return The field, or None when this is not an annotated attribute.
 ## @version 1
-## @dg_internal
+## @utility
 def _annotated_field(node: Any, class_name: str, src_bytes: bytes) -> ParsedClassField | None:
     """@brief Read an annotated assignment as a class field.
     @return The field, or None.
@@ -1515,7 +1515,7 @@ def harvest_python_definitions(tree: Any, src_bytes: bytes) -> list[ParsedFuncti
 ## @param ranges Class ranges from `pyast.class_ranges`, for qualification.
 ## @return ParsedFunction, or None when the node carries no usable name or body.
 ## @version 1
-## @dg_internal
+## @utility
 def _parsed_python_function(
     node: Any, src_bytes: bytes, ranges: list[tuple[int, int, str]]
 ) -> ParsedFunction | None:
@@ -1572,7 +1572,7 @@ def function_definition_harvester() -> Harvester:
 ## @param column Column to look for.
 ## @return True when `PRAGMA table_info` lists the column.
 ## @version 1
-## @dg_internal
+## @utility
 def _has_column(conn: sqlite3.Connection, table: str, column: str) -> bool:
     """@brief Report whether a column exists on a table.
 
@@ -1587,7 +1587,7 @@ def _has_column(conn: sqlite3.Connection, table: str, column: str) -> bool:
 ## @param table Table name to look for.
 ## @return True when `sqlite_master` lists the table.
 ## @version 1
-## @dg_internal
+## @utility
 def _table_exists(conn: sqlite3.Connection, table: str) -> bool:
     """Local rather than imported from `query._common`, which is stdlib-only BY
     DESIGN and must not acquire a pipeline importer as a reverse dependency.
@@ -1641,7 +1641,7 @@ def ensure_symbol_provenance(conn: sqlite3.Connection) -> bool:
 ## @param conn Open connection to the database being built.
 ## @return path rowid → list of (bodystart, bodyend) already recorded there.
 ## @version 2
-## @dg_internal
+## @utility
 def _covered_body_spans(conn: sqlite3.Connection) -> dict[int, list[tuple[int, int]]]:
     """DELIBERATELY UNFILTERED BY PROVENANCE, and the first cut had it the other way
     round. Restricting to `dg_source='doxygen'` was justified as "so a re-run reaches
@@ -1675,7 +1675,7 @@ def _covered_body_spans(conn: sqlite3.Connection) -> dict[int, list[tuple[int, i
 ## @param conn Open connection to the database being built.
 ## @return Set of (path rowid, symbol name) already present.
 ## @version 1
-## @dg_internal
+## @utility
 def _covered_names(conn: sqlite3.Connection) -> set[tuple[int, str]]:
     """The variable dedup key, and it is `(file, name)` rather than a body span
     because a variable HAS no body span to overlap. C forbids two file-scope variables
@@ -1715,7 +1715,7 @@ def _covered_names(conn: sqlite3.Connection) -> set[tuple[int, str]]:
 ## @param conn Open connection to the database being built.
 ## @return Set of (path rowid, symbol name, line) already present.
 ## @version 1
-## @dg_internal
+## @utility
 def _covered_macro_sites(conn: sqlite3.Connection) -> set[tuple[int, str, int]]:
     """THE MACRO DEDUP KEY, and the LINE is the whole reason gh#403 works. Neither of the
     other two keys in this module can admit the second branch of a two-branch `#define`:
@@ -1758,7 +1758,7 @@ def _covered_macro_sites(conn: sqlite3.Connection) -> set[tuple[int, str, int]]:
 ## @param file_rowid The `path` rowid the definition lives in.
 ## @param macro The recovered macro.
 ## @version 1
-## @dg_internal
+## @utility
 def _insert_recovered_macro(conn: sqlite3.Connection, file_rowid: int, macro: ParsedMacro) -> None:
     """WRITES `initializer`, WHICH IS WHERE THE ANSWER LIVES. `macro_definitions_conn`
     reads the expansion from that column and nothing else, so a row without it would be
@@ -1815,7 +1815,7 @@ def _insert_recovered_macro(conn: sqlite3.Connection, file_rowid: int, macro: Pa
 ## @param covered (file, name, line) triples the index already carries.
 ## @return ParsedMacro records whose position is new to this file.
 ## @version 1
-## @dg_internal
+## @utility
 def _recoverable_macros(
     payload: Any, file_rowid: int, covered: set[tuple[int, str, int]]
 ) -> list[ParsedMacro]:
@@ -1846,7 +1846,7 @@ def _recoverable_macros(
 ## @param harvested (file rowid, payload) pairs from `run_harvest`.
 ## @return Number of macro rows inserted.
 ## @version 1
-## @dg_internal
+## @utility
 def _recover_macros_into(conn: sqlite3.Connection, harvested: Any) -> int:
     """RUNS LAST, after the functions, variables and typedefs, and the order is load-bearing
     in one direction only. `_covered_names` — the `(file, name)` key the variable and typedef
@@ -1876,7 +1876,7 @@ def _recover_macros_into(conn: sqlite3.Connection, harvested: Any) -> int:
 ## @param file_rowid The `path` rowid the declaration lives in.
 ## @param var The recovered variable.
 ## @version 1
-## @dg_internal
+## @utility
 def _insert_recovered_variable(
     conn: sqlite3.Connection, file_rowid: int, var: ParsedVariable, kind: str = "variable"
 ) -> None:
@@ -1934,7 +1934,7 @@ def _insert_recovered_variable(
 ## @param covered (file, name) pairs the index already carries.
 ## @return ParsedVariable records whose name is new to this file.
 ## @version 1
-## @dg_internal
+## @utility
 def _recoverable_variables(
     payload: Any, file_rowid: int, covered: set[tuple[int, str]]
 ) -> list[ParsedVariable]:
@@ -1969,7 +1969,7 @@ def _recoverable_variables(
 ## @param covered Body spans doxygen attributed to this file.
 ## @return ParsedFunction records whose spans overlap nothing doxygen recorded.
 ## @version 1
-## @dg_internal
+## @utility
 def _recoverable(payload: Any, covered: list[tuple[int, int]]) -> list[ParsedFunction]:
     """@brief Drop parsed definitions that overlap a doxygen body span.
 
@@ -1990,7 +1990,7 @@ def _recoverable(payload: Any, covered: list[tuple[int, int]]) -> list[ParsedFun
 ## @param file_rowid The `path` rowid the definition lives in.
 ## @param fn The recovered definition.
 ## @version 1
-## @dg_internal
+## @utility
 def _insert_recovered(conn: sqlite3.Connection, file_rowid: int, fn: ParsedFunction) -> None:
     """Allocates the rowid from `refid` exactly as doxygen does — doxygen keeps
     `memberdef.rowid == refid.rowid` and declares the foreign key, so letting
@@ -2077,7 +2077,7 @@ def recover_ast_symbols(
 ## @return Number of memberdef rows inserted.
 ## @version 1
 ## @req REQ-DDB-INDEX-004
-## @dg_internal
+## @utility
 def _recover_enumerators_into(conn: sqlite3.Connection, harvested: Any) -> int:
     """gh#6. doxygen emits NO `enumvalue` rows — zero on entropic against 35 `enumeration`
     rows — so an enum value was addressable by nothing: `dossier` missed it and `search`
@@ -2120,7 +2120,7 @@ def _recover_enumerators_into(conn: sqlite3.Connection, harvested: Any) -> int:
 ## @param value The initialiser text, or '' when none is written.
 ## @param line The declaration line.
 ## @version 1
-## @dg_internal
+## @utility
 def _insert_recovered_enumerator(
     conn: sqlite3.Connection,
     file_rowid: int,
@@ -2163,7 +2163,7 @@ def _insert_recovered_enumerator(
 ## @return Number of memberdef rows inserted.
 ## @version 1
 ## @req REQ-DDB-INDEX-004
-## @dg_internal
+## @utility
 def _recover_class_fields_into(conn: sqlite3.Connection, harvested: Any) -> int:
     """gh#17. doxygen's Python parser drops a class attribute written as a bare annotation
     with a simple-identifier type — `name: str` — while keeping `line: int | None` and
@@ -2218,7 +2218,7 @@ def _recover_class_fields_into(conn: sqlite3.Connection, harvested: Any) -> int:
 ## @param conn Open connection to the database being built.
 ## @return Mapping used to attach a recovered attribute to its class.
 ## @version 1
-## @dg_internal
+## @utility
 def _compounds_by_file_and_tail(conn: sqlite3.Connection) -> dict[tuple[int, str], int]:
     """Keyed by FILE as well as name because a bare class name is not unique across a
     repository and a wrong link would file an attribute under someone else's class — the
@@ -2247,7 +2247,7 @@ def _compounds_by_file_and_tail(conn: sqlite3.Connection) -> dict[tuple[int, str
 ## @param type_text The annotation as written.
 ## @param line The declaration line.
 ## @version 1
-## @dg_internal
+## @utility
 def _insert_recovered_class_field(
     conn: sqlite3.Connection,
     file_rowid: int,
@@ -2304,7 +2304,7 @@ def _insert_recovered_class_field(
 ## @param cache Optional incremental index cache.
 ## @return Number of memberdef rows inserted.
 ## @version 6
-## @dg_internal
+## @utility
 def _recover_into(
     conn: sqlite3.Connection,
     repo_root: Path,
@@ -2382,7 +2382,7 @@ def _recover_into(
 ## @param harvested (file rowid, payload) pairs from `run_harvest`.
 ## @return Number of variable and typedef rows inserted.
 ## @version 2
-## @dg_internal
+## @utility
 def _recover_variables_into(conn: sqlite3.Connection, harvested: Any) -> int:
     """Split out of `_recover_into` to keep that function inside the house complexity
     limit once it grew a second kind, and to give the ordering comment there one place

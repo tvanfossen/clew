@@ -48,7 +48,7 @@ def refresh_text_layers(
 ## @param name Table name.
 ## @return True when present.
 ## @version 1
-## @dg_internal
+## @utility
 def _has(conn: sqlite3.Connection, name: str) -> bool:
     """@brief Table probe. @return True when present."""
     return (
@@ -63,7 +63,7 @@ def _has(conn: sqlite3.Connection, name: str) -> bool:
 ## @param cache The index cache.
 ## @return None.
 ## @version 1
-## @dg_internal
+## @utility
 def _refresh_file_doc(
     conn: sqlite3.Connection, repo_root: Path, rel: str, cache: IndexCache
 ) -> None:
@@ -110,7 +110,7 @@ def _refresh_file_doc(
 ## @param cache The index cache.
 ## @return None.
 ## @version 1
-## @dg_internal
+## @utility
 def _refresh_mentions(
     conn: sqlite3.Connection, repo_root: Path, rel: str, cache: IndexCache
 ) -> None:
@@ -159,7 +159,7 @@ def _refresh_mentions(
 ## @param cache The index cache.
 ## @return None.
 ## @version 1
-## @dg_internal
+## @utility
 def _refresh_generated(
     conn: sqlite3.Connection, repo_root: Path, rel: str, cache: IndexCache
 ) -> None:
@@ -267,7 +267,7 @@ def refresh_code_text(
 ## @param new_rows Its rows after.
 ## @return True when current; False when the old text was not recoverable.
 ## @version 1
-## @dg_internal
+## @utility
 def _refresh_file_scope(
     conn: sqlite3.Connection,
     repo_root: Path,

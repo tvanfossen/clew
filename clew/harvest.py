@@ -168,7 +168,7 @@ _OPTIONAL_KEYS = frozenset({"bash", "cmake"})
 
 ## @brief A grammar served by the substrate, standing in for a grammar module.
 ## @version 1
-## @dg_internal
+## @utility
 class _SubstrateGrammar:
     """Only `__name__` is read off a grammar module outside this file (it keys the
     parser cache and `propose/scanning.py`'s grammar filter), so that is all this
@@ -182,7 +182,7 @@ class _SubstrateGrammar:
     ## @brief Record the grammar name and its substrate key.
     ## @param name A `substrate:<key>` grammar name.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def __init__(self, name: str) -> None:
         self.__name__ = name
         self.key = name[len(_SUBSTRATE_PREFIX) :]
@@ -191,7 +191,7 @@ class _SubstrateGrammar:
 ## @brief The grammar handle for a `substrate:<key>` name, or None for any other name.
 ## @return The substrate grammar handle, or None.
 ## @version 3
-## @dg_internal
+## @utility
 def _try_import_ts_module(modname: str):
     if modname.startswith(_SUBSTRATE_PREFIX):
         return _SubstrateGrammar(modname)
@@ -202,7 +202,7 @@ def _try_import_ts_module(modname: str):
 ## @return The grammar module for the path's extension, or None if unhandled.
 ## v6 (agent C's W9): `.C` / `.H` are C++.
 ## @version 6
-## @dg_internal
+## @utility
 def _ts_language_for(path: str):
     """Select the tree-sitter grammar for one path's extension.
 
@@ -236,7 +236,7 @@ def _ts_language_for(path: str):
 ## @param modname A `substrate:<key>` grammar name.
 ## @return True unless the key is optional and absent.
 ## @version 1
-## @dg_internal
+## @utility
 def _grammar_available(modname: str) -> bool:
     """Only the optional keys are measured, and only they can be missing — see
     `_OPTIONAL_KEYS`. `clew/substrate.py` caches the answer, so this costs one set lookup
@@ -275,7 +275,7 @@ _FLUSH_EVERY = 500
 ## @param parser_cache Mutated in place to memoize parsers per grammar.
 ## @return A Parser, or None for a name that is not a substrate grammar.
 ## @version 4
-## @dg_internal
+## @utility
 def _cached_parser(mod_name: str, parser_cache: dict):
     """Every grammar is parsed by clew/tsnode.py's substrate parser.
 
@@ -317,7 +317,7 @@ def _parseable_file(abs_path: Path) -> bool:
 ## @param root Tree-sitter root node.
 ## @return Number of ERROR or missing nodes in the subtree.
 ## @version 1
-## @dg_internal
+## @utility
 def _parse_error_count(root) -> int:
     """@brief Total ERROR/MISSING nodes, used to compare two candidate grammars."""
     errors = 0
@@ -336,7 +336,7 @@ def _parse_error_count(root) -> int:
 ## @param parser_cache Parser memo.
 ## @return Whichever tree has fewer parse errors.
 ## @version 3
-## @dg_internal
+## @utility
 def _disambiguate_header(c_tree, src_bytes: bytes, parser_cache: dict):
     """Only reached for a `.h` whose C parse ALREADY errored, so a genuine C
     header never pays for this. Comparing error counts (rather than demanding
@@ -355,7 +355,7 @@ def _disambiguate_header(c_tree, src_bytes: bytes, parser_cache: dict):
 ## @brief Parse one file with the appropriate tree-sitter grammar.
 ## @return (tree, src_bytes), or None for an unhandled/unreadable file.
 ## @version 5
-## @dg_internal
+## @utility
 def _ast_parse_one_file(
     rel_path: str,
     abs_path: Path,
@@ -427,7 +427,7 @@ class Harvester:
 
     ## @brief Store the manifest-derived extra cache-key component.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def __init__(self, extra_key: str = "") -> None:
         self.extra_key = extra_key
 
@@ -468,7 +468,7 @@ class HarvestTally:
 ## @brief Serve one file's payload from cache, or parse + harvest + store it.
 ## @return The file's payload, or None when the file isn't parseable.
 ## @version 4
-## @dg_internal
+## @utility
 def _harvest_one_file(
     rel_path: str,
     abs_path: Path,
@@ -504,7 +504,7 @@ def _harvest_one_file(
 ## @param sha The file's content sha, or None when it could not be computed.
 ## @return The cached payload, or None on a miss.
 ## @version 2
-## @dg_internal
+## @utility
 def _cached_payload(harvester: Harvester, cache: IndexCache | None, sha: str | None) -> Any | None:
     """A file whose sha cannot be computed always misses — fail toward
     re-parsing rather than serving a payload that may describe other bytes.
@@ -536,7 +536,7 @@ def _cached_payload(harvester: Harvester, cache: IndexCache | None, sha: str | N
 ## @param sha The file's content sha, or None.
 ## @return The harvested payload, or None when the file is not parseable.
 ## @version 2
-## @dg_internal
+## @utility
 def _parse_and_store(
     rel_path: str,
     abs_path: Path,
@@ -564,7 +564,7 @@ def _parse_and_store(
 ## @param sha The file's content sha.
 ## @param payload The rowid-free payload to store.
 ## @version 1
-## @dg_internal
+## @utility
 def _store_payload(cache: IndexCache, harvester: Harvester, sha: str, payload: Any) -> None:
     """Single write path shared by the per-stage driver and the shared parse pass,
     so a payload stored by either is keyed and counted identically.
@@ -646,7 +646,7 @@ def run_harvest(
 ## @param cache Live index cache.
 ## @return The file's content sha, or None to leave it to the per-stage driver.
 ## @version 2
-## @dg_internal
+## @utility
 def _shareable_sha(rel_path: str, abs_path: Path, cache: IndexCache) -> str | None:
     """None means "not shareable", for either of the two reasons the per-stage
     driver already skips on: the path is not a parseable source file, or its sha
@@ -669,7 +669,7 @@ def _shareable_sha(rel_path: str, abs_path: Path, cache: IndexCache) -> str | No
 ## @param cache Live index cache.
 ## @param tally Mutated in place with the cached/computed/parsed counts.
 ## @version 1
-## @dg_internal
+## @utility
 def _shared_parse_one_file(
     rel_path: str,
     abs_path: Path,
@@ -719,7 +719,7 @@ _WORKER: dict[str, Any] = {}
 ## @param harvesters The plan's harvesters, pickled once per worker rather than once per file.
 ## @return None.
 ## @version 2
-## @dg_internal
+## @utility
 def _worker_init(harvesters: list[Harvester]) -> None:
     """THE PARSER CACHE IS BUILT HERE, NOT SENT: it memoizes live parser objects, which belong
     to the process that made them. Per-worker by necessity, which costs one parser construction
@@ -736,7 +736,7 @@ def _worker_init(harvesters: list[Harvester]) -> None:
 ## @param job (rel_path, absolute path as str, indices of the harvesters still needed).
 ## @return (rel_path, {harvester index: payload}) or (rel_path, None) when unparseable.
 ## @version 2
-## @dg_internal
+## @utility
 def _worker_parse(job: tuple[str, str, tuple[int, ...]]) -> tuple[str, dict[int, Any] | None]:
     """RETURNS PAYLOADS RATHER THAN WRITING THEM. Every cache write stays in the parent, so there
     is exactly one writer to the sidecar and none of the sqlite contention that N writers would
@@ -767,7 +767,7 @@ def _worker_parse(job: tuple[str, str, tuple[int, ...]]) -> tuple[str, dict[int,
 ## @param tally Updated in place with the cache hits this planning pass observes.
 ## @return List of (rel_path, abs_path str, pending harvester indices) and the shas keyed by path.
 ## @version 1
-## @dg_internal
+## @utility
 def _plan_shared_jobs(
     conn: sqlite3.Connection,
     repo_root: Path,
@@ -821,7 +821,7 @@ def _plan_shared_jobs(
 ## @param workers How many worker processes to run.
 ## @return None.
 ## @version 1
-## @dg_internal
+## @utility
 def _shared_parse_pooled(
     jobs: list[tuple[str, str, tuple[int, ...]]],
     shas: dict[str, str],

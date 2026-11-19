@@ -238,7 +238,7 @@ class _ChainState:
 
     ## @brief Initialize empty chain-BFS accumulators (nodes, hops, best-depth guard).
     ## @version 2
-    ## @dg_internal
+    ## @utility
     def __init__(self) -> None:
         self.nodes: dict[int, ChainNode] = {}
         self.hops: dict[tuple, Hop] = {}
@@ -255,7 +255,7 @@ class _ChainState:
 
 ## @brief Record one discovered neighbor: hop, node, and (maybe) enqueue.
 ## @version 1
-## @dg_internal
+## @utility
 def _expand_neighbor(
     conn: sqlite3.Connection,
     nname: str,
@@ -299,7 +299,7 @@ _BACKWARD_ALIASES = frozenset({"back", "backward", "backwards", "upstream"})
 ## @param direction Caller-supplied direction (case- and alias-tolerant).
 ## @return Canonical "forward" or "backward".
 ## @version 2
-## @dg_internal
+## @utility
 ## v2 (1.4.0 grid): `back` is accepted — the served text offered it and 6 of 14 calls were refused.
 def _normalize_direction(direction: str) -> str:
     """Map a direction word onto its canonical form, REFUSING anything else.
@@ -335,7 +335,7 @@ def _normalize_direction(direction: str) -> str:
 ## @param forward True for callees, False for callers.
 ## @return (neighbour name, neighbour qualified, canonical rowid, Hop) per neighbour identity.
 ## @version 1
-## @dg_internal
+## @utility
 def _identity_call_hops(
     conn: sqlite3.Connection, name: str, rowids: list[int], forward: bool
 ) -> list[tuple[str, str, int, Hop]]:
@@ -388,7 +388,7 @@ def _identity_call_hops(
 ## @param rowid The row.
 ## @return The definition, or "".
 ## @version 1
-## @dg_internal
+## @utility
 def _definition(conn: sqlite3.Connection, rowid: int) -> str:
     """@brief Read a definition. @return Text."""
     row = conn.execute("SELECT definition FROM memberdef WHERE rowid = ?", (rowid,)).fetchone()
@@ -403,7 +403,7 @@ def _definition(conn: sqlite3.Connection, rowid: int) -> str:
 ## @param bounds (max_depth, max_neighbors).
 ## @return (nodes, hops) accumulated, or None when the identity is not indexed.
 ## @version 1
-## @dg_internal
+## @utility
 def _identity_walk(
     conn: sqlite3.Connection, seed: str, qualified: str, forward: bool, bounds: tuple[int, int]
 ) -> _ChainState | None:
@@ -447,7 +447,7 @@ def _identity_walk(
 ## @param queue The BFS queue.
 ## @return None.
 ## @version 1
-## @dg_internal
+## @utility
 def _record_identity(
     conn: sqlite3.Connection,
     found: tuple[str, str, int, Hop],
@@ -485,7 +485,7 @@ def _record_identity(
 ## @param bounds (max_depth, max_neighbors).
 ## @return The Chain; empty when the identity is not indexed.
 ## @version 1
-## @dg_internal
+## @utility
 def _identity_chain(
     db: DbSource, seed: str, qualified: str, direction: str, bounds: tuple[int, int]
 ) -> Chain:

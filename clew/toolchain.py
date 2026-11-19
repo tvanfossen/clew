@@ -83,7 +83,7 @@ class ToolchainConfig:
     ## @brief Whether any statement was found.
     ## @return True when either file supplied at least one glob.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def declared(self) -> bool:
         """@brief True when there is anything to apply."""
         return bool(self.index_globs or self.gate_globs)
@@ -92,7 +92,7 @@ class ToolchainConfig:
     ## @param repo_root Repo root, to make the paths relative.
     ## @return Comma-separated relative file names, or "".
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def sources(self, repo_root: Path) -> str:
         """@brief The files that were read, relative to the repo."""
         found = [p for p in (self.toolchain_path, self.suppress_path) if p is not None]
@@ -104,7 +104,7 @@ class ToolchainConfig:
 ## @param problems Mutated: a message is appended when the file cannot be used.
 ## @return The parsed mapping, or {}.
 ## @version 1
-## @dg_internal
+## @utility
 def _read_toml(path: Path, problems: list[str]) -> dict[str, Any]:
     """A broken shared config must not fail a build: every tool reads this file, and
     clew refusing it would be the wrong severity. It is reported instead.
@@ -130,7 +130,7 @@ def _read_toml(path: Path, problems: list[str]) -> dict[str, Any]:
 ## @param problems Mutated with a message for a malformed value.
 ## @return The strings.
 ## @version 1
-## @dg_internal
+## @utility
 def _string_list(table: Any, key: str, where: str, problems: list[str]) -> tuple[str, ...]:
     """@brief Read a list-of-strings value."""
     value = table.get(key) if isinstance(table, dict) else None
@@ -146,7 +146,7 @@ def _string_list(table: Any, key: str, where: str, problems: list[str]) -> tuple
 ## @param entry One suppress entry.
 ## @return Its `file` / `file_glob` patterns, or () when it scopes a rule.
 ## @version 1
-## @dg_internal
+## @utility
 def _entry_globs(entry: Any) -> tuple[str, ...]:
     """An entry with a `rule` suppresses that rule only (AND semantics in the spec), so it
     is not a file exclusion.
@@ -205,7 +205,7 @@ def load_toolchain_config(repo_root: Path | str) -> ToolchainConfig:
 ## @param globs Glob patterns.
 ## @return A PathIgnore, or None when there is nothing usable.
 ## @version 1
-## @dg_internal
+## @utility
 def compile_globs(globs: tuple[str, ...]) -> Any | None:
     """One bad glob must not take the rest down with it, so each is checked on its own
     and a refused one is reported by name.
@@ -232,7 +232,7 @@ def compile_globs(globs: tuple[str, ...]) -> Any | None:
 ## @param is_dir Whether the path is a directory.
 ## @return True when the path is excluded.
 ## @version 1
-## @dg_internal
+## @utility
 def matches(matcher: Any, rel: str, *, is_dir: bool = False) -> bool:
     """globset reads `vendor/**` as matching `vendor/` and everything under it, but not
     `vendor`; a bare `build` matches `build` and nothing under it. A directory is tested
@@ -312,7 +312,7 @@ def expand_globs(repo_root: Path, globs: tuple[str, ...], prune: Sequence[str] =
 ## @brief A path relative to the repo when it is inside it, else as given.
 ## @return The display path.
 ## @version 1
-## @dg_internal
+## @utility
 def _relative(path: Path, repo_root: Path) -> str:
     """@brief Repo-relative display form of a path."""
     try:

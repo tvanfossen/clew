@@ -125,7 +125,7 @@ class LockPattern:
     ## @param releases For a `call` form, the token that ENDS the hold.
     ## @param global_only Match only a call that takes NO arguments.
     ## @version 3
-    ## @dg_internal
+    ## @utility
     def __init__(
         self,
         name: str,
@@ -378,7 +378,7 @@ def load_lock_patterns(source: Path | dict | None) -> list[LockPattern]:
 ## @param owner Origin label for a fail-closed error message.
 ## @return A LockPattern whose enum fields are all vocabulary members.
 ## @version 3
-## @dg_internal
+## @utility
 def _declared_lock_pattern(entry: dict, name: str, owner: str) -> LockPattern:
     """Split out of `load_lock_patterns` so all four enum fields go through one
     validation shape rather than three different ad-hoc ones.
@@ -413,7 +413,7 @@ def _declared_lock_pattern(entry: dict, name: str, owner: str) -> LockPattern:
 ## @param source Mapping, path, or None.
 ## @return The parsed document, or {} when there is nothing to read.
 ## @version 1
-## @dg_internal
+## @utility
 def _pattern_document(source: Path | dict | None) -> dict:
     """@brief Accept a declared section or a standalone YAML path."""
     if source is None:
@@ -429,7 +429,7 @@ def _pattern_document(source: Path | dict | None) -> dict:
 ## @param conn Open connection to the database being built.
 ## @return None.
 ## @version 4
-## @dg_internal
+## @utility
 def _ensure_lock_tables(conn: sqlite3.Connection) -> None:
     """Always created, even when the repo has no
     locks, so R2/R4 never branch on table existence — the requirements.py
@@ -493,7 +493,7 @@ def _ensure_lock_tables(conn: sqlite3.Connection) -> None:
 ## @param src Source bytes.
 ## @return Decoded text, or "" when the node is absent.
 ## @version 2
-## @dg_internal
+## @utility
 def _text(node: Any, src: bytes) -> str:
     """A None guard over the shared decoder rather than a second copy of it —
     several call sites here pass a `child_by_field_name` result straight in, and
@@ -510,7 +510,7 @@ def _text(node: Any, src: bytes) -> str:
 ## @param src Source bytes.
 ## @return "class:Foo", or SCOPE_UNKNOWN when there is no enclosing class.
 ## @version 4
-## @dg_internal
+## @utility
 def _class_scope(node: Any, src: bytes) -> str:
     """A mutex named `mutex_` is meaningless on its own — a codebase has many. The
     owning class is what makes the identity real, so it is resolved from the
@@ -541,7 +541,7 @@ def _class_scope(node: Any, src: bytes) -> str:
 ## @param src Source bytes.
 ## @return "class:Foo", or SCOPE_UNKNOWN.
 ## @version 4
-## @dg_internal
+## @utility
 def _out_of_line_scope(node: Any, src: bytes) -> str:
     """Most acquisitions live in a .cpp member definition — `void
     LinkOwner::tx_loop() { ... }` — which has NO enclosing class_specifier,
@@ -586,7 +586,7 @@ def _out_of_line_scope(node: Any, src: bytes) -> str:
 ## @param src Source bytes.
 ## @return Identifier-ish operand names, tag arguments dropped.
 ## @version 1
-## @dg_internal
+## @utility
 def _operand_names(args: Any, src: bytes) -> list[str]:
     """Keep only plain operands. `std::adopt_lock` / `std::defer_lock` are
     TAGS, not mutexes, and counting them would invent a lock that does not
@@ -610,7 +610,7 @@ def _operand_names(args: Any, src: bytes) -> list[str]:
 ## @param declarator The declaration's declarator node (may be None).
 ## @return The operand list node, or None.
 ## @version 1
-## @dg_internal
+## @utility
 def _operand_list(declarator: Any) -> Any:
     """@brief Find the argument/parameter/initializer list under a declarator."""
     if declarator is None:
@@ -622,7 +622,7 @@ def _operand_list(declarator: Any) -> Any:
 ## @param patterns Active pattern lookup by name (defaults + declared).
 ## @return Acquire and release primitive names.
 ## @version 3
-## @dg_internal
+## @utility
 def _primitive_names(patterns: dict) -> frozenset[str]:
     """Derived from the ACTIVE patterns rather than written out, so a repo that
     DECLARES its own wrapper gets it excluded too — a hardcoded list would work
@@ -648,7 +648,7 @@ def _primitive_names(patterns: dict) -> frozenset[str]:
 ## @param primitives Lock primitive names L2 must not record as members.
 ## @return The resolved Section.
 ## @version 5
-## @dg_internal
+## @utility
 def _section_for(
     node: Any,
     src: bytes,
@@ -698,7 +698,7 @@ def _section_for(
 ## @param primitives Lock primitive names L2 must not record as members.
 ## @return None.
 ## @version 5
-## @dg_internal
+## @utility
 def _append_site(
     node: Any,
     src: bytes,
@@ -738,7 +738,7 @@ def _append_site(
 ## @param type_text Raw text of a declaration's `type` field.
 ## @return The base type spelling, qualifiers kept, or "" when unreadable.
 ## @version 1
-## @dg_internal
+## @utility
 def _base_type_name(type_text: str) -> str:
     """`std::lock_guard<std::mutex>` names the type `std::lock_guard`; the rest
     is the MUTEX, not the guard. Template arguments are stripped by balanced
@@ -770,7 +770,7 @@ def _base_type_name(type_text: str) -> str:
 ## @param type_text Raw text of a declaration's `type` field.
 ## @return True when the type's own name is the pattern.
 ## @version 1
-## @dg_internal
+## @utility
 def _raii_type_matches(pattern_name: str, type_text: str) -> bool:
     """Matching used to be `pattern.name in type_text` — a raw substring test
     over the whole type text, TEMPLATE ARGUMENTS INCLUDED. So
@@ -811,7 +811,7 @@ def _raii_type_matches(pattern_name: str, type_text: str) -> bool:
 ## @param sites Accumulator.
 ## @return None.
 ## @version 3
-## @dg_internal
+## @utility
 def _visit_declaration(node: Any, src: bytes, patterns: dict, sites: list) -> None:
     """@brief Append a site for `std::lock_guard<...> g(mutex_);` and kin."""
     type_text = _text(node.child_by_field_name("type"), src)
@@ -849,7 +849,7 @@ _RUST_RESULT_UNWRAP_METHODS = (b"unwrap", b"expect", b"unwrap_or_else")
 ## @param node A `let_declaration`'s value expression.
 ## @return The innermost call_expression, or the original node if there was nothing to peel.
 ## @version 2
-## @dg_internal
+## @utility
 def _unwrap_rust_result(node: Any) -> Any:
     """@brief Unwrap Result/Option combinators to the call they wrap."""
     for _ in range(_MAX_RUST_RESULT_UNWRAP):
@@ -876,7 +876,7 @@ def _unwrap_rust_result(node: Any) -> Any:
 ## @param sites Accumulator.
 ## @return None.
 ## @version 1
-## @dg_internal
+## @utility
 def _visit_rust_let_binding(node: Any, src: bytes, patterns: dict, sites: list) -> None:
     """Append a site for `let g = mutex.lock().unwrap();` and kin — the Rust
     counterpart of `_visit_declaration`, keyed on a METHOD NAME
@@ -910,7 +910,7 @@ def _visit_rust_let_binding(node: Any, src: bytes, patterns: dict, sites: list) 
 ## @param sites Accumulator.
 ## @return None.
 ## @version 5
-## @dg_internal
+## @utility
 def _visit_call(node: Any, src: bytes, patterns: dict, sites: list) -> None:
     """@brief Append a site for `pthread_mutex_lock(&m)` and kin."""
     callee = _text(node.child_by_field_name("function"), src)
@@ -948,7 +948,7 @@ def _visit_call(node: Any, src: bytes, patterns: dict, sites: list) -> None:
 ## @param arguments The `arguments` field of a call node, or None.
 ## @return True when the call has an empty argument list.
 ## @version 2
-## @dg_internal
+## @utility
 def _takes_no_operand(arguments: Any) -> bool:
     """DISTINGUISHES `f()` FROM `f(x)` WHOSE `x` DID NOT RESOLVE, which is the whole point: the
     first has no owner to find and the second has one this layer failed to name. Reading the
@@ -970,7 +970,7 @@ def _takes_no_operand(arguments: Any) -> bool:
 ## @param patterns Pattern lookup by name.
 ## @return Rowid-free site records.
 ## @version 2
-## @dg_internal
+## @utility
 def _walk_lock_sites(tree: Any, src_bytes: bytes, patterns: dict) -> list[list[Any]]:
     """Rowid-free by design, like every other harvest payload, so the result
     caches against the file's content sha and re-resolves against whatever
@@ -1038,7 +1038,7 @@ class _LockHarvester(Harvester):
 
     ## @brief Store the pattern map plus the manifest-derived cache key.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def __init__(self, patterns_by_name: dict[str, LockPattern], extra_key: str) -> None:
         super().__init__(extra_key)
         self.patterns_by_name = patterns_by_name
@@ -1077,7 +1077,7 @@ def lock_harvester(lock_patterns: Path | dict | None = None) -> Harvester:
 ## @param path_rowid Path the acquisition was seen in.
 ## @return The lock's row id, or None when it has no usable name.
 ## @version 1
-## @dg_internal
+## @utility
 def _lock_id(
     conn: sqlite3.Connection, name: str, scope: str, kind: str, path_rowid: int
 ) -> int | None:
@@ -1116,7 +1116,7 @@ def _lock_id(
 ## @param name_to_rowids Function-name index, for resolving L2 callee names.
 ## @return (acquisition rows inserted, membership rows inserted).
 ## @version 3
-## @dg_internal
+## @utility
 def _insert_sites(
     conn: sqlite3.Connection,
     path_rowid: int,
@@ -1161,7 +1161,7 @@ def _insert_sites(
 ## @param holder Enclosing function's memberdef rowid.
 ## @return (rows inserted, the acquisition's id or None).
 ## @version 2
-## @dg_internal
+## @utility
 def _insert_one_site(
     conn: sqlite3.Connection, path_rowid: int, record: list[Any], holder: int
 ) -> tuple[int, int | None]:
@@ -1256,7 +1256,7 @@ def extract_locks(
 ## @param members Membership rows inserted.
 ## @return None.
 ## @version 1
-## @dg_internal
+## @utility
 def _log_lock_summary(conn: sqlite3.Connection, inserted: int, members: int) -> None:
     """Reports the UNRESOLVED-extent count explicitly. "0 membership rows" is
     ambiguous between a repo whose sections are empty and a detector that could

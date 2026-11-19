@@ -105,7 +105,7 @@ _WRAPPER_KEYS = frozenset({"pattern", "key_arg_index", "direction"})
 ## @param owner Where it was declared, for the error message.
 ## @return None.
 ## @version 1
-## @dg_internal
+## @utility
 def _reject_unknown(mapping: dict, allowed: frozenset[str], owner: str) -> None:
     """Names the offending keys AND the allowed set, so the fix is mechanical —
     the same triple every other fail-closed refusal in the package carries.
@@ -145,7 +145,7 @@ class InterfaceBinding:
     ## @param methods Method names to restrict to; empty means all overrides.
     ## @param boundary True when the interface call is itself an external sink.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def __init__(
         self, interface: str, binds: str, methods: tuple[str, ...], boundary: bool
     ) -> None:
@@ -175,7 +175,7 @@ class DispatchTable:
     ## @param handler_arg_index 0-indexed position of the handler argument.
     ## @param dispatch_via Function whose body invokes the registered handlers.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def __init__(self, register_via: str, handler_arg_index: int, dispatch_via: str) -> None:
         self.register_via = register_via
         self.handler_arg_index = handler_arg_index
@@ -200,7 +200,7 @@ class KeyWrapper:
     ## @param key_arg_index 0-indexed position of the key argument.
     ## @param direction 'write' or 'read' — which accessor list this joins.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def __init__(self, pattern: str, key_arg_index: int, direction: str) -> None:
         self.pattern = pattern
         self.key_arg_index = key_arg_index
@@ -226,7 +226,7 @@ class DispatchManifest:
     ## @param wrappers Declared argument-keyed key wrappers.
     ## @param key_alias_prefixes Declared enum-key prefix overrides, or ().
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def __init__(
         self,
         interfaces: list[InterfaceBinding],
@@ -272,7 +272,7 @@ def empty_manifest() -> DispatchManifest:
 ## @param owner Where the entry was declared, for the error message.
 ## @return The field's string value.
 ## @version 1
-## @dg_internal
+## @utility
 def _required(entry: dict, field: str, owner: str) -> str:
     """A missing required field is refused rather than defaulted. There is no
     honest default for "which interface" or "which registrar" — inventing one
@@ -293,7 +293,7 @@ def _required(entry: dict, field: str, owner: str) -> str:
 ## @param origin Where the document came from, for error messages.
 ## @return The section's entries, or [] when the section is absent.
 ## @version 1
-## @dg_internal
+## @utility
 def _entries(doc: dict, name: str, origin: str) -> list[dict]:
     """A section that is present but not a list of mappings is a typo, not a
     declaration — refused, because degrading it to "declared nothing" leaves the
@@ -315,7 +315,7 @@ def _entries(doc: dict, name: str, origin: str) -> list[dict]:
 ## @param origin Where it was declared.
 ## @return The validated InterfaceBinding.
 ## @version 1
-## @dg_internal
+## @utility
 def _interface_entry(entry: dict, origin: str) -> InterfaceBinding:
     """`binds` is optional only when `boundary: true` — an entry with neither
     names an interface and then asks for nothing, which is far more likely a
@@ -342,7 +342,7 @@ def _interface_entry(entry: dict, origin: str) -> InterfaceBinding:
 ## @param origin Where it was declared.
 ## @return The validated DispatchTable.
 ## @version 1
-## @dg_internal
+## @utility
 def _table_entry(entry: dict, origin: str) -> DispatchTable:
     """Both endpoints are required. Knowing only where handlers are registered
     tells us what the table holds but not who calls it, and an edge needs a
@@ -363,7 +363,7 @@ def _table_entry(entry: dict, origin: str) -> DispatchTable:
 ## @param origin Where it was declared.
 ## @return The validated KeyWrapper.
 ## @version 1
-## @dg_internal
+## @utility
 def _wrapper_entry(entry: dict, origin: str) -> KeyWrapper:
     """`direction` is validated against the vocabulary: a typo filed as the
     opposite role inverts the dataflow the entry exists to reveal, and would
@@ -385,7 +385,7 @@ def _wrapper_entry(entry: dict, origin: str) -> KeyWrapper:
 ## @param source A manifest path, a `.clew.yaml` section mapping, or None.
 ## @return The document mapping, or None when there is nothing to parse.
 ## @version 3
-## @dg_internal
+## @utility
 def _document(source: Path | dict | None) -> dict | None:
     """Both delivery routes converge here, so a standalone `--dispatch` file and
     the `.clew.yaml` section are guaranteed to have exactly one format and one

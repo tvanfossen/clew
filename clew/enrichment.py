@@ -22,7 +22,7 @@ from ._common import logger
 
 ## @brief Create the architecture_topics table schema (and clear any rows).
 ## @version 1
-## @dg_internal
+## @utility
 def _create_topics_table(conn: sqlite3.Connection) -> None:
     """Create the architecture_topics table schema (and clear any rows)."""
     conn.execute(
@@ -45,7 +45,7 @@ def _create_topics_table(conn: sqlite3.Connection) -> None:
 
 ## @brief Insert topic entries into the architecture_topics table.
 ## @version 1
-## @dg_internal
+## @utility
 def _insert_topics(conn: sqlite3.Connection, topics: list[dict]) -> None:
     """Insert topic entries into the architecture_topics table."""
     for topic in topics:

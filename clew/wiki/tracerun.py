@@ -152,7 +152,7 @@ def interpreter_for(repo_root: Path, declared: str | None = None) -> Path:
 ## @param nodeid The test.
 ## @return The document.
 ## @version 1
-## @dg_internal
+## @utility
 def _otlp(spans: list[dict[str, Any]], nodeid: str) -> dict[str, Any]:
     """@brief OTLP. @return Document."""
     return {
@@ -191,7 +191,7 @@ def spans_of(otlp: dict[str, Any]) -> list[dict[str, Any]]:
 ## @param failure The failure point, or None.
 ## @return Checkpoints in executed order: {line, text, outcome}.
 ## @version 1
-## @dg_internal
+## @utility
 def _checkpoints(test_file: Path, lines: list[int], failure: dict | None) -> list[dict[str, Any]]:
     """@brief Checkpoints. @return List."""
     from .testfacts import assertions

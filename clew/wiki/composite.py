@@ -138,7 +138,7 @@ def probe_index(
 ## @param dep The checkout.
 ## @return Its database path, or None.
 ## @version 1
-## @dg_internal
+## @utility
 def _locate(dep: Path) -> Path | None:
     """@brief Locate. @return Path or None."""
     from ..mcp_server.state import target_for
@@ -152,7 +152,7 @@ def _locate(dep: Path) -> Path | None:
 ## @param dep The checkout.
 ## @return True when stale.
 ## @version 1
-## @dg_internal
+## @utility
 def _stale(db: Path, dep: Path) -> bool:
     """@brief Stale. @return Bool."""
     from ..mcp_server.state import db_status, target_for
@@ -168,7 +168,7 @@ def _stale(db: Path, dep: Path) -> bool:
 ## @param req_id The requirement.
 ## @return (implementer names, test names).
 ## @version 1
-## @dg_internal
+## @utility
 def _trace(db: Path, req_id: str) -> tuple[tuple[str, ...], tuple[str, ...]]:
     """@brief Trace. @return Names."""
     from ..query.symbols import req_trace
@@ -230,7 +230,7 @@ def compose(
 ## @param sha Resolved pin.
 ## @return Probe result.
 ## @version 1
-## @dg_internal
+## @utility
 def _probe_default(dep: Path, pin: str, sha: str | None) -> tuple[str, str, Path | None]:
     """@brief Probe. @return State."""
     return probe_index(dep, pin, sha)
@@ -243,7 +243,7 @@ def _probe_default(dep: Path, pin: str, sha: str | None) -> tuple[str, str, Path
 ## @return The source.
 ## v2: plus every requirement the index knows, tagged-only ones included.
 ## @version 2
-## @dg_internal
+## @utility
 def _root_source(repo_root: Path, name: str, db: Path | None) -> _Source:
     """@brief Root. @return Source."""
     from .catalogs import declared_catalog
@@ -261,7 +261,7 @@ def _root_source(repo_root: Path, name: str, db: Path | None) -> _Source:
 ## @param db The index, or None.
 ## @return {id: title}; {} without an index.
 ## @version 1
-## @dg_internal
+## @utility
 def _indexed_requirements(db: Path | None) -> dict[str, str]:
     """@brief Catalogue table plus tagged ids. @return Ids."""
     out = {rid: "" for rid in _tagged(db)}
@@ -274,7 +274,7 @@ def _indexed_requirements(db: Path | None) -> dict[str, str]:
 ## @param db The index, or None.
 ## @return Ids.
 ## @version 1
-## @dg_internal
+## @utility
 def _tagged(db: Path | None) -> set[str]:
     """@brief Tagged ids. @return Set."""
     return {str(r[0]) for r in _rows(db, "SELECT DISTINCT req_id FROM req_edges")}
@@ -285,7 +285,7 @@ def _tagged(db: Path | None) -> set[str]:
 ## @param sql The query.
 ## @return Rows.
 ## @version 1
-## @dg_internal
+## @utility
 def _rows(db: Path | None, sql: str) -> list[tuple]:
     """ABSENT IS NOT AN ERROR here: an index without the table simply contributes no ids.
 
@@ -313,7 +313,7 @@ def _rows(db: Path | None, sql: str) -> list[tuple]:
 ## @param probe Evidence probe.
 ## @return (sources, conflict messages).
 ## @version 1
-## @dg_internal
+## @utility
 def _walk(
     repo_root: Path, root_name: str, specs: list[CatalogSpec], probe: Probe
 ) -> tuple[list[_Source], list[str]]:
@@ -353,7 +353,7 @@ def _walk(
 ## @param problems Collector for an unreadable catalogue.
 ## @return The source, or None when unreadable.
 ## @version 1
-## @dg_internal
+## @utility
 def _read_source(
     base: Path, parent: str, spec: CatalogSpec, probe: Probe, problems: list[str]
 ) -> _Source | None:
@@ -376,7 +376,7 @@ def _read_source(
 ## @return Specs relative to `dep`.
 ## v2: reads requirements.external; 1.x locations only at a pinned dependency (2.0.0)
 ## @version 2
-## @dg_internal
+## @utility
 def _nested_specs(dep: Path, pin: str) -> list[CatalogSpec]:
     """The PINNED `requirements.external` entries (a path-only external is the dependency's own
     file and adds no repository).
@@ -424,7 +424,7 @@ def _nested_specs(dep: Path, pin: str) -> list[CatalogSpec]:
 ## @param trace Requirement trace reader.
 ## @return (nodes by ref, dangling (ref, target) pairs).
 ## @version 1
-## @dg_internal
+## @utility
 def _nodes(sources: list[_Source], trace: Trace) -> tuple[dict[str, Node], list[tuple[str, str]]]:
     """@brief Nodes and links. @return Nodes, dangling."""
     by_name = {s.name: s for s in sources}
@@ -458,7 +458,7 @@ def _nodes(sources: list[_Source], trace: Trace) -> tuple[dict[str, Node], list[
 ## @param by_name Sources by namespace.
 ## @return The ref, or "" when it resolves nowhere.
 ## @version 1
-## @dg_internal
+## @utility
 def _resolve(target: str, order: tuple[str, ...], by_name: dict[str, _Source]) -> str:
     """@brief Resolve. @return Ref or ''."""
     if ":" in target:
@@ -477,7 +477,7 @@ def _resolve(target: str, order: tuple[str, ...], by_name: dict[str, _Source]) -
 ## @param satisfied_by Refs that satisfy it.
 ## @return The node.
 ## @version 1
-## @dg_internal
+## @utility
 def _node(s: _Source, rid: str, row: dict, trace: Trace, satisfied_by: tuple[str, ...]) -> Node:
     """@brief Node. @return Node."""
     state, note, db = s.state
@@ -495,7 +495,7 @@ def _node(s: _Source, rid: str, row: dict, trace: Trace, satisfied_by: tuple[str
 ## @param trace Trace reader.
 ## @return The node, re-evidenced from here.
 ## @version 1
-## @dg_internal
+## @utility
 def _served_here(node: Node, state: tuple[str, str, Path | None], trace: Trace) -> Node:
     """@brief Re-evidence. @return Node."""
     import dataclasses
@@ -517,7 +517,7 @@ def _served_here(node: Node, state: tuple[str, str, Path | None], trace: Trace) 
 ## @param nodes Nodes by ref.
 ## @return Reached refs (a cycle is visited once).
 ## @version 1
-## @dg_internal
+## @utility
 def _reach(roots: tuple[str, ...], nodes: dict[str, Node]) -> set[str]:
     """@brief Reach. @return Refs."""
     seen: set[str] = set()
@@ -559,7 +559,7 @@ def composite_problems(
 ## @param sha Resolved pin.
 ## @return An absent state.
 ## @version 1
-## @dg_internal
+## @utility
 def _no_probe(dep: Path, pin: str, sha: str | None) -> tuple[str, str, Path | None]:
     """@brief No probe. @return Absent."""
     return ("absent", "", None)

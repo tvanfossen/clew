@@ -50,7 +50,7 @@ WIKI_COMMAND = "wiki"
 ## v9: `check --before-tests` (round 3, P6c).
 ## v10: help text names the top-level tests: section (2.0.0)
 ## @version 10
-## @dg_internal
+## @utility
 def _parser() -> argparse.ArgumentParser:
     """@brief Build the parser. @return Parser."""
     from .flow import LANES
@@ -239,7 +239,7 @@ def expected_steps(db: Path, repo: Path, nodeid: str) -> list[tuple[str, str]]:
 ## @param args Parsed arguments (for `--indent`).
 ## @return JSON text.
 ## @version 1
-## @dg_internal
+## @utility
 def _json(payload: dict[str, Any], args: argparse.Namespace) -> str:
     """@brief Serialise. @return Text."""
     return json.dumps(payload, indent=args.indent)
@@ -252,7 +252,7 @@ def _json(payload: dict[str, Any], args: argparse.Namespace) -> str:
 ## @return The text to print.
 ## v2: `--svg` / `--animate` (W12).
 ## @version 2
-## @dg_internal
+## @utility
 def _flow(args: argparse.Namespace, db: Path, repo: Path | None) -> str:
     """@brief Derive and render the flow. @return Text."""
     flow = _flow_object(args, db, repo)
@@ -269,7 +269,7 @@ def _flow(args: argparse.Namespace, db: Path, repo: Path | None) -> str:
 ## @param repo The working tree, or None.
 ## @return The Flow.
 ## @version 1
-## @dg_internal
+## @utility
 def _flow_object(args: argparse.Namespace, db: Path, repo: Path | None) -> Any:
     """@brief Derive the flow. @return Flow."""
     from .flow import derive_flow
@@ -293,7 +293,7 @@ def _flow_object(args: argparse.Namespace, db: Path, repo: Path | None) -> Any:
 ## v2: `--mutations` (rows gain `mutations`, additive: trace_version stays 1).
 ## v3: `--config` applies the section's W15/W16 imports (rows gain `layers`, additive).
 ## @version 3
-## @dg_internal
+## @utility
 def _trace(args: argparse.Namespace, db: Path, repo: Path | None) -> dict[str, Any]:
     """THE IMPORTS COME FROM A `wiki:` SECTION, never from a flag per format, so the trace a CLI
     prints and the one a site shows read the same declaration.
@@ -332,7 +332,7 @@ def _trace(args: argparse.Namespace, db: Path, repo: Path | None) -> dict[str, A
 ## v3: `--format markdown` writes wiki pages instead.
 ## v4: `check --before-tests`.
 ## @version 4
-## @dg_internal
+## @utility
 def _site(args: argparse.Namespace, db: Path, repo: Path) -> int:
     """`check` PRINTS EVERY PROBLEM, one per line on stdout, and exits 1 when there is any — the
     shape a pre-commit hook wants. `build` prints the site's path.
@@ -373,7 +373,7 @@ def _site(args: argparse.Namespace, db: Path, repo: Path) -> int:
 ## @param args Parsed arguments.
 ## @return Exit status: 0 printed, 2 refused (a key never recorded).
 ## @version 1
-## @dg_internal
+## @utility
 def _diff(args: argparse.Namespace) -> int:
     """@brief Diff two versions. @return Exit status."""
     from .versions import diff_versions

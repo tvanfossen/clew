@@ -162,7 +162,7 @@ def meta_section(db: str | Path, prefix: str) -> dict[str, str]:
 ## @param column The file-id column to test, qualified as the caller's SQL needs.
 ## @return A trailing-comma fragment, or '' on an index built before the stage existed.
 ## @version 1
-## @dg_internal
+## @utility
 def _test_scope_term(conn: sqlite3.Connection, column: str) -> str:
     """WHY THIS IS A TERM AND NOT A FILTER. A test-code definition is a real definition and
     must stay reachable — `candidates` lists it, a qualified name selects it, and a repo whose
@@ -328,7 +328,7 @@ def short_qualified(full: str, others: set[str]) -> str:
 ## @param suffix The candidate suffix.
 ## @return True when `suffix` names `name` at a boundary.
 ## @version 1
-## @dg_internal
+## @utility
 def _ends_at_boundary(name: str, suffix: str) -> bool:
     """@brief Boundary-aligned suffix test. @return True when aligned."""
     return name == suffix or name.endswith("." + suffix) or name.endswith("::" + suffix)
@@ -417,7 +417,7 @@ def matching_identity(
 ## @return The same rows, minus exact positional duplicates, order preserved.
 ## @version 1
 ## @req REQ-DDB-QUERY-010
-## @dg_internal
+## @utility
 def _one_row_per_declaration(cands: list[tuple]) -> list[tuple]:
     """gh#19. doxygen emits the same member under more than one scope spelling, so
     `memberdef` holds two rowids for one physical declaration and `candidates` listed it
@@ -598,7 +598,7 @@ _IDENT_CHARS = frozenset("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ01
 ## @param qualified Qualified name to look for (e.g. "LinkOwner::rx_loop").
 ## @return True when the name appears bounded by non-identifier characters.
 ## @version 2
-## @dg_internal
+## @utility
 def _qualified_match(definition: str, qualified: str) -> bool:
     """Boundary-checked containment: `CoLinkOwner::rx_loop` must NOT match a
     search for `LinkOwner::rx_loop`. Every occurrence is examined, because

@@ -55,7 +55,7 @@ _OPTIONAL_WARNINGS = (
 
 ## @brief Render one ALIASES line for a marker tag that carries no value.
 #  @version 1.0
-#  @dg_internal
+#  @utility
 #  @return A Doxyfile ALIASES assignment mapping the tag to nothing
 def _marker_alias(tag: str) -> str:
     return f'ALIASES += "{tag}="'
@@ -63,7 +63,7 @@ def _marker_alias(tag: str) -> str:
 
 ## @brief Render one ALIASES line for a tag whose value should be cross-referenced.
 #  @version 1.0
-#  @dg_internal
+#  @utility
 #  @return A Doxyfile ALIASES assignment defining an xrefitem section
 def _xref_alias(tag: str, title: str, page: str) -> str:
     return f'ALIASES += "{tag}=\\xrefitem {tag} \\"{title}\\" \\"{page}\\""'

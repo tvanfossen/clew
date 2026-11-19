@@ -67,7 +67,7 @@ def table(
 ## @param value The text.
 ## @return HTML.
 ## @version 1
-## @dg_internal
+## @utility
 def code(value: str) -> str:
     """@brief Escape as code. @return HTML."""
     return f"<code>{escape(value)}</code>"
@@ -77,7 +77,7 @@ def code(value: str) -> str:
 ## @param value The text.
 ## @return HTML.
 ## @version 1
-## @dg_internal
+## @utility
 def text(value: str) -> str:
     """@brief Escape. @return HTML."""
     return escape(value)
@@ -87,7 +87,7 @@ def text(value: str) -> str:
 ## @param value The tier or status.
 ## @return HTML.
 ## @version 1
-## @dg_internal
+## @utility
 def tag(value: str) -> str:
     """@brief Tag. @return HTML."""
     return f'<span class="tier t-{escape(value)}">{escape(value)}</span>'
@@ -100,7 +100,7 @@ def tag(value: str) -> str:
 ## @param line Line number.
 ## @return The URL or "".
 ## @version 1
-## @dg_internal
+## @utility
 def source_url(template: str, commit: str, rel: str, line: int) -> str:
     """@brief Format. @return URL."""
     return template.format(commit=commit, file=rel, line=line) if template and rel else ""
@@ -111,7 +111,7 @@ def source_url(template: str, commit: str, rel: str, line: int) -> str:
 ## @param url The URL, or "".
 ## @return HTML.
 ## @version 1
-## @dg_internal
+## @utility
 def linked(name: str, url: str) -> str:
     """@brief Link. @return HTML."""
     return f'<a href="{escape(url)}">{code(name)}</a>' if url else code(name)
@@ -121,7 +121,7 @@ def linked(name: str, url: str) -> str:
 ## @param title The title.
 ## @return HTML.
 ## @version 1
-## @dg_internal
+## @utility
 def md_title(title: str) -> str:
     """@brief Inline code spans become <code>, everything escaped. @return HTML."""
     parts = escape(title).split("`")

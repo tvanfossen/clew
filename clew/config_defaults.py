@@ -89,7 +89,7 @@ ORIGIN_HEURISTIC = "heuristic"
 ## @param rel Repo-relative path, any separator.
 ## @return True when the name carries "config" and the suffix is a C header.
 ## @version 1
-## @dg_internal
+## @utility
 def looks_like_config_header(rel: str) -> bool:
     """NAME-MATCHED, NOT CONTENT-SNIFFED. A header full of commented-out defines might be a
     config header or might be a file somebody abandoned, and guessing from content would put
@@ -110,7 +110,7 @@ def looks_like_config_header(rel: str) -> bool:
 ## @param node A `preproc_def` node.
 ## @return The macro name, or "".
 ## @version 1
-## @dg_internal
+## @utility
 def _define_name(node: Any) -> str:
     """@brief The defined macro's name.
     @return The name, or "".
@@ -124,7 +124,7 @@ def _define_name(node: Any) -> str:
 ## @param node A `preproc_ifdef` node.
 ## @return The guarded symbol, or "" when this is not an include guard.
 ## @version 1
-## @dg_internal
+## @utility
 def _guard_name(node: Any) -> str:
     """STRUCTURAL, NOT A `_H` SUFFIX RULE — the same discriminator `kconfig_gates` uses, for
     the same reason. The guarded block DEFINES THE SAME SYMBOL it just tested, which no
@@ -248,7 +248,7 @@ class _DefaultsHarvester(Harvester):
 ## @param node A `comment` node.
 ## @return [macro, state, value, line] or None.
 ## @version 1
-## @dg_internal
+## @utility
 def _commented_define(node: Any) -> list[Any] | None:
     """SINGLE-LINE COMMENTS ONLY. A block comment spanning an explanation and a define is prose
     about the option, not the option's state, and reading a define out of the middle of one
@@ -271,7 +271,7 @@ def _commented_define(node: Any) -> list[Any] | None:
 ## @param node A `preproc_def` node.
 ## @return [macro, state, value, line] or None.
 ## @version 1
-## @dg_internal
+## @utility
 def _active_define(node: Any) -> list[Any] | None:
     """@brief Parse an active define.
     @return The entry, or None.
@@ -304,7 +304,7 @@ def defaults_harvester() -> Harvester:
 ## @param declared Repo-relative config headers the operator stated, if any.
 ## @return (macro, state, value, file_path, line, doc, origin) tuples.
 ## @version 1
-## @dg_internal
+## @utility
 def _rows_from_harvest(
     conn: sqlite3.Connection, harvested: list[tuple[int, Any]], declared: frozenset[str]
 ) -> list[tuple[str, str, str, str, int, str, str]]:

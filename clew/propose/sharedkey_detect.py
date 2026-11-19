@@ -102,7 +102,7 @@ def split_accessor(name: str) -> Split | None:
 ## @param start Index to search from.
 ## @return The occurrence index, or -1 when there is none.
 ## @version 1
-## @dg_internal
+## @utility
 def _next_verb(lowered: str, start: int) -> int:
     """@brief Find the next set/get occurrence in a lowercased name."""
     positions = [pos for pos in (lowered.find(v, start) for v in _VERBS) if pos >= 0]
@@ -114,7 +114,7 @@ def _next_verb(lowered: str, start: int) -> int:
 ## @param index Index of the three-letter verb.
 ## @return The Split, or None when this occurrence is not a family boundary.
 ## @version 1
-## @dg_internal
+## @utility
 def _split_at(name: str, index: int) -> Split | None:
     """@brief Test one verb occurrence's leading token and both boundaries."""
     after = index + 3
@@ -137,7 +137,7 @@ def _split_at(name: str, index: int) -> Split | None:
 ## @param index Index of the verb.
 ## @return True when the character before the verb ends a token.
 ## @version 1
-## @dg_internal
+## @utility
 def _starts_at_boundary(name: str, index: int) -> bool:
     """@brief Test the verb's leading boundary."""
     before = name[index - 1]
@@ -149,7 +149,7 @@ def _starts_at_boundary(name: str, index: int) -> bool:
 ## @param after Index just past the verb.
 ## @return (prefix end, key start); (0, 0) when no key follows at a boundary.
 ## @version 2
-## @dg_internal
+## @utility
 def _key_boundary(name: str, after: int) -> tuple[int, int]:
     """A separator is consumed INTO the prefix (`STORE_SET_` + `WIFI_...`)
     so the emitted `name_prefix` is exactly what the runtime matcher strips. A

@@ -155,7 +155,7 @@ def definition_record(node: Any, src: bytes, rel: str, scoped: bool) -> FuncDef 
 ## @param src Raw file bytes.
 ## @return (name, params, body node, bytes the body was parsed from), or None.
 ## @version 1
-## @dg_internal
+## @utility
 def _signature(node: Any, src: bytes) -> tuple[str, tuple[str, ...], Any, bytes] | None:
     """A macro's body lives in a different byte buffer than the file's, because
     it had to be re-parsed — so the buffer travels with the body node rather
@@ -177,7 +177,7 @@ def _signature(node: Any, src: bytes) -> tuple[str, tuple[str, ...], Any, bytes]
 ## @param src Raw file bytes.
 ## @return (name, params, body node, src), or None when there is no declarator.
 ## @version 1
-## @dg_internal
+## @utility
 def _function_signature(node: Any, src: bytes) -> tuple[str, tuple[str, ...], Any, bytes] | None:
     """@brief Read a C/C++ function definition's name, parameters and body."""
     declarator = _function_declarator(node.child_by_field_name("declarator"))
@@ -196,7 +196,7 @@ def _function_signature(node: Any, src: bytes) -> tuple[str, tuple[str, ...], An
 ## @param src Raw file bytes.
 ## @return (name, params), or None when the macro has no name.
 ## @version 1
-## @dg_internal
+## @utility
 def _macro_signature(node: Any, src: bytes) -> tuple[str, tuple[str, ...]] | None:
     """@brief Read a function-like macro's name and parameter identifiers."""
     name_node = node.child_by_field_name("name")
@@ -216,7 +216,7 @@ def _macro_signature(node: Any, src: bytes) -> tuple[str, tuple[str, ...]] | Non
 ## @param src Raw file bytes.
 ## @return (parsed body root, the bytes it was parsed from); (None, b"") when empty.
 ## @version 1
-## @dg_internal
+## @utility
 def _macro_body(node: Any, src: bytes) -> tuple[Any, bytes]:
     """Wrap the body in a synthetic function so an expression-shaped body parses
     as a statement. A body that still fails to parse yields ERROR nodes, and the
@@ -243,7 +243,7 @@ _MACRO_PARSER: list[Any] = []
 ## @brief Memoised C parser used for macro replacement text.
 ## @return The substrate's C parser.
 ## @version 3
-## @dg_internal
+## @utility
 def _macro_parser() -> Any:
     """Always the C grammar: a replacement list is preprocessor text, and the
     C++ grammar buys nothing for the call shapes this module reads.
@@ -262,7 +262,7 @@ def _macro_parser() -> Any:
 ## @param node The definition's declarator node, or None.
 ## @return The function_declarator, or None when there is none.
 ## @version 1
-## @dg_internal
+## @utility
 def _function_declarator(node: Any) -> Any:
     """`void *f(void)` and `int (*g(void))(void)` wrap the function declarator in
     pointer/parenthesized declarators, so the chain has to be walked rather than
@@ -285,7 +285,7 @@ def _function_declarator(node: Any) -> Any:
 ## @param src Raw file bytes.
 ## @return The bare name, or "" when the node names nothing simple.
 ## @version 1
-## @dg_internal
+## @utility
 def _tail_name(node: Any, src: bytes) -> str:
     """C++ member definitions declare `Class::method`; the corpus keys on the
     bare name because that is what a call site writes.
@@ -303,7 +303,7 @@ def _tail_name(node: Any, src: bytes) -> str:
 ## @param kinds Node types that count as an identifier.
 ## @return The identifier text, or None when the subtree has none.
 ## @version 1
-## @dg_internal
+## @utility
 def _first_identifier(node: Any, src: bytes, kinds: tuple[str, ...]) -> str | None:
     """Document order matters: a function-pointer parameter nests its name
     (`(*task_fn)`) BEFORE its own parameter list, so the first identifier is the
@@ -330,7 +330,7 @@ def _first_identifier(node: Any, src: bytes, kinds: tuple[str, ...]) -> str | No
 ## @param src Raw file bytes.
 ## @return One entry per parameter; "" for an unnamed one.
 ## @version 1
-## @dg_internal
+## @utility
 def _param_names(params_node: Any, src: bytes) -> tuple[str, ...]:
     """@brief Read a parameter list's declared identifiers."""
     if params_node is None:
@@ -349,7 +349,7 @@ def _param_names(params_node: Any, src: bytes) -> tuple[str, ...]:
 ## @param line Line to attribute macro-body calls to.
 ## @return One ForwardCall per qualifying call site.
 ## @version 1
-## @dg_internal
+## @utility
 def _forward_calls(
     body: Any, src: bytes, params: tuple[str, ...], line: int
 ) -> tuple[ForwardCall, ...]:
@@ -374,7 +374,7 @@ def _forward_calls(
 ## @param line Line to attribute macro-body calls to.
 ## @return A ForwardCall, or None.
 ## @version 1
-## @dg_internal
+## @utility
 def _forward_call(
     node: Any, src: bytes, positions: dict[str, int], line: int
 ) -> ForwardCall | None:
@@ -398,7 +398,7 @@ def _forward_call(
 ## @param src Bytes the node was parsed from.
 ## @return The identifier text, or "" when the argument is not a bare name.
 ## @version 1
-## @dg_internal
+## @utility
 def _bare_identifier(node: Any, src: bytes) -> str:
     """@brief Reduce an argument expression to the plain name it passes."""
     cur = node

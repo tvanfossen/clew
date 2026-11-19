@@ -45,7 +45,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 # @brief Load the gate-hygiene script as a module without making `scripts/` a package.
 # @return The loaded module.
 # @version 1
-# @dg_internal
+# @utility
 def _load() -> ModuleType:
     """`scripts/` has no `__init__.py` and should not grow one just to be imported by a test, so
     the file is loaded by path. Failing here is a legitimate RED — the script not existing and
@@ -72,7 +72,7 @@ gate_hygiene = _load()
 # @param exclude Body of the global exclude alternation, or None for no exclude.
 # @return None.
 # @version 1
-# @dg_internal
+# @utility
 def _repo(root: Path, exclude: str | None = None) -> None:
     """A REAL `git init`, not a stub. The question asked is what `git ls-files --others
     --exclude-standard` reports, and that is git's answer about `.gitignore`, nested repositories

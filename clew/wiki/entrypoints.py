@@ -59,7 +59,7 @@ def entry_point_flows(db: Path, repo_root: Path, depth: int) -> list[FlowSpec]:
 ## @return (function, file, title) rows.
 ## v2 (2.0.0, D8/W4): read by `py_entrypoints.console_scripts`, so Poetry's table counts too.
 ## @version 2
-## @dg_internal
+## @utility
 def _scripts(conn: object, repo_root: Path) -> list[tuple[str, str, str]]:
     """`pkg.mod:func` IS LOOKED FOR at `pkg/mod.py`, `pkg/mod/__init__.py` and their `src/` forms;
     a script whose function the index does not hold is skipped.
@@ -95,7 +95,7 @@ def _scripts(conn: object, repo_root: Path) -> list[tuple[str, str, str]]:
 ## v3 (2.0.0, W3): `reachability.ENTRY_PATTERN_FACTS` (main, app_main) and the repository's
 ## `entry_patterns`, not only `main`.
 ## @version 3
-## @dg_internal
+## @utility
 def _mains(conn: object, repo_root: Path) -> list[tuple[str, str, str]]:
     """THE FACTS AND THE DECLARATION, NOT THE GUESSES. Liveness seeds on the name heuristics too
     (`%_cb`, `%callback%`), where a false positive only keeps a function alive; as flows they
@@ -123,7 +123,7 @@ def _mains(conn: object, repo_root: Path) -> list[tuple[str, str, str]]:
 ## @param repo_root The repository.
 ## @return LIKE patterns: an explicit statement recorded by the build, else the declaration's.
 ## @version 1
-## @dg_internal
+## @utility
 def _declared_entry_patterns(conn: object, repo_root: Path) -> list[str]:
     """THE BUILD'S OWN TIERS: tier 1 (`--entry-patterns`) is recorded in `build_meta`, tier 2 is
     the `.clew.yaml`; the built-in heuristics are neither.
@@ -154,7 +154,7 @@ def _declared_entry_patterns(conn: object, repo_root: Path) -> list[str]:
 ## @return (function, file, title) rows.
 ## v2 (round 4): the file is the one holding the body, not the declaration.
 ## @version 2
-## @dg_internal
+## @utility
 def _thread_entries(conn: object) -> list[tuple[str, str, str]]:
     """@brief Find thread entries. @return Rows."""
     if not table_exists(conn, "threads"):
@@ -175,7 +175,7 @@ def _thread_entries(conn: object) -> list[tuple[str, str, str]]:
 ## @return True when it does.
 ## v2 (round 4): the file is the one holding the body, not the declaration.
 ## @version 2
-## @dg_internal
+## @utility
 def _defined(conn: object, name: str, rel: str) -> bool:
     """@brief Look up. @return Defined?"""
     row = conn.execute(
@@ -193,7 +193,7 @@ def _defined(conn: object, name: str, rel: str) -> bool:
 ## @return True when it has an outgoing call edge.
 ## v2 (round 4): the file is the one holding the body, not the declaration.
 ## @version 2
-## @dg_internal
+## @utility
 def _calls_something(conn: object, name: str, rel: str) -> bool:
     """@brief Has callees? @return Bool."""
     if not table_exists(conn, "call_edges"):
@@ -211,7 +211,7 @@ def _calls_something(conn: object, name: str, rel: str) -> bool:
 ## @param conn Open connection.
 ## @return SQL ("" without the layer).
 ## @version 1
-## @dg_internal
+## @utility
 def _not_test(conn: object) -> str:
     """@brief Clause. @return SQL."""
     if not table_exists(conn, "test_scope"):

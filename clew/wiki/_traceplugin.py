@@ -44,7 +44,7 @@ class _Recorder:
     ## @param test_file The test's file.
     ## @param test_name The test function's name.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def __init__(self, root: Path, test_file: Path, test_name: str) -> None:
         """@brief Store. @return None."""
         self.root = str(root.resolve())
@@ -64,7 +64,7 @@ class _Recorder:
     ## @return The local tracer, or None for a frame not traced.
     ## v2 (round 4): installed code is not traced, even when it lies inside the repository.
     ## @version 2
-    ## @dg_internal
+    ## @utility
     def tracer(self, frame: Any, event: str, arg: Any) -> Any:
         """@brief Global trace. @return Local tracer or None."""
         path = frame.f_code.co_filename
@@ -86,7 +86,7 @@ class _Recorder:
     ## @param arg The event's argument.
     ## @return Itself.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def local(self, frame: Any, event: str, arg: Any) -> Any:
         """@brief Local trace. @return Itself."""
         code = frame.f_code
@@ -108,7 +108,7 @@ class _Recorder:
     ## @param path Its file.
     ## @return The span.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def _open(self, frame: Any, path: str) -> dict[str, Any]:
         """@brief Open. @return Span."""
         info = inspect.getargvalues(frame)
@@ -138,7 +138,7 @@ class _Recorder:
 ## @param path The frame's file.
 ## @return True for installed code.
 ## @version 1
-## @dg_internal
+## @utility
 def _installed(path: str) -> bool:
     """A VIRTUAL ENVIRONMENT INSIDE THE REPOSITORY (clew's own `.venv`) puts pytest and every
     dependency under the repository root; they are still not the repository's code.
@@ -160,7 +160,7 @@ def _installed(path: str) -> bool:
 ## @param value The value.
 ## @return The attribute.
 ## @version 1
-## @dg_internal
+## @utility
 def _attr(key: str, value: str) -> dict[str, Any]:
     """@brief Attribute. @return Mapping."""
     return {"key": key, "value": {"stringValue": value}}
@@ -170,7 +170,7 @@ def _attr(key: str, value: str) -> dict[str, Any]:
 ## @param value The value.
 ## @return The text.
 ## @version 1
-## @dg_internal
+## @utility
 def _repr(value: Any) -> str:
     """A REPR THAT RAISES is reported as such rather than ending the run.
 
@@ -193,7 +193,7 @@ _RECORDING: dict[str, _Recorder] = {}
 ## @param item The test item.
 ## @return None (a hook wrapper).
 ## @version 1
-## @dg_internal
+## @utility
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_call(item: pytest.Item) -> Any:
     """@brief Trace the call. @return None."""
@@ -217,7 +217,7 @@ def pytest_runtest_call(item: pytest.Item) -> Any:
 ## @param call The call info.
 ## @return None (a hook wrapper).
 ## @version 1
-## @dg_internal
+## @utility
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_makereport(item: pytest.Item, call: Any) -> Any:
     """THE FAILURE POINT IS IN THE TEST'S OWN FILE: the deepest traceback entry there.
@@ -240,7 +240,7 @@ def pytest_runtest_makereport(item: pytest.Item, call: Any) -> Any:
 ## @param exitstatus The exit status.
 ## @return None.
 ## @version 1
-## @dg_internal
+## @utility
 def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
     """@brief Write the run. @return None."""
     recorder = _RECORDING.get("run")

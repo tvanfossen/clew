@@ -141,7 +141,7 @@ class Vocabulary:
     ## @param value Candidate token.
     ## @return True when the token is one of this vocabulary's values.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def __contains__(self, value: object) -> bool:
         """@brief True when `value` is a member of this vocabulary.
 

@@ -85,7 +85,7 @@ ENVELOPE_KEYS: tuple[str, ...] = (
 ## @param annotation The field's type, as a string or an object.
 ## @return Names that are dataclasses in `models` (or CodeHit).
 ## @version 1
-## @dg_internal
+## @utility
 def _referenced(annotation: Any) -> list[type]:
     """@brief Resolve referenced dataclasses by name. @return The classes."""
     found: list[type] = []

@@ -51,7 +51,7 @@ class Trace:
     ## v5: `decisions` (P3c).
     ## v6: `missing`, the declared reports that were not there.
     ## @version 6
-    ## @dg_internal
+    ## @utility
     def __init__(self, parts: dict[str, Any], config: WikiConfig) -> None:
         """@brief Store. @return None."""
         self.evidence = parts["evidence"]
@@ -91,7 +91,7 @@ class Trace:
     ## v4: the gate's exempt statuses re-grade MISSING as EXEMPT; a missing contexts report is
     ## named with the others (round 4, R8).
     ## @version 4
-    ## @dg_internal
+    ## @utility
     @classmethod
     def gather(cls, repo_root: Path, db: Path, config: WikiConfig, commit: str) -> Trace:
         """@brief Read every source. @return Trace."""
@@ -142,7 +142,7 @@ class Trace:
     ## @param req_id The requirement.
     ## @return Node addresses.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def nodes_for(self, req_id: str) -> list[str]:
         """@brief Look up. @return Addresses."""
         return [n.ref for n in self.nodes if req_id in n.requirements]
@@ -151,7 +151,7 @@ class Trace:
     ## @param key The version key.
     ## @return Plain data.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def snapshot(self, key: str) -> dict:
         """@brief Snapshot. @return Data."""
         return {
@@ -169,7 +169,7 @@ class Trace:
     ## v2: a function with a symbol section links there — a dossier reference, whose page links
     ## the source (owner 2026-11-15) — else to its source.
     ## @version 2
-    ## @dg_internal
+    ## @utility
     def link(self, name: str, rel: str, line: int) -> str:
         """@brief Link. @return HTML."""
         if (name, rel) in self.symbols:
@@ -321,7 +321,7 @@ def requirements_page(
 ## @param ev Evidence rows.
 ## @return Markdown.
 ## @version 1
-## @dg_internal
+## @utility
 def _link_kinds(ev: list) -> str:
     """INFERENCE IS DISCLOSED: a requirement tested only through the call graph is counted apart,
     since reaching an implementer is weaker than verifying it.
@@ -356,7 +356,7 @@ def _link_kinds(ev: list) -> str:
 ## v3: short test lists link to the tests' sections (P2a).
 ## v4: an issues column (P3a).
 ## @version 4
-## @dg_internal
+## @utility
 def _requirement_table(trace: Trace, ctx: dict[str, Any]) -> str:
     """@brief Render rows. @return HTML."""
     from .summary import group_of
@@ -397,7 +397,7 @@ def _requirement_table(trace: Trace, ctx: dict[str, Any]) -> str:
 ## @param summary The summary line.
 ## @return HTML.
 ## @version 1
-## @dg_internal
+## @utility
 def _fold(items: list[str], summary: str) -> str:
     """LONG LINKAGE FOLDS rather than stretching the row (owner 2026-11-15: hard to read).
 
@@ -417,7 +417,7 @@ def _fold(items: list[str], summary: str) -> str:
 ## v3 (round 4, R4): the full list lives on the requirement's page, not a modal.
 ## v4: a long list says how many tests are direct and how many only reached through calls.
 ## @version 4
-## @dg_internal
+## @utility
 def _tests_cell(row: Any, hrefs: dict[str, str]) -> str:
     """ONE FULL LIST PER REQUIREMENT, on its own page: repeating hundreds of tests in a folded
     cell doubled the page (clew's own: 2.2 MB).
@@ -436,7 +436,7 @@ def _tests_cell(row: Any, hrefs: dict[str, str]) -> str:
 ## @param tests (test, status) pairs.
 ## @return The summary.
 ## @version 1
-## @dg_internal
+## @utility
 def _test_summary(tests: tuple) -> str:
     """@brief Count by status. @return Text."""
     counts: dict[str, int] = {}
@@ -451,7 +451,7 @@ def _test_summary(tests: tuple) -> str:
 ## @return Markdown lines ([] when issues were not asked for).
 ## v2: a truncation note is shown with the issues (2.0.0, R5-CFG D14)
 ## @version 2
-## @dg_internal
+## @utility
 def _issues_section(trace: Trace) -> list[str]:
     """A NOTE WITH ISSUES IS A CAVEAT (a truncated listing, D14); a note without them is the reason
     nothing was fetched. Both are said.
@@ -476,7 +476,7 @@ def _issues_section(trace: Trace) -> list[str]:
 ## @param rules The audience rules.
 ## @return Markdown lines; [] when no rule is declared.
 ## @version 1
-## @dg_internal
+## @utility
 def _rules_section(trace: Trace, rules: Audience) -> list[str]:
     """@brief Rules table. @return Lines."""
     if not trace.rules:
@@ -506,7 +506,7 @@ def _rules_section(trace: Trace, rules: Audience) -> list[str]:
 ## @param rules The audience rules.
 ## @return Markdown lines; [] when no catalog is declared.
 ## @version 1
-## @dg_internal
+## @utility
 def _catalogs_section(trace: Trace, rules: Audience) -> list[str]:
     """@brief Catalog tables, with the pin problems `check` reports. @return Lines."""
     lines: list[str] = []
@@ -533,7 +533,7 @@ def _catalogs_section(trace: Trace, rules: Audience) -> list[str]:
 ## @param trace The gathered trace.
 ## @return Markdown lines; [] when every declared report was read.
 ## @version 1
-## @dg_internal
+## @utility
 def _missing_note(trace: Trace) -> list[str]:
     """@brief Note. @return Lines."""
     if not trace.missing:
@@ -661,7 +661,7 @@ def _node_example(trace: Trace) -> str:
 ## @param html The HTML.
 ## @return Lines.
 ## @version 1
-## @dg_internal
+## @utility
 def _raw(html: str) -> list[str]:
     """@brief Wrap. @return Lines."""
     return ["```{raw} html", html, "```", ""]

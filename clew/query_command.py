@@ -49,7 +49,7 @@ QUERY_COMMAND = "query"
 ## @return The parser.
 ## v2 (2.0.0): the `stats` verb.
 ## @version 2
-## @dg_internal
+## @utility
 def _parser() -> argparse.ArgumentParser:
     """@brief Build the parser. @return Parser with `dossier` and `search` subcommands."""
     from .query import DEFAULT_BODY_LINES, EXPORT_CORPORA
@@ -83,7 +83,7 @@ def _parser() -> argparse.ArgumentParser:
 ## @param args Parsed arguments.
 ## @return (database path, working tree or None).
 ## @version 1
-## @dg_internal
+## @utility
 def _locate(args: argparse.Namespace) -> tuple[Path, Path | None]:
     """DERIVED THROUGH `target_for`, NEVER REIMPLEMENTED, as `cli._resolve_output` does for a
     build — so `clew query` reads exactly where a build wrote. Imported here because `mcp_server`
@@ -109,7 +109,7 @@ def _locate(args: argparse.Namespace) -> tuple[Path, Path | None]:
 ## @return The export payload.
 ## v2 (2.0.0): `stats` — the graph-quality report the retired `index(action='stats')` served.
 ## @version 2
-## @dg_internal
+## @utility
 def _payload(args: argparse.Namespace, db: Path, repo: Path | None) -> dict[str, Any]:
     """@brief Dispatch to the export function. @return The payload."""
     from . import query as q

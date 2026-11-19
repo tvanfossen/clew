@@ -181,7 +181,7 @@ _NOT_DEFINITIVE = (
 ## @param scope The summarised scope.
 ## @return Human-readable scope sentence.
 ## @version 2
-## @dg_internal
+## @utility
 def _scope_sentence(scope: q.IndexScope) -> str:
     """THE DERIVATION IS GONE FROM HERE AND ONLY FROM HERE. This used to end with
     "Scope was derived from {source}: {reason}." — and the whole-repo tier's `reason` is a
@@ -213,7 +213,7 @@ def _scope_sentence(scope: q.IndexScope) -> str:
 ## @param scope The summarised scope.
 ## @return Wire dict for the scope, with `reason` removed.
 ## @version 2
-## @dg_internal
+## @utility
 def _scope_payload(scope: q.IndexScope) -> dict[str, Any]:
     """`reason` is dropped HERE rather than in `wire` or in `IndexScope`, because it is not
     absent — it is expensive, and only on this surface. `status` publishes the same
@@ -246,7 +246,7 @@ def _scope_payload(scope: q.IndexScope) -> dict[str, Any]:
 ## @param counts Token to independent-hit-count mapping.
 ## @return Comma-joined rendering.
 ## @version 1
-## @dg_internal
+## @utility
 def _render_counts(counts: dict[str, int]) -> str:
     """@brief Render the per-token diagnosis.
     @return Comma-joined `token=count` text.
@@ -260,7 +260,7 @@ def _render_counts(counts: dict[str, int]) -> str:
 ## @param counts Per-token independent hit counts.
 ## @return The note text.
 ## @version 3
-## @dg_internal
+## @utility
 def _conjunction_note(text: str, counts: dict[str, int]) -> str:
     """gh#31's actual finding: ranking behaved exactly as documented and the NOTE
     was wrong. A token with zero independent hits is the single cause of the
@@ -345,7 +345,7 @@ def search_emptiness(db: Path, text: str) -> tuple[str, dict[str, Any]]:
 ## @param unread Mapping of unread corpus name to matching-name count.
 ## @return Sentence text, empty when nothing matched outside the searched corpora.
 ## @version 1
-## @dg_internal
+## @utility
 def _unread_note(unread: dict[str, int]) -> str:
     """@brief Word the unread-corpus finding.
     @return Sentence, or ''.
@@ -362,7 +362,7 @@ def _unread_note(unread: dict[str, int]) -> str:
 ## @param unread Mapping of unread corpus name to matching-name count.
 ## @return The verdict sentence for the note.
 ## @version 2
-## @dg_internal
+## @utility
 def _verdict(db: Path, unread: dict[str, int]) -> str:
     """THE STRONG WORDING IS NOW EARNED PER CALL rather than attached to a shape. A
     single token that matched nothing used to be treated as proof of absence, which

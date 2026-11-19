@@ -174,7 +174,7 @@ def commit_hook_installed(repo: Path) -> bool:
 # @param unseen Paths the gate could not see.
 # @return None.
 # @version 1
-# @dg_internal
+# @utility
 def _report_unseen(unseen: list[str]) -> None:
     """Every path is named, never a count alone. "3 files" sends the reader to `git status` to
     work out which three; the whole value of the check is which.
@@ -199,7 +199,7 @@ def _report_unseen(unseen: list[str]) -> None:
 # @param enforced True when the missing hook will fail this run.
 # @return None.
 # @version 1
-# @dg_internal
+# @utility
 def _report_missing_hook(enforced: bool) -> None:
     """SAYS WHICH IT DID. A check that sometimes fails and sometimes only mentions, without
     stating which, teaches the reader to skim it — and then the one time it mattered reads

@@ -22,6 +22,7 @@ from .checks import (
     check_file_presence,
     check_presence,
     check_bus_tags,
+    check_removed_tags,
     check_req_coverage,
     check_req_exists,
     check_satisfies,
@@ -70,7 +71,7 @@ _RETIRED_SUBCOMMANDS = {
 
 ## @brief Create argparse parser with validate/impact/coverage subcommands.
 #  @version 1.5
-#  @dg_internal
+#  @utility
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="clew guard",
@@ -98,7 +99,7 @@ def build_parser() -> argparse.ArgumentParser:
 ## @brief Add the validate subcommand to the parser.
 #  v1.2: --format text|sarif|gitlab|github (2.0.0, S1)
 #  @version 1.2
-#  @dg_internal
+#  @utility
 def _add_validate_parser(subparsers: argparse._SubParsersAction) -> None:
     p = subparsers.add_parser("validate", help="Validate doxygen comments (pre-commit gate)")
     p.add_argument("files", nargs="*", help="Files to validate (passed by pre-commit)")
@@ -116,7 +117,7 @@ def _add_validate_parser(subparsers: argparse._SubParsersAction) -> None:
 ## @brief Add the impact subcommand to the parser.
 #  v1.2: --write and --format (2.0.0, R5-CFG F9)
 #  @version 1.2
-#  @dg_internal
+#  @utility
 def _add_impact_parser(subparsers: argparse._SubParsersAction) -> None:
     p = subparsers.add_parser("impact", help="Change-impact analysis from git diff")
     group = p.add_mutually_exclusive_group()
@@ -135,7 +136,7 @@ def _add_impact_parser(subparsers: argparse._SubParsersAction) -> None:
 
 ## @brief Add the coverage subcommand to the parser.
 #  @version 1.0
-#  @dg_internal
+#  @utility
 def _add_coverage_parser(subparsers: argparse._SubParsersAction) -> None:
     p = subparsers.add_parser("coverage", help="Report requirement coverage gaps")
     p.add_argument("source_dirs", nargs="*", default=["."], help="Source directories to scan")
@@ -146,7 +147,7 @@ def _add_coverage_parser(subparsers: argparse._SubParsersAction) -> None:
 
 ## @brief Add the config subcommand exposing the machine-readable consumer contract.
 #  @version 1.0
-#  @dg_internal
+#  @utility
 def _add_config_parser(subparsers: argparse._SubParsersAction) -> None:
     p = subparsers.add_parser("config", help="Emit the consumer contract as JSON")
     group = p.add_mutually_exclusive_group()
@@ -164,7 +165,7 @@ def _add_config_parser(subparsers: argparse._SubParsersAction) -> None:
 
 ## @brief Add the doxyfile subcommand emitting a Doxyfile fragment.
 #  @version 1.0
-#  @dg_internal
+#  @utility
 def _add_doxyfile_parser(subparsers: argparse._SubParsersAction) -> None:
     subparsers.add_parser(
         "doxyfile",
@@ -174,7 +175,7 @@ def _add_doxyfile_parser(subparsers: argparse._SubParsersAction) -> None:
 
 ## @brief Add the files subcommand exposing the exact post-exclude file set.
 #  @version 1.0
-#  @dg_internal
+#  @utility
 def _add_files_parser(subparsers: argparse._SubParsersAction) -> None:
     p = subparsers.add_parser("files", help="Emit the file set the gate walks, as JSON")
     p.add_argument("source_dirs", nargs="*", default=["."], help="Source directories to scan")
@@ -188,7 +189,8 @@ def _add_files_parser(subparsers: argparse._SubParsersAction) -> None:
 #  where `toolchain.toml` is a statement made for every tool in the repo.
 #  @details v1.15: runs the bus-tag rule (W10).
 #  v1.16: excludes are globs, re: for a regex (2.0.0, R5-CFG F18)
-#  @version 1.16
+#  v1.17: check_removed_tags (2.0.0, PG1)
+#  @version 1.17
 #  @req REQ-DDB-GUARD-001
 def validate_file(
     file_path: str,
@@ -238,6 +240,7 @@ def validate_file(
         violations.extend(check_bus_tags(functions, file_path, config, content.splitlines()))
     for func in functions:
         violations.extend(check_unknown_tags(func, file_path, config))
+        violations.extend(check_removed_tags(func, file_path, config))
         violations.extend(check_duplicate_tags(func, file_path, config))
         violations.extend(check_req_exists(func, file_path, config, req_ids))
 
@@ -264,7 +267,7 @@ def validate_file(
 #  Phrased after the index's `_apply_toolchain_exclusions` line, which reports the same
 #  decision for the same reason on the build side.
 #  @version 1.0
-#  @dg_internal
+#  @utility
 def _report_skips(skipped: list[str]) -> None:
     if not skipped:
         return
@@ -280,7 +283,7 @@ def _report_skips(skipped: list[str]) -> None:
 #  v1.5: the local catalogue's `satisfies` links are checked (GH #68).
 #  v1.6: reads the top-level requirements: section (2.0.0, R5-CFG F7)
 #  @version 1.6
-#  @dg_internal
+#  @utility
 def _validate_files(
     file_paths: list[str],
     config: dict[str, Any],
@@ -312,7 +315,7 @@ def _validate_files(
 #  v1.1: a machine format (sarif, gitlab, github) goes to stdout, whole, even when empty; the
 #  human lines and the count stay on stderr. The exit code is the same either way (2.0.0, S1).
 #  @version 1.1
-#  @dg_internal
+#  @utility
 def _report_violations(violations: list[Violation], output_format: str = "text") -> int:
     if output_format != "text":
         sys.stdout.write(render(violations, output_format))
@@ -351,7 +354,7 @@ def run_validate(args: argparse.Namespace, config: dict[str, Any]) -> int:
 
 ## @brief Detect version from git describe --tags.
 #  @version 2.2
-#  @dg_internal
+#  @utility
 def _detect_git_version() -> str | None:
     try:
         result = subprocess.run(
@@ -373,7 +376,7 @@ def _detect_git_version() -> str | None:
 
 ## @brief Detect version from CMakeLists.txt project() directive.
 #  @version 2.1
-#  @dg_internal
+#  @utility
 def _detect_cmake_version() -> str | None:
     try:
         cmake = Path("CMakeLists.txt").read_text()
@@ -387,7 +390,7 @@ def _detect_cmake_version() -> str | None:
 ## @brief Resolve the current project version from config, git tag, or CMake.
 #  v1.4: reads validate.current_version (2.0.0, R5-CFG F14)
 #  @version 1.4
-#  @dg_internal
+#  @utility
 def _detect_current_version(config: dict[str, Any]) -> str | None:
     version_str = get_validate(config).get("current_version")
     if not version_str:
@@ -465,14 +468,14 @@ _HELP_FLAGS = frozenset(("-h", "--help"))
 
 ## @brief Detect whether the first positional arg is a known subcommand.
 #  @version 1.1
-#  @dg_internal
+#  @utility
 def _has_subcommand(raw_argv: list[str]) -> bool:
     return _first_positional(raw_argv) in _SUBCOMMANDS
 
 
 ## @brief Return the first positional arg, ignoring flags and their values.
 #  @version 1.0
-#  @dg_internal
+#  @utility
 #  @return The first positional argument, or None if the argv is all flags
 def _first_positional(raw_argv: list[str]) -> str | None:
     skip_next = False
@@ -505,7 +508,7 @@ def _check_retired_subcommand(raw_argv: list[str]) -> int | None:
 
 ## @brief Parse pre-commit mode args (no subcommand) into components.
 #  @version 1.0
-#  @dg_internal
+#  @utility
 def _parse_precommit_args(
     raw_argv: list[str],
 ) -> tuple[Path | None, list[str], bool]:
@@ -555,7 +558,7 @@ def _run_impact_command(args: argparse.Namespace, config: dict[str, Any]) -> int
 #  symlink, and the gate wrote outside the repository as the committing user. One writer now
 #  serves the hook and `clew guard impact --write`, so the two cannot drift (R5-CFG F9).
 #  @version 1.0
-#  @dg_internal
+#  @utility
 #  @return The two paths written
 def _write_report(entries: list[Any], base_dir: str) -> list[Path]:
     out = Path(base_dir)
@@ -570,7 +573,7 @@ def _write_report(entries: list[Any], base_dir: str) -> list[Path]:
 
 ## @brief Configure logging based on verbosity flag.
 #  @version 1.0
-#  @dg_internal
+#  @utility
 def _setup_logging(verbose: bool) -> None:
     level = logging.DEBUG if verbose else logging.WARNING
     logging.basicConfig(level=level, format="%(levelname)s: %(message)s")
@@ -578,7 +581,7 @@ def _setup_logging(verbose: bool) -> None:
 
 ## @brief Run the coverage subcommand.
 #  @version 1.1
-#  @dg_internal
+#  @utility
 def _run_coverage_command(args: argparse.Namespace, config: dict[str, Any]) -> int:
     from .coverage import run_coverage
 
@@ -625,7 +628,7 @@ def _run_doxyfile_command(_args: argparse.Namespace, config: dict[str, Any]) -> 
 
 ## @brief Dispatch an explicit subcommand to its handler.
 #  @version 1.3
-#  @dg_internal
+#  @utility
 def _dispatch_subcommand(args: argparse.Namespace, config: dict[str, Any]) -> int:
     handlers = {
         "validate": lambda: run_validate(args, config),
@@ -643,7 +646,7 @@ def _dispatch_subcommand(args: argparse.Namespace, config: dict[str, Any]) -> in
 
 ## @brief Parse arguments and dispatch to the appropriate subcommand.
 #  @version 2.0
-#  @dg_internal
+#  @utility
 def main(argv: list[str] | None = None) -> int:
     raw_argv = list(argv if argv is not None else sys.argv[1:])
 
@@ -662,7 +665,7 @@ def main(argv: list[str] | None = None) -> int:
 #  @details `--help` without a subcommand used to fall into pre-commit mode, which skips
 #  unknown flags: asking for help ran the gate over nothing and wrote an impact report.
 #  @version 1.1
-#  @dg_internal
+#  @utility
 def _run(raw_argv: list[str]) -> int:
     if not _has_subcommand(raw_argv) and _HELP_FLAGS.intersection(raw_argv):
         build_parser().print_help()
@@ -680,7 +683,7 @@ def _run(raw_argv: list[str]) -> int:
 
 ## @brief Wrapper for setuptools console_scripts entry point.
 #  @version 1.0
-#  @dg_internal
+#  @utility
 def cli_main() -> None:
     sys.exit(main())
 

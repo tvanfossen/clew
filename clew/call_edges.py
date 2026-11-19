@@ -161,7 +161,7 @@ def build_call_edges(db_path: Path) -> None:
 ## @param name Table to look for.
 ## @return True if a user table of that name exists.
 ## @version 1
-## @dg_internal
+## @utility
 def _table_exists(conn: sqlite3.Connection, name: str) -> bool:
     """@brief Report whether a user table exists.
     @return True when present.
@@ -273,7 +273,7 @@ def import_macro_hop_edges(db_path: Path) -> int:
 
 ## @brief Build name->rowids and bodyfile_id->function-range indexes.
 ## @version 3
-## @dg_internal
+## @utility
 def _build_function_indexes(
     conn: sqlite3.Connection,
 ) -> tuple[dict[str, list[int]], dict[int, list[tuple[int, str, int, int]]]]:
@@ -343,7 +343,7 @@ SOURCE_JSX = CALL_SOURCE_JSX
 
 ## @brief One file's function body ranges, with a bisect index when they do not nest.
 ## @version 1
-## @dg_internal
+## @utility
 class _FuncRanges(list):
     """A `list` SUBCLASS SO EVERY EXISTING CONSUMER IS UNTOUCHED. Nine call sites across four
     modules take this value and most only iterate it; making the acceleration a separate
@@ -367,7 +367,7 @@ class _FuncRanges(list):
     ## @brief Build the bisect index, or record that this file must use the scan.
     ## @return None.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def _prepare(self) -> None:
         """Sorted by body start, then checked for overlap in one pass: ranges are disjoint when
         each start is strictly after the previous end.
@@ -386,7 +386,7 @@ class _FuncRanges(list):
     ## @param line Source line to locate.
     ## @return The enclosing function's rowid, or None.
     ## @version 2
-    ## @dg_internal
+    ## @utility
     def caller_at(self, line: int) -> int | None:
         """@brief Locate the enclosing function.
         @return Its rowid, or None.
@@ -409,7 +409,7 @@ class _FuncRanges(list):
 ## @param line Source line to locate.
 ## @return The rowid of the smallest containing span, or None.
 ## @version 1
-## @dg_internal
+## @utility
 def _innermost(rows: Any, line: int) -> int | None:
     """ONE DEFINITION, used by both lookup paths, so the two cannot disagree about nesting.
 
@@ -428,7 +428,7 @@ def _innermost(rows: Any, line: int) -> int | None:
 ##
 ## @brief Ast caller at line.
 ## @version 3
-## @dg_internal
+## @utility
 def _ast_caller_at_line(
     funcs_in_file: list[tuple[int, str, int, int]],
     call_line: int,
@@ -479,7 +479,7 @@ def _ast_caller_at_line(
 ## v11 (agent C's W4): passes the caller's definition, so an object is owned only in its module.
 ## v12 (W8): passes `file_of` to the lexical lookup.
 ## @version 12
-## @dg_internal
+## @utility
 def _ast_record_call_edge(
     caller_rowid: int,
     callee_name: str,
@@ -699,7 +699,7 @@ def _ast_record_call_edge(
 ## @param one_function Candidate sets that name one function, from _one_function_targets.
 ## @return The rowid, or None when the call must be refused.
 ## @version 1
-## @dg_internal
+## @utility
 def _bare_call_target(
     candidates: list[int],
     source: str,
@@ -747,7 +747,7 @@ _NOT_A_CLASS = frozenset(
 ## @param type_text A doxygen `memberdef.type` string.
 ## @return The bare class name, or '' when none is identifiable.
 ## @version 1
-## @dg_internal
+## @utility
 def _receiver_class(type_text: str) -> str:
     """PEELS SMART POINTERS AND REFERENCES, because that is how a receiver is almost always
     spelled. `handle->engine` on entropic has declared type
@@ -790,7 +790,7 @@ def _receiver_class(type_text: str) -> str:
 ## @return Mapping of variable name to the set of class names it may denote; empty when the
 ##         table carries no `type` column.
 ## @version 2
-## @dg_internal
+## @utility
 def _receiver_types(conn: sqlite3.Connection) -> dict[str, set[str]]:
     """THE RECEIVER'S TYPE IS ALREADY IN THE INDEX, which is the whole basis of this layer.
     doxygen records a member variable with its declared type, so `handle->engine`'s class is a
@@ -849,7 +849,7 @@ def _receiver_types(conn: sqlite3.Connection) -> dict[str, set[str]]:
 ##         actually matched at least one candidate, so a caller can tell a real narrowing
 ##         from 'the receiver told us nothing'.
 ## @version 2
-## @dg_internal
+## @utility
 def _narrow_by_receiver(
     receiver: str,
     argc: int,
@@ -943,7 +943,7 @@ def _narrow_by_receiver(
 ## @return The declared (possibly qualified) name, or `definition` unchanged when it is not
 ##         recognisably `<anything> <qualified name>`.
 ## @version 1
-## @dg_internal
+## @utility
 def _declared_name(name: str, definition: str) -> str:
     """THE RETURN TYPE IS NOT PART OF WHICH FUNCTION THIS IS. doxygen writes a prototype's
     `definition` as `MBEDTLS_CHECK_RETURN_TYPICAL int mbedtls_aes_crypt_ecb`, and
@@ -971,7 +971,7 @@ def _declared_name(name: str, definition: str) -> str:
 ## @param conn Open connection to the database being built.
 ## @return (rowid → identity triple, set of rowids doxygen gave a body).
 ## @version 2
-## @dg_internal
+## @utility
 def _function_identities(
     conn: sqlite3.Connection,
 ) -> tuple[dict[int, tuple[str, str, str]], set[int]]:
@@ -1016,7 +1016,7 @@ def _function_identities(
 ## @param conn Open connection to the database being built.
 ## @return (rowid → (bodyfile, bodystart) for rows with a body, rowids defined in their own file).
 ## @version 1
-## @dg_internal
+## @utility
 def _function_bodies(conn: sqlite3.Connection) -> tuple[dict[int, tuple[int, int]], set[int]]:
     """A BODY, NOT A ROW, IS ONE FUNCTION. doxygen copies a definition's body range onto the
     header row that declares it, so two rows can carry one body; and two `static` helpers with
@@ -1052,7 +1052,7 @@ def _function_bodies(conn: sqlite3.Connection) -> tuple[dict[int, tuple[int, int
 ## @param homes Rows defined in the file that holds their body.
 ## @return tuple(candidate rowids) → the rowid to resolve to.
 ## @version 1
-## @dg_internal
+## @utility
 def _one_function_targets(
     name_to_rowids: dict[str, list[int]],
     identity_of: dict[int, tuple[str, str, str]],
@@ -1101,7 +1101,7 @@ def _one_function_targets(
 ## @param defined The rowids doxygen gave a body, so a definition outranks its declaration.
 ## @return (promoted_to_resolved, still_fuzzy).
 ## @version 1
-## @dg_internal
+## @utility
 def _collapse_duplicate_targets(
     edges_fuzzy: list[tuple[int, int, str]],
     identity_of: dict[int, tuple[str, str, str]],
@@ -1160,7 +1160,7 @@ def _collapse_duplicate_targets(
 ## @param defined The rowids doxygen gave a body.
 ## @return The winning triple, or None when the group is genuinely ambiguous.
 ## @version 1
-## @dg_internal
+## @utility
 def _one_target(
     edges: list[tuple[int, int, str]],
     identity_of: dict[int, tuple[str, str, str]],
@@ -1186,7 +1186,7 @@ def _one_target(
 ## @param scope_of Rowid to owning scope.
 ## @return True only when the receiver is known AND matches no candidate.
 ## @version 1
-## @dg_internal
+## @utility
 def _receiver_contradicts(
     receiver: str,
     candidates: list[int],
@@ -1228,7 +1228,7 @@ def _receiver_contradicts(
 ## @param scopes The distinct `memberdef.scope` values that matched the receiver's type.
 ## @return True when they are spellings of a single class.
 ## @version 1
-## @dg_internal
+## @utility
 def _one_class(scopes: set[str]) -> bool:
     """PAIRWISE, not transitively, and that is the conservative half. `_scope_is` is a
     `::`-boundary match in both directions, so `entropic::ServerManager` and `ServerManager`
@@ -1258,7 +1258,7 @@ def _one_class(scopes: set[str]) -> bool:
 ## @param klass A class name, possibly unqualified.
 ## @return True when they name the same class.
 ## @version 2
-## @dg_internal
+## @utility
 def _scope_is(scope: str, klass: str) -> bool:
     """Matched at a `::` boundary in BOTH directions, because either side may be the qualified
     one: a member declared `AgentEngine*` has an unqualified class while the method's scope is
@@ -1295,7 +1295,7 @@ def _scope_is(scope: str, klass: str) -> bool:
 ## @param definition_of Maps a rowid to its doxygen `definition` signature.
 ## @return The subset whose signature contains the qualified name at identifier boundaries.
 ## @version 1
-## @dg_internal
+## @utility
 def _narrow_by_qualifier(
     qualified: str,
     candidates: list[int],
@@ -1332,7 +1332,7 @@ def _narrow_by_qualifier(
 ## @return (reachable candidates, non-method candidates owned by the receiver).
 ## v2 (agent C's W4): an object is owned only by a caller in its own module.
 ## @version 2
-## @dg_internal
+## @utility
 def _member_reachable(
     candidates: list[int],
     receiver: str,
@@ -1380,7 +1380,7 @@ def _member_reachable(
 ## @param caller_definition The caller's dotted definition (`src.api.useIt`), or "".
 ## @return True when the caller sits in the object's module.
 ## @version 1
-## @dg_internal
+## @utility
 def _same_module(owner_scope: str, caller_definition: str) -> bool:
     """AN UNKNOWN CALLER FAILS CLOSED: ownership is the one path that makes a member call
     resolved, so without the caller's module there is no evidence the object is in scope.
@@ -1400,7 +1400,7 @@ def _same_module(owner_scope: str, caller_definition: str) -> bool:
 ## @param conn Open index connection.
 ## @return Interface names.
 ## @version 1
-## @dg_internal
+## @utility
 def _interfaces(conn: sqlite3.Connection) -> frozenset[str]:
     """@brief Interface names. @return The set."""
     if not _table_exists(conn, "compounddef"):
@@ -1416,7 +1416,7 @@ def _interfaces(conn: sqlite3.Connection) -> frozenset[str]:
 ## @param interfaces Interface names.
 ## @return Interface name → every class implementing it, directly or through a subclass.
 ## @version 1
-## @dg_internal
+## @utility
 def _interface_implementors(
     bases_of: dict[str, set[str]], interfaces: frozenset[str]
 ) -> dict[str, set[str]]:
@@ -1446,7 +1446,7 @@ def _interface_implementors(
 ## @param definition_of rowid → definition.
 ## @return The candidates on the interface or an implementor; None when the rule does not apply.
 ## @version 1
-## @dg_internal
+## @utility
 def _interface_family(
     receiver: str,
     candidates: list[int],
@@ -1483,7 +1483,7 @@ def _interface_family(
 ## @param conn Open index connection.
 ## @return e.g. `app.client.rest.base.ClientBase`.
 ## @version 1
-## @dg_internal
+## @utility
 def _class_scopes(conn: sqlite3.Connection) -> frozenset[str]:
     """@brief Class scope names. @return The set."""
     if not _table_exists(conn, "compounddef"):
@@ -1505,7 +1505,7 @@ def _class_scopes(conn: sqlite3.Connection) -> frozenset[str]:
 ## @param file_of rowid → file: the caller's own file wins a dotted-key collision (W8).
 ## v2 (W8): same-file preference.
 ## @version 2
-## @dg_internal
+## @utility
 def _lexical(
     caller_rowid: int,
     name: str,
@@ -1550,7 +1550,7 @@ _DOTTED = re.compile(r"[\w$#]+(?:\.[\w$#]+)+")
 ## @param definition A memberdef `definition` string.
 ## @return The owning class's bare name, or "".
 ## @version 1
-## @dg_internal
+## @utility
 def _owner_tail(definition: str) -> str:
     """@brief Owning class of a definition. @return Bare class name or ""."""
     head = definition.split("(", 1)[0].strip().split(" ")[-1]
@@ -1565,7 +1565,7 @@ def _owner_tail(definition: str) -> str:
 ## @param bases_of Class name → direct base names.
 ## @return The candidates on the nearest base defining the method; empty when none or a tie.
 ## @version 1
-## @dg_internal
+## @utility
 def _inherited(
     qualified: str,
     candidates: list[int],
@@ -1600,7 +1600,7 @@ def _inherited(
 ## @param conn Open index connection.
 ## @return Bare derived name → bare base names.
 ## @version 1
-## @dg_internal
+## @utility
 def _class_bases(conn: sqlite3.Connection) -> dict[str, set[str]]:
     """BARE NAMES, because a call site's qualifier is bare. Two classes sharing a bare name merge
     their bases, which can only add candidates to the nearest level — and `_inherited` refuses a
@@ -1656,7 +1656,7 @@ _MAX_CALLEE_UNWRAP = 8
 ## @param callee The call_expression's `function` child (may be None).
 ## @return The naming identifier node, or None when the callee is not a static name.
 ## @version 1
-## @dg_internal
+## @utility
 def _callee_name_node(callee: Any) -> Any:
     """Peel member/qualified/template wrappers off a callee.
 
@@ -1682,7 +1682,7 @@ def _callee_name_node(callee: Any) -> Any:
 ## @param node Parent node.
 ## @return The lone named child, or None.
 ## @version 2
-## @dg_internal
+## @utility
 def _sole_child(node: Any) -> Any:
     """@brief Return the only named child, else None (ambiguous to unwrap)."""
     named = [c for c in node.children if c.is_named]
@@ -1695,7 +1695,7 @@ def _sole_child(node: Any) -> Any:
 ## JSX becomes a call edge rather than a component with no inbound edge at all.
 ## v12 (round 5): a member call on a typed local or parameter carries `Type::method` (agent C's W1).
 ## @version 12
-## @dg_internal
+## @utility
 def _ast_harvest_calls(tree: Any, src_bytes: bytes) -> list[list[Any]]:
     """Walk the parse tree iteratively, recording every direct call's callee
     identifier, source line, and whether the callee had to be UNWRAPPED from a
@@ -1808,7 +1808,7 @@ _CONSTRUCTING_TEMPLATES = ("make_unique", "make_shared")
 ## @param src_bytes The file's bytes, for slicing.
 ## @return e.g. 'entropic::BashServer', or '' when this is not a construction.
 ## @version 1
-## @dg_internal
+## @utility
 def _construction_type(callee_name: str, raw_callee: Any, src_bytes: bytes) -> str:
     """READS THE TEMPLATE ARGUMENT, WHICH IS NOT AN INFERENCE. `std::make_unique<T>` states T
     at the call site as plainly as `T(...)` does, so recovering the edge needs no type analysis
@@ -1841,7 +1841,7 @@ def _construction_type(callee_name: str, raw_callee: Any, src_bytes: bytes) -> s
 ## @param text A type as the call site wrote it, e.g. 'std::vector<int>'.
 ## @return The bare class name, e.g. 'vector'.
 ## @version 1
-## @dg_internal
+## @utility
 def _class_tail(text: str) -> str:
     """TEMPLATE ARGUMENTS ARE CUT BEFORE THE NAMESPACE TAIL IS TAKEN, and the order matters:
     `std::vector<int>` split on `::` last would yield `vector<int>`, and split on `<` last would
@@ -1861,7 +1861,7 @@ def _class_tail(text: str) -> str:
 ## @return e.g. 'engine' for `handle->engine->run_turn()`, or '' when there is no receiver.
 ## v2 (round 5): a bare receiver the function declares is recorded empty (agent C's W1).
 ## @version 2
-## @dg_internal
+## @utility
 def _receiver_tail(raw_callee: Any, src_bytes: bytes) -> str:
     """THE TAIL, not the whole expression. For `handle->engine->run_turn(input)` the callee is
     a `field_expression` whose `argument` is itself `handle->engine`; the piece that has a
@@ -1898,7 +1898,7 @@ def _receiver_tail(raw_callee: Any, src_bytes: bytes) -> str:
 ## @param src_bytes The file's raw bytes.
 ## @return The class name (smart pointers peeled), or "" when not a typed local.
 ## @version 1
-## @dg_internal
+## @utility
 def _local_receiver_class(raw_callee: Any, src_bytes: bytes) -> str:
     """@brief Typed local receiver. @return Class or ''."""
     if raw_callee is None or raw_callee.type != "field_expression":
@@ -1915,7 +1915,7 @@ def _local_receiver_class(raw_callee: Any, src_bytes: bytes) -> str:
 ## @param node A node.
 ## @return The `function_definition`, or None at file scope.
 ## @version 1
-## @dg_internal
+## @utility
 def _enclosing_c_function(node: Any) -> Any:
     """@brief Enclosing function. @return Node or None."""
     cur = node.parent
@@ -1929,7 +1929,7 @@ def _enclosing_c_function(node: Any) -> Any:
 ## @param src_bytes The file's raw bytes.
 ## @return {name: declared type text, "" when the declaration does not name one}.
 ## @version 1
-## @dg_internal
+## @utility
 def _c_locals(func: Any, src_bytes: bytes) -> dict[str, str]:
     """ONLY DECLARATOR NAMES, never initialisers: `EngB *engine = new EngB()` declares `engine`;
     the `new EngB()` names nothing — except as the TYPE of an `auto` declaration (`auto e = new
@@ -1967,7 +1967,7 @@ def _c_locals(func: Any, src_bytes: bytes) -> dict[str, str]:
 ## @param src_bytes The file's raw bytes.
 ## @return The text.
 ## @version 1
-## @dg_internal
+## @utility
 def _text_of(node: Any, src_bytes: bytes) -> str:
     """@brief Text. @return Str."""
     if node is None:
@@ -1981,7 +1981,7 @@ def _text_of(node: Any, src_bytes: bytes) -> str:
 ## @return `T` for `new T(...)`, `std::make_unique<T>()` / `make_shared<T>()`, or a
 ##         `static_cast<T>` / `dynamic_cast<T>` / `reinterpret_cast<T>` / `const_cast<T>`, else "".
 ## @version 1
-## @dg_internal
+## @utility
 def _auto_type(decl: Any, src_bytes: bytes) -> str:
     """ONLY A STATED CONSTRUCTION: `auto x = make_thing()` names no type here, and a guess would
     be the coincidence this replaces.
@@ -2016,7 +2016,7 @@ _CASTS = frozenset({"static_cast", "dynamic_cast", "reinterpret_cast", "const_ca
 ## @param src_bytes The file's raw bytes.
 ## @return Zero or one name.
 ## @version 1
-## @dg_internal
+## @utility
 def _c_declarator_name(decl: Any, src_bytes: bytes) -> list[str]:
     """@brief Declared name. @return Names."""
     cur = decl
@@ -2031,7 +2031,7 @@ def _c_declarator_name(decl: Any, src_bytes: bytes) -> list[str]:
 ## @param call_node The call_expression node.
 ## @return The count, or -1 when the argument list cannot be read.
 ## @version 1
-## @dg_internal
+## @utility
 def _call_argc(call_node: Any) -> int:
     """Counts NAMED children of the `arguments` node, so punctuation is not counted. Returns -1
     rather than 0 when the list is unreadable, because 0 is a real arity and conflating "no
@@ -2053,7 +2053,7 @@ def _call_argc(call_node: Any) -> int:
 ## @param src_bytes The file's bytes, for slicing.
 ## @return e.g. 'Ns::Class::method', or '' when the callee carries no qualifier.
 ## @version 3
-## @dg_internal
+## @utility
 def _qualifier_text(raw_callee: Any, src_bytes: bytes) -> str:
     """Only a `qualified_identifier` (or, for Rust, its `scoped_identifier`
     analogue — `Type::method`/`module::func`) is reported. A `field_expression`
@@ -2206,7 +2206,7 @@ def _via_module(
 ## @param rels Every indexed repo-relative path.
 ## @return (directories holding an `__init__.py`, global import roots).
 ## @version 1
-## @dg_internal
+## @utility
 def _py_import_roots(rels: Any) -> tuple[frozenset[str], frozenset[str]]:
     """THE REPOSITORY ROOT AND EACH TOP-LEVEL PACKAGE'S PARENT (a `src/` layout's `src`). A
     package is a directory with `__init__.py`; a top-level one is a package whose parent is not.
@@ -2225,7 +2225,7 @@ def _py_import_roots(rels: Any) -> tuple[frozenset[str], frozenset[str]]:
 ## @param rel A repo-relative path.
 ## @return The parent.
 ## @version 1
-## @dg_internal
+## @utility
 def _parent(rel: str) -> str:
     """@brief Parent. @return Dir."""
     return rel.rsplit("/", 1)[0] if "/" in rel else ""
@@ -2238,7 +2238,7 @@ def _parent(rel: str) -> str:
 ## @param py_roots (package dirs, global roots).
 ## @return Root-anchored stems (a relative module's stems unchanged).
 ## @version 1
-## @dg_internal
+## @utility
 def _rooted(module: str, caller_file: str, paths: list[str], py_roots: tuple) -> list[str]:
     """A RELATIVE stem is anchored at the caller's package already. An absolute one is joined to
     each root: the global ones and the caller's own script directory — the nearest ancestor that
@@ -2264,7 +2264,7 @@ def _rooted(module: str, caller_file: str, paths: list[str], py_roots: tuple) ->
 ## @return True when the file is under that directory, anchored at the stem's start.
 ## v2 (W5): never a tree-wide suffix — an absolute stem must start at the repository root.
 ## @version 2
-## @dg_internal
+## @utility
 def _inside(rel: str, stem: str, relative: bool = False) -> bool:
     """A RELATIVE stem is the caller's own package path, so it is anchored; an absolute one is
     anchored at the root. A same-named directory deep in the tree (`vendor/json/`) is not the
@@ -2282,7 +2282,7 @@ def _inside(rel: str, stem: str, relative: bool = False) -> bool:
 ## @param caller_file The calling file, repo-relative.
 ## @return Candidate stems without suffix (`pkg/query/export`).
 ## @version 1
-## @dg_internal
+## @utility
 def _module_paths(module: str, caller_file: str) -> list[str]:
     """A RELATIVE module climbs from the caller's package (one dot = its own package); an absolute
     one is matched as a path suffix, so a `src/` layout or a nested package root still finds it.
@@ -2304,7 +2304,7 @@ def _module_paths(module: str, caller_file: str) -> list[str]:
 ## @param stem A module stem (`pkg/query/export`).
 ## @return True for `<stem>.py` / `<stem>/__init__.py`, at the root or as a path suffix.
 ## @version 1
-## @dg_internal
+## @utility
 def _names_module(rel: str, stem: str, exact: bool = False) -> bool:
     """@brief Match. @return Bool."""
     for form in (f"{stem}.py", f"{stem}/__init__.py"):
@@ -2318,7 +2318,7 @@ def _names_module(rel: str, stem: str, exact: bool = False) -> bool:
 ## @param rel_of path rowid → repo-relative path.
 ## @return The map.
 ## @version 1
-## @dg_internal
+## @utility
 def _file_of(file_funcs: dict, rel_of: dict) -> dict[int, str]:
     """@brief Invert. @return Map."""
     return {int(f[0]): rel_of.get(p, "") for p, funcs in file_funcs.items() for f in funcs}
@@ -2330,7 +2330,7 @@ def _file_of(file_funcs: dict, rel_of: dict) -> dict[int, str]:
 ## v7 (agent C's W5): `py_roots` — absolute modules resolve on import roots only.
 ## v8 (W8): passes `file_of` to each call's resolution.
 ## @version 8
-## @dg_internal
+## @utility
 def _fold_call_payload(
     payload: list[list[Any]],
     funcs_in_file: list[tuple[int, str, int, int]],
@@ -2431,7 +2431,7 @@ class _DispatchFamilies:
     ## @param class_of memberdef rowid -> owning class compound rowid.
     ## @param parents class compound rowid -> its direct base compound rowids.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def __init__(self, class_of: dict[int, int], parents: dict[int, set[int]]) -> None:
         """@brief Store the maps.
         @version 1
@@ -2444,7 +2444,7 @@ class _DispatchFamilies:
     ## @param conn Open connection.
     ## @return The families, empty when either table is absent.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     @classmethod
     def load(cls, conn: sqlite3.Connection) -> _DispatchFamilies:
         """@brief Load membership and inheritance.
@@ -2464,7 +2464,7 @@ class _DispatchFamilies:
     ## @param klass Class compound rowid.
     ## @return The class and all of its ancestors.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def ancestry(self, klass: int) -> frozenset[int]:
         """CYCLE-SAFE, because a malformed index can record a class as its own ancestor and an
         unbounded walk would hang the build on it.
@@ -2491,7 +2491,7 @@ class _DispatchFamilies:
     ## @param candidates Candidate memberdef rowids.
     ## @return True when every candidate's class shares a common ancestor.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def is_family(self, candidates: list[int]) -> bool:
         """A CANDIDATE WITH NO KNOWN CLASS DISQUALIFIES THE SET, for the reason `_attributable`
         gives about an unknown identity: a set only partly known cannot be shown to be a family.
@@ -2517,7 +2517,7 @@ class _DispatchFamilies:
 ## @param families Class membership and inheritance.
 ## @return One rowid per identity credited; empty when the site is evidence about nothing.
 ## @version 1
-## @dg_internal
+## @utility
 def _credited(
     candidates: list[int],
     identity_of: dict[int, tuple[str, str, str]],
@@ -2555,7 +2555,7 @@ def _credited(
 ## @param identity_of rowid → (name, definition, argsstring).
 ## @return The rowid to credit, or None when the site names several functions.
 ## @version 2
-## @dg_internal
+## @utility
 def _attributable(
     candidates: list[int], identity_of: dict[int, tuple[str, str, str]]
 ) -> int | None:
@@ -2592,7 +2592,7 @@ def _attributable(
 ## @param conn Open connection to the database being built.
 ## @return Their rowids; empty when the index has none.
 ## @version 1
-## @dg_internal
+## @utility
 def _signature_rowids(conn: sqlite3.Connection) -> frozenset[int]:
     """PARSE-BUILT ONLY. A doxygen prototype also has no body, but a C/C++ declaration shares its
     definition's identity already, so it never split attribution and is left exactly as it was.
@@ -2619,7 +2619,7 @@ def _signature_rowids(conn: sqlite3.Connection) -> frozenset[int]:
 ## @param signatures Rowids of type signatures.
 ## @return The implementations, or the candidates unchanged when nothing else is left.
 ## @version 1
-## @dg_internal
+## @utility
 def _without_signatures(candidates: list[int], signatures: frozenset[int]) -> list[int]:
     """A SIGNATURE IS THE CONTRACT, NOT A COMPETING CALLEE. `BaseDataOperatorType` re-declares
     `batchRecords`; counting it as a second identity made every refused `batchRecords` site
@@ -2643,7 +2643,7 @@ def _without_signatures(candidates: list[int], signatures: frozenset[int]) -> li
 ## 0.8% -> 5.6% of inbound-less functions, self 2.4% -> 3.2%, mbedtls 3.3% -> 3.5%.
 ## v3: TypeScript signature rows are set aside before crediting (`_without_signatures`).
 ## @version 3
-## @dg_internal
+## @utility
 def _insert_unresolved_inbound(
     conn: sqlite3.Connection,
     unresolved: list[list[int]],
@@ -2714,7 +2714,7 @@ def _insert_unresolved_inbound(
 ## @param edges_fuzzy (caller, callee, source) triples with several matches.
 ## @return (resolved inserted, fuzzy inserted).
 ## @version 2
-## @dg_internal
+## @utility
 def _ast_insert_edges(
     conn: sqlite3.Connection,
     edges_resolved: list[tuple[int, int, str]],
@@ -2768,7 +2768,7 @@ _FOLD_STAGE_VERSION = 9
 ## @param one_function Candidate sets that name one function.
 ## @return Hex digest over all of them.
 ## @version 2
-## @dg_internal
+## @utility
 def _resolution_digest(
     name_to_rowids: dict,
     definition_of: dict,
@@ -2829,7 +2829,7 @@ def _resolution_digest(
 ## @param conn Open connection to the index.
 ## @return Mapping of path rowid to its recorded name.
 ## @version 1
-## @dg_internal
+## @utility
 def _rel_paths(conn: sqlite3.Connection) -> dict[int, str]:
     """@brief Read the path table.
     @return rowid -> relative path.
@@ -2845,7 +2845,7 @@ def _rel_paths(conn: sqlite3.Connection) -> dict[int, str]:
 ## @param unresolved Accumulator for unresolved inbound rows.
 ## @return None.
 ## @version 1
-## @dg_internal
+## @utility
 def _extend_from_cache(
     cached: list,
     edges_resolved: list,
@@ -2883,7 +2883,7 @@ def _extend_from_cache(
 ## are folded into the cache key.
 ## v7 (round 5): passes the Python import roots and digests them (agent C's W5).
 ## @version 7
-## @dg_internal
+## @utility
 def _fold_all_files(harvested: list, maps: dict, context: tuple) -> tuple[list, list, list]:
     """gh#34. THE 59%. Measured on a 6.8 GB repository refreshing after one touched file: the
     whole refresh cost 8.6 s with ZERO payloads recomputed, of which this stage was 3,255 ms
@@ -3180,7 +3180,7 @@ def veto_unimportable_doxygen_python(conn: sqlite3.Connection, repo_root: Path) 
 ## @param path The file.
 ## @return Dotted module names, relative ones keeping their dots; [] when unreadable.
 ## @version 1
-## @dg_internal
+## @utility
 def _py_import_modules(path: Path) -> list[str]:
     """@brief Import modules. @return Names."""
     ## THROUGH THE SUBSTRATE, as every other parse here: clew declares `lang_parsing_substrate`,
@@ -3209,7 +3209,7 @@ def _py_import_modules(path: Path) -> list[str]:
 ## @param py_roots (package dirs, import roots).
 ## @return True when the edge is contradicted.
 ## @version 1
-## @dg_internal
+## @utility
 def _import_contradicts(modules: list[str], caller: str, callee: str, py_roots: tuple) -> bool:
     """@brief Contradicted. @return Bool."""
     stem = callee[: -len("/__init__.py")] if callee.endswith("/__init__.py") else callee[:-3]
@@ -3340,7 +3340,7 @@ _PY_SCOPE_SKIPS = ("block", "decorated_definition")
 ## @param node Any node, typically a `call` whose callee is a bare identifier.
 ## @return True if the nearest enclosing function is owned by a class definition.
 ## @version 1
-## @dg_internal
+## @utility
 def _inside_python_method(node: Any) -> bool:
     """gh#30's discriminator. Finds the NEAREST enclosing `function_definition` and
     asks whether a `class_definition` owns it, which keeps the two over-reach cases
@@ -3373,7 +3373,7 @@ def _inside_python_method(node: Any) -> bool:
 ## @param src_bytes The file's raw bytes.
 ## @return The callee's name when the call is bare or self-rooted, else None.
 ## @version 4
-## @dg_internal
+## @utility
 def _self_directed_callee(node: Any, src_bytes: bytes) -> str | None:
     """Refuses every qualified form that is NOT rooted at the running object,
     including `A::m()` and `::close()`. `::close()` inside a member named
@@ -3404,7 +3404,7 @@ def _self_directed_callee(node: Any, src_bytes: bytes) -> str | None:
 ## @param node Any node, typically a call whose callee is a bare identifier.
 ## @return True if the nearest enclosing function is a method or a class-field function.
 ## @version 1
-## @dg_internal
+## @utility
 def _inside_js_method(node: Any) -> bool:
     """The nearest enclosing function decides, as for Python: a closure inside a method
     is its own function, so a bare recursive call there is still recursion.
@@ -3427,7 +3427,7 @@ def _inside_js_method(node: Any) -> bool:
 ## @param src_bytes The file's raw bytes.
 ## @return The tail name, or None when the receiver is another object.
 ## @version 1
-## @dg_internal
+## @utility
 def _self_rooted_name(callee: Any, src_bytes: bytes) -> str | None:
     """The receiver is compared as EXACT text, so `self.conn.close()` — whose
     receiver is `self.conn`, a different object — is refused while
@@ -3453,7 +3453,7 @@ def _self_rooted_name(callee: Any, src_bytes: bytes) -> str | None:
 ## @param src_bytes The file's raw bytes.
 ## @return (callee name, 1-based line) for each bare or self-rooted call.
 ## @version 2
-## @dg_internal
+## @utility
 def _self_directed_sites(tree: Any, src_bytes: bytes) -> list[tuple[str, int]]:
     """@brief Collect a file's bare and self-rooted call sites.
 
@@ -3477,7 +3477,7 @@ def _self_directed_sites(tree: Any, src_bytes: bytes) -> list[tuple[str, int]]:
 ## @param conn Open connection to the database being built.
 ## @return (rowid, name, body file rowid) per distinct self-edge caller.
 ## @version 2
-## @dg_internal
+## @utility
 def _self_edge_callers(conn: sqlite3.Connection) -> list[tuple[int, str, int]]:
     """Keyed on `bodyfile_id` (falling back to `file_id`) to match
     `_build_function_indexes`, so a function declared in one file and defined in
@@ -3514,7 +3514,7 @@ _SELF_SITES_STAGE_VERSION = 2
 ## @param cache Live index cache, or None to always parse.
 ## @return The (name, line) sites, or None when the file could not be parsed at all.
 ## @version 1
-## @dg_internal
+## @utility
 def _self_sites_for(
     rel_path: str,
     abs_path: Path,
@@ -3556,7 +3556,7 @@ def _self_sites_for(
 ## @param members This file's self-edge callers as (rowid, name).
 ## @return (rowids proved recursive, rowids with no usable body range).
 ## @version 2
-## @dg_internal
+## @utility
 def _file_self_edge_verdicts(
     sites: list[tuple[str, int]],
     funcs_in_file: list[tuple[int, str, int, int]],
@@ -3599,7 +3599,7 @@ def _file_self_edge_verdicts(
 ## @param cache Live index cache, or None to parse every file.
 ## @return (rowids proved recursive, rowids that could not be checked).
 ## @version 4
-## @dg_internal
+## @utility
 def _gather_self_call_evidence(
     conn: sqlite3.Connection,
     repo_root: Path,
@@ -3650,7 +3650,7 @@ def _gather_self_call_evidence(
 ## @param rowids Callers whose self-edges were judged fabricated.
 ## @return Number of `call_edges` rows actually deleted.
 ## @version 2
-## @dg_internal
+## @utility
 def _delete_self_edges(conn: sqlite3.Connection, rowids: list[int]) -> int:
     """Counted from `total_changes` rather than `cursor.rowcount`, which is
     documented per-statement and is not a reliable aggregate across an
@@ -3675,7 +3675,7 @@ def _delete_self_edges(conn: sqlite3.Connection, rowids: list[int]) -> int:
 ## @param rowids The subset to render.
 ## @return Comma-joined `name#rowid` tokens, or "none" when the subset is empty.
 ## @version 1
-## @dg_internal
+## @utility
 def _self_edge_labels(names: dict[int, str], rowids: Iterable[int]) -> str:
     """gh#30. A BARE name in this log is ambiguous exactly where the guard is most
     likely to be doubted: three unrelated `_classify` functions exist in this repo,
@@ -3703,7 +3703,7 @@ def _self_edge_labels(names: dict[int, str], rowids: Iterable[int]) -> str:
 ## @param doomed Callers whose self-edges were deleted.
 ## @param deleted Number of rows deleted.
 ## @version 3
-## @dg_internal
+## @utility
 def _log_self_edge_verdict(
     names: dict[int, str],
     proved: set[int],
@@ -3795,7 +3795,7 @@ def prune_fabricated_self_edges(
 ## @param conn Open connection to the database being built.
 ## @return Mapping of function rowid to its signature; {} when the column is absent.
 ## @version 1
-## @dg_internal
+## @utility
 def _definition_index(conn: sqlite3.Connection) -> dict[int, str]:
     """Built ONCE per build rather than queried per call site — a qualified narrowing
     happens thousands of times and each one only needs a dict lookup.

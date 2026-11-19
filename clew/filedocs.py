@@ -84,7 +84,7 @@ _PLAIN_BLOCK = re.compile(r"^[ \t]*/\*(?![*!]).*?\*/[ \t]*\n?", re.DOTALL)
 ## @param text Raw block text.
 ## @return Single-spaced text with leading `*` gutters removed.
 ## @version 1
-## @dg_internal
+## @utility
 def _clean(text: str) -> str:
     """Removes the leading `*` gutter a doxygen block conventionally carries on
     each continuation line, then collapses whitespace runs so a multi-line block
@@ -106,7 +106,7 @@ def _clean(text: str) -> str:
 ## @param text Full decoded file contents.
 ## @return The text from the first line that is neither blank, a non-doxygen comment, nor a plain block comment.
 ## @version 1
-## @dg_internal
+## @utility
 def _strip_preamble(text: str) -> str:
     """Loops because the two skippable shapes interleave: an SPDX line, then a
     copyright block, then a blank, then the real block. Each branch consumes at least
@@ -158,7 +158,7 @@ class FileDocExtractor(ABC):
     ## @param text Full decoded file contents.
     ## @return Raw block text, or "" when absent.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     @abstractmethod
     def _raw(self, text: str) -> str:
         """@brief Language-specific location of the leading doc block.
@@ -184,7 +184,7 @@ class PythonFileDoc(FileDocExtractor):
     ## @param text Full decoded file contents.
     ## @return Docstring text or "".
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def _raw(self, text: str) -> str:
         """A `SyntaxError` yields "" rather than propagating: this stage annotates
         an index, and one unparseable file must not fail a build that doxygen
@@ -237,7 +237,7 @@ class CFamilyFileDoc(FileDocExtractor):
     ## @param text Full decoded file contents.
     ## @return Raw comment body or "".
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def _raw(self, text: str) -> str:
         """The preamble — blanks, `#` and non-doxygen `//` lines, and plain `/* */`
         blocks — is skipped OVER rather than treated as the end of the search, so an
@@ -258,7 +258,7 @@ class CFamilyFileDoc(FileDocExtractor):
     ## @param lines Source lines, starting at the first non-skippable one.
     ## @return Joined comment bodies, or "" when the first line is not one.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def _line_run(self, lines: list[str]) -> str:
         """@brief Collect doxygen line comments until the run ends.
         @return Joined bodies or "".
@@ -465,7 +465,7 @@ def ensure_file_docs_table(conn: sqlite3.Connection) -> None:
 ## @param conn Open connection to the index.
 ## @return Repo-relative paths in path order.
 ## @version 1
-## @dg_internal
+## @utility
 def _indexed_files(conn: sqlite3.Connection) -> list[str]:
     """Reads the INDEXED inventory rather than globbing the working tree, so this
     stage cannot widen the scope decision the build already made. A file doxygen
@@ -487,7 +487,7 @@ def _indexed_files(conn: sqlite3.Connection) -> list[str]:
 ## @param rel_path Repo-relative path, for the log line.
 ## @return Decoded text, or None.
 ## @version 1
-## @dg_internal
+## @utility
 def _read_text(path: Path, rel_path: str) -> str | None:
     """Strict UTF-8, for the reason `prose._ingest_one_doc_file` documents at
     length: `errors="replace"` once fed a long run of U+FFFD to a model, which
@@ -573,7 +573,7 @@ def ingest_file_docs(db_path: Path, repo_root: Path, cache: IndexCache | None = 
 ## @return List of (repo-relative path, cleaned documentation) pairs.
 ## v3 (1.3.4): memoizes each file's documentation on its content.
 ## @version 3
-## @dg_internal
+## @utility
 def _collect_file_docs(
     conn: sqlite3.Connection, repo_root: Path, cache: IndexCache | None = None
 ) -> list[tuple[str, str]]:
@@ -622,7 +622,7 @@ def _collect_file_docs(
 ## @param rel Its repo-relative path.
 ## @return The documentation, or None when unreadable or undocumented.
 ## @version 1
-## @dg_internal
+## @utility
 def _doc_of(path: Path, rel: str) -> str | None:
     """@brief Read and extract one file's documentation. @return Doc or None."""
     text = _read_text(path, rel)

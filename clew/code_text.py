@@ -129,7 +129,7 @@ def record_code_text(db_path: Path, repo_root: Path, cache: IndexCache | None = 
 ## @param by_file The function-corpus rows grouped by file, as `record_code_text` built them.
 ## @return None.
 ## @version 1
-## @dg_internal
+## @utility
 def _record_file_scope(
     conn: sqlite3.Connection,
     repo_root: Path,
@@ -193,7 +193,7 @@ def file_scope_text(
 ## @param spans (start, end) line spans to exclude.
 ## @return The text, or "".
 ## @version 1
-## @dg_internal
+## @utility
 def _outside(path: Path, spans: list[tuple[int, int]]) -> str:
     """@brief Uncovered text. @return Text."""
     lines = _lines(path)
@@ -233,7 +233,7 @@ def code_text_rows(conn: sqlite3.Connection, rel: str | None = None) -> list[tup
 ## @param file_rows One file's rows, as `code_text_rows` orders them.
 ## @return The key.
 ## @version 1
-## @dg_internal
+## @utility
 def spans_key(file_rows: list[tuple[Any, ...]]) -> str:
     """THE SPANS ARE IN THE KEY because they come from the index, not the file — a body whose
     extent moved is re-cut.
@@ -280,7 +280,7 @@ def file_code_texts(
 ## @param spans (start, end, is_module) per row, in row order.
 ## @return One text per span, or None when the file cannot be read.
 ## @version 1
-## @dg_internal
+## @utility
 def _file_texts(path: Path, spans: list[tuple[int, int, bool]]) -> list[str] | None:
     """A MODULE ROW IS ONLY WHAT NO FUNCTION HOLDS: a module's own text — constants, wiring — and
     not a second copy of every function in the file, which doubled the corpus. Each text also
@@ -313,7 +313,7 @@ def _file_texts(path: Path, spans: list[tuple[int, int, bool]]) -> list[str] | N
 ## @param conn Open connection.
 ## @return (rowid, path, first line, last line, name) rows; empty without `decl_extent`.
 ## @version 1
-## @dg_internal
+## @utility
 def _binding_rows(conn: sqlite3.Connection) -> list[tuple]:
     """A HIT INSIDE A CONSTANT NAMES THE CONSTANT: mattermost's retry policy sits in the class
     field `DEFAULT_CONFIG`, and the corpus answered with the whole file's `__module__`.
@@ -332,7 +332,7 @@ def _binding_rows(conn: sqlite3.Connection) -> list[tuple]:
 
 ## @brief Whether a table exists.
 ## @version 1
-## @dg_internal
+## @utility
 def _has_table(conn: sqlite3.Connection, name: str) -> bool:
     """@brief Table presence. @return True when present."""
     return bool(conn.execute("SELECT 1 FROM sqlite_master WHERE name = ?", (name,)).fetchone())
@@ -357,7 +357,7 @@ _QUERY_WORD = re.compile(r"[\w$]+")
 ## @param text A function body.
 ## @return Lower-cased parts, e.g. `retry`, `limit` for `retryLimit`.
 ## @version 1
-## @dg_internal
+## @utility
 def _identifier_parts(text: str) -> list[str]:
     """@brief Split compound identifiers. @return Parts."""
     parts: set[str] = set()
@@ -369,7 +369,7 @@ def _identifier_parts(text: str) -> list[str]:
 
 ## @brief A file's lines, or None when it cannot be read as text.
 ## @version 1
-## @dg_internal
+## @utility
 def _lines(path: Path) -> list[str] | None:
     """@brief Read lines. @return Lines or None."""
     try:
@@ -463,7 +463,7 @@ def search_code(
 ## @param tokens The query words.
 ## @return The MATCH expression.
 ## @version 1
-## @dg_internal
+## @utility
 def _match_query(tokens: list[str]) -> str:
     """ONE SPELLING for the search and its count, so the total counts what the search matches.
 
@@ -513,7 +513,7 @@ def count_code(conn: sqlite3.Connection, text: str) -> int:
 ## @param repo_root Where snippets are read from.
 ## @return The hits.
 ## @version 1
-## @dg_internal
+## @utility
 def _file_hits(
     conn: sqlite3.Connection, query: str, tokens: list[str], limit: int, repo_root: Path | None
 ) -> list[CodeHit]:
@@ -548,7 +548,7 @@ def _file_hits(
 ##
 ## @brief The first line in a span containing a token, read from the file.
 ## @version 2
-## @dg_internal
+## @utility
 def _first_match(
     repo_root: Path | None, rel: str, start: int, end: int, tokens: list[str]
 ) -> tuple[int, str]:

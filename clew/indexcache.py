@@ -114,7 +114,7 @@ class IndexCache:
 
     ## @brief Open (creating if needed) the sidecar cache and load prior state.
     ## @version 5
-    ## @dg_internal
+    ## @utility
     def __init__(self, cache_path: Path, repo_root: Path, read_enabled: bool = True) -> None:
         self.cache_path = cache_path
         self.repo_root = repo_root
@@ -137,7 +137,7 @@ class IndexCache:
 
     ## @brief Rebuild `doxygen_cache` when an older sidecar predates one of its columns.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def _align_doxygen_cache(self) -> None:
         """`CREATE TABLE IF NOT EXISTS` does NOTHING to a table that already exists, so a
         sidecar written before `output_sha` keeps its three-column shape and the first
@@ -166,7 +166,7 @@ class IndexCache:
 
     ## @brief Wipe every cached artifact when CLEW_BUILD_VERSION changed.
     ## @version 4
-    ## @dg_internal
+    ## @utility
     def _invalidate_on_build_version(self) -> None:
         """A build-version bump means the pipeline's logic moved; belt-and-
         braces, drop everything rather than reason about which stage moved.
@@ -199,7 +199,7 @@ class IndexCache:
     ## @brief Load the previous run's per-file identities.
     ## @return Mapping of repo-relative path to its stored FileIdentity.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def _load_source_files(self) -> dict[str, FileIdentity]:
         return {
             row[0]: FileIdentity(row[1], row[2], row[3])
@@ -211,7 +211,7 @@ class IndexCache:
     ## @brief Identity of one file, re-hashing only when the prefilter misses.
     ## @return FileIdentity for the path, or None when it cannot be stat'ed.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def _identity(self, rel: str, abs_path: Path) -> FileIdentity | None:
         try:
             stat = abs_path.stat()
@@ -299,7 +299,7 @@ class IndexCache:
     ## @param key The full (content_sha, stage, stage_version, extra_key) tuple.
     ## @return True when reads are enabled or this run wrote the entry itself.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def _readable(self, key: tuple[str, str, int, str]) -> bool:
         """@brief Apply the --rebuild rule, exempting this run's own writes.
 
@@ -404,7 +404,7 @@ class IndexCache:
     ## @param extra Additional key material.
     ## @return A seeded hasher, ready for the per-file fold or a direct hexdigest.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def _config_digest(self, doxyfile_content: str, extra: list[str]) -> Any:
         """SHARED WITH `tree_sha` ON PURPOSE. `config_sha` must be a strict prefix of what
         `tree_sha` folds, or the two could disagree about what counts as a configuration and

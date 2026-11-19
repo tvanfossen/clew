@@ -137,7 +137,7 @@ def series(out: Path, key: str, snapshot: dict[str, Any]) -> list[tuple[str, dic
 ## @param key The key.
 ## @return The snapshot or None.
 ## @version 1
-## @dg_internal
+## @utility
 def _maybe_snapshot(out: Path, key: str) -> dict[str, Any] | None:
     """@brief Read if present. @return Snapshot or None."""
     path = out / key / "site.json"
@@ -178,7 +178,7 @@ def diff_versions(out: Path, old: str, new: str) -> dict[str, Any]:
 ## @param diff The diff.
 ## @return HTML.
 ## @version 1
-## @dg_internal
+## @utility
 def _diff_body(diff: dict[str, Any]) -> str:
     """@brief Render. @return HTML."""
     e = html.escape
@@ -207,7 +207,7 @@ def _diff_body(diff: dict[str, Any]) -> str:
 ## @param body The body HTML.
 ## @return None.
 ## @version 1
-## @dg_internal
+## @utility
 def _page(path: Path, title: str, body: str) -> None:
     """@brief Write a page. @return None."""
     t = html.escape(title)
@@ -222,7 +222,7 @@ def _page(path: Path, title: str, body: str) -> None:
 ## @param out The versioned output root.
 ## @return Entries in recorded order.
 ## @version 1
-## @dg_internal
+## @utility
 def _versions(out: Path) -> list[dict[str, str]]:
     """@brief Read versions.json. @return Entries."""
     path = out / "versions.json"
@@ -234,7 +234,7 @@ def _versions(out: Path) -> list[dict[str, str]]:
 ## @param key The key.
 ## @return The snapshot.
 ## @version 1
-## @dg_internal
+## @utility
 def _snapshot(out: Path, key: str) -> dict[str, Any]:
     """@brief Read a snapshot. @return Data."""
     path = out / valid_key(key) / "site.json"

@@ -266,7 +266,7 @@ def configure_cache(path: Path | None) -> None:
 ## @param sample Which sample of a vote this is; 0 for the first or only call.
 ## @return Path to the entry, or None.
 ## @version 2
-## @dg_internal
+## @utility
 def _cache_entry(prompt: str, model: str, sample: int = 0) -> Path | None:
     """CONTENT-ADDRESSED ON THE WHOLE PROMPT, which already contains the mark text and the
     anonymised answer, so the key needs nothing else to be exact. The model id is included

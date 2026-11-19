@@ -173,7 +173,7 @@ _AGENT_DOCS = ("AGENTS.md", "CLAUDE.md", "SKILLS.md", "GEMINI.md", "llms.txt")
 ## @param text The document.
 ## @return Keys to strings ({} without front matter).
 ## @version 1
-## @dg_internal
+## @utility
 def _front_matter(text: str) -> dict[str, str]:
     """@brief Front matter. @return Mapping."""
     import yaml
@@ -193,7 +193,7 @@ def _front_matter(text: str) -> dict[str, str]:
 ## @param name The section.
 ## @return The line, or "".
 ## @version 1
-## @dg_internal
+## @utility
 def _section(body: str, name: str) -> str:
     """@brief Section line. @return Text."""
     found = re.search(rf"^#+\s*{name}\s*\n+\s*(\S.*?)\s*$", body, re.M | re.I)
@@ -204,7 +204,7 @@ def _section(body: str, name: str) -> str:
 ## @param rel The path.
 ## @return Digits, or "".
 ## @version 1
-## @dg_internal
+## @utility
 def _file_number(rel: str) -> str:
     """@brief Number. @return Digits."""
     found = _NUMBER.match(Path(rel).name)

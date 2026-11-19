@@ -108,7 +108,7 @@ ISR_SOURCE_NAMED = "ast_isr_name"
 ## @param src The file's raw bytes.
 ## @return The declared name, or "".
 ## @version 2
-## @dg_internal
+## @utility
 def _declared_name(node: Any, src: bytes) -> str:
     """Walks down through `function_declarator` / `parenthesized_declarator` /
     `pointer_declarator` to the identifier, which is where a macro-wrapped definition keeps the
@@ -138,7 +138,7 @@ def _declared_name(node: Any, src: bytes) -> str:
 ## @param src The file's raw bytes.
 ## @return True when the parameter list is empty or `(void)`.
 ## @version 1
-## @dg_internal
+## @utility
 def _takes_no_parameters(node: Any, src: bytes) -> bool:
     """A vector handler takes none. A same-shaped name that takes one is a helper the handler
     calls, which is a different claim about execution context.

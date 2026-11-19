@@ -62,7 +62,7 @@ def open_main(argv: list[str]) -> int:
 ## @param home The state root.
 ## @return The URL, or None.
 ## @version 1
-## @dg_internal
+## @utility
 def _live_hub(home: Path) -> str | None:
     """A RECORD LEFT BY A PROCESS THAT DIED (a crash skips the cleanup) is ignored: its port is
     closed, and opening it would show the person an error page instead of their wiki.
@@ -83,7 +83,7 @@ def _live_hub(home: Path) -> str | None:
 ## @param db The index path.
 ## @return None.
 ## @version 1
-## @dg_internal
+## @utility
 def _ensure_index(repo_root: Path, db: Path) -> None:
     """@brief Ensure the index. @return None."""
     from ..refresh_command import refresh_main

@@ -47,7 +47,7 @@ class TaggedFunction:
 
 ## @brief List tracked source files under a directory via git ls-files.
 #  @version 2.0
-#  @dg_internal
+#  @utility
 #  @return Matching paths, or None if the directory is not a usable git tree
 def _git_ls_files(source_dir: str, extensions: set[str]) -> list[Path] | None:
     try:
@@ -76,7 +76,7 @@ def _git_ls_files(source_dir: str, extensions: set[str]) -> list[Path] | None:
 
 ## @brief Fallback source discovery via filesystem glob.
 #  @version 2.0
-#  @dg_internal
+#  @utility
 #  @return Matching paths, or None if the directory does not exist
 def _rglob_source_files(source_dir: str, extensions: set[str]) -> list[Path] | None:
     source_path = Path(source_dir)
@@ -129,7 +129,7 @@ def find_source_files(source_dir: str, config: dict[str, Any]) -> list[Path]:
 
 ## @brief Build a TaggedFunction for a documented function, or None if undocumented.
 #  @version 1.1
-#  @dg_internal
+#  @utility
 #  @return TaggedFunction for any function carrying a doxygen block, else None
 def _extract_tagged_function(func: Function, file_path: str) -> TaggedFunction | None:
     if func.doxygen is None:
@@ -145,7 +145,7 @@ def _extract_tagged_function(func: Function, file_path: str) -> TaggedFunction |
 
 ## @brief Parse one source file into its documented functions.
 #  @version 1.0
-#  @dg_internal
+#  @utility
 def _process_source_file(source_file: Path, config: dict[str, Any]) -> list[TaggedFunction]:
     result = parse_source_file_with_content(str(source_file), config)
     if result is None:

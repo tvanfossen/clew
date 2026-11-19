@@ -149,7 +149,7 @@ class IssueProvider(ABC):
     ## @param opener A `urlopen`-compatible callable.
     ## v2: a listing cut at its page cap is disclosed (2.0.0, R5-CFG D14)
     ## @version 2
-    ## @dg_internal
+    ## @utility
     def __init__(self, project: str, token: str | None = None, opener: Any = None) -> None:
         """@brief Store. @return None."""
         self.project = project
@@ -187,7 +187,7 @@ class IssueProvider(ABC):
     ## @param content_type The body's content type.
     ## @return The decoded reply.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def _call(
         self, method: str, url: str, payload: Any = None, content_type: str = "application/json"
     ) -> Any:
@@ -205,7 +205,7 @@ class IssueProvider(ABC):
     ## @brief Authentication headers.
     ## @return Headers.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     @abstractmethod
     def _auth(self) -> dict[str, str]:
         """@brief Auth. @return Headers."""
@@ -213,7 +213,7 @@ class IssueProvider(ABC):
     ## @brief The open issues.
     ## @return Issues.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     @abstractmethod
     def _list(self) -> list[Issue]:
         """@brief List. @return Issues."""
@@ -224,7 +224,7 @@ class IssueProvider(ABC):
     ## @param label The `req:` label.
     ## @return (id, web URL).
     ## @version 1
-    ## @dg_internal
+    ## @utility
     @abstractmethod
     def _create(self, title: str, body: str, label: str) -> tuple[str, str]:
         """@brief Create. @return Id and URL."""
@@ -240,7 +240,7 @@ class GitHubIssues(IssueProvider):
     ## @brief Bearer token when one is set.
     ## @return Headers.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def _auth(self) -> dict[str, str]:
         """@brief Auth. @return Headers."""
         return {"Authorization": f"Bearer {self.token}"} if self.token else {}
@@ -249,7 +249,7 @@ class GitHubIssues(IssueProvider):
     ## @return Issues.
     ## v2: a listing cut at its page cap is disclosed (2.0.0, R5-CFG D14)
     ## @version 2
-    ## @dg_internal
+    ## @utility
     def _list(self) -> list[Issue]:
         """@brief List. @return Issues."""
         rows, self.truncated = fetch_pages(
@@ -266,7 +266,7 @@ class GitHubIssues(IssueProvider):
     ## @param label The `req:` label.
     ## @return (number, web URL).
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def _create(self, title: str, body: str, label: str) -> tuple[str, str]:
         """@brief Create. @return Id and URL."""
         made = self._call(
@@ -285,7 +285,7 @@ class AdoIssues(IssueProvider):
     ## @brief Basic auth with an empty user and the PAT, when one is set.
     ## @return Headers.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def _auth(self) -> dict[str, str]:
         """@brief Auth. @return Headers."""
         if not self.token:
@@ -295,7 +295,7 @@ class AdoIssues(IssueProvider):
     ## @brief A WIQL query for open items, then their fields in batches of 200.
     ## @return Issues.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def _list(self) -> list[Issue]:
         """@brief List. @return Issues."""
         base = f"https://dev.azure.com/{self.project}/_apis/wit"
@@ -314,7 +314,7 @@ class AdoIssues(IssueProvider):
     ## @param item The REST row.
     ## @return The issue.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def _issue(self, item: dict) -> Issue:
         """@brief Convert. @return Issue."""
         fields = item.get("fields") or {}
@@ -336,7 +336,7 @@ class AdoIssues(IssueProvider):
     ## @param label The `req:` tag.
     ## @return (id, web URL).
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def _create(self, title: str, body: str, label: str) -> tuple[str, str]:
         """@brief Create. @return Id and URL."""
         patch = [
@@ -407,7 +407,7 @@ def link_issues(
 ## @param row The row.
 ## @return The issue.
 ## @version 1
-## @dg_internal
+## @utility
 def _gh_issue(row: dict) -> Issue:
     """@brief Convert. @return Issue."""
     return Issue(

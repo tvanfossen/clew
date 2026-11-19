@@ -88,7 +88,7 @@ ROOTS_MIGRATION = f"pass the repo explicitly with {TARGET_SOURCE_FLAG} <path>"
 ## @brief The SDK's server-to-client request surface, or None when it cannot be read.
 ## @return Mapping keyed by (method, protocol version), or None.
 ## @version 2
-## @dg_internal
+## @utility
 def server_request_surface() -> Mapping[tuple[str, str], object] | None:
     """Read the SDK's own per-revision method map instead of hardcoding revisions.
 
@@ -110,7 +110,7 @@ def server_request_surface() -> Mapping[tuple[str, str], object] | None:
 ## @brief Protocol revisions the installed SDK recognises, or empty when unreadable.
 ## @return Tuple of revision strings, possibly empty.
 ## @version 2
-## @dg_internal
+## @utility
 def known_protocol_versions() -> tuple[str, ...]:
     """Empty means "this code cannot tell", which `roots_request_supported` reads as
     permission to try — never as "no revisions exist".
@@ -130,7 +130,7 @@ def known_protocol_versions() -> tuple[str, ...]:
 ## @param version Negotiated protocol revision, or None when the connection does not say.
 ## @return True when the request may be sent (including when the answer is unknown).
 ## @version 2
-## @dg_internal
+## @utility
 def roots_request_supported(version: str | None) -> bool:
     """FAILS OPEN, deliberately, on every unknown: an unstated revision, a revision the
     SDK does not recognise, and an unreadable method map all return True. A
@@ -393,7 +393,7 @@ _INDEX_NAME_MAX = 48
 ## @param name The declared name.
 ## @return The sanitised name.
 ## @version 1
-## @dg_internal
+## @utility
 def _safe_index_name(name: str) -> str:
     """REFUSES RATHER THAN SUBSTITUTES when nothing survives. A name that sanitises to empty would
     make the sub-index slug identical to the PARENT's, so a vendored sub-index would silently
@@ -449,7 +449,7 @@ class TargetRegistry:
     ## @brief Construct a registry rooted at a state directory.
     ## @param home State root (defaults to state_home()).
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def __init__(self, home: Path | None = None) -> None:
         self.home = home if home is not None else state_home()
         self.path = self.home / REGISTRY_NAME
@@ -490,7 +490,7 @@ class TargetRegistry:
     ## @param reason The error that made it unreadable.
     ## @version 1
     ## @req REQ-DDB-MCP-001
-    ## @dg_internal
+    ## @utility
     def _preserve_unreadable(self, reason: Exception) -> None:
         """Moving it aside is what stops the loss becoming permanent: `register()` calls
         `load()` and then `save()`, so an unreadable file left in place is overwritten by a
@@ -523,7 +523,7 @@ class TargetRegistry:
     ## @param kept Where the bytes should be preserved.
     ## @return A sentence describing the outcome, for the caller's log line.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def _move_aside(self, kept: Path) -> str:
         """Returns prose rather than a bool so the log line cannot overstate the outcome:
         every branch here is a DIFFERENT fact for whoever reads it — already safe, newly
@@ -733,7 +733,7 @@ class TargetRegistry:
     ## @param key The entry to remove.
     ## @return None.
     ## @version 2
-    ## @dg_internal
+    ## @utility
     def _discard(self, data: dict[str, dict[str, str]], key: str) -> None:
         """SHARED BY BOTH REMOVERS so a directory-deleting rule lives once. The containment
         check is the load-bearing half: `db_path` comes off disk and a record naming a path
@@ -819,7 +819,7 @@ class TargetRegistry:
 ## @param repo_root Working tree the indexed paths are relative to.
 ## @return (number of files newer than the db, the newest such path or None).
 ## @version 3
-## @dg_internal
+## @utility
 def _source_drift(db: Path, repo_root: Path) -> tuple[int, str | None]:
     """Stat every indexed source file against the database's own mtime.
 
@@ -947,7 +947,7 @@ _SCOPE_STRING_CAP = 400
 ## @param meta The scope section exactly as the build recorded it.
 ## @return The same mapping with any oversized string trimmed and counted.
 ## @version 1
-## @dg_internal
+## @utility
 def _bounded_scope_meta(meta: dict[str, str]) -> dict[str, str]:
     """gh#37. `status.scope.excludes` CARRIED THE WHOLE RESOLVED EXCLUDE LIST — ~390 entries,
     dominated by `.github` and `.drone` paths inside a vendored boost — and the same list

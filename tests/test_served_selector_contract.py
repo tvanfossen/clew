@@ -174,7 +174,7 @@ def test_no_runtime_guidance_steers_to_a_signature() -> None:
 # @return Pairs of line number and the literal text it carries.
 # v2 (1.3.1): scans `_SOURCES`, the guidance having moved partly into `clew.query.payload`.
 # @version 2
-# @dg_internal
+# @utility
 def _how_to_narrow_strings() -> list[tuple[int, str]]:
     """Flattens f-strings and implicit concatenation down to their CONSTANT parts, which is where
     the guidance wording lives; an interpolated count is not guidance. A value that is a plain
@@ -202,7 +202,7 @@ def _how_to_narrow_strings() -> list[tuple[int, str]]:
 # @param node The expression.
 # @return The concatenated constant text.
 # @version 1
-# @dg_internal
+# @utility
 def _literal_text(node: ast.AST) -> str:
     """@brief Constant text within an expression.
     @param node The expression.
@@ -222,7 +222,7 @@ def _literal_text(node: ast.AST) -> str:
 # @param text The served string.
 # @return True when it names a signature other than to warn against one.
 # @version 1
-# @dg_internal
+# @utility
 def _directs_to_a_signature(text: str) -> bool:
     """**BANNING THE WORD OUTRIGHT WAS THE FIRST ATTEMPT AND IT WAS WRONG.** The best wording for
     this guidance warns against the trap — "the qualified name, NOT the signature" — so a test

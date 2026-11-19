@@ -115,7 +115,7 @@ class _Live:
     ## @brief Subscribe to events.
     ## @return A queue the events arrive on (None ends the stream).
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def subscribe(self) -> queue.Queue[dict | None]:
         """@brief Subscribe. @return Queue."""
         subscriber: queue.Queue[dict | None] = queue.Queue()
@@ -126,7 +126,7 @@ class _Live:
     ## @param subscriber Its queue.
     ## @return None.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def unsubscribe(self, subscriber: queue.Queue[dict | None]) -> None:
         """@brief Unsubscribe. @return None."""
         if subscriber in self._subscribers:
@@ -192,7 +192,7 @@ class WikiHub(_Live):
     ## @param builder Builds one target's site; a subprocess build by default.
     ## v2: event subscribers (P4c-2a).
     ## @version 2
-    ## @dg_internal
+    ## @utility
     def __init__(self, home: Path, builder: Builder | None = None) -> None:
         """@brief Store. @return None."""
         self.home = Path(home)
@@ -210,7 +210,7 @@ class WikiHub(_Live):
     ## @brief The hub's entry URL, token included.
     ## @return The URL.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     @property
     def url(self) -> str:
         """@brief URL. @return URL."""
@@ -254,7 +254,7 @@ class WikiHub(_Live):
     ## @brief Every registered target with its wiki's state.
     ## @return (target, state) pairs.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def listing(self) -> list[tuple[Target, str]]:
         """UNREACHABLE when the checkout is gone; else building / failed / built / not built.
 
@@ -274,7 +274,7 @@ class WikiHub(_Live):
     ## @return The directory.
     ## v2: through `wiki_site_dir`, shared with the MCP resources.
     ## @version 2
-    ## @dg_internal
+    ## @utility
     def site_dir(self, target: Target) -> Path:
         """@brief Site directory. @return Path."""
         return wiki_site_dir(target)
@@ -283,7 +283,7 @@ class WikiHub(_Live):
     ## @param target The target.
     ## @return The state.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def _on_disk(self, target: Target) -> str:
         """@brief On-disk state. @return State."""
         return "built" if (self.site_dir(target) / "index.html").is_file() else "not built"
@@ -292,7 +292,7 @@ class WikiHub(_Live):
     ## @param slug The slug.
     ## @return The target.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def find(self, slug: str) -> Target | None:
         """@brief Look up. @return Target."""
         return next((t for t in TargetRegistry(self.home).targets() if t.slug == slug), None)
@@ -317,7 +317,7 @@ class WikiHub(_Live):
     ## @return None.
     ## v2: a finished build is announced to open pages (P4c-2a).
     ## @version 2
-    ## @dg_internal
+    ## @utility
     def _build(self, target: Target) -> None:
         """A FAILED BUILD IS A STATE with its reason, never a crash of the hub.
 
@@ -355,7 +355,7 @@ class _HubHandler(BaseHTTPRequestHandler):
     ## @return None.
     ## v2: `/api/`, `/events`, `/live.js` (P4c-2a).
     ## @version 2
-    ## @dg_internal
+    ## @utility
     def do_GET(self) -> None:  # noqa: N802 — the http.server spelling
         """@brief GET. @return None."""
         parts = urlsplit(self.path)
@@ -381,7 +381,7 @@ class _HubHandler(BaseHTTPRequestHandler):
     ## @brief The session cookie's value, or "".
     ## @return The value.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def _cookie(self) -> str:
         """@brief Cookie. @return Token."""
         for part in (self.headers.get("Cookie") or "").split(";"):
@@ -396,7 +396,7 @@ class _HubHandler(BaseHTTPRequestHandler):
     ## @return None.
     ## v2: HTML pages carry the live script (P4c-2a).
     ## @version 2
-    ## @dg_internal
+    ## @utility
     def _site(self, rest: str, set_cookie: bool) -> None:
         """CONFINED: the requested file must resolve inside the built site.
 
@@ -431,7 +431,7 @@ class _HubHandler(BaseHTTPRequestHandler):
     ## @return None.
     ## v2: `trace` — a traced test run with its overlay, opt-in (round 3, P4b).
     ## @version 2
-    ## @dg_internal
+    ## @utility
     def _api(self, rest: str, query: dict[str, list[str]]) -> None:
         """`dossier?subject=&qualified=`, `search?text=&corpus=`, and `trace?test=<node id>` —
         which RUNS the test, so it is refused (403) unless `CLEW_WIKI_RUN=1`. A missing argument
@@ -478,7 +478,7 @@ class _HubHandler(BaseHTTPRequestHandler):
     ## @param payload The body.
     ## @return None.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def _json(self, status: int, payload: Any) -> None:
         """@brief JSON. @return None."""
         self._send(status, json.dumps(payload, default=str).encode("utf-8"), "application/json")
@@ -486,7 +486,7 @@ class _HubHandler(BaseHTTPRequestHandler):
     ## @brief Hold a server-sent event stream open until the client or the hub goes away.
     ## @return None.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def _events(self) -> None:
         """A COMMENT EVERY 15 S keeps proxies and the browser from closing an idle stream.
 
@@ -520,7 +520,7 @@ class _HubHandler(BaseHTTPRequestHandler):
     ## @param set_cookie Whether to set the session cookie.
     ## @return None.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def _building(self, target: Target, set_cookie: bool) -> None:
         """@brief Building page. @return None."""
         state = self.owner.state.get(target.slug)
@@ -545,7 +545,7 @@ class _HubHandler(BaseHTTPRequestHandler):
     ## @param set_cookie Whether to set the session cookie.
     ## @return None.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def _send(
         self, status: int, body: bytes | str, kind: str = "text/html", set_cookie: bool = False
     ) -> None:
@@ -569,7 +569,7 @@ class _HubHandler(BaseHTTPRequestHandler):
     ## @param args Its arguments.
     ## @return None.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def log_message(self, fmt: str, *args: Any) -> None:
         """@brief Log. @return None."""
         logger.debug("wiki hub: " + fmt, *args)
@@ -597,7 +597,7 @@ def _traced(target: Target, nodeid: str) -> dict[str, Any]:
 ## @param data The page.
 ## @return The page.
 ## @version 1
-## @dg_internal
+## @utility
 def _with_live_script(data: bytes) -> bytes:
     """@brief Inject. @return Page."""
     tag = b'<script src="/live.js"></script></body>'
@@ -668,7 +668,7 @@ _LIVE_JS = """(function () {
 ## @param hub The hub.
 ## @return HTML.
 ## @version 1
-## @dg_internal
+## @utility
 def _hub_page(hub: WikiHub) -> str:
     """@brief Hub page. @return HTML."""
     rows = []
@@ -693,7 +693,7 @@ def _hub_page(hub: WikiHub) -> str:
 ## @param fragment The body.
 ## @return HTML.
 ## @version 1
-## @dg_internal
+## @utility
 def _wrap(fragment: str) -> str:
     """@brief Page. @return HTML."""
     return (

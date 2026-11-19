@@ -103,7 +103,7 @@ _NOT_FILENAMES = frozenset({".", ".."})
 ## v2: a command-only CMakeLists is a CMake tree now, because `add_custom_command` says which
 ## files are GENERATED — `library/CMakeLists.txt` defines no function and was wholly invisible.
 ## @version 2
-## @dg_internal
+## @utility
 def is_cmake_tree(tree: Any) -> bool:
     """A Rust tree is also `source_file`-rooted, so the root alone decides nothing.
 
@@ -159,7 +159,7 @@ def harvest_definitions(tree: Any, src_bytes: bytes) -> dict[str, list[dict[str,
 ## @param lines The file's lines, for the comment block above.
 ## @return The record, or None.
 ## @version 1
-## @dg_internal
+## @utility
 def _definition_record(node: Any, lines: list[str]) -> dict[str, Any] | None:
     """A definition with no name at all — `function()`, which CMake itself rejects — is
     skipped rather than written under an empty name.
@@ -193,7 +193,7 @@ def _definition_record(node: Any, lines: list[str]) -> dict[str, Any] | None:
 ## @param command_type The command child to read (`function_command`/`macro_command`).
 ## @return The argument texts: the name first, then the parameters.
 ## @version 1
-## @dg_internal
+## @utility
 def _command_arguments(node: Any, command_type: str) -> list[str]:
     """Only the definition's OWN command is read, not the whole subtree: the body holds
     commands with argument lists of their own, and `add_executable(${NAME} …)` inside the
@@ -216,7 +216,7 @@ def _command_arguments(node: Any, command_type: str) -> list[str]:
 ## @return The record.
 ## v2: a directory reference (`.`, `..`, a trailing slash) yields no filename.
 ## @version 2
-## @dg_internal
+## @utility
 def _argument_record(literal: str) -> dict[str, Any]:
     """VARIABLES ARE RECORDED, NEVER RESOLVED. `${CMAKE_CURRENT_BINARY_DIR}/error.c` depends on a
     configure step this harvest never ran, so resolving it would publish a path that may not
@@ -253,7 +253,7 @@ def _argument_record(literal: str) -> dict[str, Any]:
 ## three wanted keywords let the other nine become data — `WORKING_DIRECTORY` and `..` were
 ## reported as generated files until the whole mbedtls tree was indexed.
 ## @version 2
-## @dg_internal
+## @utility
 def _sections(args: list[str], *, first_is_name: bool) -> dict[str, list[dict[str, Any]]]:
     """THE GRAMMAR GIVES NO STRUCTURE, so this is a keyword split and nothing cleverer. An
     argument before any keyword belongs to no section and is dropped — except

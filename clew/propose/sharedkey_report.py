@@ -93,7 +93,7 @@ def propose_shared_key_patterns(ctx: Context) -> SectionProposal:
 ## @param ctx Shared detector inputs.
 ## @return Prefix strings from every active NamePrefixPattern.
 ## @version 1
-## @dg_internal
+## @utility
 def _active_prefixes(ctx: Context) -> tuple[str, ...]:
     """@brief Read the built-in plus declared name-prefix patterns."""
     declared = ctx.declared.get(SECTION_SHARED_KEY)
@@ -112,7 +112,7 @@ def _active_prefixes(ctx: Context) -> tuple[str, ...]:
 ## @param active Prefixes already covered by an active pattern.
 ## @return An Entry when the dry run passes, else a Rejection.
 ## @version 1
-## @dg_internal
+## @utility
 def _judge(ctx: Context, pair: Pair, baseline: dict, active: tuple[str, ...]) -> Entry | Rejection:
     """@brief Apply the coverage and dry-run gates to one pair."""
     cover = covering_prefix(pair.writer.prefix, active)
@@ -144,7 +144,7 @@ def _judge(ctx: Context, pair: Pair, baseline: dict, active: tuple[str, ...]) ->
 ## @param measured Measurement with the candidate applied.
 ## @return New edge count, new self-loop count, and the busiest new keys.
 ## @version 1
-## @dg_internal
+## @utility
 def _delta(baseline: dict, measured: dict) -> dict:
     """Diffed rather than read absolutely, because the built-in ingot defaults
     may already produce edges on this repo and attributing those to the
@@ -173,7 +173,7 @@ def _delta(baseline: dict, measured: dict) -> dict:
 ## @param delta The candidate's measured contribution.
 ## @return A refusal reason, or "" when the measurement passes.
 ## @version 1
-## @dg_internal
+## @utility
 def _verdict(delta: dict) -> str:
     """@brief Judge a shared-key dry run against the yield and self-loop gates."""
     new_edges = delta["new_edges"]
@@ -196,7 +196,7 @@ def _verdict(delta: dict) -> str:
 ## @param pairs The accepted pairs, in proposal order.
 ## @return The complete `shared_key_patterns:` block, or () when nothing passed.
 ## @version 1
-## @dg_internal
+## @utility
 def _section_yaml(pairs: list[Pair]) -> tuple[str, ...]:
     """SECTION-level, not per-entry, because `writers:` and `readers:` are two
     LISTS that the entries interleave. Emitting one writers/readers block per
@@ -224,7 +224,7 @@ def _section_yaml(pairs: list[Pair]) -> tuple[str, ...]:
 ## @param pair The pair.
 ## @return "writers X x readers Y".
 ## @version 1
-## @dg_internal
+## @utility
 def _label(pair: Pair) -> str:
     """@brief Name a writer/reader pair for reporting."""
     return f"writers {pair.writer.prefix}* x readers {pair.reader.prefix}*"
@@ -234,7 +234,7 @@ def _label(pair: Pair) -> str:
 ## @param pair The pair.
 ## @return Evidence lines.
 ## @version 1
-## @dg_internal
+## @utility
 def _structure_lines(pair: Pair) -> tuple[str, ...]:
     """@brief Describe how a pair was derived from call sites."""
     files = sorted({s.rel_path for s in (*pair.writer.sites, *pair.reader.sites)})
@@ -262,7 +262,7 @@ def _structure_lines(pair: Pair) -> tuple[str, ...]:
 ## @param delta The candidate's measured contribution.
 ## @return Evidence lines.
 ## @version 2
-## @dg_internal
+## @utility
 def _measured_lines(delta: dict) -> tuple[str, ...]:
     """@brief Render a shared-key dry run's measured delta."""
     top = ", ".join(f"{key} {count}" for key, count in delta["top_keys"])
@@ -280,7 +280,7 @@ def _measured_lines(delta: dict) -> tuple[str, ...]:
 ## @param families Every harvested family.
 ## @return Rejections, one per under-evidenced pair.
 ## @version 2
-## @dg_internal
+## @utility
 def _threshold_rejections(families: dict[str, Family]) -> list[Rejection]:
     """These were being dropped in silence, which is the one outcome an owner
     cannot recover from: the family exists, its arity is right, and a reader who
@@ -311,7 +311,7 @@ def _threshold_rejections(families: dict[str, Family]) -> list[Rejection]:
 ## @param pairs The pairs that did reach it.
 ## @return Rejections, largest family first.
 ## @version 1
-## @dg_internal
+## @utility
 def _family_rejections(families: dict[str, Family], pairs: list[Pair]) -> list[Rejection]:
     """Reported rather than dropped: a family the arity gate refuses is often
     the one an owner expected to see, and the observed arities are the answer to
@@ -347,7 +347,7 @@ def _family_rejections(families: dict[str, Family], pairs: list[Pair]) -> list[R
 ## @param active Prefixes already covered by an active pattern.
 ## @return The section proposal.
 ## @version 2
-## @dg_internal
+## @utility
 def _section(
     ctx: Context,
     families: dict[str, Family],
@@ -387,7 +387,7 @@ def _section(
 ## @param pairs Pairs that passed the structural gates.
 ## @return A NOT_ANALYSED section explaining that measurement was impossible.
 ## @version 1
-## @dg_internal
+## @utility
 def _unmeasurable(ctx: Context, families: dict[str, Family], pairs: list[Pair]) -> SectionProposal:
     """@brief Refuse to propose shared keys without a measured dry run."""
     return SectionProposal(

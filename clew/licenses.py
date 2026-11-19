@@ -65,7 +65,7 @@ def spdx_of(text: str) -> tuple[str, int] | None:
 ## @param path The file.
 ## @return (expression, line), or None.
 ## @version 1
-## @dg_internal
+## @utility
 def _license_of(path: Path) -> tuple[str, int] | None:
     """@brief Read one file's header. @return Expression and line, or None."""
     try:
@@ -123,7 +123,7 @@ def ingest_file_licenses(db_path: Path, repo_root: Path, cache: IndexCache | Non
 ## @param rel The file.
 ## @return (expression, line), or None.
 ## @version 1
-## @dg_internal
+## @utility
 def license_of(cache: IndexCache | None, repo_root: Path, rel: str) -> tuple[str, int] | None:
     """@brief Memoized read. @return Expression and line, or None."""
     found = memoized(

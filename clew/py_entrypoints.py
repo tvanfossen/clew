@@ -103,7 +103,7 @@ def harvest_main_guard_calls(tree: Any, src_bytes: bytes) -> list[str]:
 ## @param src_bytes The file's raw bytes.
 ## @return Whether the condition compares `__name__` to `"__main__"`.
 ## @version 1
-## @dg_internal
+## @utility
 def _is_main_guard(node: Any, src_bytes: bytes) -> bool:
     """@brief Detect the `__name__ == "__main__"` condition.
 
@@ -123,7 +123,7 @@ def _is_main_guard(node: Any, src_bytes: bytes) -> bool:
 ## @param src_bytes The file's raw bytes.
 ## @return Bare tail names of the calls found.
 ## @version 1
-## @dg_internal
+## @utility
 def _called_names(root: Any, src_bytes: bytes) -> list[str]:
     """@brief Collect the tail names of every call in a subtree.
 
@@ -231,7 +231,7 @@ def console_scripts(repo_root: Path | str | None) -> dict[str, str]:
 ## @param path File to read.
 ## @return The parsed document, or {} when the file is absent or malformed.
 ## @version 2
-## @dg_internal
+## @utility
 def _read_toml(path: Path) -> dict:
     """The tolerance here is deliberate and NARROW. A repo with no
     `pyproject.toml`, or one with a syntax error in it, must not fail a build —
@@ -265,7 +265,7 @@ def _read_toml(path: Path) -> dict:
 ## @param keys Table path to descend.
 ## @return The mapping at that path, or {} when any level is missing.
 ## @version 1
-## @dg_internal
+## @utility
 def _nested(doc: dict, keys: tuple[str, ...]) -> dict:
     """@brief Descend a nested TOML table path.
 
@@ -285,7 +285,7 @@ def _nested(doc: dict, keys: tuple[str, ...]) -> dict:
 ## @param targets Targets in `module.path:function` form.
 ## @return Rowids of the functions those targets name.
 ## @version 1
-## @dg_internal
+## @utility
 def _resolve_console_scripts(conn: sqlite3.Connection, targets: list[str]) -> set[int]:
     """`module.path:function` becomes the dotted `module.path.function`, which is
     exactly the shape doxygen stores in `definition` — so the resolution is exact
@@ -313,7 +313,7 @@ def _resolve_console_scripts(conn: sqlite3.Connection, targets: list[str]) -> se
 ## @param harvested (path_rowid, names) pairs from the guard harvest.
 ## @return Rowids of the guarded entry functions.
 ## @version 1
-## @dg_internal
+## @utility
 def _resolve_guard_names(
     conn: sqlite3.Connection,
     harvested: list[tuple[int, Any]],
@@ -343,7 +343,7 @@ def _resolve_guard_names(
 ## @param path_rowid The `path` rowid the body must live in.
 ## @return The rowid, or None when the file defines no such function.
 ## @version 1
-## @dg_internal
+## @utility
 def _resolve_in_file(conn: sqlite3.Connection, name: str, path_rowid: int) -> int | None:
     """@brief Resolve a name to a function defined in one specific file.
 
@@ -363,7 +363,7 @@ def _resolve_in_file(conn: sqlite3.Connection, name: str, path_rowid: int) -> in
 ## @param name Function name.
 ## @return The rowid, or None when the name is absent or ambiguous.
 ## @version 1
-## @dg_internal
+## @utility
 def _resolve_unique(conn: sqlite3.Connection, name: str) -> int | None:
     """Ambiguity yields None on purpose: seeding an arbitrary one of several
     same-named functions would mark a genuinely dead function live, which is the

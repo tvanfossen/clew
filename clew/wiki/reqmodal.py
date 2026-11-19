@@ -65,7 +65,7 @@ def requirement_cell(row: Any, entry: dict, ctx: dict[str, Any]) -> str:
 ## v5: decisions naming the requirement (P3c).
 ## v6 (round 4, R4): the body of the requirement's own page; every test, as tables with extent.
 ## @version 6
-## @dg_internal
+## @utility
 def _body(row: Any, entry: dict, title: str, ctx: dict[str, Any]) -> str:
     """@brief Assemble sections. @return HTML."""
     rules: Audience = ctx["rules"]
@@ -122,7 +122,7 @@ def _body(row: Any, entry: dict, title: str, ctx: dict[str, Any]) -> str:
 ## @param kind "ul", "dl" or "" (already wrapped).
 ## @return HTML.
 ## @version 1
-## @dg_internal
+## @utility
 def _section(heading: str, body: str, kind: str) -> str:
     """@brief Wrap a section. @return HTML."""
     head = f"<h4>{heading}</h4>" if heading else ""
@@ -137,7 +137,7 @@ def _section(heading: str, body: str, kind: str) -> str:
 ## @param items Item HTML.
 ## @return HTML.
 ## @version 1
-## @dg_internal
+## @utility
 def _items(items: Any) -> str:
     """@brief Wrap items. @return HTML."""
     return "".join(f"<li>{i}</li>" for i in items)
@@ -147,7 +147,7 @@ def _items(items: Any) -> str:
 ## @param tests (test, status) pairs.
 ## @return The heading.
 ## @version 1
-## @dg_internal
+## @utility
 def _tests_heading(tests: tuple) -> str:
     """@brief Heading. @return Text."""
     return f"Tests ({len(tests)})"
@@ -159,7 +159,7 @@ def _tests_heading(tests: tuple) -> str:
 ## @return HTML.
 ## v3 (round 4, R4/R5): tables, every test, each with its extent; nothing cut.
 ## @version 3
-## @dg_internal
+## @utility
 def _tests(row: Any, hrefs: dict[str, str]) -> str:
     """A TEST'S EXTENT IS SAID (owner 2026-11-17: "a test could cover sections of multiple
     requirements, or one requirement in full"): which of the requirement's implementers it executed
@@ -211,7 +211,7 @@ def _tests(row: Any, hrefs: dict[str, str]) -> str:
 ## @param test The test.
 ## @return HTML.
 ## @version 1
-## @dg_internal
+## @utility
 def _kind(row: Any, test: str) -> str:
     """@brief Link kind. @return HTML."""
     return via(row, test).strip() or '<span class="via via-tag">tag</span>'
@@ -222,7 +222,7 @@ def _kind(row: Any, test: str) -> str:
 ## @param total The requirement's implementer count.
 ## @return HTML.
 ## @version 1
-## @dg_internal
+## @utility
 def _extent(names: tuple[str, ...] | None, total: int) -> str:
     """@brief Extent cell. @return HTML."""
     if names is None:
@@ -341,7 +341,7 @@ def via(row: Any, test: str) -> str:
 ## @param flows The flow pages.
 ## @return HTML.
 ## @version 1
-## @dg_internal
+## @utility
 def _flows(row: Any, flows: list) -> str:
     """BY FUNCTION AND FILE, not by file alone: a file holding many functions does not put every
     requirement in it on every flow that touches the file.
@@ -364,7 +364,7 @@ def _flows(row: Any, flows: list) -> str:
 ## @param ctx The page context.
 ## @return HTML.
 ## @version 1
-## @dg_internal
+## @utility
 def _issue_link(row: Any, title: str, criteria: str, ctx: dict[str, Any]) -> str:
     """THE AUDIENCE RULE HOLDS IN THE URL TOO: withheld text never rides in the issue's body.
 
@@ -388,7 +388,7 @@ def _issue_link(row: Any, title: str, criteria: str, ctx: dict[str, Any]) -> str
 ## @param req_id The id.
 ## @return The key.
 ## @version 1
-## @dg_internal
+## @utility
 def _key(req_id: str) -> str:
     """@brief Keep the characters a URL fragment carries. @return Key."""
     import re

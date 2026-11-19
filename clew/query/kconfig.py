@@ -200,7 +200,7 @@ def macros_meaning(macros: str, source: str, header: str, stated_only: str = "")
 ## @param conn Open connection.
 ## @return Unprefixed kconfig keys plus the raw preprocessor macro list, source and header.
 ## @version 3
-## @dg_internal
+## @utility
 def _meta(conn: sqlite3.Connection) -> dict[str, str]:
     """Degrades to {} when `build_meta` is absent, matching the query layer's standing
     contract: it returns empty results on a partial database rather than raising,
@@ -236,7 +236,7 @@ def _meta(conn: sqlite3.Connection) -> dict[str, str]:
 ## @param conn Open connection.
 ## @return Symbol entries in declaration order.
 ## @version 1
-## @dg_internal
+## @utility
 def _symbols(conn: sqlite3.Connection) -> tuple[KconfigEntry, ...]:
     """Joins the choice group in as its HUMAN identity — the prompt, falling back to
     the name — rather than exposing the synthetic `choice_key`. The key is a per-build
@@ -269,7 +269,7 @@ def _symbols(conn: sqlite3.Connection) -> tuple[KconfigEntry, ...]:
 ## @param conn Open connection to the index.
 ## @return Comma-joined column expressions.
 ## @version 1
-## @dg_internal
+## @utility
 def _gate_columns(conn: sqlite3.Connection) -> str:
     """EVERY OPTIONAL COLUMN IS SELECTED AS A LITERAL WHEN ABSENT rather than omitted, because
     `KconfigGate(*row)` is positional: omitting `origin` on an older index would shift `end_line`
@@ -296,7 +296,7 @@ def _gate_columns(conn: sqlite3.Connection) -> str:
 ## @return Gate rows in file order, carrying each macro's resolved default where it is known.
 ## v4 (C3): routed through `_with_defaults`, which only the function route was using.
 ## @version 4
-## @dg_internal
+## @utility
 def _gates(conn: sqlite3.Connection, symbol: str | None) -> tuple[KconfigGate, ...]:
     """Accepts the symbol either bare or `CONFIG_`-prefixed, because a caller reading
     a gate out of source code has the prefixed form in front of them and requiring
@@ -344,7 +344,7 @@ _NAME_CAP = 400
 ## @return (names, total distinct matching) — names capped at `_NAME_CAP`.
 ## @version 1
 ## @req REQ-DDB-QUERY-006
-## @dg_internal
+## @utility
 def _gate_symbol_names(conn: sqlite3.Connection, text: str | None) -> tuple[tuple[str, ...], int]:
     """WHICH SYMBOLS EXIST, which is the question this corpus says it answers and the one it was
     not answering. `_search_config` asked for the whole space with no symbol, so the reply carried
@@ -589,7 +589,7 @@ _MACRO_CHUNK = 500
 ## @param macros The distinct gating macros to resolve.
 ## @return Rows of (macro, state, file_path, line, origin) across every chunk.
 ## @version 1
-## @dg_internal
+## @utility
 def _defaults_for_macros(conn: sqlite3.Connection, macros: list[str]) -> list[tuple]:
     """Split out of `_with_defaults` so the resolution RULE and the parameter bound are
     separately readable; the rule is what `test_shipped_config_tiebreak` pins and it should not
@@ -634,7 +634,7 @@ def _defaults_for_macros(conn: sqlite3.Connection, macros: list[str]) -> list[tu
 ## disagreement inside the deciding tier (two declared, or two shipped rows) is undecided rather
 ## than the last row read (2.0.0, T5 served).
 ## @version 6
-## @dg_internal
+## @utility
 def _with_defaults(
     conn: sqlite3.Connection, gates: tuple[KconfigGate, ...]
 ) -> tuple[KconfigGate, ...]:
@@ -684,7 +684,7 @@ def _with_defaults(
 ## @return True or False where both decide it; None otherwise.
 ## @version 1
 ## @req REQ-DDB-QUERY-004
-## @dg_internal
+## @utility
 def _in_default_build(form: str, state: str) -> bool | None:
     """T5 served (2.0.0). `ifdef` is in when the macro is on, `ifndef` when it is off. `if_expr`
     asserts dependence without a polarity, so it decides nothing.

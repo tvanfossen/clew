@@ -67,7 +67,7 @@ def impact_page(trace: Any, pages: list, rules: Audience, source: Path) -> str:
 ## @return HTML.
 ## v2 (round 4): requirements link to their pages; a row's flows are capped, product first.
 ## @version 2
-## @dg_internal
+## @utility
 def _body(trace: Any, pages: list, rules: Audience) -> str:
     """@brief Body. @return HTML."""
     if trace.impact is None:
@@ -136,7 +136,7 @@ def _flow_cell(pages: list) -> str:
 ## @param impact The report's entries.
 ## @return {(function, file): {requirement ids}}.
 ## @version 1
-## @dg_internal
+## @utility
 def _changed(impact: list[dict]) -> dict[tuple[str, str], set[str]]:
     """@brief Invert the report. @return Map."""
     out: dict[tuple[str, str], set[str]] = {}
@@ -152,7 +152,7 @@ def _changed(impact: list[dict]) -> dict[tuple[str, str], set[str]]:
 ## @param pages The flow pages.
 ## @return Flow pages, by title.
 ## @version 1
-## @dg_internal
+## @utility
 def _flows_of(fn: tuple[str, str], pages: list) -> list:
     """@brief Flows through a function. @return Pages."""
     return sorted((p for p in pages if fn in p.functions), key=lambda p: p.title)
@@ -164,7 +164,7 @@ def _flows_of(fn: tuple[str, str], pages: list) -> list:
 ## @return HTML.
 ## v2 (round 4): requirements link to their own pages.
 ## @version 2
-## @dg_internal
+## @utility
 def _by_requirement(trace: Any, rules: Audience) -> str:
     """@brief Per-requirement table. @return HTML."""
     rows = [

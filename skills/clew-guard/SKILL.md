@@ -46,14 +46,14 @@ Its messages, verbatim:
 | `Function 'X' body changed but @version was not updated` | bump the `##` block's `@version`, with a reason |
 | `Function 'X' has no doxygen comment` | a `##` block above the `def` |
 | `Function 'X' doxygen missing @brief tag` (also `@return`, `@version`) | add the missing tag |
-| `Function 'X' has no @req tag ... and no exemption (@callback, @dg_internal, @utility)` | a `@req REQ-...` id, **or** one of those three |
+| `Function 'X' has no @req tag ... and no exemption (@callback, @utility)` | a `@req REQ-...` id, **or** one of those two |
 | `Unknown tag @X in f()` | a typo, or a tag this repo's config does not declare |
 | `File-level doxygen missing X tag in 'path'` | the file's own header block |
 
-Pick the exemption that is true: `@dg_internal` for a private helper, `@utility` for a shared
-one with no requirement behind it, `@callback` for something a framework calls. Tagging a
-function `@dg_internal` to silence the gate when it is part of the public surface is the failure
-the coverage check exists to catch.
+Pick the exemption that is true: `@utility` for a helper with no requirement behind it,
+`@callback` for something a framework calls. Tagging a function `@utility` to silence the gate
+when it is part of the public surface is the failure the coverage check exists to catch.
+`@dg_internal` (doxygen-guard's tag) is refused since 2.0.0; replace it with `@utility`.
 
 **Complexity is not this gate.** `cognitive complexity` and `max returns` come from a separate
 hook (`knots`), and refactoring is the answer there too — but do not go looking in the guard's
