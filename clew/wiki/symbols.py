@@ -435,7 +435,8 @@ def _near(d: Definition, graph: _Edges, written: set[tuple[str, str]]) -> str:
 ## @param d The definition.
 ## @return HTML ("" when the file cannot be read or the extent is unknown).
 ## v2: the extent read and checked by `_lines`, shared with the test block.
-## @version 2
+## v3: collapsed in a details element (2.0.0, P5)
+## @version 3
 ## @dg_internal
 def _body(repo_root: Path, d: Definition) -> str:
     """END 0 IS EXTENT UNKNOWN, never "covers nothing": no body is bundled rather than a guess.
@@ -456,7 +457,14 @@ def _body(repo_root: Path, d: Definition) -> str:
     body = lines[:_BODY_LINES]
     more = d.end - d.start + 1 - len(body)
     note = f'<p class="none">{more} more lines, not shown</p>' if more > 0 else ""
-    return f'<pre class="body">{escape(chr(10).join(body))}</pre>{note}'
+    shown = f"{len(body)} line{'s' if len(body) != 1 else ''}"
+    ## P5 (2.0.0): COLLAPSED. A closed <details> is parsed but not laid out, so a file page of
+    ## hundreds of symbols no longer lays out every body on load. Inline rather than fetched: the
+    ## site is opened as a FILE (`clew wiki open`), where a fetch is refused.
+    return (
+        f'<details class="body"><summary>Source · {shown}</summary>'
+        f'<pre class="body">{escape(chr(10).join(body))}</pre></details>{note}'
+    )
 
 
 ## @brief A definition's lines: None when unknown or unreadable, [] when stale.

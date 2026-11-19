@@ -842,7 +842,8 @@ def commit_published(repo_root: Path, commit: str) -> bool | None:
 ## v2: the configured theme (W13), clew's own by default.
 ## v3: `context` (the minimap, round 3 P1c-2).
 ## v4: `_extra` (the exports) copied to the site root.
-## @version 4
+## v5 (2.0.0, P5): no source copies; doctrees beside the site; built fresh and swapped in.
+## @version 5
 ## @dg_internal
 def _render(
     source: Path, html: Path, config: WikiConfig, repo_root: Path, context: dict | None = None
@@ -867,11 +868,25 @@ def _render(
         "exclude_patterns": ["_build"],
         "html_context": context or {},
         "html_extra_path": ["_extra"] if (source / "_extra").is_dir() else [],
+        ## P5 (2.0.0): no markdown copy of every page (37.6 MB of 191 on clew's own site).
+        "html_copy_source": False,
+        "html_show_sourcelink": False,
         **sphinx_settings(config.theme, repo_root, source),
     }
     (source / "conf.py").write_text(
         "".join(f"{k} = {v!r}\n" for k, v in settings.items()), encoding="utf-8"
     )
-    if build_main(["-q", "-b", "html", str(source), str(html)]) != 0:
+    ## THE BUILD CACHE BESIDE THE SITE, NOT IN IT: with no `-d`, sphinx-build wrote its pickled
+    ## doctrees into the published directory (87.1 MB of 191). And A FRESH DIRECTORY, SWAPPED IN:
+    ## building over the old one kept every page an earlier build wrote, and deleting first
+    ## would leave the live hub serving a half-empty site for the length of a build.
+    fresh = html.with_name(html.name + ".new")
+    if fresh.exists():
+        shutil.rmtree(fresh)
+    doctrees = html.with_name("_doctrees")
+    if build_main(["-q", "-b", "html", "-d", str(doctrees), str(source), str(fresh)]) != 0:
         raise ValueError(f"sphinx-build failed for {source}")
+    if html.exists():
+        shutil.rmtree(html)
+    fresh.rename(html)
     return html
