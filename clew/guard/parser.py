@@ -45,6 +45,9 @@ class Function:
     # Whether the function returns no value, when the parser knows (JS/TS, from the
     # annotation). None leaves the decision to checks._is_void_function's text heuristics.
     returns_void: bool | None = None
+    # A bodiless declaration (a C/C++ prototype) with its own doc block (2.0.0, PG2). Its block is
+    # checked like a definition's; the @req-or-exemption obligation stays with the definition.
+    is_declaration: bool = False
 
     ## @brief The function's identity: enclosing class, name and parameter list.
     #  Added 2.0.0 (S1): a machine-format fingerprint is built from it, so it must not move

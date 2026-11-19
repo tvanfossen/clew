@@ -632,7 +632,8 @@ def _produced_class(func: Node) -> Node | None:
 #  @details Rust test code (`#[test]` functions, the `#[cfg(test)]` module) is skipped.
 #  A JS/TS function bound to a name is read through its value (_function_carrier).
 #  Version 1.7: descends into a mixin class a bound function produces (`_produced_class`).
-#  @version 1.7
+#  v1.8: records documented C/C++ declarations (2.0.0, PG2)
+#  @version 1.8
 #  @req REQ-DDB-GUARD-020
 def _collect_functions(
     node: Node,
@@ -646,6 +647,11 @@ def _collect_functions(
         if spec.doc_style == "rust" and _is_rust_test_item(child):
             continue
         new_enclosing = _enclosing_class_for(child, enclosing_class)
+        if spec.doc_style == "c" and _declared_function(child) is not None:
+            _append_declaration(
+                child, spec, exclude, comment_start_pattern, functions, new_enclosing
+            )
+            continue
         func_node = _resolve_function_node(child, spec)
         if func_node:
             name = _extract_function_name(func_node, spec)
@@ -678,6 +684,64 @@ def _collect_functions(
             _collect_functions(
                 child, spec, exclude, comment_start_pattern, functions, new_enclosing
             )
+
+
+## Declarator wrappers a function's own declarator may sit inside: a pointer or reference RETURN
+## type (`int *f(int);`), never a parenthesised one, which makes a function-POINTER variable.
+_RETURN_WRAPPERS = ("pointer_declarator", "reference_declarator")
+
+
+## @brief The function declarator a C/C++ declaration declares, or None for anything else.
+#  @details `int f(int);`, `int *f(int);` and an in-class `int send(int n);` declare functions;
+#  `int (*fp)(int);` declares a variable of function-pointer type (its declarator is
+#  parenthesised) and `int x;` declares a variable. 2.0.0, PG2.
+#  @version 1.0
+#  @utility
+#  @return The function_declarator node, or None
+def _declared_function(node: Node) -> Node | None:
+    if node.type not in ("declaration", "field_declaration"):
+        return None
+    declarator = node.child_by_field_name("declarator")
+    while declarator is not None and declarator.type in _RETURN_WRAPPERS:
+        declarator = declarator.child_by_field_name("declarator")
+    if declarator is None or declarator.type != "function_declarator":
+        return None
+    inner = declarator.child_by_field_name("declarator")
+    return declarator if inner is not None and inner.type != "parenthesized_declarator" else None
+
+
+## @brief Record a documented C/C++ declaration as a Function (2.0.0, PG2).
+#  @details FOUND BY A CONSUMER: a header prototype's doc block was never read, so a dead `@req`
+#  there passed. Only a DOCUMENTED declaration is recorded: the gate runs per file and cannot see
+#  the definition, which carries the documentation obligation when the declaration has none.
+#  @version 1.0
+#  @req REQ-DDB-GUARD-020
+#  @return None
+def _append_declaration(
+    node: Node,
+    spec: LanguageSpec,
+    exclude: set[str],
+    comment_start_pattern: str,
+    functions: list[Function],
+    enclosing_class: str | None,
+) -> None:
+    name = _extract_function_name(node, spec)
+    doxygen = _find_preceding_doxygen(node, spec, comment_start_pattern)
+    ## A `@file` BLOCK DOCUMENTS THE FILE: the first prototype after a header's file block would
+    ## otherwise claim it (found by the undocumented-declaration test).
+    if name is None or name in exclude or doxygen is None or "file" in doxygen.tags:
+        return
+    functions.append(
+        Function(
+            name=name,
+            def_line=node.start_point[0],
+            body_end=node.end_point[0],
+            doxygen=doxygen,
+            enclosing_class=enclosing_class or _qualified_enclosing(node),
+            signature=_extract_signature(node),
+            is_declaration=True,
+        )
+    )
 
 
 # A TypeScript return annotation that means "no value": `void`, `never`, `undefined`,

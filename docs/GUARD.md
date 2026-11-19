@@ -128,6 +128,14 @@ Every function in a staged file is checked for:
 - **Tag syntax**: tag values match the configured patterns.
 - **Requirement coverage**: `@req`, or an exemption tag.
 
+**A C/C++ declaration and its definition are one function.** A prototype that carries its own
+doc block, in a header or in a class body, has that block checked like a definition's:
+`@brief`, `@version`, `@return`, every `@req` resolving to the catalog, unknown and removed tags,
+and `@version` staleness of its own text. A prototype with no doc block is skipped, because its
+definition carries the documentation. The "`@req` or an exemption" rule stays with the
+definition, so a header never needs its `@req` written twice. `clew guard coverage` matches the
+two sides by `Class::name(params)`, so a requirement tagged on either side counts once.
+
 | Exemption tag | Effect |
 |---|---|
 | `@utility` | Exempt from `@req`, and left out of the coverage report's unmapped list: a helper with no requirement behind it |

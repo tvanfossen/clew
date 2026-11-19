@@ -43,6 +43,9 @@ class TaggedFunction:
     file_path: str
     reqs: list[str] = field(default_factory=list)
     is_exempt: bool = False
+    # The function's identity, `Class::name(params)` (2.0.0, PG2): a declaration and its
+    # definition share it, so coverage treats them as one function.
+    qualified: str = ""
 
 
 ## @brief List tracked source files under a directory via git ls-files.
@@ -128,7 +131,8 @@ def find_source_files(source_dir: str, config: dict[str, Any]) -> list[Path]:
 
 
 ## @brief Build a TaggedFunction for a documented function, or None if undocumented.
-#  @version 1.1
+#  v1.2: carries the function's qualified identity (2.0.0, PG2)
+#  @version 1.2
 #  @utility
 #  @return TaggedFunction for any function carrying a doxygen block, else None
 def _extract_tagged_function(func: Function, file_path: str) -> TaggedFunction | None:
@@ -140,6 +144,7 @@ def _extract_tagged_function(func: Function, file_path: str) -> TaggedFunction |
         file_path=file_path,
         reqs=tags.get("req", []),
         is_exempt=bool(EXEMPTION_TAGS & set(tags)),
+        qualified=func.qualified,
     )
 
 

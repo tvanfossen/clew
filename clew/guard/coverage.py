@@ -78,11 +78,16 @@ def _collect_req_ids(all_tagged: list[TaggedFunction]) -> set[str]:
 
 
 ## @brief Find documented functions with no requirement mapping, skipping exempt ones.
-#  @version 2.1
+#  @details v2.2 (2.0.0, PG2): by IDENTITY (`Class::name(params)`) across every entry. A
+#  declaration and its definition share it, so a documented header prototype without `@req` is
+#  mapped when its definition carries one or is exempt. Unrelated namesakes with different
+#  parameters stay apart.
+#  @version 2.2
 #  @req REQ-DDB-GUARD-022
 #  @return Set of function names with no requirement mapping
 def _collect_unmapped_functions(all_tagged: list[TaggedFunction]) -> set[str]:
-    return {tf.name for tf in all_tagged if not tf.reqs and not tf.is_exempt}
+    settled = {tf.qualified or tf.name for tf in all_tagged if tf.reqs or tf.is_exempt}
+    return {tf.name for tf in all_tagged if (tf.qualified or tf.name) not in settled}
 
 
 ## @brief Format coverage report as text.

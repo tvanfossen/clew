@@ -335,7 +335,8 @@ def _has_active_requirements(config: dict[str, Any]) -> bool:
 ## @brief Verify functions have requirement or exemption tags when requirements are configured.
 #  v1.7: reads the top-level requirements: section (2.0.0, R5-CFG F7)
 #  v1.8: Violation names the function (qualified) for machine-format fingerprints (2.0.0, S1)
-#  @version 1.8
+#  v1.9: a declaration's requirement obligation is its definition's (2.0.0, PG2)
+#  @version 1.9
 #  @req REQ-DDB-GUARD-004
 def check_req_coverage(
     functions: list[Function],
@@ -355,7 +356,9 @@ def check_req_coverage(
     for func in functions:
         if func.doxygen is None:
             continue
-        if func.is_constructor() or func.is_destructor():
+        ## A DECLARATION'S OBLIGATION IS ITS DEFINITION'S (2.0.0, PG2): one function, so a header
+        ## does not need its @req written twice; its block's own tags are still checked.
+        if func.is_constructor() or func.is_destructor() or func.is_declaration:
             continue
 
         tags = func.doxygen.tags
