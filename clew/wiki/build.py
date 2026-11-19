@@ -112,7 +112,8 @@ def build_wiki(
 ## The body of `build_wiki` before 2.0.0 (its history is recorded there).
 ## v2: the map honours exclude_owners (2.0.0, P5)
 ## v3: product tree requirement ids link to their pages (2.0.0, P5.4)
-## @version 3
+## v4: test pages get the packaged runs (2.0.0, P5.5)
+## @version 4
 ## @utility
 def _build_site(
     repo_root: Path,
@@ -230,6 +231,8 @@ def _build_site(
             "extent": {r.req_id: dict(r.extent) for r in trace.evidence if r.extent is not None},
             "flow_of": flow_of,
             "traced": set(traces),
+            ## P5.5: the runs themselves, for each pinned check's traced value.
+            "traces": traces,
             "slices": _slices_by_test(pages),
         },
         source,

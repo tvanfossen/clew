@@ -115,6 +115,7 @@ a.g-page{align-self:flex-start;padding:2px 6px;font:600 12px var(--sans);color:v
 .ears{display:inline-block;padding:2px 8px;border-radius:9px;font:600 12px var(--sans);border:1px solid var(--rule2);color:var(--ink2)}.ears:not(.ears-none){border-color:var(--acc);color:var(--accink)}
 .req-evidence-fig{margin:12px 0 20px;overflow-x:auto}.req-evidence text{font:500 12px var(--mono);fill:var(--ink)}.req-evidence .head{font:600 11px var(--sans);fill:var(--ink2)}.req-evidence .uncovered{fill:var(--warn)}.req-evidence .r-passed{fill:var(--accink)}.req-evidence .edge{stroke:var(--rule2);stroke-width:1.2}
 .pin{margin-left:6px;font:500 12px var(--sans);color:var(--ink2)}.pin-direct,.pin-via-variable{color:var(--accink)}.pin-not-attributed{color:var(--warn)}
+.traced{margin-left:6px;font:500 12px var(--sans);color:var(--ink2)}.traced code{color:var(--ink)}
 .issue-link{margin:16px 0 0}.issue-link a{display:inline-block;padding:8px 14px;border-radius:9px;border:1px solid var(--acc);text-decoration:none;font-weight:600}
 tr[hidden]{display:none}
 /* Change impact (round 3, P1g). */

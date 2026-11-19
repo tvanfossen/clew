@@ -393,3 +393,34 @@ def test_only_a_traced_test_gets_a_flow_of_its_own(tmp_path: Path) -> None:
         specs = build._test_flows(tmp_path / "x.db", facts, frozenset({"test_z"}))
     ## Round 5 (owner 2026-11-17): only the traced test keeps a flow; test_a is a slice.
     assert {s.entry for s in specs} == {"test_z"}
+
+
+def test_a_span_records_the_line_it_was_called_from(repo: Path) -> None:
+    """2.0.0 (P5.5, traced values): `code.lineno` is the CALLEE's first line, so two calls of one
+    function in a test could not be told apart. `clew.call_line` is the caller's line at the call,
+    which is what pairs a pinned check with the call it observes. `load([1, 2])` is on line 6.
+
+    @brief Spans carry their call site.
+    """
+    from clew.wiki.tracerun import spans_of, trace_test
+
+    spans = spans_of(trace_test(repo, "tests/test_m.py::test_load")["otlp"])
+    load = next(s for s in spans if s["name"] == "load")
+    assert _attrs(load)["clew.call_line"] == "6"
+
+
+def test_a_real_run_gives_a_pinned_check_its_value(repo: Path) -> None:
+    """END TO END (2.0.0, P5.5): the plugin's `clew.call_line` and the pins' lines agree. In
+    `test_load`, `got = load([1, 2])` (line 6) binds `got`, and `assert got == [2, 4]` reads it,
+    so the check observes `load` via `got` and its traced value is `[2, 4]`.
+
+    @brief A recorded run's value reaches the pinned check.
+    """
+    from clew.wiki.checkpins import pin_checks, traced_values
+    from clew.wiki.tracerun import trace_test
+
+    run = trace_test(repo, "tests/test_m.py::test_load")
+    body = (repo / "tests" / "test_m.py").read_text().splitlines()[3:7]
+    pins = pin_checks(body, "tests/test_m.py", {"load"}, first_line=4)
+    assert [(p.kind, p.variable, p.bound_line) for p in pins] == [("via variable", "got", 6)]
+    assert traced_values(pins, run["otlp"], "test_load") == {0: "[2, 4]"}

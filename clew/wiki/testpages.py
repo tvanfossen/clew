@@ -310,11 +310,12 @@ def _result(name: str, ctx: dict[str, Any]) -> str:
 ## @return HTML.
 ## v2: links its file's page.
 ## v3: checks pinned by syntax tree (2.0.0, P5.5)
-## @version 3
+## v4: traced values on pinned checks (2.0.0, P5.5)
+## @version 4
 ## @utility
 def _definition(d: Any, graph: _Edges, ctx: dict[str, Any], repo_root: Path) -> str:
     """@brief Definition block. @return HTML."""
-    from .checkpins import pin_checks
+    from .checkpins import pin_checks, traced_values
     from .testfacts import assertions
 
     url = source_url(ctx["template"], ctx["commit"], d.file, max(d.start, 1))
@@ -325,8 +326,11 @@ def _definition(d: Any, graph: _Edges, ctx: dict[str, Any], repo_root: Path) -> 
     checks = assertions(lines) if lines and not ctx["rules"].exclude_bodies else []
     ## P5.5: PINNED BY SYNTAX TREE when the language has a parser; the regex reading otherwise.
     candidates = {graph.names[c][0] for c in graph.callees.get(d.rowid, ()) if c in graph.names}
-    pins = pin_checks(lines, d.file, candidates) if checks else []
-    items = "".join(_pinned(p) for p in pins) or "".join(
+    pins = pin_checks(lines, d.file, candidates, d.start) if checks else []
+    ## P5.5, TRACED VALUES: a packaged run of this test gives each pinned check its call's value.
+    run = (ctx.get("traces") or {}).get(d.name)
+    values = traced_values(pins, run[1], d.name) if run and pins else {}
+    items = "".join(_pinned(p, values.get(i)) for i, p in enumerate(pins)) or "".join(
         f"<li><code>{escape(a)}</code></li>" for a in checks
     )
     count = len(pins) or len(checks)
@@ -336,12 +340,14 @@ def _definition(d: Any, graph: _Edges, ctx: dict[str, Any], repo_root: Path) -> 
     return out
 
 
-## @brief One pinned check: the statement and what it observes.
+## @brief One pinned check: the statement, what it observes, and its traced value.
 ## @param pin The Pin.
+## @param value The value its call returned in a recorded run, or None.
 ## @return HTML.
-## @version 1
+## v2 (2.0.0, P5.5): the traced value.
+## @version 2
 ## @req REQ-DDB-WIKI-043
-def _pinned(pin: Any) -> str:
+def _pinned(pin: Any, value: str | None = None) -> str:
     """@brief `observes f`, `observes f via r`, or `not attributed`. @return HTML."""
     from .checkpins import DIRECT, VIA_VARIABLE
 
@@ -354,8 +360,14 @@ def _pinned(pin: Any) -> str:
     else:
         badge = "not attributed"
     kind = pin.kind.replace(" ", "-")
+    seen = (
+        f' <span class="traced">returned <code>{escape(value)}</code> in the recorded run</span>'
+        if value is not None
+        else ""
+    )
     return (
-        f'<li><code>{escape(pin.statement)}</code> <span class="pin pin-{kind}">{badge}</span></li>'
+        f"<li><code>{escape(pin.statement)}</code> "
+        f'<span class="pin pin-{kind}">{badge}</span>{seen}</li>'
     )
 
 

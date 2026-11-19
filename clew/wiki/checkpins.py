@@ -49,31 +49,38 @@ class Pin:
     kind: str
     target: str | None = None
     variable: str | None = None
+    ## 2.0.0 (P5.5, traced values): the assertion's absolute line, and the line that bound
+    ## `variable` — the call sites a recorded run's spans are paired with.
+    line: int | None = None
+    bound_line: int | None = None
 
 
 ## @brief Pin each assertion in a test body to the candidate function it observes.
 ## @param lines The test definition's source lines.
 ## @param rel Its repository-relative file (the language is read from the suffix).
 ## @param candidates The names of the functions the test calls.
+## @param first_line The file line of `lines[0]`, so pins carry absolute lines.
 ## @return One Pin per assertion, in body order; [] for a language without a parser.
-## @version 1
+## v2 (2.0.0, P5.5): pins carry their absolute line and binding line.
+## @version 2
 ## @req REQ-DDB-WIKI-043
-def pin_checks(lines: list[str], rel: str, candidates: set[str]) -> list[Pin]:
+def pin_checks(lines: list[str], rel: str, candidates: set[str], first_line: int = 1) -> list[Pin]:
     """@brief Dispatch by language. @return Pins."""
     suffix = PurePosixPath(rel).suffix
     if suffix == ".py":
-        return _python(lines, candidates)
+        return _python(lines, candidates, first_line)
     lang = _C_SUFFIXES.get(suffix) or _CPP_SUFFIXES.get(suffix)
-    return _c_family(lines, lang, candidates) if lang else []
+    return _c_family(lines, lang, candidates, first_line) if lang else []
 
 
 ## @brief Pin a Python test body.
 ## @param lines The definition's lines.
 ## @param candidates Candidate names.
+## @param first_line The file line of the body's first line.
 ## @return Pins.
-## @version 1
+## @version 2
 ## @utility
-def _python(lines: list[str], candidates: set[str]) -> list[Pin]:
+def _python(lines: list[str], candidates: set[str], first_line: int) -> list[Pin]:
     """A BODY THAT WILL NOT PARSE pins nothing rather than raising: the page still lists its
     checks, read the old way.
 
@@ -85,18 +92,19 @@ def _python(lines: list[str], candidates: set[str]) -> list[Pin]:
         tree = ast.parse(source)
     except SyntaxError:
         return []
-    assigned: dict[str, str] = {}
+    assigned: dict[str, tuple[str, int]] = {}
     pins: list[Pin] = []
     for node in _statements(tree):
+        at = first_line + node.lineno - 1
         if isinstance(node, ast.Assign):
             called = _outermost(_py_calls(node.value), candidates)
             for name in (t.id for t in node.targets if isinstance(t, ast.Name)):
                 if called:
-                    assigned[name] = called
+                    assigned[name] = (called, at)
         elif _is_py_assertion(node):
             text = " ".join((ast.get_source_segment(source, node) or "").split())
             names = {n.id for n in ast.walk(node) if isinstance(n, ast.Name)}
-            pins.append(_pin(text, _py_calls(node), names, assigned, candidates))
+            pins.append(_pin(text, _py_calls(node), names, assigned, candidates, at))
     return pins
 
 
@@ -149,10 +157,11 @@ def _py_calls(node: ast.AST) -> list[str]:
 ## @param lines The definition's lines.
 ## @param lang `c` or `cpp`.
 ## @param candidates Candidate names.
+## @param first_line The file line of the body's first line.
 ## @return Pins.
-## @version 1
+## @version 2
 ## @utility
-def _c_family(lines: list[str], lang: str, candidates: set[str]) -> list[Pin]:
+def _c_family(lines: list[str], lang: str, candidates: set[str], first_line: int) -> list[Pin]:
     """A DECLARATION OR ASSIGNMENT from a candidate's call binds its variable; an assertion
     macro's call is then pinned exactly as in Python.
 
@@ -162,16 +171,18 @@ def _c_family(lines: list[str], lang: str, candidates: set[str]) -> list[Pin]:
     from ..tsnode import Parser
 
     root = Parser(lang).parse("\n".join(lines).encode()).root_node
-    assigned: dict[str, str] = {}
+    assigned: dict[str, tuple[str, int]] = {}
     pins: list[Pin] = []
     for node in _walk(root):
+        at = first_line + node.start_point[0]
         bound = _c_binding(node, candidates)
         if bound:
-            assigned[bound[0]] = bound[1]
+            assigned[bound[0]] = (bound[1], at)
         elif node.type == "call_expression" and _C_ASSERT.match(_callee(node)):
             names = {_text(n) for n in _walk(node) if n.type == "identifier"}
             calls = [_callee(n) for n in _walk(node) if n.type == "call_expression"][1:]
-            pins.append(_pin(" ".join(_text(node).split()), calls, names, assigned, candidates))
+            text = " ".join(_text(node).split())
+            pins.append(_pin(text, calls, names, assigned, candidates, at))
     return pins
 
 
@@ -251,15 +262,55 @@ def _outermost(calls: list[str], candidates: set[str]) -> str | None:
 ## @param text The assertion's text.
 ## @param calls Calls inside it, outermost first.
 ## @param names Identifiers it reads.
-## @param assigned Variable → the candidate that produced it.
+## @param assigned Variable → (the candidate that produced it, the line that bound it).
 ## @param candidates Candidate names.
+## @param line The assertion's absolute line.
 ## @return The Pin.
-## @version 1
+## @version 2
 ## @utility
-def _pin(text: str, calls: list[str], names: set[str], assigned: dict, candidates: set[str]) -> Pin:
+def _pin(
+    text: str, calls: list[str], names: set[str], assigned: dict, candidates: set[str], line: int
+) -> Pin:
     """@brief Direct, else via a variable, else not attributed. @return Pin."""
     target = _outermost(calls, candidates)
     if target:
-        return Pin(text, DIRECT, target)
+        return Pin(text, DIRECT, target, line=line)
     var = next((n for n in sorted(names) if n in assigned), None)
-    return Pin(text, VIA_VARIABLE, assigned[var], var) if var else Pin(text, NOT_ATTRIBUTED)
+    if var is None:
+        return Pin(text, NOT_ATTRIBUTED, line=line)
+    called, bound = assigned[var]
+    return Pin(text, VIA_VARIABLE, called, var, line=line, bound_line=bound)
+
+
+## @brief The value each pinned check observed in a recorded run, by pin index.
+## @param pins The test's pins.
+## @param otlp The run, as OTLP JSON.
+## @param test The test function's name (its span is the parent of the calls it made).
+## @return {pin index: the observed call's return value}; a pin with no matching span is absent.
+## @version 1
+## @req REQ-DDB-WIKI-043
+def traced_values(pins: list[Pin], otlp: dict, test: str) -> dict[int, str]:
+    """PAIRED BY CALL SITE, NEVER BY ORDER. The pinned function's span called FROM THE TEST at the
+    pin's line — the assertion's own line when direct, the binding line when via a variable — is
+    the call the check observed. A run recorded before spans carried `clew.call_line` pairs
+    nothing: a value shown against the wrong call would be worse than none.
+
+    @brief Pair checks with a run's return values.
+    @return Values by pin index.
+    """
+    from .tracerun import spans_of
+
+    spans = spans_of(otlp)
+    tests = {s.get("spanId") for s in spans if s.get("name") == test}
+    calls: dict[tuple[str, str], str] = {}
+    for span in spans:
+        attrs = {a["key"]: next(iter(a["value"].values()), "") for a in span.get("attributes", [])}
+        if span.get("parentSpanId") in tests and attrs.get("clew.call_line"):
+            calls[(span.get("name", ""), attrs["clew.call_line"])] = attrs.get("clew.return", "")
+    out: dict[int, str] = {}
+    for i, pin in enumerate(pins):
+        site = pin.line if pin.kind == DIRECT else pin.bound_line
+        key = (pin.target or "", str(site))
+        if pin.target and site is not None and key in calls:
+            out[i] = calls[key]
+    return out

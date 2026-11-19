@@ -107,7 +107,8 @@ class _Recorder:
     ## @param frame The called frame.
     ## @param path Its file.
     ## @return The span.
-    ## @version 1
+    ## v2 (2.0.0, P5.5): records `clew.call_line`, the call site.
+    ## @version 2
     ## @utility
     def _open(self, frame: Any, path: str) -> dict[str, Any]:
         """@brief Open. @return Span."""
@@ -128,6 +129,10 @@ class _Recorder:
                 _attr("code.lineno", str(frame.f_code.co_firstlineno)),
                 _attr("code.function", frame.f_code.co_name),
                 _attr("clew.args", args),
+                ## 2.0.0 (P5.5): THE CALL SITE, the caller's line at the call. `code.lineno` is the
+                ## callee's first line, which cannot tell two calls of one function apart; this
+                ## pairs a pinned check with the call it observes.
+                _attr("clew.call_line", str(frame.f_back.f_lineno if frame.f_back else "")),
             ],
             "events": [],
             "status": {"code": 1},
