@@ -200,9 +200,10 @@ def parse_contexts(path: Path, repo_root: Path) -> dict[str, dict[int, set[str]]
 
 ## @brief The test a coverage context names.
 ## @param context `<nodeid>|<phase>`, as `--cov-context=test` writes it.
-## @return The test function's name ("" for the empty context).
+## @return The test's key, `file::name` ("" for the empty context or a fixture phase).
 ## v2: only the run phase names a test.
-## @version 2
+## v3 (2.0.0, W11): the key keeps the test's file.
+## @version 3
 ## @dg_internal
 def _context_test(context: str) -> str:
     """PARAMETERS ARE CUT AT THE FIRST "[" before the name is taken: a parameter id may itself
@@ -216,7 +217,10 @@ def _context_test(context: str) -> str:
     nodeid, _, phase = context.partition("|")
     if phase and phase != "run":
         return ""
-    return nodeid.split("[", 1)[0].rsplit("::", 1)[-1]
+    parts = nodeid.split("[", 1)[0].split("::")
+    ## W11 (2.0.0): THE FILE STAYS, so `test_x` in two files is two tests; a class between them
+    ## is dropped, as the bare name always dropped it. `slices.test_name` shows the name.
+    return f"{parts[0]}::{parts[-1]}" if len(parts) > 1 else parts[0]
 
 
 ## Suffixes read as an LCOV tracefile rather than coverage.py data.

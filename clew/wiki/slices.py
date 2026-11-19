@@ -14,7 +14,7 @@ This is measurement. Without per-test coverage nothing here applies; a slice is 
 and the page says so.
 
 @brief Test slices of master flows from per-test coverage.
-@version 1
+@version 2
 """
 
 from __future__ import annotations
@@ -28,6 +28,24 @@ from .svg import flow_svg
 Contexts = dict[str, dict[int, set[str]]]
 ## {file: lines one test ran}.
 Lines = dict[str, set[int]]
+
+
+## @brief The bare name a per-test key shows: the part after the file.
+## @param key A per-test coverage key, `file::name`, or a bare name (an LCOV `TN:` carries no file).
+## @return The name.
+## @version 1
+## @req REQ-DDB-WIKI-041
+def test_name(key: str) -> str:
+    """W11 (2.0.0): the key carries the file so two namesakes stay two tests; the name is what a
+    reader sees and what a requirement's evidence lists.
+
+    @brief Show a key's name.
+    @return Name.
+    """
+    return key.rsplit("::", 1)[-1]
+
+
+test_name.__test__ = False  # a helper, not a pytest test, whatever its name says
 
 
 ## @brief One test's portion of one master flow.
@@ -115,7 +133,8 @@ def _slice(flow: Flow, exercised: tuple[int, ...]) -> Slice:
 ## @param cut The test's slice.
 ## @param pad Steps of context kept on each side of the slice.
 ## @return HTML: the counts of hidden steps around the diagram; "" for an empty slice.
-## @version 1
+## v2 (2.0.0, W10): one window per exercised run; the steps between windows are counted.
+## @version 2
 ## @req REQ-DDB-WIKI-041
 def slice_svg(flow: Flow, cut: Slice, pad: int = 2) -> str:
     """THE PORTION OF THE DIAGRAM, numbered as in the master flow so the reader can find it there:
@@ -127,13 +146,42 @@ def slice_svg(flow: Flow, cut: Slice, pad: int = 2) -> str:
     """
     if not cut.exercised:
         return ""
-    lo = max(0, cut.exercised[0] - pad)
-    hi = min(len(flow.steps), cut.exercised[-1] + pad + 1)
-    steps = flow.steps[lo:hi]
-    used = {s.from_lane for s in steps} | {s.to_lane for s in steps}
-    window = replace(flow, steps=steps, lanes=tuple(ln for ln in flow.lanes if ln.id in used))
-    svg = flow_svg(window, marks=_marks(flow, cut, lo, hi), first=lo)
-    return f'<div class="slice">{_hidden(lo, "earlier")}{svg}{_hidden(len(flow.steps) - hi, "later")}</div>'
+    windows = _windows(cut.exercised, pad, len(flow.steps))
+    parts = [_hidden(windows[0][0], "earlier")]
+    for k, (lo, hi) in enumerate(windows):
+        if k:
+            parts.append(_hidden(lo - windows[k - 1][1], "between"))
+        steps = flow.steps[lo:hi]
+        used = {s.from_lane for s in steps} | {s.to_lane for s in steps}
+        window = replace(flow, steps=steps, lanes=tuple(ln for ln in flow.lanes if ln.id in used))
+        parts.append(flow_svg(window, marks=_marks(flow, cut, lo, hi), first=lo))
+    parts.append(_hidden(len(flow.steps) - windows[-1][1], "later"))
+    return f'<div class="slice">{"".join(parts)}</div>'
+
+
+## @brief The windows a slice is drawn in: each exercised run padded, overlapping ones merged.
+## @param exercised Exercised step indices, ascending.
+## @param pad Steps of context on each side.
+## @param n The flow's step count.
+## @return [(lo, hi)], hi exclusive, ascending and disjoint.
+## @version 1
+## @dg_internal
+def _windows(exercised: tuple[int, ...], pad: int, n: int) -> list[tuple[int, int]]:
+    """W10 (2.0.0): ONE window from the first exercised step to the last drew every dimmed step
+    between, 38 of them for a test that ran steps 2 and 40. A gap the two paddings do not close
+    now starts a new window.
+
+    @brief Split a slice into windows.
+    @return Windows.
+    """
+    out: list[tuple[int, int]] = []
+    for i in exercised:
+        lo, hi = max(0, i - pad), min(n, i + pad + 1)
+        if out and lo <= out[-1][1]:
+            out[-1] = (out[-1][0], max(out[-1][1], hi))
+        else:
+            out.append((lo, hi))
+    return out
 
 
 ## @brief Classes per step of a window: lit, dimmed, and the first step of each entry.
@@ -160,10 +208,13 @@ def _marks(flow: Flow, cut: Slice, lo: int, hi: int) -> dict[int, str]:
 
 ## @brief A line counting steps outside a window.
 ## @param n How many.
-## @param where "earlier" or "later".
+## @param where "earlier", "between" or "later".
 ## @return HTML, or "" for none.
-## @version 1
+## v2: counts steps between windows (2.0.0, W10)
+## @version 2
 ## @dg_internal
 def _hidden(n: int, where: str) -> str:
     """@brief Count hidden steps. @return HTML."""
-    return f'<p class="slice-more">… {n} {where} step{"s" if n != 1 else ""}</p>' if n else ""
+    steps = f"step{'s' if n != 1 else ''}"
+    said = f"{n} {steps} between" if where == "between" else f"{n} {where} {steps}"
+    return f'<p class="slice-more">… {said}</p>' if n else ""

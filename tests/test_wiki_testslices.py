@@ -7,7 +7,7 @@ every master flow the test exercised — its steps lit, the rest dimmed, where i
 and links the whole master flow with that test highlighted. No test gets a flow page of its own.
 
 @brief Site tests for test slices.
-@version 1
+@version 2
 """
 
 from __future__ import annotations
@@ -63,14 +63,22 @@ def test_check():
 '''
 
 ## test_run ran run's two calls and everything under them; test_check called check itself.
+## FIXTURE CHANGED (2.0.0, W11): the node ids are the shape pytest writes, `<file>::<test>`. They
+## were `t::<test>`, a placeholder whose file part named nothing, which a key that keeps the file
+## (W11) cannot attribute to the test's definition.
 _CONTEXTS = {
     "files": {
-        "src/app.py": {"contexts": {"6": ["t::test_run|run"], "7": ["t::test_run|run"]}},
+        "src/app.py": {
+            "contexts": {
+                "6": ["tests/test_app.py::test_run|run"],
+                "7": ["tests/test_app.py::test_run|run"],
+            }
+        },
         "src/store.py": {
             "contexts": {
-                "3": ["t::test_run|run", "t::test_check|run"],
-                "11": ["t::test_run|run", "t::test_check|run"],
-                "17": ["t::test_run|run"],
+                "3": ["tests/test_app.py::test_run|run", "tests/test_app.py::test_check|run"],
+                "11": ["tests/test_app.py::test_run|run", "tests/test_app.py::test_check|run"],
+                "17": ["tests/test_app.py::test_run|run"],
             }
         },
     }
@@ -141,7 +149,8 @@ def test_a_test_page_draws_its_slice_of_the_master_flow(site: dict[str, str]) ->
     page = _page(site, "test-tests-test_app-py-test_check")
     assert "What it exercises" in page
     assert 'class="st ex entry"' in page and "test enters" in page
-    assert 'href="flow-run.html#test=test_check"' in page
+    ## W11 (2.0.0): the link carries the test's key, `file::name`.
+    assert 'href="flow-run.html#test=tests/test_app.py%3A%3Atest_check"' in page
 
 
 def test_no_test_gets_a_flow_page_of_its_own(site: dict[str, str]) -> None:
@@ -152,4 +161,4 @@ def test_no_test_gets_a_flow_page_of_its_own(site: dict[str, str]) -> None:
 def test_the_master_flow_page_carries_each_test_s_slice(site: dict[str, str]) -> None:
     """@brief `#test=<name>` on a flow page lights that test's steps; the slices ride inline."""
     flow = _page(site, "flow-run")
-    assert 'id="flow-slices"' in flow and '"test_check"' in flow
+    assert 'id="flow-slices"' in flow and '"tests/test_app.py::test_check"' in flow

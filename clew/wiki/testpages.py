@@ -59,7 +59,8 @@ def test_page_of(name: str, rel: str) -> str:
 ## @return {test name: its page href}.
 ## v2: tests resolved by framework (Catch2 / GoogleTest macros), not by function name.
 ## v3 (round 5): what it exercises — its slices of the master flows, from per-test coverage.
-## @version 3
+## v4: each definition's own slices (2.0.0, W11)
+## @version 4
 ## @req REQ-DDB-WIKI-026
 def test_pages(db: Path, repo_root: Path, ctx: dict[str, Any], source: Path) -> dict[str, str]:
     """ONE PAGE PER NAME: every definition of a test name in test code is drawn on it, so a link
@@ -88,7 +89,7 @@ def test_pages(db: Path, repo_root: Path, ctx: dict[str, Any], source: Path) -> 
             "```{raw} html",
             '<p class="crumbs"><a href="requirements.html">← Requirements</a></p>',
             f'<div class="test-page">{_result(name, ctx)}{_replay(name, ctx)}'
-            f"{_exercises(name, ctx)}{body}"
+            f"{_exercises(name, ctx, ds)}{body}"
             f"{_requirements(name, ctx)}</div>",
             "```",
             "",
@@ -180,44 +181,96 @@ _SLICES_DRAWN = 3
 
 ## @brief What a test exercises: its slices of the master flows.
 ## @param name The test.
-## @param ctx The build context (`slices`: {test: [(flow page, slice)]}).
+## @param ctx The build context (`slices`: {test key: [(flow page, slice)]}).
+## @param defs The test's definitions on this page (each has a `file`).
 ## @return HTML, or "" when no master flow holds a step it ran.
-## @version 1
+## v2 (2.0.0, W11): slices are keyed `file::name`; each definition's are drawn under its file.
+## @version 2
 ## @req REQ-DDB-WIKI-041
-def _exercises(name: str, ctx: dict[str, Any]) -> str:
+def _exercises(name: str, ctx: dict[str, Any], defs: list | None = None) -> str:
     """OWNER 2026-11-17: "a test case is testing a portion OF a sequence diagram". Each master
     flow the test ran a step of is drawn as the window around its slice, most steps first; the
     title opens the whole flow with this test's steps lit.
 
+    W11 (2.0.0): `test_x` in two files used to share one key and so one merged set of slices.
+    The page for a name still holds every definition; each now shows its own, under its file. A
+    key with no file (an LCOV `TN:` name) is drawn once for the page.
+
     @brief Draw the slices.
     @return HTML.
     """
-    from urllib.parse import quote
-
-    from .slices import slice_svg
-
-    cuts = (ctx.get("slices") or {}).get(name) or []
-    if not cuts:
+    slices = ctx.get("slices") or {}
+    groups = _slice_groups(name, slices, [d.file for d in defs or ()])
+    if not groups:
         return ""
     parts = [
         "<h2>What it exercises</h2><p>The parts of the system's flows this test ran, measured by "
         "per-test coverage: lit steps ran in this test, dimmed ones did not, and ▶ marks where the "
         "test called in. Each title opens the whole flow with these steps lit.</p>"
     ]
+    for file, key in groups:
+        if file and len(groups) > 1:
+            parts.append(f"<h3><code>{escape(file)}</code></h3>")
+        parts.append(_slices_html(key, slices[key]))
+    return '<section class="exercises">' + "".join(parts) + "</section>"
+
+
+## @brief Which of a name's per-test keys belong to which of its definitions' files.
+## @param name The test name.
+## @param slices {test key: [(flow page, slice)]}.
+## @param files The files of the name's definitions on this page.
+## @return [(definition file or "", key)], definitions first, in their order.
+## @version 1
+## @dg_internal
+def _slice_groups(name: str, slices: dict, files: list[str]) -> list[tuple[str, str]]:
+    """BY PATH SUFFIX, EITHER WAY: a pytest node id's file is relative to pytest's rootdir, which
+    need not be the repository root, so `tests/test_a.py` and `pkg/tests/test_a.py` are one file.
+    NOTHING IS DROPPED: a key matching no definition (an LCOV `TN:` name, a node id from another
+    rootdir) is drawn for the page as a whole, as every key was before W11.
+
+    @brief Group a name's keys by definition.
+    @return Groups.
+    """
+    from .slices import test_name
+
+    keys = sorted(k for k in slices if test_name(k) == name and slices[k])
+    out: list[tuple[str, str]] = []
+    for file in dict.fromkeys(files):
+        for key in keys:
+            where = key.rsplit("::", 1)[0] if "::" in key else ""
+            if where and (file.endswith(where) or where.endswith(file)):
+                out.append((file, key))
+    claimed = {k for _f, k in out}
+    return out + [("", k) for k in keys if k not in claimed]
+
+
+## @brief One test key's slices: the first few drawn, the rest linked.
+## @param key The per-test key (`file::name`, or a bare name).
+## @param cuts [(flow page, slice)], most exercised first.
+## @return HTML.
+## @version 1
+## @dg_internal
+def _slices_html(key: str, cuts: list) -> str:
+    """@brief Draw one key's slices. @return HTML."""
+    from urllib.parse import quote
+
+    from .slices import slice_svg
+
+    parts = []
     for page, cut in cuts[:_SLICES_DRAWN]:
-        href = f"{page.name}.html#test={quote(name)}"
+        href = f"{page.name}.html#test={quote(key)}"
         parts.append(
-            f'<h3><a href="{escape(href)}">{escape(page.title)}</a> · {len(cut.exercised)} of '
-            f"{page.steps} steps</h3>{slice_svg(page.flow, cut)}"
+            f'<h4><a href="{escape(href)}">{escape(page.title)}</a> · {len(cut.exercised)} of '
+            f"{page.steps} steps</h4>{slice_svg(page.flow, cut)}"
         )
     rest = cuts[_SLICES_DRAWN:]
     if rest:
         links = ", ".join(
-            f'<a href="{escape(p.name)}.html#test={escape(quote(name))}">{escape(p.title)}</a>'
+            f'<a href="{escape(p.name)}.html#test={escape(quote(key))}">{escape(p.title)}</a>'
             for p, _c in rest
         )
         parts.append(f"<p>Also in: {links}.</p>")
-    return '<section class="exercises">' + "".join(parts) + "</section>"
+    return "".join(parts)
 
 
 ## @brief The run's verdict on a test, and its failure message.

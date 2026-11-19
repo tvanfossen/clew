@@ -584,7 +584,8 @@ def test_a_context_with_brackets_in_its_parameters_names_its_test(tmp_path: Path
         )
     )
     (tmp_path / "a.py").write_text("x = 1\n")
-    assert parse_contexts(report, tmp_path) == {"a.py": {1: {"test_x"}}}
+    ## W11 (2.0.0): the key keeps the test's file; the name is still `test_x`, not `enhanced]`.
+    assert parse_contexts(report, tmp_path) == {"a.py": {1: {"tests/t.py::test_x"}}}
 
 
 def test_only_a_tests_own_run_links_it_not_its_fixtures_setup(tmp_path: Path) -> None:
@@ -612,7 +613,8 @@ def test_only_a_tests_own_run_links_it_not_its_fixtures_setup(tmp_path: Path) ->
         )
     )
     (tmp_path / "a.py").write_text("x = 1\ny = 2\n")
-    assert parse_contexts(report, tmp_path) == {"a.py": {1: set(), 2: {"test_x"}}}
+    ## W11 (2.0.0): the key keeps the test's file; the setup phase still links nothing.
+    assert parse_contexts(report, tmp_path) == {"a.py": {1: set(), 2: {"tests/t.py::test_x"}}}
 
 
 def test_an_lcov_tracefile_s_test_sections_are_per_test_contexts(tmp_path: Path) -> None:

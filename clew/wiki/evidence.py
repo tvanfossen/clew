@@ -428,16 +428,21 @@ class _Reports:
     ## @brief Which tests ran a line of which implementer.
     ## @param impls (name, file, start, end) per implementer.
     ## @return {test: implementer names it executed}; empty when no contexts.
-    ## @version 1
+    ## v2: per-test keys normalised to names (2.0.0, W11)
+    ## @version 2
     ## @dg_internal
     def _hits(self, impls: list) -> dict[str, set[str]]:
         """@brief Per-test implementer hits. @return Map."""
+        from .slices import test_name
+
         found: dict[str, set[str]] = {}
         for name, rel, start, end in impls:
             for line, tests in ((self.contexts or {}).get(rel) or {}).items():
                 if start <= line <= end:
+                    ## W11 (2.0.0): the per-test key is `file::name`; a requirement's evidence
+                    ## lists tests by name, as before.
                     for t in tests:
-                        found.setdefault(t, set()).add(name)
+                        found.setdefault(test_name(t), set()).add(name)
         return found
 
     ## @brief Per linked test, the implementers of one requirement it executed or reaches.

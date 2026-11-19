@@ -390,6 +390,21 @@ Nothing about a target repo is hardcoded: every section above is a declared over
 a built-in default. The identical mapping is the `options` argument of `build_index()` and
 of the MCP `index(action="refresh")` tool, so an agent with no shell can state any of it.
 
+### What the walk skips, and what `vendored:` changes
+
+- **Dot-directories are never walked.** `.github/`, `.vscode/` and every other directory whose
+  name starts with `.`, plus `__pycache__` and `node_modules`, are pruned (`scope._skip_dir`).
+  A script under `.github/scripts/` is therefore never indexed, whatever `index_scope` says
+  beneath it. That is a scope decision, not an oversight.
+- **External code is a nested git tree** (a submodule, or a directory with its own `.git`).
+  Its files are indexed and stamped with the tree that owns them, and counts that exclude
+  external code are counts over that stamp.
+- **`vendored:` is a statement, not a filter.** A declared path is recorded as
+  `scope.vendored_roots`, with a path that does not exist named in
+  `scope.vendored_declared_missing`. It is reported in the index's scope (`status`,
+  `doc_scope`), and the wiki draws it in the Vendor block beside nested git trees. It never removes a file from the
+  index or from a count. To leave a path out, use `index_scope.excludes`.
+
 The declared `@req` id pattern and the catalog column mapping come from the `guard:` section
 of the same `.clew.yaml` — the gate's config, read by the index with the gate's schema (see
 [docs/GUARD.md](GUARD.md)).
