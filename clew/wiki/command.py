@@ -323,6 +323,22 @@ def _trace(args: argparse.Namespace, db: Path, repo: Path | None) -> dict[str, A
     return {"trace_version": 1, "requirements": [dataclasses.asdict(r) for r in rows]}
 
 
+## @brief The EARS notes for `check`, when the repository turned EARS on.
+## @param repo The repository.
+## @param db The index.
+## @param config_path An out-of-tree config, or None.
+## @return Notes.
+## @version 1
+## @req REQ-DDB-WIKI-042
+def _ears_notes(repo: Path, db: Path, config_path: Path | None) -> list[str]:
+    """@brief Read `wiki.check.ears`, then the index. @return Notes."""
+    from .config import load_wiki_config
+    from .ears import ears_notes
+
+    config, _problems = load_wiki_config(repo, config_path)
+    return ears_notes(db, config.ears)
+
+
 ## @brief The `check` and `build` verbs.
 ## @param args Parsed arguments.
 ## @param db The index.
@@ -331,7 +347,8 @@ def _trace(args: argparse.Namespace, db: Path, repo: Path | None) -> dict[str, A
 ## v2: `--config` and `--version`.
 ## v3: `--format markdown` writes wiki pages instead.
 ## v4: `check --before-tests`.
-## @version 4
+## v5 (2.0.0, S9): `check` prints EARS notes on stderr when `wiki.check.ears` is on.
+## @version 5
 ## @utility
 def _site(args: argparse.Namespace, db: Path, repo: Path) -> int:
     """`check` PRINTS EVERY PROBLEM, one per line on stdout, and exits 1 when there is any — the
@@ -348,6 +365,9 @@ def _site(args: argparse.Namespace, db: Path, repo: Path) -> int:
         problems = check_wiki(repo, db, config, before_tests=args.before_tests)
         for problem in problems:
             sys.stdout.write(f"{problem}\n")
+        ## S9: NOTES ON STDERR, AND THE EXIT CODE IS THE PROBLEMS' ALONE (never a gate).
+        for note in _ears_notes(repo, db, config):
+            sys.stderr.write(f"{note}\n")
         return 1 if problems else 0
     from .build import build_wiki
 

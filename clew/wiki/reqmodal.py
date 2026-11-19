@@ -243,12 +243,31 @@ def page_of(req_id: str) -> str:
     return "req-" + _key(req_id)
 
 
+## @brief The EARS badge line for a requirement page, when `wiki.check.ears` is on.
+## @param row The evidence row.
+## @param entry Its catalogue entry.
+## @param ctx The page context (`ears`).
+## @return One HTML line, or none.
+## @version 1
+## @req REQ-DDB-WIKI-042
+def _ears_line(row: Any, entry: dict, ctx: dict[str, Any]) -> list[str]:
+    """@brief Badge on the statement the catalogue gives, else the title. @return Lines."""
+    if not ctx.get("ears"):
+        return []
+    from ..requirements import catalog_value
+    from .ears import ears_badge, statement_of
+
+    statement = statement_of(catalog_value(entry, "acceptance"), row.title)
+    return [f'<p class="ears-line">{ears_badge(statement)}</p>']
+
+
 ## @brief Write one page per requirement.
 ## @param trace The gathered trace.
 ## @param ctx The page context: trace, rules, flows, issue target.
 ## @param source The Sphinx source directory.
 ## @return The page names written.
-## @version 1
+## v2: EARS badge and check notes (2.0.0, S9)
+## @version 2
 ## @req REQ-DDB-WIKI-022
 def requirement_pages(trace: Any, ctx: dict[str, Any], source: Any) -> list[str]:
     """ORPHAN PAGES (linked from the index, not from the toctree), one per requirement, so a
@@ -279,6 +298,7 @@ def requirement_pages(trace: Any, ctx: dict[str, Any], source: Any) -> list[str]
             "",
             "```{raw} html",
             '<p class="crumbs"><a href="requirements.html">← Requirements</a></p>',
+            *_ears_line(row, entry, ctx),
             f'<div class="req-page">{_body(row, entry, title, ctx)}</div>',
             "```",
             "",

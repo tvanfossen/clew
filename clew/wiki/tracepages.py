@@ -266,7 +266,8 @@ def load_impact(path: Path) -> list[dict] | None:
 ## v6 (round 4, R4): one page per requirement; the index links to them.
 ## v7: writes the group pages too (2.0.0, P5.4)
 ## v8: writes the S4 traceability checklist and links it (2.0.0, P5.4)
-## @version 8
+## v9: EARS badge and check notes (2.0.0, S9)
+## @version 9
 ## @req REQ-DDB-WIKI-012
 def requirements_page(
     trace: Trace,
@@ -281,7 +282,13 @@ def requirements_page(
     from .summary import charts_block, group_cards, group_table
 
     ev = trace.evidence
-    ctx = {"trace": trace, "rules": rules, "flows": list(flows), "issues": issues}
+    ctx = {
+        "trace": trace,
+        "rules": rules,
+        "flows": list(flows),
+        "issues": issues,
+        "ears": config.ears,
+    }
     requirement_pages(trace, ctx, source)
     group_pages(trace, ctx, source)
     traceability_page(trace, source)

@@ -175,6 +175,7 @@ wiki:
     public: {exclude_requirement_text: true}
   issues: {github: acme/demo}
   doc_kinds: {README.md: tutorial}
+  check: {ears: true}  # FIXTURE EXTENDED (2.0.0, S9): the EARS badge on requirement pages
 """
 
 
@@ -958,3 +959,29 @@ def test_the_traceability_checklist_states_each_requirements_evidence(site: dict
     assert 'data-check="implemented" class="ok"' in w1
     assert "1 of 3 carry a rationale" in page
     assert 'href="traceability.html"' in site["requirements.html"], "the checklist is reachable"
+
+
+def test_with_ears_on_a_requirement_page_shows_its_pattern(site: dict[str, str]) -> None:
+    """S9 (owner-approved 2026-11-17): opt-in, never a gate. REQ-W-001's acceptance text ("Every
+    item is parsed once, then the load finishes.") follows no EARS pattern, so its page says so.
+
+    @brief P5.4 / S9: the EARS badge.
+    """
+    assert '<span class="ears ears-none">not EARS</span>' in site["req-REQ-W-001.html"]
+
+
+def test_wiki_check_prints_ears_notes_without_failing_on_them(repo, capsys) -> None:
+    """S9: never a gate. `clew wiki check` prints a note for each requirement in no EARS pattern,
+    on stderr, and its exit code is exactly what the problems alone decide.
+
+    @brief P5.4 / S9: EARS notes from `clew wiki check`.
+    """
+    from clew.wiki.check import check_wiki
+    from clew.wiki.command import wiki_main
+
+    root, db = repo
+    rc = wiki_main(["check", "--repo-root", str(root), "--index", str(db)])
+    out, err = capsys.readouterr()
+    assert "note: REQ-W-001 is in no EARS pattern:" in err
+    assert "note:" not in out, "notes are not problems"
+    assert rc == (1 if check_wiki(root, db) else 0)

@@ -274,6 +274,7 @@ wiki:
   trace_python: .venv/bin/python  # the traced run's interpreter (default: a venv under the root, else clew's, said)
   component_depth: 2            # leading directories that name a package on the map
   web: {max_ring: 8}            # the deepest ring of the call web
+  check: {ears: true}           # opt-in EARS badge on requirement pages; `clew wiki check` notes (never a gate)
   audiences:
     partner: {exclude_bodies: true, exclude_requirement_text: true, exclude_owners: true}
 ```

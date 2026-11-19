@@ -48,6 +48,8 @@ _TOP = {
     "trace_python",
     "component_depth",
     "web",
+    ## S9 (2.0.0): `check: {ears: true}`, the opt-in EARS badge (never a gate).
+    "check",
 }
 ## Each tuning key's former constant — the default when it is not declared.
 TUNING_DEFAULTS = {
@@ -292,6 +294,8 @@ class WikiConfig:
     issues_enabled: bool = True
     ## True when `issues.fetch` asks the build to read open issues (the build's only network use).
     issues_fetch: bool = False
+    ## S9 (2.0.0): `check.ears` — the EARS badge on requirement pages and notes from `check`.
+    ears: bool = False
     ## Path globs whose entry points are tooling flows.
     tooling: tuple[str, ...] = DEFAULT_TOOLING
     ## R5-CFG C1-C5, C7-C9, W6 (2.0.0): the build's numbers, declared (see TUNING_DEFAULTS).
@@ -336,7 +340,8 @@ class WikiConfig:
 ## v17: tests come from the top-level tests: section; wiki.tests is refused (2.0.0, R5-CFG F20)
 ## v18: reads the tuning keys (2.0.0, R5-CFG C1-C9)
 ## v19: records docs_declared (2.0.0)
-## @version 19
+## v20: EARS badge and check notes (2.0.0, S9)
+## @version 20
 ## @req REQ-DDB-WIKI-003
 def load_wiki_config(
     repo_root: Path, config_path: Path | None = None
@@ -385,6 +390,7 @@ def load_wiki_config(
         issues=_issues(raw.get("issues"), problems),
         issues_enabled=raw.get("issues") is not False,
         issues_fetch=isinstance(raw.get("issues"), dict) and bool(raw["issues"].get("fetch")),
+        ears=_ears(raw.get("check"), problems),
         tooling=_strings(raw, "tooling", DEFAULT_TOOLING, "wiki", problems),
         needs=str(requirements["needs"]) if requirements.get("needs") else None,
         adrs=_strings(raw, "adrs", DEFAULT_ADRS, "wiki", problems),
@@ -947,6 +953,31 @@ def _issues(raw: Any, problems: list[str]) -> tuple[str, str] | None:
         problems.append(f"`wiki.issues.{provider}` must name `<owner-or-org>/<repo-or-project>`")
         return None
     return str(provider), project
+
+
+## @brief `wiki.check`: the opt-in EARS badge.
+## @param raw The `check` value, or None.
+## @param problems Collects a problem for a malformed section.
+## @return Whether EARS is on.
+## @version 1
+## @req REQ-DDB-WIKI-042
+def _ears(raw: Any, problems: list[str]) -> bool:
+    """A BOOLEAN, REFUSED OTHERWISE: `ears: 'yes'` is a problem rather than a truthy string, so a
+    typo cannot turn the badge on or off silently.
+
+    @brief Parse `check.ears`.
+    @return On or off.
+    """
+    if raw is None:
+        return False
+    if (
+        not isinstance(raw, dict)
+        or set(raw) - {"ears"}
+        or not isinstance(raw.get("ears", False), bool)
+    ):
+        problems.append("`wiki.check` must be {ears: true|false}; `wiki.check.ears` is a boolean")
+        return False
+    return bool(raw.get("ears", False))
 
 
 ## @brief The declared document kinds.
