@@ -57,7 +57,8 @@ _FLOOR = 0.025
 ## @return Plain data for the page.
 ## v2: the ring cap is wiki.web.max_ring (2.0.0, R5-CFG C8)
 ## v3: owners overlay and vendor areas (2.0.0, P5)
-## @version 3
+## v4: vendor areas outside the boundary (2.0.0, P5, owner round-5 ruling)
+## @version 4
 ## @req REQ-DDB-WIKI-019
 def web_data(
     db: Path,
@@ -67,17 +68,24 @@ def web_data(
     owners: bool = True,
 ) -> dict[str, Any]:
     """@brief Compute the web. @return Data."""
-    blocks = _ordered(graph["components"], order or [])
+    ## THE OWNER'S RULING (round 5): vendor sits OUTSIDE the boundary. First-party blocks share the
+    ## whole circle; each vendor area is one node beyond the outer ring, and calls into it end there.
+    every = _ordered(graph["components"], order or [])
+    blocks = [b for b in every if not b.get("vendor")]
+    vendors = [b for b in every if b.get("vendor")]
     index = {b["id"]: i for i, b in enumerate(blocks)}
     owner = graph.get("file_block") or {}
     facts = {(p["name"], p["file"]): p for p in graph.get("symbols") or []}
     with connect(db) as conn:
-        funcs = _functions(conn, owner)
-        edges = _edges(conn, funcs)
+        all_funcs = _functions(conn, owner)
+        all_edges = _edges(conn, all_funcs)
         first_owner = _first_owners(conn) if owners else {}
+    funcs = {r: f for r, f in all_funcs.items() if owner[f[1]] in index}
+    edges = {(a, b) for a, b in all_edges if a in funcs and b in funcs}
     ring = _rings(funcs, edges, max_ring)
     _wedges(blocks, funcs, owner)
     nodes, slot = _place(blocks, index, funcs, owner, ring, facts)
+    boundary, crossing = _boundary(vendors, all_funcs, all_edges, owner, nodes, slot, ring)
     ## P5 (2.0.0): THE OWNERS OVERLAY: each node carries its file's first owner, unless the
     ## audience withholds them (`exclude_owners`), in which case no node carries one.
     for node in nodes:
@@ -94,7 +102,57 @@ def web_data(
         ],
         "max_ring": max(ring.values(), default=0),
         "geometry": {"r0": _R0, "band": _BAND},
+        "boundary": boundary,
+        "boundary_edges": crossing,
     }
+
+
+## @brief The vendor areas as boundary nodes outside the circle, and the calls that end at them.
+## @param vendors The vendor blocks (with `calls_in`).
+## @param funcs Every drawn-or-vendor function: rowid → (name, file, line).
+## @param edges Every call between them.
+## @param owner file → block.
+## @param nodes The placed first-party nodes.
+## @param slot rowid → node index.
+## @param ring rowid → ring, for the outer radius.
+## @return (boundary rows, [[caller node, boundary index], ...]).
+## @version 1
+## @dg_internal
+def _boundary(
+    vendors, funcs, edges, owner, nodes, slot, ring
+) -> tuple[list[dict], list[list[int]]]:
+    """EACH AREA SITS AT THE MEAN ANGLE OF ITS CALLERS, one band beyond the outer ring, so the calls
+    into it are short and do not cross the circle; one with no first-party caller sits at angle 0.
+    SIZED BY USE: the radius grows with the square root of `calls_in`, as link widths do.
+
+    @brief Place boundary nodes.
+    @return Rows and edges.
+    """
+    at = {b["id"]: i for i, b in enumerate(vendors)}
+    crossing: set[tuple[int, int]] = set()
+    for a, b in edges:
+        j = at.get(owner.get(funcs[b][1], ""))
+        if j is not None and a in slot:
+            crossing.add((slot[a], j))
+    outer = _R0 + (max(ring.values(), default=0) + 2.5) * _BAND
+    rows = []
+    for j, v in enumerate(vendors):
+        callers = [nodes[i] for i, k in crossing if k == j]
+        sx = sum(n["x"] for n in callers)
+        sy = sum(n["y"] for n in callers)
+        angle = math.atan2(sy, sx) if callers else 0.0
+        rows.append(
+            {
+                "id": v["id"],
+                "calls_in": int(v.get("calls_in") or 0),
+                "files": v.get("files", 0),
+                "functions": v.get("functions", 0),
+                "x": round(outer * math.cos(angle), 1),
+                "y": round(outer * math.sin(angle), 1),
+                "r": round(10 + 6 * math.sqrt(int(v.get("calls_in") or 0)), 1),
+            }
+        )
+    return rows, [list(e) for e in sorted(crossing)]
 
 
 ## @brief Each file's first owner, in rule order, from the index's owners layer.
@@ -213,18 +271,14 @@ def _rings(funcs: dict, edges: set[tuple[int, int]], max_ring: int = MAX_RING) -
 ## @param owner file → block.
 ## @return None.
 ## v2: owners overlay and vendor areas (2.0.0, P5)
-## @version 2
+## v3: vendor areas outside the boundary (2.0.0, P5, owner round-5 ruling)
+## @version 3
 ## @dg_internal
 def _wedges(blocks: list[dict], funcs: dict, owner: dict[str, str]) -> None:
     """@brief Angles. @return None."""
     count: dict[str, int] = defaultdict(int)
     for _n, rel, _l in funcs.values():
         count[owner[rel]] += 1
-    ## A VENDOR AREA IS SIZED BY USE (P5, 2.0.0): the calls into it, not its function count, so a
-    ## large library the project barely touches stays a sliver at the edge of the system.
-    for b in blocks:
-        if b.get("vendor"):
-            count[b["id"]] = int(b.get("calls_in") or 0)
     total = max(1, sum(count.values()))
     shares = [max(count[b["id"]] / total, _FLOOR) for b in blocks]
     usable = 2 * math.pi - _GAP * len(blocks)
@@ -370,7 +424,8 @@ def _has(data: dict, key: str) -> bool:
 ## @brief The blocks as a table: the same facts without the canvas.
 ## @param data The web.
 ## @return HTML.
-## @version 1
+## v2: vendor areas outside the boundary (2.0.0, P5, owner round-5 ruling)
+## @version 2
 ## @dg_internal
 def _table(data: dict) -> str:
     """@brief Table view. @return HTML."""
@@ -390,9 +445,16 @@ def _table(data: dict) -> str:
             f'<td class="n">{b.get("functions", 0)}</td><td class="n">{b.get("files", 0)}</td>'
             f'<td class="n">{placed}</td><td>{escape(tiers) or "—"}</td></tr>'
         )
+    for b in data.get("boundary") or []:
+        rows.append(
+            f"<tr><td>{escape(b['id'])}</td><td>vendor, outside the boundary</td>"
+            f'<td class="n">{b.get("functions", 0)}</td><td class="n">{b.get("files", 0)}</td>'
+            f'<td class="n">{b["calls_in"]} calls in</td><td>—</td></tr>'
+        )
     return (
         '<h2 id="blocks">Blocks</h2><p>The same blocks as the web, as a table. Files a block was '
-        "given by coupling (not declared) are counted as placed.</p>"
+        "given by coupling (not declared) are counted as placed. A vendor area is drawn outside the "
+        "circle, sized by the calls into it.</p>"
         '<table class="clew web-table"><thead><tr><th>block</th><th>how</th><th>functions</th>'
         "<th>files</th><th>placed by coupling</th><th>requirements by tier</th></tr></thead>"
         f"<tbody>{''.join(rows)}</tbody></table>"

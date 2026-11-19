@@ -81,13 +81,42 @@ def _web(page: str) -> dict:
     return json.loads(found.group(1).replace("<\\/", "</"))
 
 
-def test_each_vendored_area_is_its_own_block_sized_by_calls_into_it(root: Path) -> None:
-    """@brief Two vendor blocks; a's wedge (2 callers in) is wider than b's (1)."""
-    blocks = {b["id"]: b for b in _web(_site(root, None)["map.html"])["blocks"]}
-    a, b = blocks["Vendor: third_party/a"], blocks["Vendor: third_party/b"]
-    assert a["vendor"] is True and b["vendor"] is True
+def test_vendor_areas_sit_outside_the_first_party_circle(root: Path) -> None:
+    """THE OWNER'S RULING (round 5): "VENDOR OUTSIDE THE BOUNDARY (C4 external systems): one node per
+    declared submodule, sized by calls INTO it; first-party web gets the full circle; calls into
+    vendor end at the boundary." P5.3 first drew each area as a WEDGE inside the circle (sized by
+    use); that was the interim this replaces.
+
+    @brief No vendor wedge; first-party wedges fill the circle; each area is one boundary node.
+    """
+    import math
+
+    web = _web(_site(root, None)["map.html"])
+    assert not any(b["id"].startswith("Vendor") for b in web["blocks"])
+    from clew.wiki.web import _GAP
+
+    spans = sum(b["a1"] - b["a0"] for b in web["blocks"])
+    assert spans == pytest.approx(2 * math.pi - _GAP * len(web["blocks"]), abs=1e-3)
+    boundary = {b["id"]: b for b in web["boundary"]}
+    a, b = boundary["Vendor: third_party/a"], boundary["Vendor: third_party/b"]
     assert (a["calls_in"], b["calls_in"]) == (2, 1)
-    assert (a["a1"] - a["a0"]) > (b["a1"] - b["a0"])
+    assert a["r"] > b["r"]
+    outer = web["geometry"]["r0"] + (web["max_ring"] + 1) * web["geometry"]["band"]
+    assert min(math.hypot(x["x"], x["y"]) for x in web["boundary"]) > outer
+
+
+def test_calls_into_a_vendor_area_end_at_its_boundary_node(root: Path) -> None:
+    """@brief No vendor function is drawn; each first-party caller has an edge to the area's node."""
+    web = _web(_site(root, None)["map.html"])
+    names = {n["name"] for n in web["nodes"]}
+    assert not names & {"lib_a", "a_inner", "a_more", "lib_b"}
+    index = {b["id"]: i for i, b in enumerate(web["boundary"])}
+    callers = {
+        web["nodes"][n]["name"]
+        for n, j in web["boundary_edges"]
+        if j == index["Vendor: third_party/a"]
+    }
+    assert callers == {"sock_open", "main"}
 
 
 def test_owners_overlay_the_map_and_the_file_page(root: Path) -> None:
