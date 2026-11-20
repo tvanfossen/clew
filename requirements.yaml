@@ -1040,6 +1040,17 @@ requirements:
     x-priority: P1
     x-status: implemented
     x-evidence: clew/wiki/flow.py; clew/wiki/svg.py; clew/wiki/build.py _actor_of; tests/test_wiki_flow.py.
+  REQ-DDB-WIKI-049:
+    subsystem: wiki
+    name: A replayed run shows each step's recorded values
+    acceptance_criteria: 'On a test flow with a recorded run, each predicted step the run confirmed
+      carries the values that call was made with and returned, paired in order within each
+      (caller, callee) so a repeated call gets its own values; a step the run never made carries
+      none. The step''s dialog shows them, so stepping the replay steps through the values.
+      Withheld with the bodies under `exclude_bodies`.'
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/tracerun.py _step_values; clew/wiki/flowpage.py with_values; tests/test_wiki_tracerun.py.
   REQ-DDB-WIKI-048:
     subsystem: wiki
     name: Every function on a flow has a quick-view modal with the view strip

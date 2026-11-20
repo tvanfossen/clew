@@ -215,7 +215,8 @@ def _checkpoints(test_file: Path, lines: list[int], failure: dict | None) -> lis
 ## @param expected (caller, callee) per expected step, in flow order.
 ## @param otlp The run's spans.
 ## @return {steps: [confirmed | not executed], discovered: [[caller, callee]]}.
-## @version 1
+## v2: replay with values (2.0.0, P5.6)
+## @version 2
 ## @req REQ-DDB-WIKI-035
 def overlay(expected: list[tuple[str, str]], otlp: dict[str, Any]) -> dict[str, Any]:
     """DISCOVERED IS INDEX-QUALITY FEEDBACK: a call the run made between repository functions that
@@ -233,7 +234,35 @@ def overlay(expected: list[tuple[str, str]], otlp: dict[str, Any]) -> dict[str, 
     return {
         "steps": ["confirmed" if pair in seen else "not executed" for pair in expected],
         "discovered": discovered,
+        "values": _step_values(expected, spans, names),
     }
+
+
+## @brief Each predicted step's recorded values, paired in order within each (caller, callee).
+## @param expected The flow's (caller, callee) steps.
+## @param spans The run's spans, in recorded order.
+## @param names Span id → function name.
+## @return Per step `{"args", "return"}`, or None when the run made no such call.
+## @version 1
+## @req REQ-DDB-WIKI-049
+def _step_values(expected: list[tuple[str, str]], spans: list[dict], names: dict) -> list:
+    """REPLAY WITH VALUES (owner, round 5): the k-th predicted call of a pair is the k-th observed
+    one, so `load → parse` twice gets each call's own values; once a pair's calls are used up a
+    further predicted step gets none rather than a repeat.
+
+    @brief Pair values with steps.
+    @return Values.
+    """
+    queues: dict[tuple[str, str], list[dict]] = {}
+    for span in spans:
+        if span["parentSpanId"] in names:
+            attrs = {
+                a["key"]: next(iter(a["value"].values()), "") for a in span.get("attributes", [])
+            }
+            queues.setdefault((names[span["parentSpanId"]], span["name"]), []).append(
+                {"args": attrs.get("clew.args", ""), "return": attrs.get("clew.return", "")}
+            )
+    return [queues[pair].pop(0) if queues.get(pair) else None for pair in expected]
 
 
 ## @brief Every OTLP JSON trace under the configured globs.

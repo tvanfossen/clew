@@ -424,3 +424,80 @@ def test_a_real_run_gives_a_pinned_check_its_value(repo: Path) -> None:
     pins = pin_checks(body, "tests/test_m.py", {"load"}, first_line=4)
     assert [(p.kind, p.variable, p.bound_line) for p in pins] == [("via variable", "got", 6)]
     assert traced_values(pins, run["otlp"], "test_load") == {0: "[2, 4]"}
+
+
+def _valued(sid: str, parent: str, name: str, args: str, ret: str) -> dict:
+    """@brief A span carrying the values a run recorded. @return Span."""
+    return {
+        "spanId": sid,
+        "parentSpanId": parent,
+        "name": name,
+        "attributes": [
+            {"key": "clew.args", "value": {"stringValue": args}},
+            {"key": "clew.return", "value": {"stringValue": ret}},
+        ],
+        "events": [],
+        "status": {"code": 1},
+    }
+
+
+def test_the_overlay_gives_each_confirmed_step_its_values() -> None:
+    """OWNER (round 5, P5.6): replay WITH VALUES. Each predicted step the run confirmed carries
+    what it was called with and returned. A pair called twice pairs IN ORDER — the second
+    predicted `load → parse` is the second observed one; a step the run never made has none.
+
+    @brief Replay values per step.
+    """
+    from clew.wiki.tracerun import overlay
+
+    otlp = {
+        "resourceSpans": [
+            {
+                "scopeSpans": [
+                    {
+                        "spans": [
+                            _valued("t", "", "test_load", "", "None"),
+                            _valued("a", "t", "load", "items=[1, 2]", "[2, 4]"),
+                            _valued("b", "a", "parse", "raw=1", "2"),
+                            _valued("c", "a", "parse", "raw=2", "4"),
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+    expected = [("test_load", "load"), ("load", "parse"), ("load", "parse"), ("load", "finish")]
+    values = overlay(expected, otlp)["values"]
+    assert values[1] == {"args": "raw=1", "return": "2"} and values[2] == {
+        "args": "raw=2",
+        "return": "4",
+    }
+    assert values[0] == {"args": "items=[1, 2]", "return": "[2, 4]"} and values[3] is None
+
+
+def test_a_steps_dialog_carries_its_recorded_values() -> None:
+    """@brief P5.6: the step data gains `called_with` / `returned` from the run, unless withheld."""
+    from clew.wiki.config import Audience
+    from clew.wiki.flowpage import _SCRIPT, with_values
+
+    data = [{"caller": "test_load", "callee": "load"}, {"caller": "load", "callee": "parse"}]
+    otlp = {
+        "resourceSpans": [
+            {
+                "scopeSpans": [
+                    {
+                        "spans": [
+                            _valued("t", "", "test_load", "", "None"),
+                            _valued("a", "t", "load", "items=[1]", "[2]"),
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+    out = with_values(data, otlp, Audience())
+    assert out[0]["called_with"] == "items=[1]" and out[0]["returned"] == "[2]"
+    assert "called_with" not in out[1], "a step the run never made carries no values"
+    hidden = with_values(data, otlp, Audience(exclude_bodies=True))
+    assert all("called_with" not in r for r in hidden), "values are withheld with the bodies"
+    assert "s.called_with" in _SCRIPT and "s.returned" in _SCRIPT

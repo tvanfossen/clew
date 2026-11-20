@@ -80,7 +80,8 @@ document.querySelectorAll('.flow-block').forEach(function(block){
   g.classList.add('sel');var f=document.createDocumentFragment(),dl=document.createElement('dl');
   dl.className='kv';row(dl,'call',s.call,true);row(dl,'callee',s.callee_qualified);
   row(dl,'receives',s.signature,true);row(dl,'brief',s.brief);row(dl,'frames',s.frames);
-  row(dl,'ambiguous',s.ambiguous);row(dl,'at',s.site);f.appendChild(dl);
+  row(dl,'ambiguous',s.ambiguous);row(dl,'at',s.site);
+  row(dl,'called with',s.called_with,true);row(dl,'returned',s.returned,true);f.appendChild(dl);
   if(s.link){var a=document.createElement('a');a.href=s.link;a.textContent='open the call site';f.appendChild(a);}
   return {title:(i+1)+'. '+s.caller+' \\u2192 '+s.callee,node:f};}
  if(window.clewModal)window.clewModal.register('step-',build);
@@ -154,7 +155,8 @@ def _executed(coverage: dict[str, dict[int, set[str]]]) -> dict[str, set[int]]:
 ## each test's slice of it rides inline (`#test=<name>` lights it), and a not-run stub is a row.
 ## v14: measured_depth / max_steps from the flow, else the site (2.0.0, R5-CFG C1/C2)
 ## v15: block lanes and the actor (2.0.0, P5.6)
-## @version 15
+## v16: replay with values (2.0.0, P5.6)
+## @version 16
 ## @req REQ-DDB-WIKI-014
 ## @req REQ-DDB-WIKI-041
 def flow_page(
@@ -199,6 +201,9 @@ def flow_page(
     slices = slices_of(flow, coverage) if coverage is not None and spec.role != "tests" else {}
     name = page_name(spec)
     data = step_data(db, repo_root, flow, rules, config.link_template, commit)
+    ## P5.6, REPLAY WITH VALUES: a recorded run gives each step it confirmed its values.
+    if trace is not None:
+        data = with_values(data, trace[1], rules)
     lines = [
         f"# {spec.title or 'Flow: ' + spec.entry}",
         "",
@@ -362,6 +367,33 @@ def step_data(
             }
         )
     return out
+
+
+## @brief Step data with each confirmed step's recorded values (replay with values, P5.6).
+## @param data The step data, one row per step.
+## @param otlp The recorded run.
+## @param rules The audience: values are withheld with the bodies.
+## @return New rows; a step the run never made carries no values.
+## @version 1
+## @req REQ-DDB-WIKI-049
+def with_values(
+    data: list[dict[str, Any]], otlp: dict[str, Any], rules: Audience
+) -> list[dict[str, Any]]:
+    """RUNTIME DATA IS WITHHELD WITH THE BODIES: an audience that may not see source does not see
+    the values it computed either.
+
+    @brief Merge values.
+    @return Rows.
+    """
+    if rules.exclude_bodies:
+        return data
+    from .tracerun import overlay
+
+    values = overlay([(r["caller"], r["callee"]) for r in data], otlp)["values"]
+    return [
+        {**row, "called_with": v["args"], "returned": v["return"]} if v else row
+        for row, v in zip(data, values, strict=True)
+    ]
 
 
 ## @brief The diagram, controls, data and script, as one raw HTML block.
