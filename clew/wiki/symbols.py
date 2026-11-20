@@ -320,7 +320,8 @@ class _Edges:
 ## @return HTML.
 ## v2: a test's section adds what it tests (round 3, P2a).
 ## v3: neighbours and the web link replace the ego-graph (round 4, R3).
-## @version 3
+## v4: activity diagram per function (2.0.0, P5.5)
+## @version 4
 ## @utility
 def _section(
     name: str,
@@ -352,6 +353,7 @@ def _section(
             parts.append(_test_block(d, graph, ctx, repo_root))
         if not ctx["rules"].exclude_bodies:
             parts.append(_body(repo_root, d))
+            parts.append(_activity(repo_root, d, name))
     if reqs:
         parts.append(
             "<h4>Requirements</h4><p>"
@@ -521,6 +523,33 @@ def _body(repo_root: Path, d: Definition) -> str:
     return (
         f'<details class="body"><summary>Source · {shown}</summary>'
         f'<pre class="body">{escape(chr(10).join(body))}</pre></details>{note}'
+    )
+
+
+## @brief A function's activity diagram, folded, on its own page (P5.5).
+## @param repo_root The repository.
+## @param d The definition.
+## @param name The function's name.
+## @return HTML, or "" when its language has no parser or its lines are unknown.
+## @version 1
+## @req REQ-DDB-WIKI-045
+def _activity(repo_root: Path, d: Definition, name: str) -> str:
+    """ONE PER FUNCTION (owner Q/A 2026-11-20): a test's call-flow box links here with the lines it
+    executed (`?lit=`), and `clew.js` lights them, so no test page carries its own copy. Folded like
+    the body, and withheld with it under `exclude_bodies`: it shows the statements.
+
+    @brief Activity diagram block.
+    @return HTML.
+    """
+    from .activity import activity_svg, steps_of
+
+    lines = _lines(repo_root, d)
+    steps = steps_of(lines, d.file, d.start) if lines else []
+    if not steps:
+        return ""
+    return (
+        f'<details class="activity" id="act-{anchor(name)}"><summary>Activity · '
+        f"{len(steps)} steps</summary><figure>{activity_svg(steps, name)}</figure></details>"
     )
 
 
