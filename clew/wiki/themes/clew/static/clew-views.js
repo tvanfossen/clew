@@ -3,6 +3,8 @@
  * VIEWS: a `.views` strip's `[data-view]` tabs show one `[data-view-panel]` each. A quick view is
  * cloned into the dialog by clew.js, so a MutationObserver sets its first tab when it appears.
  * Without this script every panel stays visible, stacked under its heading. Nothing remote.
+ * FILTER: an `input[data-filter-table=NAME]` hides `table.NAME` rows whose text lacks what is
+ * typed (case-insensitive): the Tests tab's search, since tests leave the main one.
  */
 (function () {
   'use strict';
@@ -34,6 +36,14 @@
     new MutationObserver(check).observe(dlg, { childList: true, subtree: true });
     check();
   }
+  document.addEventListener('input', function (e) {
+    var box = e.target, name = box.getAttribute && box.getAttribute('data-filter-table');
+    if (!name) return;
+    var q = box.value.toLowerCase();
+    Array.prototype.forEach.call(document.querySelectorAll('table.' + name + ' tbody tr'), function (r) {
+      r.hidden = q !== '' && r.textContent.toLowerCase().indexOf(q) < 0;
+    });
+  });
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', watch);
   else watch();
 })();

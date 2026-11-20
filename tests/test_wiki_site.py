@@ -1117,3 +1117,43 @@ def test_the_site_has_an_sbom_page(site: dict[str, str]) -> None:
     page = site["sbom.html"]
     assert "No SBOM was found" in page and "This repository" in page
     assert 'href="sbom.html"' in site["index.html"]
+
+
+def test_the_tests_tab_lists_every_test_with_a_filter(site: dict[str, str]) -> None:
+    """OWNER (Q/A 2026-11-20): tests are their own category. The Tests tab lists every test the
+    index recognises — linked or not — each linked to its page when it has one, with a filter box.
+
+    @brief Tests tab.
+    """
+    page = site["tests.html"]
+    table = page.split('<table class="clew tests-all"', 1)[1].split("</table>", 1)[0]
+    assert re.search(r'<a href="test-[^"]*test_load\.html"><code>test_load</code></a>', table)
+    assert 'data-filter-table="tests-all"' in page and "_static/clew-views.js" in page
+    assert 'href="tests.html"' in site["index.html"]
+
+
+def test_test_pages_are_kept_out_of_the_main_search(site: dict[str, str]) -> None:
+    """OWNER (Q/A 2026-11-20): test pages leave the main search (68% of its postings on clew);
+    they are found from the Tests tab's filter. Their pages still exist and link as before.
+
+    @brief Test pages not in the search index.
+    """
+    import json
+    import pathlib
+
+    text = (pathlib.Path(site["__html__"]) / "searchindex.js").read_text()
+    doc = json.loads(text[text.index("(") + 1 : text.rindex(")")])
+    assert not [d for d in doc["docnames"] if d.startswith("test-")]
+    assert any(k.startswith("test-") for k in site), "the test pages themselves are still built"
+
+
+def test_every_recognised_test_is_found_not_only_the_linked(repo) -> None:
+    """@brief `None` resolves every test the index recognises, a superset of the linked names."""
+    from clew.query._common import connect
+    from clew.wiki.testpages import _test_definitions
+
+    _root, db = repo
+    with connect(db) as conn:
+        every = {d.name for d in _test_definitions(conn, None)}
+        linked = {d.name for d in _test_definitions(conn, {"test_load"})}
+    assert linked == {"test_load"} and linked <= every

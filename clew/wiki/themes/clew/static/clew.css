@@ -121,6 +121,7 @@ details.activity{margin:8px 0}details.activity figure{margin:8px 0;overflow-x:au
 .callflow{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:8px 0 16px}.callflow .box{padding:6px 10px;border:1px solid var(--rule2);border-radius:9px;background:var(--surface);font:500 13px var(--mono);text-decoration:none;color:var(--ink)}.callflow a.box:hover{border-color:var(--acc)}.callflow .box.test{border-color:var(--acc)}.callflow .arrow{color:var(--ink2)}
 .views{display:flex;flex-wrap:wrap;gap:4px;margin:8px 0 10px}.view-tab{padding:4px 10px;border:1px solid var(--rule2);border-radius:8px;background:var(--surface);font:500 12px var(--sans);cursor:pointer;color:var(--ink)}.view-tab[aria-selected="true"]{border-color:var(--acc);background:var(--accbg)}.view h4{margin:8px 0 4px}.views:has(.view-tab[aria-selected]) ~ .view h4{display:none}
 table.steps tr[data-step]{cursor:pointer}table.steps tr.on td{background:var(--accbg)}
+input.filter{width:100%;max-width:420px;padding:8px 12px;margin:6px 0 12px;border:1px solid var(--rule2);border-radius:9px;background:var(--surface);color:var(--ink);font:400 14px var(--sans)}
 .issue-link{margin:16px 0 0}.issue-link a{display:inline-block;padding:8px 14px;border-radius:9px;border:1px solid var(--acc);text-decoration:none;font-weight:600}
 tr[hidden]{display:none}
 /* Change impact (round 3, P1g). */

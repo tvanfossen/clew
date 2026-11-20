@@ -31,6 +31,7 @@ from typing import Any
 
 from ..query._common import connect, table_exists
 from .htmltable import source_url, tag
+from .testfacts import TestFacts as _Facts
 from .symbols import _PATH_DEPTH, Definition, _Edges, _lines, _path, anchor, symbol_href
 
 ## The most requirement chains drawn before the rest are counted.
@@ -60,7 +61,8 @@ def test_page_of(name: str, rel: str) -> str:
 ## v2: tests resolved by framework (Catch2 / GoogleTest macros), not by function name.
 ## v3 (round 5): what it exercises — its slices of the master flows, from per-test coverage.
 ## v4: each definition's own slices (2.0.0, W11)
-## @version 4
+## v5: tests category (2.0.0, owner Q/A 2026-11-20)
+## @version 5
 ## @req REQ-DDB-WIKI-026
 def test_pages(db: Path, repo_root: Path, ctx: dict[str, Any], source: Path) -> dict[str, str]:
     """ONE PAGE PER NAME: every definition of a test name in test code is drawn on it, so a link
@@ -69,9 +71,18 @@ def test_pages(db: Path, repo_root: Path, ctx: dict[str, Any], source: Path) -> 
     @brief Write test-*.md.
     @return Hrefs.
     """
+    from .testfacts import TestFacts
+
+    ## OWNER Q/A 2026-11-20: `linked` (default) is the tests the evidence names, implicit links
+    ## included; `all` adds every recognised test; `none` writes no per-test page.
+    mode = ctx.get("test_pages", "linked")
+    if mode == "none":
+        return {}
     with connect(db) as conn:
-        defs = _test_definitions(conn, set(ctx["tests"]))
+        defs = _test_definitions(conn, None if mode == "all" else set(ctx["tests"]))
         graph = _Edges(conn)
+    ## An unlinked test (only under `all`) has no evidence facts: absent, no requirement.
+    ctx = {**ctx, "tests": {**{d.name: TestFacts() for d in defs}, **ctx["tests"]}}
     by_name: dict[str, list] = defaultdict(list)
     for d in defs:
         by_name[d.name].append(d)
@@ -101,12 +112,14 @@ def test_pages(db: Path, repo_root: Path, ctx: dict[str, Any], source: Path) -> 
 
 ## @brief Every definition, in test code, of a test the evidence names — by framework.
 ## @param conn Open connection.
-## @param names Test names (a function's, or a framework's: a Catch2 scenario's string).
+## @param names Test names (a function's, or a framework's: a Catch2 scenario's string), or None
+##   for every test the index recognises.
 ## @return Definitions named by the test's own name.
 ## v2: test code from test_scope and declared shapes (2.0.0, P4 W1)
-## @version 2
+## v3 (2.0.0, owner Q/A 2026-11-20): None = every recognised test (`test_pages: all`, the Tests tab).
+## @version 3
 ## @req REQ-DDB-WIKI-026
-def _test_definitions(conn: object, names: set[str]) -> list[Definition]:
+def _test_definitions(conn: object, names: set[str] | None) -> list[Definition]:
     """RESOLVED AS THE EVIDENCE RESOLVES THEM (`frameworks.recognise_test`): a Catch2 `SCENARIO` /
     `TEST_CASE`, a GoogleTest `TEST`, a Boost case is a macro row in the index, named by its
     string. Found on entropic: 2,009 Catch2 tests and 11 pages, because only functions literally
@@ -117,7 +130,7 @@ def _test_definitions(conn: object, names: set[str]) -> list[Definition]:
     """
     from .frameworks import TestRecognizer
 
-    if not names or not table_exists(conn, "test_scope"):
+    if names is not None and not names or not table_exists(conn, "test_scope"):
         return []
     rows = conn.execute(
         "SELECT m.rowid, m.name, COALESCE(m.argsstring, ''), p.name, m.definition, "
@@ -128,7 +141,7 @@ def _test_definitions(conn: object, names: set[str]) -> list[Definition]:
     out = []
     for rowid, name, args, rel, definition, brief, start, end, line in rows:
         test = TestRecognizer.for_conn(conn)(str(name), str(args), str(rel))
-        if test and test[0] in names:
+        if test and (names is None or test[0] in names):
             out.append(
                 Definition(
                     int(rowid),
@@ -681,3 +694,59 @@ def _extent(ctx: dict[str, Any], req: str, test: str) -> str:
     shown = ", ".join(f"<code>{escape(n)}</code>" for n in names[:4])
     more = f" and {len(names) - 4} more" if len(names) > 4 else ""
     return f"{len(names)} of {total}" + (f": {shown}{more}" if names else "")
+
+
+## @brief Write the Tests tab: every test the index recognises, linked to its page, filterable.
+## @param db The index.
+## @param ctx The test-page context (`tests`, `results`).
+## @param hrefs Test name → its page, for the tests that have one.
+## @param source The Sphinx source directory.
+## @return The page name.
+## @version 1
+## @req REQ-DDB-WIKI-052
+def tests_index(db: Path, ctx: dict[str, Any], hrefs: dict[str, str], source: Path) -> str:
+    """TESTS ARE THEIR OWN CATEGORY (owner Q/A 2026-11-20): every recognised test, linked or not,
+    with its file, result and how many requirements it is linked to (implicit links included).
+    The main search leaves this table and the test pages out; the filter box here is the search
+    for tests (`clew-views.js`).
+
+    @brief Write tests.md.
+    @return Page name.
+    """
+    with connect(db) as conn:
+        defs = _test_definitions(conn, None)
+    results = ctx.get("results") or {}
+    facts = ctx.get("tests") or {}
+    rows = []
+    for d in sorted(defs, key=lambda d: (d.file, d.start, d.name)):
+        name = f"<code>{escape(d.name)}</code>"
+        cell = f'<a href="{escape(hrefs[d.name])}">{name}</a>' if d.name in hrefs else name
+        found = results.get(d.name)
+        linked = len((facts.get(d.name) or _NO_FACTS).verifies)
+        rows.append(
+            f"<tr><td>{cell}</td><td>{escape(d.file)}:{d.start}</td>"
+            f"<td>{escape(found.status if found else 'absent')}</td>"
+            f'<td class="n">{linked or "—"}</td></tr>'
+        )
+    lines = [
+        "# Tests",
+        "",
+        f"{len(defs)} tests the index recognises; {len(hrefs)} have a page of their own. Type to "
+        "filter by name, file, result or requirement count.",
+        "",
+        "```{raw} html",
+        '<input type="search" class="filter" data-filter-table="tests-all" '
+        'placeholder="Filter tests" aria-label="Filter tests">'
+        '<div class="table-wrap"><table class="clew tests-all"><thead><tr><th>test</th><th>file</th>'
+        f'<th>result</th><th class="n">requirements</th></tr></thead><tbody>{"".join(rows)}'
+        "</tbody></table></div>"
+        '<script src="_static/clew-views.js"></script>',
+        "```",
+        "",
+    ]
+    (Path(source) / "tests.md").write_text("\n".join(lines), encoding="utf-8")
+    return "tests"
+
+
+## The facts of a test the evidence never named: absent, no requirement.
+_NO_FACTS = _Facts()

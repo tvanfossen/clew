@@ -1074,6 +1074,18 @@ requirements:
     x-priority: P1
     x-status: implemented
     x-evidence: clew/wiki/sbom.py; tests/test_wiki_sbom.py.
+  REQ-DDB-WIKI-052:
+    subsystem: wiki
+    name: Tests are their own category, searched on the Tests tab
+    acceptance_criteria: 'The Tests tab lists every test the index recognises, linked or not, with
+      its file, result and how many requirements it is linked to (implicit links included), each
+      linked to its page when it has one, with a filter box. `wiki.test_pages` chooses which tests
+      get a page: `linked` (default; those the requirement evidence names), `all`, or `none`;
+      any other value is refused by name. Test pages and the Tests table are kept out of the main
+      site search.'
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/testpages.py tests_index; clew/wiki/_sphinxsymbols.py; tests/test_wiki_site.py.
   REQ-DDB-WIKI-048:
     subsystem: wiki
     name: Every function on a flow has a quick-view modal with the view strip

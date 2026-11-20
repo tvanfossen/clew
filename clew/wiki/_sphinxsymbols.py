@@ -97,14 +97,20 @@ def setup(app: Any) -> dict[str, Any]:
 ## every SVG's labels. Sphinx strips the tags off raw HTML and indexes the rest; these were 6.35 MB
 ## of clew's own 8.2 MB searchindex.js (80,285 terms).
 _NOT_SEARCHED = re.compile(
-    r'<details class="(?:body|activity)".*?</details>|<svg\b.*?</svg>', re.DOTALL | re.IGNORECASE
+    r'<details class="(?:body|activity)".*?</details>|<svg\b.*?</svg>'
+    ## Owner Q/A 2026-11-20: tests are searched from the Tests tab's own filter, not here.
+    r'|<table class="clew tests-all".*?</table>',
+    re.DOTALL | re.IGNORECASE,
 )
+## Owner Q/A 2026-11-20: test pages (68% of clew's search postings) leave the main search.
+_UNSEARCHED_PAGES = ("test-",)
 
 
 ## @brief Make Sphinx's search indexer skip source bodies and diagram text in raw HTML.
 ## @return None.
 ## v1 (2.0.0, P5.1b): measured above; the page output is untouched, only the indexer's copy.
-## @version 1
+## v2: test pages out of the main search (tests category (2.0.0, owner Q/A 2026-11-20))
+## @version 2
 ## @req REQ-DDB-WIKI-022
 def _keep_bodies_out_of_search() -> None:
     """THE INDEXER SEES A STRIPPED COPY, the page keeps every byte: the original raw node is not
@@ -122,6 +128,16 @@ def _keep_bodies_out_of_search() -> None:
     """
     import sphinx.search as search
 
+    feed_page = search.IndexBuilder.feed
+    if not getattr(feed_page, "_clew_wrapped", False):
+
+        def feed(self: Any, docname: str, *args: Any, **kwargs: Any) -> None:
+            if docname.startswith(_UNSEARCHED_PAGES):
+                return None
+            return feed_page(self, docname, *args, **kwargs)
+
+        feed._clew_wrapped = True  # type: ignore[attr-defined]
+        search.IndexBuilder.feed = feed
     if hasattr(search, "_feed_visit_nodes"):
         original = search._feed_visit_nodes
         if not getattr(original, "_clew_wrapped", False):

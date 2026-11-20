@@ -52,6 +52,8 @@ _TOP = {
     "check",
     ## #70 (2.0.0, P5.8): `sbom: {files: [...], accepted: [...]}` — the SBOM page's inputs.
     "sbom",
+    ## 2.0.0 (owner Q/A 2026-11-20): which tests get a page — `linked` (default) | `all` | `none`.
+    "test_pages",
 }
 ## Each tuning key's former constant — the default when it is not declared.
 TUNING_DEFAULTS = {
@@ -302,6 +304,9 @@ class WikiConfig:
     ## #70 (2.0.0): SBOM files to render (repo-relative globs) and the accepted-licence list.
     sbom_files: tuple[str, ...] = ("sbom.spdx.json", "bom.cdx.json")
     sbom_accepted: tuple[str, ...] = ()
+    ## Owner Q/A 2026-11-20: `linked` — tests the requirement evidence names, implicit links
+    ## included (today's set); `all` — every test the index recognises; `none` — no per-test page.
+    test_pages: str = "linked"
     ## Path globs whose entry points are tooling flows.
     tooling: tuple[str, ...] = DEFAULT_TOOLING
     ## R5-CFG C1-C5, C7-C9, W6 (2.0.0): the build's numbers, declared (see TUNING_DEFAULTS).
@@ -348,7 +353,8 @@ class WikiConfig:
 ## v19: records docs_declared (2.0.0)
 ## v20: EARS badge and check notes (2.0.0, S9)
 ## v21: wiki.sbom (2.0.0, P5.8)
-## @version 21
+## v22: wiki.test_pages (tests category (2.0.0, owner Q/A 2026-11-20))
+## @version 22
 ## @req REQ-DDB-WIKI-003
 def load_wiki_config(
     repo_root: Path, config_path: Path | None = None
@@ -399,6 +405,7 @@ def load_wiki_config(
         issues_fetch=isinstance(raw.get("issues"), dict) and bool(raw["issues"].get("fetch")),
         ears=_ears(raw.get("check"), problems),
         **_sbom(raw.get("sbom"), problems),
+        test_pages=_one_of(raw, "test_pages", TEST_PAGES, problems),
         tooling=_strings(raw, "tooling", DEFAULT_TOOLING, "wiki", problems),
         needs=str(requirements["needs"]) if requirements.get("needs") else None,
         adrs=_strings(raw, "adrs", DEFAULT_ADRS, "wiki", problems),
@@ -987,6 +994,29 @@ def _ears(raw: Any, problems: list[str]) -> bool:
         problems.append("`wiki.check` must be {ears: true|false}; `wiki.check.ears` is a boolean")
         return False
     return bool(raw.get("ears", False))
+
+
+## The `test_pages` settings, the first the default.
+TEST_PAGES = ("linked", "all", "none")
+
+
+## @brief A key whose value must be one of a fixed set; the first is the default.
+## @param raw The section.
+## @param key The key.
+## @param allowed The allowed values, default first.
+## @param problems Collects a problem naming the key and the allowed values.
+## @return The value, or the default.
+## @version 1
+## @utility
+def _one_of(raw: dict, key: str, allowed: tuple[str, ...], problems: list[str]) -> str:
+    """@brief Enumerated value, refused by name. @return Value."""
+    value = raw.get(key)
+    if value is None:
+        return allowed[0]
+    if value not in allowed:
+        problems.append(f"`wiki.{key}` must be one of {', '.join(allowed)}, got {value!r}")
+        return allowed[0]
+    return str(value)
 
 
 ## @brief `wiki.sbom`: which SBOM files to render, and the accepted-licence list.

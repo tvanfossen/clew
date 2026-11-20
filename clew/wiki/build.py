@@ -119,7 +119,8 @@ def build_wiki(
 ## v8: graph before flows; block lanes and actors (2.0.0, P5.6)
 ## v9: quick views second pass (2.0.0, P5.6)
 ## v10: SBOM page (2.0.0, P5.8)
-## @version 10
+## v11: tests category (2.0.0, owner Q/A 2026-11-20)
+## @version 11
 ## @utility
 def _build_site(
     repo_root: Path,
@@ -257,6 +258,7 @@ def _build_site(
             ## P5.5: the call-flow boxes — what each test ran, and which functions have a page.
             "lines_by_test": _lines_by_test(coverage),
             "written": set(written),
+            "test_pages": config.test_pages,
             "slices": _slices_by_test(pages),
         },
         source,
@@ -291,6 +293,18 @@ def _build_site(
         ),
         _docs_page(source, _prose(repo_root, config, source), config, decisions),
     ]
+    ## Owner Q/A 2026-11-20: tests are their own category — the Tests tab, after Flows.
+    from .testpages import tests_index
+
+    sections.insert(
+        sections.index("flows") + 1 if "flows" in sections else len(sections),
+        tests_index(
+            db,
+            {"tests": facts, "results": _test_results(repo_root, config)},
+            trace.test_href,
+            source,
+        ),
+    )
     ## #70 (P5.8): the SBOM page, rendered from the repository's own SBOM (never written).
     from .sbom import sbom_page
 
@@ -742,7 +756,8 @@ _DOCS_LEAD = "The repository's own documentation, as written."
 ## v7 (round 4): the map card describes the repository web.
 ## v8: Architecture card (2.0.0, P5.6)
 ## v9: SBOM card (2.0.0, P5.8)
-## @version 9
+## v10: Tests card (tests category (2.0.0, owner Q/A 2026-11-20))
+## @version 10
 ## @utility
 def _write_index(
     source: Path, config: WikiConfig, trace: object, sections: list[str], flow_count: int
@@ -778,6 +793,10 @@ def _write_index(
         "architecture": (
             "Architecture",
             "The system at C4's four levels: context, containers, components, code.",
+        ),
+        "tests": (
+            "Tests",
+            "Every test the index recognises: its result, its requirements, its page.",
         ),
         "sbom": (
             "SBOM",
@@ -1013,3 +1032,16 @@ def _actor_of(spec: Any, config: WikiConfig) -> str:
     if spec in config.flows:
         return "caller"
     return "command-line user" if " — " in (spec.title or "") else "program launcher"
+
+
+## @brief The JUnit results the build reads, by test name.
+## @param repo_root The repository.
+## @param config The section.
+## @return Test name → result.
+## @version 1
+## @utility
+def _test_results(repo_root: Path, config: WikiConfig) -> dict:
+    """@brief Parse the declared JUnit files. @return Results."""
+    from .evidence import parse_junit
+
+    return parse_junit([repo_root / j for j in config.junit if (repo_root / j).is_file()])
