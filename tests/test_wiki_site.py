@@ -1031,3 +1031,10 @@ def test_a_test_page_says_how_the_product_reaches_what_it_tests(site: dict[str, 
     context = site[name].split('<div class="context">', 1)[1].split("</div>", 1)[0]
     assert "<code>main</code> → <code>load</code>" in context
     assert 'href="flow-' in context
+
+
+def test_a_test_page_draws_its_call_flow_boxes(site: dict[str, str]) -> None:
+    """@brief P5.5: `test_load` → a box for `load`, linking its activity diagram."""
+    (name,) = [k for k in site if k.startswith("test-") and k.endswith("test_load.html")]
+    flow = site[name].split('<div class="callflow">', 1)[1].split("</div>", 1)[0]
+    assert "#act-s-load" in flow and ">load</a>" in flow

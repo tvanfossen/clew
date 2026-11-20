@@ -114,7 +114,8 @@ def build_wiki(
 ## v3: product tree requirement ids link to their pages (2.0.0, P5.4)
 ## v4: test pages get the packaged runs (2.0.0, P5.5)
 ## v5: test pages get the product flows (2.0.0, P5.5)
-## @version 5
+## v6: test pages get per-test lines and written pages (2.0.0, P5.5)
+## @version 6
 ## @utility
 def _build_site(
     repo_root: Path,
@@ -236,6 +237,9 @@ def _build_site(
             "traces": traces,
             ## P5.5: context paths — the product flows a test's calls are reached by.
             "product_flows": [p for p in pages if p.role == "product"],
+            ## P5.5: the call-flow boxes — what each test ran, and which functions have a page.
+            "lines_by_test": _lines_by_test(coverage),
+            "written": set(written),
             "slices": _slices_by_test(pages),
         },
         source,
@@ -908,3 +912,15 @@ def _render(
         shutil.rmtree(html)
     fresh.rename(html)
     return html
+
+
+## @brief Each test's executed lines, from per-test coverage.
+## @param coverage The parsed contexts, or None.
+## @return {test key: {file: lines}}, {} without coverage.
+## @version 1
+## @utility
+def _lines_by_test(coverage: dict | None) -> dict:
+    """@brief Group by test. @return Lines."""
+    from .slices import lines_per_test
+
+    return lines_per_test(coverage) if coverage else {}

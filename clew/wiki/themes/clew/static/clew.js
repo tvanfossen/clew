@@ -9,6 +9,7 @@
  * GROUPS: a `[data-req-filter]` card shows only its group's `tr[data-group]` rows; again clears.
  * MAP: `#lens=NAME` preselects a lens; `[data-lens]` / `[data-level-set]` buttons set the block's lens and zoom level; CSS does
  * the rest; the `[data-trace-set]` picker shows one flow's trace. A `role=button` trigger (an SVG box) opens on Enter or Space.
+ * LIT: `?lit=` ranges light the `.activity` steps covering them (a test's call-flow box, P5.5).
  * PAN / ZOOM: a `[data-pz]` wrapper's SVG zooms on ctrl+wheel and the +/-/reset buttons, and pans
  * by dragging, through its viewBox.
  */
@@ -154,4 +155,14 @@
     wrap.insertBefore(bar, wrap.firstChild);
   }
   Array.prototype.forEach.call(document.querySelectorAll('[data-pz]'), panZoom);
+  /* LIT: ?lit=12-15,20#act-X opens that activity and marks the steps the linking test ran. */
+  var lit = (location.search.match(/[?&]lit=([\d,-]+)/) || [])[1], act = location.hash && document.getElementById(location.hash.slice(1));
+  if (lit && act && act.matches('details.activity')) {
+    var ran = lit.split(',').map(function (r) { var p = r.split('-'); return [+p[0], +(p[1] || p[0])]; });
+    act.open = true;
+    Array.prototype.forEach.call(act.querySelectorAll('[data-l]'), function (g) {
+      var s = g.getAttribute('data-l').split('-');
+      if (ran.some(function (r) { return r[0] <= +s[1] && +s[0] <= r[1]; })) g.classList.add('lit');
+    });
+  }
 })();

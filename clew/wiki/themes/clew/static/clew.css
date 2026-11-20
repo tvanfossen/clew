@@ -117,6 +117,7 @@ a.g-page{align-self:flex-start;padding:2px 6px;font:600 12px var(--sans);color:v
 .pin{margin-left:6px;font:500 12px var(--sans);color:var(--ink2)}.pin-direct,.pin-via-variable{color:var(--accink)}.pin-not-attributed{color:var(--warn)}
 .traced{margin-left:6px;font:500 12px var(--sans);color:var(--ink2)}.traced code{color:var(--ink)}
 details.activity{margin:8px 0}details.activity figure{margin:8px 0;overflow-x:auto}.activity text{font:500 12px var(--mono);fill:var(--ink)}.activity rect{fill:var(--surface);stroke:var(--rule2)}.activity .s-cond rect,.activity .s-loop rect{stroke:var(--acc)}.activity .s-else rect{fill:none;stroke:none}.activity .s-exit rect{stroke:var(--ink2)}.activity .lit rect{fill:var(--accbg);stroke:var(--acc);stroke-width:2}.activity .flow,.activity .loop-back{fill:none;stroke:var(--rule2);stroke-width:1.2}
+.callflow{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:8px 0 16px}.callflow .box{padding:6px 10px;border:1px solid var(--rule2);border-radius:9px;background:var(--surface);font:500 13px var(--mono);text-decoration:none;color:var(--ink)}.callflow a.box:hover{border-color:var(--acc)}.callflow .box.test{border-color:var(--acc)}.callflow .arrow{color:var(--ink2)}
 .issue-link{margin:16px 0 0}.issue-link a{display:inline-block;padding:8px 14px;border-radius:9px;border:1px solid var(--acc);text-decoration:none;font-weight:600}
 tr[hidden]{display:none}
 /* Change impact (round 3, P1g). */

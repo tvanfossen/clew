@@ -88,3 +88,38 @@ def test_an_elif_is_a_condition_at_the_same_depth() -> None:
         (ELSE, "else", 6, 0),
         (STMT, "c()", 7, 1),
     ]
+
+
+def test_line_ranges_are_compact_and_ordered() -> None:
+    """@brief `{20, 12, 13, 14, 15}` → `12-15,20`: what a box's link carries."""
+    from clew.wiki.testpages import _ranges
+
+    assert _ranges({20, 12, 13, 14, 15}) == "12-15,20" and _ranges(set()) == ""
+
+
+def test_a_call_flow_box_links_to_the_activity_with_the_lines_this_test_ran() -> None:
+    """OWNER (round 5, P5.5): clicking a box opens that function's activity diagram, lit with the
+    lines THIS test executed. The box links the function's page at its activity block with
+    `?lit=`; a function without a written page gets a box with no link, never a broken one.
+
+    @brief The call-flow boxes.
+    """
+    from clew.wiki.testpages import _callflow
+
+    html = _callflow(
+        "test_save",
+        [("save", "pkg/store.py"), ("helper", "pkg/h.py")],
+        {"pkg/store.py": {4, 5, 6, 9}},
+        {("save", "pkg/store.py")},
+    )
+    assert 'href="sym-pkg-store-py.html?lit=4-6,9#act-s-save"' in html
+    assert ">helper</span>" in html and 'href="sym-pkg-h-py' not in html
+    assert "<code>test_save</code>" in html
+
+
+def test_the_page_script_lights_the_linked_lines() -> None:
+    """@brief clew.js reads `lit` and marks the activity steps it covers."""
+    from clew.wiki.theme import THEMES
+
+    js = (THEMES / "clew" / "static" / "clew.js").read_text()
+    assert "lit" in js and ".activity" in js

@@ -31,7 +31,7 @@ from typing import Any
 
 from ..query._common import connect, table_exists
 from .htmltable import source_url, tag
-from .symbols import _PATH_DEPTH, Definition, _Edges, _lines, _path, symbol_href
+from .symbols import _PATH_DEPTH, Definition, _Edges, _lines, _path, anchor, symbol_href
 
 ## The most requirement chains drawn before the rest are counted.
 _MAX_CHAINS = 12
@@ -312,7 +312,8 @@ def _result(name: str, ctx: dict[str, Any]) -> str:
 ## v3: checks pinned by syntax tree (2.0.0, P5.5)
 ## v4: traced values on pinned checks (2.0.0, P5.5)
 ## v5: context paths (2.0.0, P5.5)
-## @version 5
+## v6: call-flow boxes (2.0.0, P5.5)
+## @version 6
 ## @utility
 def _definition(d: Any, graph: _Edges, ctx: dict[str, Any], repo_root: Path) -> str:
     """@brief Definition block. @return HTML."""
@@ -339,8 +340,64 @@ def _definition(d: Any, graph: _Edges, ctx: dict[str, Any], repo_root: Path) -> 
         out += f'<h2>What it checks ({count})</h2><ol class="asserts">{items}</ol>'
     if candidates:
         out += _context(candidates, ctx.get("product_flows") or [])
+        callees = sorted(graph.names[c] for c in graph.callees.get(d.rowid, ()) if c in graph.names)
+        ran = (ctx.get("lines_by_test") or {}).get(f"{d.file}::{d.name}") or {}
+        out += _callflow(d.name, callees, ran, ctx.get("written") or set())
     out += _proof(d, graph, ctx, count)
     return out
+
+
+## @brief The test's call-flow boxes: each function it calls, linked to its activity diagram.
+## @param test The test's name.
+## @param callees (name, file) of each function it calls.
+## @param ran {file: lines this test executed}, from per-test coverage, or {}.
+## @param written (name, file) of every function whose page was written.
+## @return HTML.
+## @version 1
+## @req REQ-DDB-WIKI-045
+def _callflow(
+    test: str, callees: list[tuple[str, str]], ran: dict[str, set[int]], written: set
+) -> str:
+    """TWO ZOOM LEVELS (owner, round 5): a box per function the test calls; its link opens that
+    function's activity diagram, on the function's own page, with the lines THIS test executed in
+    `?lit=` for `clew.js` to light (owner Q/A 2026-11-20). A function without a written page gets a
+    box and no link, never a broken one; without per-test coverage the link carries no lines.
+
+    @brief Call-flow boxes.
+    @return HTML.
+    """
+    boxes = []
+    for name, rel in callees:
+        if (name, rel) not in written:
+            boxes.append(f'<span class="box">{escape(name)}</span>')
+            continue
+        page, _anchor = symbol_href(name, rel).split("#", 1)
+        lit = _ranges(ran.get(rel, set()))
+        query = f"?lit={lit}" if lit else ""
+        boxes.append(f'<a class="box" href="{page}{query}#act-{anchor(name)}">{escape(name)}</a>')
+    arrows = '<span class="arrow">→</span>'.join(boxes)
+    return (
+        f'<h2>Call flow</h2><div class="callflow"><span class="box test"><code>{escape(test)}'
+        f'</code></span><span class="arrow">→</span>{arrows}</div>'
+    )
+
+
+## @brief Lines as compact ranges.
+## @param lines Line numbers.
+## @return `12-15,20`, or "".
+## @version 1
+## @utility
+def _ranges(lines: set[int]) -> str:
+    """@brief Runs of consecutive lines. @return Ranges."""
+    out: list[str] = []
+    for n in sorted(lines):
+        if out and "-" in out[-1] and int(out[-1].split("-")[1]) + 1 == n:
+            out[-1] = f"{out[-1].split('-')[0]}-{n}"
+        elif out and "-" not in out[-1] and int(out[-1]) + 1 == n:
+            out[-1] = f"{out[-1]}-{n}"
+        else:
+            out.append(str(n))
+    return ",".join(out)
 
 
 ## @brief How the product reaches the functions a test calls, or that it does not.
