@@ -148,7 +148,8 @@ class FlowSpec:
     entry: str
     qualified: str | None = None
     depth: int = 3
-    lanes: str = "files"
+    ## 2.0.0 (P5.6, owner round 5): block lanes by default (was `files`).
+    lanes: str = "blocks"
     stop_at: tuple[str, ...] = ()
     title: str = ""
     animate: bool = True
@@ -699,7 +700,8 @@ def _strings(
 ## v4: `role` (one of FLOW_ROLES).
 ## v5 (2.0.0): `depth: 0` is a problem, not 3; `stop_at` through `_strings`.
 ## v6: measured_depth and max_steps per flow (2.0.0, R5-CFG C1/C2)
-## @version 6
+## v7: block lanes by default (2.0.0, P5.6)
+## @version 7
 ## @utility
 def _flow(raw: Any, index: int, problems: list[str]) -> FlowSpec | None:
     """@brief Parse one flow. @return Spec or None."""
@@ -712,7 +714,7 @@ def _flow(raw: Any, index: int, problems: list[str]) -> FlowSpec | None:
         entry=str(raw["entry"]),
         qualified=str(raw["qualified"]) if raw.get("qualified") else None,
         depth=_depth(raw, where, problems),
-        lanes=str(raw.get("lanes") or "files"),
+        lanes=str(raw.get("lanes") or "blocks"),
         stop_at=_strings(raw, "stop_at", (), where, problems),
         title=str(raw.get("title") or ""),
         animate=bool(raw.get("animate", True)),

@@ -153,7 +153,8 @@ def _executed(coverage: dict[str, dict[int, set[str]]]) -> dict[str, set[int]]:
 ## v13 (OWNER 2026-11-17, round 5): with per-test coverage a master flow grows where tests ran,
 ## each test's slice of it rides inline (`#test=<name>` lights it), and a not-run stub is a row.
 ## v14: measured_depth / max_steps from the flow, else the site (2.0.0, R5-CFG C1/C2)
-## @version 14
+## v15: block lanes and the actor (2.0.0, P5.6)
+## @version 15
 ## @req REQ-DDB-WIKI-014
 ## @req REQ-DDB-WIKI-041
 def flow_page(
@@ -167,6 +168,8 @@ def flow_page(
     req_of: dict[tuple[str, str], list[str]] | None = None,
     trace: tuple[str, dict[str, Any]] | None = None,
     coverage: dict[str, dict[int, set[str]]] | None = None,
+    blocks: dict[str, str] | None = None,
+    actor: str = "",
 ) -> FlowPage:
     """THE STEP TABLE LINKS THE CALL SITE — the caller's file at the call's line (`site_file`),
     not the callee's file. The table drops a column no step fills.
@@ -189,6 +192,9 @@ def flow_page(
         ## MEASURED flow (an unmeasured one is bounded by its depth, as before).
         max_steps=(spec.max_steps or config.measured_steps) if executed is not None else None,
         measured_depth=spec.measured_depth or config.measured_depth,
+        ## P5.6 (owner, round 5): block lanes and the actor.
+        blocks=blocks,
+        actor=actor,
     )
     slices = slices_of(flow, coverage) if coverage is not None and spec.role != "tests" else {}
     name = page_name(spec)

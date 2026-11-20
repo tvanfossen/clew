@@ -62,6 +62,8 @@ _STYLE = (
     ".seq .self .ca{stroke:var(--ink2,#6A5B4D)}.seq .tip{fill:var(--acc,#3D6B2E)}"
     ".seq .self .tip{fill:var(--ink2,#6A5B4D)}"
     ".seq .ret{stroke:var(--faint,#998874);fill:none;stroke-dasharray:4 4;stroke-width:1.2}"
+    ## P5.6: the actor's call into the entry (an SVG <line> has no stroke unless one is given).
+    ".seq .enter line{stroke:var(--acc,#3D6B2E);stroke-width:1.6}"
     ".seq .frame{fill:var(--rootbg,#F4DDCB);fill-opacity:.28;stroke:var(--root,#A6502C);"
     "stroke-width:1;stroke-dasharray:6 3}"
     ".seq .fl{fill:var(--root,#A6502C)}.seq .flt{fill:#fff;font-weight:700;font-size:10.5px;"
@@ -129,6 +131,10 @@ def flow_svg(
     return "".join(parts)
 
 
+## The actor lane's id: not a file, block or package name any lane could have.
+_ACTOR_LANE = "\u2063actor"
+
+
 ## @brief Runs of consecutive identical leaf calls.
 ## @param steps The flow's steps.
 ## @param marks Extra classes per step: steps marked differently never fold together.
@@ -182,12 +188,18 @@ class _Layout:
 
     ## @brief Compute lane columns, event rows and activation spans.
     ## @param flow The flow.
-    ## @version 1
+    ## v2: actor lane (2.0.0, P5.6)
+    ## @version 2
     ## @utility
     def __init__(self, flow: Flow) -> None:
         """@brief Lay out. @return None."""
         self.flow = flow
         self.lanes = [lane.id for lane in flow.lanes] or [flow.entry]
+        ## P5.6 (owner, round 5): THE ACTOR LANE leads, when the flow names who starts it.
+        self.labels = {lane: lane for lane in self.lanes}
+        if flow.actor:
+            self.lanes.insert(0, _ACTOR_LANE)
+            self.labels[_ACTOR_LANE] = flow.actor
         self.x = self._columns()
         self.call_y: dict[int, float] = {}
         self.ret_y: dict[int, float] = {}
@@ -199,11 +211,12 @@ class _Layout:
 
     ## @brief Lane centres, each column fitted to its label and its neighbours' messages.
     ## @return {lane: x}.
-    ## @version 1
+    ## v2: actor lane (2.0.0, P5.6)
+    ## @version 2
     ## @utility
     def _columns(self) -> dict[str, float]:
         """@brief Fit columns. @return Centres."""
-        width = {lane: _clamp(_text_w(_short(lane)) + 40) for lane in self.lanes}
+        width = {lane: _clamp(_text_w(_short(self.labels[lane])) + 40) for lane in self.lanes}
         index = {lane: i for i, lane in enumerate(self.lanes)}
         for step in self.flow.steps:
             a, b = index.get(step.from_lane, 0), index.get(step.to_lane, 0)
@@ -271,25 +284,30 @@ class _Layout:
 
     ## @brief The entry function's lane.
     ## @return The lane id.
-    ## @version 1
+    ## v2: actor lane (2.0.0, P5.6)
+    ## @version 2
     ## @utility
     def _entry_lane(self) -> str:
         """@brief Entry lane. @return Lane."""
-        return self.flow.steps[0].from_lane if self.flow.steps else self.lanes[0]
+        if self.flow.steps:
+            return self.flow.steps[0].from_lane
+        return next(lane for lane in self.lanes if lane != _ACTOR_LANE)
 
     ## @brief Heads at top and bottom and the lifelines.
     ## @return SVG parts.
     ## v2: themed head labels, rounder heads.
-    ## @version 2
+    ## v3: actor lane (2.0.0, P5.6)
+    ## @version 3
     ## @utility
     def lanes_markup(self) -> list[str]:
         """@brief Draw lanes. @return Parts."""
         parts = []
         for lane in self.lanes:
             x, w = self.x[lane], self._width[lane] - 24
+            name = self.labels[lane]
             label = (
                 f'<text class="head-t" x="{x:.0f}" y="{{y}}" text-anchor="middle">'
-                f"{escape(_short(lane))}<title>{escape(lane)}</title></text>"
+                f"{escape(_short(name))}<title>{escape(name)}</title></text>"
             )
             parts.append(
                 f'<line class="lane" x1="{x:.0f}" y1="{10 + _HEAD}" x2="{x:.0f}" '
@@ -304,12 +322,21 @@ class _Layout:
 
     ## @brief Activation bars: the entry's, then one per step.
     ## @return SVG parts.
-    ## @version 1
+    ## v2: actor lane (2.0.0, P5.6)
+    ## @version 2
     ## @utility
     def activations_markup(self) -> list[str]:
         """@brief Draw bars. @return Parts."""
         entry = self.x[self._entry_lane()]
         parts = [_bar(entry, _TOP - 8, self.end_y - 6, 0)]
+        if self.flow.actor:
+            ## The actor's call into the entry, where the entry's bar begins.
+            a, y = self.x[_ACTOR_LANE], _TOP - 4
+            parts.append(
+                f'<g class="enter"><line x1="{a:.0f}" y1="{y}" x2="{entry - 4:.0f}" y2="{y}"/>'
+                f'<text class="lbl" x="{(a + entry) / 2:.0f}" y="{y - 5}" text-anchor="middle">'
+                f"{escape(self.flow.entry)}</text></g>"
+            )
         for i, step in enumerate(self.flow.steps):
             parts.append(_bar(self.x[step.to_lane], self.call_y[i], self.ret_y[i], self.offset[i]))
         return parts

@@ -35,7 +35,8 @@ from ..query.traversal import _definition, _identity_call_hops
 ## The schema version of the flow JSON `clew wiki flow` prints.
 FLOW_VERSION = 1
 ## Lane strategies.
-LANES = ("files", "packages", "threads")
+## 2.0.0 (P5.6, owner round 5): `blocks` — the map's blocks, the default for the site's flows.
+LANES = ("files", "packages", "threads", "blocks")
 
 
 ## How deep a call measured as run is followed (round 5), and the default step cap of a measured
@@ -95,6 +96,8 @@ class Flow:
     flow_version: int = FLOW_VERSION
     measured: bool = False
     capped: bool = False
+    ## 2.0.0 (P5.6, owner round 5): who starts the flow — the actor lane. "" when not stated.
+    actor: str = ""
 
 
 ## @brief Derive the flow from an entry function.
@@ -115,7 +118,10 @@ class Flow:
 ## @param max_steps Stop after this many steps (`capped` says so); default 400 when measured.
 ## v4 (OWNER 2026-11-17, round 5): master flows expand what tests ran.
 ## v5: measured_depth (2.0.0, R5-CFG C1)
-## @version 5
+## @param blocks File → block, for `blocks` lanes (the build graph's `file_block`).
+## @param actor Who starts the flow (the actor lane), or "".
+## v6 (2.0.0, P5.6): `blocks` lanes and the actor.
+## @version 6
 ## @req REQ-DDB-WIKI-001
 ## @req REQ-DDB-WIKI-041
 def derive_flow(
@@ -131,6 +137,8 @@ def derive_flow(
     executed: dict[str, set[int]] | None = None,
     max_steps: int | None = None,
     measured_depth: int | None = None,
+    blocks: dict[str, str] | None = None,
+    actor: str = "",
 ) -> Flow:
     """REFUSES BY NAME an entry the index does not hold and a lane strategy it does not know, so a
     typo never yields an empty diagram that looks like a function with no calls.
@@ -144,6 +152,7 @@ def derive_flow(
     with connect(db) as conn:
         walker = _Walker(conn, Path(repo_root), lanes, frozenset(stop_at))
         walker.executed = executed
+        walker.blocks = blocks or {}
         walker.max_steps = max_steps or (MEASURED_STEP_CAP if executed is not None else 0)
         ## R5-CFG C1 (2.0.0): how deep a call measured as run expands (`wiki.measured_depth`).
         walker.measured_levels = measured_depth or MEASURED_LEVELS
@@ -164,6 +173,7 @@ def derive_flow(
             steps=tuple(walker.steps),
             measured=executed is not None,
             capped=walker.capped,
+            actor=actor,
         )
 
 
@@ -215,12 +225,15 @@ class _Walker:
     ## @param stop_at Names not to expand.
     ## v2 (round 5): coverage (`executed`), the step cap and whether it was hit.
     ## v3 (2.0.0): `measured_levels` (R5-CFG C1).
-    ## @version 3
+    ## v4: blocks map for block lanes (2.0.0, P5.6)
+    ## @version 4
     ## @utility
     def __init__(
         self, conn: sqlite3.Connection, repo_root: Path, lanes: str, stop_at: frozenset[str]
     ) -> None:
         self.conn, self.repo_root, self.lanes, self.stop_at = conn, repo_root, lanes, stop_at
+        ## File → block for `blocks` lanes; `derive_flow` sets it.
+        self.blocks: dict[str, str] = {}
         self.steps: list[Step] = []
         self.lane_order: list[str] = []
         self.expanded: set[str] = set()
@@ -384,7 +397,8 @@ class _Walker:
     ## @return The lane id.
     ## v2: `packages` lanes are the map's components (round 3, P1e): a flow inside one top-level
     ## package drew a single lane.
-    ## @version 2
+    ## v3 (2.0.0, P5.6): `blocks` lanes from the build graph's file → block mapping.
+    ## @version 3
     ## @utility
     def _lane_for(self, rowid: int) -> str:
         """@brief Lane by strategy. @return Lane id."""
@@ -401,6 +415,9 @@ class _Walker:
             from .graph import component_of
 
             return component_of(rel) if rel else "(root)"
+        ## `blocks`: the map's block for the file; a file no block holds keeps its own path.
+        if self.lanes == "blocks" and rel in self.blocks:
+            return self.blocks[rel]
         return rel or "(unknown file)"
 
     ## @brief The file a function's body is in (public: the entry selection uses it).

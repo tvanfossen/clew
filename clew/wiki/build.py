@@ -116,7 +116,8 @@ def build_wiki(
 ## v5: test pages get the product flows (2.0.0, P5.5)
 ## v6: test pages get per-test lines and written pages (2.0.0, P5.5)
 ## v7: Architecture tab (2.0.0, P5.6)
-## @version 7
+## v8: graph before flows; block lanes and actors (2.0.0, P5.6)
+## @version 8
 ## @utility
 def _build_site(
     repo_root: Path,
@@ -175,6 +176,16 @@ def _build_site(
     test_specs = _test_flows(db, facts, frozenset(traces), config.trace_depth)
     specs = [*_all_flows(repo_root, db, config), *test_specs]
     coverage = _coverage(repo_root, config)
+    ## P5.6: THE GRAPH BEFORE THE FLOWS, so a flow's block lanes are the map's blocks.
+    graph = build_graph(
+        db,
+        trace.evidence,
+        trace.impact,
+        config.components,
+        exclude_tests=True,
+        component_depth=config.component_depth,
+    )
+    blocks = graph.get("file_block") or {}
     pages, not_drawn, flow_of = [], [], {}
     for s in specs:
         try:
@@ -190,6 +201,8 @@ def _build_site(
                     req_of,
                     traces.get(s.entry),
                     coverage,
+                    blocks,
+                    _actor_of(s, config),
                 )
             )
             flow_of.setdefault(s.entry, pages[-1].name)
@@ -255,14 +268,6 @@ def _build_site(
     }
     issues = resolve_target(config.issues, config.issues_enabled, repo_root)
     trace.issues, trace.unlinked, trace.issues_note = _fetch_issues(config, issues, trace.evidence)
-    graph = build_graph(
-        db,
-        trace.evidence,
-        trace.impact,
-        config.components,
-        exclude_tests=True,
-        component_depth=config.component_depth,
-    )
     _issues_into(graph, trace.issues)
     sections = [
         requirements_page(trace, config, source, rules, burndown, tuple(pages), issues),
@@ -970,3 +975,26 @@ def _architecture_entries(db: Path, repo_root: Path, config: WikiConfig, flow_of
         role = _with_role(spec, config).role
         out.append(Entry(kind, spec.entry, spec.file or "", label, flow_of.get(spec.entry), role))
     return out
+
+
+## @brief Who starts a flow, for its actor lane (P5.6).
+## @param spec The flow's spec.
+## @param config The section (its declared flows).
+## @return The actor's name.
+## @version 1
+## @req REQ-DDB-WIKI-047
+def _actor_of(spec: Any, config: WikiConfig) -> str:
+    """FROM WHERE THE SPEC CAME: a test flow is started by the test runner, a thread entry by its
+    thread, a console script (title `script — `func``) by a command-line user, a discovered `main`
+    by a program launcher; a flow the repository declares by its caller.
+
+    @brief Actor of a flow.
+    @return Name.
+    """
+    if spec.role == "tests":
+        return "test runner"
+    if spec.role == "threads":
+        return "thread start"
+    if spec in config.flows:
+        return "caller"
+    return "command-line user" if " — " in (spec.title or "") else "program launcher"

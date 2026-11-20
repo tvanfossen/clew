@@ -165,6 +165,10 @@ wiki:
   flows:
     - entry: load
       depth: 2
+      ## FIXTURE CHANGED (2.0.0, P5.6): block lanes became the default (owner, round 5), and
+      ## src/data.py and src/out.py share one block, so this flow would draw ONE lane. The tests
+      ## here guard UML properness on a CROSS-LANE call, unchanged, so the flow states `files`.
+      lanes: files
   links:
     template: "https://example.invalid/blob/{commit}/{file}#L{line}"
   theme:

@@ -14,6 +14,7 @@ is no "unresolved step" to report — the ratchet the authored-diagram design ne
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 import pytest
@@ -315,3 +316,77 @@ def test_a_not_run_stub_is_drawn_as_a_dim_note_not_a_call(indexed: tuple[Path, P
     db, repo = indexed
     svg = flow_svg(derive_flow(db, repo, "main", depth=1, executed=_RAN_LOAD_ONLY))
     assert "… 1 call not run" in svg and 'class="st nr"' in svg
+
+
+def test_block_lanes_are_the_maps_blocks(indexed: tuple[Path, Path]) -> None:
+    """OWNER (round 5): sequence diagrams have BLOCK lanes — the same blocks the map and the
+    Architecture tab draw (the build graph's `file_block`), not a path prefix. A file no block
+    holds keeps its own path, said rather than dropped.
+
+    @brief P5.6: `blocks` lanes.
+    """
+    from clew.wiki.flow import derive_flow
+
+    db, repo = indexed
+    blocks = {"app/main.py": "Front door", "lib/store.py": "Storage"}
+    flow = derive_flow(db, repo, "main", depth=3, lanes="blocks", blocks=blocks)
+    assert [lane.id for lane in flow.lanes] == ["Front door", "Storage"]
+    assert flow.steps[0].from_lane == "Front door" and flow.steps[0].to_lane == "Storage"
+    partial = derive_flow(
+        db, repo, "main", depth=3, lanes="blocks", blocks={"app/main.py": "Front door"}
+    )
+    assert [lane.id for lane in partial.lanes] == ["Front door", "lib/store.py"]
+
+
+def test_a_flow_names_its_actor(indexed: tuple[Path, Path]) -> None:
+    """OWNER (round 5): an ACTOR lane — who starts the flow. Carried on the flow, never a synthetic
+    step: slices and replay pair real call sites, and a made-up first call would break both.
+
+    @brief P5.6: the actor.
+    """
+    from clew.wiki.flow import derive_flow
+
+    db, repo = indexed
+    assert (
+        derive_flow(db, repo, "main", depth=1, actor="command-line user").actor
+        == "command-line user"
+    )
+    assert derive_flow(db, repo, "main", depth=1).actor == ""
+
+
+def test_the_default_lane_strategy_is_blocks() -> None:
+    """OWNER (round 5) RULING, which replaces the `files` default: a flow spec that names no lane
+    strategy gets block lanes.
+
+    @brief P5.6: blocks by default.
+    """
+    from clew.wiki.config import FlowSpec
+
+    assert FlowSpec(entry="main").lanes == "blocks"
+
+
+def test_the_actor_lane_is_drawn_first_with_an_arrow_into_the_entry(
+    indexed: tuple[Path, Path],
+) -> None:
+    """@brief P5.6: the actor's head leads the lanes and an `enter` arrow names the entry."""
+    from clew.wiki.flow import derive_flow
+    from clew.wiki.svg import flow_svg
+
+    db, repo = indexed
+    svg = flow_svg(derive_flow(db, repo, "main", depth=1, lanes="files", actor="command-line user"))
+    heads = re.findall(r'class="head-t"[^>]*>([^<]+)<', svg)
+    assert heads[0] == "command-line user", heads
+    assert 'class="enter"' in svg and ">main</text>" in svg
+    plain = flow_svg(derive_flow(db, repo, "main", depth=1, lanes="files"))
+    assert 'class="enter"' not in plain and "command-line user" not in plain
+
+
+def test_the_actor_arrow_is_styled_to_be_seen() -> None:
+    """FOUND BY LOOKING: the `enter` arrow drew its label and no line, since an SVG line has no
+    stroke unless one is given. The diagram's own stylesheet strokes it.
+
+    @brief P5.6: the actor arrow is visible.
+    """
+    from clew.wiki.svg import _STYLE
+
+    assert ".enter line{stroke:" in _STYLE
