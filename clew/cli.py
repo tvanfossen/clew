@@ -1059,7 +1059,8 @@ SPLICE_GENERATION_LIMIT = 20
 ## @param doxyfile The Doxyfile, read for the scope patterns.
 ## @param args Parsed CLI arguments, for the replace_input regime.
 ## @return (previous output, changed set, removed set, subset list), or None to run in full.
-## @version 2
+## v3: closure over a path-fixed copy (entropic, 2.0.0)
+## @version 3
 ## @req REQ-DDB-INDEX-002
 def _incremental_plan(
     cache: IndexCache,
@@ -1110,10 +1111,40 @@ def _incremental_plan(
     previous = cache.doxygen_any(config_sha) if (changed or removed) else None
     if previous is None:
         return None
-    subset = sorted(xref_closure(previous, changed, repo_root)) if changed else []
+    ## THE CLOSURE READS A PATH-FIXED COPY (entropic, 2.0.0). The cached master spells paths the
+    ## way the target's Doxyfile left them — `STRIP_FROM_PATH = include src` stores
+    ## `include/x/base.h` as `x/base.h` — so a closure over the RAW master matched no row and was
+    ## the changed set alone: every cross-file xref, base/derived and override edge into an
+    ## edited include/ or src/ file was dropped on refresh. Same defect as #492, in the one
+    ## reader that note did not reach.
+    subset = sorted(_fixed_closure(previous, changed, doxyfile, repo_root)) if changed else []
     total = len(summary.unchanged) + len(changed)
     viable = subset and len(subset) < total if changed else bool(removed)
     return (previous, changed, removed, subset) if viable else None
+
+
+## @brief The splice closure, computed over a path-fixed copy of the master.
+## @param previous The cached master doxygen database (left untouched).
+## @param changed Repo-relative changed paths.
+## @param doxyfile The Doxyfile, for its STRIP_FROM_PATH prefixes.
+## @param repo_root Absolute repository root.
+## @return Repo-relative paths to re-read.
+## @version 1
+## @req REQ-DDB-INDEX-002
+def _fixed_closure(previous: Path, changed: set[str], doxyfile: Path, repo_root: Path) -> set[str]:
+    """A SCRATCH COPY, fixed by the pipeline's own `fix_doxygen_paths`, so the closure spells
+    paths exactly as the splice does and the cached output is never rewritten.
+
+    @brief Closure over fixed paths.
+    @return Paths.
+    """
+    scratch = previous.with_name(previous.name + ".closure")
+    try:
+        shutil.copy2(previous, scratch)
+        fix_doxygen_paths(scratch, doxyfile, repo_root)
+        return xref_closure(scratch, changed, repo_root)
+    finally:
+        scratch.unlink(missing_ok=True)
 
 
 ## @brief Satisfy the doxygen stage by re-reading only the changed files and splicing.

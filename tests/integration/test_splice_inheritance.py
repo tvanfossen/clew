@@ -121,3 +121,66 @@ def test_editing_a_base_class_keeps_its_derived_classes_in_other_files(tmp_path:
         f"subset {subset}: the splice lost cross-file inheritance — missing "
         f"{sorted(want - _inheritance(spliced))}"
     )
+
+
+def _pipeline(root: Path, out: Path) -> Path:
+    """@brief One real `clew --repo-root` build, as an operator runs it. @return Database."""
+    from clew.cli import _build_argparser, _run_pipeline
+
+    _run_pipeline(_build_argparser().parse_args(["--repo-root", str(root), "--output", str(out)]))
+    return out
+
+
+def test_a_refresh_under_strip_from_path_keeps_inheritance(tmp_path: Path) -> None:
+    """ENTROPIC'S RERUN OF 314e4696 (7ea9724): through the real pipeline a doc-only edit to
+    adapter_base.h still took compoundref 133 -> 125 and reimplements 248 -> 221, and reverting it
+    left 128 / 228. entropic's Doxyfile declares `STRIP_FROM_PATH = include src`, so the cached
+    master spells `include/x/base.h` as `x/base.h`; `_incremental_plan` ran `xref_closure` on that
+    RAW master, where no row can match the changed file — the closure was the changed file alone,
+    for xrefs too. The two-header test above has no stripping and could not see it.
+
+    @brief Edit, refresh and revert under STRIP_FROM_PATH equal fresh builds.
+    """
+    root = tmp_path / "repo"
+    (root / "include" / "x").mkdir(parents=True)
+    (root / "src" / "x").mkdir(parents=True)
+    (root / "include" / "x" / "base.h").write_text(
+        "/** @brief A base. */\nstruct Base {\n  /** @brief Area. */\n  virtual int area() const;\n"
+        "  virtual ~Base() {}\n};\n",
+        encoding="utf-8",
+    )
+    (root / "src" / "x" / "derived.h").write_text(
+        '#include "x/base.h"\n/** @brief A derived. */\nstruct Derived : Base {\n'
+        "  /** @brief Area. */\n  int area() const override;\n};\n",
+        encoding="utf-8",
+    )
+    (root / "Doxyfile").write_text(
+        "PROJECT_NAME = strip\nINPUT = include src\nRECURSIVE = YES\nEXTRACT_ALL = YES\n"
+        "FULL_PATH_NAMES = YES\nSTRIP_FROM_PATH = include src\nSTRIP_FROM_INC_PATH = include\n",
+        encoding="utf-8",
+    )
+    import subprocess
+
+    from clew.gitenv import git_argv
+
+    subprocess.run(git_argv("init", "-q"), cwd=root, check=True)
+    subprocess.run(git_argv("add", "-A"), cwd=root, check=True)
+    subprocess.run(
+        git_argv("-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "base"),
+        cwd=root,
+        check=True,
+    )
+    live = tmp_path / "live" / "clew.db"
+    live.parent.mkdir()
+    want = _inheritance(_pipeline(root, live))
+    assert ("compoundref", "Base>Derived") in want, f"vacuous: {want}"
+
+    base = root / "include" / "x" / "base.h"
+    original = base.read_text(encoding="utf-8")
+    base.write_text(original.replace("A base.", "A base, reworded."), encoding="utf-8")
+    fresh = tmp_path / "fresh" / "clew.db"
+    fresh.parent.mkdir()
+    assert _inheritance(_pipeline(root, live)) == _inheritance(_pipeline(root, fresh)), "edit"
+
+    base.write_text(original, encoding="utf-8")
+    assert _inheritance(_pipeline(root, live)) == want, "revert"

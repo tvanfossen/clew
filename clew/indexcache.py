@@ -210,12 +210,19 @@ class IndexCache:
 
     ## @brief Identity of one file, re-hashing only when the prefilter misses.
     ## @return FileIdentity for the path, or None when it cannot be stat'ed.
-    ## @version 1
+    ## v2: regular files only (entropic, 2.0.0)
+    ## @version 2
     ## @utility
     def _identity(self, rel: str, abs_path: Path) -> FileIdentity | None:
+        import stat as stat_mode
+
         try:
             stat = abs_path.stat()
         except OSError:
+            return None
+        ## A DIRECTORY HAS NO IDENTITY (entropic, 2.0.0): doxygen's path rows include directories,
+        ## and recording them made every next scan report them "removed" — 61 on entropic.
+        if not stat_mode.S_ISREG(stat.st_mode):
             return None
         prev = self._previous.get(rel)
         if (
