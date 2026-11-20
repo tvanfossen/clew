@@ -495,24 +495,28 @@ def _call_text(repo_root: Path, rel: str, line: int) -> str:
     return "\n".join(out).strip()
 
 
-## @brief Write the flow as Mermaid and PlantUML into the site's exports, and link them.
+## @brief Write the flow as Mermaid, PlantUML and DOT into the site's exports, and link them.
 ## @param flow The flow.
 ## @param source The Sphinx source directory (its `_extra` is copied to the site root).
 ## @param name The page name.
 ## @return Markdown lines.
-## @version 1
+## v2 (2.0.0, P5.7): Graphviz DOT (S7).
+## @version 2
 ## @utility
 def _diagram_exports(flow: Flow, source: Path, name: str) -> list[str]:
     """@brief Diagram exports. @return Lines."""
-    from .exports import flow_mermaid, flow_plantuml
+    from .exports import flow_dot, flow_mermaid, flow_plantuml
 
     out = Path(source) / "_extra" / "exports" / "flows"
     out.mkdir(parents=True, exist_ok=True)
     (out / f"{name}.mmd").write_text(flow_mermaid(flow), encoding="utf-8")
     (out / f"{name}.puml").write_text(flow_plantuml(flow), encoding="utf-8")
+    ## S7 (2.0.0, P5.7): Graphviz DOT beside them.
+    (out / f"{name}.dot").write_text(flow_dot(flow), encoding="utf-8")
     links = (
         f'<p class="exports">This diagram as <a href="exports/flows/{name}.mmd">Mermaid</a> · '
-        f'<a href="exports/flows/{name}.puml">PlantUML</a></p>'
+        f'<a href="exports/flows/{name}.puml">PlantUML</a> · '
+        f'<a href="exports/flows/{name}.dot">Graphviz DOT</a></p>'
     )
     return ["```{raw} html", links, "```", ""]
 

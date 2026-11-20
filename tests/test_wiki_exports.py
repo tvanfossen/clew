@@ -93,3 +93,25 @@ def test_exports_obey_the_audience(repo: tuple[Path, Path], tmp_path: Path) -> N
         text = (html / rel).read_text()
         assert "Load the data" not in text and "Every item is parsed once" not in text, rel
         assert "REQ-W-001" in text, rel
+
+
+def test_flows_export_as_graphviz_dot(site: dict[str, str]) -> None:  # noqa: F811
+    """S7 (owner-approved 2026-11-17): Graphviz DOT beside Mermaid and PlantUML. DOT is a GRAPH
+    format, so a flow is drawn as one: each lane a cluster, each function a node in its lane, each
+    step an edge numbered in call order — the sequence survives as the numbers.
+
+    @brief P5.7 / S7: a flow as DOT, linked from its page.
+    """
+    html = _html(site)
+    dot = (html / "exports/flows/flow-load.dot").read_text()
+    assert dot.startswith("digraph ") and dot.rstrip().endswith("}")
+    assert dot.count("subgraph cluster_") == 2 and 'label="src/data.py"' in dot
+    assert '"load@src/data.py" -> "parse@src/data.py" [label="1"' in dot
+    assert 'href="exports/flows/flow-load.dot"' in site["flow-load.html"]
+
+
+def test_a_dot_identifier_is_quoted_and_escaped() -> None:
+    """@brief A name with a quote or backslash cannot break the DOT file."""
+    from clew.wiki.exports import _dot_id
+
+    assert _dot_id('a"b\\c') == '"a\\"b\\\\c"'

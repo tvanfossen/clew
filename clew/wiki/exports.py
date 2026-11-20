@@ -247,6 +247,55 @@ def flow_plantuml(flow: Any) -> str:
     return _PlantUml().render(flow)
 
 
+## @brief A flow as a Graphviz DOT graph: lanes as clusters, steps as numbered edges (S7).
+## @param flow The flow.
+## @return DOT text.
+## @version 1
+## @req REQ-DDB-WIKI-029
+def flow_dot(flow: Any) -> str:
+    """DOT IS A GRAPH FORMAT, so a flow is drawn as one: each lane a `cluster_` subgraph, each
+    function a node in its lane (named `name@file`, so two same-named functions stay two), each step
+    an edge labelled with its number in call order — the sequence survives as the numbers.
+
+    @brief DOT.
+    @return Text.
+    """
+    nodes: dict[str, tuple[str, str]] = {}
+    edges = []
+    for i, step in enumerate(flow.steps, start=1):
+        if not step.callee:
+            continue
+        caller = f"{step.caller}@{step.site_file or step.file}"
+        callee = f"{step.callee}@{step.file}"
+        nodes.setdefault(caller, (step.caller, step.from_lane))
+        nodes.setdefault(callee, (step.callee, step.to_lane))
+        edges.append(f'  {_dot_id(caller)} -> {_dot_id(callee)} [label="{i}"];')
+    lanes: dict[str, list[str]] = {}
+    for node, (_name, lane) in nodes.items():
+        lanes.setdefault(lane, []).append(node)
+    clusters = []
+    for n, (lane, members) in enumerate(lanes.items()):
+        body = "".join(f"    {_dot_id(m)} [label={_dot_id(nodes[m][0])}];\n" for m in members)
+        clusters.append(f"  subgraph cluster_{n} {{\n    label={_dot_id(lane)};\n{body}  }}")
+    return (
+        f"digraph {_dot_id(flow.entry)} {{\n  rankdir=LR;\n  node [shape=box];\n"
+        + "\n".join(clusters)
+        + "\n"
+        + "\n".join(edges)
+        + "\n}\n"
+    )
+
+
+## @brief A DOT identifier: double-quoted, with quotes and backslashes escaped.
+## @param text The name.
+## @return The quoted identifier.
+## @version 1
+## @utility
+def _dot_id(text: str) -> str:
+    """@brief Quote. @return Identifier."""
+    return '"' + str(text).replace("\\", "\\\\").replace('"', '\\"') + '"'
+
+
 ## @brief A requirement's title and text, or empty under `exclude_requirement_text`.
 ## @param row The evidence row.
 ## @param entry Its catalog entry.
