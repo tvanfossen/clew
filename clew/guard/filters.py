@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """File filters the gate shares with clew's index: shared toolchain ignores and file typing.
 
 @brief Toolchain-config and binary-file exclusion for the gate's file walks.

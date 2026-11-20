@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """Tree-sitter based function detection and doxygen block extraction.
 
 @brief Parse source files using tree-sitter AST to find functions and their doxygen blocks.

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """Validation checks for doxygen comments.
 
 @brief Presence, version staleness, and tag validation checks.

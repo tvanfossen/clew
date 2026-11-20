@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """Requirement coverage analysis for clew guard.
 
 @brief Cross-reference @req tags against requirements file and report coverage gaps.

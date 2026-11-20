@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """CLI entry point for clew guard.
 
 @brief Argument parsing, file iteration, and subcommand dispatch.

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """Incremental doxygen regeneration: re-read a SUBSET and splice it into the master.
 
 WHY THIS EXISTS (task #483). A warm refresh of this repository costs ~8.7 s, of which

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """Doxyfile fragment generation.
 
 @brief Emit the Doxyfile settings that make this tool's dialect valid doxygen.

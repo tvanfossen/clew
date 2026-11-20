@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """Tree-sitter grammar loading and language-specific node type maps.
 
 @brief Initialize tree-sitter parsers and provide node type mappings per language.

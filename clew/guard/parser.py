@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """Doxygen block parsing and the parse entry point.
 
 @brief Parse doxygen tag blocks and dispatch function detection to the AST parser.

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """Change-impact analysis from git diff.
 
 @brief Collect @req tags from changed functions, generate impact reports.

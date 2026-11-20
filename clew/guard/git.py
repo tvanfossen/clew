@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """Git diff parsing for change detection.
 
 @brief Parse git diff output to determine which lines changed in staged files.

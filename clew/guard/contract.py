@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """Machine-readable contract surface for consumers of the gate.
 
 @brief Emit the config schema, the effective config, and the resolved file set as JSON.

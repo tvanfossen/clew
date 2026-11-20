@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """Configuration loading, defaults, and merging for the gate.
 
 The gate's config is the `guard:` section of the repo's `.clew.yaml`, the same file that

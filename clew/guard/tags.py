@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """Source discovery and @req tag collection.
 
 @brief Walk source trees, parse documented functions, and model their requirement tags.
