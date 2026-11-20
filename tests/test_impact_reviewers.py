@@ -40,7 +40,8 @@ def test_each_requirement_names_the_owners_of_the_changed_files(tmp_path: Path) 
     resolver = OwnerResolver.from_repo(tmp_path)
     (entry,) = build_impact_report(_changed(), _CONFIG, owners=resolver)
     assert entry.reviewers == ["@net-team", "@core"]
-    assert json.loads(format_json([entry]))[0]["reviewers"] == ["@net-team", "@core"]
+    ## SPEC CHANGED (2.0.0, PS3): entries live under `entries` beside `schema_version`.
+    assert json.loads(format_json([entry]))["entries"][0]["reviewers"] == ["@net-team", "@core"]
     assert "| Reviewers |" in format_markdown([entry])
 
 
@@ -49,5 +50,18 @@ def test_no_owners_file_leaves_reviewers_out_rather_than_empty(tmp_path: Path) -
     resolver = OwnerResolver.from_repo(tmp_path)
     (entry,) = build_impact_report(_changed(), _CONFIG, owners=resolver)
     assert entry.reviewers is None
-    assert "reviewers" not in json.loads(format_json([entry]))[0]
+    assert "reviewers" not in json.loads(format_json([entry]))["entries"][0]
     assert "Reviewers" not in format_markdown([entry])
+
+
+def test_impact_json_names_its_schema_version() -> None:
+    """PS3: the report is an object carrying `schema_version`, its entries under `entries`.
+
+    @brief impact.json is versioned.
+    """
+    import json
+
+    from clew.guard.impact import IMPACT_SCHEMA_VERSION, format_json
+
+    doc = json.loads(format_json([]))
+    assert doc == {"schema_version": IMPACT_SCHEMA_VERSION, "entries": []}

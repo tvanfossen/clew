@@ -542,13 +542,21 @@ def format_markdown(entries: list[ImpactEntry]) -> str:
     return "\n".join(lines) + "\n"
 
 
-## @brief Render impact entries as a JSON array.
+## PS3 (2.0.0, owner Q/A 2026-11-19): impact.json's format version and its keys, which
+## docs/wire-keys.json covers. A removed or renamed key moves the version; an added one is additive.
+IMPACT_SCHEMA_VERSION = 1
+IMPACT_ENTRY_KEYS = ("functions", "req_id", "req_name", "reviewers")
+IMPACT_FUNCTION_KEYS = ("file", "name", "version")
+
+
+## @brief Render impact entries as a versioned JSON object.
 #  v1.3: reviewers from the owners files (2.0.0, S2/S3 served)
-#  @version 1.3
+#  v2.0 (2.0.0, PS3): `{"schema_version": 1, "entries": [...]}` — the bare array had no version.
+#  @version 2.0
 #  @req REQ-DDB-GUARD-010
 #  @return JSON-formatted impact report string
 def format_json(entries: list[ImpactEntry]) -> str:
-    data = [
+    rows = [
         {
             "req_id": entry.req_id,
             "req_name": entry.req_name,
@@ -560,6 +568,7 @@ def format_json(entries: list[ImpactEntry]) -> str:
         }
         for entry in entries
     ]
+    data = {"schema_version": IMPACT_SCHEMA_VERSION, "entries": rows}
     return json.dumps(data, indent=2) + "\n"
 
 

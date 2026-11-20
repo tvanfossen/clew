@@ -235,7 +235,8 @@ def impact_path(repo_root: Path, config: WikiConfig) -> Path:
 ## @brief Read clew-guard's impact report.
 ## @param path The report.
 ## @return Its entries, or None when there is no report.
-## @version 1
+## v2: reads the versioned object, and a bare array (2.0.0, PS3)
+## @version 2
 ## @req REQ-DDB-WIKI-015
 def load_impact(path: Path) -> list[dict] | None:
     """ABSENT IS NOT EMPTY: no file → None (no section); `[]` → "no requirement affected".
@@ -246,6 +247,10 @@ def load_impact(path: Path) -> list[dict] | None:
     if not path.is_file():
         return None
     data = json.loads(path.read_text(encoding="utf-8"))
+    ## PS3 (2.0.0): `{"schema_version", "entries"}`. A bare array is a report an older clew wrote,
+    ## still read: a strict writer and a tolerant reader.
+    if isinstance(data, dict):
+        data = data.get("entries")
     return data if isinstance(data, list) else None
 
 

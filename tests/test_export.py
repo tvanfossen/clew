@@ -203,3 +203,34 @@ def test_the_committed_wire_manifest_is_current() -> None:
         "`.venv/bin/python -m clew.query.wire_manifest > docs/wire-keys.json` and decide whether "
         "WIRE_VERSION moves (a removed or renamed key moves it)"
     )
+
+
+def test_the_flow_json_shape_is_in_the_manifest() -> None:
+    """PS1 (owner Q/A 2026-11-19): `clew wiki flow` JSON is covered, recorded after P5's sequence
+    changes (block lanes, the actor, loop folding, replay values) so 2.0.0 ships its final shape.
+    A later change is additive or bumps `flow_version`.
+
+    @brief The Flow types are in docs/wire-keys.json.
+    """
+    from clew.query.wire_manifest import wire_manifest
+    from clew.wiki.flow import FLOW_VERSION
+
+    flow = wire_manifest()["flow"]
+    assert flow["flow_version"] == FLOW_VERSION
+    assert {"Flow", "Lane", "Step"} <= set(flow["types"])
+    assert "actor" in flow["types"]["Flow"] and "lanes" in flow["types"]["Flow"]
+
+
+def test_the_impact_report_shape_is_in_the_manifest() -> None:
+    """PS3 (owner Q/A 2026-11-19): `impact.json` carries a `schema_version`, and its keys are
+    covered like the wire keys.
+
+    @brief impact.json's shape is in docs/wire-keys.json.
+    """
+    from clew.guard.impact import IMPACT_SCHEMA_VERSION
+    from clew.query.wire_manifest import wire_manifest
+
+    impact = wire_manifest()["impact"]
+    assert impact["schema_version"] == IMPACT_SCHEMA_VERSION
+    assert impact["entry_keys"] == ["functions", "req_id", "req_name", "reviewers"]
+    assert impact["function_keys"] == ["file", "name", "version"]

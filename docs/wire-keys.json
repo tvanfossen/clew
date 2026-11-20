@@ -547,5 +547,61 @@
    "sites": "tuple[VariableSite, ...]",
    "selector_note": "str | None"
   }
+ },
+ "flow": {
+  "flow_version": 1,
+  "types": {
+   "Flow": {
+    "entry": "str",
+    "entry_qualified": "str",
+    "depth": "int",
+    "lane_strategy": "str",
+    "lanes": "tuple[Lane, ...]",
+    "steps": "tuple[Step, ...]",
+    "flow_version": "int",
+    "measured": "bool",
+    "capped": "bool",
+    "actor": "str"
+   },
+   "Frame": {
+    "kind": "str",
+    "line": "int",
+    "end_line": "int"
+   },
+   "Lane": {
+    "id": "str",
+    "label": "str"
+   },
+   "Step": {
+    "caller": "str",
+    "caller_qualified": "str",
+    "callee": "str",
+    "callee_qualified": "str",
+    "from_lane": "str",
+    "to_lane": "str",
+    "file": "str",
+    "line": "int",
+    "depth": "int",
+    "frames": "tuple[Frame, ...]",
+    "ambiguous": "tuple[str, ...]",
+    "expanded_above": "bool",
+    "site_file": "str",
+    "not_run": "int"
+   }
+  }
+ },
+ "impact": {
+  "schema_version": 1,
+  "entry_keys": [
+   "functions",
+   "req_id",
+   "req_name",
+   "reviewers"
+  ],
+  "function_keys": [
+   "file",
+   "name",
+   "version"
+  ]
  }
 }

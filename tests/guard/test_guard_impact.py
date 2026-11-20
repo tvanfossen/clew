@@ -322,7 +322,9 @@ class TestFormatJson:
             ),
         ]
         result = format_json(entries)
-        data = json.loads(result)
+        ## SPEC CHANGED (2.0.0, PS3, owner Q/A 2026-11-19): the report is an object carrying
+        ## `schema_version`, its entries under `entries` (it was a bare array with no version).
+        data = json.loads(result)["entries"]
         assert len(data) == 1
         assert data[0]["req_id"] == "REQ-0001"
 

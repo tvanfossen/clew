@@ -98,7 +98,8 @@ def _referenced(annotation: Any) -> list[type]:
 
 ## @brief Every field of every dataclass reachable from the reply roots.
 ## @return The manifest: version, envelope keys, and {class: {field: declared type}}.
-## @version 1
+## v2 (2.0.0, PS1/PS3): the `flow` and `impact` sections.
+## @version 2
 ## @req REQ-DDB-QUERY-014
 def wire_manifest() -> dict[str, Any]:
     """BREADTH-FIRST FROM THE ROOTS, so a nested dataclass (a caller row, a gate row) is covered
@@ -108,8 +109,37 @@ def wire_manifest() -> dict[str, Any]:
     @return The manifest dict.
     @version 1
     """
+    from ..guard.impact import IMPACT_ENTRY_KEYS, IMPACT_FUNCTION_KEYS, IMPACT_SCHEMA_VERSION
+    from ..wiki import flow as flow_module
+
+    return {
+        "wire_version": WIRE_VERSION,
+        "envelope_keys": sorted(ENVELOPE_KEYS),
+        "types": _walk(list(_ROOTS), _referenced),
+        ## PS1 (2.0.0, owner Q/A 2026-11-19): `clew wiki flow` JSON, after P5's sequence changes.
+        "flow": {
+            "flow_version": flow_module.FLOW_VERSION,
+            "types": _walk([flow_module.Flow], lambda a: _referenced_in(a, flow_module)),
+        },
+        ## PS3: impact.json's version and keys.
+        "impact": {
+            "schema_version": IMPACT_SCHEMA_VERSION,
+            "entry_keys": sorted(IMPACT_ENTRY_KEYS),
+            "function_keys": sorted(IMPACT_FUNCTION_KEYS),
+        },
+    }
+
+
+## @brief Every field of every dataclass reachable from some roots, breadth-first.
+## @param roots The starting dataclasses.
+## @param resolve Annotation → the dataclasses it names.
+## @return {class: {field: declared type}}, sorted.
+## @version 1
+## @utility
+def _walk(roots: list[type], resolve: Any) -> dict[str, dict[str, str]]:
+    """@brief Walk. @return Types."""
     types: dict[str, dict[str, str]] = {}
-    queue = list(_ROOTS)
+    queue = list(roots)
     while queue:
         cls = queue.pop(0)
         if cls.__name__ in types:
@@ -117,12 +147,24 @@ def wire_manifest() -> dict[str, Any]:
         fields = dataclasses.fields(cls)
         types[cls.__name__] = {f.name: str(f.type) for f in fields}
         for f in fields:
-            queue.extend(c for c in _referenced(f.type) if c.__name__ not in types)
-    return {
-        "wire_version": WIRE_VERSION,
-        "envelope_keys": sorted(ENVELOPE_KEYS),
-        "types": dict(sorted(types.items())),
-    }
+            queue.extend(c for c in resolve(f.type) if c.__name__ not in types)
+    return dict(sorted(types.items()))
+
+
+## @brief Dataclasses an annotation names, resolved in one module.
+## @param annotation The field's annotation.
+## @param module Where the names live.
+## @return The classes.
+## @version 1
+## @utility
+def _referenced_in(annotation: Any, module: Any) -> list[type]:
+    """@brief Resolve in a module. @return Classes."""
+    found: list[type] = []
+    for word in re.findall(r"[A-Za-z_][A-Za-z0-9_]*", str(annotation)):
+        cls = getattr(module, word, None)
+        if isinstance(cls, type) and dataclasses.is_dataclass(cls) and cls not in found:
+            found.append(cls)
+    return found
 
 
 if __name__ == "__main__":
