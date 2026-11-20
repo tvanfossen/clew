@@ -118,7 +118,8 @@ def build_wiki(
 ## v7: Architecture tab (2.0.0, P5.6)
 ## v8: graph before flows; block lanes and actors (2.0.0, P5.6)
 ## v9: quick views second pass (2.0.0, P5.6)
-## @version 9
+## v10: SBOM page (2.0.0, P5.8)
+## @version 10
 ## @utility
 def _build_site(
     repo_root: Path,
@@ -290,6 +291,10 @@ def _build_site(
         ),
         _docs_page(source, _prose(repo_root, config, source), config, decisions),
     ]
+    ## #70 (P5.8): the SBOM page, rendered from the repository's own SBOM (never written).
+    from .sbom import sbom_page
+
+    sections.append(sbom_page(repo_root, db, config, source))
     ## P5.6: the C4 Architecture tab, after the map it zooms into.
     sections.insert(
         sections.index("map") + 1 if "map" in sections else len(sections),
@@ -736,7 +741,8 @@ _DOCS_LEAD = "The repository's own documentation, as written."
 ## v6: the Product trace card (GH #68).
 ## v7 (round 4): the map card describes the repository web.
 ## v8: Architecture card (2.0.0, P5.6)
-## @version 8
+## v9: SBOM card (2.0.0, P5.8)
+## @version 9
 ## @utility
 def _write_index(
     source: Path, config: WikiConfig, trace: object, sections: list[str], flow_count: int
@@ -772,6 +778,10 @@ def _write_index(
         "architecture": (
             "Architecture",
             "The system at C4's four levels: context, containers, components, code.",
+        ),
+        "sbom": (
+            "SBOM",
+            "The software bill of materials this repository carries, and its files' licences.",
         ),
     }
     cards = "".join(

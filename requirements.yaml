@@ -1061,6 +1061,19 @@ requirements:
     x-priority: P2
     x-status: implemented
     x-evidence: clew/wiki/flowpage.py (step table row marks, page script sync); tests/test_wiki_site.py.
+  REQ-DDB-WIKI-051:
+    subsystem: wiki
+    name: The SBOM page renders the repository's own SBOM beside its files' licences
+    acceptance_criteria: 'The SBOM page reads the repository''s SBOM files (SPDX 2.3 JSON, or
+      CycloneDX JSON; `wiki.sbom.files`, by default `sbom.spdx.json` and `bom.cdx.json` at the
+      root) and shows the package licence and a component table (name, version, licence, kind,
+      source, digest), flagging NOASSERTION, and a licence not on the accepted list
+      (`wiki.sbom.accepted`, else `docs/sbom.toml`''s `accepted`; with neither nothing is called
+      unaccepted). It never writes or edits an SBOM. Beside it, the index''s per-file SPDX
+      identifiers: counts by licence and how many indexed files carry none.'
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/sbom.py; tests/test_wiki_sbom.py.
   REQ-DDB-WIKI-048:
     subsystem: wiki
     name: Every function on a flow has a quick-view modal with the view strip

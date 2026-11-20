@@ -1110,3 +1110,10 @@ def test_the_step_table_and_the_diagram_stay_in_sync(site: dict[str, str]) -> No
     assert re.findall(r'<tr data-step="(\d+)"', table)[:2] == ["0", "1"]
     for needle in ("animationstart", "scrollIntoView", "tr[data-step]"):
         assert needle in page, needle
+
+
+def test_the_site_has_an_sbom_page(site: dict[str, str]) -> None:
+    """@brief #70 (P5.8): the page is built and linked; the fixture has no SBOM, which it says."""
+    page = site["sbom.html"]
+    assert "No SBOM was found" in page and "This repository" in page
+    assert 'href="sbom.html"' in site["index.html"]

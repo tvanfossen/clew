@@ -50,6 +50,8 @@ _TOP = {
     "web",
     ## S9 (2.0.0): `check: {ears: true}`, the opt-in EARS badge (never a gate).
     "check",
+    ## #70 (2.0.0, P5.8): `sbom: {files: [...], accepted: [...]}` — the SBOM page's inputs.
+    "sbom",
 }
 ## Each tuning key's former constant — the default when it is not declared.
 TUNING_DEFAULTS = {
@@ -297,6 +299,9 @@ class WikiConfig:
     issues_fetch: bool = False
     ## S9 (2.0.0): `check.ears` — the EARS badge on requirement pages and notes from `check`.
     ears: bool = False
+    ## #70 (2.0.0): SBOM files to render (repo-relative globs) and the accepted-licence list.
+    sbom_files: tuple[str, ...] = ("sbom.spdx.json", "bom.cdx.json")
+    sbom_accepted: tuple[str, ...] = ()
     ## Path globs whose entry points are tooling flows.
     tooling: tuple[str, ...] = DEFAULT_TOOLING
     ## R5-CFG C1-C5, C7-C9, W6 (2.0.0): the build's numbers, declared (see TUNING_DEFAULTS).
@@ -342,7 +347,8 @@ class WikiConfig:
 ## v18: reads the tuning keys (2.0.0, R5-CFG C1-C9)
 ## v19: records docs_declared (2.0.0)
 ## v20: EARS badge and check notes (2.0.0, S9)
-## @version 20
+## v21: wiki.sbom (2.0.0, P5.8)
+## @version 21
 ## @req REQ-DDB-WIKI-003
 def load_wiki_config(
     repo_root: Path, config_path: Path | None = None
@@ -392,6 +398,7 @@ def load_wiki_config(
         issues_enabled=raw.get("issues") is not False,
         issues_fetch=isinstance(raw.get("issues"), dict) and bool(raw["issues"].get("fetch")),
         ears=_ears(raw.get("check"), problems),
+        **_sbom(raw.get("sbom"), problems),
         tooling=_strings(raw, "tooling", DEFAULT_TOOLING, "wiki", problems),
         needs=str(requirements["needs"]) if requirements.get("needs") else None,
         adrs=_strings(raw, "adrs", DEFAULT_ADRS, "wiki", problems),
@@ -980,6 +987,35 @@ def _ears(raw: Any, problems: list[str]) -> bool:
         problems.append("`wiki.check` must be {ears: true|false}; `wiki.check.ears` is a boolean")
         return False
     return bool(raw.get("ears", False))
+
+
+## @brief `wiki.sbom`: which SBOM files to render, and the accepted-licence list.
+## @param raw The `sbom` value, or None.
+## @param problems Collects a problem for a malformed section.
+## @return `sbom_files` / `sbom_accepted` overrides (only what is declared).
+## @version 1
+## @req REQ-DDB-WIKI-051
+def _sbom(raw: Any, problems: list[str]) -> dict[str, tuple[str, ...]]:
+    """LISTS, REFUSED OTHERWISE, and an unknown key is named: `files: sbom.json` (a string) would
+    otherwise be iterated as characters.
+
+    @brief Parse `sbom`.
+    @return Overrides.
+    """
+    if raw is None:
+        return {}
+    out: dict[str, tuple[str, ...]] = {}
+    keys = {"files": "sbom_files", "accepted": "sbom_accepted"}
+    if not isinstance(raw, dict) or set(raw) - set(keys):
+        problems.append("`wiki.sbom` must be {files: [globs], accepted: [licence ids]}")
+        return {}
+    for key, attr in keys.items():
+        if key in raw:
+            if isinstance(raw[key], list) and all(isinstance(v, str) for v in raw[key]):
+                out[attr] = tuple(raw[key])
+            else:
+                problems.append(f"`wiki.sbom.{key}` must be a list of strings")
+    return out
 
 
 ## @brief The declared document kinds.
