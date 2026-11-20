@@ -1045,3 +1045,19 @@ def test_the_site_has_an_architecture_tab(site: dict[str, str]) -> None:
     page = site["architecture.html"]
     assert all(f'id="c4-l{n}"' in page for n in (1, 2, 3, 4))
     assert 'href="architecture.html"' in site["index.html"]
+
+
+def test_source_bodies_and_diagrams_are_not_in_the_search_index(site: dict[str, str]) -> None:
+    """P5.1b (2.0.0, page weight). MEASURED on clew's own site: searchindex.js was 8.2 MB, 6.35 MB
+    of it 80,285 terms, because Sphinx's indexer strips the tags off RAW HTML and indexes the text —
+    every folded source body, activity statement and SVG label. A function is found by its heading,
+    signature and brief; code text is what the index's own code search is for. `SECRET_BODY_MARKER`
+    lives only in `parse`'s body; `parse` itself must stay findable.
+
+    @brief P5.1b: the search index holds names and prose, not bodies.
+    """
+    import pathlib
+
+    index = (pathlib.Path(site["__html__"]) / "searchindex.js").read_text()
+    assert "secret_body_mark" not in index.lower() and "secret_body_marker" not in index.lower()
+    assert '"pars' in index, "the function's own name must stay searchable"

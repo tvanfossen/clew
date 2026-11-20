@@ -17,6 +17,8 @@ first, which is a wrong link presented as a right one.
 
 from __future__ import annotations
 
+import re
+
 import json
 from collections import Counter
 from pathlib import Path
@@ -81,9 +83,78 @@ def _rows(path: Path) -> list[dict[str, str]]:
 ## @brief Register the domain.
 ## @param app The Sphinx application.
 ## @return Extension metadata.
-## @version 1
+## v2: keeps source bodies and diagram text out of the search index (2.0.0, P5.1b)
+## @version 2
 ## @req REQ-DDB-WIKI-025
 def setup(app: Any) -> dict[str, Any]:
     """@brief Sphinx entry point. @return Metadata."""
     app.add_domain(ClewDomain)
+    _keep_bodies_out_of_search()
     return {"version": "1", "parallel_read_safe": True, "parallel_write_safe": True}
+
+
+## Raw-HTML regions the search index skips (P5.1b): folded source bodies, activity diagrams, and
+## every SVG's labels. Sphinx strips the tags off raw HTML and indexes the rest; these were 6.35 MB
+## of clew's own 8.2 MB searchindex.js (80,285 terms).
+_NOT_SEARCHED = re.compile(
+    r'<details class="(?:body|activity)".*?</details>|<svg\b.*?</svg>', re.DOTALL | re.IGNORECASE
+)
+
+
+## @brief Make Sphinx's search indexer skip source bodies and diagram text in raw HTML.
+## @return None.
+## v1 (2.0.0, P5.1b): measured above; the page output is untouched, only the indexer's copy.
+## @version 1
+## @req REQ-DDB-WIKI-022
+def _keep_bodies_out_of_search() -> None:
+    """THE INDEXER SEES A STRIPPED COPY, the page keeps every byte: the original raw node is not
+    changed, so the HTML written is exactly as before. Sphinx itself strips `<style>` and
+    `<script>` the same way.
+
+    TWO SPHINX PATHS, both private, so both are covered and a test pins the result: Sphinx 8 feeds
+    the index through the module function `sphinx.search._feed_visit_nodes` (it recurses through
+    its global name, so the wrapper sees every child); 7.x through `WordCollector.dispatch_visit`.
+    The pinned range is `sphinx>=7.3,<9`; a release that drops both fails
+    `test_source_bodies_and_diagrams_are_not_in_the_search_index` loudly. Idempotent.
+
+    @brief Patch the search indexer.
+    @return None.
+    """
+    import sphinx.search as search
+
+    if hasattr(search, "_feed_visit_nodes"):
+        original = search._feed_visit_nodes
+        if not getattr(original, "_clew_wrapped", False):
+
+            def feed(node: Any, **kwargs: Any) -> None:
+                return original(_stripped(node), **kwargs)
+
+            feed._clew_wrapped = True  # type: ignore[attr-defined]
+            search._feed_visit_nodes = feed
+    collector = getattr(search, "WordCollector", None)
+    visit = getattr(collector, "dispatch_visit", None)
+    if visit is not None and not getattr(visit, "_clew_wrapped", False):
+
+        def dispatch_visit(self: Any, node: Any) -> None:
+            return visit(self, _stripped(node))
+
+        dispatch_visit._clew_wrapped = True  # type: ignore[attr-defined]
+        collector.dispatch_visit = dispatch_visit
+
+
+## @brief A raw HTML node without the regions the index skips; any other node unchanged.
+## @param node A doctree node.
+## @return The node, or a stripped copy.
+## @version 1
+## @utility
+def _stripped(node: Any) -> Any:
+    """NO DOCUTILS IMPORT: it arrives only through Sphinx and is not a declared dependency (#77),
+    so the node is recognised by its class name and copied through its own class.
+
+    @brief Copy, never mutate.
+    @return Node.
+    """
+    if type(node).__name__ == "raw" and "html" in node.get("format", "").split():
+        text = _NOT_SEARCHED.sub("", node.astext())
+        return node.__class__(text, text, format=node.get("format", ""))
+    return node
