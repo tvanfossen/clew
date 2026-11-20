@@ -199,12 +199,28 @@ and 2 when the request is refused (the reason on stderr).
 
 **Covered** — a breaking change here means a major bump:
 
-- the `clew` CLI verbs and their flags (`init`, `propose`, `export`, `query`, and
-  the build invocation)
+- the `clew` CLI verbs and their flags: `init`, `propose`, `export`, `query`, the build
+  invocation, and since 2.0.0 **`clew guard` and `clew wiki`** with every subcommand, because
+  pre-commit hooks and CI call them. They are listed in
+  [`docs/cli-surface.json`](cli-surface.json), generated from the parsers; a test fails when one
+  is renamed or removed
 - the MCP **tool names and their wire keys** — a consumer reads `edge_class`,
   `confidence`, `source` and friends by name. The keys are listed in
   [`docs/wire-keys.json`](wire-keys.json), generated from the reply dataclasses; a
   test fails when one is renamed or removed
+- **`clew wiki flow` JSON** (2.0.0): the `Flow` / `Lane` / `Step` / `Frame` fields, under
+  `flow` in [`docs/wire-keys.json`](wire-keys.json), with `flow_version`. A later change is
+  additive or moves `flow_version`
+- **the gate's machine outputs** (2.0.0):
+  - `impact.json` is `{"schema_version": 1, "entries": [...]}`; its keys are under `impact` in
+    [`docs/wire-keys.json`](wire-keys.json). The wiki still reads a pre-2.0.0 bare array.
+  - `clew guard validate --format sarif|gitlab|github` are covered as "conforms to that format"
+    (SARIF 2.1.0, GitLab Code Quality, GitHub workflow commands), schema-tested; the rule ids
+    and messages inside may change
+- **the wiki's exports** (2.0.0), as **format conformance only**: `requirements.reqif` is ReqIF
+  1.2, `needs.json` has Sphinx-needs' layout, `system.dsl` is a Structurizr workspace, and each
+  flow is valid Mermaid, PlantUML and Graphviz DOT; `llms.txt` follows the llms.txt layout. Their
+  CONTENTS follow the repository and are not covered
 - `clew.query`'s public functions and the dataclasses they return, including the
   export API (`export_dossier`, `export_search`, `WIRE_VERSION`) — see
   [Programmatic use](#programmatic-use)

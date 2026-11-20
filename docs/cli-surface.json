@@ -1,0 +1,220 @@
+{
+ "clew": {
+  "positionals": [],
+  "options": [
+   "--declare",
+   "--exclude",
+   "--output",
+   "--rebuild",
+   "--repo-root",
+   "--verbose"
+  ]
+ },
+ "clew init": {
+  "positionals": [],
+  "options": [
+   "--dry-run",
+   "--force",
+   "--repo-root",
+   "--scope"
+  ]
+ },
+ "clew propose": {
+  "positionals": [],
+  "options": [
+   "--db",
+   "--force",
+   "--ignore-declaration",
+   "--no-dry-run",
+   "--output",
+   "--repo-root",
+   "--verbose",
+   "-o"
+  ]
+ },
+ "clew export": {
+  "positionals": [],
+  "options": [
+   "--force",
+   "--index",
+   "--output"
+  ]
+ },
+ "clew query": {
+  "positionals": [],
+  "options": [],
+  "subcommands": {
+   "dossier": {
+    "positionals": [
+     "subjects"
+    ],
+    "options": [
+     "--depth",
+     "--direction",
+     "--indent",
+     "--index",
+     "--kind",
+     "--max-body-lines",
+     "--max-neighbors",
+     "--qualified",
+     "--repo-root"
+    ]
+   },
+   "search": {
+    "positionals": [
+     "text"
+    ],
+    "options": [
+     "--corpus",
+     "--indent",
+     "--index",
+     "--limit",
+     "--repo-root"
+    ]
+   },
+   "stats": {
+    "positionals": [],
+    "options": [
+     "--indent",
+     "--index",
+     "--repo-root"
+    ]
+   }
+  }
+ },
+ "clew guard": {
+  "positionals": [],
+  "options": [
+   "--config",
+   "--verbose",
+   "-v"
+  ],
+  "subcommands": {
+   "config": {
+    "positionals": [],
+    "options": [
+     "--effective",
+     "--schema"
+    ]
+   },
+   "coverage": {
+    "positionals": [
+     "source_dirs"
+    ],
+    "options": [
+     "--format"
+    ]
+   },
+   "doxyfile": {
+    "positionals": [],
+    "options": []
+   },
+   "files": {
+    "positionals": [
+     "source_dirs"
+    ],
+    "options": []
+   },
+   "impact": {
+    "positionals": [
+     "files"
+    ],
+    "options": [
+     "--format",
+     "--range",
+     "--staged",
+     "--write"
+    ]
+   },
+   "validate": {
+    "positionals": [
+     "files"
+    ],
+    "options": [
+     "--exclude",
+     "--format",
+     "--no-git"
+    ]
+   }
+  }
+ },
+ "clew wiki": {
+  "positionals": [],
+  "options": [],
+  "subcommands": {
+   "build": {
+    "positionals": [],
+    "options": [
+     "--audience",
+     "--config",
+     "--flavor",
+     "--format",
+     "--index",
+     "--out",
+     "--refresh",
+     "--repo-root",
+     "--version"
+    ]
+   },
+   "check": {
+    "positionals": [],
+    "options": [
+     "--before-tests",
+     "--config",
+     "--index",
+     "--refresh",
+     "--repo-root"
+    ]
+   },
+   "diff": {
+    "positionals": [
+     "old",
+     "new"
+    ],
+    "options": [
+     "--indent",
+     "--out"
+    ]
+   },
+   "flow": {
+    "positionals": [
+     "entry"
+    ],
+    "options": [
+     "--animate",
+     "--depth",
+     "--indent",
+     "--index",
+     "--lanes",
+     "--qualified",
+     "--repo-root",
+     "--stop-at",
+     "--svg"
+    ]
+   },
+   "trace": {
+    "positionals": [],
+    "options": [
+     "--config",
+     "--coverage",
+     "--indent",
+     "--index",
+     "--junit",
+     "--mutations",
+     "--repo-root",
+     "--target-only"
+    ]
+   },
+   "trace-run": {
+    "positionals": [],
+    "options": [
+     "--indent",
+     "--index",
+     "--out",
+     "--repo-root",
+     "--test"
+    ]
+   }
+  }
+ }
+}
