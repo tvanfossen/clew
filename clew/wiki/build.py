@@ -626,7 +626,8 @@ def _audience(config: WikiConfig, audience: str | None) -> Audience:
 ## v2: `.html` prose — its body is embedded in a themed page (owner 2026-11-15: user-selected
 ## html / md content).
 ## v3: AGENTS.md included; ADRs copied; pages returned with their paths (round 3, P3c).
-## @version 3
+## v4: the gate's report dir is not prose (entropic's audit of 19f439fb (2.0.0))
+## @version 4
 ## @utility
 def _prose(repo_root: Path, config: WikiConfig, source: Path) -> list[tuple[str, str]]:
     """AS WRITTEN: Markdown through MyST, reStructuredText natively, HTML embedded as it is.
@@ -638,8 +639,18 @@ def _prose(repo_root: Path, config: WikiConfig, source: Path) -> list[tuple[str,
     """
     from .config import DEFAULT_ADRS
 
+    from .tracepages import impact_path
+
     root = Path(repo_root)
-    found = [p for pattern in config.docs for p in sorted(root.glob(pattern))]
+    ## ENTROPIC'S AUDIT (12 toctree warnings): the gate's own report directory is not prose — its
+    ## title-less `impact.md` was swept in by a `docs/**` glob.
+    report = impact_path(root, config).parent.resolve()
+    found = [
+        p
+        for pattern in config.docs
+        for p in sorted(root.glob(pattern))
+        if not p.resolve().is_relative_to(report)
+    ]
     found += [root / "AGENTS.md"]
     pages: dict[str, str] = {}
     for path in found:

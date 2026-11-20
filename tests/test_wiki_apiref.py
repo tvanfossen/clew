@@ -244,3 +244,153 @@ def test_a_class_declared_in_test_code_is_not_in_the_hierarchy() -> None:
     )
     (base,) = [c for c in header_classes(conn, "include/a.h") if c.name == "Base"]
     assert base.derived == ("Real",)
+
+
+def test_a_declared_tag_inside_a_return_or_param_is_split_out() -> None:
+    """ENTROPIC'S AUDIT (19f439fb, 33 cases): with no ALIASES, doxygen runs `@threadsafety` into
+    the paragraph before it — the return's or a parameter's. Declared tags are split out of those
+    texts too.
+
+    @brief Declared tags inside returns and params.
+    """
+    from clew.wiki.apiref import parse_doc
+
+    xml = (
+        '<para><parameterlist kind="param"><parameteritem><parameternamelist>'
+        "<parametername>hash</parametername></parameternamelist><parameterdescription>"
+        "<para>Content hash. @threadsafety Safe from any thread</para></parameterdescription>"
+        "</parameteritem></parameterlist>"
+        '<simplesect kind="return"><para>Count. @threadsafety Takes the root lock.</para>'
+        "</simplesect></para>"
+    )
+    doc = parse_doc(xml, ("threadsafety",))
+    assert doc.params == (("hash", "", "Content hash."),)
+    assert doc.returns == ("Count.",)
+    assert set(doc.fields) == {
+        ("threadsafety", "Safe from any thread"),
+        ("threadsafety", "Takes the root lock."),
+    }
+
+
+def test_throws_are_rendered() -> None:
+    """ENTROPIC'S AUDIT (5 functions): `@throws` / `@exception` is doxygen's
+    `parameterlist kind="exception"`, and was dropped.
+
+    @brief Throws.
+    """
+    from clew.wiki.apiref import Symbol, _entry, parse_doc
+
+    xml = (
+        '<para><parameterlist kind="exception"><parameteritem><parameternamelist>'
+        "<parametername>std::runtime_error</parametername></parameternamelist>"
+        "<parameterdescription><para>On a bad path.</para></parameterdescription>"
+        "</parameteritem></parameterlist></para>"
+    )
+    doc = parse_doc(xml)
+    assert doc.throws == (("std::runtime_error", "On a bad path."),)
+    html = _entry(Symbol("function", "f", "", "void f()", "", "", 1, doc=doc), {})
+    assert "<dt>Throws</dt>" in html
+
+
+def test_a_declaration_takes_the_parts_only_its_definition_documents() -> None:
+    """ENTROPIC'S AUDIT (~23 functions): the header declaration carries prose, while doxygen put
+    the structured `parameterlist` / `simplesect` on the DEFINITION's memberdef (the `.cpp`). Each
+    part the declaration lacks — params, returns, throws — is taken from the definition; a part it
+    has is kept.
+
+    @brief Declaration merges the definition's missing parts.
+    """
+    import sqlite3
+
+    from clew.wiki.apiref import header_symbols
+
+    conn = sqlite3.connect(":memory:")
+    conn.executescript(
+        _SCHEMA.replace(
+            "(1, 'include/demo/api.h', 1, 1), (2, 'src/impl.cpp', 1, 1)",
+            "(1, 'include/demo/api.h', 1, 1), (2, 'src/impl.cpp', 1, 1)",
+        )
+    )
+    conn.execute(
+        "INSERT INTO memberdef VALUES (11, 'function', 'demo_open', NULL, 'int', 'int demo_open', "
+        "'(const char *path)', NULL, '', ?, 5, 0, 2, 2)",
+        (
+            '<para><parameterlist kind="param"><parameteritem><parameternamelist>'
+            "<parametername>path</parametername></parameternamelist><parameterdescription>"
+            "<para>Where the store lives.</para></parameterdescription></parameteritem>"
+            '</parameterlist><simplesect kind="return"><para>0 on success.</para></simplesect></para>',
+        ),
+    )
+    (open_,) = [
+        s
+        for s in header_symbols(conn, ("include/**",))["include/demo/api.h"]
+        if s.name == "demo_open"
+    ]
+    assert open_.doc.params == (("path", "", "Where the store lives."),)
+    assert open_.doc.returns == ("0 on success.",)
+    assert "Returns 0 on success." in open_.detail or open_.detail == "Returns 0 on success."
+
+
+def test_a_class_named_twice_is_listed_once_by_its_qualified_name() -> None:
+    """ENTROPIC'S AUDIT: "Derived by FilesystemServer, …, entropic::FilesystemServer" — the index
+    holds both spellings. The qualified one stays.
+
+    @brief Hierarchy names deduplicated.
+    """
+    from clew.wiki.apiref import _qualified_only
+
+    assert _qualified_only(
+        ("FilesystemServer", "GitServer", "entropic::FilesystemServer", "entropic::GitServer")
+    ) == (
+        "entropic::FilesystemServer",
+        "entropic::GitServer",
+    )
+
+
+def test_a_class_is_found_by_its_members_scope_not_only_its_file() -> None:
+    """ENTROPIC'S AUDIT: `ChatAdapter` showed no hierarchy on its header's page on entropic's index,
+    though the class's members were listed there. A class whose members a header declares is
+    looked up by name, whichever file its compounddef records.
+
+    @brief Classes found by name.
+    """
+    import sqlite3
+
+    from clew.wiki.apiref import header_classes
+
+    conn = sqlite3.connect(":memory:")
+    conn.executescript(
+        "CREATE TABLE path (rowid INTEGER PRIMARY KEY, name TEXT, type INT, found INT);"
+        "CREATE TABLE compounddef (rowid INTEGER PRIMARY KEY, name TEXT, kind TEXT, prot INT,"
+        " file_id INT, line INT, briefdescription TEXT, detaileddescription TEXT);"
+        "CREATE TABLE compoundref (rowid INTEGER PRIMARY KEY, base_rowid INT, derived_rowid INT,"
+        " prot INT, virt INT);"
+        "INSERT INTO path VALUES (1, 'include/a.h', 1, 1), (2, 'src/a.cpp', 1, 1);"
+        "INSERT INTO compounddef VALUES (1, 'ns::ChatAdapter', 'class', 0, 2, 1, '', ''),"
+        " (2, 'ns::QwenAdapter', 'class', 0, 1, 9, '', '');"
+        "INSERT INTO compoundref VALUES (1, 1, 2, 0, 0);"
+    )
+    by = {c.name: c for c in header_classes(conn, "include/a.h", scopes={"ns::ChatAdapter"})}
+    assert by["ns::ChatAdapter"].derived == ("ns::QwenAdapter",)
+
+
+def test_the_gates_own_report_is_not_swept_into_the_docs(tmp_path) -> None:
+    """ENTROPIC'S AUDIT: 12 toctree warnings for `docs/generated/impact`. The guard writes its
+    impact report (`impact.md`, no title) under its `report_dir`, and a `docs/**` glob swept it in
+    as a doc page. The wiki leaves the gate's report directory out of the prose.
+
+    @brief The impact report is not a doc page.
+    """
+    from clew.wiki.build import _prose
+    from clew.wiki.config import WikiConfig
+    from clew.wiki.tracepages import impact_path
+
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "docs" / "guide.md").write_text("# Guide\n")
+    report = impact_path(tmp_path, WikiConfig()).parent
+    report.mkdir(parents=True)
+    (report / "impact.md").write_text("| req | fn |\n")
+    source = tmp_path / "_src"
+    source.mkdir()
+    rels = {rel for _page, rel in _prose(tmp_path, WikiConfig(docs=("docs/**/*.md",)), source)}
+    assert "docs/guide.md" in rels and not any(r.endswith("impact.md") for r in rels), rels

@@ -73,6 +73,8 @@ class Doc:
     returns: tuple[str, ...] = ()
     retvals: tuple[tuple[str, str], ...] = ()
     fields: tuple[tuple[str, str], ...] = ()
+    ## Entropic's audit: `@throws` / `@exception` (doxygen's `parameterlist kind="exception"`).
+    throws: tuple[tuple[str, str], ...] = ()
 
 
 ## @brief A class or struct a header declares, with its place in the hierarchy (gap 3).
@@ -94,7 +96,8 @@ class ClassInfo:
 ## @param tags Tags the repository declares (`guard.validate.extra_tags`), shown as fields.
 ## @return {header path: symbols in line order}; {} when nothing is declared.
 ## v2 (entropic's gaps 1 and 2): each symbol carries its structured `doc`.
-## @version 2
+## v3: entropic's audit of 19f439fb (2.0.0)
+## @version 3
 ## @req REQ-DDB-WIKI-053
 def header_symbols(
     conn: Any, globs: tuple[str, ...], tags: tuple[str, ...] = ()
@@ -118,6 +121,8 @@ def header_symbols(
             if "<internal>" in detail:
                 continue
             doc = parse_doc(detail, tags)
+            if kind == "function":
+                doc = _with_definition(conn, doc, name, scope, rowid, tags)
             sig = _signature(kind, definition, args, type_, name)
             symbols.append(
                 Symbol(
@@ -190,21 +195,28 @@ def doc_text(xml: str) -> str:
 ## @param rel The header.
 ## @return ClassInfo in line order.
 ## v2 (entropic's gap 3): bases and derived classes, from the index's `compoundref`.
-## @version 2
+## v3: entropic's audit of 19f439fb (2.0.0)
+## @version 3
 ## @utility
-def header_classes(conn: Any, rel: str) -> list[ClassInfo]:
-    """AN INDEX WITHOUT `compoundref` shows no hierarchy rather than failing.
+def header_classes(
+    conn: Any, rel: str, scopes: frozenset[str] | set[str] = frozenset()
+) -> list[ClassInfo]:
+    """AN INDEX WITHOUT `compoundref` shows no hierarchy rather than failing. ENTROPIC'S AUDIT:
+    `ChatAdapter`'s compounddef recorded another file on entropic's index, so a class whose
+    members the header declares (`scopes`) is also looked up by NAME.
 
     @brief Public compounds of a file.
     @return Classes.
     """
     from ..query._common import table_exists
 
+    marks = ",".join("?" * len(scopes))
+    by_name = f" OR c.name IN ({marks})" if scopes else ""
     rows = conn.execute(
-        "SELECT c.rowid, c.name, c.kind, c.briefdescription FROM compounddef c JOIN path p "
-        "ON p.rowid = c.file_id WHERE p.name = ? AND c.kind IN ('class', 'struct', 'union') "
-        "AND COALESCE(c.prot, 0) = 0 ORDER BY c.line",
-        (rel,),
+        "SELECT DISTINCT c.rowid, c.name, c.kind, c.briefdescription FROM compounddef c JOIN path p "
+        f"ON p.rowid = c.file_id WHERE (p.name = ?{by_name}) AND c.kind IN ('class', 'struct', "
+        "'union') AND COALESCE(c.prot, 0) = 0 ORDER BY c.line",
+        (rel, *sorted(scopes)),
     ).fetchall()
     links = table_exists(conn, "compoundref")
     tests = _NOT_TEST if table_exists(conn, "test_scope") else ""
@@ -234,11 +246,68 @@ _DERIVED = (
 ## @param sql The query, one `?` for the class rowid.
 ## @param rowid The class.
 ## @return Names.
-## @version 1
+## v2: entropic's audit of 19f439fb (2.0.0)
+## @version 2
 ## @utility
 def _related(conn: Any, sql: str, rowid: int) -> tuple[str, ...]:
     """@brief Run. @return Names."""
-    return tuple(sorted({str(r[0]) for r in conn.execute(sql, (rowid,))}))
+    return _qualified_only(tuple(sorted({str(r[0]) for r in conn.execute(sql, (rowid,))})))
+
+
+## @brief Names with an unqualified spelling dropped when its qualified one is present.
+## @param names Class names.
+## @return Names, each class once.
+## @version 1
+## @utility
+def _qualified_only(names: tuple[str, ...]) -> tuple[str, ...]:
+    """ENTROPIC'S AUDIT: the index holds both `FilesystemServer` and `entropic::FilesystemServer`
+    for one class, and "Derived by" listed each twice. The qualified spelling stays.
+
+    @brief De-duplicate spellings.
+    @return Names.
+    """
+    return tuple(n for n in names if not any(o != n and o.endswith(f"::{n}") for o in names))
+
+
+## @brief A declaration's doc with each structured part it lacks taken from its definition's.
+## @param conn Open connection.
+## @param doc The declaration's parsed doc.
+## @param name The function.
+## @param scope Its scope.
+## @param header The header's path rowid (the definition is elsewhere).
+## @param tags Declared tags.
+## @return The merged doc.
+## @version 1
+## @utility
+def _with_definition(
+    conn: Any, doc: Doc, name: str, scope: str, header: int, tags: tuple[str, ...]
+) -> Doc:
+    """ENTROPIC'S AUDIT (~23 functions): doxygen put the structured `parameterlist` / `simplesect`
+    on the DEFINITION's memberdef (the `.cpp`), while the header declaration kept prose. PER PART:
+    params, returns, return values and throws the declaration lacks come from the definition; a
+    part it has is kept (entropic: "whenever its own are missing").
+
+    @brief Merge the definition's missing parts.
+    @return Doc.
+    """
+    if doc.params and doc.returns:
+        return doc
+    rows = conn.execute(
+        "SELECT COALESCE(detaileddescription, '') FROM memberdef WHERE kind = 'function' AND "
+        "name = ? AND COALESCE(scope, '') = ? AND file_id != ?",
+        (name, scope, header),
+    )
+    for (detail,) in rows:
+        other = parse_doc(detail, tags)
+        doc = Doc(
+            prose=doc.prose,
+            params=doc.params or other.params,
+            returns=doc.returns or other.returns,
+            retvals=doc.retvals or other.retvals,
+            fields=doc.fields or other.fields,
+            throws=doc.throws or other.throws,
+        )
+    return doc
 
 
 ## @brief One header's reference page body.
@@ -319,7 +388,8 @@ def _entry(symbol: Symbol, values: dict[str, list[Symbol]]) -> str:
 ## @param source The Sphinx source directory.
 ## @return "api", or "" when nothing is declared or no header matched.
 ## v2: passes the declared doc tags (entropic's gaps 1-3, 2.0.0)
-## @version 2
+## v3: entropic's audit of 19f439fb (2.0.0)
+## @version 3
 ## @req REQ-DDB-WIKI-053
 def api_pages(db: Path, globs: tuple[str, ...], source: Path, tags: tuple[str, ...] = ()) -> str:
     """@brief Write api.md and api-*.md. @return Page name or ""."""
@@ -329,7 +399,10 @@ def api_pages(db: Path, globs: tuple[str, ...], source: Path, tags: tuple[str, .
 
     with connect(db) as conn:
         headers = header_symbols(conn, globs, tags)
-        classes = {rel: header_classes(conn, rel) for rel in headers}
+        classes = {
+            rel: header_classes(conn, rel, {s.scope for s in syms if s.scope})
+            for rel, syms in headers.items()
+        }
     if not headers:
         return ""
     items = []
@@ -371,7 +444,8 @@ def api_pages(db: Path, globs: tuple[str, ...], source: Path, tags: tuple[str, .
 ## @param xml The detailed-description XML.
 ## @param tags Tags the repository declares (`guard.validate.extra_tags`), rendered as fields.
 ## @return The structured doc.
-## @version 1
+## v2: entropic's audit of 19f439fb (2.0.0)
+## @version 2
 ## @req REQ-DDB-WIKI-053
 def parse_doc(xml: str, tags: tuple[str, ...] = ()) -> Doc:
     """Doxygen stores parameters, the return and return values as `<parameterlist>` and
@@ -390,24 +464,36 @@ def parse_doc(xml: str, tags: tuple[str, ...] = ()) -> Doc:
         return Doc(prose=doc_text(xml))
     params: list[tuple[str, str, str]] = []
     retvals: list[tuple[str, str]] = []
+    throws: list[tuple[str, str]] = []
+    found: list[tuple[str, str]] = []
+
+    ## ENTROPIC'S AUDIT (33 cases): with no ALIASES, doxygen runs a declared `@threadsafety` into
+    ## the paragraph before it — a parameter's or the return's — so every part is split too.
+    def split(text: str) -> str:
+        clean, fields = _fields(text, tags)
+        found.extend(fields)
+        return clean
+
     for plist in root.iter("parameterlist"):
+        bucket = {"retval": retvals, "exception": throws}.get(plist.get("kind", ""))
         for item in plist.iter("parameteritem"):
-            text = _flat(item.find("parameterdescription"))
+            text = split(_flat(item.find("parameterdescription")))
             for name in item.iter("parametername"):
                 label = "".join(name.itertext()).strip()
-                if plist.get("kind") == "retval":
-                    retvals.append((label, text))
-                else:
+                if bucket is None:
                     params.append((label, name.get("direction", ""), text))
-    returns = [_flat(s) for s in root.iter("simplesect") if s.get("kind") == "return"]
+                else:
+                    bucket.append((label, text))
+    returns = [split(_flat(s)) for s in root.iter("simplesect") if s.get("kind") == "return"]
     _drop(root, {"parameterlist", "simplesect"})
-    prose, fields = _fields(" ".join("".join(root.itertext()).split()), tags)
+    prose = split(" ".join("".join(root.itertext()).split()))
     return Doc(
         prose=prose,
         params=tuple(dict.fromkeys(params)),
         returns=_distinct(returns),
         retvals=tuple(dict.fromkeys(retvals)),
-        fields=fields,
+        fields=tuple(dict.fromkeys(found)),
+        throws=tuple(dict.fromkeys(throws)),
     )
 
 
@@ -489,7 +575,8 @@ def _fields(text: str, tags: tuple[str, ...]) -> tuple[str, tuple[tuple[str, str
 ## @brief The labelled lists for a structured doc: parameters, returns, return values, fields.
 ## @param doc The doc, or None.
 ## @return HTML.
-## @version 1
+## v2: entropic's audit of 19f439fb (2.0.0)
+## @version 2
 ## @utility
 def _doc_lists(doc: Doc | None) -> str:
     """@brief Definition lists. @return HTML."""
@@ -510,6 +597,12 @@ def _doc_lists(doc: Doc | None) -> str:
     if doc.retvals:
         items = "".join(f"<li><code>{escape(v)}</code> — {escape(t)}</li>" for v, t in doc.retvals)
         parts.append(f"<dt>Return values</dt><dd><ul>{items}</ul></dd>")
+    if doc.throws:
+        items = "".join(
+            f"<li><code>{escape(e)}</code>" + (f" — {escape(t)}" if t else "") + "</li>"
+            for e, t in doc.throws
+        )
+        parts.append(f"<dt>Throws</dt><dd><ul>{items}</ul></dd>")
     for tag, text in doc.fields:
         parts.append(f"<dt>{escape(tag)}</dt><dd>{escape(text)}</dd>")
     return f'<dl class="api-doc">{"".join(parts)}</dl>' if parts else ""
