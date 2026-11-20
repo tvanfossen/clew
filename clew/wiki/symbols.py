@@ -321,7 +321,8 @@ class _Edges:
 ## v2: a test's section adds what it tests (round 3, P2a).
 ## v3: neighbours and the web link replace the ego-graph (round 4, R3).
 ## v4: activity diagram per function (2.0.0, P5.5)
-## @version 4
+## v5: viewer caps V3/V5/V6 (2.0.0, owner Q/A 2026-11-20)
+## @version 5
 ## @utility
 def _section(
     name: str,
@@ -352,7 +353,7 @@ def _section(
         if key in ctx.get("test_keys", ()):
             parts.append(_test_block(d, graph, ctx, repo_root))
         if not ctx["rules"].exclude_bodies:
-            parts.append(_body(repo_root, d))
+            parts.append(_body(repo_root, d, ctx))
             parts.append(_activity(repo_root, d, name))
     if reqs:
         parts.append(
@@ -465,28 +466,46 @@ def _unwind(graph: _Edges, prev: dict[int, int], end: int) -> list[str]:
 ## @param written Keys with sections.
 ## @return HTML.
 ## Round 4, R3: replaces the per-symbol ego-graph; the repository web is the one graph view.
-## @version 1
+## v2: viewer caps V3/V5/V6 (2.0.0, owner Q/A 2026-11-20)
+## @version 2
 ## @utility
 def _near(d: Definition, graph: _Edges, written: set[tuple[str, str]]) -> str:
     """@brief Neighbours. @return HTML."""
     from urllib.parse import quote
 
-    def items(pairs: list[tuple[str, str]]) -> str:
-        shown = [
-            f'<a href="{symbol_href(n, f)}">{escape(n)}</a>'
-            if (n, f) in written
-            else f"<code>{escape(n)}</code>"
-            for n, f in pairs[:_NEAR]
-        ]
-        more = f" and {len(pairs) - _NEAR} more" if len(pairs) > _NEAR else ""
-        return (", ".join(shown) + more) or "none"
-
     web = f"map.html#n={quote(d.name)}@{quote(d.file)}"
     return (
         f'<div class="near"><p><a href="{web}">Show on the map →</a></p>'
-        f"<p><b>Called by</b> {items(graph.around(d.rowid, 'callers'))}</p>"
-        f"<p><b>Calls</b> {items(graph.around(d.rowid, 'callees'))}</p></div>"
+        f"<p><b>Called by</b> {_names(graph.around(d.rowid, 'callers'), written)}</p>"
+        f"<p><b>Calls</b> {_names(graph.around(d.rowid, 'callees'), written)}</p></div>"
     )
+
+
+## @brief Neighbour names: the first `_NEAR` inline, the rest behind "N more" (V3).
+## @param pairs (name, file) neighbours.
+## @param written Keys with sections, which are linked.
+## @return HTML, or "none".
+## @version 1
+## @utility
+def _names(pairs: list[tuple[str, str]], written: set[tuple[str, str]]) -> str:
+    """V3 (owner Q/A 2026-11-20): the full list ships — names are short — so "and N more" opens
+    rather than hiding them for good.
+
+    @brief Neighbour list.
+    @return HTML.
+    """
+
+    def one(n: str, f: str) -> str:
+        if (n, f) in written:
+            return f'<a href="{symbol_href(n, f)}">{escape(n)}</a>'
+        return f"<code>{escape(n)}</code>"
+
+    shown = ", ".join(one(n, f) for n, f in pairs[:_NEAR])
+    rest = pairs[_NEAR:]
+    if rest:
+        tail = ", ".join(one(n, f) for n, f in rest)
+        shown += f' <details class="more"><summary>{len(rest)} more</summary>{tail}</details>'
+    return shown or "none"
 
 
 ## @brief A definition's body, bundled from the file, cut at `_BODY_LINES` with the cut said.
@@ -495,9 +514,11 @@ def _near(d: Definition, graph: _Edges, written: set[tuple[str, str]]) -> str:
 ## @return HTML ("" when the file cannot be read or the extent is unknown).
 ## v2: the extent read and checked by `_lines`, shared with the test block.
 ## v3: collapsed in a details element (2.0.0, P5)
-## @version 3
+## @param ctx The page context: `body_lines` (V6, `wiki.body_lines`), `template`, `commit`.
+## v4 (2.0.0, V6): the cut is `wiki.body_lines`, and a cut body links its full source.
+## @version 4
 ## @utility
-def _body(repo_root: Path, d: Definition) -> str:
+def _body(repo_root: Path, d: Definition, ctx: dict[str, Any] | None = None) -> str:
     """END 0 IS EXTENT UNKNOWN, never "covers nothing": no body is bundled rather than a guess.
     A STALE EXTENT IS SAID: when the recorded lines no longer name the function (the file changed
     after the index was built), the section says so instead of bundling someone else's code.
@@ -513,9 +534,15 @@ def _body(repo_root: Path, d: Definition) -> str:
             '<p class="not-measured">The index is older than this file: the lines it records '
             "no longer hold this function. Refresh the index to bundle its body.</p>"
         )
-    body = lines[:_BODY_LINES]
+    from .htmltable import source_url
+
+    ctx = ctx or {}
+    body = lines[: ctx.get("body_lines") or _BODY_LINES]
     more = d.end - d.start + 1 - len(body)
-    note = f'<p class="none">{more} more lines, not shown</p>' if more > 0 else ""
+    ## V6: THE CUT SAYS WHERE THE REST IS, the full source at the commit, when the site links one.
+    url = source_url(ctx.get("template", ""), ctx.get("commit", ""), d.file, max(d.start, 1))
+    rest = f'<a href="{escape(url)}">{more} more lines</a>' if url else f"{more} more lines"
+    note = f'<p class="none">{rest}, not shown</p>' if more > 0 else ""
     shown = f"{len(body)} line{'s' if len(body) != 1 else ''}"
     ## P5 (2.0.0): COLLAPSED. A closed <details> is parsed but not laid out, so a file page of
     ## hundreds of symbols no longer lays out every body on load. Inline rather than fetched: the

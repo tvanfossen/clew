@@ -114,7 +114,8 @@ def _body(trace: Any, pages: list, rules: Audience) -> str:
 ## @brief A changed function's flows: product first, five listed, the rest counted.
 ## @param pages The flow pages it is on.
 ## @return HTML.
-## @version 1
+## v2: viewer caps V3/V5/V6 (2.0.0, owner Q/A 2026-11-20)
+## @version 2
 ## @req REQ-DDB-WIKI-029
 def _flow_cell(pages: list) -> str:
     """FOUND ON CLEW'S OWN WIKI (round 4): `_build_argparser` sits on dozens of test flows and its
@@ -125,11 +126,13 @@ def _flow_cell(pages: list) -> str:
     """
     rank = {"product": 0, "threads": 1, "tooling": 2, "tests": 3}
     ordered = sorted(pages, key=lambda p: (rank.get(p.role or "product", 0), p.title))
-    shown = "<br>".join(
-        f'<a href="{text(p.name)}.html">{md_title(p.title)}</a>' for p in ordered[:_SHOWN]
-    )
-    rest = len(ordered) - _SHOWN
-    return shown + (f'<br><span class="none">and {rest} more</span>' if rest > 0 else "")
+    links = [f'<a href="{text(p.name)}.html">{md_title(p.title)}</a>' for p in ordered]
+    shown = "<br>".join(links[:_SHOWN])
+    rest = links[_SHOWN:]
+    ## V5 (owner Q/A 2026-11-20): the rest open from "N more" rather than being dropped.
+    if rest:
+        shown += f'<details class="more"><summary>{len(rest)} more</summary>{"<br>".join(rest)}</details>'
+    return shown
 
 
 ## @brief Changed functions and the requirements each was reported under.

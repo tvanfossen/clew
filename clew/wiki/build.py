@@ -121,7 +121,8 @@ def build_wiki(
 ## v10: SBOM page (2.0.0, P5.8)
 ## v11: tests category (2.0.0, owner Q/A 2026-11-20)
 ## v12: public-API reference (2.0.0, PAPI)
-## @version 12
+## v13: viewer caps V3/V5/V6 (2.0.0, owner Q/A 2026-11-20)
+## @version 13
 ## @utility
 def _build_site(
     repo_root: Path,
@@ -224,6 +225,8 @@ def _build_site(
     keys = {(n, f) for r in trace.evidence for n, f, _l in r.implementer_sites}
     keys |= {fn for p in pages for fn in p.functions}
     symbol_ctx = {
+        ## V6 (owner Q/A 2026-11-20): how many body lines a symbol page bundles.
+        "body_lines": config.body_lines,
         "req_of": req_of,
         "flows": pages,
         "rules": rules,

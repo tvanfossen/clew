@@ -56,6 +56,8 @@ _TOP = {
     "test_pages",
     ## PAPI (2.0.0, owner Q/A 2026-11-19): the public-header globs the API reference is drawn from.
     "api",
+    ## V6 (2.0.0, owner Q/A 2026-11-20): how many lines of a body a symbol page bundles.
+    "body_lines",
 }
 ## Each tuning key's former constant — the default when it is not declared.
 TUNING_DEFAULTS = {
@@ -311,6 +313,8 @@ class WikiConfig:
     test_pages: str = "linked"
     ## PAPI: public-header globs; () = no API tab (off unless declared).
     api: tuple[str, ...] = ()
+    ## V6: lines of a body bundled on its symbol page; past it, a link to the full source.
+    body_lines: int = 120
     ## Path globs whose entry points are tooling flows.
     tooling: tuple[str, ...] = DEFAULT_TOOLING
     ## R5-CFG C1-C5, C7-C9, W6 (2.0.0): the build's numbers, declared (see TUNING_DEFAULTS).
@@ -359,7 +363,8 @@ class WikiConfig:
 ## v21: wiki.sbom (2.0.0, P5.8)
 ## v22: wiki.test_pages (tests category (2.0.0, owner Q/A 2026-11-20))
 ## v23: wiki.api (public-API reference (2.0.0, PAPI))
-## @version 23
+## v24: viewer caps V3/V5/V6 (2.0.0, owner Q/A 2026-11-20)
+## @version 24
 ## @req REQ-DDB-WIKI-003
 def load_wiki_config(
     repo_root: Path, config_path: Path | None = None
@@ -412,6 +417,7 @@ def load_wiki_config(
         **_sbom(raw.get("sbom"), problems),
         test_pages=_one_of(raw, "test_pages", TEST_PAGES, problems),
         api=_strings(raw, "api", (), "wiki", problems),
+        body_lines=_positive(raw, "body_lines", 120, problems),
         tooling=_strings(raw, "tooling", DEFAULT_TOOLING, "wiki", problems),
         needs=str(requirements["needs"]) if requirements.get("needs") else None,
         adrs=_strings(raw, "adrs", DEFAULT_ADRS, "wiki", problems),
@@ -1000,6 +1006,23 @@ def _ears(raw: Any, problems: list[str]) -> bool:
         problems.append("`wiki.check` must be {ears: true|false}; `wiki.check.ears` is a boolean")
         return False
     return bool(raw.get("ears", False))
+
+
+## @brief A positive whole number setting, refused by name otherwise.
+## @param raw The section.
+## @param key The key.
+## @param default The default.
+## @param problems Collects the problem.
+## @return The value, or the default.
+## @version 1
+## @utility
+def _positive(raw: dict, key: str, default: int, problems: list[str]) -> int:
+    """@brief Positive int. @return Value."""
+    value = raw.get(key, default)
+    if isinstance(value, bool) or not isinstance(value, int) or value < 1:
+        problems.append(f"`wiki.{key}` must be a whole number of 1 or more, got {value!r}")
+        return default
+    return value
 
 
 ## The `test_pages` settings, the first the default.

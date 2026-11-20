@@ -112,4 +112,8 @@ def test_a_changed_functions_flows_are_capped_product_first() -> None:
     ] + [SimpleNamespace(name="flow-main", title="main", role="product")]
     cell = _flow_cell(pages)
     assert cell.index("flow-main") < cell.index("flow-t0")
-    assert cell.count("<a ") == 5 and "and 3 more" in cell
+    ## SPEC CHANGED (2.0.0, V5, owner Q/A 2026-11-20): five are still SHOWN, product first; the
+    ## rest now open from a closed "3 more" instead of only being counted.
+    shown, _sep, hidden = cell.partition("<details")
+    assert shown.count("<a ") == 5 and "<summary>3 more</summary>" in hidden
+    assert hidden.count("<a ") == 3
