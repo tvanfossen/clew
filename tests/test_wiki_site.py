@@ -1096,3 +1096,17 @@ def test_the_views_script_is_budgeted() -> None:
     assert js.stat().st_size <= _VIEWS_JS_BUDGET
     text = js.read_text()
     assert "http://" not in text and "https://" not in text
+
+
+def test_the_step_table_and_the_diagram_stay_in_sync(site: dict[str, str]) -> None:
+    """OWNER (round 5; Q/A 2026-11-20 "live sync" = diagram ↔ step table): each table row names its
+    step, and the page script lights the row as the diagram plays or steps, scrolls it into view,
+    and opens the step from a row.
+
+    @brief P5.6: live sync.
+    """
+    page = _flow_page(site)
+    table = page.split('<table class="clew steps"', 1)[1].split("</table>", 1)[0]
+    assert re.findall(r'<tr data-step="(\d+)"', table)[:2] == ["0", "1"]
+    for needle in ("animationstart", "scrollIntoView", "tr[data-step]"):
+        assert needle in page, needle

@@ -1051,6 +1051,16 @@ requirements:
     x-priority: P1
     x-status: implemented
     x-evidence: clew/wiki/tracerun.py _step_values; clew/wiki/flowpage.py with_values; tests/test_wiki_tracerun.py.
+  REQ-DDB-WIKI-050:
+    subsystem: wiki
+    name: A flow page's diagram and step table stay in sync
+    acceptance_criteria: 'Each row of a flow page''s step table names its step. As the diagram
+      plays (each step''s animation start), steps, or opens a step''s dialog, the matching rows
+      are highlighted and scrolled into view; clicking a row opens that step''s dialog on the
+      diagram. A folded run lights every row it stands for.'
+    x-priority: P2
+    x-status: implemented
+    x-evidence: clew/wiki/flowpage.py (step table row marks, page script sync); tests/test_wiki_site.py.
   REQ-DDB-WIKI-048:
     subsystem: wiki
     name: Every function on a flow has a quick-view modal with the view strip

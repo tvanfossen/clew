@@ -76,8 +76,15 @@ document.querySelectorAll('.flow-block').forEach(function(block){
   dt.textContent=k;var el=code?document.createElement('pre'):document.createElement('span');el.textContent=v;
   dd.appendChild(el);dl.appendChild(dt);dl.appendChild(dd);}
  function at(i){return svg.querySelector('g[data-step="'+i+'"]');}
+ /* LIVE SYNC (P5.6): the step table follows the diagram, and a row opens its step. */
+ var trs=Array.prototype.slice.call(document.querySelectorAll('table.steps tr[data-step]'));
+ function sync(g){var ids=(g.getAttribute('data-steps')||g.getAttribute('data-step')).split(' '),first=null;
+  trs.forEach(function(r){var on=ids.indexOf(r.getAttribute('data-step'))>=0;r.classList.toggle('on',on);if(on&&!first)first=r;});
+  if(first)first.scrollIntoView({block:'nearest'});}
+ trs.forEach(function(r){r.addEventListener('click',function(){var g=at(r.getAttribute('data-step'));
+  if(g&&window.clewModal)window.clewModal.open('step-'+g.getAttribute('data-step'),g);});});
  function build(n){var i=+n,s=data[i],g=at(i);if(!s||!g)return null;groups.forEach(function(g){g.classList.remove('sel');});
-  g.classList.add('sel');var f=document.createDocumentFragment(),dl=document.createElement('dl');
+  g.classList.add('sel');sync(g);var f=document.createDocumentFragment(),dl=document.createElement('dl');
   dl.className='kv';row(dl,'call',s.call,true);row(dl,'callee',s.callee_qualified);
   row(dl,'receives',s.signature,true);row(dl,'brief',s.brief);row(dl,'frames',s.frames);
   row(dl,'ambiguous',s.ambiguous);row(dl,'at',s.site);
@@ -85,6 +92,7 @@ document.querySelectorAll('.flow-block').forEach(function(block){
   if(s.link){var a=document.createElement('a');a.href=s.link;a.textContent='open the call site';f.appendChild(a);}
   return {title:(i+1)+'. '+s.caller+' \\u2192 '+s.callee,node:f};}
  if(window.clewModal)window.clewModal.register('step-',build);
+ groups.forEach(function(g){g.addEventListener('animationstart',function(){sync(g);});});
  groups.forEach(function(g){g.addEventListener('click',function(){
   window.clewModal&&window.clewModal.open('step-'+g.getAttribute('data-step'),g);});});
  function control(name,fn){var b=block.querySelector('[data-flow-control='+name+']');if(b)b.addEventListener('click',fn);}
@@ -94,7 +102,7 @@ document.querySelectorAll('.flow-block').forEach(function(block){
  control('step',function(){if(!svg.classList.contains('stepping')){svg.classList.add('stepping');cursor=0;
   groups.forEach(function(g){g.classList.remove('on');});}
   if(cursor>=groups.length){cursor=0;groups.forEach(function(g){g.classList.remove('on');});}
-  groups[cursor].classList.add('on');cursor++;});
+  groups[cursor].classList.add('on');sync(groups[cursor]);cursor++;});
  var sl=document.getElementById('flow-slices'),slices=sl?JSON.parse(sl.textContent):{};
  function lit(){var m=/^#test=(.+)$/.exec(location.hash),t=m&&decodeURIComponent(m[1]),on=t&&slices[t];
   var note=block.querySelector('.slice-note');if(note)note.remove();
@@ -156,7 +164,9 @@ def _executed(coverage: dict[str, dict[int, set[str]]]) -> dict[str, set[int]]:
 ## v14: measured_depth / max_steps from the flow, else the site (2.0.0, R5-CFG C1/C2)
 ## v15: block lanes and the actor (2.0.0, P5.6)
 ## v16: replay with values (2.0.0, P5.6)
-## @version 16
+## v17: live sync with the step table (2.0.0, P5.6)
+## @version 17
+## @req REQ-DDB-WIKI-050
 ## @req REQ-DDB-WIKI-014
 ## @req REQ-DDB-WIKI-041
 def flow_page(
@@ -225,7 +235,10 @@ def flow_page(
             callee = f'<span class="nr">… {step.not_run} not run</span>'
         rows.append([str(i), code(step.caller), callee, reqs, escape(row["frames"]), site])
     head = ["#", "caller", "callee", "requirements", "frames", "call site"]
-    lines += ["```{raw} html", table(head, rows, cls="steps", numeric=("#",)), "```", ""]
+    ## P5.6, LIVE SYNC: each row names its step, so the page script can light it as the diagram plays.
+    marks = [f' data-step="{i}"' for i in range(len(rows))]
+    steps_table = table(head, rows, cls="steps", numeric=("#",), row_attrs=marks)
+    lines += ["```{raw} html", steps_table, "```", ""]
     if trace is not None:
         lines += ["```{raw} html", imported_trace(flow, *trace), "```", ""]
     if slices:
