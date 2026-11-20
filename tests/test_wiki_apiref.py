@@ -394,3 +394,60 @@ def test_the_gates_own_report_is_not_swept_into_the_docs(tmp_path) -> None:
     source.mkdir()
     rels = {rel for _page, rel in _prose(tmp_path, WikiConfig(docs=("docs/**/*.md",)), source)}
     assert "docs/guide.md" in rels and not any(r.endswith("impact.md") for r in rels), rels
+
+
+def test_code_text_doxygen_stored_verbatim_is_kept_and_structured() -> None:
+    """ENTROPIC'S AUDIT OF f6ff1f7c (23 entries, 83 of 1,482 include/ descriptions): doxygen
+    stores code text verbatim inside its XML, so `(n_tokens < 2)` or `std::atomic<bool>` made the
+    fragment unparseable. The entry fell back to one flat paragraph with no Parameters or Returns,
+    and the fallback stripped `< 2)` AS A TAG — text lost silently.
+
+    @brief Stray `<` and `&` are text, and the doc stays structured.
+    """
+    from clew.wiki.apiref import parse_doc
+
+    xml = (
+        '<para><parameterlist kind="param"><parameteritem><parameternamelist>'
+        "<parametername>n_tokens</parametername></parameternamelist><parameterdescription>"
+        "<para>Count (fails when n_tokens < 2).</para></parameterdescription></parameteritem>"
+        '</parameterlist><simplesect kind="return"><para>A std::atomic<bool> & a flag.</para>'
+        "</simplesect></para>"
+    )
+    doc = parse_doc(xml)
+    assert doc.params == (("n_tokens", "", "Count (fails when n_tokens < 2)."),)
+    assert doc.returns == ("A std::atomic<bool> & a flag.",)
+
+
+def test_the_flat_text_keeps_a_less_than_sign() -> None:
+    """ENTROPIC'S AUDIT OF f6ff1f7c: "- ENTROPIC_ERROR_INVALID_CONFIG (n_tokens < 2)" rendered as
+    "(n_tokens ENTROPIC_ERROR_EVAL_FAILED …" — briefs and the flat fallback stripped `< 2)` as a tag.
+
+    @brief doc_text keeps code text.
+    """
+    from clew.wiki.apiref import doc_text
+
+    assert doc_text("<para>Fails (n_tokens < 2) on a std::atomic<bool>.</para>") == (
+        "Fails (n_tokens < 2) on a std::atomic<bool>."
+    )
+
+
+def test_text_that_looks_like_a_doxygen_element_is_kept() -> None:
+    """ENTROPIC'S AUDIT, the last 3 of 1,485: `<root>/sub/.gitignore` and `"summary":"<summary>"`
+    are text, though `summary` is also a doxygen element name. An element name whose opens and
+    closes do not balance is text.
+
+    @brief Unbalanced element names are text.
+    """
+    from clew.wiki.apiref import doc_text
+
+    assert (
+        doc_text("<para>Path (e.g. <root>/sub/.gitignore).</para>")
+        == "Path (e.g. <root>/sub/.gitignore)."
+    )
+    assert doc_text('<para>{"summary":"<summary>"}</para>') == '{"summary":"<summary>"}'
+    ## A SELF-CLOSING element with attributes is markup, not an unclosed open. (A tag boundary is
+    ## a space, as the regex strip always made it, so adjacent paragraphs never run together.)
+    assert (
+        doc_text('<para>See <image type="html" name="a.png"/><ulink url="u">it</ulink>.</para>')
+        == "See it ."
+    )

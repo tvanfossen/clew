@@ -175,7 +175,8 @@ _VERSION_SECT = re.compile(r'<simplesect kind="version">.*?</simplesect>', re.S)
 ## @brief A doc comment's prose: doxygen XML removed, and the guard's traceability tags with it.
 ## @param xml Doxygen's description XML.
 ## @return Plain text.
-## @version 1
+## v2: code text stored verbatim is kept (entropic's audit of f6ff1f7c)
+## @version 2
 ## @req REQ-DDB-WIKI-053
 def doc_text(xml: str) -> str:
     """FOUND ON ENTROPIC'S INDEX: `@req REQ-TYPE-002` and the `@version` simplesect read as API
@@ -184,9 +185,17 @@ def doc_text(xml: str) -> str:
     @brief Clean a description.
     @return Text.
     """
+    import xml.etree.ElementTree as ET
+
     from ..query._common import strip_xml
 
-    text = strip_xml(_VERSION_SECT.sub("", xml or ""))
+    ## ENTROPIC'S AUDIT OF f6ff1f7c: a regex tag-strip ate `< 2)` and `<bool>` — code text doxygen
+    ## stored verbatim. Parsed after `_well_formed`, so text stays text; the strip is the fallback.
+    source = _VERSION_SECT.sub("", xml or "")
+    try:
+        text = " ".join(ET.fromstring(f"<root>{_well_formed(source)}</root>").itertext())
+    except ET.ParseError:
+        text = strip_xml(source)
     return " ".join(_GUARD_TAG.sub("", text).split())
 
 
@@ -440,12 +449,54 @@ def api_pages(db: Path, globs: tuple[str, ...], source: Path, tags: tuple[str, .
     return "api"
 
 
+## doxygen's own documentation elements (its compound.xsd docCmdGroup and friends). A `<` that opens
+## or closes anything else is TEXT doxygen stored verbatim (`std::atomic<bool>`, `n_tokens < 2`).
+_DOX_ELEMENTS = (
+    "para|ref|computeroutput|bold|emphasis|underline|strike|small|superscript|subscript|center|del|"
+    "ins|s|ulink|programlisting|codeline|highlight|sp|linebreak|hruler|preformatted|verbatim|anchor|"
+    "itemizedlist|orderedlist|listitem|simplesect|title|parameterlist|parameteritem|"
+    "parameternamelist|parametername|parametertype|parameterdescription|xrefsect|xreftitle|"
+    "xrefdescription|variablelist|varlistentry|term|table|row|entry|caption|heading|image|dotfile|"
+    "mscfile|diafile|toclist|tocitem|language|copydoc|blockquote|parblock|internal|sect1|sect2|"
+    "sect3|sect4|details|summary|emoji|formula|indexentry|primaryie|secondaryie|nonbreakablespace|"
+    "ndash|mdash|htmlonly|rtfonly|latexonly|xmlonly|docbookonly|manonly|plantumlfile"
+)
+_STRAY_LT = re.compile(rf"<(?!/?(?:{_DOX_ELEMENTS})[\s/>])")
+_STRAY_AMP = re.compile(r"&(?!#?\w+;)")
+_OPEN_TAG = re.compile(rf"<({_DOX_ELEMENTS})[\s>]")
+
+
+## @brief Doxygen XML made well-formed: stray `<` and `&` from code text escaped.
+## @param xml A description fragment.
+## @return The fragment, parseable.
+## v2: an element name used as text is text
+## @version 2
+## @utility
+def _well_formed(xml: str) -> str:
+    """ENTROPIC'S AUDIT (84 of 1,485 include/ descriptions): doxygen stores code text verbatim
+    inside its XML, so `std::atomic<bool>` or `(n_tokens < 2)` made the fragment unparseable, and
+    the flat fallback then stripped them AS TAGS — "(n_tokens < 2)" rendered as "(n_tokens", the
+    rest lost. doxygen's own elements stay markup; any other `<`, and a bare `&`, become text.
+
+    @brief Escape stray markup characters.
+    @return XML.
+    """
+    text = _STRAY_LT.sub("&lt;", _STRAY_AMP.sub("&amp;", xml or ""))
+    ## A doxygen element NAME used as text (`"<summary>"`) opens without closing: its opens are text.
+    for name in set(_OPEN_TAG.findall(text)):
+        opens = rf"<(?={name}(?:\s[^<>]*)?(?<!/)>)"
+        if len(re.findall(opens, text)) != text.count(f"</{name}>"):
+            text = re.sub(opens, "&lt;", text)
+    return text
+
+
 ## @brief Parse doxygen's description XML into labelled parts (entropic's gaps 1 and 2).
 ## @param xml The detailed-description XML.
 ## @param tags Tags the repository declares (`guard.validate.extra_tags`), rendered as fields.
 ## @return The structured doc.
 ## v2: entropic's audit of 19f439fb (2.0.0)
-## @version 2
+## v3: code text doxygen stored verbatim is escaped before parsing (entropic's audit of f6ff1f7c)
+## @version 3
 ## @req REQ-DDB-WIKI-053
 def parse_doc(xml: str, tags: tuple[str, ...] = ()) -> Doc:
     """Doxygen stores parameters, the return and return values as `<parameterlist>` and
@@ -459,7 +510,7 @@ def parse_doc(xml: str, tags: tuple[str, ...] = ()) -> Doc:
     import xml.etree.ElementTree as ET
 
     try:
-        root = ET.fromstring(f"<root>{xml or ''}</root>")
+        root = ET.fromstring(f"<root>{_well_formed(xml)}</root>")
     except ET.ParseError:
         return Doc(prose=doc_text(xml))
     params: list[tuple[str, str, str]] = []

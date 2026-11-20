@@ -158,13 +158,32 @@ def _file_rowids(conn: sqlite3.Connection, repo_root: Path) -> dict[str, int]:
     }
 
 
+## Every two-ended relation a subset run must see BOTH files of to re-emit: references (xrefs),
+## inheritance (compoundref, keyed on the two compounds' files) and overrides (reimplements).
+## ENTROPIC'S AUDIT (2.0.0): xrefs alone lost `ChatAdapter`'s 8 derived classes after a doc-only
+## edit to its header — a derived class in another header holds no xref into its base's file.
+_CLOSURE_EDGES = (
+    "SELECT src.name, tgt.name FROM xrefs x "
+    "JOIN memberdef ms ON ms.rowid = x.src_rowid JOIN memberdef mt ON mt.rowid = x.dst_rowid "
+    "JOIN path src ON src.rowid = ms.file_id JOIN path tgt ON tgt.rowid = mt.file_id",
+    "SELECT src.name, tgt.name FROM compoundref r "
+    "JOIN compounddef cb ON cb.rowid = r.base_rowid JOIN compounddef cd ON cd.rowid = r.derived_rowid "
+    "JOIN path src ON src.rowid = cd.file_id JOIN path tgt ON tgt.rowid = cb.file_id",
+    "SELECT src.name, tgt.name FROM reimplements r "
+    "JOIN memberdef mo ON mo.rowid = r.memberdef_rowid "
+    "JOIN memberdef mb ON mb.rowid = r.reimplemented_rowid "
+    "JOIN path src ON src.rowid = mo.file_id JOIN path tgt ON tgt.rowid = mb.file_id",
+)
+
+
 ##
 # @brief The files a correct subset run must include alongside the changed set.
 # @param master_db Path to the previous whole-tree doxygen database.
 # @param changed Repo-relative paths whose content changed.
 # @param repo_root Absolute repository root.
 # @return Repo-relative paths to feed doxygen: the changed set plus both closure directions.
-# @version 1
+# v2: inheritance and overrides are closure edges too (entropic, 2.0.0)
+# @version 2
 # @req REQ-DDB-INDEX-002
 def xref_closure(master_db: Path, changed: set[str], repo_root: Path) -> set[str]:
     """BOTH DIRECTIONS, and the asymmetry is the whole point. A subset run can only emit an
@@ -187,16 +206,7 @@ def xref_closure(master_db: Path, changed: set[str], repo_root: Path) -> set[str
         return set()
     conn = sqlite3.connect(master_db)
     try:
-        pairs = conn.execute(
-            """
-            SELECT src.name, tgt.name
-            FROM xrefs x
-            JOIN memberdef ms ON ms.rowid = x.src_rowid
-            JOIN memberdef mt ON mt.rowid = x.dst_rowid
-            JOIN path src ON src.rowid = ms.file_id
-            JOIN path tgt ON tgt.rowid = mt.file_id
-            """
-        ).fetchall()
+        pairs = [row for sql in _CLOSURE_EDGES for row in conn.execute(sql).fetchall()]
     except sqlite3.OperationalError as exc:
         logger.warning(
             "doxygen splice: cannot read xrefs from %s (%s) — falling back to a full run",
