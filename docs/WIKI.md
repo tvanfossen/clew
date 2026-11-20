@@ -276,6 +276,7 @@ wiki:
   web: {max_ring: 8}            # the deepest ring of the call web
   check: {ears: true}           # opt-in EARS badge on requirement pages; `clew wiki check` notes (never a gate)
   test_pages: linked            # which tests get a page: linked (evidence-named, default) | all | none
+  api: ["include/**"]           # public headers: an API reference page per header (off unless declared)
   sbom:                         # the SBOM page renders the repo's own SBOM; it never writes one
     files: [sbom.spdx.json]     # SPDX 2.3 or CycloneDX JSON (default: sbom.spdx.json, bom.cdx.json at the root)
     accepted: [MIT, Apache-2.0] # else docs/sbom.toml's `accepted`; without either nothing is called unaccepted

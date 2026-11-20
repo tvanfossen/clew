@@ -1086,6 +1086,18 @@ requirements:
     x-priority: P1
     x-status: implemented
     x-evidence: clew/wiki/testpages.py tests_index; clew/wiki/_sphinxsymbols.py; tests/test_wiki_site.py.
+  REQ-DDB-WIKI-053:
+    subsystem: wiki
+    name: A public-API reference, one page per declared public header
+    acceptance_criteria: 'With `wiki.api` declaring public-header globs, the API tab lists those
+      headers, and each header''s page shows, from the index, its public functions with
+      signatures, enumerations with their values, typedefs (a function-pointer typedef marked a
+      hook point), macros with values, variables, and classes / structs with their public
+      members. Private and protected members and `\internal`-documented symbols are excluded;
+      a public `@utility` function is still public API. Without `wiki.api` there is no API tab.'
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/apiref.py; tests/test_wiki_apiref.py.
   REQ-DDB-WIKI-048:
     subsystem: wiki
     name: Every function on a flow has a quick-view modal with the view strip

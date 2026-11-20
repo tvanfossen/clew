@@ -26,6 +26,8 @@ _PATHS = {
     ## GH #68: the product trace — a root with two branches down to dependency requirements.
     "product": "M9 3h6v4H9zM3 17h6v4H3zM15 17h6v4h-6zM12 7v5M6 17v-5h12v5",
     "test": "M9 3h6M10 3v6l-5 9a2 2 0 0 0 2 3h10a2 2 0 0 0 2-3l-5-9V3",
+    ## PAPI: angle brackets — an interface.
+    "api": "M8 6l-6 6 6 6M16 6l6 6-6 6M14 4l-4 16",
     ## Owner Q/A 2026-11-20: the Tests tab — the same flask.
     "tests": "M9 3h6M10 3v6l-5 9a2 2 0 0 0 2 3h10a2 2 0 0 0 2-3l-5-9V3",
     "issue": "M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0-18 0M12 7v6M12 16v1",

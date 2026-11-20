@@ -120,7 +120,8 @@ def build_wiki(
 ## v9: quick views second pass (2.0.0, P5.6)
 ## v10: SBOM page (2.0.0, P5.8)
 ## v11: tests category (2.0.0, owner Q/A 2026-11-20)
-## @version 11
+## v12: public-API reference (2.0.0, PAPI)
+## @version 12
 ## @utility
 def _build_site(
     repo_root: Path,
@@ -305,6 +306,10 @@ def _build_site(
             source,
         ),
     )
+    ## PAPI (owner Q/A 2026-11-19): the public-API reference, when public headers are declared.
+    from .apiref import api_pages
+
+    sections.append(api_pages(db, config.api, source))
     ## #70 (P5.8): the SBOM page, rendered from the repository's own SBOM (never written).
     from .sbom import sbom_page
 
@@ -757,7 +762,8 @@ _DOCS_LEAD = "The repository's own documentation, as written."
 ## v8: Architecture card (2.0.0, P5.6)
 ## v9: SBOM card (2.0.0, P5.8)
 ## v10: Tests card (tests category (2.0.0, owner Q/A 2026-11-20))
-## @version 10
+## v11: API card (public-API reference (2.0.0, PAPI))
+## @version 11
 ## @utility
 def _write_index(
     source: Path, config: WikiConfig, trace: object, sections: list[str], flow_count: int
@@ -793,6 +799,10 @@ def _write_index(
         "architecture": (
             "Architecture",
             "The system at C4's four levels: context, containers, components, code.",
+        ),
+        "api": (
+            "API",
+            "The public API, header by header: functions, enums, types, macros, classes.",
         ),
         "tests": (
             "Tests",

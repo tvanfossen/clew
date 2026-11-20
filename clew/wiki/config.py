@@ -54,6 +54,8 @@ _TOP = {
     "sbom",
     ## 2.0.0 (owner Q/A 2026-11-20): which tests get a page — `linked` (default) | `all` | `none`.
     "test_pages",
+    ## PAPI (2.0.0, owner Q/A 2026-11-19): the public-header globs the API reference is drawn from.
+    "api",
 }
 ## Each tuning key's former constant — the default when it is not declared.
 TUNING_DEFAULTS = {
@@ -307,6 +309,8 @@ class WikiConfig:
     ## Owner Q/A 2026-11-20: `linked` — tests the requirement evidence names, implicit links
     ## included (today's set); `all` — every test the index recognises; `none` — no per-test page.
     test_pages: str = "linked"
+    ## PAPI: public-header globs; () = no API tab (off unless declared).
+    api: tuple[str, ...] = ()
     ## Path globs whose entry points are tooling flows.
     tooling: tuple[str, ...] = DEFAULT_TOOLING
     ## R5-CFG C1-C5, C7-C9, W6 (2.0.0): the build's numbers, declared (see TUNING_DEFAULTS).
@@ -354,7 +358,8 @@ class WikiConfig:
 ## v20: EARS badge and check notes (2.0.0, S9)
 ## v21: wiki.sbom (2.0.0, P5.8)
 ## v22: wiki.test_pages (tests category (2.0.0, owner Q/A 2026-11-20))
-## @version 22
+## v23: wiki.api (public-API reference (2.0.0, PAPI))
+## @version 23
 ## @req REQ-DDB-WIKI-003
 def load_wiki_config(
     repo_root: Path, config_path: Path | None = None
@@ -406,6 +411,7 @@ def load_wiki_config(
         ears=_ears(raw.get("check"), problems),
         **_sbom(raw.get("sbom"), problems),
         test_pages=_one_of(raw, "test_pages", TEST_PAGES, problems),
+        api=_strings(raw, "api", (), "wiki", problems),
         tooling=_strings(raw, "tooling", DEFAULT_TOOLING, "wiki", problems),
         needs=str(requirements["needs"]) if requirements.get("needs") else None,
         adrs=_strings(raw, "adrs", DEFAULT_ADRS, "wiki", problems),
