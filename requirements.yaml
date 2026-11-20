@@ -1016,6 +1016,18 @@ requirements:
     x-priority: P1
     x-status: implemented
     x-evidence: clew/wiki/activity.py; clew/wiki/symbols.py _activity; tests/test_wiki_activity.py.
+  REQ-DDB-WIKI-046:
+    subsystem: wiki
+    name: An Architecture tab at C4's four levels, derived from the index
+    acceptance_criteria: 'The Architecture page draws L1 Context (the repository as one system,
+      actors from its entry kinds, vendor areas as external systems), L2 Containers (each
+      separately runnable entry point, said to be derived from entry points), L3 Components (the
+      map''s first-party blocks and their call links, declared and inferred drawn distinct) and L4
+      Code (links to the map and symbol pages). What the index cannot show (data stores,
+      deployment units, link protocols) is named as missing, never drawn.'
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/architecture.py; tests/test_wiki_architecture.py.
   REQ-DDB-SCHEMA-013:
     subsystem: schema
     name: Kconfig structure tables, created independently of the gating table

@@ -115,7 +115,8 @@ def build_wiki(
 ## v4: test pages get the packaged runs (2.0.0, P5.5)
 ## v5: test pages get the product flows (2.0.0, P5.5)
 ## v6: test pages get per-test lines and written pages (2.0.0, P5.5)
-## @version 6
+## v7: Architecture tab (2.0.0, P5.6)
+## @version 7
 ## @utility
 def _build_site(
     repo_root: Path,
@@ -132,6 +133,7 @@ def _build_site(
     @return The HTML directory.
     @version 1
     """
+    from .architecture import architecture_page
     from .flowpage import flow_page, flows_index
     from .impactpage import impact_page
     from .graph import build_graph
@@ -278,6 +280,13 @@ def _build_site(
         ),
         _docs_page(source, _prose(repo_root, config, source), config, decisions),
     ]
+    ## P5.6: the C4 Architecture tab, after the map it zooms into.
+    sections.insert(
+        sections.index("map") + 1 if "map" in sections else len(sections),
+        architecture_page(
+            config.title, graph, _architecture_entries(db, repo_root, config, flow_of), source
+        ),
+    )
     if config.catalogs:
         linked = frozenset(r.req_id for r in trace.evidence)
         sections.insert(1, _product_section(repo_root, db, config, rules, source, linked))
@@ -716,7 +725,8 @@ _DOCS_LEAD = "The repository's own documentation, as written."
 ## v5: the change-impact card (P1g).
 ## v6: the Product trace card (GH #68).
 ## v7 (round 4): the map card describes the repository web.
-## @version 7
+## v8: Architecture card (2.0.0, P5.6)
+## @version 8
 ## @utility
 def _write_index(
     source: Path, config: WikiConfig, trace: object, sections: list[str], flow_count: int
@@ -748,6 +758,10 @@ def _write_index(
         "map": (
             "Map",
             "Every function in one zoomable web: blocks, calls, and where each test reaches.",
+        ),
+        "architecture": (
+            "Architecture",
+            "The system at C4's four levels: context, containers, components, code.",
         ),
     }
     cards = "".join(
@@ -924,3 +938,35 @@ def _lines_by_test(coverage: dict | None) -> dict:
     from .slices import lines_per_test
 
     return lines_per_test(coverage) if coverage else {}
+
+
+## @brief The entry points, as the Architecture page reads them.
+## @param db The index.
+## @param repo_root The repository.
+## @param config The section.
+## @param flow_of Entry name → its flow page.
+## @return Entries.
+## @version 1
+## @req REQ-DDB-WIKI-046
+def _architecture_entries(db: Path, repo_root: Path, config: WikiConfig, flow_of: dict) -> list:
+    """THE KIND FROM THE DISCOVERY that found it: a console script's title is `script — `func``,
+    a thread entry carries the `threads` role, anything else is a `main`.
+
+    @brief Classify entry points.
+    @return Entries.
+    """
+    from .architecture import Entry
+    from .entrypoints import entry_point_flows
+
+    out = []
+    for spec in entry_point_flows(db, repo_root, config.entry_point_depth):
+        if spec.role == "threads":
+            kind, label = "thread", ""
+        elif " — " in spec.title:
+            kind, label = "script", spec.title.split(" — ", 1)[0]
+        else:
+            kind, label = "main", ""
+        ## THE SAME ROLE THE FLOWS GET (`_with_role`): a `tooling`-glob entry is not a container.
+        role = _with_role(spec, config).role
+        out.append(Entry(kind, spec.entry, spec.file or "", label, flow_of.get(spec.entry), role))
+    return out

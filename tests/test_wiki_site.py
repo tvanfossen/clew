@@ -1038,3 +1038,10 @@ def test_a_test_page_draws_its_call_flow_boxes(site: dict[str, str]) -> None:
     (name,) = [k for k in site if k.startswith("test-") and k.endswith("test_load.html")]
     flow = site[name].split('<div class="callflow">', 1)[1].split("</div>", 1)[0]
     assert "#act-s-load" in flow and ">load</a>" in flow
+
+
+def test_the_site_has_an_architecture_tab(site: dict[str, str]) -> None:
+    """@brief P5.6: the C4 page is built and the home page links it."""
+    page = site["architecture.html"]
+    assert all(f'id="c4-l{n}"' in page for n in (1, 2, 3, 4))
+    assert 'href="architecture.html"' in site["index.html"]

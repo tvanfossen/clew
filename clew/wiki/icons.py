@@ -17,6 +17,8 @@ _PATHS = {
     "flows": "M5 3v18M19 3v18M5 8h14M15 5l4 3-4 3M19 15H5M9 12l-4 3 4 3",
     "impact": "M12 3v4M12 17v4M3 12h4M17 12h4M12 12m-3 0a3 3 0 1 0 6 0a3 3 0 1 0-6 0",
     "map": "M3 4h7v6H3zM14 4h7v6h-7zM8 15h8v6H8zM6.5 10v2.5h11V10M12 12.5V15",
+    ## 2.0.0 (P5.6): nested boxes — C4's zoom from system to container to component.
+    "architecture": "M3 3h18v18H3zM7 7h10v10H7zM10 10h4v4h-4z",
     "docs": "M6 3h9l4 4v14H6zM15 3v4h4M9 12h7M9 16h7",
     "nodes": "M12 3l8 4.5v9L12 21l-8-4.5v-9zM12 12l8-4.5M12 12v9M12 12L4 7.5",
     ## GH #68: the product trace — a root with two branches down to dependency requirements.
