@@ -1040,6 +1040,17 @@ requirements:
     x-priority: P1
     x-status: implemented
     x-evidence: clew/wiki/flow.py; clew/wiki/svg.py; clew/wiki/build.py _actor_of; tests/test_wiki_flow.py.
+  REQ-DDB-WIKI-048:
+    subsystem: wiki
+    name: Every function on a flow has a quick-view modal with the view strip
+    acceptance_criteria: 'A flow page carries, per function on it, a quick-view trigger and modal
+      with the view strip Map, Block, Flow, Replay, Source, Tests, Reqs: each view a small inline
+      summary (lists capped, with "N more on its page") linking the full view; an empty view says
+      so. Without script every view is shown, stacked; `clew-views.js`, a second budgeted script
+      loaded only by pages with quick views, makes them tabs.'
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/entities.py; clew/wiki/themes/clew/static/clew-views.js; tests/test_wiki_entities.py.
   REQ-DDB-SCHEMA-013:
     subsystem: schema
     name: Kconfig structure tables, created independently of the gating table

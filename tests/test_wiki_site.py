@@ -534,6 +534,8 @@ def test_a_flow_entry_by_file_survives_distinct_identities(
 
 ## The most bytes clew.js may carry: one script for every page, read before anything renders.
 _JS_BUDGET = 8192
+## P5.6 (owner Q/A 2026-11-20): the second script, loaded only where a quick view exists.
+_VIEWS_JS_BUDGET = 8192
 
 
 def test_one_modal_component_serves_every_page(site: dict[str, str]) -> None:
@@ -1065,3 +1067,32 @@ def test_source_bodies_and_diagrams_are_not_in_the_search_index(site: dict[str, 
     index = (pathlib.Path(site["__html__"]) / "searchindex.js").read_text()
     assert "secret_body_mark" not in index.lower() and "secret_body_marker" not in index.lower()
     assert '"pars' in index, "the function's own name must stay searchable"
+
+
+def test_a_flow_page_carries_a_quick_view_per_function(site: dict[str, str]) -> None:
+    """OWNER (round 5, P5.6): every entity gets a quick-view modal with the view strip. A flow
+    page lists a trigger per function on it, each opening its template, and loads the views
+    script; `load` is on the fixture's `load` flow.
+
+    @brief P5.6: quick views on flow pages.
+    """
+    page = _flow_page(site)
+    quick = page.split('class="modal-list quick-views"', 1)[1].split("</ul>", 1)[0]
+    assert 'data-modal="q-' in quick and ">load</a>" in quick
+    template = re.search(
+        r'<template id="modal-q-\d+" data-title="load \(src/data\.py\)">(.*?)</template>',
+        page,
+        re.S,
+    )
+    assert template and 'data-view-panel="tests"' in template.group(1)
+    assert "_static/clew-views.js" in page
+
+
+def test_the_views_script_is_budgeted() -> None:
+    """@brief Owner Q/A 2026-11-20: clew-views.js has its own budget, and names nothing remote."""
+    from clew.wiki.theme import THEMES
+
+    js = THEMES / "clew" / "static" / "clew-views.js"
+    assert js.stat().st_size <= _VIEWS_JS_BUDGET
+    text = js.read_text()
+    assert "http://" not in text and "https://" not in text

@@ -117,7 +117,8 @@ def build_wiki(
 ## v6: test pages get per-test lines and written pages (2.0.0, P5.5)
 ## v7: Architecture tab (2.0.0, P5.6)
 ## v8: graph before flows; block lanes and actors (2.0.0, P5.6)
-## @version 8
+## v9: quick views second pass (2.0.0, P5.6)
+## @version 9
 ## @utility
 def _build_site(
     repo_root: Path,
@@ -262,6 +263,10 @@ def _build_site(
     for (name, _rel), href in sorted(written.items()):
         if name in facts:
             trace.test_href.setdefault(name, href)
+    ## P5.6: QUICK VIEWS, a second pass once every flow and test page exists.
+    from .entities import write_quick_views
+
+    write_quick_views(db, source, pages, blocks, trace.test_href, req_of)
     decisions = find_decisions(repo_root, config.adrs, tuple(r.req_id for r in trace.evidence))
     trace.decisions = {
         r.req_id: [d for d in decisions if r.req_id in d.requirements] for r in trace.evidence
