@@ -109,3 +109,138 @@ def test_traceability_tags_are_not_api_prose() -> None:
         '<simplesect kind="version"><para>2.0.6-rc16</para></simplesect>'
     )
     assert doc_text(xml) == "Hook points."
+
+
+## Entropic's real `entropic_create` description, trimmed: params, a return with a list, a
+## declared `@threadsafety`, guard tags, and the definition's duplicate return.
+_CREATE = (
+    "<para>Allocates an engine handle.</para>"
+    '<para><parameterlist kind="param"><parameteritem><parameternamelist>'
+    '<parametername direction="out">handle</parametername></parameternamelist>'
+    "<parameterdescription><para>Pointer to receive the new handle. </para>"
+    "</parameterdescription></parameteritem></parameterlist>"
+    '<simplesect kind="return"><para>ENTROPIC_OK on success.</para></simplesect>'
+    '<parameterlist kind="retval"><parameteritem><parameternamelist>'
+    "<parametername>ENTROPIC_ERROR_INVALID_ARGUMENT</parametername></parameternamelist>"
+    "<parameterdescription><para>handle is NULL.</para></parameterdescription>"
+    "</parameteritem></parameterlist>"
+    "@threadsafety Single-threaded init/destroy. @req REQ-API-002 "
+    '<simplesect kind="version"><para>1.8.0</para></simplesect></para>'
+    '<para><simplesect kind="return"><para>ENTROPIC_OK on success. @req REQ-API-002 </para>'
+    "</simplesect></para>"
+)
+
+
+def test_params_returns_and_retvals_are_structured() -> None:
+    """ENTROPIC'S GAP 2: parameters, the return and return values flattened into one paragraph.
+    Doxygen stores them as `<parameterlist>` / `<simplesect kind="return">`; they are read as such,
+    and the definition's identical return collapses into one.
+
+    @brief Structured params and returns.
+    """
+    from clew.wiki.apiref import parse_doc
+
+    doc = parse_doc(_CREATE, ("threadsafety",))
+    assert doc.params == (("handle", "out", "Pointer to receive the new handle."),)
+    assert doc.returns == ("ENTROPIC_OK on success.",)
+    assert doc.retvals == (("ENTROPIC_ERROR_INVALID_ARGUMENT", "handle is NULL."),)
+    assert doc.prose == "Allocates an engine handle."
+
+
+def test_a_declared_tag_is_a_labelled_field() -> None:
+    """ENTROPIC'S GAP 1: `@threadsafety` (declared in `guard.validate.extra_tags`) printed raw. It
+    is a labelled field; an undeclared `@word` stays in the prose as written.
+
+    @brief Declared tags as fields.
+    """
+    from clew.wiki.apiref import parse_doc
+
+    doc = parse_doc(_CREATE, ("threadsafety",))
+    assert doc.fields == (("threadsafety", "Single-threaded init/destroy."),)
+    assert "@threadsafety" not in doc.prose
+
+
+def test_the_entry_renders_labelled_lists() -> None:
+    """@brief Parameters, Returns, Return values and the field, each under its own label."""
+    from clew.wiki.apiref import Symbol, _entry, parse_doc
+
+    doc = parse_doc(_CREATE, ("threadsafety",))
+    html = _entry(
+        Symbol(
+            "function", "entropic_create", "", "int entropic_create(handle)", "", "", 1, doc=doc
+        ),
+        {},
+    )
+    for label in ("Parameters", "Returns", "Return values", "threadsafety"):
+        assert f"<dt>{label}</dt>" in html, label
+    assert '<code>handle</code> <span class="dir">out</span>' in html
+
+
+def test_a_class_shows_its_bases_and_derived() -> None:
+    """ENTROPIC'S GAP 3: no inheritance. From the index's `compoundref`: a class lists what it
+    inherits from and what derives from it.
+
+    @brief Inheritance.
+    """
+    import sqlite3
+
+    from clew.wiki.apiref import header_classes
+
+    conn = sqlite3.connect(":memory:")
+    conn.executescript(
+        "CREATE TABLE path (rowid INTEGER PRIMARY KEY, name TEXT, type INT, found INT);"
+        "CREATE TABLE compounddef (rowid INTEGER PRIMARY KEY, name TEXT, kind TEXT, prot INT,"
+        " file_id INT, line INT, briefdescription TEXT, detaileddescription TEXT);"
+        "CREATE TABLE compoundref (rowid INTEGER PRIMARY KEY, base_rowid INT, derived_rowid INT,"
+        " prot INT, virt INT);"
+        "INSERT INTO path VALUES (1, 'include/a.h', 1, 1);"
+        "INSERT INTO compounddef VALUES (1, 'ChatAdapter', 'class', 0, 1, 1, '', ''),"
+        " (2, 'QwenAdapter', 'class', 0, 1, 9, '', ''), (3, 'Base', 'class', 0, 1, 20, '', '');"
+        "INSERT INTO compoundref VALUES (1, 1, 2, 0, 0), (2, 3, 1, 0, 0);"
+    )
+    by_name = {c.name: c for c in header_classes(conn, "include/a.h")}
+    assert by_name["ChatAdapter"].bases == ("Base",)
+    assert by_name["ChatAdapter"].derived == ("QwenAdapter",)
+
+
+def test_a_return_repeated_inside_a_longer_one_is_shown_once() -> None:
+    """FOUND ON ENTROPIC'S INDEX: the definition's block repeats "ENTROPIC_OK on success." and the
+    declaration's carries it plus its error list. A return contained in another is dropped.
+
+    @brief Returns de-duplicated by containment.
+    """
+    from clew.wiki.apiref import parse_doc
+
+    xml = (
+        '<para><simplesect kind="return"><para>OK on success. ERR on failure.</para></simplesect></para>'
+        '<para><simplesect kind="return"><para>OK on success.</para></simplesect></para>'
+    )
+    assert parse_doc(xml).returns == ("OK on success. ERR on failure.",)
+
+
+def test_a_class_declared_in_test_code_is_not_in_the_hierarchy() -> None:
+    """FOUND ON ENTROPIC'S INDEX: `ChatAdapter`'s derived list carried test fixtures
+    (`anonymous_namespace{adapter_base_test.cpp}::TestAdapter`). Test code is not public API.
+
+    @brief Hierarchy excludes test classes.
+    """
+    import sqlite3
+
+    from clew.wiki.apiref import header_classes
+
+    conn = sqlite3.connect(":memory:")
+    conn.executescript(
+        "CREATE TABLE path (rowid INTEGER PRIMARY KEY, name TEXT, type INT, found INT);"
+        "CREATE TABLE compounddef (rowid INTEGER PRIMARY KEY, name TEXT, kind TEXT, prot INT,"
+        " file_id INT, line INT, briefdescription TEXT, detaileddescription TEXT);"
+        "CREATE TABLE compoundref (rowid INTEGER PRIMARY KEY, base_rowid INT, derived_rowid INT,"
+        " prot INT, virt INT);"
+        "CREATE TABLE test_scope (path_rowid INTEGER);"
+        "INSERT INTO path VALUES (1, 'include/a.h', 1, 1), (2, 'tests/a_test.cpp', 1, 1);"
+        "INSERT INTO compounddef VALUES (1, 'Base', 'class', 0, 1, 1, '', ''),"
+        " (2, 'Real', 'class', 0, 1, 9, '', ''), (3, 'TestAdapter', 'class', 0, 2, 3, '', '');"
+        "INSERT INTO compoundref VALUES (1, 1, 2, 0, 0), (2, 1, 3, 0, 0);"
+        "INSERT INTO test_scope VALUES (2);"
+    )
+    (base,) = [c for c in header_classes(conn, "include/a.h") if c.name == "Base"]
+    assert base.derived == ("Real",)

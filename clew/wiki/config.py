@@ -315,6 +315,10 @@ class WikiConfig:
     api: tuple[str, ...] = ()
     ## V6: lines of a body bundled on its symbol page; past it, a link to the full source.
     body_lines: int = 120
+    ## Entropic's gap 1: the repository's declared doc tags (`guard.validate.extra_tags`), shown as
+    ## labelled fields on API pages. Read raw: the gate's own loader refuses doxygen-guard
+    ## leftovers, and a wiki build must not fail on the gate's account.
+    doc_tags: tuple[str, ...] = ()
     ## Path globs whose entry points are tooling flows.
     tooling: tuple[str, ...] = DEFAULT_TOOLING
     ## R5-CFG C1-C5, C7-C9, W6 (2.0.0): the build's numbers, declared (see TUNING_DEFAULTS).
@@ -364,7 +368,8 @@ class WikiConfig:
 ## v22: wiki.test_pages (tests category (2.0.0, owner Q/A 2026-11-20))
 ## v23: wiki.api (public-API reference (2.0.0, PAPI))
 ## v24: viewer caps V3/V5/V6 (2.0.0, owner Q/A 2026-11-20)
-## @version 24
+## v25: doc_tags (entropic's PAPI gaps 1-3 (2.0.0))
+## @version 25
 ## @req REQ-DDB-WIKI-003
 def load_wiki_config(
     repo_root: Path, config_path: Path | None = None
@@ -418,6 +423,7 @@ def load_wiki_config(
         test_pages=_one_of(raw, "test_pages", TEST_PAGES, problems),
         api=_strings(raw, "api", (), "wiki", problems),
         body_lines=_positive(raw, "body_lines", 120, problems),
+        doc_tags=_doc_tags(Path(config_path or Path(repo_root) / ".clew.yaml")),
         tooling=_strings(raw, "tooling", DEFAULT_TOOLING, "wiki", problems),
         needs=str(requirements["needs"]) if requirements.get("needs") else None,
         adrs=_strings(raw, "adrs", DEFAULT_ADRS, "wiki", problems),
@@ -1006,6 +1012,18 @@ def _ears(raw: Any, problems: list[str]) -> bool:
         problems.append("`wiki.check` must be {ears: true|false}; `wiki.check.ears` is a boolean")
         return False
     return bool(raw.get("ears", False))
+
+
+## @brief The doc tags the gate section declares (`guard.validate.extra_tags`), names only.
+## @param path The config file.
+## @return Tag names without `@`.
+## @version 1
+## @utility
+def _doc_tags(path: Path) -> tuple[str, ...]:
+    """@brief Read the declared tags. @return Names."""
+    validate = (_top_level(path, "guard").get("validate") or {}) if path else {}
+    tags = validate.get("extra_tags") if isinstance(validate, dict) else None
+    return tuple(str(t).lstrip("@") for t in tags) if isinstance(tags, list) else ()
 
 
 ## @brief A positive whole number setting, refused by name otherwise.

@@ -122,7 +122,8 @@ def build_wiki(
 ## v11: tests category (2.0.0, owner Q/A 2026-11-20)
 ## v12: public-API reference (2.0.0, PAPI)
 ## v13: viewer caps V3/V5/V6 (2.0.0, owner Q/A 2026-11-20)
-## @version 13
+## v14: doc tags to the API pages (entropic's PAPI gaps 1-3 (2.0.0))
+## @version 14
 ## @utility
 def _build_site(
     repo_root: Path,
@@ -312,7 +313,7 @@ def _build_site(
     ## PAPI (owner Q/A 2026-11-19): the public-API reference, when public headers are declared.
     from .apiref import api_pages
 
-    sections.append(api_pages(db, config.api, source))
+    sections.append(api_pages(db, config.api, source, config.doc_tags))
     ## #70 (P5.8): the SBOM page, rendered from the repository's own SBOM (never written).
     from .sbom import sbom_page
 
