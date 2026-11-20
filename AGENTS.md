@@ -1,12 +1,14 @@
 <!-- SPDX-License-Identifier: MIT -->
 # AGENTS.md
 
-Entry point for an agent doing one of two different jobs. They have almost nothing in common,
-so pick first.
+Entry point for an agent doing one of these jobs. They have almost nothing in common, so pick
+first.
 
 | you are… | read |
 |---|---|
 | **using clew** to answer questions about some repository | **[SKILLS.md](SKILLS.md)** |
+| **fixing a commit `clew guard` refused**, in any repository that runs it | [skills/clew-guard](skills/clew-guard/SKILL.md) · agent [agents/clew-guard.md](agents/clew-guard.md) |
+| **building or fixing a repository's clew wiki** | [skills/clew-wiki](skills/clew-wiki/SKILL.md) · agent [agents/clew-wiki.md](agents/clew-wiki.md) |
 | **changing clew itself** | the rest of this file |
 
 ---

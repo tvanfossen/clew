@@ -59,6 +59,41 @@ when it is part of the public surface is the failure the coverage check exists t
 hook (`knots`), and refactoring is the answer there too — but do not go looking in the guard's
 config for them.
 
+## What counts as a change (2.0.0)
+
+The guard compares each documented function with its version at `HEAD`. Three things count, and
+each needs a `@version` bump:
+
+- **The body changed.** Any edit inside it, comments included.
+- **The signature changed.** A new or removed parameter is a change, not a new function, unless the
+  function is overloaded (several of the same name in one class), where the exact signature still
+  decides which is which.
+- **The doc block changed.** The version belongs to that section of source, its comment included:
+  a reworded `@brief`, or a retag such as `///< @utility` on a declaration, needs a bump too.
+
+Documented C/C++ **declarations** in headers are checked as well, with their own block.
+
+## Writing a tag name in prose is a tag
+
+`##` lines are parsed for tags. A comment that says "added the @req for X" is read as a `@req`
+whose id is `for X`, and the gate refuses it as unknown. Write "req tag", "the version tag", not the
+tag itself.
+
+## Leftovers from doxygen-guard refuse the gate
+
+clew 2.0.0 is clew only. While `.doxygen-guard.yaml` exists, or `.pre-commit-config.yaml` names the
+`doxygen-guard` hook id, `clew guard` refuses to run and names each leftover with its fix: move the
+file's contents under `guard:` in `.clew.yaml` and delete it; switch the hook id to `clew-guard`.
+`@dg_internal` is refused; it is `@utility`.
+
+## Settings a repository may have turned on
+
+- `guard.validate.exemption_reason: required` — every `@utility` / `@callback` carries a one-line
+  reason: `@utility parses the header for the loader`.
+- `guard.coverage.min_req_ratio: 0.5` — the share of non-test functions carrying `@req` (against
+  `@utility` + `@callback`) must reach the floor. The counts print either way; it fails only below a
+  declared floor.
+
 ## Run it yourself before committing
 
 ```bash
@@ -75,6 +110,5 @@ is genuinely wrong for a case, that is a conversation with the repository's owne
 
 ## Configuration
 
-The `guard:` section of the repo's `.clew.yaml`. A repo migrating from the old standalone tool
-may still have `.doxygen-guard.yaml`; it is no longer read — move its contents under `guard:`.
-Full reference: `docs/GUARD.md`.
+The `guard:` section of the repo's `.clew.yaml`. A leftover `.doxygen-guard.yaml` stops the
+gate (see above): move its contents under `guard:` and delete it. Full reference: `docs/GUARD.md`.
