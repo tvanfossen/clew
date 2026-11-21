@@ -162,3 +162,42 @@ def test_the_master_flow_page_carries_each_test_s_slice(site: dict[str, str]) ->
     """@brief `#test=<name>` on a flow page lights that test's steps; the slices ride inline."""
     flow = _page(site, "flow-run")
     assert 'id="flow-slices"' in flow and '"tests/test_app.py::test_check"' in flow
+
+
+def test_a_test_page_draws_its_top_slices_and_lists_the_rest(monkeypatch) -> None:
+    """OWNER Q/A 2026-11-20 (after P6): slice diagrams were 84 MB of clew's 179 MB site — 8,148
+    inline SVGs, three flows on most pages, by flow rank 49.2 / 21.6 / 13.3 MB. The top
+    `wiki.test_slices` flows (default 1, by steps exercised) are drawn; the rest are a `<details>`
+    "N more" list, each linking its whole flow lit for this test.
+
+    @brief Slices past the cap are links in a details list.
+    """
+    from types import SimpleNamespace
+
+    from clew.wiki import slices, testpages
+
+    monkeypatch.setattr(slices, "slice_svg", lambda flow, cut: "<svg class='seq'/>")
+    page = lambda n, s: SimpleNamespace(name=f"flow-{n}", title=n, steps=s, flow=None)  # noqa: E731
+    cut = lambda k: SimpleNamespace(exercised=tuple(range(k)))  # noqa: E731
+    cuts = [(page("a", 40), cut(9)), (page("b", 30), cut(5)), (page("c", 20), cut(2))]
+
+    html = testpages._exercises("t", {"slices": {"t": cuts}})
+    assert html.count("<svg") == 1, html
+    assert "<details" in html and "2 more" in html
+    assert 'href="flow-b.html#test=t"' in html and 'href="flow-c.html#test=t"' in html
+
+    wider = testpages._exercises("t", {"slices": {"t": cuts}, "test_slices": 2})
+    assert wider.count("<svg") == 2 and "1 more" in wider
+
+
+def test_wiki_test_slices_is_a_whole_number_of_one_or_more(tmp_path) -> None:
+    """@brief `wiki.test_slices` defaults to 1, reads a value, and refuses 0 by name."""
+    from clew.wiki.config import WikiConfig, load_wiki_config
+
+    assert WikiConfig().test_slices == 1
+    (tmp_path / ".clew.yaml").write_text("wiki:\n  test_slices: 2\n")
+    config, problems = load_wiki_config(tmp_path, None)
+    assert config.test_slices == 2 and problems == []
+    (tmp_path / ".clew.yaml").write_text("wiki:\n  test_slices: 0\n")
+    _config, problems = load_wiki_config(tmp_path, None)
+    assert any("wiki.test_slices" in p for p in problems), problems

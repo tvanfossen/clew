@@ -188,8 +188,9 @@ def _replay(name: str, ctx: dict[str, Any]) -> str:
     return f'<p class="replay"><a href="{escape(page)}.html">{words} →</a></p>'
 
 
-## How many of a test's master-flow slices are drawn on its page; the rest are linked.
-_SLICES_DRAWN = 3
+## How many of a test's master-flow slices are drawn on its page by default (`wiki.test_slices`);
+## the rest are links. OWNER Q/A 2026-11-20 (after P6): 3 drawn cost 84 MB on clew's own site.
+_SLICES_DRAWN = 1
 
 
 ## @brief What a test exercises: its slices of the master flows.
@@ -198,7 +199,8 @@ _SLICES_DRAWN = 3
 ## @param defs The test's definitions on this page (each has a `file`).
 ## @return HTML, or "" when no master flow holds a step it ran.
 ## v2 (2.0.0, W11): slices are keyed `file::name`; each definition's are drawn under its file.
-## @version 2
+## v3: slice cap (owner Q/A 2026-11-20, after P6)
+## @version 3
 ## @req REQ-DDB-WIKI-041
 def _exercises(name: str, ctx: dict[str, Any], defs: list | None = None) -> str:
     """OWNER 2026-11-17: "a test case is testing a portion OF a sequence diagram". Each master
@@ -224,7 +226,7 @@ def _exercises(name: str, ctx: dict[str, Any], defs: list | None = None) -> str:
     for file, key in groups:
         if file and len(groups) > 1:
             parts.append(f"<h3><code>{escape(file)}</code></h3>")
-        parts.append(_slices_html(key, slices[key]))
+        parts.append(_slices_html(key, slices[key], ctx.get("test_slices") or _SLICES_DRAWN))
     return '<section class="exercises">' + "".join(parts) + "</section>"
 
 
@@ -261,28 +263,35 @@ def _slice_groups(name: str, slices: dict, files: list[str]) -> list[tuple[str, 
 ## @param key The per-test key (`file::name`, or a bare name).
 ## @param cuts [(flow page, slice)], most exercised first.
 ## @return HTML.
-## @version 1
+## v2: slice cap (owner Q/A 2026-11-20, after P6)
+## @version 2
 ## @utility
-def _slices_html(key: str, cuts: list) -> str:
-    """@brief Draw one key's slices. @return HTML."""
+def _slices_html(key: str, cuts: list, drawn: int = _SLICES_DRAWN) -> str:
+    """OWNER Q/A 2026-11-20 (after P6): the top `drawn` slices are drawn; the rest are a
+    `<details>` "N more", each linking its whole flow lit for this test — the V1–V6 pattern. The
+    slices arrive most steps first.
+
+    @brief Draw one key's slices.
+    @return HTML.
+    """
     from urllib.parse import quote
 
-    from .slices import slice_svg
+    from . import slices
 
-    parts = []
-    for page, cut in cuts[:_SLICES_DRAWN]:
+    def heading(page: Any, cut: Any) -> str:
         href = f"{page.name}.html#test={quote(key)}"
-        parts.append(
-            f'<h4><a href="{escape(href)}">{escape(page.title)}</a> · {len(cut.exercised)} of '
-            f"{page.steps} steps</h4>{slice_svg(page.flow, cut)}"
+        return (
+            f'<a href="{escape(href)}">{escape(page.title)}</a> · {len(cut.exercised)} of '
+            f"{page.steps} steps"
         )
-    rest = cuts[_SLICES_DRAWN:]
+
+    parts = [f"<h4>{heading(p, c)}</h4>{slices.slice_svg(p.flow, c)}" for p, c in cuts[:drawn]]
+    rest = cuts[drawn:]
     if rest:
-        links = ", ".join(
-            f'<a href="{escape(p.name)}.html#test={escape(quote(key))}">{escape(p.title)}</a>'
-            for p, _c in rest
+        items = "".join(f"<li>{heading(p, c)}</li>" for p, c in rest)
+        parts.append(
+            f'<details class="more-slices"><summary>{len(rest)} more</summary><ul>{items}</ul></details>'
         )
-        parts.append(f"<p>Also in: {links}.</p>")
     return "".join(parts)
 
 

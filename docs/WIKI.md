@@ -278,6 +278,7 @@ wiki:
   test_pages: linked            # which tests get a page: linked (evidence-named, default) | all | none
   api: ["include/**"]           # public headers: an API reference page per header (off unless declared)
   body_lines: 120               # lines of a body bundled on its symbol page; past it, a link to the full source
+  test_slices: 1                # master-flow slices drawn on a test page (most steps first); the rest are links
   sbom:                         # the SBOM page renders the repo's own SBOM; it never writes one
     files: [sbom.spdx.json]     # SPDX 2.3 or CycloneDX JSON (default: sbom.spdx.json, bom.cdx.json at the root)
     accepted: [MIT, Apache-2.0] # else docs/sbom.toml's `accepted`; without either nothing is called unaccepted

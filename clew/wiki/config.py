@@ -58,6 +58,7 @@ _TOP = {
     "api",
     ## V6 (2.0.0, owner Q/A 2026-11-20): how many lines of a body a symbol page bundles.
     "body_lines",
+    "test_slices",
 }
 ## Each tuning key's former constant — the default when it is not declared.
 TUNING_DEFAULTS = {
@@ -315,6 +316,8 @@ class WikiConfig:
     api: tuple[str, ...] = ()
     ## V6: lines of a body bundled on its symbol page; past it, a link to the full source.
     body_lines: int = 120
+    ## OWNER Q/A 2026-11-20 (after P6): slices drawn on a test page; the rest are links.
+    test_slices: int = 1
     ## Entropic's gap 1: the repository's declared doc tags (`guard.validate.extra_tags`), shown as
     ## labelled fields on API pages. Read raw: the gate's own loader refuses doxygen-guard
     ## leftovers, and a wiki build must not fail on the gate's account.
@@ -369,7 +372,8 @@ class WikiConfig:
 ## v23: wiki.api (public-API reference (2.0.0, PAPI))
 ## v24: viewer caps V3/V5/V6 (2.0.0, owner Q/A 2026-11-20)
 ## v25: doc_tags (entropic's PAPI gaps 1-3 (2.0.0))
-## @version 25
+## v26: wiki.test_slices (slice cap (owner Q/A 2026-11-20, after P6))
+## @version 26
 ## @req REQ-DDB-WIKI-003
 def load_wiki_config(
     repo_root: Path, config_path: Path | None = None
@@ -423,6 +427,7 @@ def load_wiki_config(
         test_pages=_one_of(raw, "test_pages", TEST_PAGES, problems),
         api=_strings(raw, "api", (), "wiki", problems),
         body_lines=_positive(raw, "body_lines", 120, problems),
+        test_slices=_positive(raw, "test_slices", 1, problems),
         doc_tags=_doc_tags(Path(config_path or Path(repo_root) / ".clew.yaml")),
         tooling=_strings(raw, "tooling", DEFAULT_TOOLING, "wiki", problems),
         needs=str(requirements["needs"]) if requirements.get("needs") else None,

@@ -451,3 +451,17 @@ def test_text_that_looks_like_a_doxygen_element_is_kept() -> None:
         doc_text('<para>See <image type="html" name="a.png"/><ulink url="u">it</ulink>.</para>')
         == "See it ."
     )
+
+
+def test_two_returns_share_one_definition() -> None:
+    """P6 at 390px (owner Q/A 2026-11-20): an entry with two distinct returns emitted a second
+    `<dd>` with no `<dt>`; the `dl.api-doc` grid put it in the LABEL column, which grew to the
+    sentence's width (844px) and pushed the page sideways. Several returns are one list in one dd.
+
+    @brief One dt, one dd per label.
+    """
+    from clew.wiki.apiref import Doc, _doc_lists
+
+    html = _doc_lists(Doc(prose="", returns=("A.", "B.")))
+    assert html.count("<dd>") == html.count("<dt>") == 1, html
+    assert "<li>A.</li><li>B.</li>" in html

@@ -791,13 +791,66 @@ def name_of(conn: sqlite3.Connection, rowid: int) -> str | None:
     return row[0] if row else None
 
 
+## doxygen's own documentation elements (its compound.xsd docCmdGroup and friends). A `<` that opens
+## or closes anything else is TEXT doxygen stored verbatim (`std::atomic<bool>`, `n_tokens < 2`).
+_DOX_ELEMENTS = (
+    "para|ref|computeroutput|bold|emphasis|underline|strike|small|superscript|subscript|center|del|"
+    "ins|s|ulink|programlisting|codeline|highlight|sp|linebreak|hruler|preformatted|verbatim|anchor|"
+    "itemizedlist|orderedlist|listitem|simplesect|title|parameterlist|parameteritem|"
+    "parameternamelist|parametername|parametertype|parameterdescription|xrefsect|xreftitle|"
+    "xrefdescription|variablelist|varlistentry|term|table|row|entry|caption|heading|image|dotfile|"
+    "mscfile|diafile|toclist|tocitem|language|copydoc|blockquote|parblock|internal|sect1|sect2|"
+    "sect3|sect4|details|summary|emoji|formula|indexentry|primaryie|secondaryie|nonbreakablespace|"
+    "ndash|mdash|htmlonly|rtfonly|latexonly|xmlonly|docbookonly|manonly|plantumlfile"
+)
+_STRAY_LT = re.compile(rf"<(?!/?(?:{_DOX_ELEMENTS})[\s/>])")
+_STRAY_AMP = re.compile(r"&(?!#?\w+;)")
+_OPEN_TAG = re.compile(rf"<({_DOX_ELEMENTS})[\s>]")
+## One doxygen element tag — open, close or self-closing — and nothing else (`strip_xml`).
+_DOX_TAG = re.compile(rf"</?(?:{_DOX_ELEMENTS})(?:\s[^<>]*)?/?>")
+
+
+## @brief Doxygen XML made well-formed: stray `<` and `&` from code text escaped.
+## MOVED from clew/wiki/apiref.py (owner Q/A 2026-11-20): one rule for the wiki and served text.
+## @param xml A description fragment.
+## @return The fragment, parseable.
+## v2: an element name used as text is text
+## @version 2
+## @utility
+def well_formed(xml: str) -> str:
+    """ENTROPIC'S AUDIT (84 of 1,485 include/ descriptions): doxygen stores code text verbatim
+    inside its XML, so `std::atomic<bool>` or `(n_tokens < 2)` made the fragment unparseable, and
+    the flat fallback then stripped them AS TAGS — "(n_tokens < 2)" rendered as "(n_tokens", the
+    rest lost. doxygen's own elements stay markup; any other `<`, and a bare `&`, become text.
+
+    @brief Escape stray markup characters.
+    @return XML.
+    """
+    text = _STRAY_LT.sub("&lt;", _STRAY_AMP.sub("&amp;", xml or ""))
+    ## A doxygen element NAME used as text (`"<summary>"`) opens without closing: its opens are text.
+    for name in set(_OPEN_TAG.findall(text)):
+        opens = rf"<(?={name}(?:\s[^<>]*)?(?<!/)>)"
+        if len(re.findall(opens, text)) != text.count(f"</{name}>"):
+            text = re.sub(opens, "&lt;", text)
+    return text
+
+
 ## @brief Strip doxygen's XML-ish markup from a description column.
 ## @return Plain text with XML-ish tags removed and whitespace runs collapsed.
-## @version 1
+## v2: verbatim code text kept in served replies (owner Q/A 2026-11-20)
+## @version 2
 ## @req REQ-DDB-QUERY-003
 def strip_xml(text: str | None) -> str:
-    """@brief Collapse doxygen description markup to plain whitespace-run text."""
-    return re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", text or "")).strip()
+    """OWNER Q/A 2026-11-20 (2.0.0): served text keeps code text doxygen stored verbatim. A regex
+    strip of `<…>` served `(n_tokens < 2) … (llama_decode error)` as "(n_tokens" and
+    `std::atomic<bool>` as "std::atomic". Only doxygen's own elements are markup — the element set
+    `well_formed` uses, the wiki's rule since 314e4696 — and everything else, entities included,
+    is served as stored (test_jsts pins `Map&lt;string` surviving).
+
+    @brief Collapse doxygen description markup to plain whitespace-run text.
+    @return Text.
+    """
+    return re.sub(r"\s+", " ", _DOX_TAG.sub(" ", text or "")).strip()
 
 
 ## @brief Extract the version value doxygen folded into detaileddescription.

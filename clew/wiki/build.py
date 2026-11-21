@@ -30,6 +30,7 @@ without the extra installed.
 from __future__ import annotations
 
 import dataclasses
+import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -123,7 +124,8 @@ def build_wiki(
 ## v12: public-API reference (2.0.0, PAPI)
 ## v13: viewer caps V3/V5/V6 (2.0.0, owner Q/A 2026-11-20)
 ## v14: doc tags to the API pages (entropic's PAPI gaps 1-3 (2.0.0))
-## @version 14
+## v15: slice cap in the test-page context (owner Q/A 2026-11-20, after P6)
+## @version 15
 ## @utility
 def _build_site(
     repo_root: Path,
@@ -265,6 +267,8 @@ def _build_site(
             "written": set(written),
             "test_pages": config.test_pages,
             "slices": _slices_by_test(pages),
+            ## OWNER Q/A 2026-11-20 (after P6): how many of a test's slices are drawn.
+            "test_slices": config.test_slices,
         },
         source,
     )
@@ -671,19 +675,66 @@ def _prose(repo_root: Path, config: WikiConfig, source: Path) -> list[tuple[str,
 ## @param rel Its repo-relative path.
 ## @param source The Sphinx source directory.
 ## @return Its page name.
-## @version 1
+## v2 (P6 findings, owner Q/A 2026-11-20): untitled Markdown is titled; linked local files come along.
+## @version 2
 ## @utility
 def copy_prose(root: Path, rel: str, source: Path) -> str:
-    """@brief Copy prose. @return Page name."""
+    """P6: sassafras-class's untitled release notes got NO link in the Docs toctree (and 1,040 of
+    its 1,128 warnings); clew's OVERVIEW linked `wire-keys.json`, which was never copied, so the
+    link went nowhere. Markdown with no heading is titled by its file name, and a local non-prose
+    file it links is copied beside it, where MyST resolves the link.
+
+    @brief Copy prose.
+    @return Page name.
+    """
     path = root / rel
     target = source / "prose" / rel
     target.parent.mkdir(parents=True, exist_ok=True)
     if path.suffix.lower() in (".html", ".htm"):
         target = target.with_suffix(".md")
         target.write_text(_html_page(path), encoding="utf-8")
+    elif path.suffix.lower() == ".md":
+        text = path.read_text(encoding="utf-8", errors="replace")
+        if not _MD_HEADING.search(text):
+            text = f"# {path.stem}\n\n{text}"
+        target.write_text(text, encoding="utf-8")
+        _copy_linked(root, path, text, target.parent)
     else:
         shutil.copyfile(path, target)
     return str(Path("prose") / Path(rel).with_suffix(""))
+
+
+## A Markdown heading line (ATX), which Sphinx takes as the page's title.
+_MD_HEADING = re.compile(r"^#{1,6}\s+\S", re.M)
+## A relative Markdown link target: no scheme, no anchor-only, no absolute path.
+_MD_LINK = re.compile(r"\]\((?![a-z][a-z0-9+.-]*:|#|/)([^)\s#]+)")
+
+
+## @brief Copy the local non-prose files a Markdown page links, beside its copy.
+## @param root The repository.
+## @param page The page's path in the repository.
+## @param text Its text.
+## @param dest The directory its copy is in.
+## @return None.
+## @version 1
+## @utility
+def _copy_linked(root: Path, page: Path, text: str, dest: Path) -> None:
+    """ONLY FILES INSIDE THE REPOSITORY, only ones that exist, and never prose (a linked page is its
+    own copied page): a link out of the tree is not the wiki's to publish.
+
+    @brief Copy linked files.
+    @return None.
+    """
+    base = root.resolve()
+    for link in sorted(set(_MD_LINK.findall(text))):
+        found = (page.parent / link).resolve()
+        if found.suffix.lower() in (".md", ".rst", ".html", ".htm") or not found.is_file():
+            continue
+        if not found.is_relative_to(base):
+            continue
+        out = dest / link
+        out.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(found, out)
 
 
 ## @brief The Docs page: the repository's prose grouped by kind, agent docs apart, decisions linked.
@@ -942,7 +993,8 @@ def commit_published(repo_root: Path, commit: str) -> bool | None:
 ## v4: `_extra` (the exports) copied to the site root.
 ## v5 (2.0.0, P5): no source copies; doctrees beside the site; built fresh and swapped in.
 ## v6 (2.0.0, S8): the `clew` domain extension.
-## @version 6
+## v7: myst_heading_anchors (P6, owner Q/A 2026-11-20)
+## @version 7
 ## @utility
 def _render(
     source: Path, html: Path, config: WikiConfig, repo_root: Path, context: dict | None = None
@@ -965,6 +1017,10 @@ def _render(
         ## S8 (2.0.0): the `clew` domain puts every symbol section in objects.inv.
         "extensions": ["myst_parser", "clew.wiki._sphinxsymbols"],
         "source_suffix": {".rst": "restructuredtext", ".md": "markdown"},
+        ## P6 (owner Q/A 2026-11-20): GitHub-style heading anchors (`GUARD.md#files-the-gate-skips`),
+        ## which MyST makes only when told; without them every such link in a repo's prose was
+        ## "target not found" (clew 4, sassafras-class 7).
+        "myst_heading_anchors": 6,
         "exclude_patterns": ["_build"],
         "html_context": context or {},
         "html_extra_path": ["_extra"] if (source / "_extra").is_dir() else [],

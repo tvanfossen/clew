@@ -32,6 +32,7 @@ from dataclasses import dataclass
 from html import escape
 from pathlib import Path
 from typing import Any
+from ..query._common import well_formed as _well_formed
 
 ## The member kinds the reference shows, in the page's section order.
 _SECTIONS = (
@@ -449,47 +450,6 @@ def api_pages(db: Path, globs: tuple[str, ...], source: Path, tags: tuple[str, .
     return "api"
 
 
-## doxygen's own documentation elements (its compound.xsd docCmdGroup and friends). A `<` that opens
-## or closes anything else is TEXT doxygen stored verbatim (`std::atomic<bool>`, `n_tokens < 2`).
-_DOX_ELEMENTS = (
-    "para|ref|computeroutput|bold|emphasis|underline|strike|small|superscript|subscript|center|del|"
-    "ins|s|ulink|programlisting|codeline|highlight|sp|linebreak|hruler|preformatted|verbatim|anchor|"
-    "itemizedlist|orderedlist|listitem|simplesect|title|parameterlist|parameteritem|"
-    "parameternamelist|parametername|parametertype|parameterdescription|xrefsect|xreftitle|"
-    "xrefdescription|variablelist|varlistentry|term|table|row|entry|caption|heading|image|dotfile|"
-    "mscfile|diafile|toclist|tocitem|language|copydoc|blockquote|parblock|internal|sect1|sect2|"
-    "sect3|sect4|details|summary|emoji|formula|indexentry|primaryie|secondaryie|nonbreakablespace|"
-    "ndash|mdash|htmlonly|rtfonly|latexonly|xmlonly|docbookonly|manonly|plantumlfile"
-)
-_STRAY_LT = re.compile(rf"<(?!/?(?:{_DOX_ELEMENTS})[\s/>])")
-_STRAY_AMP = re.compile(r"&(?!#?\w+;)")
-_OPEN_TAG = re.compile(rf"<({_DOX_ELEMENTS})[\s>]")
-
-
-## @brief Doxygen XML made well-formed: stray `<` and `&` from code text escaped.
-## @param xml A description fragment.
-## @return The fragment, parseable.
-## v2: an element name used as text is text
-## @version 2
-## @utility
-def _well_formed(xml: str) -> str:
-    """ENTROPIC'S AUDIT (84 of 1,485 include/ descriptions): doxygen stores code text verbatim
-    inside its XML, so `std::atomic<bool>` or `(n_tokens < 2)` made the fragment unparseable, and
-    the flat fallback then stripped them AS TAGS — "(n_tokens < 2)" rendered as "(n_tokens", the
-    rest lost. doxygen's own elements stay markup; any other `<`, and a bare `&`, become text.
-
-    @brief Escape stray markup characters.
-    @return XML.
-    """
-    text = _STRAY_LT.sub("&lt;", _STRAY_AMP.sub("&amp;", xml or ""))
-    ## A doxygen element NAME used as text (`"<summary>"`) opens without closing: its opens are text.
-    for name in set(_OPEN_TAG.findall(text)):
-        opens = rf"<(?={name}(?:\s[^<>]*)?(?<!/)>)"
-        if len(re.findall(opens, text)) != text.count(f"</{name}>"):
-            text = re.sub(opens, "&lt;", text)
-    return text
-
-
 ## @brief Parse doxygen's description XML into labelled parts (entropic's gaps 1 and 2).
 ## @param xml The detailed-description XML.
 ## @param tags Tags the repository declares (`guard.validate.extra_tags`), rendered as fields.
@@ -627,7 +587,8 @@ def _fields(text: str, tags: tuple[str, ...]) -> tuple[str, tuple[tuple[str, str
 ## @param doc The doc, or None.
 ## @return HTML.
 ## v2: entropic's audit of 19f439fb (2.0.0)
-## @version 2
+## v3: several returns share one dd (P6 at 390px)
+## @version 3
 ## @utility
 def _doc_lists(doc: Doc | None) -> str:
     """@brief Definition lists. @return HTML."""
@@ -644,7 +605,13 @@ def _doc_lists(doc: Doc | None) -> str:
         )
         parts.append(f"<dt>Parameters</dt><dd><ul>{items}</ul></dd>")
     if doc.returns:
-        parts.append("<dt>Returns</dt>" + "".join(f"<dd>{escape(r)}</dd>" for r in doc.returns))
+        ## P6 at 390px: a second bare <dd> fell into the grid's LABEL column; one dd, one list.
+        body = (
+            escape(doc.returns[0])
+            if len(doc.returns) == 1
+            else "<ul>" + "".join(f"<li>{escape(r)}</li>" for r in doc.returns) + "</ul>"
+        )
+        parts.append(f"<dt>Returns</dt><dd>{body}</dd>")
     if doc.retvals:
         items = "".join(f"<li><code>{escape(v)}</code> — {escape(t)}</li>" for v, t in doc.retvals)
         parts.append(f"<dt>Return values</dt><dd><ul>{items}</ul></dd>")

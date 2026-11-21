@@ -59,6 +59,27 @@ class ClewDomain(Domain):
             if once[r["name"]] == 1:
                 yield (r["name"], r["name"], "function", r["page"], r["anchor"], 2)
 
+    ## @brief An `any` lookup finds nothing in this domain: it carries objects, not references.
+    ## @param env The build environment.
+    ## @param fromdocname The document asking.
+    ## @param builder The builder.
+    ## @param target The name looked up.
+    ## @param node The pending reference.
+    ## @param contnode Its content.
+    ## @return No matches.
+    ## @version 1
+    ## @utility
+    def resolve_any_xref(  # noqa: PLR0913 - Sphinx's signature
+        self, env: Any, fromdocname: str, builder: Any, target: str, node: Any, contnode: Any
+    ) -> list:
+        """P6 (owner Q/A 2026-11-20): Sphinx warned once per build that the `clew` domain had not
+        implemented this, because MyST asks every domain. Objects only, so nothing resolves here.
+
+        @brief Resolve nothing.
+        @return [].
+        """
+        return []
+
     ## @brief Nothing to forget: the objects are the build's list, not parsed state.
     ## @param docname A document being re-read.
     ## @return None.
