@@ -390,3 +390,38 @@ def test_the_actor_arrow_is_styled_to_be_seen() -> None:
     from clew.wiki.svg import _STYLE
 
     assert ".enter line{stroke:" in _STYLE
+
+
+def test_an_entry_no_test_ran_is_walked_statically(indexed: tuple[Path, Path]) -> None:
+    """W-8 (owner review 2026-11-22): `flow-main-clew-cli-py` drew ONE step, "main … 11 not run",
+    call site `clew/cli.py:0`. The tests call the subcommands, never `main`, so every call was folded
+    as not run, although nothing about `main` was measured: its file was, it was not. A caller
+    none of whose lines ran is unmeasured and walked as the static flow is.
+
+    @brief A measured file whose entry never ran keeps the static steps.
+    @return None.
+    """
+    from clew.wiki.flow import derive_flow
+
+    db, repo = indexed
+    static = [(s.caller, s.callee) for s in derive_flow(db, repo, "main", depth=1).steps]
+    flow = derive_flow(db, repo, "main", depth=1, executed={"app/main.py": {1}})
+    assert [(s.caller, s.callee) for s in flow.steps] == static, flow.steps
+    assert not any(s.not_run for s in flow.steps)
+
+
+def test_a_not_run_row_names_no_call_site() -> None:
+    """W-8: the folded "… N not run" row showed the call site `clew/cli.py:0`, a line that does not
+    exist. A stub stands for several calls, so it names none.
+
+    @brief The stub row's call-site cell is empty.
+    @return None.
+    """
+    from types import SimpleNamespace
+
+    from clew.wiki.flowpage import _site_cell
+
+    stub = SimpleNamespace(not_run=11)
+    call = SimpleNamespace(not_run=0)
+    assert _site_cell(stub, {"link": "x.html#L0", "site": "clew/cli.py:0"}) == ""
+    assert "clew/cli.py:12" in _site_cell(call, {"link": "", "site": "clew/cli.py:12"})

@@ -44,6 +44,43 @@
       r.hidden = q !== '' && r.textContent.toLowerCase().indexOf(q) < 0;
     });
   });
+  /* SLICES PLAY (W-6, owner review 2026-11-22): a test page's exercised steps (`g.st.ex`), in
+   * order, each held for its words at 238 wpm, adults' mean silent-reading rate for non-fiction
+   * (Brysbaert 2019), never under MIN_MS; the speed control scales it (Mayer & Moreno 2003,
+   * segmenting). The caption is each step's own title. */
+  var WPM = 238, MIN_MS = 1500;
+  function slicePlayer(sec) {
+    var steps = Array.prototype.slice.call(sec.querySelectorAll('g.st.ex'));
+    var now = sec.querySelector('.slice-now'), speed = sec.querySelector('[data-flow-speed]');
+    var cursor = 0, timer = null;
+    if (!steps.length) return;
+    function title(g) { var t = g.querySelector('title'); return t ? t.textContent : ''; }
+    function show(i) {
+      steps.forEach(function (g, k) { g.classList.toggle('on', k === i); });
+      if (now) now.textContent = title(steps[i]);
+    }
+    function dwell(i) {
+      var n = title(steps[i]).split(/\s+/).filter(Boolean).length;
+      return Math.max(MIN_MS, n / WPM * 60000) / (speed ? +speed.value || 1 : 1);
+    }
+    function stop() { if (timer) { clearTimeout(timer); timer = null; } }
+    function tick() {
+      if (cursor >= steps.length) { stop(); return; }
+      show(cursor); timer = setTimeout(tick, dwell(cursor++));
+    }
+    function on(name, fn) {
+      var b = sec.querySelector('[data-slice-control=' + name + ']');
+      if (b) b.addEventListener('click', fn);
+    }
+    on('play', function () { stop(); cursor = 0; sec.classList.add('playing'); tick(); });
+    on('pause', function () { if (timer) stop(); else if (cursor < steps.length) tick(); });
+    on('step', function () { stop(); sec.classList.add('playing'); if (cursor >= steps.length) cursor = 0; show(cursor++); });
+  }
+  function slices() {
+    Array.prototype.forEach.call(document.querySelectorAll('section.exercises'), slicePlayer);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', slices);
+  else slices();
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', watch);
   else watch();
 })();

@@ -78,7 +78,7 @@ function link(i){var n=N[i];return'<button type="button" data-go="'+i+'">'+esc(n
 function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
 function list(t,xs){return xs.length?"<h4>"+t+" ("+xs.length+")</h4><ul>"+xs.slice(0,40).map(function(j){return"<li>"+link(j)+"</li>";}).join("")+(xs.length>40?"<li>… "+(xs.length-40)+" more</li>":"")+"</ul>":"<h4>"+t+"</h4><p>none drawn</p>";}
 function show(i){var n=N[i],h='<button type="button" class="web-x" data-close aria-label="Close">×</button><h3>'+esc(n.name)+'</h3><p class="web-file">'+esc(n.file)+(n.line?":"+n.line:"")+"</p>"+(n.owner?'<p class="web-owner">Owner '+esc(n.owner)+"</p>":"")+"<p>"+esc(B[n.block].id)+" · ring "+n.ring+(n.tier?' · <span class="tier t-'+n.tier+'">'+n.tier+"</span>":"")+"</p>";
- if(n.href)h+='<p><a href="'+esc(n.href)+'">Source and dossier →</a></p>';h+=list("Calls",outN[i])+list("Called by",inN[i]);panel.innerHTML=h;panel.hidden=false;}
+ if(n.href)h+='<p><a href="'+esc(n.href)+'" data-modal="frame-'+i+'">Source and dossier →</a></p>';h+=list("Calls",outN[i])+list("Called by",inN[i]);panel.innerHTML=h;panel.hidden=false;}
 function blockPanel(i){var b=B[i],h='<button type="button" class="web-x" data-close aria-label="Close">×</button><h3>'+esc(b.id)+"</h3><p>"+b.functions+" functions · "+b.files+" files"+(b.declared?" · declared":"")+"</p>";
  if((b.inferred_files||[]).length)h+="<h4>Placed by coupling</h4><ul>"+b.inferred_files.map(function(f){return"<li><code>"+esc(f)+"</code></li>";}).join("")+"</ul>";
  if((b.req_ids||[]).length)h+="<h4>Requirements</h4><ul>"+b.req_ids.map(function(r){return'<li><a href="req-'+esc(r[0])+'.html">'+esc(r[0])+'</a> <span class="tier t-'+r[1]+'">'+r[1]+"</span></li>";}).join("")+"</ul>";
@@ -113,4 +113,9 @@ function fromHash(){var h=decodeURIComponent(location.hash.slice(1));if(h.indexO
 colors();new ResizeObserver(size).observe(cv);cam.k=fitK()||1;size();cam.k=fitK();draw();var keep=reduce;reduce=true;fromHash();reduce=keep;
 function retheme(){colors();later();}matchMedia("(prefers-color-scheme: dark)").addEventListener("change",retheme);
 new MutationObserver(retheme).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
+/* W-2 (owner 2026-11-22): a map item's symbol section opens framed in the page's one modal. */
+var md=document.getElementById('clew-modal');if(md)md.addEventListener('close',function(){md.classList.remove('wide');});
+function frames(){if(window.clewModal)clewModal.register('frame-',function(k){var n=N[+k];if(!n||!n.href)return null;var f=document.createElement('iframe');f.src=n.href;f.className='sym-frame';f.title=n.name;if(md)md.classList.add('wide');return{title:n.name,node:f};});}
+/* web.js loads BEFORE clew.js defines clewModal, so the builder registers once the page is parsed. */
+if(window.clewModal)frames();else document.addEventListener('DOMContentLoaded',frames);
 })();

@@ -1100,16 +1100,18 @@ def test_the_views_script_is_budgeted() -> None:
 
 def test_the_step_table_and_the_diagram_stay_in_sync(site: dict[str, str]) -> None:
     """OWNER (round 5; Q/A 2026-11-20 "live sync" = diagram ↔ step table): each table row names its
-    step, and the page script lights the row as the diagram plays or steps, scrolls it into view,
-    and opens the step from a row.
+    step, and the page script lights the row as the diagram plays or steps, and opens the step from
+    a row. SPEC CHANGED (owner review 2026-11-22, W-7): the row is NO LONGER scrolled into view —
+    on the dossier flow that scrolled the page and hid the diagram it was following.
 
     @brief P5.6: live sync.
     """
     page = _flow_page(site)
     table = page.split('<table class="clew steps"', 1)[1].split("</table>", 1)[0]
     assert re.findall(r'<tr data-step="(\d+)"', table)[:2] == ["0", "1"]
-    for needle in ("animationstart", "scrollIntoView", "tr[data-step]"):
+    for needle in ("animationstart", "tr[data-step]"):
         assert needle in page, needle
+    assert "scrollIntoView" not in page
 
 
 def test_the_site_has_an_sbom_page(site: dict[str, str]) -> None:

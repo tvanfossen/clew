@@ -125,7 +125,8 @@ def build_wiki(
 ## v13: viewer caps V3/V5/V6 (2.0.0, owner Q/A 2026-11-20)
 ## v14: doc tags to the API pages (entropic's PAPI gaps 1-3 (2.0.0))
 ## v15: slice cap in the test-page context (owner Q/A 2026-11-20, after P6)
-## @version 15
+## v16: blocks to the requirement pages (W-9)
+## @version 16
 ## @utility
 def _build_site(
     repo_root: Path,
@@ -287,7 +288,16 @@ def _build_site(
     trace.issues, trace.unlinked, trace.issues_note = _fetch_issues(config, issues, trace.evidence)
     _issues_into(graph, trace.issues)
     sections = [
-        requirements_page(trace, config, source, rules, burndown, tuple(pages), issues),
+        requirements_page(
+            trace,
+            config,
+            source,
+            rules,
+            burndown,
+            tuple(pages),
+            issues,
+            graph.get("file_block") or {},
+        ),
         flows_index(source, pages, unmatched, tuple(not_drawn)),
         impact_page(trace, pages, rules, source),
         web_page(

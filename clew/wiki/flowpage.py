@@ -29,7 +29,7 @@ from typing import Any, NamedTuple
 
 from .config import Audience, FlowSpec, WikiConfig
 from .flow import Flow, derive_flow
-from .htmltable import code, md_title, source_url, table
+from .htmltable import code, gherkin, md_title, source_url, table
 from .slices import slices_of
 from .svg import flow_svg
 from .symbols import symbol_href
@@ -62,6 +62,8 @@ class FlowPage(NamedTuple):
     ## Round 5: the derived flow, and each test's slice of it (from per-test coverage).
     flow: Any = None
     slices: Any = None
+    ## W-1 (owner review 2026-11-22): the flow's declared intent, shown under its title.
+    intent: str = ""
 
 
 ## The most lines a call expression is read across.
@@ -80,7 +82,7 @@ document.querySelectorAll('.flow-block').forEach(function(block){
  var trs=Array.prototype.slice.call(document.querySelectorAll('table.steps tr[data-step]'));
  function sync(g){var ids=(g.getAttribute('data-steps')||g.getAttribute('data-step')).split(' '),first=null;
   trs.forEach(function(r){var on=ids.indexOf(r.getAttribute('data-step'))>=0;r.classList.toggle('on',on);if(on&&!first)first=r;});
-  if(first)first.scrollIntoView({block:'nearest'});}
+  }
  trs.forEach(function(r){r.addEventListener('click',function(){var g=at(r.getAttribute('data-step'));
   if(g&&window.clewModal)window.clewModal.open('step-'+g.getAttribute('data-step'),g);});});
  function build(n){var i=+n,s=data[i],g=at(i);if(!s||!g)return null;groups.forEach(function(g){g.classList.remove('sel');});
@@ -94,15 +96,41 @@ document.querySelectorAll('.flow-block').forEach(function(block){
  if(window.clewModal)window.clewModal.register('step-',build);
  groups.forEach(function(g){g.addEventListener('animationstart',function(){sync(g);});});
  groups.forEach(function(g){g.addEventListener('click',function(){
+  if(presenting){now(+g.getAttribute('data-step'));return;}
   window.clewModal&&window.clewModal.open('step-'+g.getAttribute('data-step'),g);});});
  function control(name,fn){var b=block.querySelector('[data-flow-control='+name+']');if(b)b.addEventListener('click',fn);}
- control('play',function(){svg.classList.remove('stepping','paused');groups.forEach(function(g){
-  g.classList.remove('on');var c=g.getAttribute('class');g.setAttribute('class','');void g.getBBox();g.setAttribute('class',c);});cursor=0;});
- control('pause',function(){svg.classList.toggle('paused');});
- control('step',function(){if(!svg.classList.contains('stepping')){svg.classList.add('stepping');cursor=0;
-  groups.forEach(function(g){g.classList.remove('on');});}
-  if(cursor>=groups.length){cursor=0;groups.forEach(function(g){g.classList.remove('on');});}
-  groups[cursor].classList.add('on');sync(groups[cursor]);cursor++;});
+ /* W-3 (owner review 2026-11-22): READING PACE. A step dwells for its words at 238 wpm, adults'
+    mean silent-reading rate for non-fiction (Brysbaert 2019, J. Memory and Language 109:104047),
+    never under MIN_MS; the speed control scales it. Learner-paced segments: Mayer & Moreno 2003. */
+ var WPM=238,MIN_MS=1500,timer=null,speedEl=block.querySelector('[data-flow-speed]');
+ var modal=document.getElementById('clew-modal'),wrap=block.querySelector('.flow-wrap'),home=wrap&&wrap.parentNode;
+ var stage=null,presenting=false;
+ function words(s){return [s.caller,s.callee,s.brief,s.call].join(' ').split(/\s+/).filter(Boolean).length;}
+ function dwell(i){var s=data[i]||{},sp=speedEl?+speedEl.value:1;return Math.max(MIN_MS,words(s)/WPM*60000)/(sp||1);}
+ function now(i){if(!presenting)return;var b=build(i),box=stage.querySelector('.flow-now');if(!b||!box)return;
+  box.textContent='';var h=document.createElement('h3');h.textContent=b.title;box.appendChild(h);box.appendChild(b.node);}
+ function show(i){if(!svg.classList.contains('stepping')){svg.classList.add('stepping');groups.forEach(function(g){g.classList.remove('on');});}
+  groups.forEach(function(g,k){g.classList.toggle('on',k<=i);});sync(groups[i]);now(+groups[i].getAttribute('data-step'));}
+ function stop(){if(timer){clearTimeout(timer);timer=null;}}
+ function tick(){if(cursor>=groups.length){stop();return;}show(cursor);var i=cursor++;timer=setTimeout(tick,dwell(+groups[i].getAttribute('data-step')));}
+ control('play',function(){stop();svg.classList.remove('paused');cursor=0;tick();});
+ control('pause',function(){if(timer)stop();else if(cursor<groups.length)tick();});
+ control('step',function(){stop();if(cursor>=groups.length)cursor=0;show(cursor);cursor++;});
+ function label(){var o=block.querySelectorAll('[data-flow-speed-label]');for(var k=0;k<o.length;k++)o[k].textContent='\u00d7'+(+speedEl.value);}
+ if(speedEl){speedEl.addEventListener('input',label);label();}
+ /* W-7: PRESENT, in the page's one modal (`clew-modal`): the controls, the diagram and the current
+    step side by side; the table stays on the page. Closing moves them back. */
+ function present(){var ctl=home.querySelector('.flow-controls');stage=document.createElement('div');
+  stage.className='flow-present-body';var st=document.createElement('div');st.className='flow-stage';
+  var aside=document.createElement('aside');aside.className='flow-now';aside.setAttribute('aria-live','polite');
+  aside.textContent='Play or step to read each call here.';st.appendChild(ctl);st.appendChild(wrap);
+  stage.appendChild(st);stage.appendChild(aside);presenting=true;modal.classList.add('wide');
+  return {title:((document.querySelector('h1')||{}).textContent||'Flow').replace(/\u00b6/g,'').trim(),node:stage};}
+ if(window.clewModal&&modal){window.clewModal.register('flow-present',present);
+  modal.addEventListener('close',function(){if(!presenting)return;presenting=false;modal.classList.remove('wide');
+   home.insertBefore(stage.querySelector('.flow-controls'),home.firstChild);home.appendChild(wrap);});}
+ control('present',function(){if(presenting||!window.clewModal)return;window.clewModal.open('flow-present',this);
+  if(cursor>0)now(+groups[cursor-1].getAttribute('data-step'));});
  var sl=document.getElementById('flow-slices'),slices=sl?JSON.parse(sl.textContent):{};
  function lit(){var m=/^#test=(.+)$/.exec(location.hash),t=m&&decodeURIComponent(m[1]),on=t&&slices[t];
   var note=block.querySelector('.slice-note');if(note)note.remove();
@@ -118,7 +146,13 @@ _STYLE = (
     "<style>svg.seq.paused .cs,svg.seq.paused .cs .ca{animation-play-state:paused}"
     "svg.seq.stepping g[data-step]{opacity:.1;animation:none}"
     "svg.seq.stepping g.on{opacity:1}svg.seq.stepping g.on .ca{stroke-dashoffset:0;animation:none}"
-    "svg.seq g[data-step]{cursor:pointer}</style>"
+    "svg.seq g[data-step]{cursor:pointer}"
+    ## W-3/W-7 (owner review 2026-11-22): the speed control and the present dialog.
+    ".flow-speed{margin-left:12px;font-size:13px}.flow-speed input{vertical-align:middle;width:110px}"
+    ".flow-present-body{display:grid;grid-template-columns:minmax(0,1fr) minmax(220px,340px);gap:16px}"
+    ".flow-present-body .flow-stage{overflow:auto;max-height:82vh}.flow-present-body .flow-now{"
+    "overflow:auto;max-height:82vh;font-size:14px}@media (max-width:760px){.flow-present-body{"
+    "grid-template-columns:minmax(0,1fr)}}</style>"
 )
 
 
@@ -165,7 +199,9 @@ def _executed(coverage: dict[str, dict[int, set[str]]]) -> dict[str, set[int]]:
 ## v15: block lanes and the actor (2.0.0, P5.6)
 ## v16: replay with values (2.0.0, P5.6)
 ## v17: live sync with the step table (2.0.0, P5.6)
-## @version 17
+## v18: call-site cell via _site_cell (W-8)
+## v19: flow preface (W-1, W-5)
+## @version 19
 ## @req REQ-DDB-WIKI-050
 ## @req REQ-DDB-WIKI-014
 ## @req REQ-DDB-WIKI-041
@@ -218,17 +254,15 @@ def flow_page(
         f"# {spec.title or 'Flow: ' + spec.entry}",
         "",
         "```{raw} html",
+        ## W-1/W-5: what the flow is for, its scenario and a worked example, above the diagram.
+        _preface(spec),
         _block(flow, data, spec.animate, test_node(spec)),
         "```",
         "",
     ]
     rows = []
     for i, (step, row) in enumerate(zip(flow.steps, data, strict=True), start=1):
-        site = (
-            f'<a href="{escape(row["link"])}">{escape(row["site"])}</a>'
-            if row["link"]
-            else code(row["site"])
-        )
+        site = _site_cell(step, row)
         reqs = _badges((req_of or {}).get((step.callee, step.file), ()))
         callee = f'<a href="{escape(symbol_href(step.callee, step.file))}">{code(step.callee)}</a>'
         if step.not_run:
@@ -275,6 +309,7 @@ def flow_page(
         calls,
         flow,
         slices,
+        spec.intent,
     )
 
 
@@ -418,7 +453,8 @@ def with_values(
 ## v2: the step opens the page's shared modal (round 3, P1b) — deep-linked as `#m=step-N` — not
 ## a dialog of its own; the diagram pans and zooms.
 ## v3: a test's flow names its test (`data-test-node`), so the hub can run it traced (P4b).
-## @version 3
+## v4: controls and present dialog (W-3, W-7)
+## @version 4
 ## @utility
 def _block(flow: Flow, data: list[dict[str, Any]], animate: bool, node: str = "") -> str:
     """`<` IS ESCAPED IN THE JSON so no repository text can close the script element.
@@ -429,16 +465,34 @@ def _block(flow: Flow, data: list[dict[str, Any]], animate: bool, node: str = ""
     blob = json.dumps(data, ensure_ascii=False).replace("<", "\\u003c")
     attr = f' data-test-node="{escape(node)}"' if node else ""
 
-    buttons = "".join(
-        f'<button type="button" data-flow-control="{c}">{c}</button>'
-        for c in ("play", "pause", "step")
-    )
     return (
-        f'<div class="flow-block"{attr}>{_STYLE}<div class="flow-controls">{buttons}</div>'
-        f'<div class="flow-wrap" data-pz>{flow_svg(flow, animate=animate)}</div>'
+        f'<div class="flow-block"{attr}>{_STYLE}<div class="flow-home">{_controls()}'
+        f'<div class="flow-wrap" data-pz>{flow_svg(flow, animate=animate)}</div></div>'
         f'<script type="application/json" class="flow-data">{blob}</script>'
         f"{_SCRIPT}</div>"
     )
+
+
+## @brief The player's controls: play, pause, step, present, and the reading-speed slider.
+## @return HTML.
+## @version 1
+## @utility
+def _controls() -> str:
+    """W-3: the speed scales the reading-paced dwell, ×0.25 (slowest) to ×2.
+
+    @brief Controls.
+    @return HTML.
+    """
+    buttons = "".join(
+        f'<button type="button" data-flow-control="{c}">{c}</button>'
+        for c in ("play", "pause", "step", "present")
+    )
+    speed = (
+        '<label class="flow-speed">speed <input type="range" min="0.25" max="2" step="0.25" '
+        'value="1" data-flow-speed aria-label="playback speed"> <output data-flow-speed-label>'
+        "\u00d71</output></label>"
+    )
+    return f'<div class="flow-controls">{buttons}{speed}</div>'
 
 
 ## @brief The callee signatures and briefs of a flow's steps.
@@ -470,6 +524,52 @@ def _signatures(db: Path, flow: Flow) -> dict[tuple[str, str], tuple[str, str]]:
                 brief = " ".join(re.sub(r"<[^>]+>", " ", str(row[2] or "")).split())
                 out[key] = (f"{row[0] or ''}{row[1] or ''}".strip(), brief)
     return out
+
+
+## @brief A flow's declared intent, scenario and worked example, in reading order.
+## @param spec The flow.
+## @return HTML, or "" when it declares none.
+## @version 1
+## @utility
+def _preface(spec: Any) -> str:
+    """W-1/W-5 (owner review 2026-11-22): the abstract first — what the flow is for — then its
+    Gherkin scenario, always shown, then the example. Declared text only; escaped.
+
+    @brief Flow preface.
+    @return HTML.
+    """
+    parts = []
+    if spec.intent:
+        parts.append(f'<p class="intent">{escape(spec.intent)}</p>')
+    if spec.scenario:
+        parts.append(gherkin(spec.scenario))
+    if spec.example:
+        given, got = spec.example
+        parts.append(
+            '<div class="example"><p class="ex-h">Worked example</p>'
+            f'<pre class="ex-in">{escape(given)}</pre><pre class="ex-out">{escape(got)}</pre></div>'
+        )
+    return f'<div class="flow-preface">{"".join(parts)}</div>' if parts else ""
+
+
+## @brief A step row's call-site cell: a link to the line, plain text, or nothing for a stub.
+## @param step The step.
+## @param row Its row data (`link`, `site`).
+## @return HTML.
+## @version 1
+## @utility
+def _site_cell(step: Any, row: dict[str, Any]) -> str:
+    """W-8 (owner review 2026-11-22): a not-run stub stands for several calls, so it names no line
+    (it showed `clew/cli.py:0`).
+
+    @brief Call-site cell.
+    @return HTML.
+    """
+    if step.not_run:
+        return ""
+    if row["link"]:
+        return f'<a href="{escape(row["link"])}">{escape(row["site"])}</a>'
+    return code(row["site"])
 
 
 ## @brief The call expression at a call site, read across lines until its parentheses close.
@@ -615,13 +715,15 @@ def flows_index(
 ## @param members Its flow pages.
 ## @return HTML.
 ## v2: the tests role folds too (P2b).
-## @version 2
+## v3: intent under the title (W-1)
+## @version 3
 ## @utility
 def _role_block(role: str, members: list[FlowPage]) -> str:
     """@brief Role block. @return HTML."""
     rows = [
         [
-            f'<a href="{escape(p.name)}.html">{md_title(p.title)}</a>',
+            f'<a href="{escape(p.name)}.html">{md_title(p.title)}</a>'
+            + (f'<br><span class="intent">{escape(p.intent)}</span>' if p.intent else ""),
             str(p.steps),
             _badges(p.requirements),
         ]

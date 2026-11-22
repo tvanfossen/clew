@@ -126,3 +126,21 @@ def md_title(title: str) -> str:
     """@brief Inline code spans become <code>, everything escaped. @return HTML."""
     parts = escape(title).split("`")
     return "".join(f"<code>{s}</code>" if i % 2 else s for i, s in enumerate(parts))
+
+
+## @brief Gherkin steps as a list, each keyword marked (W-1 / W-9, owner review 2026-11-22).
+## @param lines One step per line, each starting Given / When / Then / And / But.
+## @return HTML, or "" for none.
+## @version 1
+## @utility
+def gherkin(lines: tuple[str, ...] | list[str]) -> str:
+    """ONE RENDERING for a flow's scenario and a requirement's: declared text, escaped.
+
+    @brief Scenario list.
+    @return HTML.
+    """
+    rows = "".join(
+        f'<li><b class="kw">{escape(kw)}</b> {escape(rest)}</li>'
+        for kw, _sp, rest in (str(line).partition(" ") for line in lines if str(line).strip())
+    )
+    return f'<ol class="gherkin" aria-label="Scenario">{rows}</ol>' if rows else ""

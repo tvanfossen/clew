@@ -272,7 +272,8 @@ def load_impact(path: Path) -> list[dict] | None:
 ## v7: writes the group pages too (2.0.0, P5.4)
 ## v8: writes the S4 traceability checklist and links it (2.0.0, P5.4)
 ## v9: EARS badge and check notes (2.0.0, S9)
-## @version 9
+## v10: requirement WHAT section (W-9, owner review 2026-11-22)
+## @version 10
 ## @req REQ-DDB-WIKI-012
 def requirements_page(
     trace: Trace,
@@ -282,6 +283,7 @@ def requirements_page(
     burndown: str = "",
     flows: tuple = (),
     issues: tuple[str, str] | None = None,
+    blocks: dict[str, str] | None = None,
 ) -> str:
     """@brief Render the trace. @return Page name."""
     from .summary import charts_block, group_cards, group_table
@@ -293,6 +295,8 @@ def requirements_page(
         "flows": list(flows),
         "issues": issues,
         "ears": config.ears,
+        ## W-9: where each requirement lives (file → map block).
+        "blocks": blocks or {},
     }
     requirement_pages(trace, ctx, source)
     group_pages(trace, ctx, source)

@@ -26,7 +26,9 @@ from __future__ import annotations
 from typing import Any
 
 from .config import Audience
-from .htmltable import code, md_title, source_url, tag, text
+import re
+
+from .htmltable import code, gherkin, md_title, source_url, tag, text
 from .issues import Target, issue_url
 
 
@@ -64,7 +66,8 @@ def requirement_cell(row: Any, entry: dict, ctx: dict[str, Any]) -> str:
 ## v4: open issues (P3a).
 ## v5: decisions naming the requirement (P3c).
 ## v6 (round 4, R4): the body of the requirement's own page; every test, as tables with extent.
-## @version 6
+## v7: requirement WHAT section (W-9, owner review 2026-11-22)
+## @version 7
 ## @utility
 def _body(row: Any, entry: dict, title: str, ctx: dict[str, Any]) -> str:
     """@brief Assemble sections. @return HTML."""
@@ -75,17 +78,8 @@ def _body(row: Any, entry: dict, title: str, ctx: dict[str, Any]) -> str:
         if rules.exclude_requirement_text
         else str(first(entry, "acceptance_criteria", "acceptance", "description"))
     )
-    facts = [("tier", tag(row.tier))]
-    for label, keys in (
-        ("declared", ("x-status", "status")),
-        ("priority", ("x-priority", "priority")),
-    ):
-        value = first(entry, *keys)
-        if value:
-            facts.append((label, text(str(value))))
+    ## W-9 (owner review 2026-11-22): the facts and the acceptance moved up, into `_what`.
     sections = [
-        ("", "".join(f"<dt>{k}</dt><dd>{v}</dd>" for k, v in facts), "dl"),
-        ("Acceptance", f"<p>{md_title(criteria)}</p>" if criteria else "", ""),
         (
             "Implemented by",
             _items(
@@ -114,6 +108,85 @@ def _body(row: Any, entry: dict, title: str, ctx: dict[str, Any]) -> str:
     ]
     html = "".join(_section(h, body, kind) for h, body, kind in sections if body)
     return html + _issue_link(row, title, criteria, ctx)
+
+
+## The sentence breaks an acceptance text is split into criteria at.
+_SENTENCE = re.compile(r"(?<=[.!?])\s+(?=[A-Z(`\"'])")
+
+
+## @brief WHAT a requirement asks for, before how it is met (W-9, owner review 2026-11-22).
+## @param row The evidence row.
+## @param entry The catalog entry.
+## @param ctx The page context (`rules`, `blocks`: file → map block).
+## @return HTML.
+## @version 1
+## @req REQ-DDB-WIKI-022
+def _what(row: Any, entry: dict, ctx: dict[str, Any]) -> str:
+    """THE REQUIREMENT FIRST: its criteria one per line, the declared facts (tier, status, priority,
+    verification, rationale, parent), the catalog's own scenario when it declares one (Gherkin,
+    declared only), and where in the system it lives — the map blocks its implementers sit in, by
+    count, linked to the map's overlay. Withheld text stays withheld.
+
+    @brief The WHAT section.
+    @return HTML.
+    """
+    rules: Audience = ctx["rules"]
+    parts = ["<h2>What it requires</h2>"]
+    if not rules.exclude_requirement_text:
+        criteria = str(first(entry, "acceptance_criteria", "acceptance", "description") or "")
+        items = [c for c in _SENTENCE.split(" ".join(criteria.split())) if c]
+        if items:
+            parts.append(
+                '<ol class="criteria">'
+                + "".join(f"<li>{md_title(c)}</li>" for c in items)
+                + "</ol>"
+            )
+        scenario = first(entry, "scenario")
+        lines = scenario.splitlines() if isinstance(scenario, str) else list(scenario or ())
+        parts.append(gherkin([" ".join(str(x).split()) for x in lines]))
+    facts = [("tier", tag(row.tier))]
+    for label, keys in (
+        ("declared", ("x-status", "status")),
+        ("priority", ("x-priority", "priority")),
+        ("verification", ("verification",)),
+        ("rationale", ("rationale",)),
+        ("parent", ("parent",)),
+    ):
+        value = first(entry, *keys)
+        if value:
+            facts.append((label, text(str(value))))
+    parts.append(
+        '<dl class="req-facts">' + "".join(f"<dt>{k}</dt><dd>{v}</dd>" for k, v in facts) + "</dl>"
+    )
+    parts.append(_where(row, ctx.get("blocks") or {}))
+    return '<section class="req-what">' + "".join(parts) + "</section>"
+
+
+## @brief Where a requirement lives: the map blocks of its implementers, most first.
+## @param row The evidence row.
+## @param blocks File → map block.
+## @return HTML, or "" when no implementer has a block.
+## @version 1
+## @utility
+def _where(row: Any, blocks: dict[str, str]) -> str:
+    """@brief Block strip. @return HTML."""
+    counts: dict[str, int] = {}
+    for _n, file, _ln in row.implementer_sites:
+        if blocks.get(file):
+            counts[blocks[file]] = counts.get(blocks[file], 0) + 1
+    if not counts:
+        return ""
+    top = max(counts.values())
+    bars = "".join(
+        f'<li><span class="bk">{text(b)}</span><span class="bar" style="width:{max(6, round(100 * n / top))}%">'
+        f'</span><span class="n">{n}</span></li>'
+        for b, n in sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))
+    )
+    return (
+        '<div class="req-where"><h3>Where it lives</h3>'
+        f'<ul class="blocks">{bars}</ul>'
+        f'<p><a href="map.html#req={text(row.req_id)}">See it on the map</a></p></div>'
+    )
 
 
 ## @brief One modal section.
@@ -291,7 +364,8 @@ def _ears_line(row: Any, entry: dict, ctx: dict[str, Any]) -> list[str]:
 ## @return The page names written.
 ## v2: EARS badge and check notes (2.0.0, S9)
 ## v3: evidence diagram (2.0.0, P5.4)
-## @version 3
+## v4: requirement WHAT section (W-9, owner review 2026-11-22)
+## @version 4
 ## @req REQ-DDB-WIKI-022
 def requirement_pages(trace: Any, ctx: dict[str, Any], source: Any) -> list[str]:
     """ORPHAN PAGES (linked from the index, not from the toctree), one per requirement, so a
@@ -323,6 +397,9 @@ def requirement_pages(trace: Any, ctx: dict[str, Any], source: Any) -> list[str]
             "```{raw} html",
             '<p class="crumbs"><a href="requirements.html">← Requirements</a></p>',
             *_ears_line(row, entry, ctx),
+            ## W-9 (owner review 2026-11-22): WHAT it requires, then HOW it is met.
+            _what(row, entry, ctx),
+            "<h2>How it is met</h2>",
             *_evidence_line(row),
             f'<div class="req-page">{_body(row, entry, title, ctx)}</div>',
             "```",

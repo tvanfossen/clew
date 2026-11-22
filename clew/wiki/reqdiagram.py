@@ -80,7 +80,8 @@ def evidence_svg(row: Any) -> str:
 ## @param impls Its implementers.
 ## @param tests Its (test, status) pairs.
 ## @return SVG HTML.
-## @version 1
+## v2: width fits header and note (W-9)
+## @version 2
 ## @req REQ-DDB-WIKI-022
 def _summary_svg(row: Any, impls: list[str], tests: list[tuple[str, str]]) -> str:
     """SAYS IT IS A SUMMARY and where the whole list is, so a reader is never shown a cut-down
@@ -117,11 +118,11 @@ def _summary_svg(row: Any, impls: list[str], tests: list[tuple[str, str]]) -> st
                     f'x1="{widths[0] - _PAD + 6:.0f}" y1="{_PITCH * (i + 1)}" '
                     f'x2="{xs[1] - 6:.0f}" y2="{_PITCH * (j + 1)}"/>'
                 )
-    parts.append(
-        f'<text class="note" x="0" y="{height - 6}">{len(tests)} tests, a summary by result: '
-        "every test is in the tests table below</text>"
-    )
-    total = max(xs[1] + widths[1] + _PAD, 420)
+    note = f"{len(tests)} tests, a summary by result: every test is in the tests table below"
+    head = f"results ({len(tests)} tests)"
+    parts.append(f'<text class="note" x="0" y="{height - 6}">{escape(note)}</text>')
+    ## W-9 (owner review 2026-11-22): the width counts the header and the note too — both clipped.
+    total = max(xs[1] + max(widths[1], _width([head])) + _PAD, _width([note]) + _PAD, 420)
     summary = f"{len(impls)} implementers, {len(tests)} tests: " + ", ".join(buckets)
     return (
         f'<svg class="req-evidence summary" role="img" aria-label="{escape(summary)}" '

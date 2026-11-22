@@ -249,6 +249,15 @@ wiki:
       stop_at: [log]
       animate: true
       role: product             # product | threads | tooling | tests
+      title: Load the store     # plain words; the Flows page and the flow's heading
+      intent: Read the store from disk into memory.   # one sentence, shown first (declared only)
+      scenario: |               # Gherkin, always shown under the intent; each line starts with
+        Given a store on disk   # Given / When / Then / And / But, otherwise refused by name
+        When load runs
+        Then the records are in memory
+      example:                  # a worked example, shown as written: {input, output}
+        input: load("store.db")
+        output: "3 records"
   components:                   # the map's blocks; undeclared files join by coupling, submodules are Vendor; default = packages
     Query layer: ["src/query/*"]
   issues: {github: owner/repo, fetch: true}  # or {ado: org/project}; false = no issue links

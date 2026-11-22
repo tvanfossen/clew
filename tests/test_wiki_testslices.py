@@ -201,3 +201,25 @@ def test_wiki_test_slices_is_a_whole_number_of_one_or_more(tmp_path) -> None:
     (tmp_path / ".clew.yaml").write_text("wiki:\n  test_slices: 0\n")
     _config, problems = load_wiki_config(tmp_path, None)
     assert any("wiki.test_slices" in p for p in problems), problems
+
+
+def test_a_test_s_slices_are_playable(monkeypatch) -> None:
+    """W-6 (owner review 2026-11-22): "tests are not playable". The exercises section carries the
+    player's controls and loads `clew-views.js`, whose slice player steps through the steps the test
+    RAN (`g.st.ex`), in order, paced to reading speed like the flow player.
+
+    @brief Slices get play, step and speed.
+    """
+    from pathlib import Path
+    from types import SimpleNamespace
+
+    import clew.wiki
+    from clew.wiki import slices, testpages
+
+    monkeypatch.setattr(slices, "slice_svg", lambda flow, cut: "<svg class='seq'/>")
+    page = SimpleNamespace(name="flow-a", title="a", steps=4, flow=None)
+    html = testpages._exercises("t", {"slices": {"t": [(page, SimpleNamespace(exercised=(1, 2)))]}})
+    assert 'data-slice-control="play"' in html and 'data-slice-control="step"' in html
+    assert "data-flow-speed" in html and "_static/clew-views.js" in html
+    views = (Path(clew.wiki.__file__).parent / "themes/clew/static/clew-views.js").read_text()
+    assert "WPM = 238" in views and "g.st.ex" in views

@@ -127,26 +127,74 @@ wiki:
     docs/SECURITY.md: reference
     AGENTS.md: agents
     SKILLS.md: agents
+  # W-1/W-5 (owner review 2026-11-22): plain titles, what each flow is for, its scenario (Gherkin,
+  # declared — never derived) and, for the lookup, a worked example from this repository's index.
   flows:
     - entry: dossier
       file: clew/mcp_server/tools_query.py
       depth: 2
       lanes: packages
-      title: "MCP `dossier`: one subject, every layer"
+      title: "Look up one name: everything the index holds about it"
+      intent: >-
+        An agent names a function, file or other symbol and gets, in one reply, its source and
+        every relation the index recorded for it.
+      scenario: |
+        Given an index of the repository
+        When an agent calls dossier with a subject name
+        Then clew resolves the name to its kind (a function, variable, class, lock, file, ...)
+        And the reply carries the verbatim body with its file and line span
+        And it lists the callers, callees, threads, locks, requirements and covering tests together
+      example:
+        input: 'dossier(subject="derive_flow")'
+        output: |
+          subject_kind: function
+          file: clew/wiki/flow.py   lines 142-179
+          brief: Derive the flow from an entry function.
+          liveness: live
+          callers: 19 (flow_page, expected_steps, and the flow tests)
+          callees: _entry_rowids, connect, qualified_name_of
+          requirements: REQ-DDB-WIKI-001, REQ-DDB-WIKI-041
+          body: the function's own lines, verbatim
     - entry: search
       file: clew/mcp_server/tools_query.py
       depth: 2
       lanes: packages
-      title: "MCP `search`: find the name"
+      title: "Find a name you do not have yet"
+      intent: >-
+        An agent describes what it is looking for in a few words and gets back names it can hand
+        to the lookup.
+      scenario: |
+        Given an index of the repository
+        When an agent searches with words and a corpus (symbols, prose, code, threads, ...)
+        Then every word must appear in one searchable unit
+        And each row names the kind to pass back to dossier
+        And an empty result says what it did not read rather than claiming nothing exists
     - entry: index
       file: clew/mcp_server/server.py
       depth: 2
       lanes: packages
-      title: "MCP `index`: refresh, status, targets"
+      title: "Build, refresh and check the index"
+      intent: >-
+        Keep the index current with the working tree, and say plainly when it is not.
+      scenario: |
+        Given a repository the server knows
+        When an agent asks for a refresh
+        Then clew rebuilds only what changed, or the whole index when it must
+        When an agent asks for status
+        Then clew names each way the index is stale: the data, the schema, or the server's code
     - entry: build_wiki
       depth: 2
       lanes: packages
-      title: "build_wiki: how this site is built"
+      title: "Build this wiki from the index"
+      intent: >-
+        Turn the index and the repository's declarations into this site, so a reader can see what
+        clew knows without asking it.
+      scenario: |
+        Given an index and this repository's .clew.yaml
+        When clew wiki build runs
+        Then each declared flow is derived from the index's call graph
+        And pages are written for requirements, tests, symbols, the map and the architecture
+        And Sphinx renders the pages into one static site
   tooling: ["scripts/*", "acceptance/*", "tools/*"]
   issues: {github: tvanfossen/clew}
   links:

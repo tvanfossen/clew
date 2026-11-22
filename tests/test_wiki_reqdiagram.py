@@ -42,3 +42,22 @@ def test_a_large_requirement_is_summarised_by_result() -> None:
     assert ">552 passed</text>" in svg and ">1 failed</text>" in svg
     assert 'data-edge="load→passed"' in svg and "tests table below" in svg
     assert len(svg) < 4000, len(svg)
+
+
+def test_the_summary_is_wide_enough_for_its_own_header_and_note() -> None:
+    """W-9 (owner review 2026-11-22, req-REQ-DDB-CONFIG-006): the summary form clipped "results (376
+    tests" and "every test is in the tests tab…" — its width counted the column labels only.
+
+    @brief The SVG fits its header and its note.
+    """
+    import re
+    from types import SimpleNamespace
+
+    from clew.wiki.reqdiagram import _summary_svg, _width
+
+    tests = [(f"t{i}", "passed") for i in range(376)]
+    row = SimpleNamespace(extent=(), implementers_uncovered=())
+    svg = _summary_svg(row, ["a"], tests)
+    width = float(re.search(r'width="(\d+)"', svg).group(1))
+    note = "376 tests, a summary by result: every test is in the tests table below"
+    assert width >= _width([note]) and width >= _width(["results (376 tests)"]) + _width(["a"])

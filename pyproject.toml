@@ -118,6 +118,8 @@ dev = [
     "pytest-cov>=5,<8",
     # 2.0.0 S1: the SARIF output is validated against the vendored OASIS schema.
     "jsonschema>=4,<5",
+    # 2.0.0 W-10: scripts/make_sbom.py writes clew's own bom.cdx.json with CycloneDX's tool.
+    "cyclonedx-bom>=7,<10",
 ]
 
 [project.urls]

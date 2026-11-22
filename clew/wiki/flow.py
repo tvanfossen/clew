@@ -257,7 +257,8 @@ class _Walker:
     ## v3: `rowids` (an entry selected by file).
     ## v4 (round 5): a measured caller emits only the calls that ran, then one `not_run` stub; a
     ## caller whose FILE the coverage does not hold was not measured and is walked statically.
-    ## @version 4
+    ## v5: an entry no test ran is walked statically (W-8)
+    ## @version 5
     ## @utility
     def walk(
         self,
@@ -283,6 +284,10 @@ class _Walker:
         for nname, nqual, nrowid, _hop in _identity_call_hops(self.conn, name, hop_rows, True):
             targets.setdefault(nname, []).append((nqual, nrowid))
         ran = None if self.executed is None else self.executed.get(caller[1])
+        ## W-8 (owner review 2026-11-22): a caller NONE of whose lines ran was not measured — its
+        ## file was. Walked statically rather than folded whole as "N not run" (clew's `main`).
+        if ran is not None and not self._caller_ran(rowids or [rowid], ran):
+            ran = None
         missed = 0
         for site in sequence:
             found = targets.get(site.callee)
@@ -297,6 +302,28 @@ class _Walker:
             self._emit(name, qual, caller, site, found, (remaining, level, path, ran is not None))
         if missed:
             self._stub(name, qual, caller, level, missed)
+
+    ## @brief Whether any line of a caller's own extent ran.
+    ## @param rowids The caller's memberdef rows.
+    ## @param ran Lines that ran in its file.
+    ## @return True when one did, or when its extent is unknown.
+    ## @version 1
+    ## @utility
+    def _caller_ran(self, rowids: list[int], ran: set[int]) -> bool:
+        """EXTENT UNKNOWN IS NOT "DID NOT RUN": a row with no recorded lines keeps the measured walk.
+
+        @brief Did the caller run.
+        @return Flag.
+        """
+        marks = ",".join("?" * len(rowids))
+        spans = self.conn.execute(
+            f"SELECT COALESCE(line, 0), COALESCE(bodystart, 0), COALESCE(bodyend, 0) FROM memberdef "
+            f"WHERE rowid IN ({marks})",  # noqa: S608 - marks are '?'
+            rowids,
+        ).fetchall()
+        known = [(min(x for x in (a, b) if x) if (a or b) else 0, e) for a, b, e in spans]
+        known = [(lo, hi) for lo, hi in known if lo and hi >= lo]
+        return not known or any(lo <= n <= hi for lo, hi in known for n in ran)
 
     ## @brief One step standing for the calls of a measured caller that no test ran.
     ## @param name Caller name.

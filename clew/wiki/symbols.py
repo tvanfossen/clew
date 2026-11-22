@@ -227,7 +227,8 @@ def test_functions(conn: Any, names: set[str]) -> set[tuple[str, str]]:
 ## @param conn Open connection.
 ## @param keys (function, file) pairs.
 ## @return Definitions.
-## @version 1
+## v2: extent starts at the declaration (W-11, owner review 2026-11-22)
+## @version 2
 ## @utility
 def _definitions(conn: Any, keys: set[tuple[str, str]]) -> list[Definition]:
     """@brief Resolve keys. @return Definitions."""
@@ -235,12 +236,18 @@ def _definitions(conn: Any, keys: set[tuple[str, str]]) -> list[Definition]:
     for name, rel in sorted(keys):
         rows = conn.execute(
             "SELECT m.rowid, m.definition, m.argsstring, m.briefdescription, m.bodystart, "
-            "m.bodyend, m.line FROM memberdef m JOIN path p ON p.rowid = "
+            "m.bodyend, m.line, COALESCE(NULLIF(m.bodyfile_id, 0), m.file_id) = m.file_id "
+            "FROM memberdef m JOIN path p ON p.rowid = "
             "COALESCE(NULLIF(m.bodyfile_id, 0), m.file_id) "
             "WHERE m.kind = 'function' AND m.name = ? AND p.name = ? ORDER BY m.line",
             (name, rel),
         ).fetchall()
-        for rowid, definition, args, brief, start, end, line in rows:
+        for rowid, definition, args, brief, start, end, line, same_file in rows:
+            ## W-11 (owner review 2026-11-22): THE EXTENT STARTS AT THE DECLARATION when it is in
+            ## the body's own file. `bodystart` alone began past a multi-line signature, so 598
+            ## sections read as stale. Out of line (declared in a header), the body start stands.
+            if same_file and line and start and int(line) < int(start):
+                start = line
             out.append(
                 Definition(
                     int(rowid),

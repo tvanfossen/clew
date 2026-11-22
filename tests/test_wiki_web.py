@@ -194,3 +194,15 @@ def test_each_function_carries_the_requirements_it_implements(db: Path) -> None:
     by_name = {n["name"]: n.get("r") for n in data["nodes"]}
     assert by_name["save"] == [0, 1] and by_name["clean"] == [0] and by_name["handle"] is None
     assert "req=" in WEB_JS, "the map reads the overlay's hash"
+
+
+def test_source_and_dossier_open_in_the_page_modal() -> None:
+    """W-2 (owner review 2026-11-22): "Source and dossier link on a map item should open a modal,
+    not another page". The link names a `frame-<node>` modal key; web.js registers that builder on
+    the page's one modal, which frames the symbol section (a frame works over file://, where a fetch
+    is refused, and keeps one source for the section's content).
+
+    @brief The map's symbol link opens a framed modal.
+    """
+    assert 'data-modal=\\"frame-' in WEB_JS or 'data-modal="frame-' in WEB_JS
+    assert "register('frame-'" in WEB_JS and "iframe" in WEB_JS

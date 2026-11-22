@@ -200,7 +200,8 @@ _SLICES_DRAWN = 1
 ## @return HTML, or "" when no master flow holds a step it ran.
 ## v2 (2.0.0, W11): slices are keyed `file::name`; each definition's are drawn under its file.
 ## v3: slice cap (owner Q/A 2026-11-20, after P6)
-## @version 3
+## v4: slices play (W-6)
+## @version 4
 ## @req REQ-DDB-WIKI-041
 def _exercises(name: str, ctx: dict[str, Any], defs: list | None = None) -> str:
     """OWNER 2026-11-17: "a test case is testing a portion OF a sequence diagram". Each master
@@ -221,13 +222,27 @@ def _exercises(name: str, ctx: dict[str, Any], defs: list | None = None) -> str:
     parts = [
         "<h2>What it exercises</h2><p>The parts of the system's flows this test ran, measured by "
         "per-test coverage: lit steps ran in this test, dimmed ones did not, and ▶ marks where the "
-        "test called in. Each title opens the whole flow with these steps lit.</p>"
+        "test called in. Each title opens the whole flow with these steps lit.</p>",
+        ## W-6 (owner review 2026-11-22): the slices play — the steps this test ran, in order,
+        ## paced to reading speed (clew-views.js; the flow player's pace and speed control).
+        '<div class="flow-controls slice-controls">'
+        + "".join(
+            f'<button type="button" data-slice-control="{c}">{c}</button>'
+            for c in ("play", "pause", "step")
+        )
+        + '<label class="flow-speed">speed <input type="range" min="0.25" max="2" step="0.25" '
+        'value="1" data-flow-speed aria-label="playback speed"></label>'
+        '<p class="slice-now" aria-live="polite"></p></div>',
     ]
     for file, key in groups:
         if file and len(groups) > 1:
             parts.append(f"<h3><code>{escape(file)}</code></h3>")
         parts.append(_slices_html(key, slices[key], ctx.get("test_slices") or _SLICES_DRAWN))
-    return '<section class="exercises">' + "".join(parts) + "</section>"
+    return (
+        '<section class="exercises">'
+        + "".join(parts)
+        + '</section><script src="_static/clew-views.js"></script>'
+    )
 
 
 ## @brief Which of a name's per-test keys belong to which of its definitions' files.

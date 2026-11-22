@@ -123,7 +123,13 @@ _FLOW = {
     "role",
     "measured_depth",
     "max_steps",
+    ## W-1/W-5 (owner review 2026-11-22): declared, never derived.
+    "intent",
+    "scenario",
+    "example",
 }
+## The words a Gherkin step line begins with.
+GHERKIN_KEYWORDS = ("Given", "When", "Then", "And", "But")
 ## The roles a flow is grouped under on the Flows page (round 3, P1e).
 FLOW_ROLES = ("product", "threads", "tooling", "tests")
 ## The kinds a document is grouped under (Diátaxis, plus agent-facing docs kept apart).
@@ -169,6 +175,11 @@ class FlowSpec:
     ## `wiki.measured_depth` / `wiki.measured_steps`.
     measured_depth: int | None = None
     max_steps: int | None = None
+    ## W-1/W-5 (owner review 2026-11-22, declared only): one plain sentence of what the flow is for,
+    ## its Gherkin scenario (one step per line), and a worked example (input, output).
+    intent: str = ""
+    scenario: tuple[str, ...] = ()
+    example: tuple[str, str] | None = None
 
 
 ## @brief The W15/W16 evidence imports of the top-level `tests:`, as declared (paths relative to the repo).
@@ -738,7 +749,8 @@ def _strings(
 ## v5 (2.0.0): `depth: 0` is a problem, not 3; `stop_at` through `_strings`.
 ## v6: measured_depth and max_steps per flow (2.0.0, R5-CFG C1/C2)
 ## v7: block lanes by default (2.0.0, P5.6)
-## @version 7
+## v8: intent, scenario, example (W-1, W-5)
+## @version 8
 ## @utility
 def _flow(raw: Any, index: int, problems: list[str]) -> FlowSpec | None:
     """@brief Parse one flow. @return Spec or None."""
@@ -761,7 +773,62 @@ def _flow(raw: Any, index: int, problems: list[str]) -> FlowSpec | None:
         if "measured_depth" in raw
         else None,
         max_steps=_count(raw, "max_steps", 0, where, problems) if "max_steps" in raw else None,
+        intent=" ".join(str(raw.get("intent") or "").split()),
+        scenario=_scenario(raw.get("scenario"), where, problems),
+        example=_example(raw.get("example"), where, problems),
     )
+
+
+## @brief A flow's declared scenario, one Gherkin step per line.
+## @param value A block string or a list of lines.
+## @param where The flow's location.
+## @param problems Appended to.
+## @return The lines.
+## @version 1
+## @utility
+def _scenario(value: Any, where: str, problems: list[str]) -> tuple[str, ...]:
+    """W-1: each line starts with a Gherkin keyword; any other line is named, never dropped.
+
+    @brief Read a scenario.
+    @return Lines.
+    """
+    if value is None:
+        return ()
+    if isinstance(value, str):
+        value = value.splitlines()
+    if not isinstance(value, list):
+        problems.append(f"`{where}.scenario` must be text or a list of lines")
+        return ()
+    lines = tuple(" ".join(str(x).split()) for x in value if str(x).strip())
+    for line in lines:
+        if line.split(" ", 1)[0] not in GHERKIN_KEYWORDS:
+            problems.append(
+                f"`{where}.scenario` line {line!r} must start with one of "
+                + ", ".join(GHERKIN_KEYWORDS)
+            )
+    return lines
+
+
+## @brief A flow's declared worked example.
+## @param value `{input, output}`.
+## @param where The flow's location.
+## @param problems Appended to.
+## @return (input, output), or None.
+## @version 1
+## @utility
+def _example(value: Any, where: str, problems: list[str]) -> tuple[str, str] | None:
+    """W-5: both halves are the repository's own words, shown as written.
+
+    @brief Read an example.
+    @return Pair or None.
+    """
+    if value is None:
+        return None
+    problems += _unknown(value, {"input", "output"}, f"{where}.example")
+    if not isinstance(value, dict) or not value.get("input") or not value.get("output"):
+        problems.append(f"`{where}.example` needs `input` and `output`")
+        return None
+    return str(value["input"]).strip(), str(value["output"]).rstrip()
 
 
 ## @brief The tuning keys, each read as a whole number of at least 1.
