@@ -299,6 +299,48 @@ def root_name(otlp: dict[str, Any]) -> str:
     return next((s["name"] for s in spans if s.get("parentSpanId") not in ids), "")
 
 
+## @brief The trace for a flow: one rooted at its entry, else the subtree under a span of that name.
+## @param entry The flow's entry function.
+## @param traces {root span name: (file, OTLP document)}.
+## @return (file, OTLP document), or None.
+## @version 1
+## @req REQ-DDB-WIKI-036
+def trace_for(
+    entry: str, traces: dict[str, tuple[str, dict[str, Any]]]
+) -> tuple[str, dict[str, Any]] | None:
+    """X-2 (owner review 2, 2026-11-22, "real values, traced"): a traced TEST is the root of its own
+    trace, so a master flow (`dossier`) that the test calls was never lit. A flow with no trace rooted
+    at its entry takes, from the first trace (by file) that reached it, the earliest span named after
+    the entry and everything under it — the run's real values, on the flow they belong to.
+
+    @brief Find a flow's trace.
+    @return Pair or None.
+    """
+    if entry in traces:
+        return traces[entry]
+    for _root, (rel, otlp) in sorted(traces.items(), key=lambda kv: kv[1][0]):
+        spans = spans_of(otlp)
+        heads = sorted(
+            (s for s in spans if s.get("name") == entry),
+            key=lambda s: int(s.get("startTimeUnixNano") or 0),
+        )
+        if not heads:
+            continue
+        keep, frontier = {heads[0]["spanId"]}, [heads[0]["spanId"]]
+        while frontier:
+            parent = frontier.pop()
+            for s in spans:
+                if s.get("parentSpanId") == parent and s["spanId"] not in keep:
+                    keep.add(s["spanId"])
+                    frontier.append(s["spanId"])
+        sub = [dict(s) for s in spans if s["spanId"] in keep]
+        for s in sub:
+            if s["spanId"] == heads[0]["spanId"]:
+                s["parentSpanId"] = ""
+        return rel, {"resourceSpans": [{"scopeSpans": [{"spans": sub}]}]}
+    return None
+
+
 ## @brief The first failing span's exception: where and why.
 ## @param otlp The document.
 ## @return {span, line, message}, or None when nothing failed.

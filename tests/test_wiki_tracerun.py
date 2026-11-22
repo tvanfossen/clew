@@ -501,3 +501,40 @@ def test_a_steps_dialog_carries_its_recorded_values() -> None:
     hidden = with_values(data, otlp, Audience(exclude_bodies=True))
     assert all("called_with" not in r for r in hidden), "values are withheld with the bodies"
     assert "s.called_with" in _SCRIPT and "s.returned" in _SCRIPT
+
+
+def test_a_master_flow_takes_the_subtree_a_test_trace_reaches() -> None:
+    """X-2 (owner review 2, 2026-11-22): "I don't see the dossier being built"; owner Q/A: real values,
+    traced. A traced test's root span is the TEST, so its trace could light only the test's own flow,
+    never the `dossier` master flow it calls. A flow with no trace rooted at its entry takes the
+    subtree under the first span named after its entry, from any trace.
+
+    @brief A flow's trace: rooted at its entry, else the subtree under it.
+    """
+    from clew.wiki.tracerun import root_name, spans_of, trace_for
+
+    def span(i, name, parent, start):
+        return {"spanId": i, "parentSpanId": parent, "name": name, "startTimeUnixNano": start}
+
+    otlp = {
+        "resourceSpans": [
+            {
+                "scopeSpans": [
+                    {
+                        "spans": [
+                            span("1", "test_dossier_caps", "", 1),
+                            span("2", "dossier", "1", 2),
+                            span("3", "_answered", "2", 3),
+                            span("4", "other", "1", 9),
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+    traces = {root_name(otlp): ("build/traces/t.json", otlp)}
+    rel, sub = trace_for("dossier", traces)
+    assert rel == "build/traces/t.json" and root_name(sub) == "dossier"
+    assert sorted(s["name"] for s in spans_of(sub)) == ["_answered", "dossier"]
+    assert trace_for("test_dossier_caps", traces) == traces["test_dossier_caps"]
+    assert trace_for("absent", traces) is None

@@ -223,3 +223,25 @@ def test_a_test_s_slices_are_playable(monkeypatch) -> None:
     assert "data-flow-speed" in html and "_static/clew-views.js" in html
     views = (Path(clew.wiki.__file__).parent / "themes/clew/static/clew-views.js").read_text()
     assert "WPM = 238" in views and "g.st.ex" in views
+
+
+def test_a_test_s_call_flow_plays_in_call_order_with_briefs(tmp_path) -> None:
+    """X-3 (owner review 2, 2026-11-22): 1,322 of 2,775 test pages (48%) had no slice, so no player
+    ("i still cant play a test back"). Every test page's call-flow boxes play: in the order the test
+    CALLS them (they were sorted by name), each with its brief, at the slices' reading pace.
+
+    @brief Call-flow boxes: call order, briefs, controls.
+    """
+    from types import SimpleNamespace
+
+    from clew.wiki.testpages import _callflow, _in_call_order
+
+    (tmp_path / "t.py").write_text(
+        "def test_x():\n    b = save(1)\n    a = load()\n    check(a, b)\n"
+    )
+    d = SimpleNamespace(file="t.py", start=1, end=4)
+    ordered = _in_call_order(tmp_path, d, [("check", "c.py"), ("load", "l.py"), ("save", "s.py")])
+    assert [n for n, _f in ordered] == ["save", "load", "check"]
+    html = _callflow("test_x", ordered, {}, set(), {("save", "s.py"): "Write one record."})
+    assert 'data-brief="Write one record."' in html and 'title="Write one record."' in html
+    assert 'data-flow-play="callflow"' in html and 'data-slice-control="play"' in html

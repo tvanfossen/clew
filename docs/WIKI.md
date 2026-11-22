@@ -144,7 +144,9 @@ lists calls the run made that the flow did not predict as **discovered**, and sh
 assertion the test reached and where it failed. On the hub, a test's flow page offers the same
 as a button when `CLEW_WIKI_RUN=1` is set (it executes the repository's code). For other
 languages, export your test run's spans as OTLP JSON and list them under `tests.traces`: the
-overlay is drawn into the static site.
+overlay is drawn into the static site. A declared flow the traced test CALLS (not only the test's
+own flow) takes the part of the run under that flow's entry, so its steps show the real values
+passed and returned.
 
 ## Publish it
 
@@ -251,10 +253,11 @@ wiki:
       role: product             # product | threads | tooling | tests
       title: Load the store     # plain words; the Flows page and the flow's heading
       intent: Read the store from disk into memory.   # one sentence, shown first (declared only)
-      scenario: |               # Gherkin, always shown under the intent; each line starts with
-        Given a store on disk   # Given / When / Then / And / But, otherwise refused by name
-        When load runs
-        Then the records are in memory
+      scenario:                 # Gherkin, always shown under the intent; each line starts with
+        - Given a store on disk # Given / When / Then / And / But, otherwise refused by name
+        - step: When load runs  # `at` names the call where this part of the flow begins: the
+          at: read_store        # page's "In plain words" story groups each step's brief under it
+        - Then the records are in memory
       example:                  # a worked example, shown as written: {input, output}
         input: load("store.db")
         output: "3 records"

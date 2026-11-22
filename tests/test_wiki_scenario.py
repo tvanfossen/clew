@@ -80,3 +80,56 @@ def test_the_flows_page_says_what_each_flow_is_for() -> None:
     )
     html = _role_block("product", [page])
     assert "Look up one name" in html and '<span class="intent">Everything about it.</span>' in html
+
+
+def test_a_scenario_line_may_name_the_call_it_starts_at(tmp_path: Path) -> None:
+    """X-1 (owner review 2, 2026-11-22): "show WHAT is being built up by the sequence diagram … blocks
+    of it can be aligned to gherkin syntax". A scenario line is text, or `{step, at}` naming the call
+    where its part of the diagram begins.
+
+    @brief Anchored scenario lines.
+    """
+    config, problems = _load(
+        tmp_path,
+        "    - entry: dossier\n"
+        "      scenario:\n"
+        "        - Given an index\n"
+        "        - {step: When names are asked about, at: _accepted_batch}\n"
+        "        - {step: Then one reply answers them, at: _batched_dossiers}\n",
+    )
+    assert problems == [], problems
+    (spec,) = config.flows
+    assert spec.scenario[1] == "When names are asked about"
+    assert spec.scenario_at == ("", "_accepted_batch", "_batched_dossiers")
+
+
+def test_the_story_groups_steps_under_the_scenario_in_plain_words() -> None:
+    """X-1: a story view lists each step as its callee's brief, grouped under the scenario line whose
+    anchor begins it; steps before the first anchor join the first anchored line. Each step carries
+    `data-step`, so play lights it.
+
+    @brief Story view.
+    """
+    from types import SimpleNamespace
+
+    from clew.wiki.config import FlowSpec
+    from clew.wiki.flowpage import _story
+
+    spec = FlowSpec(
+        entry="dossier",
+        scenario=("Given an index", "When names are asked about", "Then one reply answers them"),
+        scenario_at=("", "_accepted_batch", "_batched_dossiers"),
+    )
+    steps = [
+        SimpleNamespace(callee=c, not_run=0)
+        for c in ("_accepted_batch", "_batched_dossiers", "batch_payload")
+    ]
+    data = [
+        {"brief": "Normalise the request."},
+        {"brief": "Several subjects in ONE reply."},
+        {"brief": ""},
+    ]
+    html = _story(spec, SimpleNamespace(steps=steps), data)
+    first, second = html.split("one reply answers them")
+    assert 'data-step="0"' in first and "Normalise the request." in first
+    assert 'data-step="1"' in second and 'data-step="2"' in second and "batch_payload" in second

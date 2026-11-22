@@ -206,3 +206,22 @@ def test_source_and_dossier_open_in_the_page_modal() -> None:
     """
     assert 'data-modal=\\"frame-' in WEB_JS or 'data-modal="frame-' in WEB_JS
     assert "register('frame-'" in WEB_JS and "iframe" in WEB_JS
+
+
+def test_a_map_node_says_what_its_function_does() -> None:
+    """X-4 (owner review 2, 2026-11-22): "I cant derive what each function is doing at a glance"
+    from the map's pop-out. Each node carries its function's brief (the index's own plain-text
+    summary), and the panel prints it under the name.
+
+    @brief Map nodes carry briefs; the panel shows them.
+    """
+    from clew.wiki.web import _with_briefs
+
+    nodes = [{"name": "derive_flow", "file": "clew/wiki/flow.py"}, {"name": "x", "file": "a.py"}]
+    _with_briefs(
+        nodes, {("derive_flow", "clew/wiki/flow.py"): "Derive the flow from an entry function."}
+    )
+    assert (
+        nodes[0]["brief"] == "Derive the flow from an entry function." and "brief" not in nodes[1]
+    )
+    assert 'class="web-brief"' in WEB_JS and "n.brief" in WEB_JS

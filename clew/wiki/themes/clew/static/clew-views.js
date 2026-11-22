@@ -8,6 +8,9 @@
  */
 (function () {
   'use strict';
+  /* ONCE PER PAGE: a test page loads this from its slices AND its call flow. */
+  if (window.clewViewsLoaded) return;
+  window.clewViewsLoaded = true;
   function pick(root, view) {
     Array.prototype.forEach.call(root.querySelectorAll('[data-view-panel]'), function (p) {
       p.hidden = p.getAttribute('data-view-panel') !== view;
@@ -44,28 +47,37 @@
       r.hidden = q !== '' && r.textContent.toLowerCase().indexOf(q) < 0;
     });
   });
-  /* SLICES PLAY (W-6, owner review 2026-11-22): a test page's exercised steps (`g.st.ex`), in
-   * order, each held for its words at 238 wpm, adults' mean silent-reading rate for non-fiction
-   * (Brysbaert 2019), never under MIN_MS; the speed control scales it (Mayer & Moreno 2003,
-   * segmenting). The caption is each step's own title. */
+  /* TESTS PLAY (W-6, X-3, owner reviews 2026-11-22): `[data-flow-play]` sections — a test's slices
+   * (the steps it ran, `g.st.ex`, captioned by each step's title) and its call flow (the boxes in
+   * call order, captioned with each function's brief). Each item is held for its words at 238 wpm,
+   * adults' mean silent-reading rate for non-fiction (Brysbaert 2019), never under MIN_MS; the speed
+   * control scales it (Mayer & Moreno 2003, segmenting). */
   var WPM = 238, MIN_MS = 1500;
-  function slicePlayer(sec) {
-    var steps = Array.prototype.slice.call(sec.querySelectorAll('g.st.ex'));
+  var KINDS = {
+    slices: ['g.st.ex', function (g) { var t = g.querySelector('title'); return t ? t.textContent : ''; }],
+    callflow: ['.callflow .box:not(.test)', function (b) {
+      return b.textContent + (b.getAttribute('data-brief') ? ': ' + b.getAttribute('data-brief') : '');
+    }]
+  };
+  function player(sec) {
+    var kind = KINDS[sec.getAttribute('data-flow-play')];
+    if (!kind || sec.getAttribute('data-played')) return;
+    sec.setAttribute('data-played', '1');
+    var items = Array.prototype.slice.call(sec.querySelectorAll(kind[0])), caption = kind[1];
     var now = sec.querySelector('.slice-now'), speed = sec.querySelector('[data-flow-speed]');
     var cursor = 0, timer = null;
-    if (!steps.length) return;
-    function title(g) { var t = g.querySelector('title'); return t ? t.textContent : ''; }
+    if (!items.length) return;
     function show(i) {
-      steps.forEach(function (g, k) { g.classList.toggle('on', k === i); });
-      if (now) now.textContent = title(steps[i]);
+      items.forEach(function (g, k) { g.classList.toggle('on', k === i); });
+      if (now) now.textContent = caption(items[i]);
     }
     function dwell(i) {
-      var n = title(steps[i]).split(/\s+/).filter(Boolean).length;
+      var n = caption(items[i]).split(/\s+/).filter(Boolean).length;
       return Math.max(MIN_MS, n / WPM * 60000) / (speed ? +speed.value || 1 : 1);
     }
     function stop() { if (timer) { clearTimeout(timer); timer = null; } }
     function tick() {
-      if (cursor >= steps.length) { stop(); return; }
+      if (cursor >= items.length) { stop(); return; }
       show(cursor); timer = setTimeout(tick, dwell(cursor++));
     }
     function on(name, fn) {
@@ -73,14 +85,14 @@
       if (b) b.addEventListener('click', fn);
     }
     on('play', function () { stop(); cursor = 0; sec.classList.add('playing'); tick(); });
-    on('pause', function () { if (timer) stop(); else if (cursor < steps.length) tick(); });
-    on('step', function () { stop(); sec.classList.add('playing'); if (cursor >= steps.length) cursor = 0; show(cursor++); });
+    on('pause', function () { if (timer) stop(); else if (cursor < items.length) tick(); });
+    on('step', function () { stop(); sec.classList.add('playing'); if (cursor >= items.length) cursor = 0; show(cursor++); });
   }
-  function slices() {
-    Array.prototype.forEach.call(document.querySelectorAll('section.exercises'), slicePlayer);
+  function players() {
+    Array.prototype.forEach.call(document.querySelectorAll('[data-flow-play]'), player);
   }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', slices);
-  else slices();
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', players);
+  else players();
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', watch);
   else watch();
 })();

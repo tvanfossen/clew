@@ -486,6 +486,24 @@ def _table(data: dict) -> str:
     )
 
 
+## @brief Attach each node's brief, its function's one-line summary from the index.
+## @param nodes Map nodes ({name, file, ...}); changed in place.
+## @param briefs (function, file) → brief.
+## @return None.
+## @version 1
+## @utility
+def _with_briefs(nodes: list[dict], briefs: dict) -> None:
+    """ABSENT, NOT EMPTY: a function with no brief gets no key, and the panel prints nothing.
+
+    @brief Briefs onto nodes.
+    @return None.
+    """
+    for n in nodes:
+        brief = briefs.get((n["name"], n["file"]))
+        if brief:
+            n["brief"] = brief
+
+
 ## @brief Write the map page: the web, with source links and playable flows.
 ## @param db The index.
 ## @param graph `build_graph(..., exclude_tests=True)` output.
@@ -496,7 +514,8 @@ def _table(data: dict) -> str:
 ## @return The page name, or "" when nothing is drawn.
 ## v2: the ring cap is wiki.web.max_ring (2.0.0, R5-CFG C8)
 ## v3: owners overlay and vendor areas (2.0.0, P5)
-## @version 3
+## v4: node briefs (X-4)
+## @version 4
 ## @req REQ-DDB-WIKI-021
 def web_page(
     db: Path,
@@ -517,6 +536,12 @@ def web_page(
     if not graph["components"]:
         return ""
     data = web_data(db, graph, order, max_ring, owners)
+    ## X-4 (owner review 2, 2026-11-22): what each function does, at a glance in the pop-out.
+    from ..query._common import connect
+    from .entities import _briefs
+
+    with connect(db) as conn:
+        _with_briefs(data["nodes"], _briefs(conn))
     slot = {(n["name"], n["file"]): i for i, n in enumerate(data["nodes"])}
     for n in data["nodes"]:
         href = hrefs.get((n["name"], n["file"]))

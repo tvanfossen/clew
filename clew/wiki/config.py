@@ -180,6 +180,9 @@ class FlowSpec:
     intent: str = ""
     scenario: tuple[str, ...] = ()
     example: tuple[str, str] | None = None
+    ## X-1 (owner review 2, 2026-11-22): per scenario line, the call its part of the flow starts at
+    ## ("" = none), so the diagram's steps group under the scenario.
+    scenario_at: tuple[str, ...] = ()
 
 
 ## @brief The W15/W16 evidence imports of the top-level `tests:`, as declared (paths relative to the repo).
@@ -750,7 +753,8 @@ def _strings(
 ## v6: measured_depth and max_steps per flow (2.0.0, R5-CFG C1/C2)
 ## v7: block lanes by default (2.0.0, P5.6)
 ## v8: intent, scenario, example (W-1, W-5)
-## @version 8
+## v9: scenario anchors (X-1)
+## @version 9
 ## @utility
 def _flow(raw: Any, index: int, problems: list[str]) -> FlowSpec | None:
     """@brief Parse one flow. @return Spec or None."""
@@ -774,7 +778,8 @@ def _flow(raw: Any, index: int, problems: list[str]) -> FlowSpec | None:
         else None,
         max_steps=_count(raw, "max_steps", 0, where, problems) if "max_steps" in raw else None,
         intent=" ".join(str(raw.get("intent") or "").split()),
-        scenario=_scenario(raw.get("scenario"), where, problems),
+        scenario=(scenario := _scenario(raw.get("scenario"), where, problems))[0],
+        scenario_at=scenario[1],
         example=_example(raw.get("example"), where, problems),
     )
 
@@ -784,29 +789,48 @@ def _flow(raw: Any, index: int, problems: list[str]) -> FlowSpec | None:
 ## @param where The flow's location.
 ## @param problems Appended to.
 ## @return The lines.
-## @version 1
+## v2: anchored items (X-1)
+## @version 2
 ## @utility
-def _scenario(value: Any, where: str, problems: list[str]) -> tuple[str, ...]:
-    """W-1: each line starts with a Gherkin keyword; any other line is named, never dropped.
+def _scenario(
+    value: Any, where: str, problems: list[str]
+) -> tuple[tuple[str, ...], tuple[str, ...]]:
+    """W-1: each line starts with a Gherkin keyword; any other line is named, never dropped. X-1: a
+    line may be `{step, at}`, `at` naming the call where its part of the flow begins.
 
     @brief Read a scenario.
-    @return Lines.
+    @return (lines, the call each line starts at).
     """
     if value is None:
-        return ()
+        return (), ()
     if isinstance(value, str):
         value = value.splitlines()
     if not isinstance(value, list):
         problems.append(f"`{where}.scenario` must be text or a list of lines")
-        return ()
-    lines = tuple(" ".join(str(x).split()) for x in value if str(x).strip())
-    for line in lines:
+        return (), ()
+    items = [_scenario_item(x, where, problems) for x in value if x and str(x).strip()]
+    for line, _at in items:
         if line.split(" ", 1)[0] not in GHERKIN_KEYWORDS:
             problems.append(
                 f"`{where}.scenario` line {line!r} must start with one of "
                 + ", ".join(GHERKIN_KEYWORDS)
             )
-    return lines
+    return tuple(i[0] for i in items), tuple(i[1] for i in items)
+
+
+## @brief One scenario item: a line of text, or `{step, at}`.
+## @param item The item.
+## @param where The flow's location.
+## @param problems Appended to.
+## @return (line, the call it starts at or "").
+## @version 1
+## @utility
+def _scenario_item(item: Any, where: str, problems: list[str]) -> tuple[str, str]:
+    """@brief Read an item. @return Pair."""
+    if not isinstance(item, dict):
+        return " ".join(str(item).split()), ""
+    problems += _unknown(item, {"step", "at"}, f"{where}.scenario")
+    return " ".join(str(item.get("step") or "").split()), str(item.get("at") or "")
 
 
 ## @brief A flow's declared worked example.

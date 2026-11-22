@@ -1159,3 +1159,15 @@ def test_every_recognised_test_is_found_not_only_the_linked(repo) -> None:
         every = {d.name for d in _test_definitions(conn, None)}
         linked = {d.name for d in _test_definitions(conn, {"test_load"})}
     assert linked == {"test_load"} and linked <= every
+
+
+def test_the_home_page_shows_requirements_and_tests_by_status(site: dict[str, str]) -> None:
+    """X-5 (owner review 2, 2026-11-22): "that pie graph chart of requirements/tests by status needs
+    to be top level viewable". The home page carries the same two donuts as the Requirements page,
+    linked to it.
+
+    @brief The status charts are on the home page.
+    """
+    home = site["index.html"]
+    assert 'class="charts"' in home and "Requirements by tier" in home and "Tests by status" in home
+    assert 'href="requirements.html"' in home

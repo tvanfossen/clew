@@ -62,7 +62,8 @@ def test_page_of(name: str, rel: str) -> str:
 ## v3 (round 5): what it exercises — its slices of the master flows, from per-test coverage.
 ## v4: each definition's own slices (2.0.0, W11)
 ## v5: tests category (2.0.0, owner Q/A 2026-11-20)
-## @version 5
+## v6: call flow plays in call order with briefs (X-3)
+## @version 6
 ## @req REQ-DDB-WIKI-026
 def test_pages(db: Path, repo_root: Path, ctx: dict[str, Any], source: Path) -> dict[str, str]:
     """ONE PAGE PER NAME: every definition of a test name in test code is drawn on it, so a link
@@ -78,9 +79,13 @@ def test_pages(db: Path, repo_root: Path, ctx: dict[str, Any], source: Path) -> 
     mode = ctx.get("test_pages", "linked")
     if mode == "none":
         return {}
+    from .entities import _briefs
+
     with connect(db) as conn:
         defs = _test_definitions(conn, None if mode == "all" else set(ctx["tests"]))
         graph = _Edges(conn)
+        ## X-3: what each function does, for the call-flow boxes.
+        ctx = {**ctx, "briefs": _briefs(conn)}
     ## An unlinked test (only under `all`) has no evidence facts: absent, no requirement.
     ctx = {**ctx, "tests": {**{d.name: TestFacts() for d in defs}, **ctx["tests"]}}
     by_name: dict[str, list] = defaultdict(list)
@@ -201,7 +206,8 @@ _SLICES_DRAWN = 1
 ## v2 (2.0.0, W11): slices are keyed `file::name`; each definition's are drawn under its file.
 ## v3: slice cap (owner Q/A 2026-11-20, after P6)
 ## v4: slices play (W-6)
-## @version 4
+## v5: call flow plays in call order with briefs (X-3)
+## @version 5
 ## @req REQ-DDB-WIKI-041
 def _exercises(name: str, ctx: dict[str, Any], defs: list | None = None) -> str:
     """OWNER 2026-11-17: "a test case is testing a portion OF a sequence diagram". Each master
@@ -225,24 +231,65 @@ def _exercises(name: str, ctx: dict[str, Any], defs: list | None = None) -> str:
         "test called in. Each title opens the whole flow with these steps lit.</p>",
         ## W-6 (owner review 2026-11-22): the slices play — the steps this test ran, in order,
         ## paced to reading speed (clew-views.js; the flow player's pace and speed control).
-        '<div class="flow-controls slice-controls">'
-        + "".join(
-            f'<button type="button" data-slice-control="{c}">{c}</button>'
-            for c in ("play", "pause", "step")
-        )
-        + '<label class="flow-speed">speed <input type="range" min="0.25" max="2" step="0.25" '
-        'value="1" data-flow-speed aria-label="playback speed"></label>'
-        '<p class="slice-now" aria-live="polite"></p></div>',
+        _player_controls(),
     ]
     for file, key in groups:
         if file and len(groups) > 1:
             parts.append(f"<h3><code>{escape(file)}</code></h3>")
         parts.append(_slices_html(key, slices[key], ctx.get("test_slices") or _SLICES_DRAWN))
     return (
-        '<section class="exercises">'
+        '<section class="exercises" data-flow-play="slices">'
         + "".join(parts)
         + '</section><script src="_static/clew-views.js"></script>'
     )
+
+
+## @brief The test-page player's controls: play, pause, step, speed and the caption line.
+## @return HTML.
+## @version 1
+## @utility
+def _player_controls() -> str:
+    """ONE SET for the slices and the call flow (W-6, X-3); `clew-views.js` drives both.
+
+    @brief Player controls.
+    @return HTML.
+    """
+    buttons = "".join(
+        f'<button type="button" data-slice-control="{c}">{c}</button>'
+        for c in ("play", "pause", "step")
+    )
+    return (
+        f'<div class="flow-controls slice-controls">{buttons}'
+        '<label class="flow-speed">speed <input type="range" min="0.25" max="2" step="0.25" '
+        'value="1" data-flow-speed aria-label="playback speed"></label>'
+        '<p class="slice-now" aria-live="polite"></p></div>'
+    )
+
+
+## @brief A test's callees in the order its body first calls them.
+## @param repo_root The repository.
+## @param d The test's definition (file, start, end).
+## @param callees (name, file) pairs.
+## @return The same pairs, in call order; any not found in the body after, in their given order.
+## @version 1
+## @utility
+def _in_call_order(
+    repo_root: Path, d: Any, callees: list[tuple[str, str]]
+) -> list[tuple[str, str]]:
+    """X-3 (owner review 2, 2026-11-22): a playback follows the test, not the alphabet.
+
+    @brief Call order.
+    @return Pairs.
+    """
+    try:
+        lines = (
+            (Path(repo_root) / d.file).read_text(encoding="utf-8", errors="replace").splitlines()
+        )
+    except OSError:
+        return list(callees)
+    body = "\n".join(lines[max(d.start, 1) - 1 : d.end or len(lines)])
+    found = {c: body.find(f"{c[0]}(") for c in callees}
+    return sorted(callees, key=lambda c: (found[c] < 0, found[c] if found[c] >= 0 else 0))
 
 
 ## @brief Which of a name's per-test keys belong to which of its definitions' files.
@@ -350,7 +397,8 @@ def _result(name: str, ctx: dict[str, Any]) -> str:
 ## v4: traced values on pinned checks (2.0.0, P5.5)
 ## v5: context paths (2.0.0, P5.5)
 ## v6: call-flow boxes (2.0.0, P5.5)
-## @version 6
+## v7: call flow plays in call order with briefs (X-3)
+## @version 7
 ## @utility
 def _definition(d: Any, graph: _Edges, ctx: dict[str, Any], repo_root: Path) -> str:
     """@brief Definition block. @return HTML."""
@@ -378,8 +426,9 @@ def _definition(d: Any, graph: _Edges, ctx: dict[str, Any], repo_root: Path) -> 
     if candidates:
         out += _context(candidates, ctx.get("product_flows") or [])
         callees = sorted(graph.names[c] for c in graph.callees.get(d.rowid, ()) if c in graph.names)
+        callees = _in_call_order(repo_root, d, callees)
         ran = (ctx.get("lines_by_test") or {}).get(f"{d.file}::{d.name}") or {}
-        out += _callflow(d.name, callees, ran, ctx.get("written") or set())
+        out += _callflow(d.name, callees, ran, ctx.get("written") or set(), ctx.get("briefs"))
     out += _proof(d, graph, ctx, count)
     return out
 
@@ -390,10 +439,15 @@ def _definition(d: Any, graph: _Edges, ctx: dict[str, Any], repo_root: Path) -> 
 ## @param ran {file: lines this test executed}, from per-test coverage, or {}.
 ## @param written (name, file) of every function whose page was written.
 ## @return HTML.
-## @version 1
+## v2: call flow plays in call order with briefs (X-3)
+## @version 2
 ## @req REQ-DDB-WIKI-045
 def _callflow(
-    test: str, callees: list[tuple[str, str]], ran: dict[str, set[int]], written: set
+    test: str,
+    callees: list[tuple[str, str]],
+    ran: dict[str, set[int]],
+    written: set,
+    briefs: dict | None = None,
 ) -> str:
     """TWO ZOOM LEVELS (owner, round 5): a box per function the test calls; its link opens that
     function's activity diagram, on the function's own page, with the lines THIS test executed in
@@ -405,17 +459,24 @@ def _callflow(
     """
     boxes = []
     for name, rel in callees:
+        ## X-3: each box says what its function does, for the reader and for the player's caption.
+        brief = (briefs or {}).get((name, rel), "")
+        about = f' data-brief="{escape(brief)}" title="{escape(brief)}"' if brief else ""
         if (name, rel) not in written:
-            boxes.append(f'<span class="box">{escape(name)}</span>')
+            boxes.append(f'<span class="box"{about}>{escape(name)}</span>')
             continue
         page, _anchor = symbol_href(name, rel).split("#", 1)
         lit = _ranges(ran.get(rel, set()))
         query = f"?lit={lit}" if lit else ""
-        boxes.append(f'<a class="box" href="{page}{query}#act-{anchor(name)}">{escape(name)}</a>')
+        boxes.append(
+            f'<a class="box"{about} href="{page}{query}#act-{anchor(name)}">{escape(name)}</a>'
+        )
     arrows = '<span class="arrow">→</span>'.join(boxes)
     return (
-        f'<h2>Call flow</h2><div class="callflow"><span class="box test"><code>{escape(test)}'
-        f'</code></span><span class="arrow">→</span>{arrows}</div>'
+        '<section class="callflow-block" data-flow-play="callflow"><h2>Call flow</h2>'
+        f'{_player_controls()}<div class="callflow"><span class="box test"><code>{escape(test)}'
+        f'</code></span><span class="arrow">→</span>{arrows}</div></section>'
+        '<script src="_static/clew-views.js"></script>'
     )
 
 

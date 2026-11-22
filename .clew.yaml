@@ -78,6 +78,10 @@ tests:
   junit: [build/junit.xml]
   coverage: build/coverage.xml
   contexts: .coverage   # coverage.py's data file with per-test contexts: measured links
+  # X-2 (owner review 2, 2026-11-22): real values on the dossier flow. Recorded with
+  # `clew wiki trace-run --test tests/test_mcp_server.py::test_the_dossier_body_caps_and_reports_truncation
+  # --out build/traces/dossier.json`; a master flow takes the subtree a traced test reached under it.
+  traces: ["build/traces/*.json"]
 
 # clew's own wiki (round 3, P6): clew documents itself with the site it generates. Human guides
 # are grouped by kind; the agent-facing documents (AGENTS.md, SKILLS.md) are kept apart. The MCP
@@ -138,12 +142,23 @@ wiki:
       intent: >-
         An agent names a function, file or other symbol and gets, in one reply, its source and
         every relation the index recorded for it.
-      scenario: |
-        Given an index of the repository
-        When an agent calls dossier with a subject name
-        Then clew resolves the name to its kind (a function, variable, class, lock, file, ...)
-        And the reply carries the verbatim body with its file and line span
-        And it lists the callers, callees, threads, locks, requirements and covering tests together
+      # X-1 (owner review 2): each `at` names the call where that part of the diagram begins.
+      scenario:
+        - Given an index of the repository
+        - step: When an agent asks dossier about one or several names
+          at: _accepted_batch
+        - step: Then several names are answered together, sharing one size budget
+          at: _batched_dossiers
+        - step: And one name is resolved and flattened into its subject, whatever its kind
+          at: subject_payload
+        - step: And the reply is stamped with the repository that answered and any staleness
+          at: _answered
+        - step: And it is trimmed to the response budget, each cut named
+          at: _budgeted_dossier
+        - step: And callers and callees are capped, each cut disclosed
+          at: _capped_neighbors
+        - step: And it is shaped for the wire and linked to its wiki page
+          at: _wire_shape
       example:
         input: 'dossier(subject="derive_flow")'
         output: |

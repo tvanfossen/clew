@@ -126,7 +126,8 @@ def build_wiki(
 ## v14: doc tags to the API pages (entropic's PAPI gaps 1-3 (2.0.0))
 ## v15: slice cap in the test-page context (owner Q/A 2026-11-20, after P6)
 ## v16: blocks to the requirement pages (W-9)
-## @version 16
+## v17: trace_for (X-2)
+## @version 17
 ## @utility
 def _build_site(
     repo_root: Path,
@@ -153,7 +154,7 @@ def _build_site(
     from .imports import parse_features
     from .adr import find_decisions
     from .exports import write_exports
-    from .tracerun import load_traces, root_name
+    from .tracerun import load_traces, root_name, trace_for
     from .symbols import symbol_pages
     from .testpages import test_pages
     from .evidence import parse_junit
@@ -208,7 +209,8 @@ def _build_site(
                     config,
                     commit,
                     req_of,
-                    traces.get(s.entry),
+                    ## X-2: a master flow takes the subtree a traced test reached under it.
+                    trace_for(s.entry, traces),
                     coverage,
                     blocks,
                     _actor_of(s, config),
@@ -821,6 +823,27 @@ def _html_page(path: Path) -> str:
 _DOCS_LEAD = "The repository's own documentation, as written."
 
 
+## @brief The requirements-by-tier and tests-by-status donuts for the home page.
+## @param evidence The trace's evidence rows.
+## @return HTML, or "" with no requirements.
+## @version 1
+## @utility
+def _home_charts(evidence: list) -> str:
+    """X-5: the Requirements page's own charts, so the two can never disagree.
+
+    @brief Home charts.
+    @return HTML.
+    """
+    from .summary import charts_block
+
+    if not evidence:
+        return ""
+    return (
+        '<section class="home-charts"><h2>Requirements and tests at a glance</h2>'
+        f'{charts_block(evidence)}<p><a href="requirements.html">All requirements →</a></p></section>'
+    )
+
+
 ## @brief Write the home page: a card per section, and the toctree the top bar is built from.
 ## @param source The Sphinx source directory.
 ## @param config The section (title).
@@ -839,7 +862,8 @@ _DOCS_LEAD = "The repository's own documentation, as written."
 ## v9: SBOM card (2.0.0, P5.8)
 ## v10: Tests card (tests category (2.0.0, owner Q/A 2026-11-20))
 ## v11: API card (public-API reference (2.0.0, PAPI))
-## @version 11
+## v12: status charts on the home page (X-5)
+## @version 12
 ## @utility
 def _write_index(
     source: Path, config: WikiConfig, trace: object, sections: list[str], flow_count: int
@@ -899,6 +923,8 @@ def _write_index(
         "",
         "```{raw} html",
         f'<div class="cards">{cards}</div>',
+        ## X-5 (owner review 2, 2026-11-22): the status donuts, top level.
+        _home_charts(ev),
         "```",
         "",
         "```{toctree}",
