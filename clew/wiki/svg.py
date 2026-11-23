@@ -52,7 +52,7 @@ _OPERATOR = {
     "catch": "catch",
 }
 _STYLE = (
-    "<style>.seq g.nr{opacity:.45}.seq g.nr .lbl{font-style:italic}.seq g.dim{opacity:.28}"
+    "<style>.seq g.nr{opacity:.45}.seq g.nr .lbl{font-style:italic}.seq g.dim{opacity:.5}"
     ## X-1: scenario bands behind the lanes, alternate tints, keyword in the accent.
     ".seq .segband rect{fill:var(--accbg,#E4EBD6);opacity:.55}.seq .segband.s1 rect{opacity:.25}"
     ".seq .seglabel text{font-size:12.5px;font-weight:600}.seq .seglabel .kw{fill:var(--acc,#3D6B2E)}"
@@ -70,10 +70,10 @@ _STYLE = (
     ".seq .ret{stroke:var(--faint,#998874);fill:none;stroke-dasharray:4 4;stroke-width:1.2}"
     ## P5.6: the actor's call into the entry (an SVG <line> has no stroke unless one is given).
     ".seq .enter line{stroke:var(--acc,#3D6B2E);stroke-width:1.6}"
-    ".seq .frame{fill:var(--rootbg,#F4DDCB);fill-opacity:.28;stroke:var(--root,#A6502C);"
-    "stroke-width:1;stroke-dasharray:6 3}"
-    ".seq .fl{fill:var(--root,#A6502C)}.seq .flt{fill:#fff;font-weight:700;font-size:10.5px;"
-    "letter-spacing:.04em}"
+    ## E-17 (UX review, owner Q/A 2026-11-22): frames NEUTRAL — red-brown read as failure.
+    ".seq .frame{fill:none;stroke:var(--ink2,#6B5E4D);stroke-width:1;stroke-dasharray:6 3}"
+    ".seq .fl{fill:var(--muted,#EFE6CF);stroke:var(--ink2,#6B5E4D);stroke-width:1}"
+    ".seq .flt{fill:var(--ink,#2A2118);font-weight:700;font-size:10.5px;letter-spacing:.04em}"
     ".seq .badge{fill:var(--acc,#3D6B2E)}.seq .num{fill:#fff;font-size:10px;font-weight:700}"
     ".seq .pill{fill:var(--paper,#FAF1D9);stroke:var(--rule2,#E2D5B4)}"
     ".seq .lbl{font-weight:600}"

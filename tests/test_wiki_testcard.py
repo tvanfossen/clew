@@ -104,7 +104,10 @@ def test_a_call_inside_the_assertion_is_the_when_and_no_empty_given_is_drawn() -
     src = ["def test_s():", '    assert strip_xml("<p>a < 2</p>") == "a < 2"']
     d = SimpleNamespace(name="test_s", file="tests/test_s.py", start=1)
     html = _card(lines=src, d=d, product={"strip_xml"})
-    assert 'class="tc-given"' not in html
+    ## SPEC CHANGED (UX review E-16, owner Q/A 2026-11-22): three fixed columns, so an empty Given
+    ## reads "—" instead of disappearing.
+    given = html.split('class="tc-given"', 1)[1].split('class="tc-when"', 1)[0]
+    assert '<li class="none">—</li>' in given
     when = html.split('class="tc-when"', 1)[1].split('class="tc-then"', 1)[0]
     assert "strip_xml(&quot;&lt;p&gt;a &lt; 2&lt;/p&gt;&quot;)" in when
 
@@ -125,7 +128,7 @@ def test_setup_noise_is_kept_out_of_the_card() -> None:
     html = _card(lines=src, d=d, product=set())
     given = html.split('class="tc-given"', 1)[1]
     assert "from x import y" not in given and "v0 = 0" in given
-    assert "<details" in given and "4 more" in given
+    assert "<details" in given and "5 more" in given  # Given shows two (UX review E-16)
 
 
 def test_product_excludes_the_test_s_own_code() -> None:

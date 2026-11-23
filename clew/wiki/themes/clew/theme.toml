@@ -2,7 +2,7 @@
 [theme]
 inherit = "basic"
 stylesheets = ["basic.css", "clew.css"]
-sidebars = ["minimap.html", "localtoc.html"]
+sidebars = ["localtoc.html", "minimap.html"]
 pygments_style = { default = "friendly" }
 
 [options]

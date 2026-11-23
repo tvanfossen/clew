@@ -27,7 +27,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from html import escape
-from pathlib import Path, PurePosixPath
+from pathlib import Path
 
 ## Who uses an entry of each kind, in the words the page shows (L1's actors).
 _ACTOR = {"script": "command-line user", "main": "program launcher"}
@@ -50,13 +50,18 @@ class Entry:
 
     ## @brief What a box shows: a script's name, else the file a `main` is in.
     ## @return The name.
-    ## @version 1
+    ## v2: UX review E-19
+    ## @version 2
     ## @utility
     def shown(self) -> str:
         """FOUND BY LOOKING: a row of boxes all reading `main` named nothing. @brief Name."""
-        return self.label or (
-            PurePosixPath(self.file).name if self.function == "main" else self.function
-        )
+        ## E-19 (UX review, owner Q/A 2026-11-22): a `main` shows its file's PATH — `main.py` alone
+        ## named nothing beside console-script names.
+        return self.label or (self.file if self.function == "main" else self.function)
+
+
+## The content column a diagram fits in without panning (px).
+_COLUMN_W, _COLUMN_H = 1000, 640
 
 
 ## @brief Write the Architecture page.
@@ -314,12 +319,19 @@ def _line(x1: float, y1: float, x2: float, y2: float) -> str:
 ## @param parts Its elements.
 ## @param label Its accessible label.
 ## @return HTML.
-## @version 1
+## v2: UX review E-19
+## @version 2
 ## @utility
 def _svg(width: float, height: float, parts: list[str], label: str) -> str:
-    """@brief Wrapped SVG. @return HTML."""
+    """E-19 (UX review, owner Q/A 2026-11-22): PAN AND ZOOM ONLY WHERE THERE IS SOMETHING TO PAN — a
+    diagram wider or taller than the content column; a small one is drawn as it is.
+
+    @brief Wrapped SVG.
+    @return HTML.
+    """
+    pz = ' class="pz" data-pz' if width > _COLUMN_W or height > _COLUMN_H else ' class="c4-fit"'
     return (
-        f'<div class="pz" data-pz><svg class="c4-diagram" role="img" aria-label="{escape(label)}" '
+        f'<div{pz}><svg class="c4-diagram" role="img" aria-label="{escape(label)}" '
         f'viewBox="0 0 {width:.0f} {height:.0f}" width="{width:.0f}" height="{height:.0f}">'
         + "".join(parts)
         + "</svg></div>"

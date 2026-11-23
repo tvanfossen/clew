@@ -46,6 +46,21 @@
     Array.prototype.forEach.call(document.querySelectorAll('table.' + name + ' tbody tr'), function (r) {
       r.hidden = q !== '' && r.textContent.toLowerCase().indexOf(q) < 0;
     });
+    /* GROUPS (UX review D-8): a group with no visible row hides; while filtering, matches open. */
+    Array.prototype.forEach.call(document.querySelectorAll('details.tgroup'), function (g) {
+      var any = g.querySelector('tbody tr:not([hidden])');
+      g.hidden = !any;
+      if (q) g.open = !!any;
+    });
+  });
+  /* CHIPS: a result chip toggles the filter to its result. */
+  document.addEventListener('click', function (e) {
+    var c = e.target.closest && e.target.closest('[data-filter-chip]');
+    var box = c && document.querySelector('[data-filter-table]');
+    if (!box) return;
+    var want = c.getAttribute('data-filter-chip');
+    box.value = box.value === want ? '' : want;
+    box.dispatchEvent(new Event('input', { bubbles: true }));
   });
   /* TESTS PLAY (W-6, X-3, owner reviews 2026-11-22): `[data-flow-play]` sections — a test's slices
    * (the steps it ran, `g.st.ex`, captioned by each step's title) and its call flow (the boxes in

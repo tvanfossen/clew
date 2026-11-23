@@ -90,10 +90,15 @@ def test_tooling_entry_points_are_listed_not_drawn_as_containers() -> None:
 
 
 def test_a_main_is_named_by_its_file_not_main() -> None:
-    """@brief L2: a `main` in tools/serve.py shows as `serve.py`, never a row of `main`s."""
+    """L2: a `main` is named by its file, never a row of `main`s. SPEC CHANGED (UX review E-19,
+    owner Q/A 2026-11-22): by its PATH (`tools/serve.py`) — `main.py` alone named nothing beside
+    the console-script names.
+
+    @brief L2: a main is named by its file's path.
+    """
     entries = [Entry("main", "main", "tools/serve.py", "", None)]
     l2 = _level(architecture_html("Demo", _GRAPH, entries), 2)
-    assert ">serve.py</text>" in l2 and ">main</text>" not in l2
+    assert ">tools/serve.py</text>" in l2 and ">main</text>" not in l2
 
 
 def test_a_long_component_name_is_never_cut() -> None:

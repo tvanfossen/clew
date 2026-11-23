@@ -255,7 +255,8 @@ def _why_html(why: str, reqs: list[str]) -> str:
 ## @param phases (given, when, then).
 ## @param status The run's result for the test.
 ## @return HTML.
-## @version 1
+## v2: UX review group E (owner Q/A 2026-11-22)
+## @version 2
 ## @utility
 def _phases_html(phases: tuple[list[str], list[str], list[str]], status: str) -> str:
     """VISUAL: three panels in reading order with arrows between; each check marked with the run.
@@ -265,14 +266,21 @@ def _phases_html(phases: tuple[list[str], list[str], list[str]], status: str) ->
     """
     given, when, then = phases
 
-    def panel(cls: str, head: str, rows: list[str], code: bool = True, fold: bool = True) -> str:
+    def panel(
+        cls: str,
+        head: str,
+        rows: list[str],
+        code: bool = True,
+        fold: bool = True,
+        shown: int = _SHOWN,
+    ) -> str:
         items = [f"<li><code>{escape(r)}</code></li>" if code else r for r in rows]
         empty = '<li class="none">—</li>'
         ## A LONG PANEL FOLDS: three statements shown, the rest one click away (owner review 3).
-        if fold and len(items) > _SHOWN + 2:
-            rest = "".join(items[_SHOWN:])
-            more = f'<details class="tc-more"><summary>{len(items) - _SHOWN} more</summary><ol start="{_SHOWN + 1}">{rest}</ol></details>'
-            return f'<div class="{cls}"><p class="tc-h">{head}</p><ol>{"".join(items[:_SHOWN])}</ol>{more}</div>'
+        if fold and len(items) > shown + 1:
+            rest = "".join(items[shown:])
+            more = f'<details class="tc-more"><summary>{len(items) - shown} more</summary><ol start="{shown + 1}">{rest}</ol></details>'
+            return f'<div class="{cls}"><p class="tc-h">{head}</p><ol>{"".join(items[:shown])}</ol>{more}</div>'
         return (
             f'<div class="{cls}"><p class="tc-h">{head}</p><ol>{"".join(items) or empty}</ol></div>'
         )
@@ -282,11 +290,12 @@ def _phases_html(phases: tuple[list[str], list[str], list[str]], status: str) ->
         f'<li class="ck {escape(status)}"><span class="mk">{mark}</span> {escape(c)}</li>'
         for c in then
     ]
-    ## A Given with nothing in it is not drawn (owner review 3).
-    first = panel("tc-given", "Given", given) + '<span class="tc-arrow">→</span>' if given else ""
+    ## E-16 (UX review, owner Q/A 2026-11-22): THREE FIXED COLUMNS — an empty Given reads "—" rather
+    ## than reflowing; Given folds past two statements (setup is context, not the point).
     return (
-        f'<div class="tc-strip{"" if given else " no-given"}">'
-        + first
+        '<div class="tc-strip">'
+        + panel("tc-given", "Given", given, shown=2)
+        + '<span class="tc-arrow">→</span>'
         + panel("tc-when", "When", when)
         + '<span class="tc-arrow">→</span>'
         ## THEN NEVER FOLDS: the checks are what the card is for.

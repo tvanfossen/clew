@@ -128,7 +128,8 @@ def _cyclonedx(doc: dict) -> tuple[tuple[str, str], list[Component]]:
 ## @brief A CycloneDX licence: an expression, else the ids or names joined with AND.
 ## @param item A component.
 ## @return The licence, or NOASSERTION.
-## @version 1
+## v2: UX review E-22/E-25
+## @version 2
 ## @utility
 def _cdx_licence(item: dict) -> str:
     """@brief Licence. @return Text."""
@@ -139,7 +140,36 @@ def _cdx_licence(item: dict) -> str:
         lic = entry.get("license") or {}
         if lic.get("id") or lic.get("name"):
             parts.append(str(lic.get("id") or lic.get("name")))
-    return " AND ".join(parts) or NOASSERTION
+    ## E-25 (UX review, owner Q/A 2026-11-22): a trove classifier ("License :: OSI Approved :: …")
+    ## beside an SPDX id is noise; it stays only when it is all the component says.
+    spdx = [x for x in parts if " :: " not in x]
+    return " AND ".join(spdx or parts) or NOASSERTION
+
+
+## The component columns after its name, in order, and their headings.
+_COLUMNS = ("version", "licence", "kind", "source", "digest")
+_HEADS = {"licence": "licence"}
+
+
+## @brief How many indexed files declare a licence, as the section's lead figure.
+## @param declared Files with an identifier.
+## @param unlicensed Files without one.
+## @return HTML.
+## @version 1
+## @utility
+def _coverage(declared: int, unlicensed: int) -> str:
+    """E-22 (UX review, owner Q/A 2026-11-22): the figure that matters — 44,344 files without an
+    identifier — was a footnote under the table. It leads, as a share.
+
+    @brief Coverage stat.
+    @return HTML.
+    """
+    total = declared + unlicensed
+    share = round(100 * declared / total) if total else 0
+    return (
+        f'<p class="stat"><b>{declared:,} of {total:,}</b> indexed files declare a licence ({share}%).</p>'
+        f"<p>{unlicensed:,} indexed files carry no SPDX identifier.</p>"
+    )
 
 
 ## @brief The SBOM page's HTML.
@@ -148,7 +178,8 @@ def _cdx_licence(item: dict) -> str:
 ## @param file_licences Licence → how many indexed files carry it (S5).
 ## @param unlicensed How many indexed files carry no identifier.
 ## @return HTML.
-## @version 1
+## v2: UX review E-22/E-25
+## @version 2
 ## @req REQ-DDB-WIKI-051
 def sbom_html(sboms: list, accepted: tuple[str, ...], file_licences: dict, unlicensed: int) -> str:
     """@brief SBOMs, then the files' licences. @return HTML."""
@@ -160,14 +191,16 @@ def sbom_html(sboms: list, accepted: tuple[str, ...], file_licences: dict, unlic
             "<code>bom.cdx.json</code>). The wiki renders an SBOM; it never makes one.</p>"
         )
     for rel, (name, licence), comps in sboms:
-        rows = "".join(_row(c, accepted) for c in comps)
+        ## E-25: a column empty in every row is not drawn.
+        cols = [c for c in _COLUMNS if any(getattr(comp, c) for comp in comps)]
+        rows = "".join(_row(c, accepted, cols) for c in comps)
+        heads = "".join(f"<th>{_HEADS.get(c, c)}</th>" for c in cols)
         parts.append(
             f'<section class="sbom"><h2><code>{escape(rel)}</code></h2>'
             f"<p>Package <strong>{escape(name)}</strong>, licence <code>{escape(licence)}</code>; "
             f"{len(comps)} components.</p>"
             '<div class="table-wrap"><table class="clew sbom"><thead><tr><th>component</th>'
-            "<th>version</th><th>licence</th><th>kind</th><th>source</th><th>digest</th></tr>"
-            f"</thead><tbody>{rows}</tbody></table></div></section>"
+            f"{heads}</tr></thead><tbody>{rows}</tbody></table></div></section>"
         )
     parts.append(_files(file_licences, unlicensed))
     return "".join(parts)
@@ -195,9 +228,10 @@ def _policy(accepted: tuple[str, ...]) -> str:
 ## @param comp The component.
 ## @param accepted The accepted list ("" = none declared).
 ## @return HTML.
-## @version 1
+## v2: UX review E-22/E-25
+## @version 2
 ## @utility
-def _row(comp: Component, accepted: tuple[str, ...]) -> str:
+def _row(comp: Component, accepted: tuple[str, ...], cols: list[str] | None = None) -> str:
     """AN EXPRESSION IS ACCEPTED when every licence id in it is (`MIT AND Zlib`); an `OR` choice
     when any branch is. A licence with no policy declared is never called unaccepted.
 
@@ -209,8 +243,7 @@ def _row(comp: Component, accepted: tuple[str, ...]) -> str:
         flag = ' <span class="flag noassertion">NOASSERTION</span>'
     elif accepted and not _accepted(comp.licence, set(accepted)):
         flag = ' <span class="flag unaccepted">not accepted</span>'
-    cells = [comp.version, comp.licence, comp.kind, comp.source, comp.digest]
-    tds = "".join(f"<td>{escape(c)}</td>" for c in cells)
+    tds = "".join(f"<td>{escape(getattr(comp, c))}</td>" for c in (cols or _COLUMNS))
     return f"<tr><td><code>{escape(comp.name)}</code>{flag}</td>{tds}</tr>"
 
 
@@ -233,7 +266,8 @@ def _accepted(expression: str, accepted: set[str]) -> bool:
 ## @param file_licences Licence → count.
 ## @param unlicensed Indexed files with no identifier.
 ## @return HTML.
-## @version 1
+## v2: UX review E-22/E-25
+## @version 2
 ## @utility
 def _files(file_licences: dict, unlicensed: int) -> str:
     """@brief File licences. @return HTML."""
@@ -251,7 +285,7 @@ def _files(file_licences: dict, unlicensed: int) -> str:
         '<section class="file-licences"><h2>This repository\'s files</h2>'
         "<p>The SPDX identifier each indexed file declares (<code>SPDX-License-Identifier</code>), "
         "from the index.</p>"
-        f"{table}<p>{unlicensed} indexed files carry no SPDX identifier.</p></section>"
+        f"{_coverage(sum(file_licences.values()), unlicensed)}{table}</section>"
     )
 
 

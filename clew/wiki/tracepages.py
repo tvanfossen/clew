@@ -549,7 +549,8 @@ def _requirement_table(trace: Trace, ctx: dict[str, Any], evidence: list | None 
 ## @param items Item HTML.
 ## @param summary The summary line.
 ## @return HTML.
-## @version 1
+## v2: two lines at most (UX review D-9)
+## @version 2
 ## @utility
 def _fold(items: list[str], summary: str) -> str:
     """LONG LINKAGE FOLDS rather than stretching the row (owner 2026-11-15: hard to read).
@@ -557,7 +558,8 @@ def _fold(items: list[str], summary: str) -> str:
     @brief Fold.
     @return HTML.
     """
-    if len(items) <= 4:
+    ## UX review D-9 (owner Q/A 2026-11-22): two lines at most; more is its count, folded.
+    if len(items) <= 2:
         return "<br>".join(items)
     return f'<details class="fold"><summary>{text(summary)}</summary>{"<br>".join(items)}</details>'
 

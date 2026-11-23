@@ -663,14 +663,18 @@ def test_every_page_carries_the_minimap_with_its_components_lit(site: dict[str, 
     ## into map"): the sidebar is now a LABELLED block list, in the web's order, each block a link
     ## to that block on the web. The property — every page carries it, a flow lights its blocks —
     ## is unchanged.
-    for name in ("index.html", "requirements.html", "flow-load.html"):
-        assert '<nav class="minimap"' in site[name], name
+    ## SPEC CHANGED (UX review E-12, owner Q/A 2026-11-22, superseding "every page" of 2026-11-15):
+    ## the block list sits on pages ABOUT the system — a page that lights its blocks, Flows,
+    ## Architecture, Change impact — not on Docs or the index pages (the home page is the map).
+    assert '<nav class="minimap"' in site["flow-load.html"]
+    for name in ("index.html", "requirements.html"):
+        assert '<nav class="minimap"' not in site[name], name
     flow = site["flow-load.html"]
     lit = re.findall(r'\.minimap \[data-comp="([^"]+)"\]', flow)
     assert lit == ["src"]
     assert re.search(r'href="map\.html#b=\d+"[^>]*data-comp="src"', flow)
     assert re.search(r'data-comp="src"[^>]*>.*?<span class="mm-name">src</span>', flow, re.S)
-    assert not re.findall(r'\.minimap \[data-comp="([^"]+)"\]', site["requirements.html"])
+    ## (requirements.html carries no block list at all now, so nothing on it is lit.)
 
 
 def _template(page: str, key: str) -> str:
@@ -810,12 +814,17 @@ def test_flows_are_grouped_by_role(site: dict[str, str]) -> None:
 
 
 def test_a_flow_step_carries_the_requirements_its_callee_implements(site: dict[str, str]) -> None:
-    """@brief P1e: requirement badges on steps, linked to the requirement's row."""
+    """P1e: requirement badges on steps. SPEC CHANGED (UX review D-10, owner Q/A 2026-11-22): each
+    badge opens the requirement's OWN page, which round 4 made the requirement's URL (owner:
+    "individual links that are self contained"), not an anchor on the index.
+
+    @brief Requirement badges on steps, linked to each requirement's page.
+    """
     page = _flow_page(site)
     table = page[page.index('<table class="clew steps"') :]
     table = table[: table.index("</table>")]
-    assert 'href="requirements.html#REQ-X-001"' in table
-    assert 'href="requirements.html#REQ-W-002"' in table
+    assert 'href="req-REQ-X-001.html"' in table
+    assert 'href="req-REQ-W-002.html"' in table
 
 
 def test_docs_are_grouped_by_kind_and_agent_docs_are_included(site: dict[str, str]) -> None:
@@ -1182,3 +1191,33 @@ def test_the_home_page_opens_on_the_map(site: dict[str, str]) -> None:
     home = site["index.html"]
     assert "data-web" in home and "data-web-legend" in home
     assert home.index("data-web") < home.index('class="charts"') < home.index('class="cards"')
+
+
+def test_the_sidebar_puts_the_page_first_and_the_system_only_where_it_belongs(
+    site: dict[str, str],
+) -> None:
+    """UX review E-12 (owner Q/A 2026-11-22): the system block list sat on every page, Docs included,
+    above the page's own contents (clipped). The page's contents come first; the block list shows
+    on pages about the system (a page that lights its blocks, Flows, Architecture, Change impact).
+
+    @brief Sidebar: contents first, system in context.
+    """
+    docs = site["docs.html"]
+    assert "minimap-block" not in docs
+    flow = _flow_page(site)
+    assert "minimap-block" in flow
+    side = flow[flow.index('class="sphinxsidebar"') :]
+    assert side.index("Table of Contents") < side.index("minimap-block")
+
+
+def test_the_home_page_says_what_it_is_and_where_to_go_before_the_map(site: dict[str, str]) -> None:
+    """UX review E-13 (owner Q/A 2026-11-22): home opened on a complex chart with no orienting
+    sentence. A one-line purpose and the main doorways come before the map.
+
+    @brief Home: purpose and doorways first.
+    """
+    home = site["index.html"]
+    assert 'class="home-lead"' in home and 'class="doorways"' in home
+    assert home.index('class="home-lead"') < home.index('class="doorways"') < home.index("data-web")
+    doors = home.split('class="doorways"', 1)[1].split("</nav>", 1)[0]
+    assert 'href="requirements.html"' in doors and 'href="flows.html"' in doors

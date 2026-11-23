@@ -106,7 +106,8 @@ def anchor(name: str) -> str:
 ## v3: `test_functions` is public (the build resolves directly linked tests to draw, P2b).
 ## v4: and the object list the `clew` domain puts in objects.inv (2.0.0, S8).
 ## v5: a file page names its owners, unless the audience withholds them (2.0.0, P5).
-## @version 5
+## v6: file header, product/test callers (UX review E-20)
+## @version 6
 ## @req REQ-DDB-WIKI-025
 def symbol_pages(
     db: Path, repo_root: Path, keys: set[tuple[str, str]], ctx: dict[str, Any], source: Path
@@ -117,6 +118,12 @@ def symbol_pages(
         defs = _definitions(conn, keys | tests)
         graph = _Edges(conn)
         owned = _owners_by_file(conn, {d.file for d in defs}, ctx["rules"])
+        ## E-20: each file's own documented purpose, for its page's header.
+        purposes = (
+            dict(conn.execute("SELECT file_path, doc FROM file_docs"))
+            if table_exists(conn, "file_docs")
+            else {}
+        )
     ctx = {**ctx, "test_keys": tests}
     by_file: dict[str, dict[str, list[Definition]]] = defaultdict(lambda: defaultdict(list))
     for d in defs:
@@ -132,9 +139,12 @@ def symbol_pages(
             "orphan: true",
             "---",
             "",
-            f"# `{rel}`",
+            f"# {rel.rsplit('/', 1)[-1]}",
             "",
             "```{raw} html",
+            ## UX review E-20 (owner Q/A 2026-11-22): the file's name as the title, then its path and
+            ## what it is for — the page used to open on a small grey path chip.
+            _file_header(rel, str(purposes.get(rel) or "")),
             *_owners_line(owned.get(rel)),
             *sections,
             "```",
@@ -329,7 +339,8 @@ class _Edges:
 ## v3: neighbours and the web link replace the ego-graph (round 4, R3).
 ## v4: activity diagram per function (2.0.0, P5.5)
 ## v5: viewer caps V3/V5/V6 (2.0.0, owner Q/A 2026-11-20)
-## @version 5
+## v6: file header, product/test callers (UX review E-20)
+## @version 6
 ## @utility
 def _section(
     name: str,
@@ -355,7 +366,7 @@ def _section(
             f'<pre class="sig">{escape(d.signature or name)}</pre>'
             + (f"<p>{escape(d.brief)}</p>" if d.brief else "")
             + f'<p class="where">{where}</p>'
-            + _near(d, graph, written)
+            + _near(d, graph, written, set(ctx.get("test_keys", ())))
         )
         if key in ctx.get("test_keys", ()):
             parts.append(_test_block(d, graph, ctx, repo_root))
@@ -474,18 +485,63 @@ def _unwind(graph: _Edges, prev: dict[int, int], end: int) -> list[str]:
 ## @return HTML.
 ## Round 4, R3: replaces the per-symbol ego-graph; the repository web is the one graph view.
 ## v2: viewer caps V3/V5/V6 (2.0.0, owner Q/A 2026-11-20)
-## @version 2
+## v3: file header, product/test callers (UX review E-20)
+## @version 3
 ## @utility
-def _near(d: Definition, graph: _Edges, written: set[tuple[str, str]]) -> str:
-    """@brief Neighbours. @return HTML."""
+def _near(
+    d: Definition, graph: _Edges, written: set[tuple[str, str]], tests: set | None = None
+) -> str:
+    """E-20 (UX review, owner Q/A 2026-11-22): product callers and the tests that call it are listed
+    apart, the tests folded under their count.
+
+    @brief Neighbours.
+    @return HTML.
+    """
     from urllib.parse import quote
 
     web = f"map.html#n={quote(d.name)}@{quote(d.file)}"
+    product, testing = _split_callers(graph.around(d.rowid, "callers"), tests or set())
+    tested = (
+        f'<p><b>Tested by</b> <details class="more"><summary>{len(testing)} tests</summary>'
+        f"{_names(testing, written)}</details></p>"
+        if testing
+        else ""
+    )
     return (
         f'<div class="near"><p><a href="{web}">Show on the map →</a></p>'
-        f"<p><b>Called by</b> {_names(graph.around(d.rowid, 'callers'), written)}</p>"
+        f"<p><b>Called by</b> {_names(product, written)}</p>{tested}"
         f"<p><b>Calls</b> {_names(graph.around(d.rowid, 'callees'), written)}</p></div>"
     )
+
+
+## @brief Callers split into product code and the tests that call it.
+## @param pairs (name, file) callers.
+## @param tests (name, file) of every test function.
+## @return (product callers, test callers).
+## @version 1
+## @utility
+def _split_callers(pairs: Any, tests: set) -> tuple[list, list]:
+    """@brief Split callers. @return Pair."""
+    pairs = list(pairs)
+    return [p for p in pairs if tuple(p) not in tests], [p for p in pairs if tuple(p) in tests]
+
+
+## @brief A file page's header: its path, then its documented purpose's first sentence.
+## @param rel The file.
+## @param doc Its documented purpose, or "".
+## @return HTML.
+## @version 1
+## @utility
+def _file_header(rel: str, doc: str) -> str:
+    """E-20: the h1 is the file's name; this follows it. A file with no documented purpose says only
+    where it is.
+
+    @brief File header.
+    @return HTML.
+    """
+    out = f'<p class="sym-path"><code>{escape(rel)}</code></p>'
+    first = re.split(r"(?<=[.!?])\s", " ".join(doc.split()), maxsplit=1)[0] if doc.strip() else ""
+    return out + (f'<p class="sym-purpose">{escape(first)}</p>' if first else "")
 
 
 ## @brief Neighbour names: the first `_NEAR` inline, the rest behind "N more" (V3).

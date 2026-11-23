@@ -29,7 +29,7 @@ from typing import Any, NamedTuple
 
 from .config import Audience, FlowSpec, WikiConfig
 from .flow import Flow, derive_flow
-from .htmltable import code, gherkin, md_title, source_url, table
+from .htmltable import code, gherkin, md_title, plural, source_url, table
 from .slices import slices_of
 from .svg import flow_svg
 from .symbols import symbol_href
@@ -691,14 +691,25 @@ def _functions(functions: set[tuple[str, str]]) -> list[str]:
 ## @brief Requirement badges, each linked to its row on the requirements page.
 ## @param reqs Requirement ids.
 ## @return HTML ("" for none).
-## @version 1
+## v2: fold many; link the page (UX review D-10)
+## @version 2
 ## @utility
 def _badges(reqs: Any) -> str:
-    """@brief Badges. @return HTML."""
-    return " ".join(
-        f'<a class="req-badge" href="requirements.html#{escape(r)}">{escape(r)}</a>'
+    """UX review D-10 (owner Q/A 2026-11-22): three or fewer inline; more fold under their count,
+    and each pill opens the requirement's own page.
+
+    @brief Badges.
+    @return HTML.
+    """
+    from .reqmodal import page_of
+
+    pills = [
+        f'<a class="req-badge" href="{escape(page_of(r))}.html">{escape(r)}</a>'
         for r in sorted(set(reqs))
-    )
+    ]
+    if len(pills) <= 3:
+        return " ".join(pills)
+    return f'<details class="fold"><summary>{len(pills)} requirements</summary>{" ".join(pills)}</details>'
 
 
 ## @brief The Flows page: flows grouped by role, tooling folded away.
@@ -756,28 +767,55 @@ def flows_index(
     return "flows"
 
 
+## @brief A flow's title cell: its readable name, the entry under it in monospace, its intent.
+## @param p The flow page.
+## @return HTML.
+## @version 1
+## @utility
+def _title_cell(p: FlowPage) -> str:
+    """UX review E-11 (owner Q/A 2026-11-22): ONE PATTERN. A discovered flow's stored title is
+    `<name> — <entry> (<file>)` (build._actor_of reads that shape, so it stays); the cell shows the
+    name as the title and the entry and file under it, small and monospace.
+
+    @brief Title cell.
+    @return HTML.
+    """
+    name, _sep, where = p.title.partition(" — ")
+    entry = f'<br><span class="entry">{md_title(where)}</span>' if where else ""
+    intent = f'<br><span class="intent">{escape(p.intent)}</span>' if p.intent else ""
+    return f'<a href="{escape(p.name)}.html">{md_title(name)}</a>{entry}{intent}'
+
+
 ## @brief One role's flows as a table, folded for tooling.
 ## @param role The role.
 ## @param members Its flow pages.
 ## @return HTML.
 ## v2: the tests role folds too (P2b).
 ## v3: intent under the title (W-1)
-## @version 3
+## v4: one title pattern; untraced muted (UX review E-11)
+## @version 4
 ## @utility
 def _role_block(role: str, members: list[FlowPage]) -> str:
     """@brief Role block. @return HTML."""
     rows = [
         [
-            f'<a href="{escape(p.name)}.html">{md_title(p.title)}</a>'
-            + (f'<br><span class="intent">{escape(p.intent)}</span>' if p.intent else ""),
-            str(p.steps),
+            _title_cell(p),
+            str(p.steps) if p.steps else '<span class="untraced">not traced</span>',
             _badges(p.requirements),
         ]
         for p in members
     ]
-    body = table(["flow", "steps", "requirements"], rows, numeric=("steps",), keep=("flow",))
+    ## E-11: a flow that draws nothing is muted, not listed as a peer.
+    attrs = ["" if p.steps else ' class="untraced"' for p in members]
+    body = table(
+        ["flow", "steps", "requirements"], rows, numeric=("steps",), keep=("flow",), row_attrs=attrs
+    )
     if role in _FOLDED:
-        body = f"<details><summary>{len(members)} {role} flows</summary>{body}</details>"
+        ## E-22: "1 test flow", "3 tooling flows".
+        adjective = {"tests": "test", "threads": "thread"}.get(role, role)
+        body = (
+            f"<details><summary>{plural(len(members), 'flow', adjective)}</summary>{body}</details>"
+        )
     return f'<section class="flow-role" data-role="{role}">{body}</section>'
 
 

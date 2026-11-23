@@ -59,3 +59,60 @@ def test_withheld_requirement_text_is_not_shown() -> None:
     entry = {"acceptance": "Secret.", "scenario": "Given x\nWhen y\nThen z"}
     html = _what(_row(), entry, {"rules": Audience(exclude_requirement_text=True), "blocks": {}})
     assert "Secret." not in html and "kw" not in html
+
+
+def test_a_requirement_s_tests_show_what_did_not_pass_and_fold_what_did() -> None:
+    """UX review D-7 (owner Q/A 2026-11-22): "Tests (376) is one flat table where most rows say the
+    same thing". Each table opens on its summary; tests that did not pass stay visible; passing ones
+    fold under their count. Nothing is cut (round 4): every test is still on the page.
+
+    @brief Summary first, passing folded.
+    """
+    from clew.wiki.reqmodal import _tests
+
+    row = SimpleNamespace(
+        tests=(("test_ok1", "passed"), ("test_ok2", "passed"), ("test_bad", "failed")),
+        inferred_tests=(),
+        measured_tests=(),
+        declared_tests=(),
+        extent=(),
+        distance=(),
+        implementers=("f",),
+        req_id="REQ-A-001",
+    )
+    html = _tests(row, {})
+    head = html.split("<table", 1)[0]
+    assert "3 tests: 1 failed, 2 passed" in head
+    visible, folded = html.split("<details", 1)
+    assert "test_bad" in visible and "test_ok1" not in visible
+    assert "2 passed" in folded and "test_ok1" in folded and "test_ok2" in folded
+
+
+def test_a_long_implementer_list_is_its_count() -> None:
+    """UX review D-9 (owner Q/A 2026-11-22): rows of the requirements index grew to 185 px with 3–4
+    long names inline. Two names stay inline; more fold under their count.
+
+    @brief Cells stay two lines.
+    """
+    from clew.wiki.tracepages import _fold
+
+    assert "<details" not in _fold(["a", "b"], "2 functions")
+    folded = _fold(["a", "b", "c"], "3 functions")
+    assert folded.startswith('<details class="fold"><summary>3 functions</summary>')
+
+
+def test_many_requirement_pills_fold_and_each_links_its_page() -> None:
+    """UX review D-10: walls of REQ pills. Three or fewer inline; more fold under "N requirements";
+    each pill opens the requirement's own page, not an anchor on the index.
+
+    @brief Pills: few inline, many folded, page links.
+    """
+    from clew.wiki.flowpage import _badges
+
+    few = _badges(["REQ-A-002", "REQ-A-001"])
+    assert (
+        '<a class="req-badge" href="req-REQ-A-001.html">REQ-A-001</a>' in few
+        and "<details" not in few
+    )
+    many = _badges([f"REQ-A-00{i}" for i in range(1, 6)])
+    assert many.startswith('<details class="fold"><summary>5 requirements</summary>')

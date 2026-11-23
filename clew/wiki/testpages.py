@@ -30,7 +30,7 @@ from pathlib import Path
 from typing import Any
 
 from ..query._common import connect, table_exists
-from .htmltable import source_url, tag
+from .htmltable import plural, source_url, tag
 from .testfacts import TestFacts as _Facts
 from .symbols import _PATH_DEPTH, Definition, _Edges, _lines, _path, anchor, symbol_href
 
@@ -64,7 +64,8 @@ def test_page_of(name: str, rel: str) -> str:
 ## v5: tests category (2.0.0, owner Q/A 2026-11-20)
 ## v6: call flow plays in call order with briefs (X-3)
 ## v7: card at page level (owner review 3)
-## @version 7
+## v8: UX review group E (owner Q/A 2026-11-22)
+## @version 8
 ## @req REQ-DDB-WIKI-026
 def test_pages(db: Path, repo_root: Path, ctx: dict[str, Any], source: Path) -> dict[str, str]:
     """ONE PAGE PER NAME: every definition of a test name in test code is drawn on it, so a link
@@ -104,7 +105,8 @@ def test_pages(db: Path, repo_root: Path, ctx: dict[str, Any], source: Path) -> 
             f"# {name}",
             "",
             "```{raw} html",
-            '<p class="crumbs"><a href="requirements.html">← Requirements</a></p>',
+            ## E-21: the trail this page sits in — Tests › its file — not Requirements.
+            f'<p class="crumbs"><a href="tests.html">Tests</a> › <code>{escape(ds[0].file)}</code></p>',
             f'<div class="test-page">{_result(name, ctx)}{_replay(name, ctx)}'
             ## OWNER REVIEW 3: WHY it exists and WHAT it checks, before anything it ran.
             f"{''.join(_card(d, graph, ctx, Path(repo_root)) for d in ds)}"
@@ -494,7 +496,8 @@ def _card(d: Any, graph: _Edges, ctx: dict[str, Any], repo_root: Path) -> str:
 ## @param written (name, file) of every function whose page was written.
 ## @return HTML.
 ## v2: call flow plays in call order with briefs (X-3)
-## @version 2
+## v3: UX review group E (owner Q/A 2026-11-22)
+## @version 3
 ## @req REQ-DDB-WIKI-045
 def _callflow(
     test: str,
@@ -527,8 +530,9 @@ def _callflow(
         )
     arrows = '<span class="arrow">→</span>'.join(boxes)
     return (
+        ## E-15: a player only where there is something to play — more than five boxes.
         '<section class="callflow-block" data-flow-play="callflow"><h2>Call flow</h2>'
-        f'{_player_controls()}<div class="callflow"><span class="box test"><code>{escape(test)}'
+        f'{_player_controls() if len(callees) > 5 else ""}<div class="callflow"><span class="box test"><code>{escape(test)}'
         f'</code></span><span class="arrow">→</span>{arrows}</div></section>'
         '<script src="_static/clew-views.js"></script>'
     )
@@ -792,7 +796,8 @@ def _width(label: str) -> float:
 ## @param ctx The page context.
 ## @return HTML.
 ## v2: test card and declared-first requirements (owner review 3)
-## @version 2
+## v3: UX review group E (owner Q/A 2026-11-22)
+## @version 3
 ## @utility
 def _requirements(name: str, ctx: dict[str, Any]) -> str:
     """@brief Requirement table. @return HTML."""
@@ -824,7 +829,7 @@ def _requirements(name: str, ctx: dict[str, Any]) -> str:
             for r, k in reach
         )
         out += (
-            f'<details class="reach"><summary>Also reaches {len(reach)} requirements</summary>'
+            f'<details class="reach"><summary>Also reaches {plural(len(reach), "requirement")}</summary>'
             f"<p>Its run touches their code; that is reach, not proof.</p><ul>{items}</ul></details>"
         )
     if facts.mutations:
@@ -855,13 +860,119 @@ def _extent(ctx: dict[str, Any], req: str, test: str) -> str:
     return f"{len(names)} of {total}" + (f": {shown}{more}" if names else "")
 
 
+## The results a test can have, in the order the Tests tab's chips show them.
+_RESULTS = ("failed", "error", "passed", "skipped", "absent")
+## A test file under one of these directory names is fixture data, not a test the suite runs.
+_FIXTURE_DIRS = {"data", "fixtures", "fixture", "testdata"}
+
+
+## @brief A test's result in the packaged run ("absent" when no report names it).
+## @param d The definition.
+## @param results Test name → its result.
+## @return The status.
+## @version 1
+## @utility
+def _status(d: Any, results: dict) -> str:
+    """@brief Status. @return Text."""
+    found = results.get(d.name)
+    return found.status if found else "absent"
+
+
+## @brief The Tests tab's result chips, each with its count; a chip filters the tab.
+## @param counts Result → tests.
+## @return HTML.
+## @version 1
+## @utility
+def _result_chips(counts: dict[str, int]) -> str:
+    """UX review D-8: the tab opens on what matters — how many failed — not on 3,356 rows.
+
+    @brief Result chips.
+    @return HTML.
+    """
+    chips = "".join(
+        f'<button type="button" class="chip r-{s}" data-filter-chip="{s}">{s} {counts[s]}</button>'
+        for s in _RESULTS
+        if counts.get(s)
+    )
+    return f'<p class="chips">{chips}</p>'
+
+
+## @brief The Tests tab's groups: one collapsed section per test file, fixture data apart at the end.
+## @param defs Every recognised test definition.
+## @param results Test name → its result.
+## @param facts Test name → its facts.
+## @param hrefs Test name → its page.
+## @return HTML.
+## @version 1
+## @utility
+def _tests_groups(defs: list, results: dict, facts: dict, hrefs: dict) -> str:
+    """UX review D-8 (owner Q/A 2026-11-22): GROUPED BY FILE, each group collapsed with its count and
+    results, so the tab is browsable; files under a fixture-data directory (`tests/data/...`) are
+    code the suite does not run as tests, so they fold together at the end. Every group's table
+    keeps the class the filter box reads (`tests-all`).
+
+    @brief Test groups.
+    @return HTML.
+    """
+    by_file: dict[str, list] = defaultdict(list)
+    for d in sorted(defs, key=lambda d: (d.file, d.start, d.name)):
+        by_file[d.file].append(d)
+    real = [f for f in by_file if not _FIXTURE_DIRS & set(f.split("/")[:-1])]
+    fixtures = [f for f in by_file if f not in real]
+    out = [_test_group(f, by_file[f], results, facts, hrefs) for f in real]
+    if fixtures:
+        inner = "".join(_test_group(f, by_file[f], results, facts, hrefs) for f in fixtures)
+        n = sum(len(by_file[f]) for f in fixtures)
+        out.append(
+            f'<details class="tgroup fixtures"><summary>Fixture data: {n} test-shaped functions in '
+            f"{len(fixtures)} files the suite does not run</summary>{inner}</details>"
+        )
+    return "".join(out)
+
+
+## @brief One file's group on the Tests tab.
+## @param file The test file.
+## @param tests Its definitions.
+## @param results Test name → its result.
+## @param facts Test name → its facts.
+## @param hrefs Test name → its page.
+## @return HTML.
+## @version 1
+## @utility
+def _test_group(file: str, tests: list, results: dict, facts: dict, hrefs: dict) -> str:
+    """@brief One group. @return HTML."""
+    counts: dict[str, int] = {}
+    rows = []
+    for d in tests:
+        status = _status(d, results)
+        counts[status] = counts.get(status, 0) + 1
+        name = f"<code>{escape(d.name)}</code>"
+        cell = f'<a href="{escape(hrefs[d.name])}">{name}</a>' if d.name in hrefs else name
+        linked = len((facts.get(d.name) or _NO_FACTS).verifies)
+        rows.append(
+            f'<tr data-result="{escape(status)}"><td>{cell}</td><td>:{d.start}</td>'
+            f'<td><span class="res r-{escape(status)}">{escape(status)}</span></td>'
+            f'<td class="n">{linked or "—"}</td></tr>'
+        )
+    noun = "test" if len(tests) == 1 else "tests"
+    tally = " · ".join(f"{counts[s]} {s}" for s in _RESULTS if counts.get(s))
+    return (
+        f'<details class="tgroup"><summary><code>{escape(file)}</code> <span class="tc">{len(tests)} '
+        f"{noun} · {tally}</span></summary>"
+        '<div class="table-wrap"><table class="clew tests-all"><thead><tr><th>test</th><th>line</th>'
+        f'<th>result</th><th class="n">requirements</th></tr></thead><tbody>{"".join(rows)}'
+        "</tbody></table></div></details>"
+    )
+
+
 ## @brief Write the Tests tab: every test the index recognises, linked to its page, filterable.
 ## @param db The index.
 ## @param ctx The test-page context (`tests`, `results`).
 ## @param hrefs Test name → its page, for the tests that have one.
 ## @param source The Sphinx source directory.
 ## @return The page name.
-## @version 1
+## v2: UX review group E (owner Q/A 2026-11-22)
+## @version 2
 ## @req REQ-DDB-WIKI-052
 def tests_index(db: Path, ctx: dict[str, Any], hrefs: dict[str, str], source: Path) -> str:
     """TESTS ARE THEIR OWN CATEGORY (owner Q/A 2026-11-20): every recognised test, linked or not,
@@ -876,17 +987,10 @@ def tests_index(db: Path, ctx: dict[str, Any], hrefs: dict[str, str], source: Pa
         defs = _test_definitions(conn, None)
     results = ctx.get("results") or {}
     facts = ctx.get("tests") or {}
-    rows = []
-    for d in sorted(defs, key=lambda d: (d.file, d.start, d.name)):
-        name = f"<code>{escape(d.name)}</code>"
-        cell = f'<a href="{escape(hrefs[d.name])}">{name}</a>' if d.name in hrefs else name
-        found = results.get(d.name)
-        linked = len((facts.get(d.name) or _NO_FACTS).verifies)
-        rows.append(
-            f"<tr><td>{cell}</td><td>{escape(d.file)}:{d.start}</td>"
-            f"<td>{escape(found.status if found else 'absent')}</td>"
-            f'<td class="n">{linked or "—"}</td></tr>'
-        )
+    counts: dict[str, int] = {}
+    for d in defs:
+        status = _status(d, results)
+        counts[status] = counts.get(status, 0) + 1
     lines = [
         "# Tests",
         "",
@@ -894,11 +998,11 @@ def tests_index(db: Path, ctx: dict[str, Any], hrefs: dict[str, str], source: Pa
         "filter by name, file, result or requirement count.",
         "",
         "```{raw} html",
+        ## UX review D-8 (owner Q/A 2026-11-22): result chips, then one collapsed group per file.
+        _result_chips(counts),
         '<input type="search" class="filter" data-filter-table="tests-all" '
-        'placeholder="Filter tests" aria-label="Filter tests">'
-        '<div class="table-wrap"><table class="clew tests-all"><thead><tr><th>test</th><th>file</th>'
-        f'<th>result</th><th class="n">requirements</th></tr></thead><tbody>{"".join(rows)}'
-        "</tbody></table></div>"
+        'placeholder="Filter tests" aria-label="Filter tests">',
+        _tests_groups(defs, results, facts, hrefs),
         '<script src="_static/clew-views.js"></script>',
         "```",
         "",

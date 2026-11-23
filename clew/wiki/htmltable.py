@@ -144,3 +144,20 @@ def gherkin(lines: tuple[str, ...] | list[str]) -> str:
         for kw, _sp, rest in (str(line).partition(" ") for line in lines if str(line).strip())
     )
     return f'<ol class="gherkin" aria-label="Scenario">{rows}</ol>' if rows else ""
+
+
+## @brief A count with its noun, pluralised: "1 requirement", "3 tooling flows".
+## @param n The count.
+## @param noun The noun, singular.
+## @param kind An optional word before the noun.
+## @return Text.
+## @version 1
+## @utility
+def plural(n: int, noun: str, kind: str = "") -> str:
+    """UX review E-22 (owner Q/A 2026-11-22): "1 tests flows", "Also reaches 1 requirements".
+
+    @brief Pluralise.
+    @return Text.
+    """
+    word = noun if n == 1 else f"{noun}s"
+    return f"{n} {kind + ' ' if kind else ''}{word}"

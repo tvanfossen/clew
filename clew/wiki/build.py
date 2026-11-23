@@ -864,7 +864,8 @@ def _home_charts(evidence: list) -> str:
 ## v11: API card (public-API reference (2.0.0, PAPI))
 ## v12: status charts on the home page (X-5)
 ## v13: the map is home (owner Q/A 2026-11-22)
-## @version 13
+## v14: purpose and doorways (UX review E-13)
+## @version 14
 ## @utility
 def _write_index(
     source: Path, config: WikiConfig, trace: object, sections: list[str], flow_count: int
@@ -927,9 +928,22 @@ def _write_index(
         if "map" in sections and (source / MAP_BLOCK).is_file()
         else []
     )
+    ## UX review E-13 (owner Q/A 2026-11-22): what this site is and where to go, before the map.
+    doors = "".join(
+        f'<a href="{name}.html">{icon(name, 18)}{escape(blurbs[name][0])}</a>'
+        for name in ("requirements", "flows", "tests", "impact", "architecture")
+        if name in sections
+    )
+    lead = (
+        '```{raw} html\n<p class="home-lead">Everything the index knows about this repository: what '
+        "each part does, why it exists, how it works and where it lives. The map below is the whole "
+        "system; the sections are the ways in.</p>"
+        f'<nav class="doorways" aria-label="Sections">{doors}</nav>\n```\n'
+    )
     text = [
         f"# {config.title}",
         "",
+        lead,
         *home_map,
         "```{raw} html",
         ## X-5: the status donuts, top level; the section cards after them.

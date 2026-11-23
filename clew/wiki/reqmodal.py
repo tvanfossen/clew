@@ -231,7 +231,8 @@ def _tests_heading(tests: tuple) -> str:
 ## @param hrefs {test name: its section}.
 ## @return HTML.
 ## v3 (round 4, R4/R5): tables, every test, each with its extent; nothing cut.
-## @version 3
+## v4: summary first, passing folded (UX review D-7)
+## @version 4
 ## @utility
 def _tests(row: Any, hrefs: dict[str, str]) -> str:
     """A TEST'S EXTENT IS SAID (owner 2026-11-17: "a test could cover sections of multiple
@@ -262,20 +263,36 @@ def _tests(row: Any, hrefs: dict[str, str]) -> str:
     for heading, rows in (("Linked directly", direct), ("Reached through calls", reached)):
         if not rows:
             continue
-        body = "".join(
-            f"<tr><td>{test_link(t, hrefs)}</td><td>{tag(st)}</td><td>{_kind(row, t)}</td>"
-            f"<td>{_extent(reach.get(t), total)}</td>"
-            f'<td class="n">{hops.get(t, "—")}</td></tr>'
-            for t, st in rows
+
+        def table(items: list) -> str:
+            body = "".join(
+                f"<tr><td>{test_link(t, hrefs)}</td><td>{tag(st)}</td><td>{_kind(row, t)}</td>"
+                f"<td>{_extent(reach.get(t), total)}</td>"
+                f'<td class="n">{hops.get(t, "—")}</td></tr>'
+                for t, st in items
+            )
+            return (
+                '<table class="clew req-tests"><thead><tr><th>test</th><th>result</th>'
+                "<th>linked by</th><th>implementers exercised</th>"
+                '<th class="n" title="the fewest calls between the test and an implementer">calls away'
+                f"</th></tr></thead><tbody>{body}</tbody></table>"
+            )
+
+        ## UX review D-7 (owner Q/A 2026-11-22): SUMMARY FIRST. What did not pass stays in view;
+        ## what passed folds under its count. Every test is still on the page (round 4: nothing cut).
+        passing = [r for r in rows if r[1] == "passed"]
+        other = [r for r in rows if r[1] != "passed"]
+        counts: dict[str, int] = {}
+        for _t, st in rows:
+            counts[st] = counts.get(st, 0) + 1
+        tally = ", ".join(
+            f"{n} {s}" for s, n in sorted(counts.items(), key=lambda kv: order.get(kv[0], 2))
         )
-        out += (
-            f"<h5>{heading} ({len(rows)})</h5>"
-            '<table class="clew req-tests"><thead><tr><th>test</th><th>result</th>'
-            "<th>linked by</th><th>implementers exercised</th>"
-            '<th class="n" title="the fewest calls between the test and an implementer">calls away'
-            "</th></tr></thead>"
-            f"<tbody>{body}</tbody></table>"
-        )
+        noun = "test" if len(rows) == 1 else "tests"
+        out += f'<h5>{heading}</h5><p class="req-tally">{len(rows)} {noun}: {tally}</p>'
+        out += table(other) if other else ""
+        if passing:
+            out += f'<details class="passing"><summary>{len(passing)} passed</summary>{table(passing)}</details>'
     return out
 
 

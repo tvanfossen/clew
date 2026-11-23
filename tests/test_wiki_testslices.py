@@ -244,4 +244,6 @@ def test_a_test_s_call_flow_plays_in_call_order_with_briefs(tmp_path) -> None:
     assert [n for n, _f in ordered] == ["save", "load", "check"]
     html = _callflow("test_x", ordered, {}, set(), {("save", "s.py"): "Write one record."})
     assert 'data-brief="Write one record."' in html and 'title="Write one record."' in html
-    assert 'data-flow-play="callflow"' in html and 'data-slice-control="play"' in html
+    ## SPEC CHANGED (UX review E-15, owner Q/A 2026-11-22): three boxes get no player — it appears
+    ## past five (test_wiki_ux_small.test_a_short_call_flow_has_no_player).
+    assert 'data-flow-play="callflow"' in html and 'data-slice-control="play"' not in html
