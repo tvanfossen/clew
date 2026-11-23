@@ -63,7 +63,8 @@ def test_page_of(name: str, rel: str) -> str:
 ## v4: each definition's own slices (2.0.0, W11)
 ## v5: tests category (2.0.0, owner Q/A 2026-11-20)
 ## v6: call flow plays in call order with briefs (X-3)
-## @version 6
+## v7: card at page level (owner review 3)
+## @version 7
 ## @req REQ-DDB-WIKI-026
 def test_pages(db: Path, repo_root: Path, ctx: dict[str, Any], source: Path) -> dict[str, str]:
     """ONE PAGE PER NAME: every definition of a test name in test code is drawn on it, so a link
@@ -105,6 +106,8 @@ def test_pages(db: Path, repo_root: Path, ctx: dict[str, Any], source: Path) -> 
             "```{raw} html",
             '<p class="crumbs"><a href="requirements.html">← Requirements</a></p>',
             f'<div class="test-page">{_result(name, ctx)}{_replay(name, ctx)}'
+            ## OWNER REVIEW 3: WHY it exists and WHAT it checks, before anything it ran.
+            f"{''.join(_card(d, graph, ctx, Path(repo_root)) for d in ds)}"
             f"{_exercises(name, ctx, ds)}{body}"
             f"{_requirements(name, ctx)}</div>",
             "```",
@@ -398,7 +401,9 @@ def _result(name: str, ctx: dict[str, Any]) -> str:
 ## v5: context paths (2.0.0, P5.5)
 ## v6: call-flow boxes (2.0.0, P5.5)
 ## v7: call flow plays in call order with briefs (X-3)
-## @version 7
+## v8: test card and declared-first requirements (owner review 3)
+## v9: card at page level (owner review 3)
+## @version 9
 ## @utility
 def _definition(d: Any, graph: _Edges, ctx: dict[str, Any], repo_root: Path) -> str:
     """@brief Definition block. @return HTML."""
@@ -410,9 +415,9 @@ def _definition(d: Any, graph: _Edges, ctx: dict[str, Any], repo_root: Path) -> 
     where = f'<a href="{escape(url)}">{where}</a>' if url else where
     out = f'<p class="where">{where} · <a href="{_source_page(d)}">its file\'s page</a></p>'
     lines = _lines(repo_root, d)
+    candidates = {graph.names[c][0] for c in graph.callees.get(d.rowid, ()) if c in graph.names}
     checks = assertions(lines) if lines and not ctx["rules"].exclude_bodies else []
     ## P5.5: PINNED BY SYNTAX TREE when the language has a parser; the regex reading otherwise.
-    candidates = {graph.names[c][0] for c in graph.callees.get(d.rowid, ()) if c in graph.names}
     pins = pin_checks(lines, d.file, candidates, d.start) if checks else []
     ## P5.5, TRACED VALUES: a packaged run of this test gives each pinned check its call's value.
     run = (ctx.get("traces") or {}).get(d.name)
@@ -431,6 +436,55 @@ def _definition(d: Any, graph: _Edges, ctx: dict[str, Any], repo_root: Path) -> 
         out += _callflow(d.name, callees, ran, ctx.get("written") or set(), ctx.get("briefs"))
     out += _proof(d, graph, ctx, count)
     return out
+
+
+## @brief The product functions a test calls: its callees outside test code.
+## @param d The test's definition.
+## @param graph The call graph.
+## @return Names.
+## @version 1
+## @utility
+def _product(d: Any, graph: _Edges) -> set[str]:
+    """Owner review 3: a helper in the test's own file, or anywhere under a test path, is the test's
+    machinery, not the product it is checking.
+
+    @brief Product callees.
+    @return Names.
+    """
+    out = set()
+    for c in graph.callees.get(d.rowid, ()):
+        name, file = graph.names.get(c, ("", ""))
+        parts = file.split("/")
+        if name and file != d.file and not any(p.startswith("test") for p in parts):
+            out.add(name)
+    return out
+
+
+## @brief One definition's test card: WHY it exists, then Given / When / Then.
+## @param d The definition.
+## @param graph The call graph.
+## @param ctx The page context.
+## @param repo_root The repository.
+## @return HTML.
+## @version 1
+## @utility
+def _card(d: Any, graph: _Edges, ctx: dict[str, Any], repo_root: Path) -> str:
+    """OWNER REVIEW 3 (2026-11-22): at the top of the page. Withheld bodies keep only WHY — Given /
+    When / Then is the test's source.
+
+    @brief Test card.
+    @return HTML.
+    """
+    from .testcard import test_card
+
+    lines = [] if ctx["rules"].exclude_bodies else (_lines(repo_root, d) or [])
+    return test_card(
+        lines,
+        d,
+        _product(d, graph),
+        (ctx.get("tests") or {}).get(d.name),
+        (ctx.get("briefs") or {}).get((d.name, d.file), ""),
+    )
 
 
 ## @brief The test's call-flow boxes: each function it calls, linked to its activity diagram.
@@ -737,22 +791,42 @@ def _width(label: str) -> float:
 ## @param name The test.
 ## @param ctx The page context.
 ## @return HTML.
-## @version 1
+## v2: test card and declared-first requirements (owner review 3)
+## @version 2
 ## @utility
 def _requirements(name: str, ctx: dict[str, Any]) -> str:
     """@brief Requirement table. @return HTML."""
+    from .testcard import DECLARED_LINKS
+
     facts = ctx["tests"][name]
+    ## OWNER REVIEW 3 (2026-11-22): WHAT IT IS FOR, then what it merely reaches. Declared links
+    ## (tag, catalog) are the table; coverage reach (measured, inferred) folds under it.
+    declared = [(r, k) for r, k in facts.verifies if k in DECLARED_LINKS]
+    reach = [(r, k) for r, k in facts.verifies if k not in DECLARED_LINKS]
     rows = "".join(
         f'<tr><td><a href="req-{escape(req)}.html">{escape(req)}</a></td>'
         f'<td><span class="via via-{kind}">{kind}</span></td>'
         f"<td>{_extent(ctx, req, name)}</td></tr>"
-        for req, kind in facts.verifies
+        for req, kind in declared
     )
     out = (
-        f"<h2>Requirements ({len(facts.verifies)})</h2>"
-        '<table class="clew"><thead><tr><th>requirement</th><th>linked by</th>'
-        f"<th>implementers exercised</th></tr></thead><tbody>{rows}</tbody></table>"
+        (
+            f"<h2>Requirements it verifies ({len(declared)})</h2>"
+            '<table class="clew"><thead><tr><th>requirement</th><th>linked by</th>'
+            f"<th>implementers exercised</th></tr></thead><tbody>{rows}</tbody></table>"
+        )
+        if declared
+        else ""
     )
+    if reach:
+        items = "".join(
+            f'<li><a href="req-{escape(r)}.html">{escape(r)}</a> <span class="via via-{k}">{k}</span></li>'
+            for r, k in reach
+        )
+        out += (
+            f'<details class="reach"><summary>Also reaches {len(reach)} requirements</summary>'
+            f"<p>Its run touches their code; that is reach, not proof.</p><ul>{items}</ul></details>"
+        )
     if facts.mutations:
         items = "".join(
             f'<li><code>{escape(m)}</code> <span class="mut-{escape(o)}">{escape(o)}</span></li>'
