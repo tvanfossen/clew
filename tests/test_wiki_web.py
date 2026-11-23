@@ -225,3 +225,42 @@ def test_a_map_node_says_what_its_function_does() -> None:
         nodes[0]["brief"] == "Derive the flow from an entry function." and "brief" not in nodes[1]
     )
     assert 'class="web-brief"' in WEB_JS and "n.brief" in WEB_JS
+
+
+def test_zoomed_out_blocks_and_a_legend_show_the_lens() -> None:
+    """OWNER MAP NOTES (2026-11-22): change impact → map showed the changed dots but nothing zoomed
+    out, and there was no colour legend. Owner Q/A: a folded block is drawn as the active lens's
+    status pie (sub-arcs in proportion), and a legend names each colour with its count. One
+    category function (`cat`) serves the dots, the pies and the legend, so they cannot disagree.
+
+    @brief Wedge pies and the lens legend.
+    """
+    assert (
+        "function cat(n)" in WEB_JS
+        and "function pies()" in WEB_JS
+        and "function legend()" in WEB_JS
+    )
+    assert "data-web-legend" in web_html({"nodes": [], "blocks": [], "links": []})
+
+
+def test_the_map_is_the_home_page(tmp_path) -> None:
+    """Owner Q/A 2026-11-22: "the map is home". The map's block is written ONCE, as
+    `_map_block.html`, and both map.md and the home page include it by `{raw} html :file:`.
+
+    @brief The home page includes the map block.
+    """
+    from clew.wiki.web import MAP_BLOCK
+
+    assert MAP_BLOCK == "_map_block.html"
+
+
+def test_a_lens_link_opens_on_the_whole_system_and_a_rare_value_stays_visible() -> None:
+    """Owner map notes: arriving from Change impact showed "the individual dots, but doesnt show the
+    larger view zoomed out". A lens link (`#lens=change`) opens on the whole system, and a category a
+    block holds is at least a sliver of its wedge (2 changed of 3,096 would otherwise vanish); the
+    legend keeps the exact counts.
+
+    @brief Lens links fit the system; minority slices have a floor.
+    """
+    assert "lens=l;lensSel.value=l;fit();" in WEB_JS
+    assert "MINF" in WEB_JS

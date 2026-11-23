@@ -1171,3 +1171,14 @@ def test_the_home_page_shows_requirements_and_tests_by_status(site: dict[str, st
     home = site["index.html"]
     assert 'class="charts"' in home and "Requirements by tier" in home and "Tests by status" in home
     assert 'href="requirements.html"' in home
+
+
+def test_the_home_page_opens_on_the_map(site: dict[str, str]) -> None:
+    """Owner Q/A 2026-11-22 ("the map is home"): the home page opens on the map and its legend,
+    with the status donuts and the section cards below it.
+
+    @brief Home = map, then summary, then cards.
+    """
+    home = site["index.html"]
+    assert "data-web" in home and "data-web-legend" in home
+    assert home.index("data-web") < home.index('class="charts"') < home.index('class="cards"')

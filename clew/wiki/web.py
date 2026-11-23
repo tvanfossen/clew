@@ -395,7 +395,8 @@ def _block_row(b: dict) -> dict:
 ## @param data `web_data` output, optionally with `flows` and node `href`s added.
 ## @return HTML.
 ## v2: owners overlay and vendor areas (2.0.0, P5)
-## @version 2
+## v3: lens legend
+## @version 3
 ## @req REQ-DDB-WIKI-021
 def web_html(data: dict[str, Any]) -> str:
     """THE DATA IS INLINE (`application/json`, never executed) and the script is local: the page
@@ -426,6 +427,8 @@ def web_html(data: dict[str, Any]) -> str:
         + ('<option value="changed">Change</option>' if _has(data, "changed") else "")
         + ('<option value="owner">Owners</option>' if _has(data, "owner") else "")
         + f"</select></label>{picker}</div>"
+        ## Owner map notes (2026-11-22): what each colour means, with its count, for the lens.
+        '<div class="web-legend" data-web-legend aria-live="polite"></div>'
         '<div class="web-stage"><canvas class="web-canvas" aria-label="Repository web: blocks '
         'as wedges, functions on rings by call depth"></canvas>'
         '<aside class="web-panel" data-web-panel hidden></aside>'
@@ -515,7 +518,8 @@ def _with_briefs(nodes: list[dict], briefs: dict) -> None:
 ## v2: the ring cap is wiki.web.max_ring (2.0.0, R5-CFG C8)
 ## v3: owners overlay and vendor areas (2.0.0, P5)
 ## v4: node briefs (X-4)
-## @version 4
+## v5: map block written once (map is home)
+## @version 5
 ## @req REQ-DDB-WIKI-021
 def web_page(
     db: Path,
@@ -554,9 +558,16 @@ def web_page(
         "click one to see what it calls and what calls it, and walk from there; zoom out and the "
         "functions fold back into their blocks. Pick a flow to watch it travel."
     )
-    text = ["# Map", "", lead, "", "```{raw} html", web_html(data), "```", ""]
+    ## THE MAP IS HOME (owner Q/A 2026-11-22): its block is written ONCE and included by both this
+    ## page and the home page, so the two can never differ.
+    (Path(source) / MAP_BLOCK).write_text(web_html(data), encoding="utf-8")
+    text = ["# Map", "", lead, "", "```{raw} html", f":file: {MAP_BLOCK}", "```", ""]
     (Path(source) / "map.md").write_text("\n".join(text), encoding="utf-8")
     return "map"
+
+
+## The map's block, written once by `web_page` and included by map.md and the home page.
+MAP_BLOCK = "_map_block.html"
 
 
 ## @brief One flow's steps as node indices, in call order.

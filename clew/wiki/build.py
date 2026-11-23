@@ -863,7 +863,8 @@ def _home_charts(evidence: list) -> str:
 ## v10: Tests card (tests category (2.0.0, owner Q/A 2026-11-20))
 ## v11: API card (public-API reference (2.0.0, PAPI))
 ## v12: status charts on the home page (X-5)
-## @version 12
+## v13: the map is home (owner Q/A 2026-11-22)
+## @version 13
 ## @utility
 def _write_index(
     source: Path, config: WikiConfig, trace: object, sections: list[str], flow_count: int
@@ -918,13 +919,22 @@ def _write_index(
         f"{escape(blurbs[name][0])}</h3><p>{escape(blurbs[name][1])}</p></a>"
         for name in sections
     )
+    from .web import MAP_BLOCK
+
+    ## THE MAP IS HOME (owner Q/A 2026-11-22): the map's own block, included, before everything else.
+    home_map = (
+        ["```{raw} html", f":file: {MAP_BLOCK}", "```", ""]
+        if "map" in sections and (source / MAP_BLOCK).is_file()
+        else []
+    )
     text = [
         f"# {config.title}",
         "",
+        *home_map,
         "```{raw} html",
-        f'<div class="cards">{cards}</div>',
-        ## X-5 (owner review 2, 2026-11-22): the status donuts, top level.
+        ## X-5: the status donuts, top level; the section cards after them.
         _home_charts(ev),
+        f'<div class="cards">{cards}</div>',
         "```",
         "",
         "```{toctree}",
