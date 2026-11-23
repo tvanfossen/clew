@@ -29,6 +29,7 @@ from typing import Any, NamedTuple
 
 from .config import Audience, FlowSpec, WikiConfig
 from .flow import Flow, derive_flow
+from .lanes import per_flow_lanes
 from .htmltable import code, gherkin, md_title, plural, source_url, table
 from .slices import slices_of
 from .svg import flow_svg
@@ -144,12 +145,25 @@ document.querySelectorAll('.flow-block').forEach(function(block){
    p.textContent='Lit: the steps test '+t+' exercised ('+on.length+' of '+data.length+').';
    block.insertBefore(p,block.firstChild);}}
  lit();window.addEventListener('hashchange',lit);
+ /* A-1 (UX review): an overview row brings its first step into view in the diagram's box. */
+ function holder(i){return at(i)||groups.filter(function(g){return (g.getAttribute('data-steps')||'').split(' ').indexOf(String(i))>=0;})[0];}
+ var ov=block.previousElementSibling;if(ov&&ov.classList.contains('flow-overview'))ov.addEventListener('click',function(e){
+  var li=e.target.closest('[data-goto]'),g=li&&holder(+li.getAttribute('data-goto'));if(!g)return;
+  groups.forEach(function(x){x.classList.remove('sel');});g.classList.add('sel');sync(g);
+  var b=g.getBBox();/* inside the diagram's own box only: the page never jumps (W-7). */wrap.scrollTo({top:Math.max(0,b.y-60),left:Math.max(0,b.x-60),behavior:'smooth'});});
 });});</script>"""
 _STYLE = (
     "<style>svg.seq.paused .cs,svg.seq.paused .cs .ca{animation-play-state:paused}"
     "svg.seq.stepping g[data-step]{opacity:.1;animation:none}"
     "svg.seq.stepping g.on{opacity:1}svg.seq.stepping g.on .ca{stroke-dashoffset:0;animation:none}"
     "svg.seq g[data-step]{cursor:pointer}"
+    ## A-1 (UX review): the diagram scrolls in its own box; the overview is a numbered list.
+    ".flow-wrap{max-height:80vh;overflow:auto}.flow-overview{margin:6px 0 12px}"
+    ".flow-overview .ov-h{font:600 12px var(--sans);color:var(--ink2);margin:0 0 4px}"
+    ".flow-overview ol{margin:0;padding-left:22px}.flow-overview li{margin:2px 0}"
+    ".seg-go{all:unset;cursor:pointer;color:var(--acc);font-weight:600}.seg-go:hover{text-decoration:underline}"
+    ".seg-meta{margin-left:8px;font-size:12px;color:var(--ink2)}"
+    ".flow-overview .kw{color:var(--acc);font-weight:700}.flow-overview li.plain{color:var(--ink2)}"
     ## W-3/W-7 (owner review 2026-11-22): the speed control and the present dialog.
     ".flow-speed{margin-left:12px;font-size:13px}.flow-speed input{vertical-align:middle;width:110px}"
     ".flow-present-body{display:grid;grid-template-columns:minmax(0,1fr) minmax(220px,340px);gap:16px}"
@@ -206,7 +220,8 @@ def _executed(coverage: dict[str, dict[int, set[str]]]) -> dict[str, set[int]]:
 ## v19: flow preface (W-1, W-5)
 ## v20: story view (X-1)
 ## v21: scenario bands in the diagram replace the story list (owner 2026-11-22)
-## @version 21
+## v22: UX review A (owner Q/A 2026-11-22): internal runs fold, per-flow lanes, overview first
+## @version 22
 ## @req REQ-DDB-WIKI-050
 ## @req REQ-DDB-WIKI-014
 ## @req REQ-DDB-WIKI-041
@@ -250,18 +265,24 @@ def flow_page(
         actor=actor,
     )
     slices = slices_of(flow, coverage) if coverage is not None and spec.role != "tests" else {}
+    ## UX review A-2 (owner Q/A 2026-11-22): the DIAGRAM's lanes are chosen per flow; the exports
+    ## and `clew wiki flow` keep derive_flow's.
+    drawn = per_flow_lanes(flow)
     name = page_name(spec)
     data = step_data(db, repo_root, flow, rules, config.link_template, commit)
     ## P5.6, REPLAY WITH VALUES: a recorded run gives each step it confirmed its values.
     if trace is not None:
         data = with_values(data, trace[1], rules)
+    declared = _segments(spec, flow)
     lines = [
         f"# {spec.title or 'Flow: ' + spec.entry}",
         "",
         "```{raw} html",
         ## W-1/W-5: what the flow is for, its scenario and a worked example, above the diagram.
-        _preface(spec),
-        _block(flow, data, spec.animate, test_node(spec), _segments(spec, flow)),
+        _preface(spec, scenario_shown=bool(declared)),
+        ## A-1 (UX review, owner Q/A 2026-11-22): the overview, then the diagram in its own box.
+        _overview(drawn, declared or _top_segments(drawn, data), spec.scenario if declared else ()),
+        _block(drawn, data, spec.animate, test_node(spec), declared),
         "```",
         "",
     ]
@@ -279,6 +300,11 @@ def flow_page(
     ## P5.6, LIVE SYNC: each row names its step, so the page script can light it as the diagram plays.
     marks = [f' data-step="{i}"' for i in range(len(rows))]
     steps_table = table(head, rows, cls="steps", numeric=("#",), row_attrs=marks)
+    ## A-1: the step table folds under its count (live sync still lights its rows).
+    steps_table = (
+        f'<details class="fold steps-fold"><summary>All {plural(len(rows), "step")}</summary>'
+        f"{steps_table}</details>"
+    )
     lines += ["```{raw} html", steps_table, "```", ""]
     if trace is not None:
         lines += ["```{raw} html", imported_trace(flow, *trace), "```", ""]
@@ -314,7 +340,8 @@ def flow_page(
         len(flow.steps),
         reqs,
         calls,
-        flow,
+        ## A-2: test pages draw their slices on the same lanes as this page.
+        drawn,
         slices,
         spec.intent,
     )
@@ -325,7 +352,8 @@ def flow_page(
 ## @param rel The trace's file.
 ## @param otlp The trace.
 ## @return HTML.
-## @version 1
+## v2: discovered calls fold (UX review A-1)
+## @version 2
 ## @req REQ-DDB-WIKI-036
 def imported_trace(flow: Flow, rel: str, otlp: dict[str, Any]) -> str:
     """STATIC, so a published site carries it: each predicted step is styled CONFIRMED or dimmed
@@ -348,8 +376,8 @@ def imported_trace(flow: Flow, rel: str, otlp: dict[str, Any]) -> str:
         f"Imported trace <code>{escape(rel)}</code>: {confirmed} of {len(result['steps'])} "
         "predicted steps confirmed; the rest are dimmed."
     ]
-    lines += [
-        f"Discovered (not in the flow): <code>{escape(a)}</code> → <code>{escape(b)}</code>"
+    found = [
+        f"<li><code>{escape(a)}</code> → <code>{escape(b)}</code></li>"
         for a, b in result["discovered"]
     ]
     failed = failure_of(otlp)
@@ -360,6 +388,13 @@ def imported_trace(flow: Flow, rel: str, otlp: dict[str, Any]) -> str:
             f"{escape(failed['message'])}</span>"
         )
     body = "".join(f"<p>{line}</p>" for line in lines)
+    ## A-1 (UX review, owner Q/A 2026-11-22): what the run discovered folds under its count
+    ## (5,777 px on clew's dossier flow); the summary and any failure stay in view.
+    if found:
+        body += (
+            f'<details class="fold"><summary>{plural(len(found), "discovered call")} not in the '
+            f"flow</summary><ul>{''.join(found)}</ul></details>"
+        )
     return f'<style>{rules}</style><div class="trace-panel imported">{body}</div>'
 
 
@@ -548,9 +583,10 @@ def _signatures(db: Path, flow: Flow) -> dict[tuple[str, str], tuple[str, str]]:
 ## @brief A flow's declared intent, scenario and worked example, in reading order.
 ## @param spec The flow.
 ## @return HTML, or "" when it declares none.
-## @version 1
+## v2: scenario drawn once, as the overview (UX review A-1)
+## @version 2
 ## @utility
-def _preface(spec: Any) -> str:
+def _preface(spec: Any, scenario_shown: bool = False) -> str:
     """W-1/W-5 (owner review 2026-11-22): the abstract first — what the flow is for — then its
     Gherkin scenario, always shown, then the example. Declared text only; escaped.
 
@@ -560,7 +596,8 @@ def _preface(spec: Any) -> str:
     parts = []
     if spec.intent:
         parts.append(f'<p class="intent">{escape(spec.intent)}</p>')
-    if spec.scenario:
+    ## A-1: an anchored scenario is drawn once, as the overview (`scenario_shown`).
+    if spec.scenario and not scenario_shown:
         parts.append(gherkin(spec.scenario))
     if spec.example:
         given, got = spec.example
@@ -596,6 +633,118 @@ def _segments(spec: Any, flow: Any) -> dict[int, str]:
             out[hit] = line
             cursor = hit
     return out
+
+
+## @brief The overview's segments when none is declared: the entry's top-level calls.
+## @param flow The drawn flow.
+## @param data Its step rows (`brief`).
+## @return {step index: "callee — brief"}.
+## @version 1
+## @utility
+def _top_segments(flow: Any, data: list[dict[str, Any]]) -> dict[int, str]:
+    """A-1 (UX review, owner Q/A 2026-11-22). Measured on clew's flows: 1-11 top-level calls each.
+    One top-level call says nothing, so the overview goes one level down until there are two.
+
+    @brief Derived segments.
+    @return Map.
+    """
+    depths = sorted({s.depth for s in flow.steps})
+    heads: list[int] = []
+    for level in depths:
+        heads = [i for i, s in enumerate(flow.steps) if s.depth == level]
+        if len(heads) > 1:
+            break
+    out = {}
+    for i in heads:
+        step, brief = flow.steps[i], (data[i].get("brief") or "") if i < len(data) else ""
+        name = step.callee or _message_of(step)
+        out[i] = f"{name} — {brief}" if brief else name
+    return out
+
+
+## @brief A not-run stub's words.
+## @param step The stub.
+## @return Text.
+## @version 1
+## @utility
+def _message_of(step: Any) -> str:
+    """@brief Stub label. @return Text."""
+    return f"… {plural(step.not_run, 'call')} not run"
+
+
+## @brief The overview: one row per segment, its steps and lanes, each bringing its part into view.
+## @param flow The drawn flow.
+## @param segments {first step index: what it does}.
+## @param scenario The declared scenario, when its lines are the segments: every line is listed,
+## the anchored ones as segments.
+## @return HTML ("" for a flow with fewer than two steps).
+## @version 1
+## @utility
+def _overview(flow: Any, segments: dict[int, str], scenario: tuple[str, ...] = ()) -> str:
+    """A-1 (UX review, owner Q/A 2026-11-22): summary first. A row's `data-goto` is its first
+    step; the page script scrolls the diagram's box to it and selects it. A declared scenario is
+    drawn ONCE, here (found in the browser: the overview repeated the Gherkin block above it).
+
+    @brief Overview.
+    @return HTML.
+    """
+    if len(flow.steps) < 2 or not segments:
+        return ""
+    starts = sorted(segments)
+    ends = {
+        i: (starts[n + 1] if n + 1 < len(starts) else len(flow.steps)) - 1
+        for n, i in enumerate(starts)
+    }
+    at = {text: i for i, text in segments.items()}
+    lines = scenario or tuple(segments[i] for i in starts)
+    rows = [
+        _segment_row(flow, at[line], ends[at[line]], line, bool(scenario))
+        if line in at
+        else f'<li class="plain">{_keyword(line)}</li>'
+        for line in lines
+        if str(line).strip()
+    ]
+    return (
+        '<div class="flow-overview"><p class="ov-h">Overview · '
+        f"{plural(len(flow.steps), 'step')}, {plural(len(flow.lanes), 'lane')}</p>"
+        f'<ol class="segments">{"".join(rows)}</ol></div>'
+    )
+
+
+## @brief One overview row: its words, then its step span and the lanes it touches.
+## @param flow The drawn flow.
+## @param i Its first step.
+## @param end Its last step.
+## @param text Its words.
+## @param keyword Mark the Gherkin keyword.
+## @return HTML.
+## @version 1
+## @utility
+def _segment_row(flow: Any, i: int, end: int, text: str, keyword: bool) -> str:
+    """@brief Segment row. @return HTML."""
+    lanes = list(
+        dict.fromkeys(x for s in flow.steps[i : end + 1] for x in (s.from_lane, s.to_lane))
+    )
+    shown = ", ".join(escape(x) for x in lanes[:3]) + (
+        f" +{len(lanes) - 3}" if len(lanes) > 3 else ""
+    )
+    span = f"step {i + 1}" if end == i else f"steps {i + 1}–{end + 1}"
+    words = _keyword(text) if keyword else escape(text)
+    return (
+        f'<li data-goto="{i}"><button type="button" class="seg-go">{words}</button>'
+        f'<span class="seg-meta">{span} · {shown}</span></li>'
+    )
+
+
+## @brief A scenario line with its keyword marked.
+## @param line The line.
+## @return HTML.
+## @version 1
+## @utility
+def _keyword(line: str) -> str:
+    """@brief Keyword. @return HTML."""
+    kw, _sp, rest = str(line).partition(" ")
+    return f'<span class="kw">{escape(kw)}</span> {escape(rest)}'
 
 
 ## @brief A step row's call-site cell: a link to the line, plain text, or nothing for a stub.
@@ -670,7 +819,8 @@ def _diagram_exports(flow: Flow, source: Path, name: str) -> list[str]:
 ## @brief The functions a flow reaches, each linked to its symbol section.
 ## @param functions (function, file) pairs.
 ## @return Markdown lines.
-## @version 1
+## v2: UX review A (owner Q/A 2026-11-22): internal runs fold, per-flow lanes, overview first
+## @version 2
 ## @utility
 def _functions(functions: set[tuple[str, str]]) -> list[str]:
     """ONE BODY PER FUNCTION, on its symbol section: the flow page links there rather than
@@ -685,7 +835,12 @@ def _functions(functions: set[tuple[str, str]]) -> list[str]:
         f'<span class="ver">{escape(f)}</span></li>'
         for n, f in sorted(functions, key=lambda k: (k[1], k[0]))
     )
-    return ["## Functions", "", "```{raw} html", f'<ul class="modal-list">{items}</ul>', "```", ""]
+    ## A-1 (UX review, owner Q/A 2026-11-22): folded under its count.
+    fold = (
+        f'<details class="fold"><summary>{plural(len(functions), "function")}</summary>'
+        f'<ul class="modal-list">{items}</ul></details>'
+    )
+    return ["## Functions", "", "```{raw} html", fold, "```", ""]
 
 
 ## @brief Requirement badges, each linked to its row on the requirements page.

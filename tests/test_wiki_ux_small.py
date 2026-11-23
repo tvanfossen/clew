@@ -201,3 +201,62 @@ def test_on_a_phone_diagrams_keep_readable_text_and_unlabelled_tables_scroll() -
     assert ".flow-controls{flex-wrap:wrap}" in phone and ".near a{overflow-wrap:anywhere}" in phone
     stacked = css[css.index("@media(max-width:760px){table.clew") :].split("}}", 1)[0]
     assert "table.clew:has(td[data-label]) thead{display:none}" in stacked
+
+
+def test_a_flow_page_opens_on_its_overview_and_folds_the_detail() -> None:
+    """UX review A-1 (owner Q/A 2026-11-22): the dossier flow page was ~40k px — 238 steps in one
+    diagram, then a 7-column table, then 140 functions. It opens on an OVERVIEW: one row per
+    segment (a declared scenario line, else the entry's top-level calls — one level down when there
+    is only one), each with its steps and lanes and a `data-goto` that brings its part of the
+    diagram into view. The diagram scrolls in its own box; the step table and the function list
+    fold under their counts.
+
+    @brief Flow overview first.
+    """
+    from clew.wiki.flow import Flow, Lane, Step
+    from clew.wiki.flowpage import _overview, _top_segments
+
+    def st(callee: str, depth: int, b: str = "b") -> Step:
+        return Step("m", "m", callee, callee, "a", b, f"{b}.py", 1, depth)
+
+    steps = (st("only", 1), st("load", 2), st("x", 3), st("save", 2, "c"), st("y", 3, "c"))
+    flow = Flow("m", "m", 3, "files", (Lane("a", "a"), Lane("b", "b"), Lane("c", "c")), steps)
+    data = [{"brief": b} for b in ("", "Read it.", "", "Write it.", "")]
+    assert _top_segments(flow, data) == {1: "load — Read it.", 3: "save — Write it."}
+    html = _overview(flow, {1: "load — Read it.", 3: "save — Write it."})
+    assert html.startswith('<div class="flow-overview">')
+    assert html.count("data-goto=") == 2 and 'data-goto="3"' in html
+    assert "steps 4–5" in html
+
+
+def test_the_flow_page_puts_detail_behind_counts() -> None:
+    """@brief A-1: the diagram box scrolls; table and functions fold."""
+    from clew.wiki.flowpage import _SCRIPT, _STYLE, _functions
+
+    assert "data-goto" in _SCRIPT and ".flow-wrap{max-height:80vh;overflow:auto}" in _STYLE
+    assert '<details class="fold"><summary>2 functions</summary>' in "".join(
+        _functions({("a", "x.py"), ("b", "y.py")})
+    )
+
+
+def test_a_declared_scenario_is_drawn_once_as_the_overview() -> None:
+    """Found in the browser (group A): the overview repeated the Gherkin block right above it; the
+    owner ruled a duplicated element "a no" (2026-11-22). A declared scenario renders ONCE, as the
+    overview: every line with its keyword, the anchored ones bringing their steps into view.
+
+    @brief Scenario once.
+    """
+    from types import SimpleNamespace
+
+    from clew.wiki.flow import Flow, Lane, Step
+    from clew.wiki.flowpage import _overview, _preface
+
+    spec = SimpleNamespace(
+        intent="", scenario=("Given an index", "When asked", "Then answered"), example=None
+    )
+    assert "gherkin" not in _preface(spec, scenario_shown=True)
+    steps = tuple(Step("m", "m", c, c, "a", "a", "a.py", 1, 1) for c in ("x", "y"))
+    flow = Flow("m", "m", 1, "files", (Lane("a", "a"),), steps)
+    html = _overview(flow, {0: "When asked", 1: "Then answered"}, spec.scenario)
+    assert '<li class="plain"><span class="kw">Given</span> an index</li>' in html
+    assert html.count("data-goto=") == 2 and '<span class="kw">When</span> asked' in html

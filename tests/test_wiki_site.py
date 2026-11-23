@@ -1221,3 +1221,42 @@ def test_the_home_page_says_what_it_is_and_where_to_go_before_the_map(site: dict
     assert home.index('class="home-lead"') < home.index('class="doorways"') < home.index("data-web")
     doors = home.split('class="doorways"', 1)[1].split("</nav>", 1)[0]
     assert 'href="requirements.html"' in doors and 'href="flows.html"' in doors
+
+
+def test_a_flow_pages_long_lists_fold_under_their_counts(site: dict[str, str]) -> None:
+    """UX review A-1 (owner Q/A 2026-11-22), found measuring the rebuilt dossier flow page: after
+    the diagram went into its own box the page was still 11,600 px, of it a recorded run's list of
+    discovered calls 5,777 and the quick-view list 3,527. Both fold under their counts; the
+    trace's summary line and any failure stay in view.
+
+    @brief Flow page lists fold.
+    """
+    flow = _flow_page(site)
+    assert '<details class="fold quick-fold"><summary>' in flow
+
+
+def test_a_recorded_runs_discovered_calls_fold() -> None:
+    """@brief A-1: the imported trace keeps its summary, folds what it discovered."""
+    from clew.wiki.flow import Flow, Lane, Step
+    from clew.wiki.flowpage import imported_trace
+
+    step = Step("m", "m", "a", "a", "x", "x", "x.py", 1, 1)
+    flow = Flow("m", "m", 1, "files", (Lane("x", "x"),), (step,))
+    otlp = {
+        "resourceSpans": [
+            {
+                "scopeSpans": [
+                    {
+                        "spans": [
+                            {"name": "m", "spanId": "1", "parentSpanId": ""},
+                            {"name": "b", "spanId": "2", "parentSpanId": "1"},
+                            {"name": "c", "spanId": "3", "parentSpanId": "1"},
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+    html = imported_trace(flow, "t.json", otlp)
+    assert "predicted steps confirmed" in html.split("<details", 1)[0]
+    assert '<details class="fold"><summary>2 discovered calls not in the flow</summary>' in html

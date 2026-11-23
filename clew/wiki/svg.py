@@ -62,6 +62,7 @@ _STYLE = (
     ".seq text{font-family:var(--sans,sans-serif);font-size:12px;fill:var(--ink,#2A2118)}"
     ".seq .head{fill:var(--paper,#FAF1D9);stroke:var(--acc,#3D6B2E);stroke-width:1.2}"
     ".seq .head-t{font-weight:700;font-size:12px;fill:var(--accink,#1F3B16)}"
+    ".seq .head-r rect{fill:var(--paper,#F6EFDF);opacity:.85}.seq .head-r text{font-size:11px;fill:var(--ink2,#6B5E4D)}"
     ".seq .lane{stroke:var(--rule,#CFC0A0);stroke-dasharray:3 5;stroke-width:1.2}"
     ".seq .act{fill:var(--accbg,#DDE8C9);stroke:var(--acc,#3D6B2E);stroke-width:1}"
     ".seq .ca{stroke:var(--acc,#3D6B2E);fill:none;stroke-width:1.6;stroke-linecap:round}"
@@ -74,7 +75,7 @@ _STYLE = (
     ".seq .frame{fill:none;stroke:var(--ink2,#6B5E4D);stroke-width:1;stroke-dasharray:6 3}"
     ".seq .fl{fill:var(--muted,#EFE6CF);stroke:var(--ink2,#6B5E4D);stroke-width:1}"
     ".seq .flt{fill:var(--ink,#2A2118);font-weight:700;font-size:10.5px;letter-spacing:.04em}"
-    ".seq .badge{fill:var(--acc,#3D6B2E)}.seq .num{fill:#fff;font-size:10px;font-weight:700}"
+    ".seq .badge{fill:var(--acc,#3D6B2E)}.seq .num{fill:#fff;font-size:11px;font-weight:700}"
     ".seq .pill{fill:var(--paper,#FAF1D9);stroke:var(--rule2,#E2D5B4)}"
     ".seq .lbl{font-weight:600}"
     ".seq .band{fill:var(--accbg,#DDE8C9);fill-opacity:0;transition:fill-opacity .15s}"
@@ -106,7 +107,8 @@ _ANIMATION = (
 ## v6 (round 5): `marks` and `first`, so a test's slice is drawn as a window of its master flow.
 ## v7: scenario bands in the diagram replace the story list (owner 2026-11-22)
 ## v8: band labels drawn last
-## @version 8
+## v9: UX review A (owner Q/A 2026-11-22): internal runs fold, per-flow lanes, overview first
+## @version 9
 ## @req REQ-DDB-WIKI-008
 ## @req REQ-DDB-WIKI-041
 def flow_svg(
@@ -123,7 +125,8 @@ def flow_svg(
     @return SVG text.
     """
     marks = marks or {}
-    runs = _runs(flow.steps, marks)
+    ## UX review A-2 (owner Q/A 2026-11-22): runs of calls inside one lane fold to one row.
+    runs, inside = _fold_inside(flow.steps, _runs(flow.steps, marks), marks)
     ## A segment starting inside a folded run starts at the run.
     drawn = {
         d: text
@@ -143,11 +146,13 @@ def flow_svg(
     parts += layout.bands_markup()
     parts += layout.lanes_markup()
     parts += layout.frames_markup()
-    parts += [layout.repeat_frame(d, n) for d, (_s, n) in enumerate(runs) if n > 1]
+    parts += [
+        layout.repeat_frame(d, n) for d, (s, n) in enumerate(runs) if n > 1 and s not in inside
+    ]
     parts += layout.activations_markup()
     for d, (start, n) in enumerate(runs):
         mark = marks.get(start, "")
-        shape = layout.step_markup(d, first + start + 1, n)
+        shape = layout.step_markup(d, first + start + 1, n, start in inside)
         if "entry" in mark:
             shape += layout.entry_marker(d)
         group = _step_group(first + start, flow.steps[start], shape, animate, (d, n, mark))
@@ -156,6 +161,50 @@ def flow_svg(
     parts.append("</svg>")
     return "".join(parts)
 
+
+## @brief Merge consecutive runs that stay inside one lane into one drawn row.
+## @param steps The flow's steps.
+## @param runs `_runs`' (first, count) per drawn arrow.
+## @param marks Extra classes per step.
+## @return (runs after merging, the first steps of the merged internal runs).
+## @version 1
+## @utility
+def _fold_inside(
+    steps: tuple[Step, ...], runs: list[tuple[int, int]], marks: dict[int, str]
+) -> tuple[list[tuple[int, int]], set[int]]:
+    """UX review A-2 (owner Q/A 2026-11-22): measured on clew's flows with block lanes, 85-95% of
+    arrows were self-calls, each its own row. A RUN INSIDE ONE LANE is two or more consecutive
+    drawn arrows whose call stays in the same lane, with the same mark, none shallower than the
+    first (a shallower call has left the first one's subtree, so it starts a new row). A loop fold
+    (`_runs`) inside it is absorbed; a lone loop fold keeps its `loop ×N` frame.
+
+    @brief Fold internal runs.
+    @return Runs and internal starts.
+    """
+
+    def inside(i: int, head: int) -> bool:
+        s, h = steps[i], steps[head]
+        return (
+            s.from_lane == s.to_lane == h.to_lane
+            and not s.not_run
+            and marks.get(i, "") == marks.get(head, "")
+            and s.depth >= h.depth
+        )
+
+    out: list[tuple[int, int]] = []
+    merged: set[int] = set()
+    for start, n in runs:
+        if out and inside(start, out[-1][0]) and inside(out[-1][0], out[-1][0]):
+            head, count = out[-1]
+            out[-1] = (head, count + n)
+            merged.add(head)
+        else:
+            out.append((start, n))
+    return out, merged
+
+
+## Pixels between a tall diagram's repeated lane names (UX review group A).
+_REPEAT_HEADS = 640
 
 ## The actor lane's id: not a file, block or package name any lane could have.
 _ACTOR_LANE = "\u2063actor"
@@ -376,7 +425,8 @@ class _Layout:
     ## @return SVG parts.
     ## v2: themed head labels, rounder heads.
     ## v3: actor lane (2.0.0, P5.6)
-    ## @version 3
+    ## v4: repeated lane names in tall diagrams (UX review A)
+    ## @version 4
     ## @utility
     def lanes_markup(self) -> list[str]:
         """@brief Draw lanes. @return Parts."""
@@ -397,7 +447,28 @@ class _Layout:
                     f'<rect class="head" x="{x - w / 2:.0f}" y="{top:.0f}" width="{w:.0f}" '
                     f'height="{_HEAD}" rx="10"/>' + label.replace("{y}", f"{top + 19:.0f}")
                 )
+            parts += self._repeated_heads(x, _short(name))
         return parts
+
+    ## @brief A lane's name repeated down its lifeline, faint, every `_REPEAT_HEADS` px.
+    ## @param x The lane centre.
+    ## @param name Its label.
+    ## @return SVG parts.
+    ## @version 1
+    ## @utility
+    def _repeated_heads(self, x: float, name: str) -> list[str]:
+        """Found in the browser (UX review group A): in the scrolling diagram box the heads went
+        out of sight. Drawn with the lanes, so every step sits on top of them.
+
+        @brief Repeat heads.
+        @return Parts.
+        """
+        w = _text_w(name) * 0.9 + 16
+        return [
+            f'<g class="head-r"><rect x="{x - w / 2:.0f}" y="{y - 13}" width="{w:.0f}" height="18" '
+            f'rx="9"/><text x="{x:.0f}" y="{y}" text-anchor="middle">{escape(name)}</text></g>'
+            for y in (k * _REPEAT_HEADS for k in range(1, (self.height - 60) // _REPEAT_HEADS + 1))
+        ]
 
     ## @brief Activation bars: the entry's, then one per step.
     ## @return SVG parts.
@@ -489,10 +560,15 @@ class _Layout:
     ## v2: label pills, a full-width row band (hover / selected), self-calls grouped.
     ## v3 (round 5): a folded arrow keeps its first step's number and reads `callee ×N`.
     ## v4 (round 5): a `not_run` stub reads "… N calls not run".
-    ## @version 4
+    ## v5: UX review A (owner Q/A 2026-11-22): internal runs fold, per-flow lanes, overview first
+    ## @version 5
     ## @utility
-    def step_markup(self, i: int, number: int, times: int = 1) -> str:
-        """@brief Draw a step. @return Markup."""
+    def step_markup(self, i: int, number: int, times: int = 1, inside: bool = False) -> str:
+        """`inside` (UX review A-2): the arrow stands for a run of calls inside its lane.
+
+        @brief Draw a step.
+        @return Markup.
+        """
         step = self.flow.steps[i]
         y = self.call_y[i]
         x1 = self.x[step.from_lane] + (self.offset[i] if step.from_lane == step.to_lane else 0)
@@ -511,14 +587,14 @@ class _Layout:
                 f'<path class="tip" d="M{end:.0f} {y:.0f} l{-sign * 9} -4 v8 z"/>'
             )
             lx, anchor = (x1 + x2) / 2, "middle"
-        text = _message(step, times)
+        text = _message(step, times, inside)
         tw = _text_w(text)
         left = lx + 12 if anchor == "start" else lx - tw / 2
         bx = left - 14
         label = (
             f'<rect class="pill" x="{bx - 11:.0f}" y="{y - 21:.0f}" width="{tw + 32:.0f}" '
             f'height="18" rx="9"/>'
-            f'<circle class="badge" cx="{bx:.0f}" cy="{y - 12:.0f}" r="7.5"/>'
+            f'<circle class="badge" cx="{bx:.0f}" cy="{y - 12:.0f}" r="9"/>'
             f'<text class="num" x="{bx:.0f}" y="{y - 8.5:.0f}" text-anchor="middle">{number}</text>'
             f'<text class="lbl" x="{left:.0f}" y="{y - 8:.0f}">{escape(text)}</text>'
         )
@@ -625,12 +701,15 @@ def _step_group(
 ## @param step The step.
 ## @param times How many calls a folded arrow stands for.
 ## @return The label.
-## @version 1
+## v2: UX review A (owner Q/A 2026-11-22): internal runs fold, per-flow lanes, overview first
+## @version 2
 ## @utility
-def _message(step: Step, times: int) -> str:
+def _message(step: Step, times: int, inside: bool = False) -> str:
     """@brief Arrow label. @return Text."""
     if step.not_run:
         return f"… {step.not_run} call{'s' if step.not_run != 1 else ''} not run"
+    if inside:
+        return f"{step.callee} +{times - 1} more"
     return f"{step.callee} ×{times}" if times > 1 else step.callee
 
 

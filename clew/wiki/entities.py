@@ -162,7 +162,8 @@ def _reqs(reqs: tuple[str, ...]) -> str:
 ## @param test_href Test name → its page.
 ## @param req_of (function, file) → the requirements it implements.
 ## @return How many quick views were written.
-## @version 1
+## v2: quick views fold (UX review A-1)
+## @version 2
 ## @req REQ-DDB-WIKI-048
 def write_quick_views(
     db, source, pages: list, file_block: dict, test_href: dict, req_of: dict
@@ -177,6 +178,7 @@ def write_quick_views(
     from pathlib import Path
 
     from ..query._common import connect
+    from .htmltable import plural
     from .modal import modal
     from .symbols import _Edges, anchor, symbol_href
 
@@ -199,7 +201,11 @@ def write_quick_views(
         if items:
             block = (
                 "\n## Quick views\n\n```{raw} html\n"
-                f'<ul class="modal-list quick-views">{"".join(items)}</ul>\n'
+                ## A-1 (UX review, owner Q/A 2026-11-22): folded under its count (3,527 px on
+                ## clew's dossier flow); a quick view still opens from inside the fold.
+                f'<details class="fold quick-fold"><summary>{plural(len(items), "function")}, each '
+                f'with its quick view</summary><ul class="modal-list quick-views">{"".join(items)}'
+                "</ul></details>\n"
                 '<script src="_static/clew-views.js"></script>\n```\n'
             )
             path = Path(source) / f"{page.name}.md"
