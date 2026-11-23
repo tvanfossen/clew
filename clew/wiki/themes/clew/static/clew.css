@@ -199,11 +199,12 @@ div.footer{display:none}
  .top{flex-wrap:wrap;gap:12px}.brand{flex:1 1 0}.menu-toggle{display:flex;flex:none}div.sphinxsidebar{display:none}.top .nav,.top .search{display:none;width:100%;margin:0}.top.open .nav,.top.open .search{display:block}
  .nav ul{flex-direction:column}.nav a{height:44px}}
 /* Tables become cards on a phone (round 3, P1b): each cell prints its column's name. */
-@media(max-width:760px){table.clew thead{display:none}table.clew,table.clew tbody,table.clew tr,table.clew td{display:block;width:100%}
- table.clew tr{border:1px solid var(--rule2);border-radius:12px;margin:0 0 12px;padding:6px 4px;background:var(--surface)}
- table.clew td{border:0;padding:5px 10px;white-space:normal!important;max-width:none!important;min-width:0!important}
- table.clew td::before{content:attr(data-label);display:block;font:600 11px var(--sans);text-transform:uppercase;letter-spacing:.04em;color:var(--faint)}
- table.clew td.n{text-align:left}table.clew code{white-space:normal;overflow-wrap:anywhere}}
+/* UX review B (owner Q/A 2026-11-22): only a table whose cells name their column becomes cards. */
+@media(max-width:760px){table.clew:has(td[data-label]) thead{display:none}table.clew:has(td[data-label]),table.clew:has(td[data-label]) tbody,table.clew:has(td[data-label]) tr,table.clew:has(td[data-label]) td{display:block;width:100%}
+ table.clew:has(td[data-label]) tr{border:1px solid var(--rule2);border-radius:12px;margin:0 0 12px;padding:6px 4px;background:var(--surface)}
+ table.clew:has(td[data-label]) td{border:0;padding:5px 10px;white-space:normal!important;max-width:none!important;min-width:0!important}
+ table.clew:has(td[data-label]) td::before{content:attr(data-label);display:block;font:600 11px var(--sans);text-transform:uppercase;letter-spacing:.04em;color:var(--faint)}
+ table.clew:has(td[data-label]) td.n{text-align:left}table.clew code{white-space:normal;overflow-wrap:anywhere}}
 /* The repository web (round 4, R3): the canvas fills the page width; the panel floats over it. */
 .web-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:8px 0 12px;font:500 13px var(--sans);color:var(--ink2)}
 .web-bar input,.web-bar select,.web-bar button{height:34px;border-radius:9px;border:1px solid var(--rule);background:var(--paper);color:var(--ink);font:500 13px var(--sans);padding:0 10px;max-width:100%}
@@ -252,3 +253,6 @@ div.body pre.sig{white-space:pre-wrap;overflow-wrap:anywhere}.sym-path{margin:-6
 .web-bar label{white-space:nowrap}.web-bar select{width:auto;max-width:18rem}.web-bar .seg{display:inline-flex}.web-bar .seg button{border-radius:0;margin:0}.web-bar .seg button:first-child{border-radius:8px 0 0 8px}.web-bar .seg button:last-child{border-radius:0 8px 8px 0}@media (max-width:760px){.web-bar{flex-wrap:wrap}.web-bar input[type=search],.web-bar label{flex:1 1 100%}.web-bar select{max-width:100%;width:100%}}
 .c4-link.weak{opacity:.18}.c4-diagram:hover .c4-link.weak{opacity:.5}.c4-arrowhead{fill:var(--ink2)}
 .c4-link{stroke:var(--ink2)}
+
+/* B: phone widths (UX review group B, owner Q/A 2026-11-22): a diagram keeps its own size and its box scrolls; an unlabelled table scrolls rather than stacking into nameless cards. */
+@media(max-width:760px){svg.c4-diagram,svg.activity,svg.req-evidence{max-width:none;height:auto}.c4-fit,.pz,.req-evidence-fig,div:has(> svg.activity){overflow-x:auto;-webkit-overflow-scrolling:touch}table.clew:not(:has(td[data-label])){display:block;overflow-x:auto;max-width:100%}.flow-controls{flex-wrap:wrap}.flow-speed{flex-wrap:wrap;max-width:100%}.flow-speed input{min-width:0;max-width:100%}.near details.more{display:block}.near a{overflow-wrap:anywhere}details.tgroup code{overflow-wrap:anywhere}}

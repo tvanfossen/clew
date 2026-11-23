@@ -176,3 +176,28 @@ def test_a_small_architecture_diagram_has_no_zoom_and_a_main_names_its_file() ->
     assert "data-pz" not in _svg(600, 300, [], "small") and "data-pz" in _svg(1400, 300, [], "wide")
     e = Entry(kind="main", function="main", file="tools/run/main.py", label="", flow=None)
     assert e.shown() == "tools/run/main.py"
+
+
+def test_on_a_phone_diagrams_keep_readable_text_and_unlabelled_tables_scroll() -> None:
+    """UX review group B (owner Q/A 2026-11-22). Measured at 390 px on clew's site (be732054):
+    architecture text drew at 1.9 px, an activity diagram at 2.1, the requirement evidence at 6.4
+    — every diagram was scaled to the column. And a table whose cells carry no `data-label` was
+    stacked into cards with no column names (357 such tables on the Tests tab). Under 760 px a
+    diagram keeps its own size inside a box that scrolls sideways; only a table whose cells name
+    their column becomes cards, the rest scroll; the flow speed control and long test names wrap.
+
+    @brief Phone widths.
+    """
+    css = (_STATIC / "clew.css").read_text()
+    phone = css[css.index("/* B: phone widths") :]
+    assert "svg.c4-diagram,svg.activity,svg.req-evidence{max-width:none" in phone
+    assert ".c4-fit,.pz,.req-evidence-fig,div:has(> svg.activity){overflow-x:auto" in phone
+    assert "table.clew:not(:has(td[data-label]))" in phone
+    assert (
+        ".flow-speed{flex-wrap:wrap" in phone
+        and "details.tgroup code{overflow-wrap:anywhere}" in phone
+    )
+    ## found by measuring: the controls row did not wrap; long test names under "Tested by" did not.
+    assert ".flow-controls{flex-wrap:wrap}" in phone and ".near a{overflow-wrap:anywhere}" in phone
+    stacked = css[css.index("@media(max-width:760px){table.clew") :].split("}}", 1)[0]
+    assert "table.clew:has(td[data-label]) thead{display:none}" in stacked
