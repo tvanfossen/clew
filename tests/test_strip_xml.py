@@ -20,8 +20,26 @@ def test_a_less_than_and_a_template_argument_survive() -> None:
     assert strip_xml("<para>Fails (n_tokens < 2) on a std::atomic<bool>.</para>") == (
         "Fails (n_tokens < 2) on a std::atomic<bool>."
     )
-    ## Stored entities are served as stored, as test_jsts pins for `Map&lt;string`.
-    assert strip_xml("<para>a &amp; b</para>") == "a &amp; b"
+    ## SPEC CHANGED (owner Q/A 2026-11-23, 2.0.1): entities are DECODED after the elements go,
+    ## superseding "served as stored" — see the test below.
+    assert strip_xml("<para>a &amp; b</para>") == "a & b"
+
+
+def test_one_character_has_one_spelling_in_a_reply() -> None:
+    """FOUND BY ENTROPIC against the installed 2.0.0 (2026-11-23): doxygen stores the same
+    character two ways — verbatim in some descriptions, as an entity in others (inside
+    <computeroutput>) — so one reply could say `std::atomic&lt;bool&gt;` beside `n_tokens < 2`.
+    Entities are decoded after doxygen's elements are removed, so a reply reads as the source.
+
+    @brief Entities decoded after the strip.
+    """
+    stored = (
+        "<para>Holds a <computeroutput>std::atomic&lt;bool&gt;</computeroutput> flag; "
+        "n_tokens < 2 &amp; done.</para>"
+    )
+    assert strip_xml(stored) == "Holds a std::atomic<bool> flag; n_tokens < 2 & done."
+    ## An entity spelling markup is text once decoded: it is never stripped as an element.
+    assert strip_xml("<para>write &lt;para&gt; literally</para>") == "write <para> literally"
 
 
 def test_markup_is_still_removed() -> None:

@@ -28,6 +28,7 @@ and "which function did you mean" cannot answer differently.
 from __future__ import annotations
 
 import contextlib
+import html
 import re
 import sqlite3
 from collections.abc import Iterator
@@ -838,19 +839,25 @@ def well_formed(xml: str) -> str:
 ## @brief Strip doxygen's XML-ish markup from a description column.
 ## @return Plain text with XML-ish tags removed and whitespace runs collapsed.
 ## v2: verbatim code text kept in served replies (owner Q/A 2026-11-20)
-## @version 2
+## v3: entities decoded after the elements go (owner Q/A 2026-11-23, 2.0.1; found by entropic:
+##     one reply spelled `<bool>` and `&lt;bool&gt;` for the same character)
+## @version 3
 ## @req REQ-DDB-QUERY-003
 def strip_xml(text: str | None) -> str:
     """OWNER Q/A 2026-11-20 (2.0.0): served text keeps code text doxygen stored verbatim. A regex
     strip of `<…>` served `(n_tokens < 2) … (llama_decode error)` as "(n_tokens" and
     `std::atomic<bool>` as "std::atomic". Only doxygen's own elements are markup — the element set
-    `well_formed` uses, the wiki's rule since 314e4696 — and everything else, entities included,
-    is served as stored (test_jsts pins `Map&lt;string` surviving).
+    `well_formed` uses, the wiki's rule since 314e4696.
+
+    ONE SPELLING (owner Q/A 2026-11-23, 2.0.1): doxygen stores a character verbatim in some
+    descriptions and as an entity in others, so entities are DECODED — after the elements are
+    removed, so an entity that spells markup (`&lt;para&gt;`) stays text. Every caller treats the
+    result as text: the wiki escapes it where it renders.
 
     @brief Collapse doxygen description markup to plain whitespace-run text.
     @return Text.
     """
-    return re.sub(r"\s+", " ", _DOX_TAG.sub(" ", text or "")).strip()
+    return re.sub(r"\s+", " ", html.unescape(_DOX_TAG.sub(" ", text or ""))).strip()
 
 
 ## @brief Extract the version value doxygen folded into detaileddescription.

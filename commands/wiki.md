@@ -5,7 +5,7 @@ description: Open this repository's clew wiki — live on the hub when the MCP s
 Run, from the repository root:
 
 ```bash
-uvx --from "clew-trace[wiki]==2.0.0" clew wiki open --repo-root "$CLAUDE_PROJECT_DIR"
+uvx --from "clew-trace[wiki]==2.0.1" clew wiki open --repo-root "$CLAUDE_PROJECT_DIR"
 ```
 
 It prints the URL it opened. When the clew MCP server runs with `CLEW_WIKI=1` the wiki is served
