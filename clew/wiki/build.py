@@ -1054,7 +1054,8 @@ def commit_published(repo_root: Path, commit: str) -> bool | None:
 ## v5 (2.0.0, P5): no source copies; doctrees beside the site; built fresh and swapped in.
 ## v6 (2.0.0, S8): the `clew` domain extension.
 ## v7: myst_heading_anchors (P6, owner Q/A 2026-11-20)
-## @version 7
+## v8: remove the empty _sources Sphinx 8.2 creates (v2.0.0 release CI)
+## @version 8
 ## @utility
 def _render(
     source: Path, html: Path, config: WikiConfig, repo_root: Path, context: dict | None = None
@@ -1102,6 +1103,13 @@ def _render(
     doctrees = html.with_name("_doctrees")
     if build_main(["-q", "-b", "html", "-d", str(doctrees), str(source), str(fresh)]) != 0:
         raise ValueError(f"sphinx-build failed for {source}")
+    ## FOUND IN CI (v2.0.0 release run, Python 3.11/3.12): Sphinx 8.2 creates `_sources` whenever
+    ## the builder copies sources at all, even with html_copy_source off, and leaves it EMPTY
+    ## (8.1.3, the 3.10 venv, does not create it). Only an empty one is removed: a `_sources` with
+    ## files in it means a source copy really was published, and stays for the test to see.
+    stray = fresh / "_sources"
+    if stray.is_dir() and not any(stray.iterdir()):
+        stray.rmdir()
     if html.exists():
         shutil.rmtree(html)
     fresh.rename(html)
