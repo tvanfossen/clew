@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Without it, it XORs with `mbedtls_ct_zero`, a `volatile` global, so the compiler cannot prove the value is constant.\nVERDICT: HIT\nWHY: The answer states that without assembly the opaque function XORs with the volatile global `mbedtls_ct_zero`, naming the global. It doesn't say \"extern\", but the mechanism and the identifier are both there."
+}

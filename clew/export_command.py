@@ -132,10 +132,33 @@ def render(declaration: dict[str, Any], db: Path) -> str:
     return head + yaml.safe_dump(declaration, sort_keys=True, default_flow_style=False)
 
 
+## @brief `clew export`'s argument parser.
+## @return The parser.
+## @version 1
+## @utility
+def _parser() -> argparse.ArgumentParser:
+    """PS2 (2.0.0): a function of its own, so `clew.cli_surface` can pin the covered flags.
+
+    @brief Build the parser.
+    @return Parser.
+    """
+    parser = argparse.ArgumentParser(
+        prog=f"clew {EXPORT_COMMAND}",
+        description="Write an index's tier-1 statements out as a declaration document.",
+    )
+    parser.add_argument("--index", required=True, help="path to a built clew.db")
+    parser.add_argument("--output", help="write here instead of stdout")
+    parser.add_argument(
+        "--force", action="store_true", help="overwrite --output if it already exists"
+    )
+    return parser
+
+
 ## @brief `clew export` entry point.
 ## @param argv Arguments after the command word.
 ## @return Process exit status.
-## @version 2
+## v3 (2.0.0, PS2): the parser is `_parser`.
+## @version 3
 ## @req REQ-DDB-CLI-001
 def export_main(argv: list[str]) -> int:
     """WRITES TO STDOUT BY DEFAULT, and `--output` is opt-in. The common use is piping into the
@@ -151,16 +174,7 @@ def export_main(argv: list[str]) -> int:
     @return Exit status.
     @version 2
     """
-    parser = argparse.ArgumentParser(
-        prog=f"clew {EXPORT_COMMAND}",
-        description="Write an index's tier-1 statements out as a declaration document.",
-    )
-    parser.add_argument("--index", required=True, help="path to a built clew.db")
-    parser.add_argument("--output", help="write here instead of stdout")
-    parser.add_argument(
-        "--force", action="store_true", help="overwrite --output if it already exists"
-    )
-    args = parser.parse_args(argv)
+    args = _parser().parse_args(argv)
 
     db = Path(args.index).expanduser().resolve()
     if not db.is_file():

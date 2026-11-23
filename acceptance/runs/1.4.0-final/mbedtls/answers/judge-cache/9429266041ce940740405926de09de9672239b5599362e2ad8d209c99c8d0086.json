@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: If it is undefined, `platform.c:32` falls back to `platform_calloc_uninit`, which always returns NULL. So a memory-hook build that never installs an allocator fails every allocation.\nVERDICT: HIT\nWHY: The answer states the default calloc pointer is an uninit stub returning NULL, so allocations fail rather than fall back to libc. It doesn't mention the free side doing nothing, but the failing default is stated and the item can be read as covering it."
+}

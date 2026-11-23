@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `check_approval` calls `on_tool_call` (a `void` function that returns nothing) and then sets `approved = true`.\nVERDICT: HIT\nWHY: The answer states the callback is void and approved is set to true unconditionally after it fires (\"always approves\")."
+}

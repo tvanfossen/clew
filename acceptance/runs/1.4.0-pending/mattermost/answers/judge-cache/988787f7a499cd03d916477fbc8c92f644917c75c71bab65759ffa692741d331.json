@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The network layer is configured with exponential retry and `retryLimit: 3` (`app/managers/network_manager.ts:68-70`). But `client.createPost` passes `noRetry: true` (`app/client/rest/posts.ts:46`), which sets `retryLimit: 0`\nVERDICT: HIT\nWHY: The answer states the network manager configures exponential retry with limit 3 and that createPost opts out via noRetry."
+}

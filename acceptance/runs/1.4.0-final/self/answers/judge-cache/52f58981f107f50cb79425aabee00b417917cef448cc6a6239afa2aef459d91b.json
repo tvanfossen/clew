@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer explains graded emptiness and scope limits, but never says that a single no-match token was previously treated as proof of absence; it describes current behavior, not the earlier flaw."
+}

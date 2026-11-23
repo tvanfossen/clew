@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `app/actions/websocket/channel.ts:463` (`handleChannelDeletedEvent`) | A channel-archived websocket event kicks the user out if it is the current channel, then removes the user from the channel. When on, the channel stays as an archived membership.\nVERDICT: MISS\nWHY: The answer says the channel stays as an archived membership when viewable, but never says it is marked deleted (delete_at is mentioned only for the archiveChannel action, not this event), so the item's second half is missing."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `ssl.h` has 209 `MBEDTLS_PRIVATE(` occurrences, which is the public API surface the guard covers.\nVERDICT: MISS\nWHY: The answer gives only a count for ssl.h and says library files use it explicitly in just 5 places. It never conveys many hundreds of sites overall, nor that they are overwhelmingly in the public headers."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`_staleness` in `tools_query.py:1886` attaches them under a size budget.\"\nVERDICT: MISS\nWHY: The answer mentions a size budget but never says the annotation's wording is degraded to fit it instead of dropping the warning."
+}

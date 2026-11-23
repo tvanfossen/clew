@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The assembly is gated by `MBEDTLS_CT_ASM`, which is defined only under `MBEDTLS_HAVE_ASM` and only when the compiler is GCC-compatible or ARMCC (`constant_time_impl.h:40-52`).\nVERDICT: HIT\nWHY: States MBEDTLS_CT_ASM is defined under MBEDTLS_HAVE_ASM plus compiler detection in the header, i.e., derived rather than a user config entry."
+}

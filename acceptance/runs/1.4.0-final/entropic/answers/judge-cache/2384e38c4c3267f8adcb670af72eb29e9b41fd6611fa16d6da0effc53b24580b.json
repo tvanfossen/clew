@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Both `llama_tokenize` calls are in `entropic::LlamaCppTokenizer::tokenize` (`src/inference/llama_cpp_tokenizer.cpp:49-71`, external calls at lines 55 and 61). It's a two-phase buffer sizing pattern\nVERDICT: HIT\nWHY: The answer names the file, the function, the line numbers, and the two-call sizing pattern."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Compile-time substitution:** define both `MBEDTLS_PLATFORM_CALLOC_MACRO` and `MBEDTLS_PLATFORM_FREE_MACRO`. ... **Runtime substitution:** define `MBEDTLS_PLATFORM_MEMORY` without the two macros.\nVERDICT: HIT\nWHY: The answer separates the compile-time macro pair from the runtime function-pointer pair. Defining the runtime option \"without the two macros\", and the macros omitting the runtime code in `platform.c`, shows they are mutually exclusive."
+}

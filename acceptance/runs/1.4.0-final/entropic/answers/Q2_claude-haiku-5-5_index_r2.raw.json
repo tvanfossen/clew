@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 21258,
+  "stop_reason": "end_turn",
+  "session_id": "5b5ea502-9de7-49d7-ab2e-51565529ee01",
+  "total_cost_usd": 0.00941021,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 25513,
+    "cache_read_input_tokens": 231011,
+    "output_tokens": 3993,
+    "output_tokens_details": {
+      "thinking_tokens": 1107
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 25513,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1637,
+        "cache_read_input_tokens": 62336,
+        "cache_creation_input_tokens": 944,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 944
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 3993,
+      "cacheReadInputTokens": 231011,
+      "cacheCreationInputTokens": 25513,
+      "webSearchRequests": 0,
+      "costUSD": 0.00941021,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1107,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 25513,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 8,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** llama.cpp is a git submodule, built from source inside entropic's CMake tree and absorbed as static code into `librentropic.so`. Its headers are included only by the C++ inference and facade sources, never by the public `include/` headers. The one leak is that the internal `llama_cpp_backend.h` includes `llama.h` and is pulled into the facade.\n\n**How it is brought in**\n\n- `.gitmodules` maps `extern/llama.cpp` to `ggml-org/llama.cpp`. The submodule is pinned to commit `20a04b22\u2026`. The `extern/CMakeLists.txt` comment says \"pinned at b8420\", but I did not check that this commit corresponds to that tag.\n- `extern/CMakeLists.txt` does `add_subdirectory(llama.cpp EXCLUDE_FROM_ALL)` with `LLAMA_BUILD_COMMON=ON` and `LLAMA_BUILD_TOOLS/TESTS/EXAMPLES/SERVER=OFF`. It forces `BUILD_SHARED_LIBS=OFF` and `GGML_CUDA` is bridged from `ENTROPIC_HAS_CUDA`.\n- It also adds `llama.cpp/tools/mtmd` for multimodal support, with the same `EXCLUDE_FROM_ALL` treatment.\n- `src/inference/CMakeLists.txt` links `llama-common` as PUBLIC and `llama` and `mtmd` as PRIVATE. The inference object library's private include paths point at `extern/llama.cpp/vendor` and `common`.\n- `src/facade/CMakeLists.txt` links `llama`, `mtmd` and `llama-common` into `entropic-facade` as `LINK_ONLY`, so they are absorbed into the shared library and do not appear in the consumer export. Its private include paths point at `extern/llama.cpp/include` and `ggml/include`.\n- The CMake config template (`cmake/entropic-config.cmake.in`) lists llama.cpp among the build-time third-party deps.\n\n**How far it reaches into entropic's source**\n\n| Layer | Files | Reach |\n|---|---|---|\n| Public API (`include/entropic/`) | `inference/*.h`, `interfaces/i_inference_backend.h`, `types/*.h` | None. These only forward-declare `struct llama_model;`, `llama_context`, `llama_adapter_lora`. A grep found no `llama.h`, `ggml.h`, `mtmd.h`, `common.h` or `chat.h` include under `include/`. |\n| Inference implementation (`src/inference/`) | `llama_cpp_backend.{h,cpp}`, `llama_cpp_sampler.*`, `llama_cpp_tokenizer.*`, `orchestrator.cpp`, `adapter_manager.cpp`, `grammar_registry.cpp`, `speculative_compat.cpp`, `tool_call_markers.h`, `inference_c_api.cpp`, `secondary_model_loader.cpp`, `interface_factory.cpp` | Heavy. `llama_cpp_backend.cpp` includes `common.h`, `chat.h`, `mtmd.h` and `mtmd-helper.h`. `LlamaCppBackend` is the llama.cpp adapter. Sampler and tokenizer are thin wrappers over `llama_sampler` and `llama_vocab`. |\n| Facade (`src/facade/entropic.cpp`) | Includes `llama_cpp_backend.h`, so `llama.h` reaches it transitively. | Indirect. |\n| Core and config | `src/core/response_generator.cpp`, `src/config/loader.cpp` | Name hits only in the grep; I did not check whether they include any llama headers. |\n| Tests | `tests/unit/inference/*`, `tests/model/*` | Direct use of `llama.h`, `chat.h` and mock `llama_*` functions. |\n\nThe design doc states the rule: C interfaces, no C++ ABI crossing, and no third-party headers in interface contracts. The grep results match it.\n\n**Things to know**\n\n- **The submodule is empty in this checkout.** `git submodule status` shows a leading `-`, and `extern/llama.cpp/` contains zero entries. A configure or build will fail until `git submodule update --init --recursive` is run. I did not build, so I have not confirmed the exact failure.\n- **A stale comment.** `extern/CMakeLists.txt` says \"llama.cpp is a submodule but NOT built in v1.8.0\", which contradicts the later block that builds it. Only the later block is current.",
+  "ttft_ms": 1606,
+  "type": "result",
+  "duration_ms": 22625,
+  "uuid": "e7bf0244-da43-4c8f-8231-2c9f73045f86",
+  "ttft_stream_ms": 1409,
+  "time_to_request_ms": 219,
+  "first_content_frame_ms": 1410,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

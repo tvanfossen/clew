@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Without `qualified`, the focal side is resolved by identity (gh#26), but the `key` half is still unioned by bare name, and this gap is documented in `_call_edges`.\"\nVERDICT: HIT\nWHY: The answer says the flat/call half resolves the focal side by identity while the key (traversal-like) half still matches on bare name, which captures the item's substance."
+}

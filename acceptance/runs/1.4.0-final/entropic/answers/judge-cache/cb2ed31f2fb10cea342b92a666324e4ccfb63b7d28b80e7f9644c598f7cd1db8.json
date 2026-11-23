@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**3. Memory the engine will free must come from `entropic_alloc`.** - Example: a hook's `modified_json`. - `hooks.py` `_trampoline` does this correctly: `entropic_alloc(len)`, then `memmove`.\"\nVERDICT: HIT\nWHY: The answer states that engine-freed buffers must come from entropic_alloc and points to the Python hooks.py trampoline that does the allocation."
+}

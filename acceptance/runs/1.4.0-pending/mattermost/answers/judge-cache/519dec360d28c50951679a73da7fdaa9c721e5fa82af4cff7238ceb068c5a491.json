@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The user opens the failed-post bottom sheet and taps \"Try Again\" (`app/components/post_list/post/body/failed/index.tsx:46-49`), which calls `retryFailedPost` (`app/actions/remote/post.ts:228-307`).\nVERDICT: HIT\nWHY: The answer says retry is a manual \"Try Again\" action (no automatic retry) and names `retryFailedPost` as the function it calls."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "ITEMS:\nexternal_bridge.cpp\nhealth_monitor.cpp\nresponse_generator.cpp\ninterface_factory.cpp\ninference_c_api.cpp\nEND\n\nNote: `stdio_transport.cpp` and `sse_transport.cpp` are not listed because the answer never names those paths. It names only `StdioTransport::open` and `SSETransport::open`, with no file paths."
+}

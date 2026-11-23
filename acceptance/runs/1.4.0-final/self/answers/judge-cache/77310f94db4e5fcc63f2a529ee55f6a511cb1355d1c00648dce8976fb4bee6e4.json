@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Declared, in `<repo>/.clew.yaml`.** Each section holds the same contents as the standalone manifest it replaces.\nVERDICT: MISS\nWHY: The answer names `.clew.yaml` as a declaration tier. It never says the file is discovered from the repo root by both entry points (CLI and MCP) instead of being plumbed per section."
+}

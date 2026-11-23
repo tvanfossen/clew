@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: If `index_scope` is present but unusable (a non-mapping, an unknown key, or no existing roots), it is rejected with a reason. `derive_scope` then falls back to whole-repo and logs a WARNING.\nVERDICT: HIT\nWHY: The answer says the whole-repo fallback carries a rejection reason and logs a warning that no `index_scope` is declared, so the scope is not guessed silently."
+}

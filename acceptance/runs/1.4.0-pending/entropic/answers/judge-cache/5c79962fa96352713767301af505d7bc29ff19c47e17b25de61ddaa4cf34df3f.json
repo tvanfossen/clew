@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Async `entropic.ask` worker | `tasks_` under `tasks_mutex_`; subscribers under `subscribers_mutex_` | **Detached**; never joined\" and \"Detached async worker outlives the bridge (most serious). `run_async_ask` ... captures `this` and `handle_`, then detaches.\"\nVERDICT: HIT\nWHY: The answer identifies the async-ask worker as the detached, never-joined thread (the others are joined or owned) and says it outlives the bridge with nothing waiting for it."
+}

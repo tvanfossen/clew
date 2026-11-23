@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 14391,
+  "stop_reason": "end_turn",
+  "session_id": "b768a378-4198-4a9b-a3b6-8df331e53a2f",
+  "total_cost_usd": 0.0074622,
+  "usage": {
+    "input_tokens": 6,
+    "cache_creation_input_tokens": 26603,
+    "cache_read_input_tokens": 96750,
+    "output_tokens": 2347,
+    "output_tokens_details": {
+      "thinking_tokens": 1162
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 26603,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1904,
+        "cache_read_input_tokens": 42503,
+        "cache_creation_input_tokens": 1517,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1517
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 6,
+      "outputTokens": 2347,
+      "cacheReadInputTokens": 96750,
+      "cacheCreationInputTokens": 26603,
+      "webSearchRequests": 0,
+      "costUSD": 0.0074622,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1162,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 26603,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 4,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The answer is a list of **caller functions**, not call sites. Each row names the calling function's file and symbol. The dossier gives no line number for the call and no argument text.\n\nI checked this with `dossier` on `_callers_of` in `clew/dispatch_edges.py`. Its `callers` field is a single row, `_interface_edges`, and each row carries only a name and file. The per-edge metadata sits beside the rows as `edge_defaults` (here `source: doxygen_sqlite`, `confidence: exact`, `edge_class: call`). The function's body and the `_callers_of` docstring show how the edges are built:\n\n- **Each row is a deduplicated caller-callee pair.** `call_edges` holds one row per extraction layer, so one caller can appear several times. The index keeps the strongest confidence. A row therefore means \"an edge exists, at this confidence\", not \"this call happens at this line\".\n- **Confidence is a property of the edge, not the call.** A synthetic edge built on a fuzzy premise carries that weakness. The docstring names this case: a conclusion drawn from a low-confidence premise must not be reported as resolved.\n- **Virtual and function-pointer calls are split.** Static layers stop at the interface method. Dispatch-edge stages extend the chain, so a caller reached through an interface may show up only through a synthetic edge, which is weaker than a direct one.\n\nReading an empty list as \"nothing calls this\" is wrong. The reply itself flags several cases:\n\n- **Unresolved callers** are counted separately (`callers_unresolved`). A list can be short because callers failed to resolve, not because there are none.\n- **Constructors** are a known gap. Brace-initialised construction is not modelled as a call edge. The reply says so when a name also resolves to a class. `QueryTools.dossier` returned `callers: []`, which in this index means \"not linked\", not \"unused\", since it is an MCP entry point.\n- **Dataflow is mixed in at other depths.** The `callers` brief in `clew/query/symbols.py` says the answer is \"callers plus the writers it reads from\". At depth 1 the `callers` field is call-only. At depth 2 and above, `chain` walks both call edges and shared-key (dataflow) edges.\n- **Lists are capped.** `max_neighbors` defaults to 8, and a cut list reports `_limited` with `total_available`. Ignoring that gives an incomplete list that looks complete.\n- **Staleness.** `anchor_mismatch: true` means the lines have changed since indexing, so the body and its row positions may not match the working tree.\n\nSo a caller list is a set of resolved, deduplicated caller-to-callee edges with their confidence and gaps. To know whether a given call site exists, read the source at the caller, or use `dossier` on the caller and check its body.",
+  "ttft_ms": 1854,
+  "type": "result",
+  "duration_ms": 15236,
+  "uuid": "7cc83844-183b-4414-9f39-84fb0fedd33e",
+  "ttft_stream_ms": 1108,
+  "time_to_request_ms": 96,
+  "first_content_frame_ms": 1108,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

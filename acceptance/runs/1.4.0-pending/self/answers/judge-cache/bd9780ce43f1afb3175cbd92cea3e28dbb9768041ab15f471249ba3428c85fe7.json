@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Same vocabulary as the declaration file.\nVERDICT: HIT\nWHY: The answer says the `options=` argument for embedding callers uses the same vocabulary as the declaration file. That covers the option names matching the section names. It does not mention the diagnostics, so that half of the item is not demonstrated."
+}

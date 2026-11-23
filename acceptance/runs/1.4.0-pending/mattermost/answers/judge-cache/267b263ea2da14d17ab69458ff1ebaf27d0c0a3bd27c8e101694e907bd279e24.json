@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `handleWebSocketEvent` maps `WebsocketEvents.REACTION_ADDED` (`'reaction_added'`, `constants/websocket.ts:47`) to `handleReactionAddedToPostEvent`.\nVERDICT: HIT\nWHY: The answer names `handleWebSocketEvent` as the dispatcher routing `reaction_added` to `handleReactionAddedToPostEvent`."
+}

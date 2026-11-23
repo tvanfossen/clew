@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **How far it reaches into entropic's source:** narrowly, and mostly in one directory. ... **Other entropic files that touch llama types:** `orchestrator.cpp` does `dynamic_cast<LlamaCppBackend*>` to stage tools and LoRA. `inference_c_api.cpp` constructs `LlamaCppBackend`... `adapter_manager.cpp` integrates with llama LoRA.\nVERDICT: HIT\nWHY: The answer says the dependency is mostly in src/inference but names other files (orchestrator, inference_c_api, adapter_manager) that touch llama types, so it is concentrated but not fully contained."
+}

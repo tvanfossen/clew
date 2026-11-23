@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Async `entropic.ask` worker | `external_bridge.cpp:1158` | **Detached** | `tasks_mutex_` guards task state and the sentinel write\" and \"Detached async worker has no visible join. The worker captures `this` and `handle_` and is detached... I found no wait in `stop()` or `~ExternalBridge()`\"\nVERDICT: HIT\nWHY: The answer identifies the async ask worker as the detached thread (others are joined) and notes it has no join, so it can outlive its owner."
+}

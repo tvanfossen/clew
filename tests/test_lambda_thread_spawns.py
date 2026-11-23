@@ -86,7 +86,7 @@ void fire_and_forget() {
 # @param src Raw source bytes.
 # @return (tree, src) pair.
 # @version 1
-# @dg_internal
+# @utility
 def _parse(src: bytes) -> tuple[Any, bytes]:
     """REUSES `_cached_parser` so the test parses with the same grammar the harvest does — a
     test with its own parser can pass against a tree the pipeline never sees.

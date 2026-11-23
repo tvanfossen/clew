@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer explains how to read empty-result coverage fields and says an empty result must not be read as \"nothing was missed\". It never states the rule of fixing the corpus rather than the wording about it."
+}

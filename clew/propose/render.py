@@ -176,7 +176,7 @@ def statement_from_draft(text: str) -> dict[str, Any]:
 ## @param scope Derived-scope summary.
 ## @return Header comment lines.
 ## @version 2
-## @dg_internal
+## @utility
 def _header(repo_root: Path, db_status: Mapping[str, Any], scope: Mapping[str, Any]) -> list[str]:
     """@brief Render the draft's provenance header and its two contracts."""
     return [
@@ -199,7 +199,7 @@ def _header(repo_root: Path, db_status: Mapping[str, Any], scope: Mapping[str, A
 ## @param scope Derived-scope summary.
 ## @return The scope line.
 ## @version 3
-## @dg_internal
+## @utility
 def _scope_line(scope: Mapping[str, Any]) -> str:
     """The C/C++ count is stated separately from the parsed count because the
     parser router covers Python too: on a Python codebase the two differ, and only the
@@ -220,7 +220,7 @@ def _scope_line(scope: Mapping[str, Any]) -> str:
 ## @param db_status Measuring-index summary.
 ## @return The database line.
 ## @version 3
-## @dg_internal
+## @utility
 def _db_line(db_status: Mapping[str, Any]) -> str:
     """A missing index is stated rather than implied: it is the reason a gated
     section refuses to propose, and a reader who does not see it will read the
@@ -252,7 +252,7 @@ def _db_line(db_status: Mapping[str, Any]) -> str:
 ## @param sections Every section's result.
 ## @return Comment lines for the summary table.
 ## @version 1
-## @dg_internal
+## @utility
 def _summary(sections: Sequence[SectionProposal]) -> list[str]:
     """Up front because it is the only view that makes an OMISSION visible: every
     declaration section appears here, so a reader can see that a section was
@@ -274,7 +274,7 @@ def _summary(sections: Sequence[SectionProposal]) -> list[str]:
 ## @param section The section result.
 ## @return Comment lines for that section.
 ## @version 1
-## @dg_internal
+## @utility
 def _section_block(section: SectionProposal) -> list[str]:
     """@brief Render one declaration section."""
     meaning = _STATUS_MEANING.get(section.status, "")
@@ -296,7 +296,7 @@ def _section_block(section: SectionProposal) -> list[str]:
 ## @param checked Counter mapping from the detector.
 ## @return Zero or more comment lines.
 ## @version 1
-## @dg_internal
+## @utility
 def _checked(checked: Mapping[str, Any]) -> list[str]:
     """@brief Render what a detector examined, so an empty result stays legible."""
     if not checked:
@@ -309,7 +309,7 @@ def _checked(checked: Mapping[str, Any]) -> list[str]:
 ## @param entries Accepted entries.
 ## @return Comment lines.
 ## @version 1
-## @dg_internal
+## @utility
 def _entries(entries: Sequence[Entry]) -> list[str]:
     """Numbered and printed BEFORE the YAML block because the block is a single
     merged section — an owner activating it is activating all of them, and needs
@@ -330,7 +330,7 @@ def _entries(entries: Sequence[Entry]) -> list[str]:
 ## @param section The section result.
 ## @return Comment lines carrying the YAML, or a note that there is none.
 ## @version 1
-## @dg_internal
+## @utility
 def _yaml_block(section: SectionProposal) -> list[str]:
     """A section's block is its `yaml_header` followed by every entry's
     `yaml_lines`, in order — the one composition rule, so a new section brings its
@@ -353,7 +353,7 @@ def _yaml_block(section: SectionProposal) -> list[str]:
 ## @param rejections The section's rejections.
 ## @return Comment lines.
 ## @version 2
-## @dg_internal
+## @utility
 def _rejections(rejections: Sequence[Rejection]) -> list[str]:
     """Part of the deliverable, not debug output. A candidate an owner EXPECTED to
     see is the one they will go looking for, and the refusal reason is the answer
@@ -378,7 +378,7 @@ def _rejections(rejections: Sequence[Rejection]) -> list[str]:
 ## @param notes The section's notes.
 ## @return Comment lines.
 ## @version 1
-## @dg_internal
+## @utility
 def _notes(notes: Sequence[str]) -> list[str]:
     """@brief Render the section-level notes (NOT-DETECTED prose, conflicts)."""
     if not notes:
@@ -395,7 +395,7 @@ def _notes(notes: Sequence[str]) -> list[str]:
 ## @param rest Prefix for continuation lines (defaults to `first`).
 ## @return The wrapped comment lines.
 ## @version 1
-## @dg_internal
+## @utility
 def _wrap(text: str, first: str, rest: str | None = None) -> list[str]:
     """Only prose is wrapped. Evidence lines are pre-formatted columns and are
     emitted verbatim — wrapping them would destroy the alignment that makes a

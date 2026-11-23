@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "ITEMS:\ntool_executor.cpp\nserver_manager.cpp\npermission_manager.cpp\nserver_base.cpp\npermission_persister.cpp\nengine_types.h\npermission_manager.h\nloader.cpp\nEND"
+}

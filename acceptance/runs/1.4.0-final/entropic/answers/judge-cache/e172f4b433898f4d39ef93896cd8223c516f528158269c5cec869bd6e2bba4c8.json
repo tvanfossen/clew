@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Form is `tool` or `tool:args`. `pattern_matches` splits on the first colon. - The tool part is matched with `fnmatch` against the fully-qualified tool name. ... A pattern with no colon matches that tool with any arguments.\"\nVERDICT: HIT\nWHY: The answer states that the pattern is split at the first colon, that the tool part is matched with fnmatch, and that a colon-less pattern matches on the tool alone (any arguments)."
+}

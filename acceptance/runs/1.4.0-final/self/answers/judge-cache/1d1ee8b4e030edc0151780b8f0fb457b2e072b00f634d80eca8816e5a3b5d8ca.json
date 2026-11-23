@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `stale_code_refusal` blocks writes from a stale process and ignores `force`. The remedy is a client restart, then `index(action='refresh', force=True)`.\nVERDICT: HIT\nWHY: The answer states that the write path refuses (rather than warns) when the process code is stale and that `force` is ignored. That matches the item's refusal-that-force-cannot-override substance, though it does not spell out the placement ahead of the build decision."
+}

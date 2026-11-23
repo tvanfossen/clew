@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: An unknown top-level section in `.clew.yaml` is refused by name. A misspelled key inside an inline `options` value is also refused, so it cannot read as a valid but unused mapping.\nVERDICT: MISS\nWHY: The answer says unknown sections are refused by name but doesn't mention the allowed set or the reason that an ignored section would build with defaults while claiming the declaration was honoured."
+}

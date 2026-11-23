@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `programs/ssl/ssl_server2.c:8` and `programs/ssl/ssl_client2.c:8` define it before any include. These sample/test programs read SSL context internals directly\nVERDICT: HIT\nWHY: The answer states that example programs (ssl_server2.c, ssl_client2.c) define the opt-out macro themselves to access internals directly."
+}

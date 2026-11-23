@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"It loads `librentropic.so` with `ctypes` and calls the pure-C API in `entropic.h`.\" and \"Python does not embed the engine or use a compiled extension.\"\nVERDICT: HIT\nWHY: The answer explicitly names ctypes loading librentropic.so and states no compiled extension is used."
+}

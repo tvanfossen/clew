@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The index finds four thread or signal-handler spawn sites, all in `programs/`, none in `library/`\nVERDICT: HIT\nWHY: The answer says no thread spawn sites are in library/, and it also says library/ has the mutex code (`threading.c`, `MBEDTLS_THREADING_C`) that threaded callers use. It writes \"Its `my_mutexed_debug` uses the same mutex abstraction.\""
+}

@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 20988,
+  "stop_reason": "end_turn",
+  "session_id": "60b98e1f-32cc-4748-8762-8019396589b2",
+  "total_cost_usd": 0.00833335,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 21267,
+    "cache_read_input_tokens": 222095,
+    "output_tokens": 3716,
+    "output_tokens_details": {
+      "thinking_tokens": 1801
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 21267,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2289,
+        "cache_read_input_tokens": 54653,
+        "cache_creation_input_tokens": 5057,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 5057
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 3716,
+      "cacheReadInputTokens": 222095,
+      "cacheCreationInputTokens": 21267,
+      "webSearchRequests": 0,
+      "costUSD": 0.00833335,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1801,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 21267,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 9,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "Clew has three layers of configuration, and they resolve by a fixed precedence. Before I list them, note that I read the precedence rule from the code's own documentation (`clew/tiers.py`, `clew/cli.py`, `clew/requirements.py`) and did not run a build to confirm it.\n\n**The ways to say so**\n\n| Tier | Channel | Notes |\n|---|---|---|\n| 1 | CLI flags, e.g. `--shared-key-patterns`, `--thread-patterns`, `--mqtt-dispatch`, `--data-model`, `--requirements`, `--entry-patterns` | One-off. The MCP server passes none of these. |\n| 1 | Inline document via `--declare`, or the structured `options` argument for embedding callers | Same validation as a file. An empty one counts as \"no statement\". |\n| 2 | `.clew.yaml` at the repo root | The standing declaration, reached by both CLI and MCP. Sections mirror the standalone manifest formats. The `guard:` section belongs to the gate, and the index ignores it. |\n| 3 | Facts the target already states: its Doxyfile (`ALIASES`, `PREDEFINED`, `INPUT`), generator manifests, language and platform entry points | Accumulate. Nothing stated can remove them. |\n| 4 | Known-ecosystem signatures, e.g. UDM or ingot | Accumulate, like tier 3. |\n| 5 | Built-in name-shape guesses | The floor. Any stated value replaces them. |\n\nLegacy `.doxygen-guard.yaml` and its `x-clew` passthrough are no longer read. A repo still carrying one gets the defaults with no fallback.\n\n**When two disagree**\n\n- **Flag vs `.clew.yaml`:** the flag wins, and it replaces the declared value for that option as a whole. It does not merge. Under the current rule, a stated value displaces only the tier-5 guesses, so a repo's own `entry_patterns` no longer drops `main`.\n- **Declaration vs convention (requirements catalog):** the order is flag, then declaration, then conventional file (`requirements.yaml` at the root, or under `docs/`), then nothing. If two conventional catalogs exist, clew logs a warning and picks the first.\n- **Scope:** a declaration beats the gate's config, which beats the Doxyfile's `INPUT`.\n- **Stated value vs tier 3 or 4 fact:** both apply. The fact is never discarded. Tiers 3 and 4 combine the same way; only the label differs.\n- **Winner visibility:** the tier that supplied each option is recorded in `build_meta`. The refusal and status messages also say whether `.clew.yaml` was honoured.\n\n**Malformed input**\n\n- An unknown section name is refused with an error that names the problem.\n- An unreadable file, or one that is not a mapping, is ignored with a message, and defaults apply.\n- A file with only comments is treated as stating nothing, and the message says so.",
+  "ttft_ms": 1887,
+  "type": "result",
+  "duration_ms": 21743,
+  "uuid": "20d9ca7c-ae53-4103-b477-f43aa543836e",
+  "ttft_stream_ms": 1164,
+  "time_to_request_ms": 86,
+  "first_content_frame_ms": 1164,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

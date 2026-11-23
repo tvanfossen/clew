@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """Change-impact analysis from git diff.
 
 @brief Collect @req tags from changed functions, generate impact reports.
@@ -15,13 +16,14 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+from ..owners import OwnerResolver
 
 from .config import (
     REQUIREMENTS_FORMAT_DEFAULT,
     REQUIREMENTS_ID_COLUMN_DEFAULT,
     REQUIREMENTS_NAME_COLUMN_DEFAULT,
     REQUIREMENTS_ROOT_KEY,
-    get_impact,
+    get_requirements,
     get_validate,
     parse_source_file,
     resolve_contained_path,
@@ -34,7 +36,7 @@ logger = logging.getLogger(__name__)
 
 ## @brief Tracks a changed function with its requirement tags and version info.
 #  @version 1.0
-#  @dg_internal
+#  @utility
 @dataclass
 class ChangedFunction:
     name: str
@@ -45,18 +47,20 @@ class ChangedFunction:
 
 
 ## @brief Groups changed functions by requirement for the impact report.
-#  @version 1.1
-#  @dg_internal
+#  v1.2: `reviewers`, the owners of the changed files; None when the repo names no owners (2.0.0)
+#  @version 1.2
+#  @utility
 @dataclass
 class ImpactEntry:
     req_id: str
     req_name: str | None = None
     functions: list[ChangedFunction] = field(default_factory=list)
+    reviewers: list[str] | None = None
 
 
 ## @brief Collect all changed lines for a file from branch diff and/or staged changes.
 #  @version 1.0
-#  @dg_internal
+#  @utility
 def _collect_changed_lines(
     file_path: str,
     staged: bool,
@@ -78,7 +82,7 @@ def _collect_changed_lines(
 
 ## @brief Get raw diff output for a single file.
 #  @version 1.2
-#  @dg_internal
+#  @utility
 def _get_file_diff(
     file_path: str,
     staged: bool,
@@ -154,21 +158,27 @@ def collect_changed_functions(
 
 
 ## @brief Extract requirements config, raising if a declared catalog is unusable.
-#  @version 2.1
+#  @details v2.2: `file` is optional beside `external` (GH #68).
+#  v2.3: reads the top-level requirements: section (2.0.0, R5-CFG F7)
+#  @version 2.3
 #  @req REQ-DDB-GUARD-011
 #  @return Catalog path, format, id column and name column, or None if unconfigured
 def _get_requirements_config(
     config: dict[str, Any],
 ) -> tuple[str, str, str, str] | None:
-    req_config = get_impact(config).get("requirements")
+    req_config = get_requirements(config)
     if not req_config:
-        logger.info("No impact.requirements section declared; catalog features are off")
+        logger.info("No requirements section declared; catalog features are off")
         return None
 
     req_file = req_config.get("file")
     if not req_file:
+        # GH #68: a repository whose catalogue its consumer owns names only `external`.
+        if req_config.get("external"):
+            return None
         raise RequirementsError(
-            "impact.requirements is declared but impact.requirements.file is not"
+            "impact.requirements is declared but neither impact.requirements.file nor "
+            "impact.requirements.external is"
         )
     # Containment before open(): the catalog path is repo-controlled, and its rows are
     # echoed back in validation errors. Without this, pointing it at any readable file
@@ -185,6 +195,29 @@ def _get_requirements_config(
         req_config.get("id_column", REQUIREMENTS_ID_COLUMN_DEFAULT),
         req_config.get("name_column", REQUIREMENTS_NAME_COLUMN_DEFAULT),
     )
+
+
+## @brief The requirement ids of the external catalogues this repository names (GH #68).
+#  v1.1: reads the top-level requirements: section (2.0.0, R5-CFG F7)
+#  @version 1.1
+#  @req REQ-DDB-GUARD-027
+#  @return Mapping of requirement ID to its row; empty when none is named
+def load_external_requirements(config: dict[str, Any]) -> dict[str, dict[str, str]]:
+    """The consumer's catalogue, read where it is pinned: each entry is a path or {repo, rev,
+    path} relative to the repository, through the reader the wiki uses. An unreadable one or a
+    URL is an error naming it, never an empty catalogue that would pass every tag."""
+    from ..requirements import read_catalog_at
+
+    req_config = get_requirements(config)
+    out: dict[str, dict[str, str]] = {}
+    for source in req_config.get("external") or []:
+        try:
+            out.update(read_catalog_at(Path.cwd(), source))
+        except ValueError as exc:
+            raise RequirementsError(f"impact.requirements.external: {exc}") from exc
+    if out:
+        logger.info("Loaded %d requirement(s) from external catalogues", len(out))
+    return out
 
 
 ## @brief Load full requirement rows from the configured catalog.
@@ -286,7 +319,8 @@ def load_requirements(config: dict[str, Any]) -> dict[str, str]:
 
 
 ## @brief Filter requirements to those active at the configured current version.
-#  @version 1.2
+#  v1.3: reads the top-level requirements: section (2.0.0, R5-CFG F7)
+#  @version 1.3
 #  @req REQ-DDB-GUARD-009
 def filter_requirements_by_version(
     reqs: dict[str, dict[str, str]],
@@ -294,9 +328,9 @@ def filter_requirements_by_version(
 ) -> dict[str, dict[str, str]]:
     from .config import compare_versions, parse_version
 
-    version_gate = get_validate(config).get("version_gate", {})
-    current_str = version_gate.get("_resolved") or version_gate.get("current_version")
-    version_field = version_gate.get("version_field")
+    validate = get_validate(config)
+    current_str = validate.get("_current_version_resolved") or validate.get("current_version")
+    version_field = get_requirements(config).get("version_field")
 
     if not current_str or not version_field:
         return reqs
@@ -313,7 +347,7 @@ def filter_requirements_by_version(
             problems.append(f"... and {len(missing) - len(problems)} more")
         logger.error("version_field %r missing on %d requirement(s)", version_field, len(missing))
         raise RequirementsError(
-            f"validate.version_gate.version_field is {version_field!r} but these "
+            f"requirements.version_field is {version_field!r} but these "
             f"requirements do not declare it",
             problems,
         )
@@ -361,7 +395,7 @@ def _load_csv_full(path: str, id_col: str) -> dict[str, dict[str, str]]:
 
 ## @brief Parse JSON array into req_id -> full row mapping.
 #  @version 1.2
-#  @dg_internal
+#  @utility
 def _load_json_full(path: str, id_col: str) -> dict[str, dict[str, str]]:
     with open(path) as f:
         data = json.load(f)
@@ -416,11 +450,13 @@ def _rows_from_mapping(node: Any, path: str) -> dict[str, dict[str, str]]:
 
 
 ## @brief Group changed functions by requirement for the impact report.
-#  @version 1.1
+#  v1.2: names each requirement's reviewers through `owners` (2.0.0, S2/S3 served)
+#  @version 1.2
 #  @req REQ-DDB-GUARD-010
 def build_impact_report(
     changed_functions: list[ChangedFunction],
     config: dict[str, Any],
+    owners: OwnerResolver | None = None,
 ) -> list[ImpactEntry]:
     req_names = load_requirements(config)
 
@@ -430,9 +466,30 @@ def build_impact_report(
             req_funcs.setdefault(req, []).append(cf)
 
     return [
-        ImpactEntry(req_id=req_id, req_name=req_names.get(req_id), functions=funcs)
+        ImpactEntry(
+            req_id=req_id,
+            req_name=req_names.get(req_id),
+            functions=funcs,
+            reviewers=_reviewers(owners, funcs),
+        )
         for req_id, funcs in sorted(req_funcs.items())
     ]
+
+
+## @brief The owners of a requirement's changed files, first-seen order, each once.
+#  @details None when the repository keeps no owners file: "nobody" and "this repository names no
+#  owners" are different answers, so the key is left out rather than emptied.
+#  @version 1.0
+#  @utility
+#  @return Owner names, or None
+def _reviewers(owners: OwnerResolver | None, funcs: list[ChangedFunction]) -> list[str] | None:
+    if owners is None or not owners.has_sources():
+        return None
+    names: dict[str, None] = {}
+    for cf in funcs:
+        for owner, *_rest in owners.owners_of(cf.file_path):
+            names.setdefault(owner, None)
+    return list(names)
 
 
 ## @brief Make one table cell out of repo-controlled text.
@@ -444,7 +501,7 @@ def build_impact_report(
 #  still reported, because a name a gate silently rewrote is a name nobody can grep for.
 #  `clew.guard` shares no code with the pipeline, so `_inlineable` is deliberately not reused.
 #  @version 1.0
-#  @dg_internal
+#  @utility
 #  @return The text with CR/LF/tab collapsed and pipes escaped
 def _cell(text: str) -> str:
     collapsed = text.replace("\r", " ").replace("\n", " ").replace("\t", " ")
@@ -452,23 +509,31 @@ def _cell(text: str) -> str:
 
 
 ## @brief Render impact entries as a markdown table with summary.
-#  @version 1.3
+#  v1.4: reviewers from the owners files (2.0.0, S2/S3 served)
+#  @version 1.4
 #  @req REQ-DDB-GUARD-010
 #  @return Markdown-formatted impact report string
 def format_markdown(entries: list[ImpactEntry]) -> str:
     if not entries:
         return "No requirements affected.\n"
 
+    ## A Reviewers column only when the repository names owners: see `_reviewers`.
+    owned = any(e.reviewers is not None for e in entries)
     lines = ["## Change Impact Report", ""]
-    lines.append("| REQ | Name | Functions Changed |")
-    lines.append("|-----|------|-------------------|")
+    lines.append("| REQ | Name | Functions Changed |" + (" Reviewers |" if owned else ""))
+    lines.append("|-----|------|-------------------|" + ("-----------|" if owned else ""))
 
     total_funcs = 0
     for entry in entries:
         name = _cell(entry.req_name or "\u2014")
         func_names = ", ".join(_cell(f.name) for f in entry.functions)
         total_funcs += len(entry.functions)
-        lines.append(f"| {_cell(entry.req_id)} | {name} | {func_names} |")
+        who = (
+            f" {', '.join(_cell(r) for r in entry.reviewers or []) or chr(0x2014)} |"
+            if owned
+            else ""
+        )
+        lines.append(f"| {_cell(entry.req_id)} | {name} | {func_names} |{who}")
 
     lines.append("")
     lines.append(
@@ -477,12 +542,21 @@ def format_markdown(entries: list[ImpactEntry]) -> str:
     return "\n".join(lines) + "\n"
 
 
-## @brief Render impact entries as a JSON array.
-#  @version 1.2
+## PS3 (2.0.0, owner Q/A 2026-11-19): impact.json's format version and its keys, which
+## docs/wire-keys.json covers. A removed or renamed key moves the version; an added one is additive.
+IMPACT_SCHEMA_VERSION = 1
+IMPACT_ENTRY_KEYS = ("functions", "req_id", "req_name", "reviewers")
+IMPACT_FUNCTION_KEYS = ("file", "name", "version")
+
+
+## @brief Render impact entries as a versioned JSON object.
+#  v1.3: reviewers from the owners files (2.0.0, S2/S3 served)
+#  v2.0 (2.0.0, PS3): `{"schema_version": 1, "entries": [...]}` — the bare array had no version.
+#  @version 2.0
 #  @req REQ-DDB-GUARD-010
 #  @return JSON-formatted impact report string
 def format_json(entries: list[ImpactEntry]) -> str:
-    data = [
+    rows = [
         {
             "req_id": entry.req_id,
             "req_name": entry.req_name,
@@ -490,9 +564,11 @@ def format_json(entries: list[ImpactEntry]) -> str:
                 {"name": f.name, "file": f.file_path, "version": f.new_version}
                 for f in entry.functions
             ],
+            **({"reviewers": entry.reviewers} if entry.reviewers is not None else {}),
         }
         for entry in entries
     ]
+    data = {"schema_version": IMPACT_SCHEMA_VERSION, "entries": rows}
     return json.dumps(data, indent=2) + "\n"
 
 
@@ -508,16 +584,20 @@ def format_text(entries: list[ImpactEntry]) -> str:
 
 
 ## @brief Dispatch to the appropriate formatter based on config.
-#  @version 1.2
-#  @dg_internal
-def format_report(entries: list[ImpactEntry], config: dict[str, Any]) -> str:
-    fmt = get_impact(config).get("output", {}).get("format", "markdown")
+#  v1.3: the format is a parameter, not impact.output.format (2.0.0, R5-CFG F9)
+#  @version 1.3
+#  @utility
+def format_report(entries: list[ImpactEntry], fmt: str = "markdown") -> str:
     formatters = {"json": format_json, "text": format_text}
     return formatters.get(fmt, format_markdown)(entries)
 
 
 ## @brief Orchestrate diff analysis, requirement mapping, and report generation.
-#  @version 1.1
+#  1.2 (round 4, R11): no files with a range or --staged means every file that changed there;
+#  an empty report then means nothing changed, never that nothing was read.
+#  1.3 (2.0.0, R5-CFG F9): the format is the caller's (`fmt`), not a config key; the entries are
+#  built by `impact_entries`, which `clew guard impact --write` also uses.
+#  @version 1.3
 #  @req REQ-DDB-GUARD-010
 def run_impact(
     file_paths: list[str],
@@ -525,7 +605,27 @@ def run_impact(
     staged: bool = False,
     diff_range: str | None = None,
     run_command: RunCommand | None = None,
+    fmt: str = "markdown",
 ) -> str:
+    return format_report(impact_entries(file_paths, config, staged, diff_range, run_command), fmt)
+
+
+## @brief Collect the changed functions and map them to the requirements they implement.
+#  v1.1: reviewers from the owners files (2.0.0, S2/S3 served)
+#  @version 1.1
+#  @req REQ-DDB-GUARD-010
+#  @return One entry per changed function
+def impact_entries(
+    file_paths: list[str],
+    config: dict[str, Any],
+    staged: bool = False,
+    diff_range: str | None = None,
+    run_command: RunCommand | None = None,
+) -> list[ImpactEntry]:
+    if not file_paths and (staged or diff_range):
+        from .git import get_changed_files
+
+        file_paths = get_changed_files(diff_range, staged, run_command) or []
     changed = collect_changed_functions(
         file_paths,
         config,
@@ -533,5 +633,6 @@ def run_impact(
         staged=staged,
         run_command=run_command,
     )
-    entries = build_impact_report(changed, config)
-    return format_report(entries, config)
+    ## The gate runs at the repository root (pre-commit's working directory).
+    owners = OwnerResolver.from_repo(Path.cwd(), config.get("owners"))
+    return build_impact_report(changed, config, owners)

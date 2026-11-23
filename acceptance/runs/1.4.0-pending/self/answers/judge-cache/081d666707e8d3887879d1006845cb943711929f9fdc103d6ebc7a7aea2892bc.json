@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"A `code` mismatch means the server process is old, not the index. Only a client restart fixes it.\" and \"**schema, index newer than server:** rebuilding cannot clear it; restart the MCP client.\" and \"**data:** ... call `index(action='refresh')`\"\nVERDICT: HIT\nWHY: The answer says data staleness is cleared by a refresh/rebuild while code staleness needs a client restart that a rebuild cannot fix, which is the item's different-actions-per-axis point. It does not spell out the \"one flag would not have been enough\" conclusion, but the substance is stated."
+}

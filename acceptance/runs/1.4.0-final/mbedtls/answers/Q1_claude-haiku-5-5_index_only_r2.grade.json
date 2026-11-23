@@ -1,0 +1,103 @@
+{
+  "cell": "Q1_claude-haiku-5-5_index_only_r2",
+  "arm": "index_only",
+  "rubric_version": "3.1.0",
+  "rubric_digest": "bbf6195f605be452",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.65,
+  "unmarked_pct": 0.0,
+  "split_decisions": 1,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "names MBEDTLS_THREADING_C and MBEDTLS_THREADING_PTHREAD as the gating macros",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: `MBEDTLS_THREADING_C` and `MBEDTLS_THREADING_PTHREAD` both default to off (`include/mbedtls/mbedtls_config.h:3787` and `:2196`). ... Every mutex call I checked sits behind `#if defined(MBEDTLS_THREADING_C)`. | WHY: The answer names both macros and states that mutex code is gated behind THREADING_C, with THREADING_PTHREAD identified alongside it as the thread-enabling macro. || QUOTE: `MBEDTLS_THREADING_C` and `MBEDTLS_THREADING_PTHREAD` both default to off (`include/mbedtls/mbedtls_config.h:3787` and `:2196`). ... Every mutex call I checked sits behind `#if defined(MBEDTLS_THREADING_C)`. | WHY: The answer names both macros and says the mutex code is gated behind them, including THREADING_C as the `#if` guard. || QUOTE: `MBEDTLS_THREADING_C` and `MBEDTLS_THREADING_PTHREAD` both default to off (`include/mbedtls/mbedtls_config.h:3787` and `:2196`). ... Every mutex call I checked sits behind `#if defined(MBEDTLS_THREADING_C)`. | WHY: The answer names both macros and states that mutex code is gated behind `#if defined(MBEDTLS_THREADING_C)`, with THREADING_PTHREAD named alongside it as a config option that defaults to off.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the shipped mbedtls_config.h leaves BOTH threading macros undefined, so a default build defines neither",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: `MBEDTLS_THREADING_C` and `MBEDTLS_THREADING_PTHREAD` both default to off (`include/mbedtls/mbedtls_config.h:3787` and `:2196`). | WHY: The answer states that both threading macros default to off in the shipped mbedtls_config.h, so a default build defines neither. || QUOTE: `MBEDTLS_THREADING_C` and `MBEDTLS_THREADING_PTHREAD` both default to off (`include/mbedtls/mbedtls_config.h:3787` and `:2196`). | WHY: The answer states both threading macros default to off in the shipped mbedtls_config.h, so a default build defines neither.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that a default build of mbedtls creates no threads at all, and that the pthread example compiles to a stub main under that condition",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer says default mbedtls takes no locks and that THREADING_C is off, but it never concludes that the pthread example compiles to a stub main. It instead lists `handle_ssl_connection` as a real multi-threaded example server. || QUOTE: NONE | WHY: The answer says the mutex code is compiled out by default, but it describes the pthread example as a real multi-threaded server and never says it compiles to a stub main under default build. || QUOTE: NONE | WHY: The answer says THREADING_C is off by default and the library takes no locks, but it never concludes that the default build creates no threads at all, nor that the pthread example compiles to a stub main.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states BOTH halves of the contrast: that nothing in library/ creates a thread, AND that library/ nonetheless supplies the mutex abstraction used by threaded callers",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: The index finds four thread or signal-handler spawn sites, all in `programs/`, none in `library/` | WHY: The answer states that no thread creation occurs in library/ and that library/ code supplies the mutex layer (`threading.c`, with `mbedtls_threading_*_mutex` objects) used by threaded callers like the pthread server. || QUOTE: The index finds four thread or signal-handler spawn sites, all in `programs/`, none in `library/` | WHY: The answer says no thread spawn sites are in library/, and it also says library/ has the mutex code (`threading.c`, `MBEDTLS_THREADING_C`) that threaded callers use. It writes \"Its `my_mutexed_debug` uses the same mutex abstraction.\"",
+      "agreement": 0.6666666666666666,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "every source file containing a thread-creation site \u2014 programs/ssl/ssl_pthread_server.c",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every source file containing a thread-creation site \u2014 programs/test/benchmark.c",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every source file containing a thread-creation site \u2014 precision",
+      "kind": "set_precision",
+      "weight": 2,
+      "hit": true,
+      "detail": "clean",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "identifies the benchmark timer thread as Windows-only, gated on a platform condition rather than on the threading config",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: `TimerProc` (Win32) | `programs/test/benchmark.c:430` | Timer thread for the benchmark alarm | WHY: The answer labels TimerProc as Win32 but never states it is gated on a platform condition rather than the threading config. || QUOTE: `TimerProc` (Win32) | `programs/test/benchmark.c:430` | Timer thread for the benchmark alarm | WHY: The answer labels TimerProc as Win32 but never says it is gated on a platform condition rather than the threading config. || QUOTE: `TimerProc` (Win32) | `programs/test/benchmark.c:430` | Timer thread for the benchmark alarm | WHY: The answer labels the timer thread as Win32 but never states it is gated on a platform condition rather than on the threading config.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies debug_mutex as serialising debug output so that concurrent connections do not interleave their logging",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never mentions debug_mutex or serialising debug output across connections; it only mentions `my_mutexed_debug` in passing as using the same mutex abstraction. || QUOTE: NONE | WHY: The answer never mentions debug_mutex or that a mutex serialises debug output across concurrent connections; it only notes that `my_mutexed_debug` \"uses the same mutex abstraction\". || QUOTE: NONE | WHY: The answer never mentions debug_mutex or that a mutex serialises debug output across connections; it only notes in passing that `my_mutexed_debug` uses the same mutex abstraction.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    }
+  ]
+}

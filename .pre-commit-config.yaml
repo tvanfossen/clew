@@ -35,6 +35,46 @@ repos:
         args: [validate]
         files: ^(clew|acceptance|tests)/.*\.py$
         require_serial: true
+      ## 2.0.0 (PG3): COVERAGE IS PART OF THE GATE. The published `clew-guard` hook runs it in
+      ## pre-commit mode; clew's own hook above runs `validate` (its impact report has a hook of
+      ## its own below), so the coverage gate is its own hook here. Uncovered catalog entries,
+      ## `@req` naming no entry, and a ratio below a declared floor fail the commit. ~1.4 s.
+      - id: clew-guard-coverage
+        name: clew guard coverage
+        entry: .venv/bin/python -m clew guard coverage .
+        language: system
+        pass_filenames: false
+        files: ^(clew/.*\.py|requirements\.yaml|\.clew\.yaml)$
+        require_serial: true
+      ## round 3, P6c — clew adopts its own wiki and impact report, not only the gate.
+      ## The impact report: what the staged change touched, for the wiki's Change impact page.
+      ## Written to docs/generated/ (gitignored); never fails a commit — it is a report.
+      - id: clew-guard-impact
+        name: clew guard impact
+        entry: .venv/bin/python -m clew guard
+        language: system
+        args: [impact, --staged, --write]
+        files: ^clew/.*\.py$
+        require_serial: true
+      ## Every catalogued requirement resolves to an @req implementer, or its status exempts it
+      ## (`exempt_status` in .clew.yaml) — the gate the deleted req_coverage_audit.py once was.
+      - id: clew-guard-coverage
+        name: clew guard coverage
+        entry: .venv/bin/python -m clew guard coverage clew
+        language: system
+        pass_filenames: false
+        files: ^(clew/.*\.py|requirements\.yaml|\.clew\.yaml)$
+        require_serial: true
+      ## The wiki's static check, as adopters run it (`--refresh` brings the index current
+      ## first). Scoped to the files that change what it checks, because a refresh on every
+      ## commit costs a build; CI's `--all-files` still runs it on every push.
+      - id: clew-wiki-check
+        name: clew wiki check
+        entry: .venv/bin/python -m clew wiki check --refresh --before-tests
+        language: system
+        pass_filenames: false
+        files: ^(\.clew\.yaml|requirements\.yaml|README\.md|AGENTS\.md|SKILLS\.md|SECURITY\.md|docs/.*\.md|clew/mcp_server/(server|tools_query)\.py|clew/wiki/build\.py)$
+        require_serial: true
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: 39d9ac5938dadb73df0564a45f163e25ff9fa6e2 # v0.16.1

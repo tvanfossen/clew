@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes the submodule, build integration and header includes, but never identifies llama.cpp's C API (free `llama_`-prefixed functions) as the seam versus C++ classes."
+}

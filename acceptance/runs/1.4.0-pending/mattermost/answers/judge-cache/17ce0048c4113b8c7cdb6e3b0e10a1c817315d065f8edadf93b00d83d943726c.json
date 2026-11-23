@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"On failure, applies the same logic as the first attempt: the three special server errors remove the post, and anything else sets `failed: true` again.\"\nVERDICT: HIT\nWHY: The answer says retryFailedPost calls client.createPost once more, with no loop in it, and on failure it either removes the post for the three special errors or marks it failed again."
+}

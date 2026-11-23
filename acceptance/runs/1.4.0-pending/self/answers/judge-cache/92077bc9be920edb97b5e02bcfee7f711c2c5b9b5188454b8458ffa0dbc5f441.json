@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Query replies carry a `staleness` block only when some axis is stale; a current index adds nothing.\nVERDICT: HIT\nWHY: The answer states that query replies carry the staleness annotation, and that it is absent when the index is current. The summary's \"reports it on each reply\" restates the first half. This covers the item's two claims: it rides on every reply, and it is empty on a current tool."
+}

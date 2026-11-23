@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: ExternalBridge::run_async_ask, ExternalBridge::start, accept_loop; HealthMonitor::start; StdioTransport::open, SSETransport::open; ResponseGenerator::dispatch_batch_generate, iface_generate_with_cancel, CancelFlagBridge ctor\nVERDICT: HIT\nWHY: The table lists thread spawn sites across the external bridge, the MCP transports (stdio and SSE), the health monitor and the inference path, so creation is shown spread across subsystems. The answer never says \"not centralised\" outright, but the distribution is plain from the table."
+}

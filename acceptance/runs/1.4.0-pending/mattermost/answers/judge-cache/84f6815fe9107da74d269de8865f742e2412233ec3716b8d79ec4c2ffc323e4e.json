@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Only the string `'false'` turns it off. Anything else, including the setting being absent, leaves archived channels viewable.\nVERDICT: HIT\nWHY: The answer explicitly states that an absent setting leaves archived channels viewable and only the string 'false' disables them."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The code defends the \\\"definitive\\\" wording by checking the unread corpora first.\" Its table also has a row where rows exist in a corpus `search` does not read, so the reply is \"NOT DEFINITIVE\" and names those rows. The answer opens with \"`search` grades each empty result against what the index actually covers\".\nVERDICT: HIT\nWHY: The answer says \"definitive\" is granted per call by querying the corpora `search` did not read, not by the empty-result shape alone."
+}

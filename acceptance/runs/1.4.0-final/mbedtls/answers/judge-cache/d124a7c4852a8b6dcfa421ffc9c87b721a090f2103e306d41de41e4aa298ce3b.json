@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"A contributor adds a code by adding a documented `#define` to the module's header and regenerating that file. Nothing in `error.c` is hand-edited.\"\nVERDICT: HIT\nWHY: The answer states that a new error string means adding a doxygen-documented #define to the module header and regenerating, with no hand-editing of error.c."
+}

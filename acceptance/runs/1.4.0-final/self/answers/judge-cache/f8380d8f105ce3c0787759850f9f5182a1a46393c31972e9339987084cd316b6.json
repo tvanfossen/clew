@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Stated tiers displace guesses.** A flag beats a declaration, and a declaration beats heuristics. The highest stated tier present wins... **Facts and ecosystem signatures always survive.** Tiers 3 and 4 accumulate under every stated tier. You can correct a guess; you cannot un-discover a fact.\"\nVERDICT: HIT\nWHY: The answer states the rule `(tier1 or tier2 or tier5) \u222a tier3 \u222a tier4`. The stated tiers replace one another, while the discovered tiers 3 and 4 accumulate and survive any stated tier."
+}

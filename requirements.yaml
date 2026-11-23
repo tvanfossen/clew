@@ -96,7 +96,7 @@ requirements:
     x-priority: P0
     coverage_exempt: satisfied by configuration FILES (.clew.yaml, .pre-commit-config.yaml),
       not by any function — a tag here would have to be attached to something arbitrary
-    x-status: partial
+    x-status: configuration
     x-evidence: 'NO IMPLEMENTER BY NATURE — satisfied by configuration files, not by any function, so
       it is deliberately left untagged. .clew.yaml + .pre-commit-config.yaml are present and
       the hook set is ruff, ruff-format, doxygen-guard (pinned upstream at rev v1.3.1, not repo:local),
@@ -341,6 +341,774 @@ requirements:
       not match. The prior note advised checking `target` and staleness only, which was true and
       almost never the cause. clew/query/recovery.py recovery_hint / _hint_from; wired at
       mcp_server/tools_query.py _recovery_for and _batch_miss. tests/test_recovery_hint.py.
+  REQ-DDB-QUERY-014:
+    subsystem: query
+    name: A stable, MCP-free export of the dossier and search replies
+    acceptance_criteria: '`clew.query.export_dossier` and `clew.query.export_search` return, for every
+      subject and every search corpus, exactly the reply the MCP tool gives with only the MCP
+      boundary removed — the byte budget, the neighbour cap and the target/staleness/sub-index
+      stamps; a single-subject miss differs only by the routing advice. Both are re-exported from
+      `clew.query` (semver-covered), stamp `wire_version` on every payload, and build through the
+      same functions the MCP tools call, so the two surfaces cannot word one answer differently.
+      The wire keys are listed by a manifest generated from the reply dataclasses and committed;
+      a renamed or removed key fails the gate.'
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/query/export.py, clew/query/payload.py (moved from mcp_server/tools_query.py),
+      clew/query/wire_manifest.py, docs/wire-keys.json. tests/test_export.py (parity over every
+      name in the rich fixture, every corpus, batches, the manifest). scripts/export_parity.py
+      measured 335/335 agreeing on each of the four 1.3.0-final run indexes (mattermost, mbedtls,
+      self, entropic; 300 sampled names + 35 corpus queries each), 2026-11-13. `clew query`
+      (clew/query_command.py) prints the same payloads as JSON; tests/test_query_cli.py.
+  REQ-DDB-QUERY-015:
+    subsystem: query
+    name: A function's calls in source order, with the frames that enclose them
+    acceptance_criteria: >-
+      `clew.query.call_sequence(db, repo_root, name, qualified=None)` returns the function's call
+      sites in line order, each naming its callee and the loop / if / elif / else / try / catch /
+      finally / case frames whose line span contains it, outermost first, read from the source at
+      query time with the index's own parser and call-site harvester. Calls inside a nested
+      function are excluded. It returns [] for a function that calls nothing and None when the
+      index holds no such function, no body extent for it, or the source cannot be parsed. It is
+      the message order and the frames a derived sequence diagram (clew wiki flow) is drawn from.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/query/callsites.py; tests/test_call_sequence.py (Python if/else/for, TypeScript
+      if/for/try/catch nesting, unknown vs leaf).
+  REQ-DDB-WIKI-001:
+    subsystem: wiki
+    name: A sequence flow is derived from the index, not authored
+    acceptance_criteria: >-
+      `clew wiki flow ENTRY` (clew.wiki.flow.derive_flow) walks the IDENTITY-scoped call graph from
+      the entry in each caller's source order, emitting one step per call that resolves to an
+      indexed function, with the frames enclosing the call site, the caller and callee lanes
+      (files, packages or threads) and the call level. A call site naming several identities is
+      one step listing them in `ambiguous`; a callee already expanded is drawn again but not
+      expanded twice; `depth` bounds the expansion and `stop_at` ends a branch. An unknown entry
+      or lane strategy is refused by name. Printed as JSON stamped `flow_version`.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/flow.py, clew/wiki/command.py; tests/test_wiki_flow.py.
+  REQ-DDB-WIKI-002:
+    subsystem: wiki
+    name: Each requirement is graded from the evidence CI produced
+    acceptance_criteria: >-
+      `clew wiki trace` (clew.wiki.evidence.requirement_evidence) grades every requirement the index
+      knows (catalog rows and tagged ids) from JUnit results of its linked tests — PASS, GAP (a
+      failure or error), TARGET (every linked result is a skip of a declared target-only test),
+      NOT_RUN (linked tests skipped or absent from the reports) and MISSING (no linked test) — and
+      reports each implementer as covered or uncovered from a Cobertura report, with coverage
+      ABSENT when no report was given. Parametrized cases fold into their test function, taking the
+      worst status. Reports over 64 MB are refused.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/evidence.py, clew/wiki/command.py; tests/test_wiki_evidence.py.
+  REQ-DDB-WIKI-003:
+    subsystem: wiki
+    name: A wiki section is validated by name and rendered as a self-contained site
+    acceptance_criteria: >-
+      The `wiki:` section of `.clew.yaml` is accepted and dropped by the build (like `guard:`) and
+      read by clew.wiki.config, which names every unknown key as a problem. `clew wiki check`
+      reports each problem (unknown key, docs glob matching nothing, flow entry or lanes the index
+      cannot serve, missing test report, link template without `{file}`) and imports no Sphinx.
+      `clew wiki build --out DIR` (the `clew-trace[wiki]` extra) renders the prose as written,
+      one page per flow (inline SVG, step table, function bodies) and the requirement trace with
+      Sphinx's bundled theme, referencing no remote asset. `--audience NAME` applies that
+      audience's rules; `exclude_bodies` leaves no function body on any page.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/config.py, check.py, build.py, svg.py, command.py; clew/declaration.py
+      SECTION_WIKI; tests/test_wiki_build.py (incl. redaction asserted on the rendered HTML).
+  REQ-DDB-WIKI-004:
+    subsystem: wiki
+    name: External model files are trace targets
+    acceptance_criteria: >-
+      `wiki.sources` declares JSON, TOML or YAML files by path, the dotted path to their items, and
+      the id, doc and requirement fields; a mapping's keys are its ids and a list names its id field.
+      Each entry is a node addressed `<source>:<id>` (clew.wiki.sources.load_nodes). A function
+      names the node it realises with `@node <source>:<id>`, read from the index (node_references).
+      A missing file, unknown format, unresolved items path or duplicated id is a named problem;
+      `clew wiki check` names a `@node` tag no source declares. The site lists every node with its
+      doc, the functions that reference it and the requirements it serves.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/sources.py, check.py, build.py; tests/test_wiki_trace_extensions.py.
+  REQ-DDB-WIKI-005:
+    subsystem: wiki
+    name: Sub-catalogs are traced at their pin, and external rules map onto requirements
+    acceptance_criteria: >-
+      `wiki.catalogs` names a sibling checkout, a pin and a catalog path; the catalog is read with
+      `git show <pin>:<path>` through the hardened git environment, never from the working tree.
+      `clew wiki check` names a pin that does not resolve and a catalog whose content at the
+      sibling's HEAD differs from the pin's (moved since the pin). `wiki.rules` maps external rule
+      ids onto requirements; a rule or a node naming a requirement nothing declares or tags is a
+      problem. The trace page shows rule -> requirement -> function -> test and each catalog's rows
+      at their pin.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/catalogs.py, check.py, build.py; tests/test_wiki_trace_extensions.py.
+  REQ-DDB-WIKI-006:
+    subsystem: wiki
+    name: Mutation records are reported per requirement
+    acceptance_criteria: >-
+      A mutation record (`wiki.tests.mutations`, `clew wiki trace --mutations`) is a list of
+      {mechanism, test, killed}; an entry missing a field is refused. Each record attaches to every
+      requirement its mechanism implements as (mechanism, test, killed|survived); the field is None
+      when no record was given. `clew wiki check` names a mechanism the index does not hold.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/evidence.py, check.py; tests/test_wiki_trace_extensions.py.
+  REQ-DDB-WIKI-007:
+    subsystem: wiki
+    name: Version-keyed sites and a diff between two versions
+    acceptance_criteria: >-
+      `clew wiki build --version KEY` writes the site to `<out>/<KEY>/html`, a snapshot of the
+      requirement tiers and node addresses to `<out>/<KEY>/site.json`, and refreshes
+      `<out>/versions.json` and a self-contained `<out>/index.html` listing every key. `clew wiki
+      diff --out DIR A B` prints nodes added and removed, requirements added and removed, and tier
+      changes as JSON, and writes `<out>/diff-A-B.html`. A key that cannot be a directory name, or
+      one never recorded, is refused.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/versions.py, build.py, command.py; tests/test_wiki_trace_extensions.py.
+  REQ-DDB-WIKI-008:
+    subsystem: wiki
+    name: A derived sequence diagram can play in call order, with no script or dependency
+    acceptance_criteria: >-
+      `flow_svg(flow, animate=True)` (and `clew wiki flow ENTRY --svg --animate`, and a site flow
+      unless `animate: false`) delays each step's group by its position in call order, draws its
+      arrow and fades in its label with CSS inside the SVG; it carries no script and references
+      nothing remote. `prefers-reduced-motion` shows the finished diagram at once, and the final
+      frame holds the same steps the static render draws.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/svg.py, config.py, build.py, command.py; tests/test_wiki_flow.py.
+  REQ-DDB-WIKI-009:
+    subsystem: wiki
+    name: gcov coverage is read like Cobertura
+    acceptance_criteria: >-
+      `wiki.tests.gcov` globs select `.gcov` text files or gcov / gcovr JSON (`.json`, `.json.gz`);
+      their line hits join any Cobertura hits per repo-relative file (summed). A `-` line is non-
+      executable and absent, `#####` / `=====` are zero. Paths are made repo-relative (absolute
+      under the root, or relative resolving into it). A glob matching no file is a `check` problem.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/imports.py, evidence.py, check.py; tests/test_wiki_imports.py.
+  REQ-DDB-WIKI-010:
+    subsystem: wiki
+    name: Test results, links and layers are imported from declared sources
+    acceptance_criteria: >-
+      `wiki.tests.results` declares CTest, TAP, Catch2 or pytest-json reports by format (an unknown
+      format is a problem, never sniffed); each folds like JUnit, worst case winning. A mapping file
+      (YAML or CSV) and Gherkin `.feature` scenario tags (`@ID`, `@req:ID`, feature and rule tags
+      inherited) link requirements to tests the index cannot see. `layers` counts each requirement's
+      tests per layer by glob; `layers` is absent (None) when none are configured.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/imports.py, evidence.py, config.py, check.py, command.py; tests/test_wiki_imports.py.
+  REQ-DDB-WIKI-011:
+    subsystem: wiki
+    name: The site has a default theme, overridable per repository, with nothing remote
+    acceptance_criteria: >-
+      The default Sphinx theme `clew` (sassafras-class palette, Manrope / Newsreader / JetBrains
+      Mono under the OFL with their licences) is copied into the site's `_static`. `wiki.theme`
+      overrides palette tokens (an unknown token is a problem), adds stylesheets and a logo,
+      disables bundled fonts, or names another installed theme, which then gets no clew palette or
+      fonts. No page references a CDN or font service.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/theme.py, themes/, config.py, build.py; tests/test_wiki_site.py.
+  REQ-DDB-WIKI-012:
+    subsystem: wiki
+    name: The trace is one page, summarised with charts and per-group counts
+    acceptance_criteria: >-
+      The requirements and summary pages carry inline-SVG donuts of requirements by tier and
+      distinct tests by status, each segment with `data-label` / `data-count`. The summary page
+      counts, per requirement group (id without its trailing number): requirements, implemented,
+      tested, each tier, and, with `min_layers`, tested requirements spanning fewer layers.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/charts.py, summary.py, build.py; tests/test_wiki_site.py.
+  REQ-DDB-WIKI-013:
+    subsystem: wiki
+    name: Versioned sites burn down open requirements toward roadmap milestones
+    acceptance_criteria: >-
+      Open requirements (every tier but PASS and TARGET) are plotted per recorded version, in
+      recording order, on the versions index and each versioned summary. Headings of `wiki.roadmap`
+      that name a version are milestones; one not yet recorded is drawn ahead with an ideal line to
+      zero. A recorded version whose snapshot is gone is omitted, never drawn as zero.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/charts.py, versions.py, build.py; tests/test_wiki_site.py.
+  REQ-DDB-WIKI-014:
+    subsystem: wiki
+    name: A flow page is interactive and shows what each step carries
+    acceptance_criteria: >-
+      Flow pages carry play / pause / step controls and a dialog per step holding the call
+      expression at the call site, the callee's signature and brief, its frames and a call-site
+      link, read from JSON with `textContent` only. An audience excluding bodies gets no call text.
+      Step links use the call site's file (`site_file`), not the callee's.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/flowpage.py, flow.py, svg.py; tests/test_wiki_site.py.
+  REQ-DDB-WIKI-015:
+    subsystem: wiki
+    name: The site is generated from every declared source
+    acceptance_criteria: >-
+      The requirements page reads the catalog through the index's own resolver
+      (`resolve_catalog_path`: declaration, then the `requirements.yaml` convention) and shows each
+      entry's title, acceptance criteria, declared status and priority; it reads clew-guard's
+      `impact.json` (`wiki.impact`, else `<guard.output_dir>/impact/impact.json`) into a change-
+      impact section, absent when there is no report. Prose may be Markdown, reStructuredText or
+      HTML. Tables drop a column no row fills and mark an empty cell. `clew wiki check --refresh`
+      (the `clew-wiki-check` pre-commit hook) brings the index current first.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/tracepages.py, catalogs.py, htmltable.py, build.py, command.py; .pre-commit-hooks.yaml; tests/test_wiki_site.py, test_wiki_build.py.
+  REQ-DDB-WIKI-016:
+    subsystem: wiki
+    name: Tests link to requirements without tags, and say how
+    acceptance_criteria: >-
+      Besides `@req` tags, a mapping file and Gherkin tags, a test links to a requirement when per-
+      test coverage (coverage.py contexts) ran a line of an implementer (measured), when the
+      catalog's evidence field names its file (catalog), or when its calls reach an implementer
+      within `infer_depth` hops over non-binding, non-fuzzy edges (inferred). A test keeps its
+      strongest kind; rows carry `measured_tests`, `declared_tests` and `inferred_tests`, the page
+      marks each, and the trace counts requirements linked only by each weaker kind.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/evidence.py, imports.py, config.py, tracepages.py; tests/test_wiki_imports.py, test_wiki_site.py.
+  REQ-DDB-WIKI-017:
+    subsystem: wiki
+    name: Standard test structures are recognised, whatever the framework
+    acceptance_criteria: >-
+      A test is recognised by its framework's shape: a `test*` function (pytest, Unity / Ceedling,
+      and the `test_` convention), a Catch2 / doctest `TEST_CASE` / `SCENARIO` (named by its first
+      string), a GoogleTest `TEST` / `TEST_F` (`Suite.Name`, filed under `Name` too) or a Boost
+      `BOOST_AUTO_TEST_CASE`; a macro row outside test code is not a test. Results are read from
+      Ceedling's XML report and Unity's text output as declared formats, and a GoogleTest `notrun`
+      case is a skip. Tag, catalog and inferred links all name a framework case by its framework
+      name.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/frameworks.py, evidence.py, imports.py; tests/test_wiki_frameworks.py.
+  REQ-DDB-WIKI-018:
+    subsystem: wiki
+    name: Every entry point is a flow without being declared
+    acceptance_criteria: >-
+      Without being declared, every entry point gets a flow of depth `wiki.entry_points` (0 =
+      declared flows only): each `[project.scripts]` console script resolved to its indexed
+      function, every `main` outside test code, and every thread entry from the thread layer —
+      skipping entries in test code and entries with no resolved call. An entry is selected by file
+      as well as name (`FlowSpec.file`, `derive_flow(file=)`, `call_sequence(rowids=)`), so
+      functions sharing a name and definition never merge; a declared flow for the same function
+      wins.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/entrypoints.py, flow.py, flowpage.py, build.py; clew/query/callsites.py; tests/test_wiki_site.py.
+  REQ-DDB-WIKI-019:
+    subsystem: wiki
+    name: One system graph, at several zoom levels, laid out deterministically
+    acceptance_criteria: >-
+      `build_graph` derives components from path prefixes (a file belongs to its package; a
+      declared `wiki.components` grouping wins), links between components aggregating call edges
+      and shared keys, and a point cloud of every function placed inside its component's box.
+      Lens facts ride on components and symbols — requirements by evidence tier, test scope,
+      threads, changed functions — and a lens whose source is absent is absent (no impact report,
+      no `changed` key), while an empty report is a measured zero. Layout is computed in Python
+      and is deterministic: callers sit in layers above their callees.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/graph.py; tests/test_wiki_graph.py.
+  REQ-DDB-WIKI-020:
+    subsystem: wiki
+    name: One UI shell — a shared modal, a phone layout, pan and zoom, icons, nothing remote
+    acceptance_criteria: >-
+      Every content page carries one labelled `<dialog id="clew-modal">` driven by one script,
+      `clew.js`, under a byte budget a test enforces; no theme stylesheet, layout or script names
+      an http(s) URL. A trigger opens an inert `<template>` of escaped content by key, the key is
+      the deep link (`#m=KEY`, refused when the hash reader would not accept it), the back button
+      closes the modal and Esc closes it natively; the flow-step dialog is this component, not a
+      second one. The top bar runs Requirements · Flows · Docs · Model entries and folds behind a
+      labelled menu button on a phone; table cells name their column so tables become cards
+      below 760px; diagrams carry a viewBox and pan and zoom; icons are inline, `currentColor`
+      and `aria-hidden`, and an unknown icon name refuses.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/modal.py, icons.py, htmltable.py, flowpage.py, build.py, svg.py; clew/wiki/themes/clew/; tests/test_wiki_site.py.
+  REQ-DDB-WIKI-021:
+    subsystem: wiki
+    name: A system map at two zoom levels, re-tinted by lenses, cross-linked through the site
+    acceptance_criteria: >-
+      The Map section draws the graph's components as boxes (callers above callees; test code
+      left out of the layout and counted as each box's calls from tests) and their links as
+      arrows whose width grows with the calls; the Code level shows every function as a point
+      inside its box. Lens buttons — requirements, tests, and concurrency or change only when
+      threads or an impact report exist — re-tint the same drawing. Every box opens the shared
+      modal with its files, the requirements it implements (each linked to its requirements-page
+      row), the flows passing through it (each linked to its page) and its threads. Components
+      may be declared in `wiki.components` (name → path globs, order kept); a malformed entry is
+      a configuration problem. Every page's sidebar carries the same minimap (one drawing for the
+      site); a flow page lights the components its steps pass through, and each minimap box
+      opens that component on the map. A flow picker on the map traces any flow that crosses
+      components: its hops between components in call order, each drawn after the one before;
+      a flow that never leaves one component is not offered.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/mappage.py, graph.py, flowpage.py, build.py, config.py, modal.py; clew/wiki/themes/clew/; tests/test_wiki_map.py, tests/test_wiki_site.py.
+  REQ-DDB-WIKI-022:
+    subsystem: wiki
+    name: Requirements front and centre — group cards, a modal per requirement, prefilled issues
+    acceptance_criteria: >-
+      The requirements page opens with one card per requirement group (its passing count, tier
+      progress bar, implemented and tested counts); a card filters the requirement list to its
+      group and pressing it again clears the filter. Each requirement id opens the shared modal
+      with its title and acceptance criteria (withheld under `exclude_requirement_text`), tier,
+      declared status and priority, implementers linked to source, tests with status and link
+      kind (a long list cut with the cut stated), the flows its implementers are on (matched by
+      function and file), model entries and mutations; the table no longer carries the
+      acceptance drop-down, and a long test list there is its counts. When the repository has a
+      tracker — declared in `wiki.issues` ({github: owner/repo} or {ado: org/project}) or read
+      from the `origin` remote, none for an unknown host, none with `issues: false` — the modal
+      carries a prefilled new-issue link holding the id in the title, a `req:<ID>` label (an ADO
+      tag) and a `clew-req: <ID>` marker line, with no withheld text in it.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/reqmodal.py, issues.py, summary.py, tracepages.py, htmltable.py, flowpage.py, build.py, config.py; tests/test_wiki_site.py.
+  REQ-DDB-WIKI-023:
+    subsystem: wiki
+    name: Flows grouped by role, each step badged with the requirements its callee implements
+    acceptance_criteria: >-
+      The Flows page groups flows by role — Product (console scripts, declared roots, mains
+      outside tooling paths), Threads (thread entries), Tooling (entry points under
+      `wiki.tooling` globs, default scripts/, acceptance/, tools/, benchmarks/, examples/)
+      folded away — each listing its flows with their step counts and requirements; a role with
+      no flow has no section, and a flow may declare its `role`. Every flow step's row carries
+      the requirements its callee implements, each linked to its row on the requirements page.
+      `packages` lanes are the map's components (`clew/query`, not `clew`).
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/flowpage.py, build.py, config.py, entrypoints.py, flow.py; tests/test_wiki_site.py, tests/test_wiki_map.py.
+  REQ-DDB-WIKI-024:
+    subsystem: wiki
+    name: Change impact is its own section; model entries explain themselves by a real example
+    acceptance_criteria: >-
+      A Change impact section sits in the top bar after Flows. With clew-guard's impact report it
+      counts the requirements affected, functions changed and flows touched, follows each changed
+      function to the requirements it was reported under and the flows it is on (each linked),
+      lists the report per requirement, and links the map with its change lens preselected
+      (`map.html#lens=change`). Without a report it says the change was NOT MEASURED and how to
+      measure it; an empty report says no requirement was affected. The requirements page no
+      longer carries the impact table. The model-entries page opens with a worked example drawn
+      from the first entry a function realises — entry, the function naming it with `@node`, the
+      requirement served — and draws none when no entry is realised.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/impactpage.py, tracepages.py, build.py; clew/wiki/themes/clew/; tests/test_wiki_impact.py, tests/test_wiki_trace_extensions.py.
+  REQ-DDB-WIKI-025:
+    subsystem: wiki
+    name: Symbol pages with an ego-graph; links are dossier references; no permalink to an unpublished commit
+    acceptance_criteria: >-
+      Every symbol the site references — a requirement's implementers, a flow's functions — has
+      a section on its file's page (`sym-<path>.html#s-<name>`) holding every definition of that
+      name in the file: signature, brief, source permalink when one resolves, a radial ego-graph
+      (callers left, callees right, one more hop outward; overflow folded into a "+N more" node;
+      neighbours with sections linked), the requirements it implements, the flows it is on, and
+      its body bundled from the file (withheld under `exclude_bodies`; when the recorded extent
+      no longer names the function the section says the index is older than the file instead of
+      bundling other code). Requirement implementers and flow-step callees link to these
+      sections. When the repository has a remote and no remote branch contains the described
+      commit, source permalinks are dropped site-wide; with no git, no remote or an unknown
+      commit they are kept.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/symbols.py, build.py, tracepages.py, reqmodal.py, flowpage.py; tests/test_wiki_symbols.py, tests/test_wiki_site.py.
+  REQ-DDB-WIKI-026:
+    subsystem: wiki
+    name: A test's section says what it tests; Gherkin scenarios are displayed as Gherkin
+    acceptance_criteria: >-
+      Every test function the evidence names (found in test code) has a section on its file's
+      symbol page that adds its checks — assertion statements read per framework (Python
+      `assert`, Catch2 / doctest REQUIRE and CHECK forms, GoogleTest EXPECT_ / ASSERT_, Unity
+      TEST_ASSERT), each read whole across lines and withheld under `exclude_bodies` — its result,
+      the requirements it verifies with the link kind, the shortest resolved call path from the
+      test to an implementer of each (at most five calls), and mutation outcomes naming it. Each
+      Gherkin scenario has a section on its feature file's page rendered as Gherkin: Feature and
+      Rule headings with their tags, the Scenario heading, keyword-highlighted steps, tags as
+      chips, Examples tables as tables and doc strings as blocks, with its result and the
+      requirements it verifies. A requirement's tests, in its modal and in the table, link to
+      these sections.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/testfacts.py, symbols.py, reqmodal.py, tracepages.py, build.py; tests/test_wiki_symbols.py.
+  REQ-DDB-WIKI-027:
+    subsystem: wiki
+    name: Only a test with a packaged run has a flow of its own; a flow page links its functions' sections
+    acceptance_criteria: >-
+      A test is a slice of the master flows (REQ-DDB-WIKI-041), not a flow of its own (owner
+      2026-11-17, round 5; this replaces the per-test flows and the `wiki.test_flows` cap). Only a
+      test linked by tag or measured coverage that has a packaged run is drawn as a flow of depth 2
+      from the test function, so its replay has a place to land. A flow page lists the functions
+      it reaches, each linked to its symbol section, instead of repeating each body.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/build.py, flowpage.py, config.py, symbols.py; tests/test_wiki_symbols.py.
+  REQ-DDB-WIKI-028:
+    subsystem: wiki
+    name: Open issues from GitHub or Azure DevOps link back to requirements three ways
+    acceptance_criteria: >-
+      `IssueProvider` (GitHub REST v3, Azure DevOps 7.0, stdlib only, token from the environment,
+      opener injectable) lists open issues — GitHub pages followed, pull requests excluded; Azure
+      DevOps through a WIQL query and batched field reads — and creates an issue carrying the
+      requirement id in its title, as a `req:<ID>` label or tag and as a `clew-req: <ID>` marker
+      line. `link_issues` ties an issue to every requirement whose id appears whole in its title
+      or body, whose `req:` label it carries, or whose marker line it holds. The build fetches
+      only when `wiki.issues.fetch` is true: a requirement's modal and row list its open issues,
+      the requirements page lists the issues linked to none, the map gains an issues lens; a
+      failed fetch leaves the site built and says issues were not fetched and why.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/issues.py, build.py, config.py, tracepages.py, reqmodal.py, mappage.py; tests/test_wiki_issues.py.
+  REQ-DDB-WIKI-029:
+    subsystem: wiki
+    name: The site ships its trace in other tools' formats
+    acceptance_criteria: >-
+      Every built site carries, generated from the same trace and obeying its audience (no
+      requirement title or criteria under `exclude_requirement_text`): each flow as a Mermaid
+      `sequenceDiagram` and a PlantUML sequence diagram with its frames as loop / alt / opt (or
+      group) blocks, linked from the flow's page; `llms.txt` at the site root (an H1, a one-line
+      summary quote, sections of links to the requirements and every flow) and `llms-full.txt`
+      (every requirement with its tier, criteria and implementers, every flow's calls);
+      `exports/requirements.reqif` (ReqIF 1.2, one SPEC-OBJECT per requirement with id, title,
+      text and tier, one SPECIFICATION); `exports/needs.json` (Sphinx-needs: one `req` need per
+      requirement under the current version, with the amount); `exports/system.dsl` (Structurizr
+      DSL: the system, a container per component, a relation per link, a container view).
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/exports.py, flowpage.py, build.py; tests/test_wiki_exports.py.
+  REQ-DDB-WIKI-030:
+    subsystem: wiki
+    name: CTRF results, JUnit variants and Sphinx-needs requirements are imported
+    acceptance_criteria: >-
+      `ctrf` is a declared result format (CTRF JSON: `pending` is a skip, `other` an error,
+      parameters dropped, worst case wins). A JUnit case named `name(args)[n]` is the function
+      `name`; `status="disabled"` or `"skipped"` without a child element is a skip; a case whose
+      only failure was rerun (`flakyFailure`, `rerunFailure`) passed. `wiki.needs` names a
+      Sphinx-needs `needs.json` whose `req` / `requirement` needs of the current version
+      contribute titles, criteria and status — the repository's catalog wins where both describe
+      an id — and a need no index row knows becomes a requirement with no implementer, MISSING.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/imports.py, evidence.py, tracepages.py, config.py; tests/test_wiki_test_imports.py.
+  REQ-DDB-WIKI-031:
+    subsystem: wiki
+    name: Decision records and agent docs are read; docs are grouped by kind
+    acceptance_criteria: >-
+      Architecture decision records under `wiki.adrs` (default docs/adr, doc/adr, docs/decisions,
+      adr) are read for number (heading or file name), title, status and date — MADR front
+      matter, an inline `Status:` line or a `## Status` section — and for the requirement ids they
+      name whole; a Decisions page lists them with their requirements linked, each record is a
+      page, and a requirement's modal lists the decisions naming it. The Docs page groups the
+      repository's prose by `wiki.doc_kinds` (tutorial, howto, reference, explanation, agents; an
+      unknown kind is a configuration problem), undeclared documents under More, and AGENTS.md
+      (included when present, unlisted or not) and its kin under For agents, apart from the human
+      docs.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/adr.py, build.py, config.py, tracepages.py, reqmodal.py; tests/test_wiki_site.py.
+  REQ-DDB-WIKI-032:
+    subsystem: wiki
+    name: The MCP server hosts a hub of every indexed repository's wiki, on request
+    acceptance_criteria: >-
+      With `CLEW_WIKI=1` the MCP server runs an HTTP thread beside its transport — none
+      otherwise — bound to 127.0.0.1 on an OS-chosen port, refusing every request without the
+      per-session token (a `?t=` query sets an HttpOnly, SameSite=Strict cookie), and writing
+      nothing to stdout. `/` lists every registered target with its wiki's state (built,
+      building, queued, not built, failed, or unreachable when the checkout is gone — listed,
+      never dropped); `/r/<slug>/` serves that target's wiki, built on demand in a subprocess,
+      one build at a time, behind a page that reloads until it is ready; a path resolving outside
+      the built site is refused before any build. The hub's URL is recorded in `wiki.json` under
+      the state root, created 0600, and removed with the hub when the transport ends.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/mcp_server/wikihub.py, server.py; scripts/served_text_audit.py; docs/SECURITY.md; tests/test_wiki_hub.py.
+  REQ-DDB-WIKI-033:
+    subsystem: wiki
+    name: The hub is live — refresh-driven rebuilds, agent focus, and an API over the query engine
+    acceptance_criteria: >-
+      While the hub runs it is attached to the server: after the refresh loop refreshes targets,
+      every one whose wiki is already built is rebuilt (an unopened wiki is not), and each
+      finished build is announced as a `rebuilt` event on `/events` (server-sent events, a
+      keepalive comment every 15 s, every stream ended when the hub stops). A found function's
+      dossier reply gains `wiki_url` — its symbol section on the hub, carrying no token — and a
+      `focus` event; with the hub off no key is added and a failing link never costs the
+      answer. Pages the hub serves carry an injected `/live.js` that offers a reload on
+      `rebuilt` and a link on `focus`; the static site carries no live code. `/api/<slug>/dossier`
+      and `/api/<slug>/search` answer through `clew.query.export`; a missing argument or a
+      refused call is a 400 with its reason, an unbuilt index a 404.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/mcp_server/wikihub.py, server.py, tools_query.py; tests/test_wiki_hub.py.
+  REQ-DDB-WIKI-034:
+    subsystem: wiki
+    name: The 2.0.0 MCP surface — three tools, the proposer as a prompt, the wiki as resources
+    acceptance_criteria: >-
+      The server lists exactly three tools — `index`, `dossier`, `search` — and serves no more
+      than 9,826 characters of instructions and tool definitions per turn (10,726 before, less
+      the measured cut). `index` has three actions (refresh, status, targets); `stats` and
+      `cull` are refused by name with their replacement — `clew query stats` and `clew cull`,
+      both CLI verbs printing JSON — and `max_age_days` / `include_stale` are gone with them.
+      `propose_declaration` is an MCP prompt (its description loaded from the tier-2 description
+      file) returning the commented draft for a named or the active repository; `clew propose`
+      remains. `clew://wiki/{slug}/llms.txt` and `clew://wiki/{slug}/flow/{name}` read a
+      target's built wiki, confined to the site, and say so — never empty — when the wiki is not
+      built, the slug is unknown or the file is missing. No served text points at a retired
+      tool or action.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/mcp_server/server.py, wikihub.py, descriptions/; clew/query_command.py, cull_command.py, cli.py; tests/test_surface_2_0.py.
+  REQ-DDB-WIKI-035:
+    subsystem: wiki
+    name: A test runs traced and is overlaid on the flow the index expected
+    acceptance_criteria: >-
+      `clew wiki trace-run --test <node id> --out <file>` runs one pytest test in a subprocess
+      (parallel runners off) under a tracer recording every call between functions of the
+      repository's own files as an OTLP-JSON span — parent as called, file, line, function,
+      argument and return reprs (cut at 2,000 characters with the cut stated);
+      comprehension, generator-expression and lambda frames are transparent — and prints the
+      run: passed, the assertion checkpoints the test executed (line, statement, passed or
+      failed), the failure point (an `exception` event on the test's span with the assertion's
+      line and message), spans dropped past the cap, and, when an index exists, the overlay:
+      each step of the index's flow for that test CONFIRMED or NOT EXECUTED, and the observed
+      calls the flow did not predict as DISCOVERED. The hub runs the same on
+      `/api/<slug>/trace?test=` only with `CLEW_WIKI_RUN=1` (403 otherwise); a test flow's page
+      names its node id, and the hub's live script offers the traced run, dimming steps that
+      did not run and listing checkpoints, discovered calls and the failure.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/tracerun.py, _traceplugin.py, command.py, flowpage.py; clew/mcp_server/wikihub.py; docs/SECURITY.md; tests/test_wiki_tracerun.py.
+  REQ-DDB-WIKI-036:
+    subsystem: wiki
+    name: OpenTelemetry traces from any language's test run are drawn over their test flows
+    acceptance_criteria: >-
+      `wiki.tests.traces` names OTLP JSON files (globs). Each trace is matched by its root span's
+      name to the flow whose entry is that test; the flow's page carries a static overlay — each
+      predicted step styled confirmed or dimmed as not executed, the calls the trace made that
+      the flow did not predict listed as discovered, and the first failing span's exception (span,
+      line, message) — so a published site shows it without a server. A trace whose root matches
+      no flow is listed on the Flows page with its file and root, never dropped; an unreadable file
+      is skipped with a warning.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/tracerun.py, flowpage.py, build.py, config.py; tests/test_wiki_tracerun.py.
+  REQ-DDB-WIKI-037:
+    subsystem: wiki
+    name: One click into the wiki — the live hub when it runs, else a built static site
+    acceptance_criteria: >-
+      `clew wiki open` opens the running wiki hub's page for the repository when the state
+      root's `wiki.json` names a live process, ignoring a record left by a dead one; otherwise
+      it brings the index current, builds the static site beside the index (where the hub keeps
+      it) and opens it as a file. It always prints the URL it opened and opens nothing with
+      `--no-browser`. The plugin ships `/wiki`, running that verb through uv at the plugin's
+      pinned release with the wiki extra, and its manifest names the 2.0.0 surface (three tools,
+      a prompt, the wiki as resources).
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/open_command.py, command.py; commands/wiki.md; .claude-plugin/plugin.json; tests/test_wiki_open.py.
+  REQ-DDB-WIKI-038:
+    subsystem: wiki
+    name: The wiki as Markdown pages for GitHub and Azure DevOps wikis
+    acceptance_criteria: >-
+      `clew wiki build --format markdown --flavor github|ado --out DIR` writes, without Sphinx and
+      without HTML, a Home page (counts, links, and a statement that the map, lenses and
+      call graphs are the HTML site's), Requirements (per group: id, title unless requirement
+      text is excluded, tier, implementers, test count, open issues), Flows (by role) with one
+      page per flow — its sequence diagram in Mermaid and its steps by name and call site, no
+      call text or body — and Change impact when a report exists. GitHub pages fence
+      ```mermaid, link pages without an extension and get `_Sidebar.md`; Azure DevOps pages take
+      `::: mermaid` blocks, link `./Page.md` and get `.order`. An unknown flavour is refused by
+      name.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/markdown.py, command.py; tests/test_wiki_markdown.py.
+  REQ-DDB-WIKI-039:
+    subsystem: wiki
+    name: CI builds and hosts the wiki — a GitHub composite action and an Azure Pipelines template
+    acceptance_criteria: >-
+      `.github/actions/wiki` is a composite action that installs `clew-trace[wiki]` at this
+      release (its `version` input defaults to the pyproject version), installs doxygen, indexes
+      the checkout and builds the wiki — HTML (optionally version-keyed) or Markdown in a named
+      flavour, with an optional config file and audience — and outputs the built directory,
+      deploying nothing itself. `templates/azure-pipelines-wiki.yml` builds the ADO-flavoured
+      Markdown at this release and pushes it to a code wiki repository and branch with the job's
+      own token, passed as an HTTP extra header and never in a URL. Every action used by this
+      repository's workflows and its composite action is pinned by commit SHA.
+    x-priority: P1
+    x-status: configuration
+    x-evidence: .github/actions/wiki/action.yml; templates/azure-pipelines-wiki.yml; tests/test_hosting.py.
+  REQ-DDB-WIKI-040:
+    subsystem: wiki
+    name: The composite requirement tree across pinned dependencies
+    acceptance_criteria: 'This repository''s catalogue is the root; each `wiki.catalogs` dependency is
+      read at its pin, and transitively each dependency''s own `wiki.catalogs` and pinned
+      `impact.requirements.external` from its `.clew.yaml` at that pin. Ids are namespaced
+      `<catalog>:<id>`; a requirement''s `satisfies` links it under what it serves. A dependency''s
+      implementers and tests are read from its index ONLY when its checkout is at the pin, clean,
+      and its index current; otherwise the row is unknown with the reason and a link to the local
+      checkout, or absent with no index, and carries no evidence fields. Dangling links, a
+      repository pinned at two revisions, and requirements the root''s tree does not reach are
+      reported; a repository cycle terminates.'
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/composite.py compose / probe_index; tests/test_wiki_composite.py.
+  REQ-DDB-WIKI-041:
+    subsystem: wiki
+    name: A test is drawn as the slice of a master flow it exercises
+    acceptance_criteria: 'A test has no sequence diagram of its own. From per-test coverage (coverage.py
+      contexts, or an LCOV tracefile with one `TN:` section per test, produced by the repository), a
+      master-flow step is exercised by a test when its call-site line ran in that test; the test
+      enters the flow at a function whose calls it ran while no exercised step called it. The
+      test''s page draws each master flow it touches with its exercised steps, its entry and the
+      rest dimmed; without per-test coverage the slice is static reach, labelled inferred.'
+    x-priority: P1
+    x-status: planned
+    x-evidence: clew/wiki/slices.py slice_of / lines_per_test; tests/test_wiki_slices.py.
+  REQ-DDB-WIKI-042:
+    subsystem: wiki
+    name: An opt-in EARS badge, never a gate
+    acceptance_criteria: 'With `wiki.check.ears: true`, each requirement page shows the EARS pattern
+      its statement (acceptance text, else title) follows (ubiquitous, event-driven, state-driven,
+      unwanted, optional, complex), or "not EARS"; and `clew wiki check` prints a note for each
+      requirement in no pattern, with its full statement, without changing its exit code. Off by
+      default: EARS is a writing style a repository chooses.'
+    x-priority: P2
+    x-status: implemented
+    x-evidence: clew/wiki/ears.py; tests/test_wiki_ears.py.
+  REQ-DDB-WIKI-043:
+    subsystem: wiki
+    name: A test's checks are pinned by syntax tree to the function each observes
+    acceptance_criteria: 'Each assertion in a test body is pinned, by a parser and never by regex,
+      to one of the functions the test calls: direct (the call is inside the assertion), via a
+      variable (the assertion reads a name assigned from that call earlier in the body), or not
+      attributed. Python is read with `ast`, C and C++ with tree-sitter over the common assertion
+      macros; another language pins nothing and its checks are listed unpinned.'
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/checkpins.py; tests/test_wiki_checkpins.py.
+  REQ-DDB-WIKI-044:
+    subsystem: wiki
+    name: A test page says how the product reaches what it tests, or that it does not
+    acceptance_criteria: 'For each function a test calls, the test page shows the shortest path a
+      product flow takes from its entry to it, along that flow''s drawn steps, linked to the flow;
+      tooling, thread and test flows do not count as the product. When no product flow reaches any
+      of them, the page says so in words rather than leaving the section out.'
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/testpages.py _context / _shortest; tests/test_wiki_checkpins.py, tests/test_wiki_site.py.
+  REQ-DDB-WIKI-045:
+    subsystem: wiki
+    name: Each function has an activity diagram, lit by the test that links to it
+    acceptance_criteria: 'A function''s page carries its activity diagram, drawn once as static SVG
+      from its parsed body (Python `ast`, C/C++ tree-sitter): statements as boxes, conditions and
+      loops as diamonds with branches indented and loop back edges, exits as terminals, each step
+      carrying its absolute line range. A test''s call-flow box links to it with the lines that test
+      executed, which the page lights. Withheld with the body under `exclude_bodies`.'
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/activity.py; clew/wiki/symbols.py _activity; tests/test_wiki_activity.py.
+  REQ-DDB-WIKI-046:
+    subsystem: wiki
+    name: An Architecture tab at C4's four levels, derived from the index
+    acceptance_criteria: 'The Architecture page draws L1 Context (the repository as one system,
+      actors from its entry kinds, vendor areas as external systems), L2 Containers (each
+      separately runnable entry point, said to be derived from entry points), L3 Components (the
+      map''s first-party blocks and their call links, declared and inferred drawn distinct) and L4
+      Code (links to the map and symbol pages). What the index cannot show (data stores,
+      deployment units, link protocols) is named as missing, never drawn.'
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/architecture.py; tests/test_wiki_architecture.py.
+  REQ-DDB-WIKI-047:
+    subsystem: wiki
+    name: Sequence diagrams have block lanes and an actor lane
+    acceptance_criteria: 'A flow''s lanes are, by default, the map''s blocks (the build graph''s file
+      to block mapping, the same blocks the map and the Architecture tab draw); a file no block
+      holds keeps its own path. A flow names who starts it — a test flow the test runner, a thread
+      entry its thread, a console script a command-line user, a discovered main a program
+      launcher, a declared flow its caller — and the diagram draws that actor as the first lane
+      with an arrow into the entry. The actor is carried on the flow, never as a synthetic step.'
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/flow.py; clew/wiki/svg.py; clew/wiki/build.py _actor_of; tests/test_wiki_flow.py.
+  REQ-DDB-WIKI-049:
+    subsystem: wiki
+    name: A replayed run shows each step's recorded values
+    acceptance_criteria: 'On a test flow with a recorded run, each predicted step the run confirmed
+      carries the values that call was made with and returned, paired in order within each
+      (caller, callee) so a repeated call gets its own values; a step the run never made carries
+      none. The step''s dialog shows them, so stepping the replay steps through the values.
+      Withheld with the bodies under `exclude_bodies`.'
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/tracerun.py _step_values; clew/wiki/flowpage.py with_values; tests/test_wiki_tracerun.py.
+  REQ-DDB-WIKI-050:
+    subsystem: wiki
+    name: A flow page's diagram and step table stay in sync
+    acceptance_criteria: 'Each row of a flow page''s step table names its step. As the diagram
+      plays (each step''s animation start), steps, or opens a step''s dialog, the matching rows
+      are highlighted and scrolled into view; clicking a row opens that step''s dialog on the
+      diagram. A folded run lights every row it stands for.'
+    x-priority: P2
+    x-status: implemented
+    x-evidence: clew/wiki/flowpage.py (step table row marks, page script sync); tests/test_wiki_site.py.
+  REQ-DDB-WIKI-051:
+    subsystem: wiki
+    name: The SBOM page renders the repository's own SBOM beside its files' licences
+    acceptance_criteria: 'The SBOM page reads the repository''s SBOM files (SPDX 2.3 JSON, or
+      CycloneDX JSON; `wiki.sbom.files`, by default `sbom.spdx.json` and `bom.cdx.json` at the
+      root) and shows the package licence and a component table (name, version, licence, kind,
+      source, digest), flagging NOASSERTION, and a licence not on the accepted list
+      (`wiki.sbom.accepted`, else `docs/sbom.toml`''s `accepted`; with neither nothing is called
+      unaccepted). It never writes or edits an SBOM. Beside it, the index''s per-file SPDX
+      identifiers: counts by licence and how many indexed files carry none.'
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/sbom.py; tests/test_wiki_sbom.py.
+  REQ-DDB-WIKI-052:
+    subsystem: wiki
+    name: Tests are their own category, searched on the Tests tab
+    acceptance_criteria: 'The Tests tab lists every test the index recognises, linked or not, with
+      its file, result and how many requirements it is linked to (implicit links included), each
+      linked to its page when it has one, with a filter box. `wiki.test_pages` chooses which tests
+      get a page: `linked` (default; those the requirement evidence names), `all`, or `none`;
+      any other value is refused by name. Test pages and the Tests table are kept out of the main
+      site search.'
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/testpages.py tests_index; clew/wiki/_sphinxsymbols.py; tests/test_wiki_site.py.
+  REQ-DDB-WIKI-053:
+    subsystem: wiki
+    name: A public-API reference, one page per declared public header
+    acceptance_criteria: 'With `wiki.api` declaring public-header globs, the API tab lists those
+      headers, and each header''s page shows, from the index, its public functions with
+      signatures, enumerations with their values, typedefs (a function-pointer typedef marked a
+      hook point), macros with values, variables, and classes / structs with their public
+      members. Private and protected members and `\internal`-documented symbols are excluded;
+      a public `@utility` function is still public API. Without `wiki.api` there is no API tab.'
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/apiref.py; tests/test_wiki_apiref.py.
+  REQ-DDB-WIKI-048:
+    subsystem: wiki
+    name: Every function on a flow has a quick-view modal with the view strip
+    acceptance_criteria: 'A flow page carries, per function on it, a quick-view trigger and modal
+      with the view strip Map, Block, Flow, Replay, Source, Tests, Reqs: each view a small inline
+      summary (lists capped, with "N more on its page") linking the full view; an empty view says
+      so. Without script every view is shown, stacked; `clew-views.js`, a second budgeted script
+      loaded only by pages with quick views, makes them tabs.'
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/wiki/entities.py; clew/wiki/themes/clew/static/clew-views.js; tests/test_wiki_entities.py.
   REQ-DDB-SCHEMA-013:
     subsystem: schema
     name: Kconfig structure tables, created independently of the gating table
@@ -510,6 +1278,90 @@ requirements:
     x-evidence: clew/doxygen.py _DOXYFILE_FORCED_FLAGS, applied by _build_doxyfile_content and
       exposed for cache hashing by doxyfile_content_for; consumed by run_doxygen. EXTRACT_ANON_NSPACES
       is forced too. cli.py --extra-input/--extra-exclude.
+  REQ-DDB-INDEX-006:
+    subsystem: index
+    name: A one-file save refreshes in place in under a second, and says what it left behind
+    acceptance_criteria: >-
+      After an edit that keeps the set of definitions in a file, `clew refresh` and
+      the MCP auto-refresh update the symbol positions of that file and text layers in place, in one
+      transaction, without a whole-index rebuild; the whole-index layers it did not recompute are
+      recorded in build_meta `fast.*` and served on every reply as the `derived` staleness axis
+      until a full build — which the server runs on its next background tick — replaces the
+      index. A changed definition set, a configuration input, more than four files or no change
+      at all refuses the fast tier and builds in full. A fast refresh followed by a full build
+      produces exactly the index a full build alone produces.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/fasttier.py, clew/fasttier_layers.py, clew/refresh_command.py,
+      mcp_server/server.py _refresh_stale/_try_fast/_derived_pending, mcp_server/freshness.py
+      AXIS_DERIVED. tests/test_fast_tier.py (incl. fast + full == full by whole_db_diff),
+      tests/test_derived_axis.py. Measured with scripts/refresh_bench.py --fast (median of 3
+      one-comment edits, 2026-11-13), with outgoing AST call edges and code text refreshed
+      in place — self 423 ms, mbedtls 355 ms, entropic 107 ms, mattermost-mobile 579 ms
+      in-process; 293-924 ms wall including interpreter start.
+  REQ-DDB-INDEX-007:
+    subsystem: index
+    name: Who owns a file is read from the repository's own CODEOWNERS and MAINTAINERS
+    acceptance_criteria: >-
+      A build records, per indexed file, the owners its CODEOWNERS gives it (the last matching
+      gitignore-style rule, every owner on it) and the maintainers and reviewers of every
+      MAINTAINERS stanza that covers it (F: patterns, X: exclusions, N: regexes), with the source,
+      the rule's line and the stanza title. The files are found at their conventional locations
+      or where `owners:` names them; a declared file that does not exist is said and replaced by
+      nothing. The `owners` table exists, empty, when the repository keeps neither file.
+    x-priority: P2
+    x-status: implemented
+    x-evidence: clew/owners.py; tests/test_owners.py.
+  REQ-DDB-INDEX-008:
+    subsystem: index
+    name: Each file's declared licence is its SPDX-License-Identifier header, recorded as written
+    acceptance_criteria: >-
+      A build records, per indexed file, the SPDX expression its header declares (the
+      `SPDX-License-Identifier:` tag in the first 30 lines, in any comment style) and the line it
+      is on. No licence is inferred from anything else. The `file_licenses` table exists, empty,
+      when no file declares one, and the fast tier rewrites an edited file's row in place.
+    x-priority: P2
+    x-status: implemented
+    x-evidence: clew/licenses.py; tests/test_file_licenses.py.
+  REQ-DDB-INDEX-010:
+    subsystem: index
+    name: every C/C++ include directive is recorded from the parse
+    acceptance_criteria: >-
+      A build records each `#include "x"` and `#include <x>` of an indexed file in an
+      `ast_includes` table with its spec, line and quoting, resolved to an indexed file that
+      exists — beside the includer first for a quoted spec, else the one such path ending in the
+      spec — and with no target when none or several match; a path doxygen recorded for an include
+      it could not find is never a target. A `#include MACRO` is skipped. The table exists, empty,
+      in a tree without includes; doxygen's `includes` table is untouched; the fast tier rewrites an
+      edited file's rows, equal to a full build's.
+    x-priority: P2
+    x-status: implemented
+    x-evidence: clew/ast_includes.py; tests/test_ast_includes.py; tests/test_file_includes.py.
+  REQ-DDB-INDEX-011:
+    subsystem: index
+    name: every JS/TS property key is recorded with the symbol that holds it
+    acceptance_criteria: >-
+      A build records each object-literal key (`key: v`, `{key}`) and each assigned member property
+      (`x.key = v`) in an indexed JS/TS file in a `property_keys` table with its line and its
+      holder, the nearest enclosing function, method, variable or class field. A function dossier
+      lists, for each key its body writes, the other holders outside test files, omitting a key
+      with more than five such holders. The table exists, empty, in a tree without JS/TS.
+    x-priority: P2
+    x-status: implemented
+    x-evidence: clew/property_keys.py; clew/query/keysites.py; tests/test_same_key_sites.py.
+  REQ-DDB-INDEX-009:
+    subsystem: index
+    name: kernel-doc comments are read into their own layer, beside doxygen's
+    acceptance_criteria: >-
+      A build records each kernel-doc block of an indexed C file (an identification line
+      `name() - summary`, `struct|union|enum|typedef name - summary` or `DOC: title`) with its
+      parameters (`@name:` with continuation lines), `Context:`, `Return:` and free description,
+      in a `kerneldoc` table — never in doxygen's rows. A block using a doxygen command is not
+      kernel-doc. The table exists, empty, in a tree without kernel-doc; the fast tier rewrites
+      an edited file's rows. The gate's rules are unchanged (index only).
+    x-priority: P2
+    x-status: implemented
+    x-evidence: clew/kerneldoc.py; tests/test_kerneldoc.py.
   REQ-DDB-INDEX-002:
     subsystem: pipeline
     name: Incremental/partial re-index for cheap refreshes
@@ -967,6 +1819,19 @@ requirements:
     x-evidence: clew/shared_key_edges.py import_shared_key_edges_inferred/import_shared_key_edges_declared,
       patterns resolved by resolve_shared_key_patterns/load_shared_key_patterns; CLAUDE.md queue-dataflow
       ground truth
+  REQ-DDB-SCHEMA-015:
+    subsystem: schema
+    name: Requirement-to-requirement links (satisfies)
+    acceptance_criteria: 'A catalogue entry''s `satisfies` (a list, one id, or a comma-separated
+      cell) is recorded one row per link in `requirement_links`, created on every build even with no
+      catalogue. A requirement''s dossier carries `satisfies` and `satisfied_by`, both [] on a
+      current index with no links and both ABSENT on an index built before the table existed. The
+      gate refuses a satisfies id that no local or external catalogue holds; `<catalog>:<id>`
+      resolves by its id.'
+    x-priority: P1
+    x-status: implemented
+    x-evidence: 'clew/requirements.py satisfies_ids / _record_links; clew/query/symbols.py
+      req_trace; clew/guard/checks.py check_satisfies. tests/test_requirement_links.py.'
   REQ-DDB-SCHEMA-006:
     subsystem: schema
     name: Requirement traceability edges (@req + test coverage)
@@ -1096,7 +1961,7 @@ requirements:
   REQ-DDB-GUARD-004:
     subsystem: guard
     name: Req coverage enforcement
-    acceptance_criteria: Functions without req or an exemption tag (utility/dg_internal/callback) produce
+    acceptance_criteria: Functions without req or an exemption tag (utility/callback) produce
       coverage violations
     x-priority: P1
     x-status: implemented
@@ -1295,6 +2160,33 @@ requirements:
       _is_rust_test_item, parser.py apply_autobrief, checks.py _require_return /
       _is_rust_unit_fn / _RUST_FILE_DOC_STARTS, config.py OPT_IN_LANGUAGE_DEFAULTS.
       tests/guard/test_guard_rust.py.'
+  REQ-DDB-GUARD-026:
+    subsystem: guard
+    name: Functions crossing a bus carry a bus tag, scoped by a configured vocabulary
+    acceptance_criteria: >-
+      With `validate.bus` declared, a documented function whose name matches a `handlers` glob or
+      whose body calls a `senders` name must carry one of the bus tags (`tags`, default emits /
+      handles / receives) or an exemption (@callback, @utility); a sender itself is
+      not in scope. A bus tag whose first word is not in `vocabulary` is a violation. Configured
+      bus tags are known tags. Without `validate.bus` nothing is checked.
+    x-priority: P1
+    x-status: implemented
+    x-evidence: clew/guard/checks.py check_bus_tags; tests/guard/test_guard_bus.py.
+  REQ-DDB-GUARD-027:
+    subsystem: guard
+    name: External requirements catalogues, and no @req passes unchecked
+    acceptance_criteria: 'impact.requirements.external names catalogues this repository does not
+      own, each a local path or {repo, rev, path} read with git show at that revision from a local
+      checkout; their ids join the local catalogue for cross_reference, and `file` is optional
+      beside them. A URL source is refused naming it. An unreadable or empty external catalogue is
+      an error, never an empty set. With cross_reference on and no catalogue at all, each @req tag
+      is a violation saying it cannot be checked. The wiki''s pinned sub-catalogues are read through
+      the same reader.'
+    x-priority: P1
+    x-status: implemented
+    x-evidence: 'clew/requirements.py read_catalog_at / git_text; clew/guard/impact.py
+      load_external_requirements; clew/guard/checks.py check_req_exists / _uncheckable.
+      tests/guard/test_guard_external_catalogs.py.'
   REQ-DDB-GUARD-025:
     subsystem: guard
     name: JavaScript and TypeScript (JSDoc) functions are gated when a repo declares them

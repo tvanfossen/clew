@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 32216,
+  "stop_reason": "end_turn",
+  "session_id": "270b7193-32bb-4e04-94c3-efd6e982e971",
+  "total_cost_usd": 0.010858109999999999,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 24698,
+    "cache_read_input_tokens": 267931,
+    "output_tokens": 6476,
+    "output_tokens_details": {
+      "thinking_tokens": 2553
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 24698,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3446,
+        "cache_read_input_tokens": 57180,
+        "cache_creation_input_tokens": 1902,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1902
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 6476,
+      "cacheReadInputTokens": 267931,
+      "cacheCreationInputTokens": 24698,
+      "webSearchRequests": 0,
+      "costUSD": 0.010858109999999999,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2553,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 24698,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 10,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "## Short answer\n\nMbed TLS never calls `calloc`/`free` directly in its own code. Every allocation goes through `mbedtls_calloc()`, and every release goes through `mbedtls_free()`. What those names resolve to depends on the build configuration:\n\n| Configuration | `mbedtls_calloc` / `mbedtls_free` become |\n|---|---|\n| `MBEDTLS_PLATFORM_MEMORY` off (default) | Macros for libc `calloc` / `free` (`include/mbedtls/platform.h:166-167`) |\n| `MBEDTLS_PLATFORM_MEMORY` on, no macros | Real functions in `library/platform.c:47-54` that forward through two function pointers, `mbedtls_calloc_func` and `mbedtls_free_func`. They start as `MBEDTLS_PLATFORM_STD_CALLOC` / `_FREE`, which default to libc `calloc` / `free` (`platform.h:83-88`). |\n| `MBEDTLS_PLATFORM_MEMORY` plus both `MBEDTLS_PLATFORM_CALLOC_MACRO` and `MBEDTLS_PLATFORM_FREE_MACRO` | Macros pointing at your functions. The `platform.c` wrappers are compiled out (`platform.c:20-22`). |\n\nThe default case is the one most people hit: `mbedtls_calloc` is a macro for `calloc`.\n\n## How a project substitutes its allocator\n\n**Option A: compile time (no runtime indirection).** Define in `mbedtls_config.h` or on the compiler command line:\n\n```\nMBEDTLS_PLATFORM_MEMORY\nMBEDTLS_PLATFORM_CALLOC_MACRO = my_calloc\nMBEDTLS_PLATFORM_FREE_MACRO   = my_free\n```\n\n`check_config.h:558-573` requires the two macros to be defined together. Your `my_calloc` and `my_free` must be declared where `platform.h` can see them, typically through `MBEDTLS_PLATFORM_STD_MEM_HDR` or a config-included header.\n\n**Option B: runtime.** Define only `MBEDTLS_PLATFORM_MEMORY`, then call this before any Mbed TLS allocation:\n\n```c\nmbedtls_platform_set_calloc_free(my_calloc, my_free);   /* always returns 0 */\n```\n\nThe setter (`platform.c:57-62`) just assigns the two globals. It does no validation and is not synchronized.\n\n**Option C: change the default target.** Define `MBEDTLS_PLATFORM_STD_CALLOC` and `MBEDTLS_PLATFORM_STD_FREE` (`mbedtls_config.h:4113-4124`) to point at a different default. With `MBEDTLS_PLATFORM_NO_STD_FUNCTIONS`, the default is an uninitialized stub that always returns NULL.\n\n## What the library requires of your allocator\n\n- **`calloc` must zero the memory.** The config docs say so explicitly.\n- **It may return NULL, and callers check for it.** Examples: `cmac.c:186`, `bignum_mod_raw.c:237`, `pem.c:422`, `ssl_cache.c:186`.\n- **`free` is called unconditionally, including on NULL.** `mbedtls_zeroize_and_free()` (`platform_util.c:139-146`) only guards the zeroize step with a NULL check, then calls `mbedtls_free(buf)` regardless. Your free must accept NULL.\n- **Secrets are zeroed before they are freed.** `mbedtls_zeroize_and_free` calls `mbedtls_platform_zeroize` first, so your `free` receives already-cleared memory. Key material and similar secrets are released this way.\n\n## What the library does with the facility\n\n- **Built-in allocator.** `MBEDTLS_MEMORY_BUFFER_ALLOC_C` (`library/memory_buffer_alloc.c`) is itself a client of this mechanism. `mbedtls_memory_buffer_alloc_init(buf, len)` carves a static caller-supplied buffer into a free-list heap and calls `mbedtls_platform_set_calloc_free` on its own functions (`memory_buffer_alloc.c:572-575`). The threaded variant wraps them in a mutex. Consequences:\n  - Calling it silently overrides any allocator you set earlier.\n  - The heap is a single process-wide static, so it is one heap per process.\n- **Direct libc calls.** In `library/*.c`, the only raw `free()` I found is at `memory_buffer_alloc.c:404`, in the `MBEDTLS_MEMORY_BACKTRACE` path. I did not trace how that trace buffer is allocated. Other `calloc`/`free` mentions are comments.\n\n## Caveats\n\n- The runtime setter is a plain global write. Call it before any threads start, or before the first Mbed TLS call.\n- Mixing allocators is unsafe: memory from `calloc` must not be passed to your `free`, and the reverse is also true. Objects allocated before a runtime switch will be freed by the new function.\n- A NULL pointer passed to the setter is not checked. The first allocation would call through NULL.\n\nI didn't build or run anything. This comes from reading the source, and I searched only `library/*.c` and the headers for direct libc calls.\n\nOne tool note: a PostToolUse hook suggested calling a `dossier` tool. It isn't in this session's tool set, so I ignored it and worked from the source directly.",
+  "ttft_ms": 1733,
+  "type": "result",
+  "duration_ms": 33422,
+  "uuid": "cb2d9093-bd98-4a86-a7a1-eb69745d8cc4",
+  "ttft_stream_ms": 1300,
+  "time_to_request_ms": 248,
+  "first_content_frame_ms": 1300,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

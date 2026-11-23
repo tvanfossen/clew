@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_THREADING_C` defaults to off (`include/mbedtls/mbedtls_config.h:3787`). `MBEDTLS_THREADING_PTHREAD` and `MBEDTLS_THREADING_ALT` also default to off.\nVERDICT: MISS\nWHY: The answer says the threading macros default to off, but it never says the shipped mbedtls_config.h leaves them undefined, so a default build defines neither. It also names a different pair of macros (THREADING_PTHREAD and THREADING_ALT alongside THREADING_C), and it says it could not confirm the shipped default from the index."
+}

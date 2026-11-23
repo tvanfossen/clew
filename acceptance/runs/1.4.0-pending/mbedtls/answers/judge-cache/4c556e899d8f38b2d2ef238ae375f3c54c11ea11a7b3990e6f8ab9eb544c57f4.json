@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: In the module's public header, add `#define MBEDTLS_ERR_<MOD>_<NAME> -0x<value>` with a single doxygen description on the line before or after. ... Regenerate with `make -C library error.c` or the CMake target, or run `scripts/generate_errors.pl` from the repo root.\nVERDICT: HIT\nWHY: The answer says to add a doxygen-documented #define to the public header and regenerate, and states error.c is generated and shouldn't be hand-edited."
+}

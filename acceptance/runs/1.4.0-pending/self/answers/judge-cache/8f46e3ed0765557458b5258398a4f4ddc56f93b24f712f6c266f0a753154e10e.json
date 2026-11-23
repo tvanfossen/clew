@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Declaring an `index_scope:` is the only thing that narrows the walk to chosen roots. ... `.clew.yaml` ... \"absent / unusable \u25bc whole_repo_scope(root)\"\nVERDICT: HIT\nWHY: The answer states the declared scope is preferred and that an absent or unusable declaration falls through to `whole_repo_scope`, which covers the whole repo."
+}

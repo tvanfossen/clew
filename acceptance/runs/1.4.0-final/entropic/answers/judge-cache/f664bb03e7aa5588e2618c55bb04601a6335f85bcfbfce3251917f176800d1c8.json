@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: a git submodule at `extern/llama.cpp`, pinned to b8420 per the comment in `extern/CMakeLists.txt`. The root build does not use `find_package` or FetchContent for it.\nVERDICT: HIT\nWHY: The answer states llama.cpp is a git submodule at extern/llama.cpp and explicitly rules out FetchContent/find_package."
+}

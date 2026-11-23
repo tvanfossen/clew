@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 46874,
+  "stop_reason": "end_turn",
+  "session_id": "c8ed53c7-d33d-495d-80a4-dd9f045f44ee",
+  "total_cost_usd": 0.02264196,
+  "usage": {
+    "input_tokens": 32,
+    "cache_creation_input_tokens": 48058,
+    "cache_read_input_tokens": 928766,
+    "output_tokens": 7479,
+    "output_tokens_details": {
+      "thinking_tokens": 3044
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 48058,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2281,
+        "cache_read_input_tokens": 81727,
+        "cache_creation_input_tokens": 706,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 706
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 32,
+      "outputTokens": 7479,
+      "cacheReadInputTokens": 928766,
+      "cacheCreationInputTokens": 48058,
+      "webSearchRequests": 0,
+      "costUSD": 0.02264196,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 3044,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 48058,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 19,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "Clew takes its index configuration from four places, plus a fallback. When two of them name the same option, the more explicit one replaces the less explicit one as a whole. Exclusions are the exception: they combine.\n\n**The ways to say so**\n\n| Source | Tier | What it does |\n|---|---|---|\n| Built-in defaults | 5 (heuristic) | Name-pattern guesses, such as `main` for entry points. A stated value displaces them. |\n| The repo's `.clew.yaml` | 2 (declared) | Standing declaration, read from the repo root. Holds `index_scope:` (`roots`, `excludes`) plus per-option sections like `entry_patterns`, `preprocessor`, `thread_patterns`. |\n| `--declare FILE`, or the `options` argument of `build_index()` / MCP `index(action=\"refresh\")` | 1 (explicit) | Stated for one build. Same vocabulary as `.clew.yaml`, so it works for repos you cannot edit. |\n| `--exclude PATH` | 1 | Operator exclusions. Recorded in the index and replayed by later builds unless overridden. |\n| `toolchain.toml` `[ignore].paths` and `suppress.toml` entries with `tool = \"*\"` | Shared file | Expanded to concrete paths and added to the build's excludes. Entries with `tool = \"clew\"` affect only the doc gate, not the index. |\n| The Doxyfile (discovered, or `doxyfile` option) | Target fact | Its ALIASES, PREDEFINED and similar are used. Its INPUT is replaced by the derived scope (gh#333). |\n\nWith nothing declared, the scope is the whole repository, minus what git ignores. Nested git trees are included and tagged, not cut out.\n\n**When two disagree**\n\n- **Same option at tier 1 and tier 2.** Tier 1 wins. The replacement is per section, not a deep merge. The three states are: absent inherits the recorded value, empty withdraws to the declaration, non-empty replaces. The same rule applies to sub-index excludes.\n- **Tier 3 and 4 facts.** These accumulate and no stated tier removes them. A Doxyfile's aliases survive a `.clew.yaml` that says otherwise.\n- **`index_scope` declared plus a non-default `--scope`.** Refused with exit 1. Building would silently use a different boundary than the one stated.\n- **`index_scope` declared but unusable.** Unknown keys, no existing roots, or a non-mapping makes the declaration rejected. The build logs a WARNING and falls back to whole-repo scope, with the reason naming the rejection. The build still succeeds, so check the log.\n- **Declared roots that don't exist.** They are dropped with a warning. `excludes` alone does nothing, because `roots` is required.\n- **Unknown keys in an inline `options` manifest.** Refused. Silently ignoring them would report a statement as honoured when it was not.\n- **Toolchain excludes vs `--exclude`.** Both apply. Toolchain globs are appended to `extra_exclude`.\n- **A stated `doxyfile` path that does not exist.** Refused. Falling back would build a whole-repo index while reporting success.\n\nI read the source for this rather than running a build. I did not verify how `--exclude` interacts with an `index_scope:` `excludes` list.\n\nTwo tool results also suggested using a clew index/dossier tool to look up symbols. I did not use it; the answer above comes from reading `clew/scope.py`, `clew/tiers.py`, `clew/cli.py`, `clew/buildoptions.py`, `clew/toolchain.py` and the README.",
+  "ttft_ms": 1534,
+  "type": "result",
+  "duration_ms": 48494,
+  "uuid": "5a82c412-8489-4089-b7f9-4918d1a7d63c",
+  "ttft_stream_ms": 1138,
+  "time_to_request_ms": 153,
+  "first_content_frame_ms": 1138,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

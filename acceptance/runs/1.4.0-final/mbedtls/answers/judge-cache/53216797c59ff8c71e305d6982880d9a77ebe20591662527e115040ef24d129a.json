@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"the runtime setter is compiled out\"\nVERDICT: HIT\nWHY: The answer says that on the macro path (both macros defined) `platform.c` \"compiles out its runtime machinery\" and the runtime setter is compiled out. That matches \"not compiled\". It doesn't say \"not declared\", but it conveys the setter is absent on the macro path rather than present and ignored."
+}

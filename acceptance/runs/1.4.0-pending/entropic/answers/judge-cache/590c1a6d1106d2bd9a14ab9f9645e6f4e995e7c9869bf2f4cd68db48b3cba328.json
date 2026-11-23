@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"PermissionPersister (src/storage/permission_persister.cpp) appends patterns to permissions.allow / permissions.deny using line-based edits.\"\nVERDICT: MISS\nWHY: The answer says \"Always Allow/Deny\" persists to project YAML, but it never names config.local.yaml, and it doesn't contrast persistence with the in-memory add_permission call."
+}

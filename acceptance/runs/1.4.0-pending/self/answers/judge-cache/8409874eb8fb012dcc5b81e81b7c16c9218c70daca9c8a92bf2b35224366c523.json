@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: An empty list means the layer ran and found nothing. A missing key means the layer never ran, so clew drops `not_indexed` when it is empty instead of emitting `[]`.\nVERDICT: MISS\nWHY: The answer discusses absence vs. emptiness generally, but never says a single token matching nothing was previously treated as proof of absence."
+}

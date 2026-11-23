@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Search | `app/actions/remote/search.ts:62-73` | Sends `include_deleted_channels: true` | Sends `false`\nVERDICT: HIT\nWHY: The answer states that the search action sends `include_deleted_channels` to the server, true or false depending on the setting."
+}

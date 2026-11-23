@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer covers scope resolution and lists unindexed file types in a `not_indexed` report. It never says that a file within scope reaches the index only if something can read it. It does not name the parse-built front end for types doxygen cannot read, or binary classification of files whose extensions lie, and it admits it didn't establish which extensions the parser accepts."
+}

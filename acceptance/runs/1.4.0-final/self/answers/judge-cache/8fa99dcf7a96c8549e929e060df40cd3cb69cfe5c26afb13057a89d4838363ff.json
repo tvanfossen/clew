@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `callers()` appends shared-key writers whose values `fn` reads. Those may run asynchronously on another thread.\nVERDICT: HIT\nWHY: The answer states that the \"callers\" half includes writers whose values the function reads (key rows), i.e. the callers of a reader are the functions whose writes it observes, and that these are not true callers."
+}

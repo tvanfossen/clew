@@ -97,7 +97,7 @@ EMPTY_ROW_MEANING = (
 ## @param sql Statement returning exactly one row of one integer column.
 ## @return The integer, or 0 when the query cannot run.
 ## @version 1
-## @dg_internal
+## @utility
 def _scalar(conn: sqlite3.Connection, sql: str) -> int:
     """Fails soft to 0 for the same reason every other read on this surface degrades
     rather than raising: an aggregate over a database missing a later layer must
@@ -120,7 +120,7 @@ def _scalar(conn: sqlite3.Connection, sql: str) -> int:
 ## @param sql Statement returning (label, count) rows.
 ## @return Mapping of label to count, descending by count; {} when the query cannot run.
 ## @version 1
-## @dg_internal
+## @utility
 def _distribution(conn: sqlite3.Connection, sql: str) -> dict[str, int]:
     """A NULL label becomes the empty string rather than being dropped: a row whose
     `confidence` was never set is part of the distribution, and silently omitting it
@@ -194,7 +194,7 @@ def call_edge_counts(conn: sqlite3.Connection) -> EdgeCounts:
 ## @brief The all-zero call aggregate, carrying the empty-graph explanation.
 ## @return EdgeCounts with every count zero and `row_meaning` set to EMPTY_ROW_MEANING.
 ## @version 2
-## @dg_internal
+## @utility
 def _empty_edge_counts() -> EdgeCounts:
     """Split out so BOTH empty paths — no table, and a table with no rows — produce
     the identical payload. They are different facts about the BUILD and the layer
@@ -249,7 +249,7 @@ def layer_states(conn: sqlite3.Connection) -> tuple[LayerStat, ...]:
 ## @param key Key to read.
 ## @return The parsed count, or 0 when absent or unparseable.
 ## @version 1
-## @dg_internal
+## @utility
 def _int_figure(meta: dict[str, str], key: str) -> int:
     """`build_meta` is a TEXT table and `write_build_signature` drops falsy values, so
     every coverage figure is stored as a string — including `"0"`, deliberately, so a
@@ -271,7 +271,7 @@ def _int_figure(meta: dict[str, str], key: str) -> int:
 ## @param key Key to read.
 ## @return The parsed ratio, or 0.0 when absent or unparseable.
 ## @version 1
-## @dg_internal
+## @utility
 def _float_figure(meta: dict[str, str], key: str) -> float:
     """Split from `_int_figure` rather than parameterised by a `cast` callable, so
     neither call site can be read as returning the other's type — the ratios and the
@@ -368,7 +368,7 @@ def file_counts(conn: sqlite3.Connection, db: DbSource) -> FileCounts:
 ## @param conn Open connection.
 ## @return True when `path` has both provenance columns.
 ## @version 2
-## @dg_internal
+## @utility
 def _records_external(conn: sqlite3.Connection) -> bool:
     """BOTH columns, because the first-party predicate reads both and a half-stamped
     index would otherwise raise on the missing one. They are added by the same
@@ -386,7 +386,7 @@ def _records_external(conn: sqlite3.Connection) -> bool:
 ## @param tagged Whether the index carries the provenance columns.
 ## @return SQL predicate text, `1` on an index predating the tags.
 ## @version 2
-## @dg_internal
+## @utility
 def _first_party(tagged: bool) -> str:
     """A NULL tag counts as FIRST PARTY, and both spellings of untagged are handled:
     `IS NULL` for a row the stamping stage never reached, `= ''` for one it reached
@@ -415,7 +415,7 @@ def _first_party(tagged: bool) -> str:
 ## @param conn Open connection.
 ## @return Repo-relative external roots, sorted.
 ## @version 1
-## @dg_internal
+## @utility
 def _external_roots(conn: sqlite3.Connection) -> tuple[str, ...]:
     """@brief List the external roots present in the index.
 
@@ -434,7 +434,7 @@ def _external_roots(conn: sqlite3.Connection) -> tuple[str, ...]:
 ## @param conn Open connection.
 ## @return dg_source → row count; {} on an index predating the column.
 ## @version 2
-## @dg_internal
+## @utility
 def _symbol_provenance(conn: sqlite3.Connection) -> dict[str, int]:
     """Returns `{}` rather than `{'doxygen': N}` on an index without the column. The
     invented split would be TRUE — every row in such an index is doxygen's by

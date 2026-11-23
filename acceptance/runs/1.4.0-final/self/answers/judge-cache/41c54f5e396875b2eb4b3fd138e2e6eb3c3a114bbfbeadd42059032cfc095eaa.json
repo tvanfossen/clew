@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A `memberdef` function row for `name() {\u2026}` and `function name {\u2026}`, with line span, column, and the `#` block above as its doc. `args` is empty by design.\nVERDICT: MISS\nWHY: The answer says shell `args` is empty by design, but it never says the function has no return, and it never says the cause is that the language has neither."
+}

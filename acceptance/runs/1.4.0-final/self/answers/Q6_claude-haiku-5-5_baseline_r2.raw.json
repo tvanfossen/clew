@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 44463,
+  "stop_reason": "end_turn",
+  "session_id": "6f313c43-4207-44d2-8c05-a2625b9d0b57",
+  "total_cost_usd": 0.01754696,
+  "usage": {
+    "input_tokens": 24,
+    "cache_creation_input_tokens": 36665,
+    "cache_read_input_tokens": 647256,
+    "output_tokens": 7478,
+    "output_tokens_details": {
+      "thinking_tokens": 3128
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 36665,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2822,
+        "cache_read_input_tokens": 69912,
+        "cache_creation_input_tokens": 1178,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1178
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 24,
+      "outputTokens": 7478,
+      "cacheReadInputTokens": 647256,
+      "cacheCreationInputTokens": 36665,
+      "webSearchRequests": 0,
+      "costUSD": 0.01754696,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 3128,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 36665,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 14,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** for shell and CMake, the index holds named definitions with their `#` doc blocks. For YAML and JSON it holds only the file's existence and name. On an installation without the bash and cmake grammars, shell and CMake fall back to path-only rows with no error. The docs say the miss report names those types, but the code I read does not support that.\n\nThis is from reading the code, not from running an index build.\n\n**What the index holds, with the grammars present**\n\n| File | Rows | Source |\n|---|---|---|\n| `*.sh`, `*.bash` | `path` row, plus `memberdef` per function (`name() {}` and `function name {}`) | `clew/shast.py`, `clew/synth.py:136-175` |\n| `*.cmake`, `CMakeLists.txt` | `path` row, plus `memberdef` per `function()` (named params in `argsstring`) and per `macro()` (kind `macro definition`) | `clew/cmakeast.py`, `clew/synth.py:89-92` |\n| `*.yaml`, `*.yml`, `*.json` | `path` row only, no symbols | `clew/synth.py:71-80`, `DATA_EXTS` |\n\n- Doc text for shell and CMake comes from the `#` block immediately above a definition. A blank line detaches it, and a shebang stops the block. See `clew/synth.py` and `docs/languages/SCRIPT_INTEGRATION.md`.\n- Rows are stamped `dg_source='parse'`.\n- YAML and JSON are deliberately not harvested. Keys such as `steps:` would flood the function namespace. The design is that they are findable by name and appear in the file set.\n\n**What the index does not hold**\n\n- Anything that is not a function or macro definition in shell or CMake: top-level statements, variable assignments, `set()`, `target_link_libraries()`. I found no harvester that records these.\n- The content of YAML or JSON. I found no full-text corpus for them. The prose corpus is markdown only (`clew/synth.py:78-79`, `clew/prose.py`).\n- `.github/workflows/*.yml`. The scope walk prunes dot directories, so CI workflows are out of scope on every tier (`docs/languages/SCRIPT_INTEGRATION.md`, \"Scope note\").\n- Shell or CMake call edges. I only saw definition harvesting for these languages. I did not verify call-edge coverage, so treat it as absent until checked.\n\n**On an installation whose substrate lacks the grammars**\n\n- `clew/substrate.py` asks the installed substrate what is compiled in, rather than comparing version strings.\n- The router in `clew/harvest.py:203-225` returns no grammar for `.sh` and CMake, so no tree is parsed and no `memberdef` rows are written. Nothing raises. `tests/test_script_front_end.py:128-141` pins this.\n- `register_paths` (`clew/synth.py:~190`, called from `clew/cli.py:1911`) claims files by extension and does not check the substrate. So shell, CMake and YAML/JSON files still get `path` rows and remain in the file set. The result is a file-set entry with no symbols.\n- YAML and JSON behave identically on both installs, since they never had a grammar route.\n\n**Discrepancy: the not-indexed report**\n\n`SCRIPT_INTEGRATION.md` says a grammarless build's not-indexed report \"names those file types\". The code does not do that. `_not_indexed_scope` (`clew/cli.py:2646-2670`) lists only in-scope files that lack a `path` row. Because `register_paths` gives every such file a `path` row, a grammarless install would report nothing for `.sh` or `.cmake`. The test that looks like it covers this (`tests/test_not_indexed_report.py`) builds synthetic data without `path` rows, so it does not exercise the substrate-missing case.\n\nThe gap is that a grammarless install yields silent empty answers for shell and CMake, which the not-indexed report is meant to prevent. Either `register_paths` should skip claimed types whose grammar is absent, or `_not_indexed_scope` should also flag files that have a `path` row but no harvested rows for a grammar-backed type. A test on a substrate without `bash` and `cmake` would settle which behaviour is current.",
+  "ttft_ms": 1666,
+  "type": "result",
+  "duration_ms": 45788,
+  "uuid": "25e5a2f2-b9a9-433d-b826-5d80c0388381",
+  "ttft_stream_ms": 1070,
+  "time_to_request_ms": 137,
+  "first_content_frame_ms": 1070,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

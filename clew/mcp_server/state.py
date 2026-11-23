@@ -88,7 +88,7 @@ ROOTS_MIGRATION = f"pass the repo explicitly with {TARGET_SOURCE_FLAG} <path>"
 ## @brief The SDK's server-to-client request surface, or None when it cannot be read.
 ## @return Mapping keyed by (method, protocol version), or None.
 ## @version 2
-## @dg_internal
+## @utility
 def server_request_surface() -> Mapping[tuple[str, str], object] | None:
     """Read the SDK's own per-revision method map instead of hardcoding revisions.
 
@@ -110,7 +110,7 @@ def server_request_surface() -> Mapping[tuple[str, str], object] | None:
 ## @brief Protocol revisions the installed SDK recognises, or empty when unreadable.
 ## @return Tuple of revision strings, possibly empty.
 ## @version 2
-## @dg_internal
+## @utility
 def known_protocol_versions() -> tuple[str, ...]:
     """Empty means "this code cannot tell", which `roots_request_supported` reads as
     permission to try — never as "no revisions exist".
@@ -130,7 +130,7 @@ def known_protocol_versions() -> tuple[str, ...]:
 ## @param version Negotiated protocol revision, or None when the connection does not say.
 ## @return True when the request may be sent (including when the answer is unknown).
 ## @version 2
-## @dg_internal
+## @utility
 def roots_request_supported(version: str | None) -> bool:
     """FAILS OPEN, deliberately, on every unknown: an unstated revision, a revision the
     SDK does not recognise, and an unreadable method map all return True. A
@@ -393,7 +393,7 @@ _INDEX_NAME_MAX = 48
 ## @param name The declared name.
 ## @return The sanitised name.
 ## @version 1
-## @dg_internal
+## @utility
 def _safe_index_name(name: str) -> str:
     """REFUSES RATHER THAN SUBSTITUTES when nothing survives. A name that sanitises to empty would
     make the sub-index slug identical to the PARENT's, so a vendored sub-index would silently
@@ -449,7 +449,7 @@ class TargetRegistry:
     ## @brief Construct a registry rooted at a state directory.
     ## @param home State root (defaults to state_home()).
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def __init__(self, home: Path | None = None) -> None:
         self.home = home if home is not None else state_home()
         self.path = self.home / REGISTRY_NAME
@@ -490,7 +490,7 @@ class TargetRegistry:
     ## @param reason The error that made it unreadable.
     ## @version 1
     ## @req REQ-DDB-MCP-001
-    ## @dg_internal
+    ## @utility
     def _preserve_unreadable(self, reason: Exception) -> None:
         """Moving it aside is what stops the loss becoming permanent: `register()` calls
         `load()` and then `save()`, so an unreadable file left in place is overwritten by a
@@ -523,7 +523,7 @@ class TargetRegistry:
     ## @param kept Where the bytes should be preserved.
     ## @return A sentence describing the outcome, for the caller's log line.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def _move_aside(self, kept: Path) -> str:
         """Returns prose rather than a bool so the log line cannot overstate the outcome:
         every branch here is a DIFFERENT fact for whoever reads it — already safe, newly
@@ -733,7 +733,7 @@ class TargetRegistry:
     ## @param key The entry to remove.
     ## @return None.
     ## @version 2
-    ## @dg_internal
+    ## @utility
     def _discard(self, data: dict[str, dict[str, str]], key: str) -> None:
         """SHARED BY BOTH REMOVERS so a directory-deleting rule lives once. The containment
         check is the load-bearing half: `db_path` comes off disk and a record naming a path
@@ -819,7 +819,7 @@ class TargetRegistry:
 ## @param repo_root Working tree the indexed paths are relative to.
 ## @return (number of files newer than the db, the newest such path or None).
 ## @version 3
-## @dg_internal
+## @utility
 def _source_drift(db: Path, repo_root: Path) -> tuple[int, str | None]:
     """Stat every indexed source file against the database's own mtime.
 
@@ -947,7 +947,7 @@ _SCOPE_STRING_CAP = 400
 ## @param meta The scope section exactly as the build recorded it.
 ## @return The same mapping with any oversized string trimmed and counted.
 ## @version 1
-## @dg_internal
+## @utility
 def _bounded_scope_meta(meta: dict[str, str]) -> dict[str, str]:
     """gh#37. `status.scope.excludes` CARRIED THE WHOLE RESOLVED EXCLUDE LIST — ~390 entries,
     dominated by `.github` and `.drone` paths inside a vendored boost — and the same list
@@ -1132,7 +1132,8 @@ def _data_model_meta(db: Path) -> dict[str, str]:
 ## @brief Freshness/identity report for one target's database.
 ## @param target Target to inspect.
 ## @return Dict with existence, stamped/expected build version, source drift, staleness, age, scope, coverage, refresh cost, layered-option tiers, the options an operator stated, build diagnostics, the declared data model, code identity and interpreted notices.
-## @version 12
+## v13 (1.3.5): reports a pending fast in-place refresh (`fast`) and counts it as stale.
+## @version 13
 ## @req REQ-DDB-MCP-001
 ## @req REQ-DDB-MCP-004
 ## @req REQ-DDB-CONFIG-006
@@ -1182,6 +1183,11 @@ def db_status(target: Target) -> dict[str, object]:
     stamped = read_build_signature(db) if exists else None
     age_days = round((time.time() - db.stat().st_mtime) / 86400.0, 3) if exists else None
     changed, newest = _source_drift(db, Path(target.repo_path)) if exists else (0, None)
+    ## A FAST IN-PLACE REFRESH STILL PENDING ITS FULL REFRESH (1.3.5). It counts as stale: the
+    ## in-place write moved the database's mtime past the edit, so without this the index would
+    ## read as current on every axis and the follow-up full build would skip itself.
+    fast = _meta_section(db, "fast") if exists else {}
+    fast_pending = fast.get("pending") == "1"
     status: dict[str, object] = {
         "repo_path": target.repo_path,
         "db_path": target.db_path,
@@ -1194,7 +1200,7 @@ def db_status(target: Target) -> dict[str, object]:
         "expected_build_version": CLEW_BUILD_VERSION,
         "source_changed_files": changed,
         "newest_changed_source": newest,
-        "stale": (not exists) or stamped != CLEW_BUILD_VERSION or changed > 0,
+        "stale": (not exists) or stamped != CLEW_BUILD_VERSION or changed > 0 or fast_pending,
         "age_days": age_days,
         ## WHY this file set, not just what. Absent on an index built before build 16, which
         ## is the honest signal — "not recorded" rather than a fabricated default.
@@ -1218,6 +1224,9 @@ def db_status(target: Target) -> dict[str, object]:
         ## only section about absent rows, and the one that makes an empty causal layer
         ## distinguishable from a repo that has no dataflow (gh#320).
         **({"diagnostics": _diagnostics_meta(db)} if exists else {}),
+        ## WHICH FILES A FAST REFRESH UPDATED IN PLACE and which layers it left behind. Absent
+        ## unless one is pending, so a current index carries nothing.
+        **({"fast": fast} if fast_pending else {}),
         ## WHICH GENERATED DATA MODEL the repository declares, how much of it the code was
         ## observed to touch, and every manifest the discovery declined and why (gh#351).
         ## Absent before build 37. Empty-but-present for the many repositories that have no

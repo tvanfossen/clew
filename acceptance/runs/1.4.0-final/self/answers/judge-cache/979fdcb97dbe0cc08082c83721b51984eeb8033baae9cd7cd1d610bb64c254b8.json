@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: | 1 | CLI flags ... | 2 | `.clew.yaml` ... | 3 | Facts the target already states ... | 4 | Known-ecosystem signatures ... | 5 | Built-in name-shape guesses | The floor. Any stated value replaces them.\nVERDICT: HIT\nWHY: The answer lays out five numbered precedence tiers (flags/declaration, .clew.yaml, target facts, ecosystem signatures, built-in guesses) rather than a single override, though it opens by saying \"three layers.\""
+}

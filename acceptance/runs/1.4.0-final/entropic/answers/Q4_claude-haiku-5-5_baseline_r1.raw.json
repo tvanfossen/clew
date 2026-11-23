@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 29459,
+  "stop_reason": "end_turn",
+  "session_id": "a29d2736-dd7d-4665-a8ed-0ffe6dab13c3",
+  "total_cost_usd": 0.01448191,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 45591,
+    "cache_read_input_tokens": 242251,
+    "output_tokens": 5880,
+    "output_tokens_details": {
+      "thinking_tokens": 1502
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 45591,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1885,
+        "cache_read_input_tokens": 56069,
+        "cache_creation_input_tokens": 2454,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2454
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 5880,
+      "cacheReadInputTokens": 242251,
+      "cacheCreationInputTokens": 45591,
+      "webSearchRequests": 0,
+      "costUSD": 0.01448191,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1502,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 45591,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 18,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "Several parts of entropic run on their own threads. Most are joined before their owner returns, and the one detached worker has no join at all.\n\n| Thread | Where | Lifetime | What keeps it safe |\n|---|---|---|---|\n| External MCP accept loop | `src/facade/external_bridge.cpp:796` | Started in `start()`, joined in `stop()` | `running_` is atomic; `client_threads_` is guarded by `client_threads_mutex_`; the accept loop checks `SO_PEERCRED` before spawning anything |\n| Per-client serve threads | `external_bridge.cpp:945` | One per accepted socket; reaped by `reap_finished_clients_locked()` | `stop()` moves the list out under the mutex, calls `shutdown(SHUT_RDWR)` to wake blocking reads, then joins each thread |\n| Async ask worker (`entropic.ask`) | `external_bridge.cpp:1158`, `.detach()` at 1222 | Detached, runs `entropic_run` for the task | Task map is guarded by `tasks_mutex_`; the sentinel is written under that lock; subscribers are guarded by `subscribers_mutex_` |\n| Cancel poller (batch) | `src/inference/interface_factory.cpp:244-262` | Joined before the function returns | `std::atomic<bool>` for `cancel_flag` and `done`; captures by reference are safe because of the join |\n| Cancel poller (`CancelFlagBridge`) | `src/inference/inference_c_api.cpp:376-420` | Joined in the destructor | Atomics with release/acquire ordering; the `int*` is polled, so no atomic crosses the `.so` boundary |\n| Interrupt observer | `src/core/response_generator.cpp:410-430` | Joined before return | Same pattern as above; `interrupt_flag_` is an atomic on the engine |\n| Health monitor | `src/mcp/health_monitor.cpp:92` | Started in `start()`, joined in `stop()` | `watched_mutex_` covers the watch map; `event_mutex_` guards the queue, which is swapped out and drained on the caller's thread; `wake_cv_` lets `stop()` wake it immediately |\n| Stdio transport stderr reader | `src/mcp/transport_stdio.cpp:164` | Started in `open()` | Reads from a pipe fd the transport owns |\n| SSE reader | `src/mcp/transport_sse.cpp:107` | Started in `open()` | `running_` and `connected_` are atomic |\n\nCross-cutting safety mechanisms:\n\n- **Per-handle API lock.** Facade entry points take `HandleApiLock` (`src/facade/engine_handle.h:172`), which acquires `api_mutex` and installs the per-handle log scope. The log scope is thread-local, so logs from a worker thread still route to the right session.\n- **Interrupt and pause are atomics.** `AgentEngine::interrupt()` uses `exchange(true)` (`src/core/engine.cpp:995`), so a Ctrl+C or an external thread can raise it without taking the API lock.\n- **Callbacks are marshalled back.** The health monitor queues events and delivers them on the caller's thread via `process_events()`, so user callbacks do not run on the monitor thread.\n- **Lock ordering is documented in code.** `HandleApiLock` takes `api_mutex` before the log scope and releases in reverse.\n\nThe open risk is the detached async-ask thread. The lambda captures `this` (the `ExternalBridge`) and `handle_`, and `stop()` does not wait for it, so the bridge or the engine handle could be destroyed while `entropic_run` is still executing. I did not confirm whether `entropic_run` takes `HandleApiLock`, or whether the bridge destructor waits for outstanding tasks. The existing backlog proposal `.claude/proposals/BACKLOG/P2-20260429-001-async-bridge-io-architecture.md` already describes the unbounded `std::thread(...).detach()` pattern as a known issue. I'd treat that as the first thing to verify before relying on the async path during shutdown.",
+  "ttft_ms": 1922,
+  "type": "result",
+  "duration_ms": 30477,
+  "uuid": "250a532e-d68c-4f6c-a714-77687c7022c9",
+  "ttft_stream_ms": 1425,
+  "time_to_request_ms": 182,
+  "first_content_frame_ms": 1425,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

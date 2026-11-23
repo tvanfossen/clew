@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 13968,
+  "stop_reason": "end_turn",
+  "session_id": "652d455e-72f1-4b95-9150-0283d3033e9b",
+  "total_cost_usd": 0.006717850000000001,
+  "usage": {
+    "input_tokens": 4,
+    "cache_creation_input_tokens": 24934,
+    "cache_read_input_tokens": 51315,
+    "output_tokens": 2435,
+    "output_tokens_details": {
+      "thinking_tokens": 1163
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 24934,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2063,
+        "cache_read_input_tokens": 36685,
+        "cache_creation_input_tokens": 2879,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2879
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 4,
+      "outputTokens": 2435,
+      "cacheReadInputTokens": 51315,
+      "cacheCreationInputTokens": 24934,
+      "webSearchRequests": 0,
+      "costUSD": 0.006717850000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1163,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 24934,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 3,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The reply is built to refuse a flat \"not found.\" An empty result is explicitly labelled as neither an error nor a definitive negative. I checked this with a nonsense probe against this repo (`zzqxnonexistentsymbol frobnicate`). It returned `count: 0`, `results: []`, and a `note` saying the empty result is not a malformed call and not a definitive negative. It also returned `token_hits` showing each token matched 0 times, and a `scope` block describing what was covered.\n\n**How the reply separates \"absent\" from \"not looked\"**\n\n| Signal in the reply | What it tells you |\n|---|---|\n| `token_hits` (per token) | Matching is a conjunction. If every token has hits but the whole query is empty, the miss is a query-shape problem, and the note says to retry with fewer tokens. |\n| `note`: \"Searched: \u2026\" / \"NOT searched: \u2026\" | Lists which corpora were covered: names, `@brief`s, macros, typedefs, enums, classes, config symbols, file docs. It says prose (markdown, Kconfig) and function bodies were not searched, and points to `corpus='prose'` or `corpus='code'`. |\n| `scope` (`file_count`, `extensions`, `not_indexed`) | The files that were actually read, and the extensions that were never parsed. Here `.rs`, `.toml`, `.csv`, `.sql`, `.lock`, `.jsonl`, `.motor` and extensionless files are not indexed. A symbol living there is invisible to a symbol search. |\n| `target` | Which repository answered. A search can be correct for the wrong repo. |\n| `not_searched` | Parts of a split repository (sub-indexes) that were not read. Absent in the probe because this repo is not split. |\n| `index(status)`: `stale`, `source_changed_files`, `matches_source` | Whether the index reflects the source. This repo reported fresh: `stale: false`, 0 changed files, matching fingerprints. |\n| `coverage` (barren/undocumented files) | Files that were parsed but yielded no symbols. Here 15 barren files, mostly YAML question files and `requirements.yaml`. |\n\n**How much confidence each answer gets**\n\n- **Strongest \"not in this repo\":** a distinctive name returns 0 on all corpora (symbols, `prose`, `code`). The index is fresh, the file type is in `scope` and not in `not_indexed`, and the `target` is the repo you meant. This is good evidence for an indexed-language identifier, but the tool's own wording still says it is not definitive.\n- **Weak, probably a \"did not look\":** the note lists an unsearched corpus that the name could live in (a prose or Kconfig phrase, a literal inside a body), or the likely file type is in `not_indexed`, or the index is stale, or the `target` is not the repo you meant.\n- **Retry, not a conclusion:** `token_hits` shows an individual token has 0 hits, or every token hits but the conjunction is empty. The tool says to drop tokens and retry.\n\n**Caveats from this check**\n\n- I ran only a nonsense probe. That confirms the reply shape, not the answer for any real name in this repo.\n- The counts disagree. `search` reports 426 files in scope, while `index(status)` reports 435 files in scope and 397 indexed. I did not resolve this from the index alone; it may be the difference between scope and parsed files, but it is unverified.",
+  "ttft_ms": 2303,
+  "type": "result",
+  "duration_ms": 14276,
+  "uuid": "36d0df7a-7cdb-4de5-81ac-aa1005c42e5f",
+  "ttft_stream_ms": 1090,
+  "time_to_request_ms": 70,
+  "first_content_frame_ms": 1090,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

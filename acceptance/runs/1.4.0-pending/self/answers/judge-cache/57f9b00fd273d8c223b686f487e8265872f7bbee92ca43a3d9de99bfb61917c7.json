@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says that dossier asks for the call half only or that merging would report dataflow edges twice; it only notes edge_class is 'call' and dataflow is separate."
+}

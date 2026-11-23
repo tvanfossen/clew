@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The exception is the async-ask worker, which is detached and not joined on destroy.\" and \"ExternalBridge async ask `run_async_ask` (`:1158`, detached at `:1222`)\"\nVERDICT: HIT\nWHY: The answer identifies the async-ask worker as the one detached thread and states it has no join, so it outlives its caller and can run after the handle is destroyed."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Runtime (function pointers).** Leave `MBEDTLS_PLATFORM_CALLOC_MACRO` and `MBEDTLS_PLATFORM_FREE_MACRO` undefined. Call `mbedtls_platform_set_calloc_free(my_calloc, my_free)`... **Compile time (macros).** Define both... the runtime setter is compiled out (`platform.c:20-22`). The macros take precedence if both styles are configured.\nVERDICT: HIT\nWHY: The answer separates the compile-time macro pair from the runtime function-pointer pair and says the runtime setter is compiled out when the macros are defined. That makes the two styles mutually exclusive, even though the \"macros take precedence\" line is a little loose."
+}

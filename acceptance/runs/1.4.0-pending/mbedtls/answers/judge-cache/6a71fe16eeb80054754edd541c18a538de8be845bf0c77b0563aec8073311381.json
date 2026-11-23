@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Without `MBEDTLS_ALLOW_PRIVATE_ACCESS`, `MBEDTLS_PRIVATE(foo)` expands to `private_foo`. The struct declares the field as `private_foo`, so application code that writes `ctx->foo` fails to compile with \"no member named foo\".\nVERDICT: HIT\nWHY: The answer states that opacity is enforced at compile time by renaming the member to `private_foo`, so `ctx->foo` fails to compile. The struct layout is not hidden. It is a rename, and anyone can define the macro to get the real name back."
+}

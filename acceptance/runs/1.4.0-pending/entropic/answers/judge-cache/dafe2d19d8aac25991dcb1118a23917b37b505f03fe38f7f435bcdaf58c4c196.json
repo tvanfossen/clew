@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says a negative result from the second call logs an error and returns `{}`, but it never says that this outcome is terminal with no further attempt. It describes the second call as unconditional and a \"sized retry\" misnomer, not as the last attempt."
+}

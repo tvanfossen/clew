@@ -63,7 +63,7 @@ _ANCHOR_WINDOW = 3
 ## @param lines The excerpt's lines, in order.
 ## @return True when the name appears within the first `_ANCHOR_WINDOW` lines.
 ## @version 1
-## @dg_internal
+## @utility
 def _anchored(name: str, lines: list[str]) -> bool:
     """THE BARE NAME, because a qualified one is not what the source line spells. doxygen records
     `Probe::value` while the definition reads `int Probe::value() const` — the bare tail matches
@@ -95,7 +95,7 @@ def _anchored(name: str, lines: list[str]) -> bool:
 ## @param rowid Canonical memberdef rowid.
 ## @return (name, repo-relative body file, start, end), or None when no body extent is recorded.
 ## @version 1
-## @dg_internal
+## @utility
 def _body_extent(conn: sqlite3.Connection, rowid: int) -> tuple[str, str, int, int] | None:
     """Resolve the body location doxygen recorded. A header-only declaration
     (or a macro-defined symbol) has no body: `bodystart` is 0/NULL and there
@@ -128,7 +128,7 @@ def _body_extent(conn: sqlite3.Connection, rowid: int) -> tuple[str, str, int, i
 ## @param max_lines Maximum number of lines to carry back.
 ## @return (lines, last included line, truncated) — empty lines when the extent is out of range.
 ## @version 1
-## @dg_internal
+## @utility
 def _slice(path: Path, start: int, end: int, max_lines: int) -> tuple[list[str], int, bool]:
     """Read `start`..`end` (1-based, inclusive) out of `path`, keeping at most
     `max_lines` and reporting the last line actually included.
@@ -153,7 +153,7 @@ def _slice(path: Path, start: int, end: int, max_lines: int) -> tuple[list[str],
 ## @param max_lines Maximum lines to carry back.
 ## @return (lines, end_line, truncated), or None when the path escapes root or is unreadable.
 ## @version 1
-## @dg_internal
+## @utility
 def _read_body(
     root: Path, file: str, start: int, end: int, max_lines: int
 ) -> tuple[list[str], int, bool] | None:
@@ -315,7 +315,7 @@ def declaration_excerpt(
 ## @param rowid The memberdef rowid.
 ## @return The end line, or None (no table, no row: extent unknown).
 ## @version 1
-## @dg_internal
+## @utility
 def _recorded_end(conn: sqlite3.Connection, rowid: int) -> int | None:
     """@brief Read decl_extent. @return End line or None."""
     from ..synth import DECL_EXTENT
@@ -335,7 +335,7 @@ def _recorded_end(conn: sqlite3.Connection, rowid: int) -> int | None:
 ## @param end Recorded last line.
 ## @return BodyExcerpt, or None when unreadable.
 ## @version 1
-## @dg_internal
+## @utility
 def _known_extent(root: Path, file: str, start: int, end: int) -> BodyExcerpt | None:
     """THE END IS KNOWN, SO NOTHING IS GUESSED: a TypeScript constants object or type alias is
     read to its recorded last line. The 8-line cap bounds a GUESSED end, and it cut mattermost's
@@ -415,7 +415,7 @@ def compound_declaration(
 ## @param lines The window read from the declaring file.
 ## @return The lines up to and including the first `;` (or closing brace) at bracket depth zero.
 ## @version 2
-## @dg_internal
+## @utility
 def _to_terminator(lines: list[str]) -> list[str]:
     """Kept as its own function so the heuristic has ONE name and one place to be wrong
     in. `declaration_excerpt` reports whether it fired via `truncated`; if this rule

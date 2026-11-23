@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Stated tiers never remove facts. A declaration or flag can correct a guess, but it cannot un-discover a Doxyfile- or manifest-derived fact.\" and \"Tier 3 and tier 4 disagreements are inert. Both accumulate and survive every stated tier\"\nVERDICT: HIT\nWHY: The answer says stated tiers replace one another, while discovered layers (tiers 3 and 4) accumulate and survive every stated tier."
+}

@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 26428,
+  "stop_reason": "end_turn",
+  "session_id": "3d4fe03c-3cd1-442d-8af0-314bcc6a3157",
+  "total_cost_usd": 0.01009756,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 22035,
+    "cache_read_input_tokens": 316886,
+    "output_tokens": 5041,
+    "output_tokens_details": {
+      "thinking_tokens": 2414
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 22035,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2609,
+        "cache_read_input_tokens": 65523,
+        "cache_creation_input_tokens": 1322,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1322
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 5041,
+      "cacheReadInputTokens": 316886,
+      "cacheCreationInputTokens": 22035,
+      "webSearchRequests": 0,
+      "costUSD": 0.01009756,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2414,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 22035,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 7,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "## How `ServerDataOperator` is built\n\n`ServerDataOperator` is a mixin composition, not a subclass hierarchy. `app/database/operator/server_data_operator/index.ts:40-59` does:\n\n```ts\nclass ServerDataOperator extends mix(ServerDataOperatorBase).with(\n    AgentsHandler, BoardsHandler, CategoryHandler, ..., UserHandler,\n) {\n    constructor(database, serverUrl?) { super(database); this.serverUrl = serverUrl; }\n}\n```\n\n- **Base:** `ServerDataOperatorBase` (`handlers/index.ts:31`) extends `BaseDataOperator` (`base_data_operator/index.ts:33`). It holds `handleRole`, `handleCustomEmojis`, `handleSystem`, `handleConfigs`, `handleReactions`, `handleFiles` and `execute`.\n- **Mixins:** each handler is `const XHandler = (superclass) => class extends superclass {...}`, paired with an `export interface XHandlerMix`.\n- **`mix()`** (`app/utils/mix.ts`) folds the list left to right, so each mixin wraps the previous result.\n- **Typing:** the `interface ServerDataOperator extends ...Mix` declaration at lines 23-38 merges every mixin's methods into the type.\n\n## Which handlers are defined elsewhere\n\n| Handler | Location |\n|---|---|\n| `AgentsHandler` | `app/products/agents/database/operators/handlers/index.ts` |\n| `BoardsHandler` | `app/products/boards/database/operators/handlers/index.ts` |\n| `PlaybookHandler` | `app/products/playbooks/database/operators/handlers/index.ts` |\n\nThe other ten are in `app/database/operator/server_data_operator/handlers/`: category, channel, custom_profile, group, post, properties, team, team_threads_sync, thread and user.\n\n## Where a handler's write actually happens\n\n```\nhandleX()  (handler mixin)\n  \u2514\u2500 handleRecords()                      base_data_operator/index.ts:224\n       \u251c\u2500 processRecords()                dedupe against DB\n       \u251c\u2500 prepareRecords()                transformer \u2192 prepareCreate/prepareUpdate;\n       \u2502                                  deletes \u2192 prepareDestroyPermanently\n       \u2514\u2500 batchRecords()  (if prepareRecordsOnly === false)\n            \u2514\u2500 database.write(writer => writer.batch(...models))   :191-211\n```\n\nThe one real write is `BaseDataOperator.batchRecords` (`base_data_operator/index.ts:191-211`). It wraps `writer.batch(...)` in `this.database.write`. On error it logs with `logWarning`. If the error is a database corruption, it emits `DATABASE_CORRUPTION_DETECTED`. It rethrows only when `propagateError` is true.\n\nTwo details matter when reading handler code:\n\n- `handleRecords` defaults to `prepareRecordsOnly = true`, so it returns prepared models without writing. Callers that want a write must pass `false`, or batch the returned models themselves in a larger transaction.\n- `execute`, `handleFiles` and `handleReactions` in the base class call `batchRecords` directly after preparing.\n\n## What else shares the write path\n\n- **Other operators:** `AppDataOperator` extends `BaseDataOperator`, so the app database writes through the same function.\n- **Base-class methods:** `handleFiles`, `handleReactions` and `execute` in `ServerDataOperatorBase`, plus the `PostHandler` and `ThreadHandler` methods that use `prepareRecords`.\n- **Cleanup code:** `app/actions/local/ephemeral_mode/cleanup.ts` (lines 201, 219, 272) calls `operator.batchRecords` through a structurally typed parameter, not through the class.\n\nNot every write goes through `batchRecords`. Some code calls `database.write` directly:\n\n- `handlers/post.ts:516`, which destroys deleted posts\n- `handlers/thread.ts:74`\n- `app/products/playbooks/actions/local/*.ts`\n- `app/database/manager/index.ts`\n\nThe caller list came from the index, which left 232 callers unresolved, so the list may be incomplete. The direct-write sites above are from grep, not from the index.",
+  "ttft_ms": 1526,
+  "type": "result",
+  "duration_ms": 28747,
+  "uuid": "79aa7c93-d0b5-4938-913a-ec81d7acfd3d",
+  "ttft_stream_ms": 1175,
+  "time_to_request_ms": 104,
+  "first_content_frame_ms": 1175,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

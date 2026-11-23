@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `--declare FILE`, or the `options` argument of `build_index()` / MCP `index(action=\"refresh\")` | 1 (explicit) | Stated for one build.\nVERDICT: HIT\nWHY: The answer's table places both the `--declare` CLI flag and the structured `options` argument at tier 1 (explicit). It also notes that `options` works for repos you cannot edit, which covers the embedding caller."
+}

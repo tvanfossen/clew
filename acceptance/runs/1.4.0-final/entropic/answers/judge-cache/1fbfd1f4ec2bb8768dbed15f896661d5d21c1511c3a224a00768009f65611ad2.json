@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: ExternalBridge::accept_loop spawned in ExternalBridge::start; HealthMonitor::monitor_loop in HealthMonitor::start; SSETransport::sse_reader_loop and StdioTransport::stderr_reader_loop in transport open; cancel poller threads in iface_generate_with_cancel / CancelFlagBridge, and the observer in dispatch_batch_generate\nVERDICT: HIT\nWHY: The answer's table lists thread spawn sites across the external bridge, the MCP transports (SSE and stdio), the health monitor and the inference path. That shows creation is spread across subsystems, although the answer never says outright that it is decentralised."
+}

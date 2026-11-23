@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Each file exports a factory of the form `const XHandler = <TBase extends Constructor<ServerDataOperatorBase>>(superclass) => class extends superclass` ... \"They follow the same mixin pattern and are constrained to `Constructor<ServerDataOperatorBase>`.\" ... \"`BaseDataOperator.batchRecords` ... is the actual write.\"\nVERDICT: HIT\nWHY: The answer states that the mixins are constrained to extend ServerDataOperatorBase (which extends BaseDataOperator) and that handler writes funnel through the inherited BaseDataOperator.batchRecords."
+}

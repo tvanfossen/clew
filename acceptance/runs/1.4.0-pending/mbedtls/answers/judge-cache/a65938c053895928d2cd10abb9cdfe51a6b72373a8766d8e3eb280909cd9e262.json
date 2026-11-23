@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `library/common.h:132` | Every library `.c` that includes `common.h` first (e.g. `rsa.c:26`, `md.c`, `cmac.c`, `des.c`, `aria.c`, `psa_util.c`). This is the library's internal opt-out.\nVERDICT: HIT\nWHY: The answer states that the opt-out is defined in the shared header library/common.h, which every library .c file includes, so library code uses plain member names."
+}

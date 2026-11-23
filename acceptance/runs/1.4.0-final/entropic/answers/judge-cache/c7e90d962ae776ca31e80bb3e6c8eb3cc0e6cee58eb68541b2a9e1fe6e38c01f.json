@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `ExternalBridge::accept_loop` ... \"Polls the listen socket, accepts clients\"; \"Per-client `serve_client` thread | Inside `accept_loop` (`:945`) | Serves one MCP client\"\nVERDICT: HIT\nWHY: The answer names an accept loop thread and a per-client serve_client thread spawned inside accept_loop, which is the two-level structure."
+}

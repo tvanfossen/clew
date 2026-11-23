@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The asm path is gated by `MBEDTLS_CT_ASM`, which is defined only when `MBEDTLS_HAVE_ASM` is on and `__GNUC__` or `__ARMCC_VERSION` is defined.\nVERDICT: HIT\nWHY: The answer says MBEDTLS_CT_ASM is defined from MBEDTLS_HAVE_ASM plus compiler predefined macros, with no configuration entry. That is the derivation the item asks for, though it never says \"not in mbedtls_config.h\" in so many words."
+}

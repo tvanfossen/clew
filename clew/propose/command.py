@@ -148,7 +148,7 @@ def propose_main(argv: list[str] | None = None) -> int:
 ## @param force Whether --force was given.
 ## @return The refusal message, or "" when writing is allowed.
 ## @version 1
-## @dg_internal
+## @utility
 def _refusal(target: Path | None, force: bool) -> str:
     """Checked BEFORE the analysis runs: a scan of a large tree takes tens of
     seconds, and refusing after it has finished wastes the wait for an outcome
@@ -173,7 +173,7 @@ def _refusal(target: Path | None, force: bool) -> str:
 ## @param text The rendered draft.
 ## @param target Output path, or None for stdout.
 ## @version 1
-## @dg_internal
+## @utility
 def _emit(text: str, target: Path | None) -> None:
     """@brief Emit the draft, reporting a file write on stderr."""
     if target is None:
@@ -189,7 +189,7 @@ def _emit(text: str, target: Path | None) -> None:
 ## @param repo_root Repo being analysed.
 ## @return Path to an existing index, or None when there is none.
 ## @version 2
-## @dg_internal
+## @utility
 def _resolve_db(explicit: str | None, repo_root: Path) -> Path | None:
     """Discovery order: the explicit flag, then the MCP server's registry (the
     database an agent would already have built for this repo), then
@@ -211,7 +211,7 @@ def _resolve_db(explicit: str | None, repo_root: Path) -> Path | None:
 ## @param repo_root Repo being analysed.
 ## @return Path to the registered database when it exists, else None.
 ## @version 2
-## @dg_internal
+## @utility
 def _registered_db(repo_root: Path) -> Path | None:
     """Imported lazily and guarded: the registry lives under `mcp_server`, whose
     package import pulls the optional MCP SDK. A core-only install must still be
@@ -235,7 +235,7 @@ def _registered_db(repo_root: Path) -> Path | None:
 ## @brief Send logging to stderr so the draft on stdout stays parseable.
 ## @param verbose Whether to log at INFO rather than WARNING.
 ## @version 1
-## @dg_internal
+## @utility
 def _configure_logging(verbose: bool) -> None:
     """Deliberately NOT the pipeline's rich handler, which writes to stdout — a
     single INFO line there lands inside the emitted YAML.

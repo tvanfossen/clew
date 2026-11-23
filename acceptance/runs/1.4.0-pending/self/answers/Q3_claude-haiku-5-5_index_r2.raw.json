@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 17916,
+  "stop_reason": "end_turn",
+  "session_id": "f86d39a4-af6b-467a-8c1b-2dc95e06d108",
+  "total_cost_usd": 0.009142180000000001,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 27010,
+    "cache_read_input_tokens": 230168,
+    "output_tokens": 2875,
+    "output_tokens_details": {
+      "thinking_tokens": 848
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 27010,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1925,
+        "cache_read_input_tokens": 59996,
+        "cache_creation_input_tokens": 5286,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 5286
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 2875,
+      "cacheReadInputTokens": 230168,
+      "cacheCreationInputTokens": 27010,
+      "webSearchRequests": 0,
+      "costUSD": 0.009142180000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 848,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 27010,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 7,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** the index compares itself against two things, the sources on disk and the running server's own code. It reports the result on every query reply as a `staleness` list, one entry per axis, and it tries to fix the data axis itself. The caller's job is mostly to act on the axis named in the notice, because the other two axes cannot be fixed by a rebuild.\n\n**How it knows (`clew/mcp_server/state.py`, `freshness.py`)**\n\n`db_status(target)` measures three things:\n- **Pipeline version:** the `build_version` stamped in the database versus `CLEW_BUILD_VERSION`.\n- **Source drift:** `_source_drift` stats each indexed file against the database's mtime and counts the ones newer. It deliberately ignores mtimes more than a small skew tolerance in the future, since those would make the index permanently stale.\n- **Code identity:** `code_identity()` compares the process's fingerprint, taken at import, with the fingerprint of the source tree on disk. `matches_source` is false only when both are known and differ.\n\n`db_status` sets `stale` if the database is missing, the version differs, or any source changed. The flag alone does not say what to do about it, so `freshness.notices()` splits the problem into three axes, in order of how often a reader acts on them:\n\n| Axis | Trigger | Remedy stated in the notice |\n|---|---|---|\n| `data` | `source_changed_files > 0` | `index(action='refresh')` |\n| `schema` | stamped version \u2260 server version | If the index is newer, restart the client, because a rebuild re-stamps the same version. If it is older, `index(action='refresh', force=True)`. |\n| `code` | process fingerprint \u2260 source fingerprint | Restart the MCP client. A rebuild cannot fix this. |\n\n`notices()` returns an empty list when the tool is current, so a current index adds nothing to the reply. The repository's index reports `stale: false` right now, so none of these would appear here.\n\n**What the caller gets**\n\n`DocsDbServer.staleness_notices()` (`server.py:1548`) runs on every reply and never raises. `QueryTools._staleness` attaches the notices to the payload and shrinks them to fit the response budget (full prose, then compact, then minimal), so a large answer keeps its warning. A routed reply is annotated only for the repository it actually read.\n\n**What the server does before the caller sees it**\n\nOn a query, `_auto_refresh` (`server.py:1242`) checks `_data_stale`. If the data axis is stale, it runs `_refresh_stale` under the repository's build lock, with a bounded wait. Inside the lock it re-checks, so concurrent queries produce one build. The build uses incremental `skip_if_fresh` semantics. If the wait times out, or the build fails, the query answers from the existing index and the notice still rides along. The server refuses to auto-refresh when `matches_source` is false, because an old process rebuilding would re-stamp the index with stale pipeline logic.\n\n**What the caller should do**\n\n1. Read `staleness[].axis` in the reply. A stale-data notice means the answer may describe code that no longer exists. The query may already have refreshed, so the caller should check whether the notice is still present rather than assume.\n2. On `data`: call `index(action='refresh')` if the notice remains.\n3. On `schema` (server older than index): restart the MCP client. Rebuilding does not clear it.\n4. On `schema` (index older than server) or on a missing layer: `index(action='refresh', force=True)`.\n5. On `code`: restart the MCP client. Write paths are refused by `stale_code_refusal` (`freshness.py:531`), and `force` deliberately does not bypass that refusal.\n\n**Caveats**\n\n- I read the code and its docstrings through the index. I did not run a stale-index scenario to confirm the behaviour end to end, and I did not read the test files beyond their names.\n- `db_status` has a `_source_drift` edge case: a database that cannot be read reports zero drift and falls back to the version check. That is intentional, but a caller should not treat \"no data notice\" as proof of freshness when the database itself is unreadable. The `stale` flag and `exists` cover that case.",
+  "ttft_ms": 1449,
+  "type": "result",
+  "duration_ms": 19169,
+  "uuid": "09c410be-c12a-427e-b29d-d83987b462a6",
+  "ttft_stream_ms": 1103,
+  "time_to_request_ms": 78,
+  "first_content_frame_ms": 1103,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

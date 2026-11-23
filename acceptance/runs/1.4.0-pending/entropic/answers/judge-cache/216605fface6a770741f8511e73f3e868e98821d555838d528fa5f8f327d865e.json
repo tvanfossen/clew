@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: resolved via $ENTROPIC_LIB, $ENTROPIC_HOME, ~/.entropic/\u2026\nVERDICT: MISS\nWHY: It lists env vars and a user dir but omits the system library cache fallback and the two directory layouts per root."
+}

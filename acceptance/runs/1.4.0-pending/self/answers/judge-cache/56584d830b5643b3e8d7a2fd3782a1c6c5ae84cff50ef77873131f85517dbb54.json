@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A repo's own Doxyfile is still read, but only for `ALIASES` and `PREDEFINED`. Its `INPUT`, `FILE_PATTERNS` and `EXCLUDE*` are discarded, so a repo cannot narrow the index by documenting itself.\nVERDICT: HIT\nWHY: The answer states the Doxyfile's INPUT is discarded and gives the reason: a repo cannot narrow the index by documenting itself. That is the documented-subset-versus-whole-tree rationale, in compressed form."
+}

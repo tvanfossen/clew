@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Before the network call, the post is written to the local WatermelonDB with a temporary `pending_post_id` and an id equal to it, so it shows in the UI immediately. ... Any other error: the post is re-saved with `props.failed = true`.\nVERDICT: HIT\nWHY: The answer states the post is saved to the local DB before the network call and, on failure, kept with `props.failed = true`."
+}

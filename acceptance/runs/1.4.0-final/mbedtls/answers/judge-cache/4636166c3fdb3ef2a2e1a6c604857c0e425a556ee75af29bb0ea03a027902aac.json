@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"MSVC or any non-GNU compiler | C fallback (`MBEDTLS_CT_ASM` needs `__GNUC__`)\"\nVERDICT: MISS\nWHY: The answer mentions MBEDTLS_CT_ASM only in passing, as needing `__GNUC__`. It never says the macro is derived rather than configured, and it doesn't say it is set from MBEDTLS_HAVE_ASM plus compiler predefined macros instead of from an mbedtls_config.h entry."
+}

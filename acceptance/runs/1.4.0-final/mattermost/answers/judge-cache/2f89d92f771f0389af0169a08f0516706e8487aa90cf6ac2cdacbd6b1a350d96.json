@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `archiveChannel` | Removes the current user from the channel locally. | Sets `delete_at` locally on the channel and keeps the membership row. ... `handleChannelDeletedEvent` | If the user is viewing the channel, calls `handleKickFromChannel` with `CHANNEL_ARCHIVED`, then removes the user from the channel.\nVERDICT: HIT\nWHY: The answer says that when the setting is off, archiving removes the user and the current-channel case is kicked. When it is on, the channel stays with `delete_at` set, which the item calls marked deleted."
+}

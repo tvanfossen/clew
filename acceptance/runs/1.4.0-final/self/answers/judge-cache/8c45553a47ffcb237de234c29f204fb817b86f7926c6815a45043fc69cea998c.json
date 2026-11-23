@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `DocsDbServer.staleness_notices()` (`server.py`) turns `db_status` into `{axis, message}` pairs. It never raises; any failure yields no annotation.\nVERDICT: HIT\nWHY: The answer states that staleness measurement never raises and that a failure degrades to no annotation."
+}

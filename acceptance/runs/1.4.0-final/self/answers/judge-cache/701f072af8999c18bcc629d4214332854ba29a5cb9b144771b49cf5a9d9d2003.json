@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It refreshes only if the data axis is stale and the code axis matches, since a build from a stale process would drop layers.\nVERDICT: MISS\nWHY: The answer explains that builds are refused on a stale code axis, but it never says reads stay current because query tools open the database per call, so the read/write asymmetry is missing."
+}

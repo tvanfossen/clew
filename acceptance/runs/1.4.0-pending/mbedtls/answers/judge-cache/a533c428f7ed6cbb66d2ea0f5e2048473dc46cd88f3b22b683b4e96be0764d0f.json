@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It is not a security boundary. The struct layout, `sizeof`, and field offsets stay public in the header, and anyone can spell the explicit form.\nVERDICT: HIT\nWHY: The answer says the macro renames the field to `private_foo` so `ctx->foo` fails to compile, while the struct layout and sizes remain visible in the header."
+}

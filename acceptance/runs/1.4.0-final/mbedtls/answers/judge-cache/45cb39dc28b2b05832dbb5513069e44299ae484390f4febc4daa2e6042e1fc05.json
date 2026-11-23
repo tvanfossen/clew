@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_THREADING_C` and `MBEDTLS_THREADING_PTHREAD` are both commented out in `include/mbedtls/mbedtls_config.h` (lines 3787 and 2196). Everything that locks is compiled out\nVERDICT: HIT\nWHY: The answer names both macros as the ones that gate the locking code, which is compiled out when they are disabled."
+}

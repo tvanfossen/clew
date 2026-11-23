@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: By default that renames the member to `private_foo`, so `ctx->foo` no longer compiles from application code. ... `library/common.h:132` defines `MBEDTLS_ALLOW_PRIVATE_ACCESS` unconditionally ... inside the library `MBEDTLS_PRIVATE(x)` expands to plain `x`.\nVERDICT: HIT\nWHY: The answer states that code defining the macro (the library, ssl_server2/ssl_client2) sees plain member names, while ordinary application code without it sees the `private_`-renamed members."
+}

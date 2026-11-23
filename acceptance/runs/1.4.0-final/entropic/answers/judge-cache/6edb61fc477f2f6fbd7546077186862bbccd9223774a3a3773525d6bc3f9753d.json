@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Indistinguishable from an empty string, and a budget check would treat it as \"fits\".\nVERDICT: HIT\nWHY: The answer states that tokenize failure yields an empty vector with no error code, that count returns 0 indistinguishable from an empty string, and that most callers do not check for it."
+}

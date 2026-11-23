@@ -257,7 +257,23 @@ from .tiers import OPTIONS_META_PREFIX
 ##       stems words (porter), and ranks test-scope code last; `e2e/` and `*.e2e.*` are test scope.
 ##     * a call site is credited to the INNERMOST function containing it, not the first in list
 ##       order, which was an accident of row order and credited a mixin's calls to its factory.
-CLEW_BUILD_VERSION = 9
+## 10 (2.0.0) — `requirement_links`: a catalogue entry's `satisfies:` ids, one row per link
+##   (GH #68). An index built before it has no table, so a requirement's dossier would carry no
+##   `satisfies` / `satisfied_by` while reporting itself current; the bump makes it rebuild.
+## 11 (2.0.0, round 4 R9) — `req_test_edges` holds only functions in TEST CODE (the resolved
+##   test scope). Before it, a production function whose path contained "test" or whose name
+##   began `test_` was its requirement's covering test (`mark_test_scope`, `test_id` on clew), so
+##   an index built at 10 keeps those rows; the bump makes it rebuild.
+## 12 (2.0.0, round 5 4d-0) — a Python call through an alias of a PACKAGE (`from .. import query
+##   as q; q.dossier()`) resolves to the one same-named function inside that package. Before it,
+##   no edge was made, so clew's own MCP flows stopped at the query layer; an index built at 11
+##   lacks those edges, and the bump makes it rebuild.
+## 13 (2.0.0, the single index-row bump of the 2.0.0 plan, P2) — new layers and rows: `owners`
+##   (CODEOWNERS / MAINTAINERS), and every further P2 layer landing under this same number
+##   before the cut (file licences, kernel-doc, #if polarity, declared blocking primitives,
+##   languages.extensions). Nothing ships between those commits, so an index built mid-way is
+##   never published as current; an index built at 12 lacks the layers and rebuilds.
+CLEW_BUILD_VERSION = 13
 
 
 ## @brief Stamp the build version, scope, coverage and preprocessor config into build_meta.
@@ -272,7 +288,8 @@ CLEW_BUILD_VERSION = 9
 ## @param diagnostics Optional {key: value} record of WHAT THE BUILD LOOKED FOR AND DID NOT FIND.
 ## @param data_model Optional {key: value} record of the generated DATA MODEL the repository declares.
 ## @param declaration Optional {key: value} record of the DOCUMENT an operator stated for this build.
-## @version 13
+## v14: docstring names the real scope sources (2.0.0, PG4)
+## @version 14
 ## @req REQ-DDB-PIPE-005
 ## @req REQ-DDB-CONFIG-006
 ## @req REQ-DDB-CONFIG-007
@@ -292,8 +309,8 @@ def write_build_signature(
 ) -> None:
     """WHY THE FILE SET IS WHAT IT IS, recorded rather than only logged.
 
-    `scope.DerivedScope` already carries the source (`declared` / `doxygen-guard` /
-    `doxyfile`), a human-readable reason, and the roots and excludes — and its own docstring
+    `scope.DerivedScope` already carries the source (`clew-declaration` /
+    `doxyfile` / `whole-repo`), a human-readable reason, and the roots and excludes — and its own docstring
     says it exists "so the BUILD LOG can always say which scope was used and why". The log is
     gone by the time anyone queries the index, so a consumer could see WHAT was indexed and
     never WHY.
@@ -526,7 +543,7 @@ def index_unusable_reason(db_path: Path | str) -> str:
 ## @param path Candidate index path.
 ## @return Reason string, empty when the path is at least a non-empty file.
 ## @version 1
-## @dg_internal
+## @utility
 def _filesystem_problem(path: Path) -> str:
     """Checked in this order because each step is the precondition for the next:
     `stat()` raises on a missing path, so the existence test cannot be folded in
@@ -553,7 +570,7 @@ def _filesystem_problem(path: Path) -> str:
 ## @param path A path already known to be a non-empty file.
 ## @return Reason string, empty when the file is a database holding the sentinel table.
 ## @version 1
-## @dg_internal
+## @utility
 def _sqlite_problem(path: Path) -> str:
     """Opened READ-ONLY via a `file:` URI on purpose: the whole point of this
     helper is that the ordinary `sqlite3.connect(path)` CREATES a database, so

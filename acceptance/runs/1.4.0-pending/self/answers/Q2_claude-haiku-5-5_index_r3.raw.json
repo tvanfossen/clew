@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 14447,
+  "stop_reason": "end_turn",
+  "session_id": "11734fd3-fa8f-429c-bea9-e90d84dcbc69",
+  "total_cost_usd": 0.004785930000000001,
+  "usage": {
+    "input_tokens": 6,
+    "cache_creation_input_tokens": 12074,
+    "cache_read_input_tokens": 116303,
+    "output_tokens": 2415,
+    "output_tokens_details": {
+      "thinking_tokens": 1103
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 12074,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1775,
+        "cache_read_input_tokens": 39705,
+        "cache_creation_input_tokens": 10668,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 10668
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 6,
+      "outputTokens": 2415,
+      "cacheReadInputTokens": 116303,
+      "cacheCreationInputTokens": 12074,
+      "webSearchRequests": 0,
+      "costUSD": 0.004785930000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1103,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 12074,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 4,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "A zero-row reply does not carry one verdict. Its wording and its `scope` block together say what was searched, and how far the answer can be trusted depends on which case you are in.\n\n**What I checked:** I ran `search` for a made-up token. It returned `count: 0` with a note calling the result \"definitive,\" plus a `scope` block: 426 files, whole-repo, top levels, extensions, and `not_indexed` (`.rs=2`, `.toml=2`, `.csv=3`, and others). The grading logic is in `clew/mcp_server/emptiness.py`.\n\n**How the reply separates the two cases**\n\n- **Scope is always reported.** Every empty reply carries `scope` (file count, source tier, extensions, top levels, and `not_indexed` when recorded). That is the field that distinguishes \"outside what was indexed\" from \"not in the repo.\"\n- **Unsearched corpora are checked.** `search` reads symbol names, `@brief` text, macros, classes, config symbols, and file docs. It does not read markdown or Kconfig prose, or function bodies. If the index holds a matching row in a corpus `search` skips, the reply says \"NOT DEFINITIVE\" and names the rows and the tool to use (`dossier`, `search(corpus='prose')`, or `search(corpus='code')`).\n- **Multi-token queries are never definitive.** A zero-row multi-token search is a conjunction. The reply reports per-token hit counts. A token with zero hits is the cause, so the advice is to retry without it. If every token matches alone, the advice is to use fewer tokens.\n- **The absent-corpus case is named.** If the index has no file-docs corpus or no prose corpus, the reply says it \"had nowhere to match\" and is not definitive. The code says an index that cannot look must not report a negative.\n\n**Confidence by case**\n\n| Empty reply | Entitlement |\n|---|---|\n| Single token, no unread-corpus hits, file docs present | Strong. Absent from the symbol corpora of the indexed scope. Retrying will not help. |\n| Multi-token conjunction | None. Retry with the token(s) the reply names. |\n| Prose search, token present in symbols | None. The repo uses the term; it is written somewhere the prose corpus does not read. |\n| Corpus absent (file docs or prose) | None. Rebuild, or use another corpus. |\n\n**Gap I found:** The \"definitive\" verdict does not check `scope.not_indexed`. `_verdict` only looks at unread corpora and whether file docs exist. The extension-based downgrade (\"this file type is outside the index\") existed only for the deleted `list_files` tool. In this repo, a symbol defined in one of the two `.rs` files would likely still get the strong wording, even though `.rs` is in `not_indexed`. I inferred that from the code and did not test a Rust symbol. Until that is fixed, check `scope.extensions` and `scope.not_indexed` yourself before accepting a definitive miss. The reply does not do that comparison for you.",
+  "ttft_ms": 2423,
+  "type": "result",
+  "duration_ms": 14822,
+  "uuid": "024405df-3e75-4bc3-9ec3-947ec025bd0b",
+  "ttft_stream_ms": 1168,
+  "time_to_request_ms": 79,
+  "first_content_frame_ms": 1168,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Default (`MBEDTLS_PLATFORM_MEMORY` not defined, which is the shipped default; see `include/mbedtls/mbedtls_config.h:208`)\nVERDICT: HIT\nWHY: The answer says MBEDTLS_PLATFORM_MEMORY is not defined by default in the shipped mbedtls_config.h, and that defining it is what switches on the compile-time or runtime allocator override, so it acts as the gate. It never uses the words \"commented out\", but \"not defined... shipped default\" with the config.h line reference carries the same fact."
+}

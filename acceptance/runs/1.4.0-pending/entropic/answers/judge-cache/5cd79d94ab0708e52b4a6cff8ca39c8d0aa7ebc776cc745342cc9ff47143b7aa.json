@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer speculates the run_async_ask worker might be detached (\"If that thread is detached...\") but never identifies it as the one detached thread with no join; it also claims other threads are all joined."
+}

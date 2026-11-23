@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_ct_compiler_opaque(x)` is `asm volatile(\"\" : \"+r\"(x))` when asm is available.\n\nVERDICT: HIT\nWHY: The answer states the empty asm volatile with a \"+r\" input-output operand and describes its role as an opaque barrier preventing the compiler from proving the value. It does not say outright that no instruction is emitted, but the empty string implies it."
+}

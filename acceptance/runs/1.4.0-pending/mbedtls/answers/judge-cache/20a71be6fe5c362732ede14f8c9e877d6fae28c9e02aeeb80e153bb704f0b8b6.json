@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_ct_compiler_opaque()` (`:85`) puts the value through `asm volatile(\"\" : \"+r\"(x))` when `MBEDTLS_CT_ASM` is defined... The point is that the compiler cannot prove the value is 0 or 1, so it cannot rewrite the mask logic into a conditional jump.\nVERDICT: HIT\nWHY: The answer shows the empty `asm volatile(\"\" : \"+r\"(x))` with a read-write register operand and says it exists so the compiler can't optimise the mask into a branch. It doesn't say outright that no instruction is emitted, but an empty asm string implies that."
+}

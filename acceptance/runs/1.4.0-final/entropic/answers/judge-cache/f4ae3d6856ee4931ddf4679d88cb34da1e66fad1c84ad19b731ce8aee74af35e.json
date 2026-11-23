@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `wake_cv_` lets `stop()` wake it immediately\nVERDICT: MISS\nWHY: The answer mentions a condition variable wake and that the health monitor is joined in `stop()`, but it never states an atomic flag exchange as the shutdown signal, so it doesn't give the full mechanism the item requires."
+}

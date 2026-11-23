@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A rejected section logs a WARNING, and the build falls back to the whole-repo tier with the rejection stated as the reason. An absent section falls back silently with a reason saying none was declared.\nVERDICT: HIT\nWHY: The answer states that a declared `.clew.yaml` index_scope is preferred, and that both a rejected section and an absent one fall back to whole-repo indexing. It does not say that nonexistent roots also fall through, but it covers the main failure modes."
+}

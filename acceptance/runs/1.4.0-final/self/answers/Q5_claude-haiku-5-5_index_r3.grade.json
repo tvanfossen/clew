@@ -1,0 +1,143 @@
+{
+  "cell": "Q5_claude-haiku-5-5_index_r3",
+  "arm": "index",
+  "rubric_version": "5.0.0",
+  "rubric_digest": "d8447c7b18eafbf5",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.4074074074074074,
+  "unmarked_pct": 0.0,
+  "split_decisions": 1,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "identifies that layered build options resolve through FIVE named precedence tiers, rather than a single override",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: | 1 | CLI flags ... | 2 | `.clew.yaml` ... | 3 | Facts the target already states ... | 4 | Known-ecosystem signatures ... | 5 | Built-in name-shape guesses | The floor. Any stated value replaces them. | WHY: The answer lays out five numbered precedence tiers (flags/declaration, .clew.yaml, target facts, ecosystem signatures, built-in guesses) rather than a single override, though it opens by saying \"three layers.\" || QUOTE: | 1 | CLI flags ... | 2 | `.clew.yaml` ... | 3 | Facts the target already states ... | 4 | Known-ecosystem signatures ... | 5 | Built-in name-shape guesses | The floor. | WHY: The answer lays out five numbered precedence tiers (CLI/inline, .clew.yaml, target facts, ecosystem signatures, built-in guesses) with named channels, rather than a single override. The opening line says \"three layers\", but the table gives five tiers. || QUOTE: | 1 | CLI flags ... | 2 | `.clew.yaml` ... | 3 | Facts the target already states ... | 4 | Known-ecosystem signatures ... | 5 | Built-in name-shape guesses | The floor. | WHY: The answer lays out five numbered precedence tiers (flag/declaration, .clew.yaml, target facts, ecosystem signatures, built-in guesses) with resolution rules, not a single override.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that the rule is ASYMMETRIC \u2014 the stated tiers REPLACE one another while the discovered layers ACCUMULATE and survive whatever anyone states",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: Tiers 3 and 4 \"Accumulate. Nothing stated can remove them.\" and \"Stated value vs tier 3 or 4 fact: both apply. The fact is never discarded.\" alongside \"Any stated value replaces them\" (tier 5) and \"the flag ... replaces the declared value for that option as a whole. It does not merge.\" | WHY: The answer contrasts stated tiers that replace one another with discovered-fact layers that accumulate and survive any stated value. || QUOTE: \"Stated value vs tier 3 or 4 fact:** both apply. The fact is never discarded. Tiers 3 and 4 combine the same way\" and \"Any stated value replaces them\" / \"Accumulate. Nothing stated can remove them.\" | WHY: The answer says stated channels replace/displace values (flags replace as a whole, stated value replaces tier-5 guesses) while tier 3/4 discovered facts accumulate and cannot be removed by anything stated. || QUOTE: \"Stated value vs tier 3 or 4 fact:** both apply. The fact is never discarded. Tiers 3 and 4 combine the same way\" and \"Tiers 3 and 4 ... Accumulate. Nothing stated can remove them.\" alongside \"Any stated value replaces them\" and \"it replaces the declared value for that option as a whole. It does not merge.\" | WHY: The answer contrasts stated tiers that replace one another (flag replaces declared value, stated value replaces tier-5 guesses) with discovered facts that accumulate and cannot be removed by any statement.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that tiers 3 and 4 combine IDENTICALLY, so the distinction between them is deliberately inert, and that the load-bearing line is fact-versus-guess",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: Tiers 3 and 4 combine the same way; only the label differs. | WHY: The answer says tiers 3 and 4 combine the same way and differ only in label, but it never states that the distinction is deliberately inert or that the load-bearing line is fact-versus-guess. || QUOTE: Tiers 3 and 4 combine the same way; only the label differs. | WHY: The answer says tiers 3 and 4 combine identically with only the label differing, but it never says the distinction is deliberately inert or that the load-bearing line is fact-versus-guess. || QUOTE: Tiers 3 and 4 combine the same way; only the label differs. | WHY: The answer says tiers 3 and 4 combine identically, but never states that the distinction is deliberately inert or that the load-bearing line is fact-versus-guess.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies `.clew.yaml` as the repository's own standing declaration \u2014 tier 2, discovered from the repo root by BOTH entry points rather than plumbed per section",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: `.clew.yaml` at the repo root | The standing declaration, reached by both CLI and MCP. | WHY: The answer names `.clew.yaml` at the repo root as the standing declaration at tier 2, reached by both the CLI and MCP entry points. || QUOTE: `.clew.yaml` at the repo root | The standing declaration, reached by both CLI and MCP. | WHY: The answer identifies `.clew.yaml` as the tier-2 standing declaration at the repo root, reached by both CLI and MCP entry points. || QUOTE: `.clew.yaml` at the repo root | The standing declaration, reached by both CLI and MCP. | WHY: The answer names `.clew.yaml` at the repo root as tier 2, the standing declaration, reached by both CLI and MCP.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that tier 1 is reachable from BOTH entry points \u2014 a CLI flag and a structured options argument \u2014 so an embedding caller with no shell can still state the top tier",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"Inline document via `--declare`, or the structured `options` argument for embedding callers\" | WHY: The answer lists tier 1 as reachable via both a CLI flag (`--declare` and other flags) and the structured `options` argument for embedding callers. || QUOTE: \"Inline document via `--declare`, or the structured `options` argument for embedding callers\" (in the Tier 1 row, alongside \"CLI flags\") | WHY: The answer places both CLI flags and the structured `options` argument for embedding callers in tier 1, so both entry points reach the top tier.",
+      "agreement": 0.6666666666666666,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "notes that the option names an embedding caller states are the SAME WORDS as the declaration file's section names, and the same words the diagnostics use",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: Inline document via `--declare`, or the structured `options` argument for embedding callers | Same validation as a file. | WHY: The answer mentions the `options` argument for embedding callers but never says its option names are the same words as the declaration file's section names and the diagnostics' wording. || QUOTE: Inline document via `--declare`, or the structured `options` argument for embedding callers | Same validation as a file. | WHY: The answer mentions the `options` argument but never says its option names are the same words as the declaration file's section names or the diagnostics' wording. || QUOTE: Inline document via `--declare`, or the structured `options` argument for embedding callers | Same validation as a file. | WHY: The answer mentions the `options` argument and that an unknown section name is refused, but never states that the option names are the same words as the declaration file's section names and the diagnostics' words.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies that an unknown SECTION is refused by name against the allowed set rather than ignored, and gives the reason \u2014 an ignored section builds with defaults while reporting the declaration was honoured",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: An unknown section name is refused with an error that names the problem. | WHY: The answer says unknown sections are refused, but it doesn't mention the allowed set, and it gives no reason (an ignored section would build with defaults while claiming the declaration was honoured). || QUOTE: An unknown section name is refused with an error that names the problem. | WHY: The answer says unknown sections are refused, but it does not mention the allowed set, and it gives no reason (an ignored section would build with defaults while reporting the declaration honoured). || QUOTE: An unknown section name is refused with an error that names the problem. | WHY: The answer says unknown sections are refused, but it doesn't say they're refused against the allowed set. It also gives no reason, namely that ignoring them would build with defaults while claiming the declaration was honoured.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies a SECOND refusal one level down \u2014 an unknown key INSIDE a well-named section \u2014 and that a correctly-spelled derived key is refused with its reason rather than as unknown",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: An unknown section name is refused with an error that names the problem. | WHY: The answer only mentions refusal of unknown section names (top level) and says nothing about unknown keys inside a valid section or derived keys refused with a reason. || QUOTE: An unknown section name is refused with an error that names the problem. | WHY: The answer only mentions refusal of unknown section names (top level); it says nothing about unknown keys inside a valid section or a derived key refused with its reason. || QUOTE: An unknown section name is refused with an error that names the problem. | WHY: The answer only covers refusal of unknown section names; it never mentions a second, nested refusal for an unknown key inside a valid section, or a correctly-spelled derived key being refused with its reason.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the winning tier is RECORDED with the index, and that the record is derived from the stored rows rather than stamped as a separate summary",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: the tier that supplied each option is recorded in `build_meta`. | WHY: The answer says the winning tier is recorded in `build_meta`, but it never says the record is derived from the stored rows rather than stamped as a separate summary. || QUOTE: the tier that supplied each option is recorded in `build_meta`. | WHY: The answer says the winning tier is recorded in `build_meta`, but never says the record is derived from stored rows rather than stamped as a separate summary.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide a build option's value \u2014 clew/tiers.py",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide a build option's value \u2014 clew/declaration.py",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": false,
+      "detail": "not named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide a build option's value \u2014 clew/buildoptions.py",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": false,
+      "detail": "not named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide a build option's value \u2014 precision",
+      "kind": "set_precision",
+      "weight": 1,
+      "hit": false,
+      "detail": "named 5 not in the set: ['.clew.yaml', '.doxygen-guard.yaml', 'clew/cli.py', 'clew/requirements.py', 'requirements.yaml']",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    }
+  ]
+}

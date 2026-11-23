@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `run_async_ask` lambda (`:1158`) | Runs `entropic_run` for an async `entropic.ask` | Detached\nVERDICT: MISS\nWHY: The answer labels the async-ask thread \"Detached\" but doesn't say it's the only detached thread (it lists others as long-lived or reaped) or that it outlives its caller's scope with no join."
+}

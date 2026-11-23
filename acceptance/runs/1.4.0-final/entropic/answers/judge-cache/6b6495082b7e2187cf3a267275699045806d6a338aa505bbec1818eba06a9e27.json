@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Outside `src/inference/`, only `src/facade/entropic.cpp` (via `llama_cpp_backend.h`) touches it.\nVERDICT: HIT\nWHY: The answer says most of the 12 reaching files are in src/inference and that at least one file, the facade, sits outside it. That is concentrated but not contained."
+}

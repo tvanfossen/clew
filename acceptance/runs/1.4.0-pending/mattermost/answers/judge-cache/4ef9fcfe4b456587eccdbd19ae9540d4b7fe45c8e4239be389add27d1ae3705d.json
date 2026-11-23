@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The function returns `{data: true}` even on failure, so callers do not see the error.\nVERDICT: HIT\nWHY: The answer states that `createPost` returns `{data: true}` on failure, and it also says the failure is persisted on the stored post (`props.failed = true`), which is the substance of the item."
+}

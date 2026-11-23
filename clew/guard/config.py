@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """Configuration loading, defaults, and merging for the gate.
 
 The gate's config is the `guard:` section of the repo's `.clew.yaml`, the same file that
@@ -12,6 +13,7 @@ from __future__ import annotations
 import copy
 import difflib
 import logging
+import re
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -34,6 +36,8 @@ CONFIG_SECTION = "guard"
 # the `@req` gate in particular goes from enforced to absent with no output at all, which is
 # the same silent-success failure as a skipped file reporting nothing.
 LEGACY_CONFIG_NAME = ".doxygen-guard.yaml"
+## A `doxygen-guard` hook id in a pre-commit config (2.0.0, PG4: refused, naming `clew-guard`).
+_LEGACY_HOOK_ID = re.compile(r"^\s*-?\s*id:\s*['\"]?doxygen-guard['\"]?\s*$", re.M)
 
 VALIDATE_DEFAULTS: dict[str, Any] = {
     "languages": {
@@ -66,7 +70,25 @@ VALIDATE_DEFAULTS: dict[str, Any] = {
             # files carried symbols, call edges and requirement links while the gate skipped
             # them with a DEBUG line nobody sees. `tests/test_gate_index_extension_parity.py`
             # is what keeps the two tables from drifting again, in either direction.
-            "extensions": [".cpp", ".hpp", ".cc", ".cxx", ".hh", ".hxx", ".c++", ".h++"],
+            # 2.0.0 (C2): and every other C++ suffix doxygen indexes, which the index now parses.
+            "extensions": [
+                ".cpp",
+                ".hpp",
+                ".cc",
+                ".cxx",
+                ".hh",
+                ".hxx",
+                ".c++",
+                ".h++",
+                ".ipp",
+                ".inl",
+                ".ixx",
+                ".cppm",
+                ".cxxm",
+                ".c++m",
+                ".ii",
+                ".i++",
+            ],
             "function_pattern": (
                 r"^\s*(?:(?:static|inline|extern(?:\s+\"C\")?|virtual|explicit|constexpr)\s+)*"
                 r"(?:template\s*<[^>]*>\s*)?"
@@ -168,10 +190,14 @@ OPT_IN_LANGUAGE_DEFAULTS: dict[str, dict[str, Any]] = {
 # must import these rather than re-deriving them; duplicating the literals is how
 # the gate and its consumers drift apart.
 REQUIREMENTS_FORMAT_DEFAULT = "yaml"
-REQUIREMENTS_ID_COLUMN_DEFAULT = "Req ID"
+## ONE DEFAULT PAIR FOR EVERY READER (R5-CFG F8, 2.0.0). The gate defaulted to `Req ID`/`name` and
+## the index to `id`/`title`, so an undeclared flat `[{id, ...}]` catalog was keyed by one tool
+## and not the other. `id` is the index's id key and `name` the gate's required name field (the
+## index reads `name` or `title` either way, so its behaviour does not change).
+REQUIREMENTS_ID_COLUMN_DEFAULT = "id"
 REQUIREMENTS_NAME_COLUMN_DEFAULT = "name"
 REQUIREMENTS_ROOT_KEY = "requirements"
-REQUIREMENTS_REQUIRED_FIELDS = ("name",)
+REQUIREMENTS_REQUIRED_FIELDS = (REQUIREMENTS_NAME_COLUMN_DEFAULT,)
 REQUIREMENTS_OPTIONAL_FIELDS = (
     "subsystem",
     "min_version",
@@ -184,23 +210,157 @@ REQUIREMENTS_OPTIONAL_FIELDS = (
 # so no column name is involved.
 REQUIREMENTS_FORMATS_USING_ID_COLUMN = ("csv", "json")
 
-IMPACT_DEFAULTS: dict[str, Any] = {
-    "requirements": None,
-}
+## ONE PATH FOR THE IMPACT REPORT (R5-CFG F9 / D8, 2.0.0). It was `output_dir` (a generic
+## directory that only ever held this report) for the hook, `impact.output.file` for the
+## subcommand and `wiki.impact` for the site — three keys that could disagree, and the literal
+## `docs/generated/` restated in four places. The hook writes `impact.md` and `impact.json` here,
+## `clew guard impact --write` does the same, and the wiki reads `impact.json` from here.
+DEFAULT_REPORT_DIR = "docs/generated/impact/"
+REPORT_MARKDOWN = "impact.md"
+REPORT_JSON = "impact.json"
 
+## The branch the impact report diffs against, when `guard.impact.base` names none (R5-CFG W8, 2.0.0):
+## a repository on `master`, `develop` or an `upstream` remote states its own.
+DEFAULT_IMPACT_BASE = "origin/main"
+
+IMPACT_DEFAULTS: dict[str, Any] = {"report_dir": DEFAULT_REPORT_DIR, "base": DEFAULT_IMPACT_BASE}
+
+## `validate.exemption_reason` settings (2.0.0, PG3b). `optional` is the default: a repository
+## turns `required` on once its reasons are written (clew has ~1,629 unreasoned exemptions).
+EXEMPTION_REASON_SETTINGS: tuple[str, ...] = ("optional", "required")
+
+## No floor unless declared (owner, 2.0.0): no standard sets a requirement ratio, and the measured
+## values differ by repository, so a built-in number would be one repository's tuning.
+COVERAGE_DEFAULTS: dict[str, Any] = {"min_req_ratio": None}
+
+## `requirements` is the top-level catalog section, carried in the loaded config so every gate
+## reader finds it in one place; None means no catalog is declared. It is not a `guard:` key, and
+## `config --effective` reports it under `resolved.requirements` rather than echoing it as input.
+## `event_tags` (the declaration's event vocabulary, R5-CFG F10) and `wiki_sources` (whether
+## `wiki.sources` is declared, R5-CFG F11) are read from the same `.clew.yaml` for the same reason:
+## facts the gate must agree with the index and the wiki about, not `guard:` keys. `owners` (the
+## top-level `owners:` section, 2.0.0) is how the impact report finds the same owners files the
+## index's `owners` layer reads.
 CONFIG_DEFAULTS: dict[str, Any] = {
-    "output_dir": "docs/generated/",
     "validate": VALIDATE_DEFAULTS,
     "impact": IMPACT_DEFAULTS,
+    "coverage": COVERAGE_DEFAULTS,
+    "requirements": None,
+    "event_tags": None,
+    "wiki_sources": False,
+    "owners": None,
+    "test_paths": None,
+}
+
+## Keys of the loaded config that are not `guard:` keys (the cross-section facts above).
+NON_GUARD_KEYS = ("requirements", "event_tags", "wiki_sources", "owners", "test_paths")
+
+## THE TOP-LEVEL `requirements:` SECTION (R5-CFG F6/F7/F14, 2.0.0): one catalog, read by the index,
+## the gate and the wiki. Before, it lived in five places — a top-level path the index alone read,
+## `guard.impact.requirements` (gate, wiki, coverage), `wiki.catalogs` and
+## `impact.requirements.external` (one concept in two spellings), and `wiki.needs` — and each
+## tool read a different one. `version_field` is a catalog field, so it lives here too.
+REQUIREMENTS_SCHEMA: dict[str, Any] = {
+    "file": str,
+    "format": str,
+    "id_column": str,
+    "name_column": str,
+    ## GH #68: catalogues this repository does not own — a path, or {repo, rev, path, name?}
+    ## read from a local clone at that revision. A URL is refused by name. Pinned entries are
+    ## also the wiki's sub-catalogues (what `wiki.catalogs` declared, in its other spelling).
+    "external": list,
+    ## round 3, P6c: a requirement whose `status_field` value is in `exempt_status` is not a
+    ## coverage gap; `clew guard coverage` lists it as exempt, never silently.
+    "status_field": str,
+    "exempt_status": list,
+    ## The catalog field naming the release a requirement becomes active in (the version gate).
+    "version_field": str,
+    ## A Sphinx-needs `needs.json` whose needs join the requirement trace.
+    "needs": str,
+}
+
+## Keys that MOVED in 2.0.0, refused with where they went rather than as unknown: each was
+## correct in 1.x, so "unknown key" would send a reader hunting a typo that is not there.
+MOVED_KEYS: dict[str, str] = {
+    "impact.requirements": "the top-level `requirements:` section of .clew.yaml",
+    "validate.version_gate.version_field": "`requirements.version_field` (top level)",
+    "validate.version_gate.current_version": "`guard.validate.current_version`",
+    "output_dir": "`guard.impact.report_dir` (the directory the impact report is written to)",
+    "validate.bus.tags": (
+        "the top-level `event_tags:` section — the index's event vocabulary, which the gate reads "
+        "as its bus tags (undeclared: the index's built-in vocabulary)"
+    ),
+    "impact.output": (
+        "`guard.impact.report_dir`; `clew guard impact --write` writes impact.md and impact.json "
+        "there, and without --write it prints (`--format markdown|json|text`)"
+    ),
 }
 
 
 _OPEN_DICT = object()
 
+
+## @brief A mapping whose KEYS are the user's (a tag name, a language name) and whose every VALUE
+## follows one schema (R5-CFG F12, 2.0.0). `validate.tags` and `validate.languages` were open
+## dicts, so `tags.req.patern` or `languages.c.extentions` passed silently.
+## @version 1
+class _MapOf:
+    ## @brief Hold the schema every entry of the mapping follows.
+    #  @version 1.0
+    #  @utility
+    def __init__(self, schema: dict[str, Any]) -> None:
+        self.schema = schema
+
+
+## The keys one `validate.tags.<tag>` entry may carry.
+TAG_SCHEMA: dict[str, Any] = {
+    "pattern": str,
+    "require_prefix": list,
+    "require_contains": str,
+    ## `req` only: its ids must exist in the catalog.
+    "cross_reference": bool,
+}
+
+## The keys one `validate.languages.<lang>` entry may carry.
+LANGUAGE_SCHEMA: dict[str, Any] = {
+    "extensions": list,
+    "function_pattern": str,
+    "exclude_names": list,
+    "comment_style": {"start": str, "end": str},
+    "require_return": bool,
+}
+
+## The index's built-in event-tag vocabulary (clew/event_edges.py DEFAULT_EVENT_TAGS), restated
+## because `clew.guard` imports nothing from the pipeline (a layering decision, recorded in both
+## places); a test pins the two copies equal. A repository's declared `event_tags:` replaces it,
+## exactly as it does for the index (R5-CFG F10).
+DEFAULT_EVENT_TAG_NAMES: tuple[str, ...] = (
+    "emits",
+    "emit",
+    "publishes",
+    "publish",
+    "produces",
+    "sends",
+    "raises",
+    "fires",
+    "posts",
+    "handles",
+    "handle",
+    "subscribes",
+    "subscribe",
+    "consumes",
+    "receives",
+    "listens",
+    "observes",
+)
+
+## The prefix that marks a `validate.exclude` entry as a regex (R5-CFG F18): every other entry is
+## a glob, the syntax every other path filter in `.clew.yaml` uses.
+EXCLUDE_REGEX_PREFIX = "re:"
+
 CONFIG_SCHEMA: dict[str, Any] = {
-    "output_dir": str,
     "validate": {
-        "languages": _OPEN_DICT,
+        "languages": _MapOf(LANGUAGE_SCHEMA),
         "comment_style": {"start": str, "end": str},
         "presence": {
             "require_doxygen": bool,
@@ -212,31 +372,32 @@ CONFIG_SCHEMA: dict[str, Any] = {
             "require_present": bool,
             "require_increment_on_change": bool,
         },
-        "tags": _OPEN_DICT,
+        "tags": _MapOf(TAG_SCHEMA),
         "exclude": list,
         "extra_tags": list,
         "known_tags_warn": bool,
+        ## 2.0.0 (PG3b): `required` makes every exemption tag carry a one-line reason. `object`
+        ## here, like `coverage.min_req_ratio`: `_reason_errors` checks the value.
+        "exemption_reason": object,
         "duplicate_tags_error": bool,
-        "version_gate": {"current_version": str, "version_field": str},
+        ## The release the version gate compares `requirements.version_field` against: a
+        ## literal version, `auto:git` or `auto:cmake` (was `version_gate.current_version`).
+        "current_version": str,
+        "bus": {"vocabulary": list, "handlers": list, "senders": list},
     },
     "impact": {
-        "requirements": {
-            "file": str,
-            "format": str,
-            "id_column": str,
-            "name_column": str,
-        },
-        "output": {
-            "format": str,
-            "file": str,
-        },
+        "report_dir": str,
+        "base": str,
     },
+    ## 2.0.0 (PG3): the requirement ratio floor. `object` here; `_ratio_errors` checks the value,
+    ## because the schema's type check would refuse a YAML `1` as "expected float, got int".
+    "coverage": {"min_req_ratio": object},
 }
 
 
 ## @brief Build a dotted config path from parent path and key.
 #  @version 1.0
-#  @dg_internal
+#  @utility
 def _config_path(parent: str, key: str) -> str:
     return f"{parent}.{key}" if parent else key
 
@@ -258,7 +419,7 @@ def _validate_dict_node(user: dict, schema: dict, path: str) -> list[str]:
 
 ## @brief Suggest the closest known schema key for a misspelled one.
 #  @version 1.0
-#  @dg_internal
+#  @utility
 #  @return A " — did you mean 'x'?" fragment, or empty string if nothing is close
 def _suggest_key(key: str, schema: dict) -> str:
     matches = difflib.get_close_matches(key, list(schema.keys()), n=1, cutoff=0.6)
@@ -269,10 +430,13 @@ def _suggest_key(key: str, schema: dict) -> str:
 #  @details An explicit null is accepted for any node: it means "section not configured"
 #  and is the shape some defaults ship with (impact.requirements). Rejecting it made
 #  `config --effective` output invalid as input, so the contract could not round-trip.
-#  @version 1.5
+#  v1.6: a _MapOf node validates every value against one schema (2.0.0, R5-CFG F12)
+#  @version 1.6
 #  @req REQ-DDB-GUARD-012
 #  @return List of error strings for this node and its children
 def _validate_node(user: Any, schema: Any, path: str) -> list[str]:
+    if isinstance(schema, _MapOf) and user is not None:
+        return _validate_map_of(user, schema, path)
     unconstrained = schema is _OPEN_DICT or not isinstance(schema, type | dict)
     if unconstrained or user is None:
         return []
@@ -289,16 +453,142 @@ def _validate_node(user: Any, schema: Any, path: str) -> list[str]:
     )
 
 
+## @brief Validate a mapping of user-named entries against the schema every entry follows.
+#  @version 1.0
+#  @utility
+#  @return Errors, each naming the entry's dotted path
+def _validate_map_of(user: Any, schema: _MapOf, path: str) -> list[str]:
+    if not isinstance(user, dict):
+        return [f"{path}: expected dict, got {type(user).__name__}"]
+    errors: list[str] = []
+    for name, entry in user.items():
+        errors.extend(_validate_node(entry, schema.schema, _config_path(path, str(name))))
+    return errors
+
+
+## @brief Refuse a 1.x regex-shaped `validate.exclude` entry, naming the two 2.0.0 forms.
+#  @version 1.0
+#  @utility
+#  @return Errors
+def _exclude_errors(user_config: dict[str, Any]) -> list[str]:
+    validate = user_config.get("validate") if isinstance(user_config, dict) else None
+    excludes = validate.get("exclude") if isinstance(validate, dict) else None
+    if not isinstance(excludes, list):
+        return []  # a wrong type is the schema's to report
+    return [
+        f"guard.validate.exclude entry {e!r} reads as a regex; since 2.0.0 entries are globs "
+        f"(e.g. `tests/**`), and a regex is written with the `{EXCLUDE_REGEX_PREFIX}` prefix "
+        f"(e.g. `{EXCLUDE_REGEX_PREFIX}{e}`)"
+        for e in excludes
+        if isinstance(e, str)
+        and not e.startswith(EXCLUDE_REGEX_PREFIX)
+        and (e.startswith("^") or e.endswith("$") or "\\" in e)
+    ]
+
+
+## @brief Refuse an `exemption_reason` setting other than `required` or `optional`.
+#  @version 1.0
+#  @utility
+#  @return Errors
+def _reason_errors(user_config: dict[str, Any]) -> list[str]:
+    validate = user_config.get("validate") if isinstance(user_config, dict) else None
+    value = validate.get("exemption_reason") if isinstance(validate, dict) else None
+    if value is None or value in EXEMPTION_REASON_SETTINGS:
+        return []
+    return [
+        f"guard.validate.exemption_reason must be one of {', '.join(EXEMPTION_REASON_SETTINGS)}, "
+        f"got {value!r}"
+    ]
+
+
+## @brief Refuse a `coverage.min_req_ratio` that is not a number in (0, 1].
+#  @version 1.0
+#  @utility
+#  @return Errors
+def _ratio_errors(user_config: dict[str, Any]) -> list[str]:
+    coverage = user_config.get("coverage") if isinstance(user_config, dict) else None
+    if not isinstance(coverage, dict) or coverage.get("min_req_ratio") is None:
+        return []
+    value = coverage["min_req_ratio"]
+    number = isinstance(value, int | float) and not isinstance(value, bool)
+    if number and 0 < value <= 1:
+        return []
+    return [
+        f"guard.coverage.min_req_ratio must be a number in (0, 1], the share of non-test "
+        f"functions carrying @req among those carrying @req or an exemption; got {value!r}"
+    ]
+
+
 ## @brief Validate user config keys and types against CONFIG_SCHEMA.
-#  @version 1.1
+#  @details v1.2 (2.0.0): a key in MOVED_KEYS is reported with where it went, and is not also
+#  reported as unknown.
+#  v1.3: 1.x regex excludes are refused with the glob and re: forms (2.0.0, R5-CFG F18)
+#  v1.4: a coverage.min_req_ratio outside (0, 1] is refused (2.0.0, PG3)
+#  v1.5: an exemption_reason other than required / optional is refused (2.0.0, PG3b)
+#  @version 1.5
 #  @req REQ-DDB-GUARD-012
 #  @return List of error strings, empty if config is valid
 def validate_config_schema(user_config: dict[str, Any]) -> list[str]:
-    return _validate_node(user_config, CONFIG_SCHEMA, "")
+    moved, rest = _moved_keys(user_config)
+    return (
+        moved
+        + _exclude_errors(rest)
+        + _ratio_errors(rest)
+        + _reason_errors(rest)
+        + _validate_node(rest, CONFIG_SCHEMA, "")
+    )
+
+
+## @brief Split out the keys that moved in 2.0.0, each with a pointer to its new home.
+#  @version 1.0
+#  @utility
+#  @return (errors naming each moved key, the config without them)
+def _moved_keys(user_config: dict[str, Any]) -> tuple[list[str], dict[str, Any]]:
+    errors: list[str] = []
+    rest = copy.deepcopy(user_config) if isinstance(user_config, dict) else user_config
+    for dotted, where in MOVED_KEYS.items():
+        *parents, leaf = dotted.split(".")
+        node = rest
+        for part in parents:
+            node = node.get(part) if isinstance(node, dict) else None
+        if isinstance(node, dict) and leaf in node:
+            errors.append(f"guard.{dotted} moved in 2.0.0 to {where}")
+            del node[leaf]
+    gate = (rest.get("validate") or {}) if isinstance(rest, dict) else {}
+    if isinstance(gate, dict) and gate.get("version_gate") == {}:
+        del gate["version_gate"]
+    return errors, rest
+
+
+## @brief Read and validate the top-level `requirements:` section of a `.clew.yaml`.
+#  @details A bare string is the short form of `{file: <string>}`, which is what the 1.x top-level
+#  section was. Unknown keys are refused with a suggestion, like every `guard:` key.
+#  @version 1.0
+#  @req REQ-DDB-GUARD-012
+#  @return The section as a mapping, or None when the file declares none
+def read_requirements_section(config_path: Path) -> dict[str, Any] | None:
+    try:
+        with open(config_path) as f:
+            document = yaml.safe_load(f) or {}
+    except (OSError, yaml.YAMLError) as e:
+        raise ConfigError(f"Could not read config file {config_path}: {e}") from e
+    raw = document.get(REQUIREMENTS_ROOT_KEY) if isinstance(document, dict) else None
+    if raw is None:
+        return None
+    section = {"file": raw} if isinstance(raw, str) else raw
+    errors = _validate_node(section, REQUIREMENTS_SCHEMA, REQUIREMENTS_ROOT_KEY)
+    if not isinstance(section, dict):
+        errors = [f"{REQUIREMENTS_ROOT_KEY}: expected a mapping or one path"]
+    if errors:
+        for err in errors:
+            logger.error("Config error in %s: %s", config_path, err)
+        raise ConfigError(f"Invalid config in {config_path}", errors)
+    return dict(section)
 
 
 ## @brief Parse a version string like "v1.8.2" into a comparable tuple.
-#  @version 2.0
+#  v2.1: the message names validate.current_version (2.0.0)
+#  @version 2.1
 #  @req REQ-DDB-GUARD-014
 #  @return Tuple of integer components for comparison
 def parse_version(version_str: str) -> tuple[int, ...]:
@@ -314,14 +604,14 @@ def parse_version(version_str: str) -> tuple[int, ...]:
         logger.error("Could not parse version %r", version_str)
         raise ConfigError(
             f"Could not parse version {version_str!r}. If this came from "
-            f"validate.version_gate.current_version, either set a literal version or "
+            f"validate.current_version, either set a literal version or "
             f"ensure the auto: detector can resolve one."
         ) from e
 
 
 ## @brief Compare two version tuples, padding shorter one with zeros.
 #  @version 1.0
-#  @dg_internal
+#  @utility
 def compare_versions(a: tuple[int, ...], b: tuple[int, ...]) -> int:
     max_len = max(len(a), len(b))
     a_padded = a + (0,) * (max_len - len(a))
@@ -360,56 +650,64 @@ def deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]
     return result
 
 
-## @brief Warn when an inert `.doxygen-guard.yaml` is the likely reason the gate is defaulted.
-#  @param config_path The `.clew.yaml` the gate just failed to find a `guard:` section in.
+## @brief Refuse to run while a doxygen-guard leftover is in the repository, naming it.
+#  @details 2.0.0 (PG4, owner): "a hard cut of doxygen-guard priors — clew only". A leftover
+#  `.doxygen-guard.yaml`, or a `doxygen-guard` hook id in `.pre-commit-config.yaml`, FAILS the gate
+#  instead of warning. FAIL CLOSED, as a missing catalog does: a stale config a contributor reads
+#  states rules the gate does not enforce (the entropic session's catalog went unnoticed for 15
+#  months because every consumer failed open). It replaces a warning that fired only when no
+#  `guard:` section existed.
 #  @version 1.0
 #  @req REQ-DDB-GUARD-012
-#  @dg_internal
-def _warn_about_legacy_config(config_path: Path) -> None:
-    """SIGNPOSTED, NOT SUPPORTED. clew does not read the old file and this does not make it;
-    it names it, because the alternative is a repository whose gate quietly stopped enforcing
-    anything. Fires only when no `guard:` section exists — once one does, an undeleted legacy
-    file is explained, and warning on every commit is how an owner learns to ignore the
-    channel this warning needs.
-
-    @brief Name the legacy config when it is the probable cause of a defaulted gate.
-    """
-    legacy = config_path.parent / LEGACY_CONFIG_NAME
-    if not legacy.is_file():
-        return
-    logger.warning(
-        "%s exists but clew does not read it: the gate's config is now the `guard:` section "
-        "of %s, and this run used BUILT-IN DEFAULTS — so any `@req` enforcement, exclude "
-        "list or version gate it declared is NOT in effect. To migrate, add a `guard:` key to "
-        "%s and indent the old file's contents one level under it, then delete %s.",
-        legacy,
-        config_path.name,
-        config_path.name,
-        legacy.name,
-    )
+#  @return None; raises ConfigError naming every leftover
+def refuse_doxygen_guard_leftovers(root: Path) -> None:
+    problems = []
+    if (root / LEGACY_CONFIG_NAME).is_file():
+        problems.append(
+            f"{root / LEGACY_CONFIG_NAME} is a doxygen-guard config: clew 2.0.0 does not read it. "
+            'Move its contents under `guard:` in .clew.yaml (docs/GUARD.md, "Migrating from '
+            'doxygen-guard") and delete it.'
+        )
+    hooks = root / ".pre-commit-config.yaml"
+    text = hooks.read_text(encoding="utf-8", errors="replace") if hooks.is_file() else ""
+    if _LEGACY_HOOK_ID.search(text):
+        problems.append(
+            f"{hooks} declares the `doxygen-guard` hook id: since 2.0.0 the hook is `clew-guard`, "
+            "from the clew repository."
+        )
+    if problems:
+        raise ConfigError("doxygen-guard leftovers (clew 2.0.0 is clew only)", problems)
 
 
 ## @brief Load the `guard:` section of `.clew.yaml` and merge with built-in defaults.
-#  @details A missing file, or a file with no `guard:` section, runs on the defaults — and in
-#  either case an inert `.doxygen-guard.yaml` beside it is named as the probable cause.
-#  @version 3.1
+#  @details A missing file, or a file with no `guard:` section, runs on the defaults. A
+#  doxygen-guard leftover beside it is refused first (2.0.0, PG4: refuse_doxygen_guard_leftovers).
+#  v3.2 (2.0.0): the top-level `requirements:` section rides along as `config["requirements"]`,
+#  read with or without a `guard:` section, so the gate and the index read one catalog.
+#  v3.3: reads the event vocabulary and wiki.sources from the same file (2.0.0, R5-CFG F10/F11)
+#  v3.4: refuses a doxygen-guard leftover before any default applies (2.0.0, PG4)
+#  @version 3.4
 #  @req REQ-DDB-GUARD-012
 #  @return Merged config dict with defaults applied
 def load_config(config_path: Path | None = None) -> dict[str, Any]:
     if config_path is None:
         config_path = Path(CONFIG_FILE_NAME)
+    ## THE HARD CUT, on every path (2.0.0, PG4): before any default is applied.
+    refuse_doxygen_guard_leftovers(config_path.parent)
 
     if not config_path.exists():
         logger.info("No config file found at %s, using defaults", config_path)
-        _warn_about_legacy_config(config_path)
         return _fresh_defaults()
 
     logger.info("Loading config from %s", config_path)
+    shared = {
+        REQUIREMENTS_ROOT_KEY: read_requirements_section(config_path),
+        **_shared_facts(config_path),
+    }
     user_config = read_guard_section(config_path)
     if user_config is None:
         logger.info("No %r section in %s, using defaults", CONFIG_SECTION, config_path)
-        _warn_about_legacy_config(config_path)
-        return _fresh_defaults()
+        return {**_fresh_defaults(), **shared}
 
     errors = validate_config_schema(user_config)
     if errors:
@@ -418,7 +716,38 @@ def load_config(config_path: Path | None = None) -> dict[str, Any]:
         raise ConfigError(f"Invalid config in {config_path}", errors)
 
     _log_declared_sections(user_config)
-    return apply_opt_in_languages(deep_merge(_fresh_defaults(), user_config), user_config)
+    merged = apply_opt_in_languages(deep_merge(_fresh_defaults(), user_config), user_config)
+    merged.update(shared)
+    return merged
+
+
+## @brief The facts the gate reads from the rest of `.clew.yaml`: the event vocabulary and sources.
+#  v1.1: the owners: section (2.0.0)
+#  v1.2: the declared test paths (2.0.0, PG3)
+#  @version 1.2
+#  @utility
+#  @return {"event_tags": declared mapping or None, "wiki_sources": bool, "owners": mapping or None}
+def _shared_facts(config_path: Path) -> dict[str, Any]:
+    try:
+        with open(config_path) as f:
+            document = yaml.safe_load(f) or {}
+    except (OSError, yaml.YAMLError):
+        return {}
+    if not isinstance(document, dict):
+        return {}
+    tags = document.get("event_tags")
+    wiki = document.get("wiki") if isinstance(document.get("wiki"), dict) else {}
+    owners = document.get("owners")
+    tests = document.get("tests") if isinstance(document.get("tests"), dict) else {}
+    return {
+        ## 2.0.0 (PG3): the declared test paths, so the ratio floor leaves out the code the index
+        ## calls test code; None means the index's built-in guesses apply.
+        "test_paths": list(tests["paths"]) if isinstance(tests.get("paths"), list) else None,
+        "event_tags": dict(tags) if isinstance(tags, dict) else None,
+        "wiki_sources": bool(wiki.get("sources")),
+        ## 2.0.0: the impact report's reviewers read the same `owners:` section the index does.
+        "owners": dict(owners) if isinstance(owners, dict) else None,
+    }
 
 
 ## @brief Read the raw `guard:` mapping out of a `.clew.yaml`.
@@ -473,16 +802,37 @@ def _log_declared_sections(user_config: dict[str, Any]) -> None:
 
 ## @brief Access the validate section of config.
 #  @version 1.0
-#  @dg_internal
+#  @utility
 def get_validate(config: dict[str, Any]) -> dict[str, Any]:
     return config.get("validate", {})
 
 
 ## @brief Access the impact section of config.
 #  @version 1.0
-#  @dg_internal
+#  @utility
 def get_impact(config: dict[str, Any]) -> dict[str, Any]:
     return config.get("impact", {})
+
+
+## @brief The directory the impact report is written to and read from.
+#  @version 1.0
+#  @utility
+def report_dir(config: dict[str, Any] | None) -> str:
+    return str(((config or {}).get("impact") or {}).get("report_dir") or DEFAULT_REPORT_DIR)
+
+
+## @brief The ref the impact report diffs against (`guard.impact.base`).
+#  @version 1.0
+#  @utility
+def impact_base(config: dict[str, Any] | None) -> str:
+    return str(((config or {}).get("impact") or {}).get("base") or DEFAULT_IMPACT_BASE)
+
+
+## @brief Access the requirements catalog section (the top-level `requirements:`).
+#  @version 1.0
+#  @utility
+def get_requirements(config: dict[str, Any] | None) -> dict[str, Any]:
+    return (config or {}).get(REQUIREMENTS_ROOT_KEY) or {}
 
 
 ## @brief Reject output paths containing directory traversal or absolute components.

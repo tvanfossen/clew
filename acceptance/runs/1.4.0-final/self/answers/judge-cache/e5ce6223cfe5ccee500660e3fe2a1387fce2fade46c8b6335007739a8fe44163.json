@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`stale_code_refusal()` returns a refusal, and `build_or_refresh` checks it before touching an index. Auto-refresh never attempts a build while `matches_source` is false. `force=True` does not bypass the refusal.\"\nVERDICT: HIT\nWHY: The answer says the write path refuses (not warns) on stale code, checks before touching the index, and that force=True cannot bypass it."
+}

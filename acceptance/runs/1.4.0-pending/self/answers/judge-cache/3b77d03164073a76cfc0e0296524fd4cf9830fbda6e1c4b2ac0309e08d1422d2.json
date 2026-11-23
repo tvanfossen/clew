@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `resolved = (tier1 or tier2 or tier5) \u222a tier3 \u222a tier4`\nVERDICT: HIT\nWHY: The answer names tiers 1 through 5 with their roles and a formula showing layered resolution across five tiers, not a single override."
+}

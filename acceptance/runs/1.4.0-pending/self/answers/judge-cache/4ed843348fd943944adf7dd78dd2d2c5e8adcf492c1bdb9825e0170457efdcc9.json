@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: cli._apply_scope / derive_scope_logged            (clew/cli.py:753, scope.py:1313) ... derive_scope alone falls back to whole-repo\nVERDICT: HIT\nWHY: The answer names `derive_scope_logged` at `scope.py:1313` as where scope is resolved, and also mentions `derive_scope` falling back to whole-repo, so both the function and the file are named."
+}

@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 50194,
+  "stop_reason": "end_turn",
+  "session_id": "df51461c-f102-4e3f-92f8-65c04db0fee0",
+  "total_cost_usd": 0.020526179999999998,
+  "usage": {
+    "input_tokens": 26,
+    "cache_creation_input_tokens": 50095,
+    "cache_read_input_tokens": 624458,
+    "output_tokens": 8520,
+    "output_tokens_details": {
+      "thinking_tokens": 3290
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 50095,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2418,
+        "cache_read_input_tokens": 62713,
+        "cache_creation_input_tokens": 3001,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 3001
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 26,
+      "outputTokens": 8520,
+      "cacheReadInputTokens": 624458,
+      "cacheCreationInputTokens": 50095,
+      "webSearchRequests": 0,
+      "costUSD": 0.020526179999999998,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 3290,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 50095,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 22,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** a call runs only if it passes six gates in `ToolExecutor::check_call_preconditions`, and then `ServerManager::execute` runs the deny list. The allow list is consulted only at the approval gate. Deny is checked last, so it overrides everything before it.\n\n## The gate order\n\nSource: `src/mcp/tool_executor.cpp:667-694`\n\n1. **Anti-spiral hard block.** The engine refuses a tool it has already decided to stop.\n2. **Schema validation** (`check_schema`). Bad arguments are rejected.\n3. **MCP key set** (`check_mcp_authorization`, line 575). This applies only if the identity has a registered `MCPKeySet`. Unregistered identities pass. This is the fail-open default described in `include/entropic/mcp/mcp_authorization.h:14-17`.\n4. **Tier `allowed_tools`** (`check_tier_allowed`, line 198). If the locked tier declares a non-empty list, the tool must be in it.\n5. **Duplicate detection.** Repeated identical calls are rejected, and the circuit breaker trips at three.\n6. **Approval** (`check_approval`, line 161). The call is approved if either:\n   - `permissions.auto_approve` is set (wired at `src/facade/entropic.cpp:1489`), or\n   - `PermissionManager::is_allowed` matches the allow list.\n\n   If neither holds and no callback is registered, the call is denied with \"Permission denied\".\n\nThen `process_single_call` calls `ServerManager::execute` (`tool_executor.cpp:398`). That method (`server_manager.cpp:153-168`) runs `is_denied` against the deny list and returns \"Error: Permission denied\" without routing. Only if that passes does `route_tool_call` dispatch to an in-process server or external client.\n\n## What each list does\n\nBoth lists come from YAML `permissions.allow` and `permissions.deny` (`src/config/loader.cpp:369-370`). Each entry is a pattern of the form `tool[:args]`, matched in `PermissionManager::pattern_matches` (`src/mcp/permission_manager.cpp:101`):\n\n- **Tool part:** `fnmatch` against the fully qualified tool name, such as `filesystem.read`. `*` and `?` work as shell globs.\n- **No colon:** the tool match alone is sufficient, so `bash.execute` matches every call to that tool.\n- **With colon:** the full string `tool:arg` is also fnmatch'd. The argument side is built by `args_to_pattern` (`server_manager.cpp:426`), which takes the value of the first string argument, or `*` if there is none.\n\nBehavior by list:\n\n- **Allow:** lets the call pass approval. It does not bypass the MCP keys or tier checks that run earlier.\n- **Deny:** blocks the call at execution, even if `auto_approve` is on or the allow list matches.\n- **MCP key set:** a separate per-identity map of exact name, `server.*`, or `*`, with an access level (`find_best_match`, `mcp_key_set.cpp:184`). Key patterns are not fnmatch.\n\n## Things that differ from what the names suggest\n\n- **The callback approves everything.** In `check_approval` (`tool_executor.cpp:168-173`), if `on_tool_call` is registered and the call is not auto-allowed, the code calls the callback and then sets `approved = true`. So a host that registers the callback to \"ask the user\" gets a notification, not a gate. Enforcing ask-before-run requires the host to do its own blocking, or to leave the callback unset. I didn't find a path where the engine waits for an answer.\n- **Deny is enforced in one place.** Only `ServerManager::execute` calls `route_tool_call`, so the deny list holds for every dispatch I could find. I didn't audit every caller of `route_tool_call`.\n- **The bash-specific pattern is unused.** `BashServer::get_permission_pattern` (`src/mcp/servers/bash.cpp:200`) builds `bash.execute:<base-cmd> *`. Its only callers are tests. The live path uses `args_to_pattern`, which passes the whole command string through. So an allow entry like `bash.execute:git *` also matches `git status; rm -rf ~`, because `*` crosses `;` and `&&`. Either wire in the bash override or make the documented behavior match the code.\n\nI traced this by reading code and did not run the test suite.",
+  "ttft_ms": 1614,
+  "type": "result",
+  "duration_ms": 52100,
+  "uuid": "f083fc0d-c7af-49de-abc1-4a08006c8a40",
+  "ttft_stream_ms": 1341,
+  "time_to_request_ms": 187,
+  "first_content_frame_ms": 1341,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

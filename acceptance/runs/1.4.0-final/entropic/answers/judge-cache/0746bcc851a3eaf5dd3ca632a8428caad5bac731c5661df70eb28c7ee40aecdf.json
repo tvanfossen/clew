@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: llama.cpp is a git submodule that CMake builds in-tree... `.gitmodules` points `extern/llama.cpp` at `ggml-org/llama.cpp`, pinned to `20a04b22`. ... Not fetched like the others: ... via `FetchContent`... llama.cpp is `add_subdirectory(llama.cpp EXCLUDE_FROM_ALL)`.\nVERDICT: HIT\nWHY: The answer states llama.cpp is a git submodule at extern/llama.cpp, contrasted with FetchContent deps, so it is not fetched by the build."
+}

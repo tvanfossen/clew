@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `inv gen-bindings --check` runs in pre-commit and fails on drift.\nVERDICT: HIT\nWHY: The answer states that the gen-bindings check runs in pre-commit and fails on drift between header and generated bindings, though it doesn't spell out the \"re-run and diff\" mechanics. The generator parsing the header and emitting the bindings, plus a check that fails on drift, covers the item's substance."
+}

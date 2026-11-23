@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Default (`MBEDTLS_PLATFORM_MEMORY` off) ... That macro is off in the shipped config (`mbedtls_config.h:4124`).\nVERDICT: MISS\nWHY: The answer names MBEDTLS_PLATFORM_MEMORY as the switch, but it never says the macro is commented out in the shipped config. The \"off in the shipped config\" remark is about MBEDTLS_PLATFORM_STD_CALLOC, not about MBEDTLS_PLATFORM_MEMORY."
+}

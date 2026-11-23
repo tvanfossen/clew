@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`NavigationHeader` (`app/components/navigation_header/index.tsx`) does not use the ref itself. It forwards it to `NavigationSearch` only when `hasSearch` is true.\"\nVERDICT: HIT\nWHY: The answer states that NavigationHeader forwards its ref to NavigationSearch, which is mounted only when `hasSearch` is true. It doesn't say outright that the ref attaches to nothing otherwise, but that follows from the conditional mounting."
+}

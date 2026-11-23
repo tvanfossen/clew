@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `options=` argument to `build_index` / `index(action='refresh')` (tier 1) | An MCP or embedding caller with no shell | Same vocabulary as the declaration file.\nVERDICT: MISS\nWHY: The answer says options= uses the same vocabulary as the declaration file, but never says the option names match the section names or the diagnostics' wording."
+}

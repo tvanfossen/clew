@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Mirrors the engine's interrupt flag into the C-ABI int cancel flag during one batch generate call.\" and \"The comment says the C ABI is int-only, but that is still a data race under the C++ memory model.\"\nVERDICT: HIT\nWHY: The answer identifies the observer thread as bridging the engine's atomic interrupt flag into the plain int cancel flag, and says the C ABI is int-only, which is the stated reason."
+}

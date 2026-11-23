@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"schema: nothing the caller can do through this process clears it... code: ... The remedy is to restart the MCP client so it loads current code, then run `index(action='refresh', force=True)`.\" and \"data: the server refreshes automatically... A caller can also run `index(action='refresh')`.\"\nVERDICT: MISS\nWHY: The answer lists per-axis remedies (refresh for data, client restart for code) but never explains that the differing remedies are why one flag would not have been enough."
+}

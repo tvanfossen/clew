@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: With `MBEDTLS_PLATFORM_MEMORY` off, the header maps `mbedtls_calloc` straight to `calloc` at compile time.\nVERDICT: HIT\nWHY: The answer states that with PLATFORM_MEMORY off (the default), the header macros map mbedtls_calloc/free directly to calloc/free, so there is no indirection."
+}

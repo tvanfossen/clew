@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the four spawn sites are all in `programs/` and none are in `library/`, and it describes the mutexes in `threading.c`. It never puts the two together as a contrast, so it does not state that `library/` creates no threads yet supplies the mutex abstraction for threaded callers."
+}

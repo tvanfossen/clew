@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Only what the application starts. The library creates no threads.\" and \"Every mutex field, lock call, and the `mbedtls_mutex_*` function pointers are inside `#if defined(MBEDTLS_THREADING_C)`\" / \"`MBEDTLS_THREADING_C` ... `MBEDTLS_THREADING_PTHREAD` or `MBEDTLS_THREADING_ALT`\"\nVERDICT: MISS\nWHY: The answer says the library creates no threads, but it frames the mutex layer as compiled out and per-context locks, not as an abstraction the library supplies for threaded callers (pthread/alt mutex wrappers), so the second half of the contrast is not clearly stated."
+}

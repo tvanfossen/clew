@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Sends `include_deleted_channels: viewArchivedChannels` to the search API, so archived-channel posts come back in search results only when viewable.\nVERDICT: HIT\nWHY: The answer states that `searchPosts` sends `include_deleted_channels` to the search API, which is the item's substance."
+}

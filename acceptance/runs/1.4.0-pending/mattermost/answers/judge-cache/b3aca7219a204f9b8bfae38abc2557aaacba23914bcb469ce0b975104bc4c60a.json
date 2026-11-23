@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The post is written to the local database before the network call, with a `pendingPostId` as its id. ... Any other failure sets `props.failed = true` (line 169) and saves the post locally (lines 183-195). It stays in the channel as a failed post.\nVERDICT: HIT\nWHY: The answer states the post is saved locally before sending and that on failure it is kept and marked `failed = true`."
+}

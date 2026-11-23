@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Per-thread logging scope. `HandleLogScope` (`include/entropic/types/logging.h:154`) is re-entered on each spawned thread so log lines route to the owning handle.\nVERDICT: HIT\nWHY: The answer states a per-handle logging scope is re-entered on each spawned thread so logs route to the owning handle. It doesn't say it is the first statement, but the mechanism and its purpose match the item."
+}

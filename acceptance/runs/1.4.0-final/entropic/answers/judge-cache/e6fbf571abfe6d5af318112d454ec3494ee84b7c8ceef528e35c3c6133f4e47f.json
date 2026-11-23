@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The trampoline decodes the C arguments, calls the user function, and catches every exception so none escape into C.\" and \"A failing hook returns rc 0 (pass-through).\"\nVERDICT: HIT\nWHY: The answer states the hook trampoline catches all exceptions so none unwind into C, and that a failed hook returns rc 0 as pass-through."
+}

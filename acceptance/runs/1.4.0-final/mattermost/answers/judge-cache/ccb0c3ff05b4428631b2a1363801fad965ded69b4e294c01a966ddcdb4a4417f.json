@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Sends `include_deleted_channels` to the server with the value of the setting, so archived channels appear in search results only when on.\nVERDICT: HIT\nWHY: The answer states that searchPosts sends `include_deleted_channels` to the server with the setting's value."
+}

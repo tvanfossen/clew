@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes three ways to state options and a separate five-step order for the requirements catalog. It never says that layered build options resolve through five named precedence tiers. It mentions only \"tier 1\" in passing."
+}

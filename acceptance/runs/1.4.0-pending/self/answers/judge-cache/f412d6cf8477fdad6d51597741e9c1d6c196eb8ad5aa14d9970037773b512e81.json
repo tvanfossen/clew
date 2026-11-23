@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer lists signals (note, scope, not_searched) and confidence tiers, but never states that the strong \"not found\" wording is earned per call by querying which corpora weren't read, as opposed to being tied to a result shape. In fact it says the tool's wording stays non-definitive."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Allow entries let a call skip prompting. Deny entries block it outright.\nVERDICT: HIT\nWHY: The answer says allow only lets a call skip prompting (suppresses approval, not grants execution), and it places the allow consultation in check_approval in tool_executor.cpp. Deny is enforced separately in server_manager.cpp, a different file."
+}

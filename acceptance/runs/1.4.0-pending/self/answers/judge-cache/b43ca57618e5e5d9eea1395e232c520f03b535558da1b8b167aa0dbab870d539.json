@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `schema`, older index: `index(action='refresh', force=True)`. Newer index: restart the client, because a rebuild re-stamps the same newer version and cannot clear it. ... `code` ... | restart the client only | ... `data` ... | rebuild |\nVERDICT: MISS\nWHY: The answer lists different fixes per axis (rebuild for data, restart for code) but never explains that this difference is why a single flag would not have sufficed."
+}

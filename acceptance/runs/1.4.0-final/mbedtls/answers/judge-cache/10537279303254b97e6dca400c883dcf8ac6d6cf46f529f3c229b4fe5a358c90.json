@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the asm path is enabled when MBEDTLS_HAVE_ASM is defined and the compiler and architecture match, and that MBEDTLS_CT_ASM stays undefined otherwise. It never says MBEDTLS_CT_ASM is derived, not configured through mbedtls_config.h."
+}

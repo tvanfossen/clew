@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Calls `client.createPost` once more. This is a single attempt, with no retry loop. ... On failure, the same logic as above applies. The three removal errors delete the post. Any other error sets `props.failed = true` again\nVERDICT: HIT\nWHY: The answer states a single new attempt with no retry loop and failure re-marks the post failed or deletes it for the three errors. It does not mention backoff explicitly, but the substance is there."
+}

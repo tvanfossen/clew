@@ -578,7 +578,15 @@ def test_grader_fingerprint_is_the_value_published_runs_recorded() -> None:
     ## verdict and every voted extraction was one judge call counted three times. Each sample is
     ## now cached under its own key; sample 0 keeps the old key, so existing entries still replay.
     ## The 1.2.0 grid was graded at `5489758d9a50` and its RESULTS.md records the move.
-    published = "72a6c7bd363d"
+    ## MOVED AGAIN, 2026-11-17, from `72a6c7bd363d` (owner-approved for the fresh 2.0.0 grid): set
+    ## members match on whole path segments (`_matches`) instead of the last segment, which folded
+    ## `include/mbedtls/*.h` to `*.h`. 1.4.0-final was graded at `72a6c7bd363d`; its RESULTS.md and
+    ## the 2.0.0 pre-registration record the move.
+    ## MOVED AGAIN, 2026-11-19, from `c10cf554ae6d` (owner-approved): COMMENT-ONLY, behaviour
+    ## unchanged — the 2.0.0 hard cut re-tagged `## @dg_internal` to `## @utility` above
+    ## `judge._cache_entry`. No run was graded at `c10cf554ae6d` (0 run files carry it; the 2.0.0
+    ## grid has not run), so no published run loses re-gradability. The pre-registration records it.
+    published = "1ac344ae8cf3"
 
     ## THE MESSAGE USED TO STATE A FALSEHOOD, and it is worth more than a wording fix: it said
     ## "every graded cell ... recorded {published}", which was never true of any value this
@@ -799,3 +807,43 @@ def test_a_failed_vote_still_reports_why_it_failed(monkeypatch) -> None:
     assert voted.verdict is None
     assert not voted.rationale, "a failed vote invented a rationale"
     assert any("overloaded" in r for r in voted.reasons), voted.reasons
+
+
+## @brief A set member matches on whole path segments, not on its last segment alone.
+## @param monkeypatch Pytest monkeypatch fixture.
+## @return None.
+## @version 1
+def test_a_set_member_matches_on_path_segments_not_the_basename(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """FOUND BY THE 2.0.0 RUBRIC CROSS-CHECK (mbedtls Q4, owner-approved grader change): the
+    basename key turned an answer's `include/mbedtls/*.h` — the Makefile's own spelling — into
+    `*.h`, which could never equal the member `include/mbedtls`; the member scored 0/0/1 and its
+    precision with it. Matching is now on whole segments, one path a suffix of the other, with
+    trailing glob segments and line citations ignored: a bare basename still names its file,
+    and two different files sharing a basename no longer collide.
+
+    @brief Segment-suffix matching.
+    @return None.
+    @version 1
+    """
+    assert score._matches("include/mbedtls/*.h", "include/mbedtls")
+    assert score._matches("`./include/mbedtls/`", "include/mbedtls")
+    assert score._matches("ssl_pthread_server.c", "programs/ssl/ssl_pthread_server.c")
+    assert score._matches("src/facade/external_bridge.cpp:796", "src/facade/external_bridge.cpp")
+    assert not score._matches("lib/a.c", "src/a.c")
+    assert not score._matches("tests", "tests/suites")
+    mark = Mark(
+        text="the directories whose headers are installed",
+        type="set",
+        weight=1,
+        extract="List them.",
+        members=({"value": "include/mbedtls"}, {"value": "include/psa"}),
+    )
+    monkeypatch.setattr(
+        judge,
+        "ask",
+        lambda *_a, **_k: judge.Reply(text="ITEMS:\ninclude/mbedtls/*.h\ninclude/psa/*.h\nEND"),
+    )
+    monkeypatch.setattr(score, "ask", judge.ask)
+    assert [d.hit for d in score.score_set(mark, "answer", "claude-x-1")] == [True, True, True]

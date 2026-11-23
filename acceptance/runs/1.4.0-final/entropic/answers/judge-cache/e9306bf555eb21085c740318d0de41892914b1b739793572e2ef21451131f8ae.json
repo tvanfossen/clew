@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `bash.execute:python*` | Tool name matches the part before `:`, and `tool:<value>` matches the full pattern.\nVERDICT: MISS\nWHY: The answer describes tool-name/colon matching and says fnmatch is used, but never states that a colon-less pattern matches on the tool name alone, and it doesn't explicitly say the split happens at the first colon."
+}

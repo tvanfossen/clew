@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The one real write is `BaseDataOperator.batchRecords` (`base_data_operator/index.ts:191-211`).\nVERDICT: MISS\nWHY: The answer says the write goes through `batchRecords`, but it also lists direct `database.write` calls that bypass it. It never says that the mixins are constrained to extend ServerDataOperatorBase."
+}

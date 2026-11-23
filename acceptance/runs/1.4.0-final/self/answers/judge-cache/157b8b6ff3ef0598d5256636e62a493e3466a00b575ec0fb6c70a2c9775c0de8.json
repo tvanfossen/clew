@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never states that staleness measurement never raises or that a failed measurement degrades to no annotation instead of turning a reply into an error. It only says auto-refresh failures are logged and the reply still goes out with its notice, which is a different point."
+}

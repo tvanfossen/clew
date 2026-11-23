@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The attachment is size-budgeted and never raises.\nVERDICT: MISS\nWHY: The answer says the attachment is size-budgeted but never says the wording is degraded to fit the budget rather than the warning being dropped."
+}

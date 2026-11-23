@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never describes the HealthMonitor shutdown as an atomic flag exchange plus condition variable wake, and never states that its stop() joins. It only gives ExternalBridge's stop() ordering, which clears `running_` and joins the accept and client threads. It says nothing about the monitor's stop."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"if no allow rule or `auto_approve` applies and an `on_tool_call` callback exists, the code calls it and then sets `approved = true` ... The callback returns nothing, so an unlisted tool runs after notification.\"\nVERDICT: HIT\nWHY: The answer concludes that a tool matching neither the allow nor deny list is not denied and runs (default-allow in practice), noting this contradicts the documented default-deny."
+}

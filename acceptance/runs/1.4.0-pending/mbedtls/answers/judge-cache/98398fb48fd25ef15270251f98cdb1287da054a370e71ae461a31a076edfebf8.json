@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The asm is used only when `MBEDTLS_HAVE_ASM` is defined, the compiler is GNU-compatible, and the architecture and word size match.\nVERDICT: MISS\nWHY: The answer mentions MBEDTLS_CT_ASM conditions but never states it is derived rather than set in mbedtls_config.h."
+}

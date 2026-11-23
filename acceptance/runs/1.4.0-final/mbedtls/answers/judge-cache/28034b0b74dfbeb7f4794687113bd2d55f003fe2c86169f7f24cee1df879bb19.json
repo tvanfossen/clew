@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"one public function, `mbedtls_ct_memcmp`, in `include/mbedtls/constant_time.h`\" and \"**Public API:** only `mbedtls_ct_memcmp`.\"\nVERDICT: HIT\nWHY: The answer states that the public API is only mbedtls_ct_memcmp, and it places the other primitives in library-internal headers."
+}

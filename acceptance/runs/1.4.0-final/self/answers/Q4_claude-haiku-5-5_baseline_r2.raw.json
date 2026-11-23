@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 29265,
+  "stop_reason": "end_turn",
+  "session_id": "9db4e025-d0f0-4708-8016-dfa2c6abc765",
+  "total_cost_usd": 0.00990782,
+  "usage": {
+    "input_tokens": 14,
+    "cache_creation_input_tokens": 21928,
+    "cache_read_input_tokens": 295982,
+    "output_tokens": 5122,
+    "output_tokens_details": {
+      "thinking_tokens": 2296
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 21928,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2748,
+        "cache_read_input_tokens": 53930,
+        "cache_creation_input_tokens": 2374,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2374
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 14,
+      "outputTokens": 5122,
+      "cacheReadInputTokens": 295982,
+      "cacheCreationInputTokens": 21928,
+      "webSearchRequests": 0,
+      "costUSD": 0.00990782,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2296,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 21928,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 10,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "In this build, the answer is not a list of call sites. Each row is a caller **function** with provenance attached, and several things can make it misleading if read as \"these lines call this.\"\n\nI read the source here, not a live index. The `callers`/`callees` tools were folded into `dossier` (`clew/mcp_server/descriptions/_templates/ambiguous.json`), but the underlying `callers()` query still exists in `clew/query/symbols.py`.\n\n**What a row contains** (`CallEdge`, `clew/query/models.py`, and `_direct_call_edges` in `symbols.py`)\n\n| Field | Meaning |\n|---|---|\n| `name`, `rowid` | The caller function, identified by rowid, not by name |\n| `source` | Which extraction layer found it: doxygen xref, macro hop, AST, AST member, fnptr, declared dispatch, or binding |\n| `confidence` | `exact` / `resolved` / `fuzzy`. This is how precisely the callee was resolved, not how likely the call is real |\n| `edge_class` | `call` (synchronous, same thread) or `key` (a shared-state writer, not a caller) |\n| `implementors` | Concrete overrides, annotated onto a virtual-method edge |\n| `via_macro`, `via_macro_expansion` | The macro the call goes through, if any |\n\n**What makes it wrong to read as call sites**\n\n1. **One row per caller function, not per call site.** `_endpoint_identities` collapses duplicates. A function that calls `fn` five times appears once, with no line numbers.\n2. **`key` rows are not callers.** `callers()` appends shared-key writers whose values `fn` reads. Those may run asynchronously on another thread. The docstring says to check `edge_class` on every row.\n3. **Name collisions.** Without `qualified`, the focal side is resolved by identity (gh#26), but the `key` half is still unioned by bare name, and this gap is documented in `_call_edges`. The `ambiguous` block warns that neighbour rows may be shared across same-named functions.\n4. **`exact` does not mean right.** The gh#26 case in the code: three same-named `_classify` functions produced rows reading `confidence: exact`, one of them a fabricated self-edge, because every layer resolved by name.\n5. **Fuzzy edges are kept.** `callers` deliberately does not filter `fuzzy`. The code cites 21.3% of clew's own call edges and 79.8% on a large C++ target (entropic) as fuzzy. `chain_trace` filters them because it expands each hop.\n6. **Empty is not \"nobody calls it.\"** `_direct_call_edges` returns `[]` when the `call_edges` table is absent or the identity does not resolve. That is the same answer as \"no callers,\" which is the \"absence is not emptiness\" trap the project's own AGENTS.md warns about.\n7. **Coverage is partial by design.** Calls from non-function contexts, and calls through unresolved names, do not appear as callers. Only the indexed-function graph is shown, with `external_callees` covering the unresolved callee side.\n8. **Virtual dispatch.** A call to a base virtual method lists the base as the callee. Concrete targets appear only as `implementors` annotations on that edge.\n9. **Staleness.** Rows reflect the last build. `dossier` sets `anchor_mismatch: true` when the file has changed since, and the line data is then wrong.\n\n**How to read it:** treat `callers` as a candidate list of functions that may reach `fn`, filtered by `edge_class` and `confidence`, and verify the actual call site in source before relying on it. I did not run clew here: no clew tool is loaded in this session, so the above is from reading the code.",
+  "ttft_ms": 1833,
+  "type": "result",
+  "duration_ms": 30079,
+  "uuid": "6e887fef-55a7-4d07-b106-604d0ffcfdc7",
+  "ttft_stream_ms": 1138,
+  "time_to_request_ms": 154,
+  "first_content_frame_ms": 1138,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

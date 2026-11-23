@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`ClientPosts.createPost` (`app/client/rest/posts.ts:46`) sends `noRetry: true`.\" and \"so the transport layer makes exactly one attempt.\"\nVERDICT: HIT\nWHY: The answer states that createPost is never automatically retried (noRetry, retryLimit 0, exactly one attempt)."
+}

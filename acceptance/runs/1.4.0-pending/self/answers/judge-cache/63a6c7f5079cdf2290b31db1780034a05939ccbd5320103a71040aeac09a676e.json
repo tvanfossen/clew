@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`include_dataflow` is deliberately off for dossier.\"\nVERDICT: MISS\nWHY: The answer says dataflow is kept separate and `include_dataflow` is off for dossier, but it never says dossier asks for the call half only, and it never says that merging would report each dataflow edge twice."
+}

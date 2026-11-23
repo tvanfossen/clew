@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `#ifndef MBEDTLS_ALLOW_PRIVATE_ACCESS #define MBEDTLS_PRIVATE(member) private_##member #else #define MBEDTLS_PRIVATE(member) member` and \"The default protects the library's API boundary, meaning application developers who include the public headers. The opt-out is for code that is part of the library or the test tooling.\" Also: \"An application that defines `MBEDTLS_ALLOW_PRIVATE_ACCESS` before including mbedtls headers gets direct access\"\nVERDICT: HIT\nWHY: The answer states that code defining MBEDTLS_ALLOW_PRIVATE_ACCESS sees plain member names, while ordinary consumers of the public headers see the renamed `private_` names."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A matching `interface ServerDataOperator extends ...Mix` gives TypeScript the method types.\nVERDICT: HIT\nWHY: The answer states that a same-named interface extends the Mix types to give the class the typed mixed-in methods."
+}

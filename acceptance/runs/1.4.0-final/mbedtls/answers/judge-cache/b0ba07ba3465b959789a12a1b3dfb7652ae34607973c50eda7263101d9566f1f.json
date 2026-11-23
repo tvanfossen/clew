@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The structs are still declared in public headers, so the layout is visible, but the names are mangled and users are steered to the accessor functions.\nVERDICT: HIT\nWHY: The answer says the macro expands to `private_##member`, so user code writing `ssl->state` fails to compile. It also says the layout stays visible and only the names are mangled."
+}

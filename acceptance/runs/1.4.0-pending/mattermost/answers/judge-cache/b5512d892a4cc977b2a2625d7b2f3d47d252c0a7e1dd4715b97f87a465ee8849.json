@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Only creates happen, so a single-reaction event never removes other stale reactions on the post.\nVERDICT: HIT\nWHY: The answer says skipSync prevents deletions so a single incoming reaction doesn't remove other reactions on the post, which is the item's substance."
+}

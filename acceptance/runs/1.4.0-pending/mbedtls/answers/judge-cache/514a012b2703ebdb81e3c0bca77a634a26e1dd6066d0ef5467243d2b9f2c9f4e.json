@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `include/mbedtls/constant_time.h` (public, `mbedtls_ct_memcmp` only) and the internal `constant_time_impl.h` / `constant_time_internal.h`.\nVERDICT: HIT\nWHY: The answer states the public header exposes only `mbedtls_ct_memcmp`, and the other primitives live in internal headers."
+}

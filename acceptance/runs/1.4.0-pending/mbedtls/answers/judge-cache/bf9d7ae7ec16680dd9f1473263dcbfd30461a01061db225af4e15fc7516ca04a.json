@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `components-sanitizers.sh` has a `component_release_test_valgrind_constant_flow` that runs only the constant_time suites under Valgrind or MemSan.\nVERDICT: MISS\nWHY: The answer mentions valgrind/MemSan constant-flow test components, but doesn't say the facility is off-by-default or that it's explicitly not part of the library API."
+}

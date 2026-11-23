@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 28656,
+  "stop_reason": "end_turn",
+  "session_id": "91e9aed1-5bf9-49f2-8f8b-f4700b8a0fb9",
+  "total_cost_usd": 0.0116112,
+  "usage": {
+    "input_tokens": 16,
+    "cache_creation_input_tokens": 26082,
+    "cache_read_input_tokens": 393320,
+    "output_tokens": 4920,
+    "output_tokens_details": {
+      "thinking_tokens": 1846
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 26082,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1352,
+        "cache_read_input_tokens": 62614,
+        "cache_creation_input_tokens": 1245,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1245
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 16,
+      "outputTokens": 4920,
+      "cacheReadInputTokens": 393320,
+      "cacheCreationInputTokens": 26082,
+      "webSearchRequests": 0,
+      "costUSD": 0.0116112,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1846,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 26082,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 21,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The decision runs in two places: an approval check before dispatch, then a deny check at execution. The deny check is the only one that can stop a call once the approval check has passed.\n\n```\ntool call\n  \u2502\n  \u25bc\nToolExecutor::check_call_preconditions          (tool_executor.cpp:667)\n  1. anti-spiral hard block\n  2. check_schema\n  3. check_mcp_authorization   (MCP key access level)\n  4. check_tier_allowed\n  5. check_duplicate\n  6. check_approval_pc \u2192 check_approval\n        \u251c\u2500 auto_approve_tools? \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u25ba approved\n        \u251c\u2500 ServerManager::is_explicitly_allowed\n        \u2502     \u2514\u2500 PermissionManager::is_allowed(allow_list)? \u2500\u25ba approved\n        \u251c\u2500 on_tool_call callback registered? \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u25ba approved (see below)\n        \u2514\u2500 otherwise \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u25ba \"Permission denied\"\n  \u2502\n  \u25bc\nToolExecutor::execute_tool \u2192 ServerManager::execute   (server_manager.cpp:153)\n  \u2514\u2500 PermissionManager::is_denied(deny_list)? \u2500\u2500\u2500\u2500\u2500\u2500\u25ba \"Error: Permission denied for <tool>\"\n  \u2514\u2500 route_tool_call \u2192 MCP server runs\n```\n\n**What decides it**\n\n- The allow list (or `auto_approve`) skips the prompt. Anything else that has a callback registered also goes through, because `check_approval` sets `approved = true` after calling `on_tool_call`. That callback returns `void` (`engine_types.h:370`), so it can notify the host but cannot veto. Without a callback and without an allow match, the call is denied.\n- The deny list is checked again in `ServerManager::execute`, after approval. It wins over `auto_approve` and over the allow list, so a denied tool never reaches the server.\n\n**What a pattern does** (`permission_manager.cpp:101`)\n\n- Each pattern is split at the first `:`. The left side is an fnmatch against the fully-qualified tool name, for example `filesystem.*` or `git.commit`.\n- With no `:`, a match on the tool name is enough, so the pattern covers every argument set.\n- With a `:`, the right side is fnmatch'd against the full `tool:args` string, for example `bash.execute:python*`.\n- For bash, `BashServer::get_permission_pattern` builds `tool:<first word of command> *`, so `bash.execute:python *` allows any `python` command.\n- For other tools, the default `get_permission_pattern` returns the bare tool name (`server_base.cpp:87`), so tool-level granularity is the default.\n- `is_denied` and `is_allowed` both use `pattern_matches`, so deny and allow patterns use identical syntax.\n\n**Where the lists come from**\n\n- Both lists are read from the config's `permissions.allow` and `permissions.deny` keys (`loader.cpp:369`).\n- Runtime \"Always Allow/Deny\" choices are written back to the project YAML by `PermissionPersister` (`permission_persister.cpp:232`).\n\n**Discrepancy:** the header (`permission_manager.h:6`) says tools \"must be explicitly allowed or approved via callback\". In the code, any registered callback approves the call, because its return value is never read. Only the absence of a callback causes a default deny. If the host expects the callback to be a real prompt that can refuse, it cannot do that today. I did not check the host-side callback implementation.",
+  "ttft_ms": 1515,
+  "type": "result",
+  "duration_ms": 32847,
+  "uuid": "9b9cb21d-27d3-4714-bb37-9227a7a2c783",
+  "ttft_stream_ms": 1273,
+  "time_to_request_ms": 128,
+  "first_content_frame_ms": 1273,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

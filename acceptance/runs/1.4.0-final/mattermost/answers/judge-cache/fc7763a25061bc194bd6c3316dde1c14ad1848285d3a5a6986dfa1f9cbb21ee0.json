@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `AppDataOperator` (`app/database/operator/app_data_operator/index.ts`) extends the same `BaseDataOperator`, so it gets the same `processRecords`, `prepareRecords`, `batchRecords` and `handleRecords`. It runs against the global app database, not a server database.\nVERDICT: HIT\nWHY: The answer names AppDataOperator as another BaseDataOperator subclass sharing the write path, and says it runs against the app-level database."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says entries carry `source` and `confidence` and that `fnptr`/`binding`/`macro_hop` are indirect, but it never names an `edge_class` field. It also never describes direct calls and shared-key dataflow as two kinds of neighbour in one list."
+}

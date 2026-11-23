@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"A pattern is split at the first `:`. - The part before the colon is fnmatch-matched against the fully-qualified tool name (e.g. `bash.execute`). - If there is no colon, a tool-name match is enough, so `filesystem.read_file` allows or denies every call to that tool.\"\nVERDICT: HIT\nWHY: The answer states fnmatch matching, the split at the first colon into tool and argument parts, and that a pattern without a colon matches on tool name alone."
+}

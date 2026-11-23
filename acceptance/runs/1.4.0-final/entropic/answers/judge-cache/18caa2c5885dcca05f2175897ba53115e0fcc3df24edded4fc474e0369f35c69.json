@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Allow** (`is_allowed`) only sets `auto_ok` in `check_approval`. It does not bypass the later deny check.\" and \"The allow list only skips the prompt.\"\nVERDICT: MISS\nWHY: The answer says allow only skips the prompt, but it never says that allow is consulted only from check_approval in a different file. It also says `ServerManager::is_explicitly_allowed` is called, which hints at a different file, but it doesn't state that this is the sole consumer."
+}

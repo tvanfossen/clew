@@ -27,7 +27,11 @@ where the work is being done — and the same shape as its standing warning that
 
 from __future__ import annotations
 
+import logging
 import os
+from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 ## Every variable git exports to a hook that REPOINTS a later git command. `GIT_DIR` is the
 ## fatal one; the rest are listed because they are the same class of override and a fix that
@@ -84,7 +88,8 @@ GIT_COMMAND_VALUED_KEYS: tuple[str, ...] = (
 ## @brief One git argv with every command-valued configuration key disarmed.
 ## @param args The git arguments this call needs, without the leading `git`.
 ## @return The full argv to hand to `subprocess.run`.
-## @version 1
+## v2: `--no-ext-diff` on diff-family commands; `diff.external=` alone made git run "".
+## @version 2
 ## @req REQ-DDB-CONFIG-001
 def git_argv(*args: str) -> list[str]:
     """THE SINGLE PLACE THE RULE LIVES, so a new git call site inherits the defence instead of
@@ -98,13 +103,39 @@ def git_argv(*args: str) -> list[str]:
 
     @brief Build a git argv that cannot run commands from the inspected tree's config.
     @return The argv, ready for subprocess.
-    @version 1
     """
     disarmed: list[str] = ["git"]
     for key in GIT_COMMAND_VALUED_KEYS:
         disarmed.extend(["-c", f"{key}=/dev/null" if key == "core.hooksPath" else f"{key}="])
-    disarmed.extend(args)
+    disarmed.extend(_no_ext_diff(list(args)))
     return disarmed
+
+
+## The porcelain commands that run an external diff program when one is configured.
+_EXT_DIFF_COMMANDS = frozenset(("diff", "log", "show"))
+
+
+## @brief Insert `--no-ext-diff` after a diff-family subcommand.
+## @param args The git arguments.
+## @return The arguments, with the flag after `diff`, `log` or `show`.
+## @version 1
+## @req REQ-DDB-CONFIG-001
+def _no_ext_diff(args: list[str]) -> list[str]:
+    """`-c diff.external=` ALONE BREAKS DIFF: git runs the empty string as the program (found
+    dogfooding, round 3 P6c — every `git diff` here failed and the impact report read `[]`).
+    `--no-ext-diff` forbids external diffs and drivers whatever the config says, so the empty
+    key stays as defence in depth and the command works. Global options before the subcommand
+    (`-C dir`, `-c k=v`) are skipped to find it.
+
+    @brief Disable external diffs for diff-family commands.
+    @return Arguments.
+    """
+    i = 0
+    while i < len(args) and args[i].startswith("-"):
+        i += 2 if args[i] in ("-C", "-c") else 1
+    if i < len(args) and args[i] in _EXT_DIFF_COMMANDS:
+        return [*args[: i + 1], "--no-ext-diff", *args[i + 1 :]]
+    return args
 
 
 ## @brief The current environment with git's hook-repository overrides removed.
@@ -126,3 +157,39 @@ def git_env() -> dict[str, str]:
     @version 1
     """
     return {k: v for k, v in os.environ.items() if k not in GIT_HOOK_VARS}
+
+
+## @brief Whether a directory is the root of a git work tree, asked of git itself.
+## @param path The directory.
+## @return True when `git rev-parse --show-toplevel` run there names exactly that directory.
+## @version 1
+## @req REQ-DDB-CONFIG-001
+def is_work_tree_root(path: Path) -> bool:
+    """A `.git` DIRECTORY TEST REFUSED EVERY LINKED WORKTREE (agent C's W10): `git worktree add`
+    writes `.git` as a FILE pointing at the main repository. The filesystem cannot tell that file
+    from a planted one-byte `.git`, and a planted one must never make a directory indexable — so
+    git is asked. A planted file is not a valid gitdir, and git says so.
+
+    @brief Work-tree root check.
+    @return Bool.
+    """
+    import subprocess
+
+    directory = Path(path)
+    if not directory.is_dir():
+        return False
+    try:
+        result = subprocess.run(
+            git_argv("rev-parse", "--show-toplevel"),
+            cwd=directory,
+            env=git_env(),
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        logger.warning("is_work_tree_root: git could not answer for %s (%s)", directory, exc)
+        return False
+    top = result.stdout.strip()
+    return result.returncode == 0 and bool(top) and Path(top).resolve() == directory.resolve()

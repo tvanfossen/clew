@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_ERROR_STRERROR_DUMMY` is a config symbol that gates the same code.\nVERDICT: MISS\nWHY: The answer only mentions the symbol as gating the same code; it doesn't say it keeps mbedtls_strerror linkable with the string table compiled out, and it doesn't say the symbol is enabled by default."
+}

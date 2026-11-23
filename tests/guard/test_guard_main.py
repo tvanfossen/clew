@@ -33,7 +33,10 @@ class TestValidateFile:
         violations = validate_file(str(py_file), CONFIG_DEFAULTS, no_git=True)
         assert violations == []
 
-    def test_excluded_file(self, tmp_path):
+    def test_excluded_file(self, tmp_path, monkeypatch):
+        ## 2.0.0 (R5-CFG F18): excludes are repo-relative globs, so the gate runs from the repo root
+        ## (as pre-commit runs it); `gen/` is the directory at the root.
+        monkeypatch.chdir(tmp_path)
         c_file = tmp_path / "gen" / "auto.c"
         c_file.parent.mkdir()
         c_file.write_text("void Func(void) { }")
@@ -206,18 +209,17 @@ class TestPrecommitPipeline:
         req_file = tmp_path / "reqs.csv"
         req_file.write_text("Req ID,Name,Subsystem\nREQ-001,Data Processing,DataSvc\n")
         config_file = tmp_path / ".clew.yaml"
+        ## FIXTURE CHANGED (2.0.0, R5-CFG F7/F9): the catalog is the top-level `requirements:`
+        ## and the report directory is `guard.impact.report_dir` (it was `output_dir/impact/`).
         config_file.write_text(
-            guard_yaml(
-                dedent("""\
-                output_dir: out/
-                impact:
-                  requirements:
-                    file: reqs.csv
-                    id_column: "Req ID"
-                    name_column: "Name"
-                    format: csv
+            dedent("""\
+                requirements:
+                  file: reqs.csv
+                  id_column: "Req ID"
+                  name_column: "Name"
+                  format: csv
             """)
-            )
+            + guard_yaml("impact:\n  report_dir: out/impact/\n")
         )
         result = main(["--config", str(config_file), str(c_file)])
         assert result == 0
@@ -254,18 +256,17 @@ class TestPrecommitPipeline:
         (tmp_path / "out").mkdir()
         (tmp_path / "out" / "impact").symlink_to(outside)
         config_file = tmp_path / ".clew.yaml"
+        ## FIXTURE CHANGED (2.0.0, R5-CFG F7/F9): the catalog is the top-level `requirements:`
+        ## and the report directory is `guard.impact.report_dir` (it was `output_dir/impact/`).
         config_file.write_text(
-            guard_yaml(
-                dedent("""\
-                output_dir: out/
-                impact:
-                  requirements:
-                    file: reqs.csv
-                    id_column: "Req ID"
-                    name_column: "Name"
-                    format: csv
+            dedent("""\
+                requirements:
+                  file: reqs.csv
+                  id_column: "Req ID"
+                  name_column: "Name"
+                  format: csv
             """)
-            )
+            + guard_yaml("impact:\n  report_dir: out/impact/\n")
         )
 
         ## `main` IS THE CLI BOUNDARY and turns a GuardError into an exit code rather than a
@@ -310,19 +311,16 @@ class TestVersionGateFailsClosed:
                     min_version: v0.1.0
             """)
         )
+        ## FIXTURE CHANGED (2.0.0, R5-CFG F14): `current_version` is a validate scalar and
+        ## `version_field` a catalog field.
         (tmp_path / ".clew.yaml").write_text(
-            guard_yaml(
-                dedent("""\
-                validate:
-                  version_gate:
-                    current_version: "auto:git"
-                    version_field: "min_version"
-                impact:
-                  requirements:
-                    file: reqs.yaml
-                    format: yaml
+            dedent("""\
+                requirements:
+                  file: reqs.yaml
+                  format: yaml
+                  version_field: "min_version"
             """)
-            )
+            + guard_yaml('validate:\n  current_version: "auto:git"\n')
         )
         c_file = tmp_path / "a.c"
         c_file.write_text("/**\n * @brief No req tag.\n * @version 1.0\n */\nvoid F(void) { }\n")

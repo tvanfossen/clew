@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A gate-layer downgrade was built and reverted (gh#393) because it would hedge nearly every reply.\nVERDICT: HIT\nWHY: The answer says the search reply deliberately does not downgrade on layer absence, and that a gate-layer downgrade was reverted because it would hedge nearly every reply. That conveys deliberate restraint, but it doesn't state that exactly one downgrade exists. The unread-corpus downgrade is described, and the layer-level downgrade is said to be deliberately omitted, so together they carry the substance."
+}

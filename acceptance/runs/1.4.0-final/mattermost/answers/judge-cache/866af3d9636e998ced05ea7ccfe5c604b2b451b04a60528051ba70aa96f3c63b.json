@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Only `SearchScreen` is a search screen. The other seven leave `hasSearch` at its default of `false`, so they render no search row.\nVERDICT: HIT\nWHY: The answer names `app/screens/home/search/search.tsx` as the only renderer with `hasSearch={true}`, and the other seven callers don't enable the search field."
+}

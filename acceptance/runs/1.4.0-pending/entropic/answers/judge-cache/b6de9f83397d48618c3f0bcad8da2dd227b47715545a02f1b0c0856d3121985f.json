@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The index shows only these two call sites, at `src/inference/llama_cpp_tokenizer.cpp:55` and `:61`, both inside `LlamaCppTokenizer::tokenize`.\nVERDICT: HIT\nWHY: The answer locates the two llama_tokenize calls in that file and explains the size-probe-then-fill pattern."
+}

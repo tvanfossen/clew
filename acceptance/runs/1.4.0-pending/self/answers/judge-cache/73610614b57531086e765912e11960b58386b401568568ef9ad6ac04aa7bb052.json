@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: That method refuses to refresh when the process source does not match, because a stale process would rebuild with old pipeline logic.\nVERDICT: MISS\nWHY: The answer says builds are refused under a stale process and that the code axis can't be cleared by rebuild, but it never states that reads stay current because query tools open the database per call."
+}

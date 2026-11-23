@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Without it, the single-reaction payload would be treated as the full set of reactions for that post, and every other local reaction on the post would be marked for deletion.\nVERDICT: HIT\nWHY: The answer states that without skipSync the lone incoming reaction would be treated as the post's full set, so all other reactions on the post would be deleted."
+}

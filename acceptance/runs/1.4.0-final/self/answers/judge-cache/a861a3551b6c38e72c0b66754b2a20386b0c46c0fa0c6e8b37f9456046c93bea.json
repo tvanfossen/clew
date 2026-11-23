@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: With the grammars absent, `compiled_languages()` returns an empty set and logs an ERROR. A missing optional grammar makes `_ts_language_for` return None instead of raising... The not-indexed report is meant to name the uncovered file types, so an empty answer doesn't read as \"nothing there\".\nVERDICT: HIT\nWHY: The answer states that missing grammars degrade (None/empty set, no raise, files get a path row only) and that a not-indexed report is meant to name the uncovered types. It doesn't mention a router capability gate, but it does state the degrade-and-report substance."
+}

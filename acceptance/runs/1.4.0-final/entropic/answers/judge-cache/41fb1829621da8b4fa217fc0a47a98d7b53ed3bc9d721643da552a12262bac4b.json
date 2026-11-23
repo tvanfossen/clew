@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Log routing.** `HandleLogScope` is copied into the async-ask, accept, and per-client threads so their logs go to the owning handle's session log.\nVERDICT: MISS\nWHY: The answer covers only three thread bodies (async-ask, accept, per-client), not every thread body, and does not say the scope is installed as the first statement."
+}

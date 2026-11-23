@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`PermissionPersister` writes YAML. But `set_permission_persist` has no callers in the index\"\nVERDICT: MISS\nWHY: The answer mentions a YAML persister but never identifies config.local.yaml or separates persistence from the in-memory add_permission call. It also calls the persistence unwired."
+}

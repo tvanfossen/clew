@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Single token, nothing matched anywhere: the strong wording (\"definitive\u2026 do not retry or fall back to guessing\") is used... Single token, but the index holds rows in an unread corpus: the reply says \"NOT DEFINITIVE\"... Multi-token query: never definitive.\"\n\nVERDICT: MISS\n\nWHY: The answer separates definitive-for-scope from not-definitive. It never names a third grade, \"definitive for a reason that is not absence\", as distinct from those two. The prose case (\"this repository does use these terms\") is labeled NOT DEFINITIVE, not as that third grade."
+}

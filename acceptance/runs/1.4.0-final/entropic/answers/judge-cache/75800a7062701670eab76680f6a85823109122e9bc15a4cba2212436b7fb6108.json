@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"It reaches in deep, but it is contained in one layer.\"\nVERDICT: MISS\nWHY: The answer claims the dependency is contained in one layer, which contradicts the item. It does note a few outside references (the facade, the config loader), but it never concludes that the dependency is not contained by the inference layer."
+}

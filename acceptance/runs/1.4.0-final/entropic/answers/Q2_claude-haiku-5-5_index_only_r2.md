@@ -1,0 +1,15 @@
+**How it's brought in:** llama.cpp is a git submodule at `extern/llama.cpp`. The architecture doc lists it as an external dependency with "Submodule" type and "Direct C API" usage, and the project structure shows `extern/llama.cpp` as a git submodule. The release notes confirm the pin is moved by bumping the submodule (e.g. `253ba110b → ac4cddeb`, b9592). Linkage is in CMake: `src/inference/CMakeLists.txt` says it "links against llama.cpp, nlohmann/json, and spdlog." The index has no symbols for CMake files, so I could not read the actual `target_link_libraries` or `add_subdirectory` lines. The `extern/CMakeLists.txt` brief is stale: it says "llama.cpp is a submodule but NOT built in v1.8.0", which is from the scaffold era. Current pins are described in the file docs as b8420 (`llama_cpp_backend.cpp`) and later bumps in the release notes.
+
+**How far it reaches into entropic's source:** narrowly, and mostly in one directory.
+
+- **Direct users, `src/inference/`:**
+  - `llama_cpp_backend.{h,cpp}`: `LlamaCppBackend` is the main consumer. It calls the llama C API for model load, context creation, decode, the sampler chain, tokenization and chat templates. It also holds the MTP and speculative-decode paths.
+  - `llama_cpp_sampler.{h,cpp}`: `LlamaCppSampler` and `LlamaCppSamplerFactory` wrap `llama_sampler` chains.
+  - `llama_cpp_tokenizer.{h,cpp}`: `LlamaCppTokenizer` forwards to `llama_tokenize` and `llama_token_to_piece` over a borrowed `llama_vocab*`.
+- **Other entropic files that touch llama types:** `orchestrator.cpp` does `dynamic_cast<LlamaCppBackend*>` to stage tools and LoRA. `inference_c_api.cpp` constructs `LlamaCppBackend` in `entropic_create_inference_backend`. `adapter_manager.cpp` integrates with llama LoRA.
+- **Mirrored or vendored-coupled code:** `speculative_compat` mirrors a file-private function from llama.cpp's `common/speculative.cpp`. `tool_call_markers` tracks defaults from `common/chat-peg-parser.cpp`. `image_preprocessor.cpp` uses stb_image vendored with llama.cpp.
+- **Tests:** unit tests replace llama functions with link-time mocks (e.g. `adapter_manager_test.cpp`, `speculative_compat_test.cpp`, `vocab_only_smoke_test.cpp`).
+
+**Where it stops:** the C interface and the interface contracts. The design rules say pure C at `.so` boundaries, opaque handles, and no third-party headers in interface contracts. In the index, `include/entropic/interfaces/` and `entropic.h` show no llama types, and the only public-header mention is prose in `include/entropic/inference/tokenizer.h` about the pre-v2.3.10 coupling. I did not inspect every public signature, so "no llama types cross the boundary" rests on the docs plus the absence of symbols in those headers, not on a full check.
+
+**Caveat:** the index returned no llama.cpp source itself, since `extern/` holds one indexed file with zero symbols. Everything above about llama.cpp's internals comes from entropic's own comments and code.

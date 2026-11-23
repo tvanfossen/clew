@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`archivedChannelsViewable(value) = value !== 'false'`, so `undefined`, `'true'`, or any other string means viewable.\"\nVERDICT: HIT\nWHY: The answer states that a missing (undefined) value is treated as viewable and only an explicit 'false' disables archived channels."
+}

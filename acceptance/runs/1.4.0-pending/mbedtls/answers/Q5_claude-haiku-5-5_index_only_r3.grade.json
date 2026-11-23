@@ -1,0 +1,133 @@
+{
+  "cell": "Q5_claude-haiku-5-5_index_only_r3",
+  "arm": "index_only",
+  "rubric_version": "3.1.0",
+  "rubric_digest": "bbf6195f605be452",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.8928571428571429,
+  "unmarked_pct": 0.0,
+  "split_decisions": 0,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "names mbedtls_ct_compiler_opaque as the primitive that stops the compiler from knowing a value, and locates it in library/constant_time_impl.h",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: **Opaque values.** `mbedtls_ct_compiler_opaque()` (`:85`) puts the value through `asm volatile(\"\" : \"+r\"(x))` when `MBEDTLS_CT_ASM` is defined. Otherwise it returns `x ^ mbedtls_ct_zero`... The point is that the compiler cannot prove the value is 0 or 1 | WHY: The answer names mbedtls_ct_compiler_opaque as the primitive that stops the compiler from knowing a value. It places it in library/constant_time_impl.h at line 85, using the file name cited in the same section. || QUOTE: **Opaque values.** `mbedtls_ct_compiler_opaque()` (`:85`) puts the value through `asm volatile(\"\" : \"+r\"(x))` when `MBEDTLS_CT_ASM` is defined. ... The point is that the compiler cannot prove the value is 0 or 1 | WHY: The answer names mbedtls_ct_compiler_opaque as the primitive that keeps the compiler from knowing a value, and places it at line 85 of library/constant_time_impl.h. || QUOTE: **Opaque values.** `mbedtls_ct_compiler_opaque()` (`:85`) puts the value through `asm volatile(\"\" : \"+r\"(x))` when `MBEDTLS_CT_ASM` is defined. Otherwise it returns `x ^ mbedtls_ct_zero`... The point is that the compiler cannot prove the value is 0 or 1 | WHY: The answer names mbedtls_ct_compiler_opaque as the primitive that keeps the compiler from knowing a value. It places it at line 85 of `library/constant_time_impl.h`, because the bullet sits in the section whose other entries cite that file.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "explains that the asm path is an EMPTY asm volatile statement with the value as an input-output register operand \u2014 it emits no instruction and exists solely as an optimisation barrier",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: `mbedtls_ct_compiler_opaque()` (`:85`) puts the value through `asm volatile(\"\" : \"+r\"(x))` when `MBEDTLS_CT_ASM` is defined. ... The point is that the compiler cannot prove the value is 0 or 1, so it cannot rewrite the mask logic into a conditional jump. | WHY: The answer shows the empty asm volatile with a \"+r\" input-output operand and says its purpose is to stop the compiler optimising the value. It doesn't say outright that no instruction is emitted, but the empty string makes that clear. || QUOTE: `mbedtls_ct_compiler_opaque()` (`:85`) puts the value through `asm volatile(\"\" : \"+r\"(x))` when `MBEDTLS_CT_ASM` is defined... The point is that the compiler cannot prove the value is 0 or 1, so it cannot rewrite the mask logic into a conditional jump. | WHY: The answer shows the empty `asm volatile(\"\" : \"+r\"(x))` with a read-write register operand and says it exists so the compiler can't optimise the mask into a branch. It doesn't say outright that no instruction is emitted, but an empty asm string implies that. || QUOTE: `mbedtls_ct_compiler_opaque()` (`:85`) puts the value through `asm volatile(\"\" : \"+r\"(x))` when `MBEDTLS_CT_ASM` is defined. ... The point is that the compiler cannot prove the value is 0 or 1, so it cannot rewrite the mask logic into a conditional jump. | WHY: The answer quotes the empty asm volatile with a \"+r\" input-output operand and says it exists so the compiler can't reason about the value. It never says \"emits no instruction\", but the empty asm string and the barrier purpose are both stated.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that when assembly is unavailable the SAME function falls back to XOR-ing with an extern volatile global that holds zero, and identifies that global",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: Otherwise it returns `x ^ mbedtls_ct_zero`, where `mbedtls_ct_zero` is a `volatile` global (`library/constant_time.c:29`). | WHY: The answer says that without MBEDTLS_CT_ASM, `mbedtls_ct_compiler_opaque()` returns `x ^ mbedtls_ct_zero`, and it names `mbedtls_ct_zero` as a volatile global. That is the fallback in the same function, with the global identified. The quote doesn't say the global holds zero or that it is extern. The name `mbedtls_ct_zero` and the XOR make the zero value clear. || QUOTE: Otherwise it returns `x ^ mbedtls_ct_zero`, where `mbedtls_ct_zero` is a `volatile` global (`library/constant_time.c:29`). | WHY: The answer says that without MBEDTLS_CT_ASM, mbedtls_ct_compiler_opaque falls back to XOR with the volatile global mbedtls_ct_zero, so the same function and the global are both named. It doesn't spell out \"extern\" or \"holds zero\", but \"ct_zero\" and the XOR convey both. || QUOTE: Otherwise it returns `x ^ mbedtls_ct_zero`, where `mbedtls_ct_zero` is a `volatile` global (`library/constant_time.c:29`). | WHY: The answer says that without MBEDTLS_CT_ASM the same function (`mbedtls_ct_compiler_opaque`) returns x XOR the volatile global `mbedtls_ct_zero`, and it names that global. It does not say the global holds zero or is extern, but the name and the XOR mechanism are enough.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that MBEDTLS_CT_ASM is DERIVED rather than configured \u2014 it is set from MBEDTLS_HAVE_ASM together with compiler predefined macros, not from an entry in mbedtls_config.h",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: `MBEDTLS_CT_ASM` is defined only when `MBEDTLS_HAVE_ASM` is on and the compiler is GCC-style (`__GNUC__`) or ARMCC (`library/constant_time_impl.h:40-52`). | WHY: The answer says MBEDTLS_CT_ASM is set by MBEDTLS_HAVE_ASM plus compiler macros (`__GNUC__`/ARMCC) in constant_time_impl.h. That shows it is derived, not set in a config entry. It never says \"not in mbedtls_config.h\" outright, but the derivation is stated. || QUOTE: `MBEDTLS_CT_ASM` is defined only when `MBEDTLS_HAVE_ASM` is on and the compiler is GCC-style (`__GNUC__`) or ARMCC (`library/constant_time_impl.h:40-52`). | WHY: The answer says MBEDTLS_CT_ASM is defined from MBEDTLS_HAVE_ASM plus compiler predefined macros (`__GNUC__`/ARMCC) inside constant_time_impl.h. That means it is derived, not set in a config file. || QUOTE: `MBEDTLS_CT_ASM` is defined only when `MBEDTLS_HAVE_ASM` is on and the compiler is GCC-style (`__GNUC__`) or ARMCC (`library/constant_time_impl.h:40-52`). | WHY: The answer says MBEDTLS_CT_ASM is defined from MBEDTLS_HAVE_ASM plus compiler predefined macros (__GNUC__/ARMCC) in the header, so it is derived rather than set in mbedtls_config.h.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that the PUBLIC API surface is a single function, mbedtls_ct_memcmp, while the rest of the primitives are library-internal",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: `include/mbedtls/constant_time.h` (public, `mbedtls_ct_memcmp` only) and the internal `constant_time_impl.h` / `constant_time_internal.h`. | WHY: The answer states that the public header exposes only `mbedtls_ct_memcmp`, and that the other helpers live in internal headers. || QUOTE: `include/mbedtls/constant_time.h` (public, `mbedtls_ct_memcmp` only) and the internal `constant_time_impl.h` / `constant_time_internal.h`. | WHY: The answer states the public header exposes only `mbedtls_ct_memcmp`, and the other primitives live in internal headers. || QUOTE: `include/mbedtls/constant_time.h` (public, `mbedtls_ct_memcmp` only) and the internal `constant_time_impl.h` / `constant_time_internal.h`. | WHY: The answer says the public header exposes only `mbedtls_ct_memcmp` and that the other helpers sit in internal headers.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "conveys that the primitives are consumed broadly across the library \u2014 on the order of twenty modules \u2014 rather than being confined to one or two",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: **Modules that include it:** `bignum.c`, `bignum_core.c`, `bignum_mod.c`, `bignum_mod_raw.c`, `rsa.c`, `psa_crypto_rsa.c`, `cipher.c`, `gcm.c`, `ccm.c`, `chachapoly.c`, `cmac.c`, `nist_kw.c`, `base64.c`, `ecp_curves.c`, `pk_wrap.c`, `psa_crypto.c`, `psa_crypto_cipher.c`, `psa_crypto_mac.c`, `ssl_msg.c`, `ssl_tls.c`, `ssl_tls12_client.c`, `ssl_tls12_server.c`, `ssl_tls13_generic.c`, `ssl_tls13_server.c`, `ssl_cookie.c` | WHY: The answer lists about 25 distinct modules that include the constant-time facility, which shows broad use across the library rather than one or two modules. || QUOTE: **Modules that include it:** `bignum.c`, `bignum_core.c`, `bignum_mod.c`, `bignum_mod_raw.c`, `rsa.c`, `psa_crypto_rsa.c`, `cipher.c`, `gcm.c`, `ccm.c`, `chachapoly.c`, `cmac.c`, `nist_kw.c`, `base64.c`, `ecp_curves.c`, `pk_wrap.c`, `psa_crypto.c`, `psa_crypto_cipher.c`, `psa_crypto_mac.c`, `ssl_msg.c`, `ssl_tls.c`, `ssl_tls12_client.c`, `ssl_tls12_server.c`, `ssl_tls13_generic.c`, `ssl_tls13_server.c`, `ssl_cookie.c` | WHY: The answer lists about 25 modules that include the constant-time facility, which shows broad use across the library rather than use in one or two places. || QUOTE: **Modules that include it:** `bignum.c`, `bignum_core.c`, `bignum_mod.c`, `bignum_mod_raw.c`, `rsa.c`, `psa_crypto_rsa.c`, `cipher.c`, `gcm.c`, `ccm.c`, `chachapoly.c`, `cmac.c`, `nist_kw.c`, `base64.c`, `ecp_curves.c`, `pk_wrap.c`, `psa_crypto.c`, `psa_crypto_cipher.c`, `psa_crypto_mac.c`, `ssl_msg.c`, `ssl_tls.c`, `ssl_tls12_client.c`, `ssl_tls12_server.c`, `ssl_tls13_generic.c`, `ssl_tls13_server.c`, `ssl_cookie.c` | WHY: The answer lists about 25 modules that include the constant-time facility and says it \"reaches the crypto and TLS paths\", which shows broad consumption across the library.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies that the constant-flow property is VERIFIED by a separate, off-by-default testing facility built on MemorySanitizer or valgrind, and that it is explicitly not part of the library API",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: `components-sanitizers.sh` has `component_release_test_valgrind_constant_flow`. `tests/scripts/components-configuration-crypto.sh` has `test_with_valgrind_constant_time`, which runs the `constant_time` suites under Valgrind. | WHY: The answer mentions Valgrind-based constant-flow tests but never says the facility is a separate, off-by-default testing facility (MSan/valgrind) explicitly excluded from the library API; it even lists the constant-time helpers as part of the library. || QUOTE: `components-sanitizers.sh` has `component_release_test_valgrind_constant_flow` | WHY: The answer mentions Valgrind-based tests and the sanitizer component, but it never says the facility is off-by-default, a separate testing facility built on MemorySanitizer or valgrind, or that it is explicitly not part of the library API. || QUOTE: `components-sanitizers.sh` has `component_release_test_valgrind_constant_flow`. ... `tests/scripts/components-configuration-crypto.sh` has `test_with_valgrind_constant_time`, which runs the `constant_time` suites under Valgrind. | WHY: The answer mentions Valgrind-based constant-flow tests, but it never says the facility is off-by-default or that it is explicitly not part of the library API. It also doesn't mention MemorySanitizer.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "the source files that make up the constant-time implementation \u2014 include/mbedtls/constant_time.h",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the source files that make up the constant-time implementation \u2014 library/constant_time.c",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the source files that make up the constant-time implementation \u2014 library/constant_time_internal.h",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the source files that make up the constant-time implementation \u2014 library/constant_time_impl.h",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the source files that make up the constant-time implementation \u2014 precision",
+      "kind": "set_precision",
+      "weight": 2,
+      "hit": true,
+      "detail": "clean",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    }
+  ]
+}

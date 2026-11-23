@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"When tokenization fails, the caller gets an empty vector with no error signal, and nothing upstream checks for it.\" and \"`tokenize` returning `{}` on a real failure needs to be distinguishable from empty input.\"\nVERDICT: HIT\nWHY: The answer states that tokenize failure returns an empty vector indistinguishable from empty input, and that no caller checks for it."
+}

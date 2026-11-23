@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The fix would be to add a `not_indexed` check to `_verdict` that downgrades to \"NOT definitive\" and names the uncovered extensions.\nVERDICT: MISS\nWHY: The answer proposes a specific code fix to the verdict wording. It never states the general rule \"fix the corpus, not the sentence about the corpus.\""
+}

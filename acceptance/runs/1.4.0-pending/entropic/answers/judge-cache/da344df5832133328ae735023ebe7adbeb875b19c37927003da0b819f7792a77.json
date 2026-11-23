@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It calls the C ABI directly through `ctypes`, and the memory rules are the C header's rules (`entropic.h`), not Python's. ... `_loader.load() \u2192 ctypes.CDLL(librentropic.so)` ... The Python package is pure Python.\nVERDICT: HIT\nWHY: The answer names ctypes loading librentropic.so via CDLL, states no binding framework, and says the Python package is pure Python (no compiled extension)."
+}

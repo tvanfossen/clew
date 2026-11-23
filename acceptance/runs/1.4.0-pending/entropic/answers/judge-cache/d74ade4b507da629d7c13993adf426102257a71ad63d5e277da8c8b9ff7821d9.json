@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The thread is `.detach()`ed, so nothing joins it. Its only shared outputs are the task map and a broadcast.\nVERDICT: HIT\nWHY: The answer identifies the async ask worker (`run_async_ask`) as detached with nothing joining it. It says the other threads are joined or reaped, which makes this the one detached thread; the outlives-scope point is implied by the lack of a join."
+}

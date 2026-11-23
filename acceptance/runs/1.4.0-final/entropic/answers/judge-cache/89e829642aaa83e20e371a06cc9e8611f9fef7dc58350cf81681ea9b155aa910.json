@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"If the second call returns a negative `actual`, it logs `\"Tokenization failed for text of length N\"` (the length only, not the text) and returns an empty vector.\"\nVERDICT: HIT\nWHY: The answer states that a negative result from the second call logs and returns an empty vector, and it also says \"Nothing loops, and nothing re-runs after a failure\", so there is no retry."
+}

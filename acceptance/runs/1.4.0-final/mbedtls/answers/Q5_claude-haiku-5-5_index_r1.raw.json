@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 40962,
+  "stop_reason": "end_turn",
+  "session_id": "bef468b1-f9db-4bfa-a000-0a151e2390b4",
+  "total_cost_usd": 0.020040739999999998,
+  "usage": {
+    "input_tokens": 14,
+    "cache_creation_input_tokens": 60711,
+    "cache_read_input_tokens": 386014,
+    "output_tokens": 8074,
+    "output_tokens_details": {
+      "thinking_tokens": 2671
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 60711,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3321,
+        "cache_read_input_tokens": 77431,
+        "cache_creation_input_tokens": 2263,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2263
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 14,
+      "outputTokens": 8074,
+      "cacheReadInputTokens": 386014,
+      "cacheCreationInputTokens": 60711,
+      "webSearchRequests": 0,
+      "costUSD": 0.020040739999999998,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2671,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 60711,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 18,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "## Short answer\n\nConstant time in Mbed TLS is a **discipline plus a small set of primitives**, not a compiler-enforced property. The primitives are in `library/constant_time_impl.h`. On GCC/Clang builds with `MBEDTLS_HAVE_ASM` on a supported architecture, the critical \"make a mask\" and \"select\" steps are hand-written inline assembly, and an empty `asm volatile` barrier hides values from the optimizer. On anything else, the code falls back to plain C that is only *observed* to stay branch-free. Nothing in the build rejects an unsupported compiler. The facility reaches into roughly 29 library files, but it is not uniform across the library.\n\n## How it is enforced at the instruction level\n\n**1. Opaque values.** `mbedtls_ct_condition_t` is an unsigned integer that is only ever 0 or all-ones. `MBEDTLS_CT_TRUE`/`MBEDTLS_CT_FALSE` are produced through `mbedtls_ct_compiler_opaque()` (`constant_time_impl.h:85`). On the assembly path that is `asm volatile(\"\" : [x] \"+r\"(x))`, a no-op the optimizer cannot see through, so it cannot prove the value at compile time and cannot turn a select back into a branch.\n\n**2. Mask generation.** `mbedtls_ct_bool(x)` (`constant_time_impl.h:120`) turns any nonzero value into all-ones with no branch. Each architecture has its own asm, for example x86-64 `mov/neg/or/sar $63`, AArch64 `neg/orr/asr`, and ARM `negs/orrs/asrs`.\n\n**3. Selection and comparison.** `mbedtls_ct_if` (`:205`) is a masked select: `(if1 & c) | (if0 & ~c)`, again in asm on the supported targets. The comparisons (`uint_lt`, `uint_ge`, `uint_eq`, \u2026) are built on the mask. For example, `uint_ge` is `~uint_lt` (`:501`).\n\n**4. Memory operations.** `mbedtls_ct_memcmp` (`library/constant_time.c:67`) reads both buffers through `volatile` pointers so the compiler must read every byte and cannot exit early. It ORs the XORs and returns a non-zero value only if the accumulator is non-zero. The `mbedtls_ct_memcpy_if`, `mbedtls_ct_memcpy_offset` and `mbedtls_ct_zeroize_if` helpers always touch every byte, so the access pattern does not depend on the secret.\n\n## What happens on a compiler or target that cannot support it\n\nThe selection is in the `#if` cascade at `constant_time_impl.h:40\u201352`:\n\n| Condition | Result |\n|---|---|\n| `MBEDTLS_HAVE_ASM` and `__GNUC__` (GCC or Clang, not old armcc) | `MBEDTLS_CT_ASM` is defined. Architecture macros are added only for ARM/Thumb, AArch64, x86-64 and i386. |\n| `MBEDTLS_CT_ASM` but another architecture (e.g. RISC-V with GCC) | The opaque barrier is still asm, but `mbedtls_ct_bool` and `mbedtls_ct_if` use the plain-C fallback. |\n| No `MBEDTLS_HAVE_ASM`, or a non-GNU compiler such as MSVC | `mbedtls_ct_compiler_opaque` returns `x ^ mbedtls_ct_zero`, where `mbedtls_ct_zero` is a global `volatile` zero (`constant_time.c:29`). The plain-C `mbedtls_ct_bool` uses arithmetic (`-xo | -(xo>>1)`, then a sign-bit extract) written so it does not compile to branches. |\n\nThe comment at `constant_time_internal.h:55\u201359` says the C fallback \"has been observed to be constant-time on latest gcc, clang and MSVC as of May 2023.\" That is an observation about specific compiler versions, not a guarantee. A future optimizer could still turn the C path into a branch, and nothing in the build detects that. The code only checks one thing at compile time: a 16-bit `int` platform gets an `#error` in `mbedtls_ct_memcmp`. Unsupported compilers do not fail the build. They silently get the weaker path.\n\n## How it is checked\n\nThe enforcement is mostly testing, not compilation:\n\n- `tests/suites/test_suite_constant_time*.function` wraps secret inputs in `TEST_CF_SECRET` so MSan or Valgrind flags any secret-dependent branch or address.\n- `tests/scripts/components-configuration-crypto.sh:25` (`test_with_valgrind_constant_time`) runs the `*constant_time*` suites under Valgrind memcheck. The HMAC suite is excluded, and the run fails if the log is non-empty.\n- `3rdparty/p256-m` uses its own `CT_POISON`/`CT_UNPOISON` macros around `VALGRIND_MAKE_MEM_UNDEFINED`.\n\nI did not build any of these or run Valgrind here, so I have not verified that they pass on this checkout.\n\n## How far it reaches\n\nCounting `mbedtls_ct_\\w+(` occurrences in `library/` gives 286 across 29 files. The main users are:\n\n- **TLS record and handshake:** `ssl_msg.c` (CBC padding and MAC check), `ssl_tls.c`, `ssl_tls12_server.c`, `ssl_tls13_*`, `ssl_cookie.c`, and the Finished and binder comparisons.\n- **AEAD and MAC tag checks:** `gcm.c`, `ccm.c`, `chachapoly.c`, `cmac.c`, `nist_kw.c`, `psa_crypto_mac.c`, and the PSA driver wrappers.\n- **Padding:** `cipher.c` (`mbedtls_get_pkcs_padding`) and `base64.c`.\n- **RSA:** `rsa.c` for PKCS#1 v1.5 and OAEP unpadding, using `mbedtls_ct_zeroize_if` and `mbedtls_ct_memcmp`.\n- **Bignum:** `bignum_core.c` has `mbedtls_mpi_core_lt_ct`, `check_zero_ct`, a constant-time GCD/modinv, and `exp_mod_optionally_safe`. That function takes an `E_public` flag, so the exponent is only protected when the caller says it is secret.\n\nGaps I found or could not rule out:\n\n- **ECC:** `ecp.c` and `ecdsa.c` call `mbedtls_mpi_gcd_modinv_odd` and `mbedtls_mpi_exp_mod`. They do not call `mbedtls_ct_*` directly, so ECC point arithmetic is protected only as far as the bignum layer is. I did not audit ECC scalar multiplication. The constant-time claim there rests on the bignum core and on the separate `p256-m` code.\n- **Scope of the guarantee:** `mbedtls_ct_memcmp` is constant time only with respect to the data and the outcome, not the length `n`. The documentation says so explicitly.\n- **AES and Camellia:** these files contain `_ct`-style references (9 and 3 matches). I did not check whether those are constant-time table-free implementations or something else.\n\n## Summary\n\nEnforcement is by convention plus tests. Assembly barriers and masks give real protection on GCC/Clang for the listed architectures. Everywhere else the library relies on a C fallback whose safety is an observed property, and nothing in the build flags the weaker path. The facility is used throughout TLS, AEAD tag checks, RSA unpadding and bignum core. ECC scalar multiplication and some other layers rely on it only indirectly, and I did not verify those.",
+  "ttft_ms": 3224,
+  "type": "result",
+  "duration_ms": 42578,
+  "uuid": "88e7a3d4-46cd-447a-b654-3ecd8f03bce7",
+  "ttft_stream_ms": 1251,
+  "time_to_request_ms": 132,
+  "first_content_frame_ms": 1251,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

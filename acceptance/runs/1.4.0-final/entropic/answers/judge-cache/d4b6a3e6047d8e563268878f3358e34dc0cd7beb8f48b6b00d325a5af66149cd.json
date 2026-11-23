@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Deny is the only list that can block a call that approval already passed.\nVERDICT: HIT\nWHY: The answer states deny is checked in `ServerManager::execute` via `is_denied` before routing, and that it is the only list that can block a call that approval already passed. This is the item's substance, though the answer doesn't say outright that `execute` consults nothing else."
+}

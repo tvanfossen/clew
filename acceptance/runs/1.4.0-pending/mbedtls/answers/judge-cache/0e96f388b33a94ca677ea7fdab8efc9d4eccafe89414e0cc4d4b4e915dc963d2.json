@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"It is the only library code that calls the setter.\"\nVERDICT: HIT\nWHY: The answer says `mbedtls_memory_buffer_alloc_init` installs its own allocator via `mbedtls_platform_set_calloc_free` and is the only library code that calls the setter. That covers the init-function install and the only-in-tree-user claim."
+}

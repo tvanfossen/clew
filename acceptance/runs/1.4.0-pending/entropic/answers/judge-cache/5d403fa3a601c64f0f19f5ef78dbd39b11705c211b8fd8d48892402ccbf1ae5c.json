@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Without a callback, a non-allowed call is denied.\nVERDICT: MISS\nWHY: The answer says that a call with no allow match is approved once the callback is wired (\"every call that misses the allow list is approved\") and denied when there is no callback. It never concludes that a tool matching neither list runs by default, and it names no default-allow posture."
+}

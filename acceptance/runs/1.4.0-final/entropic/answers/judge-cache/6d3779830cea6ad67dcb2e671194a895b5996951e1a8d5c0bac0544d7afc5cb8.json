@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"That one is closer to a retry, because the second call happens only when the 256-byte stack buffer is too small.\"\nVERDICT: HIT\nWHY: The answer states detokenize uses a 256-byte stack buffer first and makes a second call only when it's too small, and contrasts with tokenize, which always sizes first (nullptr,0 query). It doesn't say \"heap\" explicitly, but the substance of the stack-first, fallback-on-demand mechanism is there."
+}

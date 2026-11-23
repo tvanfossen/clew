@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 38170,
+  "stop_reason": "end_turn",
+  "session_id": "827a7ffa-5b0c-44bd-9f22-d3bb2ef89b78",
+  "total_cost_usd": 0.014310630000000001,
+  "usage": {
+    "input_tokens": 14,
+    "cache_creation_input_tokens": 38037,
+    "cache_read_input_tokens": 289333,
+    "output_tokens": 7617,
+    "output_tokens_details": {
+      "thinking_tokens": 3802
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 38037,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2327,
+        "cache_read_input_tokens": 51336,
+        "cache_creation_input_tokens": 2893,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2893
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 14,
+      "outputTokens": 7617,
+      "cacheReadInputTokens": 289333,
+      "cacheCreationInputTokens": 38037,
+      "webSearchRequests": 0,
+      "costUSD": 0.014310630000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 3802,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 38037,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 17,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**What it does.** `MBEDTLS_PRIVATE(member)` is a rename macro, defined in `include/mbedtls/private_access.h:14-18`:\n\n```c\n#ifndef MBEDTLS_ALLOW_PRIVATE_ACCESS\n#define MBEDTLS_PRIVATE(member) private_##member\n#else\n#define MBEDTLS_PRIVATE(member) member\n#endif\n```\n\nEvery public struct declares its fields through this macro (about 890 occurrences across 74 headers, e.g. `ssl.h`, `x509_crt.h`, `psa/crypto_struct.h`). In a default build, a field `flags` is really named `private_flags`. Code that writes `ctx->flags` fails to compile. The layout is unchanged; only the name moves.\n\n**Who it's for.** The primary audience is external users. The rename is meant to make field access a compile error, so the layout can change in a minor release without breaking callers. The migration guide (`docs/3.0-migration-guide.md:62-74`) says to use accessors first. As a last resort, `bar.MBEDTLS_PRIVATE(foo)` still works in a default build, because the same macro expands at the use site to `private_foo`. The guide says that code \"is likely to break in a future minor version.\"\n\n**Where the opt-out is turned on in this tree.** Defining `MBEDTLS_ALLOW_PRIVATE_ACCESS` makes the macro the identity, so bare `ctx->flags` compiles. It is set in three places:\n\n| Location | Scope |\n|---|---|\n| `library/common.h:132` | Every library `.c` that includes `common.h` first (e.g. `rsa.c:26`, `md.c`, `cmac.c`, `des.c`, `aria.c`, `psa_util.c`). This is the library's internal opt-out. |\n| `programs/ssl/ssl_server2.c:8` | That one program only, defined before any include. |\n| `programs/ssl/ssl_client2.c:8` | That one program only, defined before any include. |\n\n**What that means for those files.**\n- They are treated as internal to the library. They can use field names directly, and the compiler cannot flag them if a minor release changes a field.\n- The layout is identical in both modes, so no ABI difference results. Only the names differ. The opt-out does not change the struct itself.\n- It is a per-translation-unit switch. The `#ifndef` in `private_access.h` is evaluated the first time that header is included. If a public header such as `ssl.h` (which includes it at line 13) gets pulled in before `common.h` defines the opt-out, the macro is already fixed to the `private_` form for that unit. I checked that `rsa.c` includes `common.h` first. I did not verify the include order of every library file.\n\n**The counter-case.** Several files use `MBEDTLS_PRIVATE(...)` and do not define the opt-out. These are treated as external users and go through the escape hatch:\n- `programs/ssl/ssl_context_info.c:553-568` (built per `programs/Makefile:325` and `programs/ssl/CMakeLists.txt`)\n- `tests/suites/test_suite_psa_crypto.function` and `test_suite_x509write.function`\n\nThese compile because the struct and the access expand to the same `private_` name. They are exactly the code that would break if a minor release renamed or reordered a field. `ssl.h:5159-5169` also marks direct access, even via the opt-out, as deprecated and unsupported for user code.",
+  "ttft_ms": 1415,
+  "type": "result",
+  "duration_ms": 38767,
+  "uuid": "6ef17d49-67b4-44b4-b06a-3506356573cb",
+  "ttft_stream_ms": 1169,
+  "time_to_request_ms": 76,
+  "first_content_frame_ms": 1169,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

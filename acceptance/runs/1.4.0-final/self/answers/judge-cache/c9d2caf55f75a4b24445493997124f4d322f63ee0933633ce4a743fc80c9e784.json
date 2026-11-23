@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Multi-token query, one token matches nothing | \"NOT definitive\". Names the dead token, says retry without it | Only that the conjunction was over-specified\nVERDICT: MISS\nWHY: The answer describes the current verdict ladder and the single-token \"definitive\" case. It never says that a single token matching nothing was previously treated as proof of absence, or that this confused \"nothing exists\" with \"I did not look there\"."
+}

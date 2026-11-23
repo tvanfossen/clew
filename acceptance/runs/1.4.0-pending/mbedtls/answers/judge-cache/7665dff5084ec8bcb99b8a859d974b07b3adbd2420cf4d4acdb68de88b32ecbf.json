@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"installs its own calloc/free pair: the mutexed variants when `MBEDTLS_THREADING_C` is on.\"\nVERDICT: MISS\nWHY: The answer states the mutexed variants are used when THREADING_C is on, but never says a plain pair is installed otherwise or that the choice is made at compile time inside the init function."
+}

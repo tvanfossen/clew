@@ -38,6 +38,7 @@ exactly what doxygen does with a tag it does not define.
 from __future__ import annotations
 
 import html
+import json
 import re
 import sqlite3
 from pathlib import Path, PurePosixPath
@@ -155,7 +156,10 @@ class _JsSymbolHarvester(Harvester):
     """
 
     stage = STAGE_JS_SYMBOLS
-    stage_version = 11
+    ## 12 (2.0.0, R5-CORE D7, first cut): a base bound by a package import recorded as nothing.
+    ## 13 (2.0.0, D7 corrected): every base is recorded again, with `base_packages` naming each
+    ##    one's import package; a payload cached at 12 dropped tsconfig-alias bases.
+    stage_version = 13
     label = "js/ts definitions"
 
     ## @brief Harvest one file's definitions.
@@ -249,7 +253,7 @@ def script_symbol_harvester() -> Harvester:
 ## v3 (C5): the no-grammar source types, so a file this toolchain cannot read is still a file it
 ## can name. See `UNPARSED_EXTS` for the census that set the list.
 ## @version 3
-## @dg_internal
+## @utility
 def claims(rel: str) -> bool:
     """Every type this front end registers in `path`, whether or not it will carry
     symbols: a YAML file is claimed so that it is in the file set, and harvested by
@@ -266,7 +270,7 @@ def claims(rel: str) -> bool:
 ## @param rel Path, any separator.
 ## @return True for a shell or CMake source file.
 ## @version 1
-## @dg_internal
+## @utility
 def script_claims(rel: str) -> bool:
     """@brief Shell/CMake extension-or-name test."""
     lower = rel.lower()
@@ -277,7 +281,7 @@ def script_claims(rel: str) -> bool:
 ## @param rel Path, any separator.
 ## @return True for a source type registered by name only.
 ## @version 1
-## @dg_internal
+## @utility
 def unparsed_claims(rel: str) -> bool:
     """Split from `claims` because the two answer different questions and only one of them
     decides a stored value: `claims` decides whether the file is in the SET, this decides whether
@@ -412,7 +416,8 @@ def _write_generation(conn: sqlite3.Connection, source_file: str, rules: list) -
 ## v4: also writes `generated_files` from the CMake branch's `generated` records, and creates
 ## that table unconditionally so an empty layer is distinguishable from an absent one.
 ## v5: creates `decl_extent` unconditionally, and clears it, as it does `generated_files`.
-## @version 5
+## v6: base links consult the declared dependencies (2.0.0, R5-CORE D7)
+## @version 6
 ## @req REQ-DDB-PIPE-012
 def emit_definitions(db_path: Path, repo_root: Path, cache: Any = None) -> tuple[int, int]:
     """@brief Turn the cached js_symbols payloads into rows."""
@@ -453,7 +458,7 @@ def emit_definitions(db_path: Path, repo_root: Path, cache: Any = None) -> tuple
                     generated_rows += _write_generation(
                         conn, str(row[0]) if row else "", payload["generated"]
                     )
-        writer.inheritance()
+        writer.inheritance(declared_dependencies(conn, repo_root))
         conn.commit()
     finally:
         conn.close()
@@ -488,7 +493,7 @@ def ensure_decl_extent_table(conn: sqlite3.Connection) -> None:
 ## @brief Whether any registered file is one this front end claims.
 ## @return True when a JS/TS path row exists.
 ## @version 1
-## @dg_internal
+## @utility
 def _has_claimed_path(conn: sqlite3.Connection) -> bool:
     return any(claims(r[0]) for r in conn.execute("SELECT name FROM path WHERE type = 1"))
 
@@ -497,7 +502,7 @@ def _has_claimed_path(conn: sqlite3.Connection) -> bool:
 ## @param rel Repo-relative path.
 ## @return The module path.
 ## @version 1
-## @dg_internal
+## @utility
 def module_of(rel: str) -> str:
     """@brief Dotted module path of a file."""
     stem = rel
@@ -508,23 +513,61 @@ def module_of(rel: str) -> str:
     return re.sub(r"[^\w$]+", ".", stem.replace("\\", "/")).strip(".")
 
 
+## The package.json keys that name a dependency.
+_DEPENDENCY_KEYS = ("dependencies", "devDependencies", "peerDependencies", "optionalDependencies")
+
+
+## @brief Every package name the repository's package.json files declare as a dependency.
+## @param conn Open connection (its `path` table names the indexed package.json files).
+## @param repo_root The repository.
+## @return Package names.
+## @version 1
+## @utility
+def declared_dependencies(conn: sqlite3.Connection, repo_root: Path) -> frozenset[str]:
+    """The root manifest and every indexed `package.json` outside `node_modules` (a workspace's
+    packages). An unreadable manifest contributes nothing — never a guess.
+
+    @brief Declared npm dependencies.
+    @return Names.
+    """
+    rels = {"package.json"} | {
+        r[0]
+        for r in conn.execute(
+            "SELECT name FROM path WHERE name = 'package.json' OR name LIKE '%/package.json'"
+        )
+        if "node_modules/" not in r[0]
+    }
+    names: set[str] = set()
+    for rel in sorted(rels):
+        try:
+            data = json.loads((repo_root / rel).read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        for key in _DEPENDENCY_KEYS:
+            section = data.get(key) if isinstance(data, dict) else None
+            if isinstance(section, dict):
+                names.update(section)
+    return frozenset(names)
+
+
 class _Writer:
     """Allocates ids additively and remembers compounds across files for inheritance."""
 
     ## @brief Start a writer on an open connection.
-    ## @version 1
-    ## @dg_internal
+    ## v2 (2.0.0, D7): pending bases carry their import packages.
+    ## @version 2
+    ## @utility
     def __init__(self, conn: sqlite3.Connection) -> None:
         self.conn = conn
         self.functions = 0
         self.classes = 0
         self.compound_rowid: dict[str, list[int]] = {}
-        self.pending_bases: list[tuple[int, list[str]]] = []
+        self.pending_bases: list[tuple[int, list[str], dict[str, str]]] = []
 
     ## @brief Allocate a refid row for one definition.
     ## @return The new rowid.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def _refid(self, key: str) -> int:
         """`refid.refid` is NOT NULL UNIQUE; the key is file, position and name, which no
         two definitions share."""
@@ -536,7 +579,7 @@ class _Writer:
     ##
     ## @brief Write one file's harvested classes and functions.
     ## @version 3
-    ## @dg_internal
+    ## @utility
     def file(self, path_rowid: int, payload: dict[str, Any], prefix: str = "js") -> None:
         rel = self.conn.execute("SELECT name FROM path WHERE rowid = ?", (path_rowid,)).fetchone()[
             0
@@ -560,8 +603,9 @@ class _Writer:
 
     ## @brief Insert one class-like compounddef row.
     ## @return Its rowid.
-    ## @version 1
-    ## @dg_internal
+    ## v2 (2.0.0, D7): records the class's base packages for `inheritance`.
+    ## @version 2
+    ## @utility
     def _compound(self, path_rowid: int, module: str, cls: dict[str, Any], prefix: str) -> int:
         rowid = self._refid(f"{prefix}cls_{path_rowid}_{cls['line']}_{cls['col']}_{cls['name']}")
         owner = f"{cls['outer']}::" if cls["outer"] else ""
@@ -574,7 +618,7 @@ class _Writer:
         )
         self.compound_rowid.setdefault(cls["name"], []).append(rowid)
         if cls["bases"]:
-            self.pending_bases.append((rowid, cls["bases"]))
+            self.pending_bases.append((rowid, cls["bases"], cls.get("base_packages") or {}))
         self.classes += 1
         return rowid
 
@@ -583,7 +627,7 @@ class _Writer:
     ##
     ## @brief Insert one function memberdef row, and its member link.
     ## @version 3
-    ## @dg_internal
+    ## @utility
     def _function(
         self,
         path_rowid: int,
@@ -637,13 +681,27 @@ class _Writer:
         self.functions += 1
 
     ## @brief Link each derived class to a uniquely named base.
-    ## @version 1
-    ## @dg_internal
-    def inheritance(self) -> None:
+    ## @param dependencies Package names the repository declares it depends on.
+    ## v2 (2.0.0, R5-CORE D7): a base imported from a declared dependency links nothing.
+    ## @version 2
+    ## @utility
+    def inheritance(self, dependencies: frozenset[str] = frozenset()) -> None:
         """A base resolves only when exactly one JS/TS class of that name exists: an
-        ambiguous base links nothing rather than linking the wrong class."""
-        for derived, bases in self.pending_bases:
+        ambiguous base links nothing rather than linking the wrong class.
+
+        THE IMPORT BINDING COMES FIRST (2.0.0, R5-CORE D7): `class X extends React.Component`
+        linked to the repository's own lone `Component`. A base whose import names a package the
+        repository DECLARES AS A DEPENDENCY (package.json) is that package's class, and links
+        nothing. A non-relative specifier that is not a dependency — a tsconfig path alias such as
+        `@database/...` — is the repository's own code and resolves as before: measured on
+        mattermost, a first cut that treated every non-relative import as external lost 27
+        `compoundref` rows and 82 inherited-member call edges, every one into the repo's own
+        `base_data_operator`.
+        """
+        for derived, bases, packages in self.pending_bases:
             for base in bases:
+                if packages.get(base) in dependencies:
+                    continue
                 candidates = self.compound_rowid.get(base, [])
                 if len(candidates) == 1 and candidates[0] != derived:
                     self.conn.execute(
@@ -698,7 +756,7 @@ def render_doc(raw: str) -> tuple[str, str]:
 ## @brief The prose paragraphs of a JSDoc block, before its first tag line.
 ## @return The paragraphs, joined per paragraph.
 ## @version 1
-## @dg_internal
+## @utility
 def _prose_paragraphs(raw: str) -> list[str]:
     paragraphs: list[list[str]] = [[]]
     for line in raw.splitlines():

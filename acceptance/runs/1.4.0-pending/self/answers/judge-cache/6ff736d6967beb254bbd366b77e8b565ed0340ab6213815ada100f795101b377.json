@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `.clew.yaml` in the repository root (tier 2, declared).** This is the repository's standing statement of its conventions. Sections use the same names as the CLI options\nVERDICT: MISS\nWHY: The answer names `.clew.yaml` as the repo's tier-2 standing declaration but never says that both entry points discover it from the repo root rather than having it plumbed per section."
+}

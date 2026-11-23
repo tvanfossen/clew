@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says the staleness annotation is shrunk to fit the response budget by degrading its wording (e.g., terser or compact message) rather than being dropped."
+}

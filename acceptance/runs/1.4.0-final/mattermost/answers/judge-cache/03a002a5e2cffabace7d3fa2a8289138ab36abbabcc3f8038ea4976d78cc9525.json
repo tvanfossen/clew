@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: They are typed against `ServerDataOperatorBase`, so they can call `this.handleRecords` and `this.batchRecords` like the local handlers. ... `BaseDataOperator.batchRecords` ... is the single place a standard handler writes to the database.\nVERDICT: HIT\nWHY: The answer says that the mixins are typed against `ServerDataOperatorBase`, which extends `BaseDataOperator`, and that `BaseDataOperator.batchRecords` is the single write path. It also notes that a few handlers skip that path, but the core claim is stated."
+}

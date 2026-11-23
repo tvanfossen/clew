@@ -1,0 +1,163 @@
+{
+  "cell": "Q5_claude-haiku-5-5_index_r2",
+  "arm": "index",
+  "rubric_version": "3.1.1",
+  "rubric_digest": "705c131e354e5c22",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.5588235294117647,
+  "unmarked_pct": 0.0,
+  "split_decisions": 0,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "identifies ctypes over librentropic.so as the mechanism, with no compiled extension module involved",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: There is no pybind11 or cffi. The only bridge is `ctypes` calling the C ABI of `librentropic.so`. | WHY: The answer states ctypes over librentropic.so is the only bridge and explicitly rules out pybind11/cffi compiled extensions. || QUOTE: There is no pybind11 or cffi. The only bridge is `ctypes` calling the C ABI of `librentropic.so`. | WHY: The answer states that ctypes over librentropic.so is the only bridge and explicitly rules out pybind11/cffi compiled extension modules. || QUOTE: There is no pybind11 or cffi. The only bridge is `ctypes` calling the C ABI of `librentropic.so`. | WHY: The answer states ctypes over librentropic.so is the mechanism and explicitly rules out compiled extension modules like pybind11/cffi.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the bindings are GENERATED from the C header by scripts/gen_bindings.py, not hand-written",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: `scripts/gen_bindings.py` parses the public headers with a hand-rolled parser (not pycparser) and emits `_bindings.py` and `_bindings_manifest.py`. | WHY: The answer says `_bindings.py` is emitted by `scripts/gen_bindings.py`, which parses the headers. The diagram also labels `_bindings.py` \"generated ctypes\", so the bindings are generated, not hand-written. || QUOTE: `scripts/gen_bindings.py` parses the public headers with a hand-rolled parser (not pycparser) and emits `_bindings.py` and `_bindings_manifest.py`. | WHY: The answer says `_bindings.py` is emitted by `scripts/gen_bindings.py` from the headers, and its diagram labels it \"generated ctypes\", so the bindings are generated rather than hand-written. || QUOTE: `scripts/gen_bindings.py` parses the public headers with a hand-rolled parser (not pycparser) and emits `_bindings.py` and `_bindings_manifest.py`. | WHY: The answer says `_bindings.py` is emitted by `scripts/gen_bindings.py`, which parses the C headers, and labels it \"generated ctypes\". That covers the claim that the bindings are generated, not hand-written.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies that drift between the header and the bindings is caught by a pre-commit check that re-runs the generator and diffs",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer mentions gen_bindings.py generating the bindings but never says drift is caught by a pre-commit check that re-runs the generator and diffs. || QUOTE: NONE | WHY: The answer says the generator emits `_bindings.py` but never mentions a pre-commit check that re-runs it and diffs to catch drift.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "explains that the generated surface is SPLIT IN TWO on purpose \u2014 a names-only manifest that imports no ctypes, and the real bindings module that loads the library",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: `scripts/gen_bindings.py` parses the public headers with a hand-rolled parser (not pycparser) and emits `_bindings.py` and `_bindings_manifest.py`. | WHY: The answer names both generated files but never says the manifest is names-only and imports no ctypes, or that the split is deliberate. || QUOTE: `scripts/gen_bindings.py` parses the public headers with a hand-rolled parser (not pycparser) and emits `_bindings.py` and `_bindings_manifest.py`. | WHY: The answer names both generated files but never explains the split: a names-only manifest that imports no ctypes versus the bindings module that loads the library. || QUOTE: `scripts/gen_bindings.py` parses the public headers with a hand-rolled parser (not pycparser) and emits `_bindings.py` and `_bindings_manifest.py`. | WHY: The answer names both generated files but never explains the deliberate split, that the manifest is names-only and imports no ctypes, or that only the bindings module loads the library.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that the split exists so `import entropic` succeeds before the engine is on disk, which is what makes an install-engine subcommand shippable inside the same package",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer describes lazy exports and the loader's library search but never says the split lets `import entropic` succeed before the engine is installed, or that this allows an install-engine subcommand. || QUOTE: NONE | WHY: The answer describes lazy exports and a loader that searches for the library, but it never concludes that the split lets `import entropic` succeed before the engine is installed, or that this makes an install-engine subcommand shippable in the same package. || QUOTE: NONE | WHY: The answer describes lazy exports and library search order, but never concludes that the split lets `import entropic` succeed before the engine is installed, nor that this enables an install-engine subcommand.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "describes the loader's resolution order as environment overrides first, then a default user directory, then the system library cache \u2014 with two directory layouts tried per root",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: `_loader.py` finds the library in this order: `$ENTROPIC_LIB`, `$ENTROPIC_HOME`, `~/.entropic`, then `ldconfig`. | WHY: It gives the order (env overrides, user dir, system cache) but never mentions the two directory layouts tried per root. || QUOTE: `_loader.py` finds the library in this order: `$ENTROPIC_LIB`, `$ENTROPIC_HOME`, `~/.entropic`, then `ldconfig`. | WHY: The answer gives the order (env overrides, user dir, system cache) but omits the two directory layouts tried per root. || QUOTE: `_loader.py` finds the library in this order: `$ENTROPIC_LIB`, `$ENTROPIC_HOME`, `~/.entropic`, then `ldconfig`. | WHY: The answer gives the order (env overrides, user dir, system cache) but never mentions two directory layouts tried per root.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states the engine-to-caller rule: a returned char* transfers ownership and is freed with entropic_free, while a const char* stays owned by the handle and is only valid until the next call on it",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"**Engine-returned `char*` is caller-owned.** Free it with `entropic_free()`.\" and \"**`const char*` returns belong to the handle.** They stay valid until the next call on that handle.\" | WHY: The answer states both halves: a returned char* is freed with entropic_free, and a const char* is owned by the handle and valid only until the next call on it. || QUOTE: \"**Engine-returned `char*` is caller-owned.** Free it with `entropic_free()`.\" and \"**`const char*` returns belong to the handle.** They stay valid until the next call on that handle.\" | WHY: The answer states both halves: a returned char* is freed with entropic_free, and a const char* stays handle-owned and is valid only until the next call on that handle. || QUOTE: \"**Engine-returned `char*` is caller-owned.** Free it with `entropic_free()`.\" and \"**`const char*` returns belong to the handle.** They stay valid until the next call on that handle.\" | WHY: The answer states both halves: a returned char* is caller-owned and freed with entropic_free, and a const char* belongs to the handle and is valid only until the next call on it.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states the caller-to-engine rule as the SECOND direction: a buffer the engine will free must be allocated with entropic_alloc, and shows where the Python side does that",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"**Buffers the engine will free must come from `entropic_alloc()`.** Hook `modified_json` is the main case. `hooks.py` does this in its trampoline.\" | WHY: The answer states the rule that engine-freed buffers must be allocated with entropic_alloc and names hooks.py's trampoline as where Python does it. || QUOTE: \"**Buffers the engine will free must come from `entropic_alloc()`.** Hook `modified_json` is the main case. `hooks.py` does this in its trampoline.\" | WHY: The answer states the rule that engine-freed buffers must be allocated with entropic_alloc and points to hooks.py's trampoline (and the `_alloc_c_string` helper) as where Python does it.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "notes that the hook trampoline swallows every Python exception rather than letting it unwind into the C engine, treating a failed hook as a pass-through",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: **Exceptions never cross into C.** Trampolines catch and print them. Each returns a status code instead. | WHY: The answer says exceptions are caught and a status code returned, but never says a failed hook is treated as a pass-through, and it doesn't say that the trampoline swallows every exception. || QUOTE: **Exceptions never cross into C.** Trampolines catch and print them. Each returns a status code instead. | WHY: The answer says trampolines catch exceptions and return a status code, but never says a failed hook is treated as a pass-through, which is the item's required mechanism. || QUOTE: **Exceptions never cross into C.** Trampolines catch and print them. Each returns a status code instead. | WHY: The answer says exceptions are caught and a status code is returned, but not that a failed hook is treated as a pass-through (allow/unchanged), which is the specific semantics the item requires.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "the files that make up the Python-to-engine boundary \u2014 python/src/entropic/_loader.py",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the files that make up the Python-to-engine boundary \u2014 python/src/entropic/_bindings.py",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the files that make up the Python-to-engine boundary \u2014 python/src/entropic/_bindings_manifest.py",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the files that make up the Python-to-engine boundary \u2014 python/src/entropic/__init__.py",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the files that make up the Python-to-engine boundary \u2014 include/entropic/entropic.h",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the files that make up the Python-to-engine boundary \u2014 precision",
+      "kind": "set_precision",
+      "weight": 2,
+      "hit": false,
+      "detail": "named 4 not in the set: ['hooks.py', 'scripts/gen_bindings.py', 'src/facade/entropic.cpp', 'streams.py']",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    }
+  ]
+}

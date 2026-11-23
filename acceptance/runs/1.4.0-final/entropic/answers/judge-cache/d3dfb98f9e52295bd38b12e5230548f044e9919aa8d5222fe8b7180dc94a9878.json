@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `accept_loop` \u2192 per-client thread (`:945`) | One per connected client | Joined in `stop()`; and `ExternalBridge::start` \u2192 `accept_loop` ... Accept thread\nVERDICT: HIT\nWHY: The answer's table lists an accept thread started by `ExternalBridge::start` and a per-client thread spawned from `accept_loop`, one per connected client, which is the two-level structure."
+}

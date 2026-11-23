@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A forced rebuild if the index is older; a client restart if the index is newer, because a rebuild re-stamps the same newer version\nVERDICT: HIT\nWHY: The answer's schema-axis row says an index newer than the server needs a client restart because a rebuild re-stamps the same newer version, so a rebuild cannot clear it."
+}

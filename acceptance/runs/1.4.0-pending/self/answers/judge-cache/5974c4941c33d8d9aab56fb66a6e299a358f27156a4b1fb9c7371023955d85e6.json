@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The code deliberately keeps only one \"absent corpus\" downgrade, so a missing layer alone doesn't turn every reply into a hedge.\nVERDICT: HIT\nWHY: The answer says there is deliberately only one absent-corpus downgrade and that this prevents every missing layer from making every reply a hedge."
+}

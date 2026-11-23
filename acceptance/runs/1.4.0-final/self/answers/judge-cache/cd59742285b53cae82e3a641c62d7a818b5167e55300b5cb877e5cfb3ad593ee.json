@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "ITEMS:\nclew/mcp_server/descriptions/_templates/ambiguous.json\nclew/query/symbols.py\nclew/query/models.py\nEND"
+}

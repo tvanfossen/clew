@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `DocsDbServer.staleness_notices()` (`server.py:1548`) runs on every reply and never raises. ... `notices()` returns an empty list when the tool is current, so a current index adds nothing to the reply.\nVERDICT: HIT\nWHY: The answer states that staleness notices are attached to every query reply automatically, and that the list is empty when the index is current."
+}

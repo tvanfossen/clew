@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"llama.cpp is a git submodule at `extern/llama.cpp`, built from source into the same shared library as the rest of entropic.\" and \"`.gitmodules` maps `extern/llama.cpp` to `ggml-org/llama.cpp`.\"\nVERDICT: HIT\nWHY: The answer explicitly states llama.cpp is a git submodule at extern/llama.cpp, contrasting it with the other deps that use FetchContent."
+}

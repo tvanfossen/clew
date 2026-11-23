@@ -1,0 +1,83 @@
+{
+  "cell": "Q1_claude-haiku-5-5_index_only_r1",
+  "arm": "index_only",
+  "rubric_version": "5.0.0",
+  "rubric_digest": "d8447c7b18eafbf5",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.5625,
+  "unmarked_pct": 0.0,
+  "split_decisions": 0,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "names derive_scope in clew/scope.py as where the decision is resolved",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: `clew/scope.py` resolves scope in two tiers. `derive_scope` (line 639) tries them in order | WHY: The answer names `derive_scope` in `clew/scope.py` as the place where the scope decision is resolved.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that a repository's own declared index_scope is preferred, and that every failure to find one falls through to indexing the whole repository",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer says declared scope is tried first and whole repo is the default when nothing is declared, but it never states that every failure to find one, such as an invalid, rootless or unusable declaration, falls through to whole-repo indexing. It even says a present-but-rootless section is \"rejected with a reason, not treated as absent,\" which doesn't establish the fall-through. || QUOTE: \"If it declares nothing, the whole repository is the index\" and \"No `index_scope:` means `derive_scope` falls through to `whole_repo_scope`.\" | WHY: The answer gives declared-first, then whole-repo when nothing is declared. It does not say that every failure to find one falls through to whole-repo. It says a present-but-empty section is \"rejected with a reason, not treated as absent\", and it never covers missing, unreadable or invalid declarations. || QUOTE: NONE | WHY: The answer says declared `index_scope` wins and an undeclared repo gets the whole repo, but it never says that every failure to find one (e.g., unusable or empty declaration) falls through to whole-repo indexing. It states the opposite for a declared section that yields no roots: \"rejected with a reason, not treated as absent.\"",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "conveys that the fallback carries a REASON explaining which scope was used and why, so an unstated scope is never silently guessed",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: The build records the reason, so a log line says \"no index_scope is declared for this repo\" along with the advice to declare one. | WHY: The answer states that the whole-repo fallback carries a recorded reason explaining which scope was used and why, so the scope is never silently guessed. || QUOTE: The build records the reason, so a log line says \"no index_scope is declared for this repo\" along with the advice to declare one. | WHY: The answer states the fallback records a reason explaining which scope was used (no index_scope declared), and that a declared-but-empty section is rejected with a reason rather than silently treated as absent. || QUOTE: The build records the reason, so a log line says \"no index_scope is declared for this repo\" along with the advice to declare one. | WHY: The answer states that the fallback (whole-repo scope) records a reason explaining why that scope was used, rather than silently guessing.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that a Doxyfile's own INPUT is deliberately NOT used to decide the indexed tree, and explains why \u2014 a repository that ships one would get only its documented subset while a repository that ships none gets its whole tree",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"A repo's own Doxyfile still supplies ALIASES and PREDEFINED. Its `INPUT` no longer decides the file set. The module docstring says this was a deliberate reversal (gh#333): honouring the Doxyfile's `INPUT` meant a repo that documented itself got a narrower index than one that did not.\" | WHY: The answer says the Doxyfile's INPUT deliberately no longer decides the file set. It explains that honouring it gave a repo that ships one a narrower index than a repo that ships none. || QUOTE: \"A repo's own Doxyfile still supplies ALIASES and PREDEFINED. Its `INPUT` no longer decides the file set. The module docstring says this was a deliberate reversal (gh#333): honouring the Doxyfile's `INPUT` meant a repo that documented itself got a narrower index than one that did not.\" | WHY: The answer states that the Doxyfile's INPUT deliberately doesn't decide the indexed tree, and explains that a repo shipping a Doxyfile would get a narrower index than one without. || QUOTE: \"A repo's own Doxyfile still supplies ALIASES and PREDEFINED. Its `INPUT` no longer decides the file set. The module docstring says this was a deliberate reversal (gh#333): honouring the Doxyfile's `INPUT` meant a repo that documented itself got a narrower index than one that did not.\" | WHY: The answer states the Doxyfile's INPUT is deliberately not used for scope and explains why: a repo shipping a Doxyfile would get a narrower index than one shipping none.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that nested git trees are INDEXED and tagged rather than excluded from the scope",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: Submodules and vendored clones are indexed, not excluded (gh#333/335). `external.py` tags their rows afterward so two codebases can still be told apart in an answer. | WHY: The answer explicitly states nested git trees are indexed rather than excluded and that their rows are tagged afterward.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "conveys that the containment call was REMOVED rather than left in place with its callers dropped",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never mentions any containment call being removed versus left in place with callers dropped; it is entirely about scope resolution. || QUOTE: NONE | WHY: The answer never mentions a containment call being removed; it describes scope derivation and doxygen INPUT handling, with no removal-versus-dropped-callers point. || QUOTE: NONE | WHY: The answer never mentions a containment call being removed versus left in place with its callers dropped; it describes scope resolution only.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the resolved scope is not the whole answer \u2014 within it, a file reaches the index only if something can read it, and names at least one of the two filters: the parse-built front end claiming the file types doxygen cannot read, or binary classification dropping files whose extension lies about them",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer describes scope resolution (declared roots, whole repo minus git-ignored and dot/cache dirs) but never says files must be readable to reach the index, nor names the parse-built front end or binary classification filters. It even admits not knowing which extensions doxygen keeps. || QUOTE: NONE | WHY: The answer covers scope resolution and excludes, but never says that within scope a file only reaches the index if readable, nor names the parse-built front end or binary classification as filters. It explicitly says it could not confirm which extensions doxygen keeps. || QUOTE: NONE | WHY: The answer covers scope resolution (declared roots, whole repo minus ignores) but never says that files within scope must be readable by something, nor names the parse-built front end or binary classification filters; it even admits not knowing which extensions doxygen keeps.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    }
+  ]
+}

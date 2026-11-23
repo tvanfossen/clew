@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `ExternalBridge::run_async_ask` (`:1158`) | Runs `entropic_run` for an async `entropic.ask` | **Detached**; \"`run_async_ask` is `std::thread(...).detach()`-style: nothing joins it\"; \"The async-ask worker is the one the caller never waits on.\"\nVERDICT: HIT\nWHY: The answer names the async-ask worker as the detached thread, says nothing joins it, and notes that stop() and the destructor don't wait for it. That covers the item's outlives-without-join claim."
+}

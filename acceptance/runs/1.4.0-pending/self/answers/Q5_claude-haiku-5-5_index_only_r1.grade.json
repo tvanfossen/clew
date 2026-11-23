@@ -1,0 +1,143 @@
+{
+  "cell": "Q5_claude-haiku-5-5_index_only_r1",
+  "arm": "index_only",
+  "rubric_version": "5.0.0",
+  "rubric_digest": "d8447c7b18eafbf5",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.2962962962962963,
+  "unmarked_pct": 0.0,
+  "split_decisions": 0,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "identifies that layered build options resolve through FIVE named precedence tiers, rather than a single override",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: **The general rule (five tiers)** ... | 1 | CLI flag / `options` | ... | 2 | `.clew.yaml` | ... | 3 | Facts someone already wrote ... | 4 | Known-ecosystem signatures | ... | 5 | Name-pattern heuristics, the floor | | WHY: The answer explicitly describes five named precedence tiers with a table and a resolution formula, not a single override. || QUOTE: **The general rule (five tiers)** ... | 1 | CLI flag / `options` | ... | 2 | `.clew.yaml` | ... | 3 | Facts someone already wrote ... | 4 | Known-ecosystem signatures | ... | 5 | Name-pattern heuristics, the floor | | WHY: The answer explicitly describes five named precedence tiers with their combination rules, rather than a single override. || QUOTE: **The general rule (five tiers)** ... | 1 | CLI flag / `options` | ... | 2 | `.clew.yaml` | ... | 3 | Facts someone already wrote ... | 4 | Known-ecosystem signatures | ... | 5 | Name-pattern heuristics, the floor | | WHY: The answer explicitly describes five named precedence tiers with a resolution formula, not a single override.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that the rule is ASYMMETRIC \u2014 the stated tiers REPLACE one another while the discovered layers ACCUMULATE and survive whatever anyone states",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"A stated value displaces the guesses, but it cannot remove facts the repo has already recorded. The module's summary is \"you can correct our guesses; you cannot un-discover a fact.\"\" | WHY: The answer's tier table marks the stated tiers (CLI/options, .clew.yaml) as \"replaces\" and the discovered tiers (3 and 4) as \"accumulates\". It gives the formula `(tier1 or tier2 or tier5) \u222a tier3 \u222a tier4` and says discovered facts survive whatever a user states. || QUOTE: The resolved set is `(tier1 or tier2 or tier5) \u222a tier3 \u222a tier4`. A stated value displaces the guesses, but it cannot remove facts the repo has already recorded. The module's summary is \"you can correct our guesses; you cannot un-discover a fact.\" | WHY: The answer says stated tiers replace one another while discovered tiers (3 and 4) accumulate and survive any stated value, as the item requires. || QUOTE: A stated value displaces the guesses, but it cannot remove facts the repo has already recorded. The module's summary is \"you can correct our guesses; you cannot un-discover a fact.\" | WHY: The answer's table and formula show stated tiers replace each other while discovered tiers 3 and 4 accumulate and survive any stated value.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that tiers 3 and 4 combine IDENTICALLY, so the distinction between them is deliberately inert, and that the load-bearing line is fact-versus-guess",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: The resolved set is `(tier1 or tier2 or tier5) \u222a tier3 \u222a tier4`. A stated value displaces the guesses, but it cannot remove facts the repo has already recorded. | WHY: The answer shows tiers 3 and 4 both accumulate, but it never says their distinction is deliberately inert. It also never names the fact-versus-guess line as load-bearing. || QUOTE: The resolved set is `(tier1 or tier2 or tier5) \u222a tier3 \u222a tier4`. A stated value displaces the guesses, but it cannot remove facts the repo has already recorded. | WHY: The answer shows tiers 3 and 4 both accumulate, but it never says their distinction is deliberately inert. It also doesn't name fact-versus-guess as the load-bearing line. || QUOTE: The resolved set is `(tier1 or tier2 or tier5) \u222a tier3 \u222a tier4`. A stated value displaces the guesses, but it cannot remove facts the repo has already recorded. | WHY: The answer shows tiers 3 and 4 both accumulate, but it never says their distinction is deliberately inert or that the load-bearing line is fact-versus-guess.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies `.clew.yaml` as the repository's own standing declaration \u2014 tier 2, discovered from the repo root by BOTH entry points rather than plumbed per section",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: Declaration file: `<repo>/.clew.yaml`. This is the repo's standing statement, found from the repo root. It is the route that works through the MCP server, which passes no CLI flags. | WHY: The answer identifies `.clew.yaml` as the repo's standing declaration (tier 2) found from the repo root, but it never says both entry points (CLI and MCP) discover it rather than it being plumbed per section. || QUOTE: **Declaration file: `<repo>/.clew.yaml`.** This is the repo's standing statement, found from the repo root. It is the route that works through the MCP server, which passes no CLI flags. | WHY: The answer says `.clew.yaml` is the repo's standing statement found from the repo root, and lists it as tier 2. It never says that both entry points discover it, or that this replaces plumbing it per section. || QUOTE: Declaration file: `<repo>/.clew.yaml`. This is the repo's standing statement, found from the repo root. It is the route that works through the MCP server, which passes no CLI flags. | WHY: The answer names `.clew.yaml` as the standing declaration found from the repo root (tier 2). But it never says both entry points (CLI and MCP) discover it, nor that it is not plumbed per section. It only ties the file to the MCP route, so the specific mechanism is absent.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that tier 1 is reachable from BOTH entry points \u2014 a CLI flag and a structured options argument \u2014 so an embedding caller with no shell can still state the top tier",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"These are CLI flags such as `--shared-key-patterns` or `--doxyfile`, or, for an embedding caller, one structured `options` argument to `build_index`/`build_or_refresh`.\" and the table row \"| 1 | CLI flag / `options` | replaces the layer below |\" | WHY: The answer says the top-tier explicit statement is reachable via both a CLI flag and a structured `options` argument for embedding callers, and the tier-1 table row lists both. || QUOTE: \"These are CLI flags such as `--shared-key-patterns` or `--doxyfile`, or, for an embedding caller, one structured `options` argument to `build_index`/`build_or_refresh`.\" and the table row \"| 1 | CLI flag / `options` | replaces the layer below |\" | WHY: The answer names both the CLI flag and the structured `options` argument for embedding callers as the top-tier (tier 1) explicit statement routes. || QUOTE: \"These are CLI flags such as `--shared-key-patterns` or `--doxyfile`, or, for an embedding caller, one structured `options` argument to `build_index`/`build_or_refresh`.\" and table row \"| 1 | CLI flag / `options` | replaces the layer below |\" | WHY: The answer states the top tier (explicit statements) is reachable via both CLI flags and a structured `options` argument for embedding callers, and the tier table lists tier 1 as \"CLI flag / `options`\".",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "notes that the option names an embedding caller states are the SAME WORDS as the declaration file's section names, and the same words the diagnostics use",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: The option names are the same as the declaration section names, with one documented alias, `predefined`. | WHY: The answer says option names match declaration section names, but never says the diagnostics use those same words. || QUOTE: The option names are the same as the declaration section names, with one documented alias, `predefined`. | WHY: The answer says the option names match the declaration section names, but it never says they are also the same words the diagnostics use. || QUOTE: The option names are the same as the declaration section names, with one documented alias, `predefined`. | WHY: The answer says option names match the declaration section names, but it never says they are the same words the diagnostics use.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies that an unknown SECTION is refused by name against the allowed set rather than ignored, and gives the reason \u2014 an ignored section builds with defaults while reporting the declaration was honoured",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: **Unknown section names are refused.** A misspelled top-level key fails and names the probable cause. Keys with an `x-` prefix are tolerated and ignored. A malformed declaration degrades to defaults. | WHY: The answer says unknown sections are refused, but it doesn't say they're refused against the allowed set, and it gives no reason. It never says that ignoring a section would build with defaults while claiming the declaration was honoured. || QUOTE: **Unknown section names are refused.** A misspelled top-level key fails and names the probable cause. Keys with an `x-` prefix are tolerated and ignored. A malformed declaration degrades to defaults. | WHY: The answer says unknown sections are refused, but it never says the refusal names the allowed set. It also never gives the reason that an ignored section would build with defaults while reporting the declaration was honoured. || QUOTE: Unknown section names are refused. A misspelled top-level key fails and names the probable cause. Keys with an `x-` prefix are tolerated and ignored. A malformed declaration degrades to defaults. | WHY: The answer says unknown sections are refused, but gives neither the \"named against the allowed set\" detail nor the reason that ignoring would build with defaults while claiming the declaration was honoured.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies a SECOND refusal one level down \u2014 an unknown key INSIDE a well-named section \u2014 and that a correctly-spelled derived key is refused with its reason rather than as unknown",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer mentions only refusal of unknown top-level section names; it never describes a second refusal for an unknown key inside a valid section, nor a correctly-spelled derived key refused with its reason. || QUOTE: NONE | WHY: The answer mentions only refusal of unknown top-level section names; it says nothing about a second refusal for unknown keys inside a section or a correctly-spelled derived key refused with its reason. || QUOTE: Unknown section names are refused. A misspelled top-level key fails and names the probable cause. | WHY: The answer only covers unknown top-level section names; it never mentions a second refusal for an unknown key inside a section, nor a correctly-spelled derived key refused with its reason.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the winning tier is RECORDED with the index, and that the record is derived from the stored rows rather than stamped as a separate summary",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never says the winning tier is recorded with the index or that such a record is derived from stored rows rather than stamped separately. || QUOTE: NONE | WHY: The answer describes the tier precedence rule but never says the winning tier is recorded with the index or that the record is derived from stored rows. || QUOTE: NONE | WHY: The answer describes the tier precedence but never says the winning tier is recorded with the index, nor that the record is derived from stored rows rather than stamped separately.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide a build option's value \u2014 clew/tiers.py",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide a build option's value \u2014 clew/declaration.py",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": false,
+      "detail": "not named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide a build option's value \u2014 clew/buildoptions.py",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": false,
+      "detail": "not named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide a build option's value \u2014 precision",
+      "kind": "set_precision",
+      "weight": 1,
+      "hit": false,
+      "detail": "named 1 not in the set: ['<repo>/.clew.yaml']",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    }
+  ]
+}

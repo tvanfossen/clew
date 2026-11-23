@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer reports that 14 in-scope files hold no rows, grouped by type, but it names neither the parse-built front end for types doxygen cannot read nor binary classification of files whose extension lies about them. It also says outright that it did not establish which extensions the parser accepts."
+}

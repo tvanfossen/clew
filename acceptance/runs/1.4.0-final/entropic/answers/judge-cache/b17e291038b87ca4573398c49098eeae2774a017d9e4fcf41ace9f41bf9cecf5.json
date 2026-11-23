@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Python exceptions are caught inside the trampoline, printed with `traceback`, and never propagate into C.\nVERDICT: MISS\nWHY: The answer says exceptions are caught and never propagate into C, but it doesn't say a failed hook is treated as a pass-through, and the item requires that mechanism."
+}

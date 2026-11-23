@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **The general rule (five tiers)** ... | 1 | CLI flag / `options` | ... | 2 | `.clew.yaml` | ... | 3 | Facts someone already wrote ... | 4 | Known-ecosystem signatures | ... | 5 | Name-pattern heuristics, the floor |\nVERDICT: HIT\nWHY: The answer explicitly describes five named precedence tiers with a resolution formula, not a single override."
+}

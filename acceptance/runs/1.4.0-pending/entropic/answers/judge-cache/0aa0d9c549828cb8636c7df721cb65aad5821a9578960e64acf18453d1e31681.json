@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says a failed fill call returns an empty vector, but never states that a negative or non-positive result from the second call is terminal, with no further attempt. It only says nothing is retried and that a fill failure returns empty."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "ITEMS:\nbuildoptions.py\n.clew.yaml\nscope.py\ndocs/GUARD.md\ntiers.py\nEND"
+}

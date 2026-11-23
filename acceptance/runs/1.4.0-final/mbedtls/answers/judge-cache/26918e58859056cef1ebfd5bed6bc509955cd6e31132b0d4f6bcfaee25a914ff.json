@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: None of these are in `library/`. The library itself spawns nothing.\nVERDICT: MISS\nWHY: The answer says the library spawns no threads, but it describes the mutex code as compiled out by default and never states that library/ supplies the mutex abstraction for threaded callers, so the contrast's second half is not stated."
+}

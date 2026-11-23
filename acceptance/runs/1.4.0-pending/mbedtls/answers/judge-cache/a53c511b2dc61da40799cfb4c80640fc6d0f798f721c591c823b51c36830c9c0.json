@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: With assembly it is `asm volatile(\"\" : [x] \"+r\"(x))`, an empty statement that forces `x` into a register and claims it was modified.\nVERDICT: HIT\nWHY: The answer states the empty asm volatile with \"+r\" input-output operand, which emits no instruction and serves to make the value opaque to the compiler, i.e. an optimisation barrier."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer lists about seven files and says the dependency \"reaches well into `src/inference/`\", but it never conveys that it spans roughly a dozen files or that it is more than a single wrapper."
+}

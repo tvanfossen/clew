@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: If both macros are defined, `platform.c:20-22` compiles out the whole runtime mechanism, so `mbedtls_platform_set_calloc_free` is not declared or available.\nVERDICT: HIT\nWHY: The answer states that on the macro path the setter is neither declared nor compiled, since the runtime mechanism is compiled out."
+}

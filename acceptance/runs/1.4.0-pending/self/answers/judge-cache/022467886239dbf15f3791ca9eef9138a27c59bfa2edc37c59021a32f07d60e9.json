@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: | `data` | Indexed source files changed since the build | A rebuild (`index(action='refresh')`) | ... | `schema` | The stamped build version differs from the server's | ... | `code` | The server process loaded clew before its source changed | Only a client restart\n\nVERDICT: HIT\nWHY: The answer explicitly says staleness is on three independent axes and names them as data, schema, and code."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `ServerManager::is_explicitly_allowed` builds `tool:<first arg value or *>` and calls `PermissionManager::is_allowed`, which returns true on the first allow pattern that matches.\nVERDICT: MISS\nWHY: The answer names PermissionManager but never says its allow/deny lists come from the PermissionsConfig that ServerManager is constructed with. It only mentions the YAML loader and `permissions.allow`/`permissions.deny`."
+}

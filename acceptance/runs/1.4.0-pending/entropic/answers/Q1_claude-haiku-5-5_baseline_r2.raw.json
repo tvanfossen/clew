@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 35731,
+  "stop_reason": "end_turn",
+  "session_id": "75e3dc6d-7660-4768-8ca7-3a26a2b54af3",
+  "total_cost_usd": 0.0097305,
+  "usage": {
+    "input_tokens": 16,
+    "cache_creation_input_tokens": 16658,
+    "cache_read_input_tokens": 332180,
+    "output_tokens": 6151,
+    "output_tokens_details": {
+      "thinking_tokens": 3194
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 16658,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3248,
+        "cache_read_input_tokens": 49675,
+        "cache_creation_input_tokens": 735,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 735
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 16,
+      "outputTokens": 6151,
+      "cacheReadInputTokens": 332180,
+      "cacheCreationInputTokens": 16658,
+      "webSearchRequests": 0,
+      "costUSD": 0.0097305,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 3194,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 16658,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 9,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** the two calls are not in two places. They are adjacent lines in one function, `LlamaCppTokenizer::tokenize` (`src/inference/llama_cpp_tokenizer.cpp:55` and `:61`). The first call is a size probe, not a retry, and the second call runs unconditionally on every tokenization.\n\n## Why it calls twice\n\nllama.cpp's `llama_tokenize` has no \"allocate for me\" mode. The idiom is:\n\n1. Call with a null buffer and capacity 0. It returns the negative of the required token count.\n2. Negate it, allocate a `std::vector<int32_t>` of that size, and call again to fill it.\n\nThe code follows that exactly. The docstring at line 45 calls the second step a \"sized retry,\" which is misleading. Nothing failed before the second call, and it is never gated on the first call's result. The cost is that every tokenization runs the tokenizer twice. A generous fixed buffer, or resizing only when the first call reports a short buffer, would avoid that.\n\n## What the caller receives on failure\n\nIf the second call returns a negative value, the function logs at error level (length only, not the text) and returns `{}`. There is no error code, exception, or status. A missing vocab (`vocab_ == nullptr`) also returns `{}`, silently.\n\nThe empty vector is ambiguous. An empty prompt with `add_special=false` also produces `{}`, so no caller can tell \"failed\" from \"nothing to tokenize.\"\n\n## What the callers do with it\n\n- **`LlamaCppBackend::tokenize`** (`llama_cpp_backend.cpp:788`) passes the empty vector through.\n- **Token counting** is the most silent path. `do_count_tokens` returns 0 (`:825`), which `InferenceBackend::count_tokens` passes on (`backend.cpp:496`), and `entropic_inference_count_tokens` returns to plugins (`inference_c_api.cpp:548`). A failed count looks like \"zero tokens,\" so a plugin doing budget math sees plenty of room. The C API docstring says \"estimate on error,\" but the `text_len/4` fallback only runs on an exception, not on this tokenizer failure.\n- **Speculative and MTP generation** (`llama_cpp_backend.cpp:3594`, `:3922`) check `tokens.size() < 2` and return `GENERATE_FAILED` with \"prompt must have at least 2 tokens.\" The real cause is a tokenization failure, so the message is wrong.\n- **Plain generate, cancellable generate, and stream** (`:2561`, `:2643`, `:2728`), **`do_complete`** (`:3947`), and **batch generate** (`:1911`) have no empty check. Generation proceeds with zero input tokens. `decode_tokens_from` returns `true` immediately when there is nothing to decode (`:1960`), so no error is raised and sampling starts with nothing decoded. I did not trace what the sampler reads in that state. That is the next thing to verify, and it is the most likely way a tokenizer failure becomes a hard-to-diagnose bad generation.\n- **System-prefix count** (`:2066`) returns 0, and the prefill logic treats `prefix_tokens <= 0` as \"no cache,\" so that case is benign.\n\n## Suggested fixes\n\n- Return a status alongside the vector, or throw inside the seam and catch at the C boundary, so the empty result is distinguishable from an empty prompt.\n- Have generation entry points reject empty token vectors with a tokenization-specific error.\n- Make `count_tokens` surface failure rather than 0, and correct the C API docstring.\n\nCaveat: I did not inspect `mtmd_tokenize` (`llama_cpp_backend.cpp:2407`), the multimodal tokenizer. If \"two different places\" referred to that, the analysis above doesn't cover it.",
+  "ttft_ms": 1570,
+  "type": "result",
+  "duration_ms": 36608,
+  "uuid": "824d71fc-9829-4c7e-9b70-48590050239e",
+  "ttft_stream_ms": 1324,
+  "time_to_request_ms": 129,
+  "first_content_frame_ms": 1325,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The reply separates the two cases by grading the empty result, not by using one sentence for every empty result.\" The table adds: \"No unread corpus holds the name, and file docs were built\" gets the strong wording, while \"An unread corpus holds matching rows that search does not read\" gets \"NOT DEFINITIVE\".\nVERDICT: HIT\nWHY: The answer says the strong \"definitive\" wording is chosen per call by checking whether unread corpora hold the name, not by one fixed sentence for every empty result."
+}

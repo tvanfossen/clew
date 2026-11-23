@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never states how many sites use MBEDTLS_PRIVATE or that they are overwhelmingly in public headers; it only mentions a few example struct fields."
+}

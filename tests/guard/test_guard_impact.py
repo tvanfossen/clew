@@ -26,18 +26,20 @@ from guard_helpers import FIXTURES_DIR
 
 
 def _make_impact_config(req_file=None):
-    """Build a config with impact section for testing."""
-    impact: dict = {
-        "output": {"format": "markdown", "file": None},
-    }
+    """Build a config with a requirements section for testing.
+
+    FIXTURE CHANGED (2.0.0, R5-CFG F7/F9): the catalog is the top-level `requirements` key and
+    the report format is the caller's, not `impact.output`.
+    """
+    override: dict = {}
     if req_file:
-        impact["requirements"] = {
+        override["requirements"] = {
             "file": str(req_file),
             "id_column": "Req ID",
             "name_column": "Requirement Name",
             "format": "csv",
         }
-    return deep_merge(CONFIG_DEFAULTS, {"impact": impact})
+    return deep_merge(CONFIG_DEFAULTS, override)
 
 
 class TestCollectChangedFunctions:
@@ -125,13 +127,11 @@ class TestLoadRequirements:
         config = deep_merge(
             CONFIG_DEFAULTS,
             {
-                "impact": {
-                    "requirements": {
-                        "file": req_file.name,
-                        "id_column": "Req ID",
-                        "name_column": "Requirement Name",
-                        "format": "json",
-                    },
+                "requirements": {
+                    "file": req_file.name,
+                    "id_column": "Req ID",
+                    "name_column": "Requirement Name",
+                    "format": "json",
                 },
             },
         )
@@ -150,13 +150,11 @@ class TestLoadRequirements:
         config = deep_merge(
             CONFIG_DEFAULTS,
             {
-                "impact": {
-                    "requirements": {
-                        "file": req_file.name,
-                        "id_column": "Req ID",
-                        "name_column": "Requirement Name",
-                        "format": "yaml",
-                    },
+                "requirements": {
+                    "file": req_file.name,
+                    "id_column": "Req ID",
+                    "name_column": "Requirement Name",
+                    "format": "yaml",
                 },
             },
         )
@@ -171,7 +169,7 @@ class TestLoadRequirements:
         """A declared-but-absent catalog must fail loudly, not degrade to an empty dict."""
         config = deep_merge(
             CONFIG_DEFAULTS,
-            {"impact": {"requirements": {"file": "nonexistent-req.csv", "format": "csv"}}},
+            {"requirements": {"file": "nonexistent-req.csv", "format": "csv"}},
         )
         with pytest.raises(RequirementsError, match="not found"):
             load_requirements(config)
@@ -186,7 +184,7 @@ class TestLoadRequirements:
         outside.write_text("Req ID,name\nREQ-X,y\n")
         config = deep_merge(
             CONFIG_DEFAULTS,
-            {"impact": {"requirements": {"file": str(outside), "format": "csv"}}},
+            {"requirements": {"file": str(outside), "format": "csv"}},
         )
         with pytest.raises(ConfigError, match="must stay inside the repository"):
             load_requirements(config)
@@ -194,13 +192,13 @@ class TestLoadRequirements:
     def test_traversal_catalog_rejected(self):
         config = deep_merge(
             CONFIG_DEFAULTS,
-            {"impact": {"requirements": {"file": "../../etc/passwd", "format": "csv"}}},
+            {"requirements": {"file": "../../etc/passwd", "format": "csv"}},
         )
         with pytest.raises(ConfigError, match="must stay inside the repository"):
             load_requirements(config)
 
     def test_declared_without_file_raises(self):
-        config = deep_merge(CONFIG_DEFAULTS, {"impact": {"requirements": {"format": "csv"}}})
+        config = deep_merge(CONFIG_DEFAULTS, {"requirements": {"format": "csv"}})
         with pytest.raises(RequirementsError, match="impact.requirements.file"):
             load_requirements(config)
 
@@ -210,7 +208,7 @@ class TestLoadRequirements:
         catalog.write_text("nope\n")
         config = deep_merge(
             CONFIG_DEFAULTS,
-            {"impact": {"requirements": {"file": catalog.name, "format": "toml"}}},
+            {"requirements": {"file": catalog.name, "format": "toml"}},
         )
         with pytest.raises(RequirementsError, match="Unknown requirements format"):
             load_requirements(config)
@@ -221,7 +219,7 @@ class TestLoadRequirements:
         catalog.write_text("just-a-string\n")
         config = deep_merge(
             CONFIG_DEFAULTS,
-            {"impact": {"requirements": {"file": catalog.name, "format": "yaml"}}},
+            {"requirements": {"file": catalog.name, "format": "yaml"}},
         )
         with pytest.raises(RequirementsError, match="must be a mapping"):
             load_requirements(config)
@@ -239,7 +237,7 @@ class TestLoadRequirements:
         )
         config = deep_merge(
             CONFIG_DEFAULTS,
-            {"impact": {"requirements": {"file": catalog.name, "format": "yaml"}}},
+            {"requirements": {"file": catalog.name, "format": "yaml"}},
         )
         assert load_requirements(config)["REQ-VAL-001"] == "Presence check"
 
@@ -249,7 +247,7 @@ class TestLoadRequirements:
         catalog.write_text("requirements:\n  REQ-VAL-001:\n    subsystem: Validate\n")
         config = deep_merge(
             CONFIG_DEFAULTS,
-            {"impact": {"requirements": {"file": catalog.name, "format": "yaml"}}},
+            {"requirements": {"file": catalog.name, "format": "yaml"}},
         )
         with pytest.raises(RequirementsError, match="missing required field"):
             load_requirements(config)
@@ -262,7 +260,7 @@ class TestLoadRequirements:
             CONFIG_DEFAULTS,
             {
                 "validate": {"tags": {"req": {"pattern": r"^REQ-[A-Z]+-[0-9]{3}$"}}},
-                "impact": {"requirements": {"file": catalog.name, "format": "yaml"}},
+                "requirements": {"file": catalog.name, "format": "yaml"},
             },
         )
         with pytest.raises(RequirementsError, match="does not match"):
@@ -324,7 +322,9 @@ class TestFormatJson:
             ),
         ]
         result = format_json(entries)
-        data = json.loads(result)
+        ## SPEC CHANGED (2.0.0, PS3, owner Q/A 2026-11-19): the report is an object carrying
+        ## `schema_version`, its entries under `entries` (it was a bare array with no version).
+        data = json.loads(result)["entries"]
         assert len(data) == 1
         assert data[0]["req_id"] == "REQ-0001"
 
@@ -377,6 +377,35 @@ class TestRunImpact:
         assert "REQ-0252" in result
         assert "Func" in result
 
+    def test_a_range_with_no_files_reads_the_files_the_range_changed(self, tmp_path):
+        """ROUND 4, R11 (found building clew's own wiki): `impact --range A..B` with no file list
+        wrote an EMPTY report — "nothing changed" for 64 commits — because only the files named
+        on the command line were read. A range (or --staged) with no files means every file that
+        range changed; an empty report must mean nothing changed, never that nobody looked.
+        """
+        c_file = tmp_path / "test.c"
+        c_file.write_text(
+            dedent("""\
+                /**
+                 * @brief Func.
+                 * @version 1.0
+                 * @req REQ-0252
+                 */
+                void Func(void) {
+                    impl();
+                }
+            """)
+        )
+
+        def mock_runner(cmd):
+            if "--name-only" in cmd:
+                return f"{c_file}\n"
+            return "@@ -6,1 +6,1 @@\n-old\n+new\n"
+
+        config = _make_impact_config(req_file=FIXTURES_DIR / "impact" / "req.csv")
+        result = run_impact([], config, diff_range="A..B", run_command=mock_runner)
+        assert "REQ-0252" in result and "Func" in result
+
 
 class TestFilterRequirementsByVersion:
     """Tests for filter_requirements_by_version."""
@@ -391,9 +420,10 @@ class TestFilterRequirementsByVersion:
         config = deep_merge(
             CONFIG_DEFAULTS,
             {
-                "validate": {
-                    "version_gate": {"current_version": "v1.0.0", "version_field": "Min Version"},
-                },
+                ## FIXTURE CHANGED (2.0.0, R5-CFG F14): current_version is a validate scalar and
+                ## version_field a catalog field.
+                "validate": {"current_version": "v1.0.0"},
+                "requirements": {"version_field": "Min Version"},
             },
         )
         result = filter_requirements_by_version(reqs, config)
@@ -405,9 +435,10 @@ class TestFilterRequirementsByVersion:
         config = deep_merge(
             CONFIG_DEFAULTS,
             {
-                "validate": {
-                    "version_gate": {"current_version": "v1.0.0", "version_field": "Min Version"},
-                },
+                ## FIXTURE CHANGED (2.0.0, R5-CFG F14): current_version is a validate scalar and
+                ## version_field a catalog field.
+                "validate": {"current_version": "v1.0.0"},
+                "requirements": {"version_field": "Min Version"},
             },
         )
         result = filter_requirements_by_version(reqs, config)
@@ -418,9 +449,10 @@ class TestFilterRequirementsByVersion:
         config = deep_merge(
             CONFIG_DEFAULTS,
             {
-                "validate": {
-                    "version_gate": {"current_version": "v1.0.0", "version_field": "Min Version"},
-                },
+                ## FIXTURE CHANGED (2.0.0, R5-CFG F14): current_version is a validate scalar and
+                ## version_field a catalog field.
+                "validate": {"current_version": "v1.0.0"},
+                "requirements": {"version_field": "Min Version"},
             },
         )
         result = filter_requirements_by_version(reqs, config)
@@ -438,7 +470,7 @@ class TestCatalogFailuresAreUniform:
     def _config(self, catalog, fmt, **extra):
         reqs = {"file": catalog.name, "format": fmt}
         reqs.update(extra)
-        return deep_merge(CONFIG_DEFAULTS, {"impact": {"requirements": reqs}})
+        return deep_merge(CONFIG_DEFAULTS, {"requirements": reqs})
 
     def test_malformed_json_raises_requirements_error(self, tmp_path, monkeypatch):
         catalog = tmp_path / "reqs.json"
@@ -489,10 +521,12 @@ class TestVersionFieldMustExist:
         return deep_merge(
             CONFIG_DEFAULTS,
             {
-                "validate": {
-                    "version_gate": {"current_version": "v1.0.0", "version_field": field_name}
+                "validate": {"current_version": "v1.0.0"},
+                "requirements": {
+                    "file": catalog.name,
+                    "format": "yaml",
+                    "version_field": field_name,
                 },
-                "impact": {"requirements": {"file": catalog.name, "format": "yaml"}},
             },
         )
 

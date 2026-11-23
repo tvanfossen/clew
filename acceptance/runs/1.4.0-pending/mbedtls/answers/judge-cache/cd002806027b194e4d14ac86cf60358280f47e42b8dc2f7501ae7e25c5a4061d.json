@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: If `MBEDTLS_PLATFORM_STD_CALLOC` is not defined, it falls back to `platform_calloc_uninit`, which returns NULL. So an unconfigured runtime hook fails every allocation rather than silently using a default. ... The `platform_*_uninit` stubs make a missing configuration fail loudly (NULL from calloc) rather than fall back to libc silently.\nVERDICT: HIT\nWHY: The answer states the uninit calloc stub returns NULL and that the unconfigured default fails rather than falling back. It does not say the uninit free is a no-op, but the item's core substance (defaults fail instead of falling back) is present."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the reply lists file types that were not indexed (`.rs`, `.toml` and so on). It never says the reply names in-scope file types that produced no rows. The \"barren\" files it mentions come from `index(status)`, not from the search reply."
+}

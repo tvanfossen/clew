@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Internal header. Any library `.c` that includes it before `private_access.h` gets raw field names. This is the main \"for whom\": the library itself.\nVERDICT: HIT\nWHY: The answer states that `library/common.h` (an internal shared header) defines the opt-out so library files see raw member names, even with include-order caveats."
+}

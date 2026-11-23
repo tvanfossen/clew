@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Callbacks | No exception may escape into C. The Python trampolines catch and print. Don't call back into the API from `on_token`.\nVERDICT: MISS\nWHY: The answer says trampolines catch and print exceptions, but never says a failed hook is treated as a pass-through, and it names no pass-through mechanism."
+}

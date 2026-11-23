@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 47223,
+  "stop_reason": "end_turn",
+  "session_id": "4820f313-04b7-4d8b-aba2-9f5a49e8c5b3",
+  "total_cost_usd": 0.01969162,
+  "usage": {
+    "input_tokens": 18,
+    "cache_creation_input_tokens": 51049,
+    "cache_read_input_tokens": 537702,
+    "output_tokens": 8206,
+    "output_tokens_details": {
+      "thinking_tokens": 4048
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 51049,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2435,
+        "cache_read_input_tokens": 79740,
+        "cache_creation_input_tokens": 5022,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 5022
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 18,
+      "outputTokens": 8206,
+      "cacheReadInputTokens": 537702,
+      "cacheCreationInputTokens": 51049,
+      "webSearchRequests": 0,
+      "costUSD": 0.01969162,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 4048,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 51049,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 15,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** the call runs only if it clears a fixed chain of checks in `ToolExecutor`, and the permission lists are consulted at two points: an allow lookup inside the approval step, and a deny lookup inside `ServerManager::execute`, which runs after approval. Deny wins over everything, but the approval step is weaker than its docs suggest.\n\n## The path\n\n```\nmodel emits tool call\n  \u2502\n  \u25bc\nToolExecutor::process_single_call          tool_executor.cpp:729\n  \u251c\u2500 PRE_TOOL_CALL hook (can cancel)       :733\n  \u25bc\ncheck_call_preconditions                   :667, in this order\n  1. anti-spiral hard block                :938\n  2. schema validation                     :640\n  3. MCP key set (MCPAuthorizationManager) :575\n  4. tier allowed_tools                    :198\n  5. duplicate-call detection              :117\n  6. approval  \u2500\u2500\u25ba check_approval          :161\n        auto_ok = config.permissions.auto_approve        (facade/entropic.cpp:1489)\n               || ServerManager::is_explicitly_allowed   (server_manager.cpp:286)\n        if !auto_ok and on_tool_call set: notify UI, approved = true   (:168-173)\n        if !approved: \"Permission denied\" feedback\n  \u25bc\nexecute_tool \u2192 ServerManager::execute      server_manager.cpp:153\n  \u251c\u2500 is_denied(tool, \"tool:argpattern\")?   \u2192 \"Error: Permission denied\" result\n  \u25bc\nroute_tool_call \u2192 in-process server or external MCP client\n```\n\nAllow lists never skip steps 1\u20135. Deny is checked after approval, so a denied tool can still trigger a UI prompt before it's refused.\n\n## What a pattern in each list does\n\nBoth lists use `PermissionManager::pattern_matches` (`permission_manager.cpp:101`):\n\n- **Split on the first `:`.** The left side is `fnmatch`ed against the tool name. Without a colon, that match is enough, so the rule applies to any arguments.\n- **With a colon,** the full `tool:argvalue` string must also match the pattern under `fnmatch`.\n- **The argument value** is not the whole argument object. `args_to_pattern` (`server_manager.cpp:426`) uses the value of the first key in the JSON object, and only if it is a string. Otherwise it uses `*`. For a no-args call (`{}`) the value is also `*`.\n- **`fnmatch` flags are 0,** so `*` also matches `.` and `/`.\n\n| Pattern | Matches |\n|---|---|\n| `filesystem.*` | every filesystem tool, any args |\n| `git.commit` | `git.commit` with any args |\n| `bash.execute:python*` | `bash.execute` whose first string arg starts with `python`; does not match a no-args call |\n| `*` | everything in an allow list; everything in a deny list (deny-all) |\n\nConfig entries come from `permissions.allow` / `permissions.deny` (`loader.cpp:365-371`, `config.h:590-592`). Patterns added at runtime through `add_permission` are deduplicated. `auto_approve` skips the approval step only; deny still applies.\n\n## Things I'd flag\n\n1. **The approval callback never denies.** In `check_approval`, if no allow rule or `auto_approve` applies and an `on_tool_call` callback exists, the code calls it and then sets `approved = true` (`tool_executor.cpp:168-173`). The callback returns nothing, so an unlisted tool runs after notification. Only when no callback is registered does the default-deny (`:184`) apply. The header comment says \"approved via callback\" and `permission_manager.h` says \"default-deny\", so this contradicts the documented model. Whether it's intentional, I couldn't tell from the code. Nothing in `src/` sets `on_tool_call`, so it depends on what the embedding app registers.\n2. **`BashServer::get_permission_pattern` is dead for permissions.** It is defined (`bash.cpp:200`) and reachable via `ServerManager::get_permission_pattern` (`server_manager.cpp:301`), but nothing calls that function. Both allow and deny go through `args_to_pattern`, so a bash rule matches the first string argument, not the command's base name. The base-name logic has no effect on enforcement.\n3. **\"First argument\" is key-sorted, not model-ordered.** nlohmann::json objects iterate in key order by default, so with `{\"command\": ..., \"cwd\": ...}` the pattern is taken from `command` only because `c-o-m` sorts before `c-w-d`. Adding a string arg whose name sorts earlier changes which value the pattern sees. I didn't test this, so treat it as a likely trap rather than a confirmed bug.\n\nI only read code, and I didn't run the test suite. The unit tests I looked at (`server_manager_test.cpp:97`, `tool_calling_loop_test.cpp:168`) cover deny blocking and `auto_approve` with the callback null, which is consistent with the reading above.",
+  "ttft_ms": 1946,
+  "type": "result",
+  "duration_ms": 48258,
+  "uuid": "84cd307e-746f-4fb2-bf29-c1a127befc49",
+  "ttft_stream_ms": 1504,
+  "time_to_request_ms": 113,
+  "first_content_frame_ms": 1505,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

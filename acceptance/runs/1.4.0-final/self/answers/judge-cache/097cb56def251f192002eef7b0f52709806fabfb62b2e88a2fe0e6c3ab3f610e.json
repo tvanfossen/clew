@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Clew's answer is a resolved call graph, one edge per caller-callee pair, each tagged with how it was found and how sure clew is.\nVERDICT: MISS\nWHY: The answer says edges are per caller-callee pair, but it never says that multiple layers or variants of evidence collapse into one row at the strongest evidence. It instead lists `source` and `confidence` per neighbour."
+}

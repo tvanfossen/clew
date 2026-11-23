@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Only `ServerManager::execute` calls `is_denied` (`server_manager.cpp:159`). Deny therefore beats allow, and it beats `auto_approve`... `ServerManager::execute` is_denied(deny list)? \u2192 \"Error: Permission denied for <tool>\" (wins) else route_tool_call\nVERDICT: MISS\nWHY: The answer says the deny list is checked in ServerManager::execute before routing. It also describes the allow list and the other gates as blocking, with \"Permission denied\" if no approval is given. So it does not conclude that the deny list is the only list that blocks execution."
+}

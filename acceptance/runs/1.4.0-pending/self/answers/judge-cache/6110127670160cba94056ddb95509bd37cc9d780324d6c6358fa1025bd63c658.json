@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The notices ride on every query reply through `staleness_notices` (`server.py:1548`) and `_staleness` (`tools_query.py:1886`).\nVERDICT: HIT\nWHY: The answer says notices ride on every query reply, and elsewhere that `notices()` is empty and a current index gets no annotation."
+}

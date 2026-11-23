@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Tiers 3 and 4 (target facts and ecosystem signatures): these accumulate and survive any stated tier. Tier 5 (heuristics) is the only one a stated value displaces.\nVERDICT: MISS\nWHY: The answer mentions tiers 1\u20135 in passing and stamps `options.<name>.tier`, but it never names the five tiers or frames them as a five-tier precedence scheme. It also describes \"four ways\" and only partly characterises tiers 3\u20135."
+}

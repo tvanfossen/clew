@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The first call is a query, not an attempt that failed. I would not call it retry logic.\nVERDICT: HIT\nWHY: The answer concludes the double `llama_tokenize` call is size negotiation (null buffer, negative return gives the needed size, second call fills), not retry. The 'no backoff, no attempt counter' detail is only implicit, but it clearly identifies exactly one second call."
+}

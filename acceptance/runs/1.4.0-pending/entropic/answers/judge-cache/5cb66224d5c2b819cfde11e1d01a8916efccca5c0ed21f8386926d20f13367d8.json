@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the second call fills the vector and that failure returns `{}` with a log. It never states that a negative or non-positive result from the second call is terminal (returns empty with no further attempt)."
+}

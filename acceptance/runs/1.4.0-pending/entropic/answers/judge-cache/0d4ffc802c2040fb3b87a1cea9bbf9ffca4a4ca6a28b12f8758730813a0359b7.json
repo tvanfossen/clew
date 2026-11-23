@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never states that a tool matching neither the allow nor deny list is not denied and runs; it only says allow gates approval and deny blocks at execution, and it notes the callback approves everything. It does not conclude a default-allow posture for tools on neither list."
+}

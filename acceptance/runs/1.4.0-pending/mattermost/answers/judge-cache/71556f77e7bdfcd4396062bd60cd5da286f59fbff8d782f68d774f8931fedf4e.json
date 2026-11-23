@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The other ~80 matches are `NavigationHeaderTitle` or the `useNavigationHeader` hook, not the `NavigationHeader` component. `app/components/navigation_header/index.tsx` is the definition, and it imports `NavigationHeaderLargeTitle` and `Header` internally.\nVERDICT: MISS\nWHY: The answer excludes the hook only as a `useNavigationHeader` match. It never says `Header` is a distinct component rendered directly by that hook and by the thread route, and it mentions `Header` only as an internal import."
+}

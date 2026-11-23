@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The C ABI carries only `int*`, so no `std::atomic` crosses the `.so` boundary.\nVERDICT: MISS\nWHY: The answer notes that the C ABI carries only `int*`, but it never says the observer/poller thread exists to bridge an atomic into a plain int. It describes the poller only as a scoped helper joined before return."
+}

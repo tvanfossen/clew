@@ -99,7 +99,7 @@ def bare_tail(subject: str) -> str:
 # @param subject The path-shaped subject.
 # @return The matching indexed path, or "".
 # @version 1
-# @dg_internal
+# @utility
 def _indexed_path(conn: sqlite3.Connection, subject: str) -> str:
     """Exact, then suffix, then basename. A model that passed `src/inference/x.cpp` and one that
     passed `x.cpp` both want the same redirection, and the index stores repo-relative paths whose
@@ -132,7 +132,7 @@ def _indexed_path(conn: sqlite3.Connection, subject: str) -> str:
 # @param name The bare name that found nothing.
 # @return Distinct qualified names, at most `_MAX_NAMED`, and the total found.
 # @version 1
-# @dg_internal
+# @utility
 def _qualified_forms(conn: sqlite3.Connection, name: str) -> tuple[list[str], int]:
     """SQL narrows by `name`, then `qualified_name_of` decides — the same function the `qualified`
     selector compares against, so a hint can never name a form the selector would then reject.
@@ -164,7 +164,7 @@ def _qualified_forms(conn: sqlite3.Connection, name: str) -> tuple[list[str], in
 # @param name The bare name.
 # @return True when at least one row carries it.
 # @version 1
-# @dg_internal
+# @utility
 def _name_exists(conn: sqlite3.Connection, name: str) -> bool:
     """@brief Does this bare name resolve.
     @param conn Open connection.
@@ -186,7 +186,7 @@ def _name_exists(conn: sqlite3.Connection, name: str) -> bool:
 # @param name The bare name that resolved to nothing.
 # @return True when a brief or detailed description contains it.
 # @version 1
-# @dg_internal
+# @utility
 def _documentation_mentions(conn: sqlite3.Connection, name: str) -> bool:
     """MEASURED on the 1.1.0 entropic cells, replayed against a rebuilt index.
     `dossier("entropic_free_string")` correctly returns nothing — that checkout declares no such
@@ -281,7 +281,7 @@ def recovery_hint(db: str | Path | None, subject: str | None) -> str:
 ## that rather than as an absence. Measured: `entropic_free_string` appears four times in
 ## entropic's doc comments and is declared nowhere in that checkout.
 # @version 3
-# @dg_internal
+# @utility
 def _hint_from(conn: sqlite3.Connection, subject: str) -> str:
     """Split from `recovery_hint` so the failure handling and the logic are separately readable,
     and so the three checks sit together where their order can be seen.

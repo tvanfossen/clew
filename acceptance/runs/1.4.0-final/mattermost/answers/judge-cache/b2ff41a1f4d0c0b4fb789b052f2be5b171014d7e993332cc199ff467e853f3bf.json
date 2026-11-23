@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Note that the `handleX` methods do not write the database directly. The write is centralized in `batchRecords`. Any change to transaction behavior, error handling, or corruption detection there affects every handler\"\nVERDICT: MISS\nWHY: The answer says writes are centralized in `BaseDataOperator.batchRecords`. It never says each mixin is constrained to extend ServerDataOperatorBase, which is the item's stated reason. It also says some handlers call `batchRecords` directly, not all of them."
+}

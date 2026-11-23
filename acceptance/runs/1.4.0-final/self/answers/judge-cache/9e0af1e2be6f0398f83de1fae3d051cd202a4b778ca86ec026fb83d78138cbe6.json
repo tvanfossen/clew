@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Every query reply carries `staleness`: a list of `{axis, message}`, built by `notices()`. The list is empty when the tool is current, and the key is absent, so a current index adds no noise.\nVERDICT: HIT\nWHY: The answer says every query reply carries the staleness annotation and that it is empty/absent when the tool is current."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `scope`: `source: whole-repo`, 426 indexed files, the top-level directories, the extensions that were indexed, and `not_indexed`, which lists extensions the index skipped with counts\nVERDICT: MISS\nWHY: The answer describes `not_indexed` (extensions skipped), but not that the reply names the in-scope file types that produced no rows; it covers the opposite side of the distinction."
+}

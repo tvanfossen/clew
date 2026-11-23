@@ -162,7 +162,7 @@ def meta_section(db: str | Path, prefix: str) -> dict[str, str]:
 ## @param column The file-id column to test, qualified as the caller's SQL needs.
 ## @return A trailing-comma fragment, or '' on an index built before the stage existed.
 ## @version 1
-## @dg_internal
+## @utility
 def _test_scope_term(conn: sqlite3.Connection, column: str) -> str:
     """WHY THIS IS A TERM AND NOT A FILTER. A test-code definition is a real definition and
     must stay reachable — `candidates` lists it, a qualified name selects it, and a repo whose
@@ -295,12 +295,77 @@ def function_candidates(
     return cands if qualified is None else matching_identity(name, cands, qualified)
 
 
+## @brief The shortest separator-aligned suffix of a qualified name no other identity ends with.
+## @param full The identity's full qualified name.
+## @param others Every other qualified name sharing the bare name.
+## @return The shortest unique suffix with at least one qualifier, or `full` when none is shorter.
+## @version 1
+## @req REQ-DDB-QUERY-010
+def short_qualified(full: str, others: set[str]) -> str:
+    """1.3.7. `qualified` was 29% of mattermost's neighbour-row bytes, because a TypeScript identity
+    spells its module path in full and the row's `file` spells it again. Any suffix unique among
+    the identities that share the bare name selects exactly one of them — `resolve_selector`
+    accepts it — so the row publishes the shortest. ALIGNED TO `.` OR `::`, never a string suffix:
+    `Monitor.run` must not stand for `HealthMonitor.run`. AT LEAST ONE QUALIFIER, because the bare
+    name is what the row's `name` already says.
+
+    @brief Shorten a qualified name to its shortest unique suffix.
+    @return The suffix.
+    @version 1
+    """
+    tokens = re.split(r"(::|\.)", full)
+    parts, seps = tokens[0::2], tokens[1::2]
+    for keep in range(2, len(parts)):
+        start = len(parts) - keep
+        suffix = parts[start] + "".join(s + p for s, p in zip(seps[start:], parts[start + 1 :]))
+        if not any(_ends_at_boundary(other, suffix) for other in others if other != full):
+            return suffix
+    return full
+
+
+## @brief Whether a qualified name ends with a suffix at a separator boundary (or equals it).
+## @param name The qualified name.
+## @param suffix The candidate suffix.
+## @return True when `suffix` names `name` at a boundary.
+## @version 1
+## @utility
+def _ends_at_boundary(name: str, suffix: str) -> bool:
+    """@brief Boundary-aligned suffix test. @return True when aligned."""
+    return name == suffix or name.endswith("." + suffix) or name.endswith("::" + suffix)
+
+
+## @brief The full qualified name a selector names among a bare name's identities.
+## @param qualifieds Every full qualified name the bare name has.
+## @param selector A full qualified name or a boundary-aligned suffix of one.
+## @return The one full name it selects, or None when it selects none or several.
+## v2 (1.3.10): `::` and `.` are interchangeable in the selector.
+## @version 2
+## @req REQ-DDB-QUERY-010
+def resolve_selector(qualifieds: set[str], selector: str) -> str | None:
+    """EXACT FIRST, then a UNIQUE boundary-aligned suffix — the form `short_qualified` publishes.
+    Several matches select NOTHING, never the first: a selector that silently picked one of two
+    identities would be the ambiguity it exists to remove.
+
+    @brief Resolve a qualified selector.
+    @return Full qualified name or None.
+    @version 2
+    """
+    if selector in qualifieds:
+        return selector
+    ## EITHER SEPARATOR (1.3.10): `::` and `.` name the same nesting, and an agent writing one
+    ## language's spelling for another's identity (`a::b::run` for `a.b.run`) meant that identity.
+    spellings = {selector, selector.replace("::", "."), selector.replace(".", "::")}
+    matches = {q for q in qualifieds for sp in spellings if q == sp or _ends_at_boundary(q, sp)}
+    return next(iter(matches)) if len(matches) == 1 else None
+
+
 ## @brief Keep only the candidate rows whose IDENTITY is the named qualified one.
 ## @param name Bare function name the rows were fetched by.
 ## @param cands Rows from `function_candidates`.
 ## @param qualified The qualified-name identity to select (as published in `Candidate.qualified`).
 ## @return The subset of `cands` whose `qualified_name_of` equals `qualified`; empty when none does.
-## @version 1
+## v2 (1.3.7): accepts a unique boundary-aligned suffix, via `resolve_selector`.
+## @version 2
 ## @req REQ-DDB-QUERY-010
 def matching_identity(
     name: str, cands: list[tuple[int, str, str, int | None, bool]], qualified: str
@@ -343,7 +408,8 @@ def matching_identity(
     @return The matching subset, possibly empty.
     @version 1
     """
-    return [c for c in cands if qualified_name_of(name, c[1]) == qualified]
+    target = resolve_selector({qualified_name_of(name, c[1]) for c in cands}, qualified)
+    return [c for c in cands if target is not None and qualified_name_of(name, c[1]) == target]
 
 
 ## @brief Collapse rows that describe ONE physical declaration into one.
@@ -351,7 +417,7 @@ def matching_identity(
 ## @return The same rows, minus exact positional duplicates, order preserved.
 ## @version 1
 ## @req REQ-DDB-QUERY-010
-## @dg_internal
+## @utility
 def _one_row_per_declaration(cands: list[tuple]) -> list[tuple]:
     """gh#19. doxygen emits the same member under more than one scope spelling, so
     `memberdef` holds two rowids for one physical declaration and `candidates` listed it
@@ -532,7 +598,7 @@ _IDENT_CHARS = frozenset("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ01
 ## @param qualified Qualified name to look for (e.g. "LinkOwner::rx_loop").
 ## @return True when the name appears bounded by non-identifier characters.
 ## @version 2
-## @dg_internal
+## @utility
 def _qualified_match(definition: str, qualified: str) -> bool:
     """Boundary-checked containment: `CoLinkOwner::rx_loop` must NOT match a
     search for `LinkOwner::rx_loop`. Every occurrence is examined, because
@@ -645,7 +711,8 @@ def qualified_name_of(name: str, definition: str | None) -> str:
 ## @param name Function name to resolve.
 ## @param qualified Optional identity selector, replacing the definition-preferring guess; see `matching_identity`.
 ## @return Ascending rowids of the canonical identity (decl + def rows of ONE function); empty when unknown.
-## @version 2
+## v3 (1.3.7): a selector may be a unique boundary-aligned suffix, via `resolve_selector`.
+## @version 3
 ## @req REQ-DDB-QUERY-003
 ## @req REQ-DDB-QUERY-010
 def identity_rowids(conn: sqlite3.Connection, name: str, qualified: str | None = None) -> list[int]:
@@ -683,7 +750,14 @@ def identity_rowids(conn: sqlite3.Connection, name: str, qualified: str | None =
     cands = function_candidates(conn, name)
     if not cands:
         return []
-    target = qualified if qualified is not None else qualified_name_of(name, cands[0][1])
+    if qualified is not None:
+        ## A FULL NAME OR A UNIQUE SUFFIX OF ONE (1.3.7): neighbour rows publish the shortest
+        ## unique suffix, and following one must reach the same identity the full name would.
+        target = resolve_selector({qualified_name_of(name, c[1]) for c in cands}, qualified)
+        if target is None:
+            return []
+    else:
+        target = qualified_name_of(name, cands[0][1])
     return sorted(r for r, sig, _f, _ls, _hb in cands if qualified_name_of(name, sig) == target)
 
 
@@ -717,13 +791,66 @@ def name_of(conn: sqlite3.Connection, rowid: int) -> str | None:
     return row[0] if row else None
 
 
+## doxygen's own documentation elements (its compound.xsd docCmdGroup and friends). A `<` that opens
+## or closes anything else is TEXT doxygen stored verbatim (`std::atomic<bool>`, `n_tokens < 2`).
+_DOX_ELEMENTS = (
+    "para|ref|computeroutput|bold|emphasis|underline|strike|small|superscript|subscript|center|del|"
+    "ins|s|ulink|programlisting|codeline|highlight|sp|linebreak|hruler|preformatted|verbatim|anchor|"
+    "itemizedlist|orderedlist|listitem|simplesect|title|parameterlist|parameteritem|"
+    "parameternamelist|parametername|parametertype|parameterdescription|xrefsect|xreftitle|"
+    "xrefdescription|variablelist|varlistentry|term|table|row|entry|caption|heading|image|dotfile|"
+    "mscfile|diafile|toclist|tocitem|language|copydoc|blockquote|parblock|internal|sect1|sect2|"
+    "sect3|sect4|details|summary|emoji|formula|indexentry|primaryie|secondaryie|nonbreakablespace|"
+    "ndash|mdash|htmlonly|rtfonly|latexonly|xmlonly|docbookonly|manonly|plantumlfile"
+)
+_STRAY_LT = re.compile(rf"<(?!/?(?:{_DOX_ELEMENTS})[\s/>])")
+_STRAY_AMP = re.compile(r"&(?!#?\w+;)")
+_OPEN_TAG = re.compile(rf"<({_DOX_ELEMENTS})[\s>]")
+## One doxygen element tag — open, close or self-closing — and nothing else (`strip_xml`).
+_DOX_TAG = re.compile(rf"</?(?:{_DOX_ELEMENTS})(?:\s[^<>]*)?/?>")
+
+
+## @brief Doxygen XML made well-formed: stray `<` and `&` from code text escaped.
+## MOVED from clew/wiki/apiref.py (owner Q/A 2026-11-20): one rule for the wiki and served text.
+## @param xml A description fragment.
+## @return The fragment, parseable.
+## v2: an element name used as text is text
+## @version 2
+## @utility
+def well_formed(xml: str) -> str:
+    """ENTROPIC'S AUDIT (84 of 1,485 include/ descriptions): doxygen stores code text verbatim
+    inside its XML, so `std::atomic<bool>` or `(n_tokens < 2)` made the fragment unparseable, and
+    the flat fallback then stripped them AS TAGS — "(n_tokens < 2)" rendered as "(n_tokens", the
+    rest lost. doxygen's own elements stay markup; any other `<`, and a bare `&`, become text.
+
+    @brief Escape stray markup characters.
+    @return XML.
+    """
+    text = _STRAY_LT.sub("&lt;", _STRAY_AMP.sub("&amp;", xml or ""))
+    ## A doxygen element NAME used as text (`"<summary>"`) opens without closing: its opens are text.
+    for name in set(_OPEN_TAG.findall(text)):
+        opens = rf"<(?={name}(?:\s[^<>]*)?(?<!/)>)"
+        if len(re.findall(opens, text)) != text.count(f"</{name}>"):
+            text = re.sub(opens, "&lt;", text)
+    return text
+
+
 ## @brief Strip doxygen's XML-ish markup from a description column.
 ## @return Plain text with XML-ish tags removed and whitespace runs collapsed.
-## @version 1
+## v2: verbatim code text kept in served replies (owner Q/A 2026-11-20)
+## @version 2
 ## @req REQ-DDB-QUERY-003
 def strip_xml(text: str | None) -> str:
-    """@brief Collapse doxygen description markup to plain whitespace-run text."""
-    return re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", text or "")).strip()
+    """OWNER Q/A 2026-11-20 (2.0.0): served text keeps code text doxygen stored verbatim. A regex
+    strip of `<…>` served `(n_tokens < 2) … (llama_decode error)` as "(n_tokens" and
+    `std::atomic<bool>` as "std::atomic". Only doxygen's own elements are markup — the element set
+    `well_formed` uses, the wiki's rule since 314e4696 — and everything else, entities included,
+    is served as stored (test_jsts pins `Map&lt;string` surviving).
+
+    @brief Collapse doxygen description markup to plain whitespace-run text.
+    @return Text.
+    """
+    return re.sub(r"\s+", " ", _DOX_TAG.sub(" ", text or "")).strip()
 
 
 ## @brief Extract the version value doxygen folded into detaileddescription.
@@ -801,6 +928,42 @@ def is_shipped_config(path: str) -> bool:
     """
     lower = path.lower()
     return not any(part in lower for part in _NOT_SHIPPED_DIRS)
+
+
+## `config_defaults.ORIGIN_DECLARED`, spelled here because `query/` is stdlib-only and must not import
+## the pipeline; `tests/test_gate_polarity.py` pins the two equal.
+CONFIG_ORIGIN_DECLARED = "declared"
+
+
+## @brief The default state one macro's config rows decide, with the site that decides it.
+## @param rows (state, file_path, line, origin) for one macro, test configs already excluded.
+## @return (state, "path:line"), or None when the rows do not decide it.
+## @version 1
+## @req REQ-DDB-QUERY-013
+def decided_default(rows: list[tuple[str, str, int, str]]) -> tuple[str, str] | None:
+    """ONE RULE, TWO READERS (2.0.0, T5 served). The query layer (`kconfig._with_defaults`, what a
+    dossier says) and the build (`macro_refs`, which same-name definition a reference credits)
+    decided the same question differently: the query let the shipped header settle a
+    disagreement, the build required unanimity, so a dossier said MBEDTLS_PLATFORM_MEMORY is off
+    while both `mbedtls_calloc` definitions stayed credited. And the query kept the LAST row
+    whenever two declared or two shipped rows disagreed.
+
+    TIERS, MOST AUTHORITATIVE FIRST: rows from a DECLARED header (the operator named the build's
+    header); else rows from a SHIPPED one (`is_shipped_config`); else every row. The first
+    non-empty tier answers, and only when it is unanimous. Disagreement inside the deciding tier
+    is undecided, never the last row read.
+
+    @brief Decide a macro's default.
+    @return (state, site) or None.
+    """
+    declared = [r for r in rows if r[3] == CONFIG_ORIGIN_DECLARED]
+    shipped = [r for r in rows if is_shipped_config(r[1])]
+    tier = declared or shipped or rows
+    states = {r[0] for r in tier}
+    if len(states) != 1:
+        return None
+    state, path, line, _origin = sorted(tier, key=lambda r: (r[1], r[2]))[0]
+    return state, f"{path}:{line}"
 
 
 ## How much free prose a dossier carries before it says it stopped.

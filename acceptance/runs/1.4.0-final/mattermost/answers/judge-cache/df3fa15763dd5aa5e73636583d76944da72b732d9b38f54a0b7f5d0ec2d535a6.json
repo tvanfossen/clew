@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Handlers never call the database directly. The path is: ... `execute` then calls `this.batchRecords(models, description)`. `BaseDataOperator.batchRecords` ... is the actual write.\" and \"Each handler is a mixin: `const X = <TBase extends Constructor<ServerDataOperatorBase>>(superclass) => class extends superclass {...}`\"\nVERDICT: HIT\nWHY: The answer states that all handler writes route through BaseDataOperator.batchRecords and that each mixin is constrained to extend ServerDataOperatorBase, which is the substance of the item."
+}

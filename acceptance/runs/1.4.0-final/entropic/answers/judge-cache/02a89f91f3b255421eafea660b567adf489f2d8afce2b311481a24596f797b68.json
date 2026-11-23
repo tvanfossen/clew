@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A failed tokenization and an empty string both return `0`.\nVERDICT: HIT\nWHY: The answer says count callers can't tell failure from empty input, and that generation callers have no empty-token check (only two callers check, via a size test)."
+}

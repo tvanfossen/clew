@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: An unreadable tree counts as a match, so the tool does not raise false alarms. ... A failed refresh is logged and the query still answers with its staleness notice.\nVERDICT: MISS\nWHY: The answer covers the code-axis tolerance and refresh failure handling, but never says that staleness measurement itself never raises or degrades to no annotation instead of erroring."
+}

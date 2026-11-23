@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"| `code` | ... | No. Only restarting the MCP client clears it |\" and \"| `data` | ... | Yes |\" and \"Only if the index is older. If the index is newer, a rebuild re-stamps the same newer version and cannot clear it\"\nVERDICT: MISS\nWHY: The answer lists per-axis remedies (rebuild for data, restart for code), but never says this is why a single flag would not have been enough, so the item's reasoning is absent."
+}

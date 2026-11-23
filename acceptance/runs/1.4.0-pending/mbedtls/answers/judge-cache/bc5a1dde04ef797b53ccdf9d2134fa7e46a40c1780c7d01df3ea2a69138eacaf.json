@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `constant_time_impl.h` defines `MBEDTLS_CT_ASM` only when `MBEDTLS_HAVE_ASM` is set, the compiler is GNU-compatible (`__GNUC__`, and not old armcc5), and the target is one of: 32-bit ARM/Thumb (`MBEDTLS_CT_ARM_ASM`), AArch64, x86-64, or i386.\nVERDICT: HIT\nWHY: The answer says MBEDTLS_CT_ASM is defined in the header from MBEDTLS_HAVE_ASM plus compiler and architecture predefined macros. That means it is derived, not set in mbedtls_config.h. The answer never says \"derived\" outright, but the mechanism is stated."
+}

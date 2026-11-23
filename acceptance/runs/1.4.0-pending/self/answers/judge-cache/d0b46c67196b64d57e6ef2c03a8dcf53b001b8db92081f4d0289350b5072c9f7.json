@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Each row is a name, not a line. ... A caller that invokes `git_argv` twice appears once.\nVERDICT: MISS\nWHY: The answer says one row per caller function (collapsing multiple call sites), but not that the query surface returns one row per neighbour rather than per layer, collapsing layer variants to the strongest evidence."
+}

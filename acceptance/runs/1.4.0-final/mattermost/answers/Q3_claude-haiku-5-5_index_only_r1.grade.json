@@ -1,0 +1,133 @@
+{
+  "cell": "Q3_claude-haiku-5-5_index_only_r1",
+  "arm": "index_only",
+  "rubric_version": "1.0.0",
+  "rubric_digest": "32294778c2753056",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.8333333333333334,
+  "unmarked_pct": 0.0,
+  "split_decisions": 1,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "every file that renders NavigationHeader \u2014 app/products/agents/screens/agent_chat/header.tsx",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every file that renders NavigationHeader \u2014 app/products/playbooks/screens/participant_playbooks/participant_playbooks.tsx",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every file that renders NavigationHeader \u2014 app/screens/channel/header/header.tsx",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every file that renders NavigationHeader \u2014 app/screens/global_threads/global_threads.tsx",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every file that renders NavigationHeader \u2014 app/screens/global_drafts/global_drafts.tsx",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every file that renders NavigationHeader \u2014 app/screens/home/recent_mentions/recent_mentions.tsx",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every file that renders NavigationHeader \u2014 app/screens/home/search/search.tsx",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every file that renders NavigationHeader \u2014 app/screens/home/saved_messages/saved_messages.tsx",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every file that renders NavigationHeader \u2014 precision",
+      "kind": "set_precision",
+      "weight": 1,
+      "hit": true,
+      "detail": "clean",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "identifies the search screen (`screens/home/search/search.tsx`) as the only renderer that enables the search field",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: Only `SearchScreen` shows a search field. | WHY: The answer names `app/screens/home/search/search.tsx` as the only caller passing `hasSearch={true}`. The other seven omit it or pass false. || QUOTE: Only `SearchScreen` shows a search field. The other seven either omit `hasSearch` (it defaults to `false`) or pass it as `false`. | WHY: The answer names `app/screens/home/search/search.tsx` (SearchScreen) as the only renderer with `hasSearch={true}`, which enables the search field. || QUOTE: Only `SearchScreen` shows a search field. The other seven either omit `hasSearch` (it defaults to `false`) or pass it as `false`. | WHY: The answer names `app/screens/home/search/search.tsx` (SearchScreen) as the only caller that enables the search field, with `hasSearch={true}`.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "explains that NavigationHeader forwards its ref to the NavigationSearch input, which is rendered only when `hasSearch` is true \u2014 otherwise the ref is attached to nothing",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"When `hasSearch` is true it renders `<NavigationSearch {...searchProps} hideHeader theme topStyle ref={ref} />`.\" and \"The `ref` is only attached when `hasSearch` is true. For the other seven callers it is never attached to anything.\" | WHY: The answer states NavigationHeader forwards its ref to NavigationSearch, which renders only when `hasSearch` is true, and that otherwise the ref is attached to nothing. || QUOTE: \"When `hasSearch` is true it renders `<NavigationSearch {...searchProps} hideHeader theme topStyle ref={ref} />`\" and \"The `ref` is only attached when `hasSearch` is true. For the other seven callers it is never attached to anything.\" | WHY: The answer says NavigationHeader forwards its ref to NavigationSearch only when `hasSearch` is true, and that otherwise the ref is attached to nothing.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "does not count renderers of `Header` from `navigation_header/header.tsx` \u2014 a different component in the same directory, rendered directly by a navigation hook and the thread route \u2014 as renderers of NavigationHeader",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer lists only renderers of NavigationHeader and never mentions the separate `Header` component or says that its renderers (the navigation hook and thread route) are excluded. || QUOTE: NONE | WHY: The answer never mentions the separate `Header` component or says that its renderers (the navigation hook and the thread route) are excluded. It only says `Header` and `NavigationHeaderLargeTitle` don't receive the ref.",
+      "agreement": 0.6666666666666666,
+      "samples": 3,
+      "errors": 0
+    }
+  ]
+}

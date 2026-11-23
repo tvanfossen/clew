@@ -1,0 +1,93 @@
+{
+  "cell": "Q5_claude-haiku-5-5_baseline_r1",
+  "arm": "baseline",
+  "rubric_version": "1.0.0",
+  "rubric_digest": "32294778c2753056",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 1.0,
+  "unmarked_pct": 0.0,
+  "split_decisions": 0,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "explains that ServerDataOperator is composed with a mixin helper \u2014 `mix(ServerDataOperatorBase).with(...)` \u2014 rather than declaring the handlers itself",
+      "kind": "retrieval",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: The class then applies 13 handler mixins through `mix(...).with(...)` from `app/utils/mix.ts`. | WHY: The answer says ServerDataOperator is a mixin composition built on ServerDataOperatorBase via `mix(...).with(...)`, with handlers supplied by mixins and not declared on the class itself. || QUOTE: The class then applies 13 handler mixins through `mix(...).with(...)` from `app/utils/mix.ts`. | WHY: The answer states ServerDataOperator is a mixin composition built from ServerDataOperatorBase via `mix(...).with(...)`, with handlers layered on from mixins rather than declared in the class. || QUOTE: The class then applies 13 handler mixins through `mix(...).with(...)` from `app/utils/mix.ts`. | WHY: The answer says ServerDataOperator is a mixin composition on ServerDataOperatorBase, applied via `mix(...).with(...)`, with handlers coming from mixins rather than the class itself.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "explains that a same-named interface extends each handler's `...Mix` type, so the class is typed with every mixed-in method",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: A matching `interface ServerDataOperator extends ...Mix` gives TypeScript the method types. | WHY: The answer states that a same-named interface extends the `...Mix` types, giving the class typed mixed-in methods. || QUOTE: A matching `interface ServerDataOperator extends ...Mix` gives TypeScript the method types. | WHY: The answer states a same-named interface extends the handlers' Mix types so TypeScript types the class with the mixed-in methods. || QUOTE: A matching `interface ServerDataOperator extends ...Mix` gives TypeScript the method types. | WHY: The answer states that a same-named interface extends the Mix types to give the class the typed mixed-in methods.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "every file outside the operator's own handlers directory that defines one of its handlers \u2014 app/products/agents/database/operators/handlers/index.ts",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every file outside the operator's own handlers directory that defines one of its handlers \u2014 app/products/boards/database/operators/handlers/index.ts",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every file outside the operator's own handlers directory that defines one of its handlers \u2014 app/products/playbooks/database/operators/handlers/index.ts",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every file outside the operator's own handlers directory that defines one of its handlers \u2014 precision",
+      "kind": "set_precision",
+      "weight": 2,
+      "hit": true,
+      "detail": "clean",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that every handler's writes go through `batchRecords` inherited from `BaseDataOperator`, because each mixin is constrained to extend ServerDataOperatorBase",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: They are typed against `ServerDataOperatorBase`, so they can call `this.handleRecords` and `this.batchRecords` like the local handlers. ... `BaseDataOperator.batchRecords` ... is the single place a standard handler writes to the database. | WHY: The answer says that the mixins are typed against `ServerDataOperatorBase`, which extends `BaseDataOperator`, and that `BaseDataOperator.batchRecords` is the single write path. It also notes that a few handlers skip that path, but the core claim is stated. || QUOTE: \"They are typed against `ServerDataOperatorBase`, so they can call `this.handleRecords` and `this.batchRecords` like the local handlers.\" and \"`BaseDataOperator.batchRecords` ... is the single place a standard handler writes to the database.\" | WHY: The answer says mixins are typed against ServerDataOperatorBase (extending BaseDataOperator), so they call the inherited batchRecords, which is the shared write path. || QUOTE: \"They are typed against `ServerDataOperatorBase`, so they can call `this.handleRecords` and `this.batchRecords` like the local handlers.\" and \"`BaseDataOperator.batchRecords` ... is the single place a standard handler writes to the database.\" | WHY: The answer says all mixins are typed against ServerDataOperatorBase (extending BaseDataOperator) and that the standard handlers write via the inherited batchRecords. It also notes a few exceptions, but the core conclusion is stated.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "names AppDataOperator as the other subclass of BaseDataOperator, sharing the same write path for the app-level database",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: `BaseDataOperator`, which `AppDataOperator` also extends (`app_data_operator/index.ts`). So the app-level database shares the same write pipeline, but none of the server handlers. | WHY: The answer names AppDataOperator as another BaseDataOperator subclass for the app-level database, sharing the same write pipeline. || QUOTE: `BaseDataOperator`, which `AppDataOperator` also extends (`app_data_operator/index.ts`). So the app-level database shares the same write pipeline, but none of the server handlers. | WHY: The answer names AppDataOperator as another BaseDataOperator subclass for the app-level database, and says it shares the same write pipeline.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    }
+  ]
+}

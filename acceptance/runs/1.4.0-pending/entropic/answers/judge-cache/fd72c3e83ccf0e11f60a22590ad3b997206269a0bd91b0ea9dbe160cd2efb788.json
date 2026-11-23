@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The argument compared is the first string-valued field of the call's JSON arguments (`args_to_pattern`). If there are no arguments, or parsing fails, it is `*`.\nVERDICT: HIT\nWHY: States that only the first string-valued argument reaches the pattern and that parse failure or missing args yields `*`. The remaining arguments being invisible is implied by \"first string-valued field\", and the non-string case collapsing to a wildcard is only implicit, but this is the substance of the item."
+}

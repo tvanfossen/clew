@@ -1,0 +1,83 @@
+{
+  "cell": "Q1_claude-haiku-5-5_index_only_r2",
+  "arm": "index_only",
+  "rubric_version": "5.0.0",
+  "rubric_digest": "d8447c7b18eafbf5",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.75,
+  "unmarked_pct": 0.0,
+  "split_decisions": 0,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "names derive_scope in clew/scope.py as where the decision is resolved",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: `derive_scope` in `clew/scope.py` is the single entry point. It resolves to one of two tiers | WHY: The answer explicitly names derive_scope in clew/scope.py as where the scope decision is resolved. || QUOTE: `derive_scope` in `clew/scope.py` is the single entry point. It resolves to one of two tiers: | WHY: The answer explicitly names derive_scope in clew/scope.py as where the scope decision is resolved.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that a repository's own declared index_scope is preferred, and that every failure to find one falls through to indexing the whole repository",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"absent/empty \u2192 None\" and \"A test (`test_empty_or_absent_index_scope_falls_back_to_the_whole_repo`) confirms that `index_scope: {roots: []}` falls through to the whole repo\" and \"unusable \u2192 _Rejected (warning logged) \u2192 whole-repo tier\" | WHY: The answer states a declared index_scope is tier 1 and that absent, empty, or unusable declarations all fall through to the whole-repo tier. || QUOTE: \"Tier 1, a declaration. The repo's `.clew.yaml` can carry `index_scope:` ... unusable \u2192 `_Rejected` (warning logged) \u2192 whole-repo tier ... absent/empty \u2192 None\" and \"`index_scope: {roots: []}` falls through to the whole repo rather than producing an empty index.\" | WHY: The answer says a declared index_scope is preferred (tier 1), and that rejected, absent or empty declarations all fall through to whole-repo indexing. || QUOTE: \"absent/empty \u2192 None\" and \"A test (`test_empty_or_absent_index_scope_falls_back_to_the_whole_repo`) confirms that `index_scope: {roots: []}` falls through to the whole repo\" and \"unusable \u2192 _Rejected (warning logged) \u2192 whole-repo tier\" | WHY: The answer states that a declared index_scope is tier 1 and that absent, empty, or rejected declarations all fall through to whole-repo indexing.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "conveys that the fallback carries a REASON explaining which scope was used and why, so an unstated scope is never silently guessed",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: \"unusable    \u2192 _Rejected (warning logged) \u2192 whole-repo tier, reason names the rejection\" and \"Nothing is declared means the whole-repo tier applies, and the reason string records it. The `_declaration_note` text says why nothing was found.\" | WHY: The answer states that the fallback to the whole-repo tier carries a reason string recording which scope was used and why, including the note on why nothing was found. || QUOTE: \"the reason string records it. The `_declaration_note` text says why nothing was found.\" | WHY: The answer says the whole-repo fallback carries a reason string recording the fallback and why nothing was found, including the rejection reason, so the scope is never silently guessed. || QUOTE: \"unusable    \u2192 _Rejected (warning logged) \u2192 whole-repo tier, reason names the rejection\" and \"Nothing is declared means the whole-repo tier applies, and the reason string records it. The `_declaration_note` text says why nothing was found.\" | WHY: The answer says the fallback to the whole-repo tier carries a reason string recording which scope was used and why (rejection or nothing declared), so the scope is never silently guessed.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that a Doxyfile's own INPUT is deliberately NOT used to decide the indexed tree, and explains why \u2014 a repository that ships one would get only its documented subset while a repository that ships none gets its whole tree",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: The Doxyfile `INPUT` is not used for scope since gh#333. The rationale is that it is a documentation target, not a reasoning boundary. A repo that ships a Doxyfile still has its `ALIASES` and `PREDEFINED` read, but its `INPUT` is replaced. The docstring cites Mbed-TLS, whose Doxyfile indexes 1,571 header declarations and none of the 108 `library/*.c` implementations. | WHY: The answer says the Doxyfile INPUT is deliberately not used and explains why: it covers only a documented subset, shown by the Mbed-TLS example where headers are indexed and the .c files are not. || QUOTE: The Doxyfile `INPUT` is not used for scope since gh#333. The rationale is that it is a documentation target, not a reasoning boundary. A repo that ships a Doxyfile still has its `ALIASES` and `PREDEFINED` read, but its `INPUT` is replaced. The docstring cites Mbed-TLS, whose Doxyfile indexes 1,571 header declarations and none of the 108 `library/*.c` implementations. | WHY: The answer says Doxyfile INPUT is deliberately not used for scope and explains why: it only covers a documented subset, as the Mbed-TLS example shows, whereas a repo without a Doxyfile gets the whole tree. || QUOTE: The Doxyfile `INPUT` is not used for scope since gh#333. The rationale is that it is a documentation target, not a reasoning boundary. A repo that ships a Doxyfile still has its `ALIASES` and `PREDEFINED` read, but its `INPUT` is replaced. The docstring cites Mbed-TLS, whose Doxyfile indexes 1,571 header declarations and none of the 108 `library/*.c` implementations. | WHY: The answer states the Doxyfile INPUT is deliberately not used for scope and explains why: it covers only a documented subset, with the Mbed-TLS example showing headers indexed and no implementation files.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that nested git trees are INDEXED and tagged rather than excluded from the scope",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"**Nested git trees** are not excluded. They are indexed, and `external.py` tags their rows so that two codebases in one index can be told apart in an answer.\" | WHY: The answer explicitly states nested git trees are indexed and tagged rather than excluded. || QUOTE: \"**Nested git trees** are not excluded. They are indexed, and `external.py` tags their rows so that two codebases in one index can be told apart in an answer.\" | WHY: The answer explicitly says nested git trees are indexed and tagged (by external.py) rather than excluded. || QUOTE: \"**Nested git trees** are not excluded. They are indexed, and `external.py` tags their rows so that two codebases in one index can be told apart in an answer.\" | WHY: The answer explicitly states nested git trees are indexed and tagged (by external.py) rather than excluded.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "conveys that the containment call was REMOVED rather than left in place with its callers dropped",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer says nothing about a containment call being removed versus left in place with its callers dropped; it only describes scope derivation. || QUOTE: NONE | WHY: The answer never says a containment call was removed; it only says the Doxyfile INPUT and gate pattern are no longer inputs to scope, with no removed-versus-callers-dropped distinction. || QUOTE: NONE | WHY: The answer never mentions a containment call being removed; it only says the Doxyfile INPUT is \"replaced\" and nested git trees are included, not that a call was removed.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the resolved scope is not the whole answer \u2014 within it, a file reaches the index only if something can read it, and names at least one of the two filters: the parse-built front end claiming the file types doxygen cannot read, or binary classification dropping files whose extension lies about them",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer mentions `_not_indexed_scope` and says it couldn't confirm the extension filter, but never names the parse-built front end claiming file types doxygen can't read, nor binary classification dropping files whose extension lies about them. || QUOTE: NONE | WHY: The answer only mentions a vague \"file-extension filter\" it could not confirm, and never names the parse-built front end for doxygen-unreadable types or binary classification as filters on what reaches the index. || QUOTE: NONE | WHY: The answer mentions `_not_indexed_scope` counting file types with no rows and says it couldn't confirm the extension filter, but never names the parse-built front end claiming file types doxygen can't read or binary classification dropping files with misleading extensions.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    }
+  ]
+}

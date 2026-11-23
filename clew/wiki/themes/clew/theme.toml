@@ -1,0 +1,9 @@
+# clew wiki's default theme: the sassafras-class look (1.4.0 W13, owner 2026-11-15).
+[theme]
+inherit = "basic"
+stylesheets = ["basic.css", "clew.css"]
+sidebars = ["localtoc.html", "minimap.html"]
+pygments_style = { default = "friendly" }
+
+[options]
+nosidebar = "false"

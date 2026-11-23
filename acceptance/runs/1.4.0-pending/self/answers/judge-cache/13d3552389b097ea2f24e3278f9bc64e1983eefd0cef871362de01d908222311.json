@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: An empty answer for a name in those files is then reported as \"this file type was not indexed here\", which points the caller to read the file directly. ... Routing to an absent grammar returns \"no grammar\" instead of raising `ValueError`.\nVERDICT: HIT\nWHY: The answer says that missing grammars yield \"no grammar\" rather than an error, that the gate is checked per route, and that those file types are reported as not indexed. It never uses the word \"degrades\", but it states the substance."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `LlamaCppTokenizer::tokenize` (`src/inference/llama_cpp_tokenizer.cpp:55-63`) uses llama.cpp's two-phase sizing protocol. The first `llama_tokenize` call passes a null buffer and zero capacity.\nVERDICT: HIT\nWHY: The answer names the file, the line range and the two-call probe-then-fill pattern in `tokenize`, and also covers `detokenize`."
+}

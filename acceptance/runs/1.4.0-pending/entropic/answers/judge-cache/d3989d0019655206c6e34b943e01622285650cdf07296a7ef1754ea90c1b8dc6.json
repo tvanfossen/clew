@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Mirrors the engine's `interrupt_flag_` into an int cancel flag ... The code comments say this keeps the C ABI `int*`-only.\nVERDICT: HIT\nWHY: The answer identifies the observer thread as mirroring an atomic flag into a plain int and says the C ABI is `int*`-only, which is the bridging purpose the item requires."
+}

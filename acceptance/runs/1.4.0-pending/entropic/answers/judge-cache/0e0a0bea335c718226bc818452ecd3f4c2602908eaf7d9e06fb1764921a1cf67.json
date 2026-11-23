@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Nothing is retried: there is no loop, no changed parameters, and no second attempt after a failure.\nVERDICT: HIT\nWHY: The answer concludes it is a size probe and not retry logic, with no loop or repeated attempts and exactly one real second call. It does not mention backoff or delay by name, but the substance matches."
+}

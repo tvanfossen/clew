@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"No `MBEDTLS_HAVE_ASM`, or a non-GNU compiler such as MSVC | `mbedtls_ct_compiler_opaque` returns `x ^ mbedtls_ct_zero`, where `mbedtls_ct_zero` is a global `volatile` zero (`constant_time.c:29`).\"\nVERDICT: HIT\nWHY: The answer says that without asm, `mbedtls_ct_compiler_opaque` (the same function that uses asm volatile otherwise) XORs with the volatile global `mbedtls_ct_zero`."
+}

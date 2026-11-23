@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_ct_compiler_opaque(x)` is `asm volatile(\"\" : \"+r\"(x))` when asm is available. Otherwise it XORs with `mbedtls_ct_zero`, a `volatile` global (`library/constant_time.c:29`). The compiler therefore cannot prove a secret's value, so it cannot fold a mask into a branch.\nVERDICT: MISS\nWHY: The answer names the primitive and its purpose, but it never places it in library/constant_time_impl.h. The only locations it gives are for `mbedtls_ct_zero` (constant_time.c:29) and the asm gate (constant_time_impl.h:40-52), not for the opaque function."
+}

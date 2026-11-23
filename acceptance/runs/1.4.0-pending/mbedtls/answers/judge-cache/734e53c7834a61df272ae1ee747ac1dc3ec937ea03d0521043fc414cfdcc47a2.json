@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Library internals** (`library/*.c`, via `common.h`) can read and write fields directly... `library/common.h:132` | Internal library header. The library turns the gate on for itself.\nVERDICT: HIT\nWHY: The answer states library/common.h, a shared internal header, defines the opt-out so library code sees plain member names."
+}

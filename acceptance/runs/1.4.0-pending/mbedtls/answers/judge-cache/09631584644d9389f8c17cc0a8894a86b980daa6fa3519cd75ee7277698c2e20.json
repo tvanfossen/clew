@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`ssl->MBEDTLS_PRIVATE(state)` becomes `ssl->private_state`. Public headers use it to rename struct members, so application code that writes `ctx->state` no longer compiles.\" and \"although they are publicly visible in headers\"\nVERDICT: HIT\nWHY: The answer says opacity comes from renaming members to `private_*`, which makes direct access fail to compile, while the fields stay publicly visible in the headers."
+}

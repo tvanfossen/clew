@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 56365,
+  "stop_reason": "end_turn",
+  "session_id": "7d1111ec-a74d-4a3d-bb34-0d3c04131edd",
+  "total_cost_usd": 0.028931270000000005,
+  "usage": {
+    "input_tokens": 22,
+    "cache_creation_input_tokens": 78054,
+    "cache_read_input_tokens": 800427,
+    "output_tokens": 10628,
+    "output_tokens_details": {
+      "thinking_tokens": 4677
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 78054,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 4085,
+        "cache_read_input_tokens": 94826,
+        "cache_creation_input_tokens": 2109,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2109
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 22,
+      "outputTokens": 10628,
+      "cacheReadInputTokens": 800427,
+      "cacheCreationInputTokens": 78054,
+      "webSearchRequests": 0,
+      "costUSD": 0.028931270000000005,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 4677,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 78054,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 24,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** the library has no compiler or machine-code check of constant time. Three things carry the claim: inline-assembly barriers and branch-free sequences on four architectures, a plain-C fallback everywhere else, and valgrind/MSan tests that catch some secret-dependent behaviour at runtime. The header says the C fallback has only been *observed* to be constant-time, and `SECURITY.md` says the protection is incomplete.\n\n## 1. How it is enforced at the instruction level\n\nEverything is built on two pieces in `library/constant_time_impl.h`:\n\n- **`mbedtls_ct_compiler_opaque(x)`** (line 85) stops the compiler from knowing a value. With assembly it is `asm volatile(\"\" : [x] \"+r\"(x))`, an empty statement that forces `x` into a register and claims it was modified. Without assembly it is `x ^ mbedtls_ct_zero`, where `mbedtls_ct_zero` is a `volatile` global defined in `library/constant_time.c:29`.\n- **The mask primitives.** `mbedtls_ct_bool(x)` turns any non-zero value into an all-ones mask (`MBEDTLS_CT_TRUE`) or zero. `mbedtls_ct_if`, `mbedtls_ct_uint_lt` and the other comparisons are built from masks and bitwise operations. On AArch64, 32-bit Arm/Thumb, x86-64 and i386 each primitive is hand-written inline assembly (lines 130\u2013348), so the compiler never sees a branch or conditional instruction. The C versions at lines 184\u2013198 and 351\u2013378 are the fallback.\n\nSecret data is never compared with `==`, `<` or `if`. Operations are phrased as masks: `mbedtls_ct_memcpy_if` (`library/constant_time.c:169`) reads both sources and blends them with `(src1 & mask) | (src2 & ~mask)`. `mbedtls_ct_memcmp` (line 67) reads both buffers as `volatile`, so the compiler cannot exit early, and returns the OR of all XORs.\n\nThe assembly is selected by `constant_time_impl.h:40\u201352`. It needs `MBEDTLS_HAVE_ASM`, a GNU-compatible compiler (not MSVC, not ARMCC 5), and one of the four supported architectures. The arch-specific macros only add the hand-written sequences; the generic barrier is used whenever the other conditions hold.\n\n## 2. A compiler that cannot support it\n\nThere is no build error and no warning. The fallback is chosen silently when any of these hold:\n\n| Condition | Result |\n|---|---|\n| `MBEDTLS_HAVE_ASM` not defined | C fallback everywhere, including x86-64 |\n| MSVC, IAR, or ARMCC 5 | `__GNUC__` check fails, so C fallback |\n| GCC/Clang on an architecture without a hand-written sequence (e.g. RISC-V) | Generic asm barrier, C arithmetic for the rest |\n\nThe C fallback is slower, since every opaque call is a volatile load. Its constant-time behaviour depends on the optimizer not turning the mask arithmetic back into branches. The header records only that it was observed on recent gcc, clang and MSVC as of May 2023. `SECURITY.md:109\u2013111` says compiler-introduced timing leaks are possible, that the countermeasures \"may not be complete\", and that only `-O2`/`-Os` are in scope.\n\nThe test matrix does cover the fallback. `tests/scripts/components-sanitizers.sh` has a `valgrind_constant_flow_no_asm` component alongside the assembly one. That is evidence the fallback is exercised, not that it is branch-free on every compiler.\n\n## 3. How it is checked\n\n- `MBEDTLS_TEST_CONSTANT_FLOW_VALGRIND` (`include/mbedtls/mbedtls_config.h:2142`) marks secrets as undefined, so memcheck reports any branch or address that depends on them. Run through `tests/scripts/components-configuration-crypto.sh` on the `*constant_time*` suites.\n- `MBEDTLS_TEST_CONSTANT_FLOW_MEMSAN` does the same with clang's MemorySanitizer. `include/mbedtls/check_config.h:250` refuses to build MSan together with `MBEDTLS_HAVE_ASM`, because MSan cannot see inline assembly.\n\nThese tests only see what they execute, on the compilers and inputs CI uses. Nothing inspects the generated machine code.\n\n## 4. How far it reaches\n\nThe `mbedtls_ct_*` calls are spread across 29 library files, about 286 call sites:\n\n| Area | Files (call sites) | Role |\n|---|---|---|\n| Big-number core | `bignum_core.c` (22), `bignum.c` (21), `bignum_mod_raw.c` (2) | Secret-scalar arithmetic, conditional assign and swap |\n| RSA | `rsa.c` (29) | PKCS#1 v1.5 unpadding with no branch on padding validity |\n| TLS CBC records | `ssl_msg.c` (22), `cipher.c` (25) | `mbedtls_ct_hmac` computes the MAC over a fixed maximum length; padding removal is branch-free |\n| Encoding | `base64.c` (21) | Constant-time character decode and encode |\n| Other | `psa_crypto.c` (7), `ssl_tls12_server.c` (7), `nist_kw.c` (4), and single calls in `gcm.c`, `ccm.c`, `chachapoly.c`, `cmac.c`, `psa_crypto_mac.c` | Mostly tag and secret comparisons |\n\nECC reaches the facility indirectly. `ecp.c` has no direct `mbedtls_ct_` calls. It uses `mbedtls_mpi_safe_cond_assign` and `mbedtls_mpi_safe_cond_assign`/`_swap` (lines 1202\u20131215, 2143), which are built in `bignum.c`. The comb table lookup reads the whole table to resist cache timing (line 2020), and the comments at lines 2734, 2769 and 2873 say some functions are explicitly \"NOT constant-time\". I did not check which functions those comments cover.\n\nPlaces the facility does not reach, per `SECURITY.md`:\n\n- **Software AES, Camellia, ARIA and DES** use lookup tables and are called out as timing-vulnerable. Hardware AES (AES-NI, AES-CE, PadLock) is the documented workaround.\n- **X25519 via Everest** only protects against remote timing attacks.\n- **`mbedtls_ct_memcmp_partial`** is constant-time in the buffer contents but not in the length.\n- **`mbedtls_ct_memcpy_if`** branches on whether `src2` is `NULL`.\n\n## Caveats\n\n- I did not build the library or run valgrind/MSan; these answers come from reading the source and the CI scripts.\n- Constant-time claims rest on the compiler respecting the masks. The only automated evidence is the valgrind and MSan suites, which run on CI's compilers and optimisation levels.",
+  "ttft_ms": 1418,
+  "type": "result",
+  "duration_ms": 57766,
+  "uuid": "3f4452ca-9653-43c1-8421-d8005807f2b6",
+  "ttft_stream_ms": 1176,
+  "time_to_request_ms": 72,
+  "first_content_frame_ms": 1176,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

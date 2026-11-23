@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Fuzzy rows are kept in `callers` on purpose: this repo has 21.3% fuzzy edges, and entropic has 79.8%.\nVERDICT: MISS\nWHY: The answer says the flat surface keeps fuzzy edges. It never says the traversal surface excludes them, and it gives no reason about each hop multiplying one fuzzy edge into a wrong subtree."
+}

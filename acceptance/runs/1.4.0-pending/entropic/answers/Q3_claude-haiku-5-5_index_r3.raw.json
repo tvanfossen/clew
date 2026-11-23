@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 56738,
+  "stop_reason": "end_turn",
+  "session_id": "5c381ef1-c540-4f14-96d2-d7541853f61e",
+  "total_cost_usd": 0.01857715,
+  "usage": {
+    "input_tokens": 24,
+    "cache_creation_input_tokens": 33735,
+    "cache_read_input_tokens": 655725,
+    "output_tokens": 10541,
+    "output_tokens_details": {
+      "thinking_tokens": 4946
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 33735,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3659,
+        "cache_read_input_tokens": 69410,
+        "cache_creation_input_tokens": 1935,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1935
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 24,
+      "outputTokens": 10541,
+      "cacheReadInputTokens": 655725,
+      "cacheCreationInputTokens": 33735,
+      "webSearchRequests": 0,
+      "costUSD": 0.01857715,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 4946,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 33735,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 26,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** the call runs if it clears the tier and MCP-key gates, is not a duplicate, and is either in `permissions.allow`, covered by `auto_approve`, or passes the `on_tool_call` callback. The deny list is checked later, inside `ServerManager::execute`, and it overrides everything that came before it.\n\n```\ntool call\n  \u2502\n  \u251c\u2500 ToolExecutor::check_call_preconditions          (tool_executor.cpp:667)\n  \u2502    1. anti-spiral hard block\n  \u2502    2. schema validation\n  \u2502    3. MCP key access level      \u2190 not a list; independent of allow/deny\n  \u2502    4. tier allowed_tools        \u2190 not a list; independent of allow/deny\n  \u2502    5. duplicate detection\n  \u2502    6. check_approval            \u2190 the allow list lives here\n  \u2502         auto_approve OR is_allowed(allow list)  \u2192 approved\n  \u2502         else if on_tool_call set \u2192 callback fires, approved = true\n  \u2502         else                    \u2192 \"Permission denied\"\n  \u2502\n  \u2514\u2500 ServerManager::execute                          (server_manager.cpp:153)\n       is_denied(deny list)?  \u2192 \"Error: Permission denied for <tool>\"  (wins)\n       else route_tool_call\n```\n\n**Where each decision is made**\n\n- **Allow list.** `ServerManager::is_explicitly_allowed` builds `tool:args` and calls `PermissionManager::is_allowed` (`permission_manager.cpp:59`). It returns true on the first matching allow pattern.\n- **Deny list.** Only `ServerManager::execute` calls `is_denied` (`server_manager.cpp:159`). Deny therefore beats allow, and it beats `auto_approve`, because `auto_approve` only short-circuits `check_approval`. A deny hit returns an envelope, not a precondition rejection.\n- **Auto-approve.** `permissions.auto_approve` is copied into `loop_config.auto_approve_tools` (`facade/entropic.cpp:1489`) and skips the whole list check.\n- **Config.** `permissions.allow` and `permissions.deny` are parsed in `config/loader.cpp:369-370` and handed to the `PermissionManager` constructor (`server_manager.cpp:35`).\n\n**What a pattern means**\n\nMatching is `pattern_matches` (`permission_manager.cpp:101`), which uses `fnmatch` without `FNM_PATHNAME`, so `*` also crosses `/` and `:`.\n\n| Pattern | Matches |\n|---|---|\n| `filesystem.*` | every filesystem tool, any args |\n| `git.commit` | that tool, any args (no colon means tool name only) |\n| `bash.execute:python*` | `bash.execute` whose first argument starts with `python` |\n| `bash.execute:*` | `bash.execute` with any argument |\n\nThe part before the first `:` is matched against the tool name. The part after it is matched against the argument value. That value comes from `args_to_pattern` (`server_manager.cpp:426`): it is the value of the first key that holds a string, or `*` if the args are empty or unparseable. Because nlohmann objects are key-sorted, \"first\" means alphabetically first key, not the first key in the JSON the model wrote. For bash, that is `command`, which is what you want.\n\n**Things that surprised me**\n\n1. **The callback does not gate anything.** In `check_approval` (`tool_executor.cpp:168-172`), if `on_tool_call` is set, the callback fires and `approved = true` is set unconditionally. Nothing reads a response. The header says tools are \"approved via callback\", which describes a gate, but the code is a notification. If a host expects `on_tool_call` to be able to refuse a call, it cannot.\n2. **The \"always allow / always deny\" persistence looks unwired in this checkout.** `ToolApproval` (`engine_types.h:63`) and `PermissionPersistFn` exist, and `PermissionPersister` writes YAML. But `set_permission_persist` has no callers in the index, and I found no `src/` consumer of `ToolApproval`. I did not confirm this by reading the facade line by line.\n3. **The bash \"always\" pattern is not the matching pattern.** `BashServer::get_permission_pattern` (`bash.cpp:200`) saves `bash.execute:<base_cmd> *`. Matching uses the full command from `args_to_pattern`. `python script.py` matches `bash.execute:python *`, but a bare `python` does not.\n4. **Preconditions run before the lists.** A tool allowed by `permissions.allow` is still refused by the MCP key or tier `allowed_tools` checks, which come first.\n\nI did not read the call site that invokes `ServerManager::execute` after preconditions pass. I am inferring that every dispatched call goes through it, because `is_denied` has no other caller.",
+  "ttft_ms": 1647,
+  "type": "result",
+  "duration_ms": 59161,
+  "uuid": "e81130fe-cb0a-41df-b695-1d55276b402d",
+  "ttft_stream_ms": 1301,
+  "time_to_request_ms": 124,
+  "first_content_frame_ms": 1301,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

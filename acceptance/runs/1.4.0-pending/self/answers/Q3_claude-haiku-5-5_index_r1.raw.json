@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 17266,
+  "stop_reason": "end_turn",
+  "session_id": "8a26e4e4-48e2-4d6a-ad54-1896994927a6",
+  "total_cost_usd": 0.01324071,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 48396,
+    "cache_read_input_tokens": 214151,
+    "output_tokens": 2838,
+    "output_tokens_details": {
+      "thinking_tokens": 1166
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 48396,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1968,
+        "cache_read_input_tokens": 61993,
+        "cache_creation_input_tokens": 5280,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 5280
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 2838,
+      "cacheReadInputTokens": 214151,
+      "cacheCreationInputTokens": 48396,
+      "webSearchRequests": 0,
+      "costUSD": 0.01324071,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1166,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 48396,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 6,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** the index checks its own currency on three axes, every query reply carries a notice for any axis that is off, and for the data axis the server refreshes the index itself before answering. The caller only has to act on the other two.\n\n**How it knows.** `db_status` (`clew/mcp_server/state.py:1140`) measures three things and sets `stale` if any is true:\n\n| Axis | Measured by | Stale when |\n|---|---|---|\n| `schema` | `build_version` stamped in the db vs `CLEW_BUILD_VERSION` | the stamp differs from this build |\n| `data` | `_source_drift` (`state.py:823`) stats every indexed file against the db's mtime | one or more indexed sources are newer than the db (future-dated mtimes are ignored) |\n| `code` | `code_identity` (`freshness.py:221`) compares the running process's source fingerprint with the source tree's | the package source changed after this process loaded |\n\nA `code` mismatch means the server process is old, not the index. Only a client restart fixes it.\n\n**What it tells the caller.** `notices()` (`freshness.py:575`) returns a list of `{axis, message}`, ordered data \u2192 schema \u2192 code, and is empty when the index is current. A current index gets no annotation at all, by design. Each message names the remedy:\n\n- **data:** \"N indexed source file(s) have changed\u2026 call `index(action='refresh')`\", with the measured cost of the refresh.\n- **schema, index newer than server:** rebuilding cannot clear it; restart the MCP client.\n- **schema, index older than server:** `index(action='refresh', force=True)`.\n- **code:** the logic may predate the working tree; a rebuild cannot fix it; restart the client.\n\nThe notices ride on every query reply through `staleness_notices` (`server.py:1548`) and `_staleness` (`tools_query.py:1886`). They are sized to whatever room the payload leaves and degrade to shorter forms rather than being dropped. Measurement never raises, so a failed check cannot turn a good answer into an error.\n\n**What the caller does.**\n\n1. **The server acts first on data staleness.** `_auto_refresh` (`server.py:1242`) runs before each query. If `_data_stale` is true, it calls `_refresh_stale` (`server.py:1294`), which takes the per-repo build lock with a bounded wait, re-checks staleness inside the lock so concurrent queries produce one build, and builds with `skip_if_fresh`. A failed build is logged and the query answers from the stale index, which still carries its notice. An absent index gets a first build the same way, subject to `_first_build_refusal` (`server.py:1368`).\n2. **The caller handles the rest.** It reads the notice and does what it says: an explicit refresh for schema-older-index, a client restart for code and schema-newer-than-server. It should not treat a stale answer as current.\n3. **Write paths refuse on the code axis.** `stale_code_refusal` (`freshness.py:531`) refuses any write when the process predates its source. `force=True` does not bypass it, because the incident that motivated the guard used `force`.\n\n**Current state of this repo.** `index(action='status')` reports `stale: false`, `build_version` 9 against 9, `source_changed_files` 0, and `matches_source` true. A query here would carry no staleness notice.\n\n**Caveat.** The dossier flagged `anchor_mismatch` on `_staleness` and `_staleness_within_budget`, so their line numbers may be a few lines off from the current source. Their behaviour as described above is unaffected.",
+  "ttft_ms": 1690,
+  "type": "result",
+  "duration_ms": 19067,
+  "uuid": "91e6697e-809d-44f4-b4ae-7a62160e1fe7",
+  "ttft_stream_ms": 1138,
+  "time_to_request_ms": 83,
+  "first_content_frame_ms": 1138,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

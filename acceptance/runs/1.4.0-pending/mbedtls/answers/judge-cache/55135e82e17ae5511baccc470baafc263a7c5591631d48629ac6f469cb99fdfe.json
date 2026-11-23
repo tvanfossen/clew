@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: | `bignum_core.c`, `bignum.c` | 32, 26 | ... | `rsa.c` | 37 | ... | `cipher.c` | 30 | ... | `ssl_msg.c` | 24 | ... | `base64.c` | 21 | ... | `gcm.c`, `ccm.c`, `chachapoly.c`, `cmac.c` | 1 each |\nVERDICT: MISS\nWHY: The answer lists about 10 files and stresses partial coverage. It never says the primitives are used across roughly twenty modules."
+}

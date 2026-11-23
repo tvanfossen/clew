@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The wrapper has no tokenizer wired. `LlamaCppBackend::tokenize` returns `{}` (`llama_cpp_backend.cpp:796`).\" and \"`tokenize` has no error channel, so failure is signalled as an empty vector. That happens in three cases\"\nVERDICT: HIT\nWHY: The answer says the backend wrapper returns an empty vector for failed tokenization and for the no-tokenizer-wired case, listing both under the same empty-vector return."
+}

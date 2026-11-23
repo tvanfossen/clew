@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 18532,
+  "stop_reason": "end_turn",
+  "session_id": "cedfea4c-a31f-441a-bad4-ca8ae9841d90",
+  "total_cost_usd": 0.00978769,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 29063,
+    "cache_read_input_tokens": 227959,
+    "output_tokens": 3389,
+    "output_tokens_details": {
+      "thinking_tokens": 962
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 29063,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1703,
+        "cache_read_input_tokens": 60794,
+        "cache_creation_input_tokens": 4422,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 4422
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 3389,
+      "cacheReadInputTokens": 227959,
+      "cacheCreationInputTokens": 29063,
+      "webSearchRequests": 0,
+      "costUSD": 0.00978769,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 962,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 29063,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 12,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**How it's brought in:** llama.cpp is a git submodule at `extern/llama.cpp`. The architecture doc lists it as an external dependency with \"Submodule\" type and \"Direct C API\" usage, and the project structure shows `extern/llama.cpp` as a git submodule. The release notes confirm the pin is moved by bumping the submodule (e.g. `253ba110b \u2192 ac4cddeb`, b9592). Linkage is in CMake: `src/inference/CMakeLists.txt` says it \"links against llama.cpp, nlohmann/json, and spdlog.\" The index has no symbols for CMake files, so I could not read the actual `target_link_libraries` or `add_subdirectory` lines. The `extern/CMakeLists.txt` brief is stale: it says \"llama.cpp is a submodule but NOT built in v1.8.0\", which is from the scaffold era. Current pins are described in the file docs as b8420 (`llama_cpp_backend.cpp`) and later bumps in the release notes.\n\n**How far it reaches into entropic's source:** narrowly, and mostly in one directory.\n\n- **Direct users, `src/inference/`:**\n  - `llama_cpp_backend.{h,cpp}`: `LlamaCppBackend` is the main consumer. It calls the llama C API for model load, context creation, decode, the sampler chain, tokenization and chat templates. It also holds the MTP and speculative-decode paths.\n  - `llama_cpp_sampler.{h,cpp}`: `LlamaCppSampler` and `LlamaCppSamplerFactory` wrap `llama_sampler` chains.\n  - `llama_cpp_tokenizer.{h,cpp}`: `LlamaCppTokenizer` forwards to `llama_tokenize` and `llama_token_to_piece` over a borrowed `llama_vocab*`.\n- **Other entropic files that touch llama types:** `orchestrator.cpp` does `dynamic_cast<LlamaCppBackend*>` to stage tools and LoRA. `inference_c_api.cpp` constructs `LlamaCppBackend` in `entropic_create_inference_backend`. `adapter_manager.cpp` integrates with llama LoRA.\n- **Mirrored or vendored-coupled code:** `speculative_compat` mirrors a file-private function from llama.cpp's `common/speculative.cpp`. `tool_call_markers` tracks defaults from `common/chat-peg-parser.cpp`. `image_preprocessor.cpp` uses stb_image vendored with llama.cpp.\n- **Tests:** unit tests replace llama functions with link-time mocks (e.g. `adapter_manager_test.cpp`, `speculative_compat_test.cpp`, `vocab_only_smoke_test.cpp`).\n\n**Where it stops:** the C interface and the interface contracts. The design rules say pure C at `.so` boundaries, opaque handles, and no third-party headers in interface contracts. In the index, `include/entropic/interfaces/` and `entropic.h` show no llama types, and the only public-header mention is prose in `include/entropic/inference/tokenizer.h` about the pre-v2.3.10 coupling. I did not inspect every public signature, so \"no llama types cross the boundary\" rests on the docs plus the absence of symbols in those headers, not on a full check.\n\n**Caveat:** the index returned no llama.cpp source itself, since `extern/` holds one indexed file with zero symbols. Everything above about llama.cpp's internals comes from entropic's own comments and code.",
+  "ttft_ms": 1577,
+  "type": "result",
+  "duration_ms": 21525,
+  "uuid": "c4465263-96e0-49a0-9f50-04a26b7d179d",
+  "ttft_stream_ms": 1332,
+  "time_to_request_ms": 139,
+  "first_content_frame_ms": 1333,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"A Rust or TOML symbol will return zero rows here for a reason unrelated to whether it exists.\" and \"No prose or code mentions the concept or literal | Unknown until you run that corpus.\"\nVERDICT: HIT\nWHY: The answer separates a definitive empty within the searched scope, an empty caused by an unindexed file type (a reason other than absence), and a non-definitive empty that needs another corpus."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The argument side is built by `args_to_pattern` (`server_manager.cpp:426`), which takes the value of the first string argument, or `*` if there is none.\nVERDICT: HIT\nWHY: The answer says only the first string argument's value reaches the pattern, with `*` when there is no string argument. That covers the single-value mechanism and the wildcard fallback. It does not say the other arguments are invisible, but that follows from \"first\". It also does not mention unparseable arguments."
+}

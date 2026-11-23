@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Files that render `NavigationHeader` (from the index's caller list, which reported no unresolved callers) \u2014 eight files listed, none of them a navigation hook or the thread route.\nVERDICT: HIT\nWHY: The answer lists only true `NavigationHeader` renderers and leaves out the hook and thread-route renderers of the separate `Header` component. It also says `Header` is a distinct child component."
+}

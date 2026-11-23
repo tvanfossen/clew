@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 19854,
+  "stop_reason": "end_turn",
+  "session_id": "8f4c2344-4fde-4d6a-94ad-43dc6a6eb9c0",
+  "total_cost_usd": 0.00812856,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 16769,
+    "cache_read_input_tokens": 304556,
+    "output_tokens": 3456,
+    "output_tokens_details": {
+      "thinking_tokens": 1206
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 16769,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1542,
+        "cache_read_input_tokens": 60703,
+        "cache_creation_input_tokens": 1004,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1004
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 3456,
+      "cacheReadInputTokens": 304556,
+      "cacheCreationInputTokens": 16769,
+      "webSearchRequests": 0,
+      "costUSD": 0.00812856,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1206,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 16769,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 12,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** a failed post is kept locally and marked failed. It is not retried automatically: `createPost` makes exactly one server request with retries disabled. The user retries by tapping \"Try Again\", which re-sends the same post once.\n\n**1. First send fails (`createPost`, `app/actions/remote/post.ts:74-226`)**\n\n- The post was already written to the local database as an optimistic record before the request, keyed by `pendingPostId`.\n- `client.createPost` runs once. The REST call is marked `noRetry: true` (`app/client/rest/posts.ts:43-48`), which sets `retryPolicyConfiguration = {retryLimit: 0}` (`app/client/rest/tracking.ts:383-385`).\n- On error, the post is stored with `props.failed = true` and an updated `update_at`, and it stays in the channel with an error icon. With CRT enabled, a thread is also created for it.\n- Two exceptions remove the post instead of marking it failed: `DELETED_ROOT_POST_ERROR`, `TOWN_SQUARE_READ_ONLY_ERROR`, and `PLUGIN_DISMISSED_POST_ERROR`.\n- A `BOR_DENIED_BY_POLICY_ERROR` also expires the cached render-permissions entry for the channel.\n\n**2. Manual retry (`retryFailedPost`, `app/actions/remote/post.ts:228-307`)**\n\n- The only caller is the \"Try Again\" item in the failed-post bottom sheet (`app/components/post_list/post/body/failed/index.tsx:46-49`). Nothing calls it automatically.\n- It rebuilds the post with `id: ''` and fresh `create_at`/`update_at` timestamps, and sets `failed: false`. The local record is updated first, so the UI shows it as pending again.\n- It then calls `client.createPost` once. On success it writes the server-returned post and updates the channel's last-post time. The local record keeps its `pendingPostId`; I did not verify exactly how the receive handler swaps the optimistic record for the server one.\n- On failure it applies the same logic as the first attempt: the two error IDs above remove the post, and any other error sets `failed: true` again. The user can tap \"Try Again\" again.\n\n**Also relevant:** `isPostPendingOrFailed` (`app/utils/post/index.ts:98`) treats a post still pending past `POST_TIME_TO_FAIL` as failed, so a send that never returns is shown as failed without any error being raised.",
+  "ttft_ms": 1750,
+  "type": "result",
+  "duration_ms": 21441,
+  "uuid": "f2be514f-64ed-4a3a-a992-0c73b5c78e9c",
+  "ttft_stream_ms": 1253,
+  "time_to_request_ms": 148,
+  "first_content_frame_ms": 1253,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

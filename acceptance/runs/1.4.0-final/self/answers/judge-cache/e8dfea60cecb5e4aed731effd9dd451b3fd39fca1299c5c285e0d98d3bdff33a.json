@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"If the index is *newer* than the server, a rebuild cannot clear it. Restart the MCP client.\"\nVERDICT: HIT\nWHY: The answer states that for the schema axis, a newer index cannot be cleared by a rebuild. The \"re-stamps the same newer version\" reason is not given, but the substance of the item is there."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`MBEDTLS_TEST_CONSTANT_FLOW_VALGRIND`: runs the constant-time suites under Valgrind memcheck... `MBEDTLS_TEST_CONSTANT_FLOW_MEMSAN`: the same idea with Clang MemorySanitizer... Neither runs by default in a normal build.\"\nVERDICT: MISS\nWHY: The answer describes the opt-in valgrind/MemSan testing and off-by-default, but never states that the facility is explicitly not part of the library API; the \"Public API\" remark concerns the ct primitives, not the testing facility."
+}

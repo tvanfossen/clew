@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It's a size-probe, not retry. ... The first `llama_tokenize` call passes a null buffer and size 0, so llama.cpp returns the negative of the required token count. ... There's no loop, no backoff, and no reaction to a failed first call.\nVERDICT: HIT\nWHY: The answer identifies the two-call pattern as size negotiation, not retry, and states there is no loop or backoff. It says the second call only fills the buffer, which matches \"exactly one second call\". It does not mention an attempt counter or delay by name, but the substance is there."
+}

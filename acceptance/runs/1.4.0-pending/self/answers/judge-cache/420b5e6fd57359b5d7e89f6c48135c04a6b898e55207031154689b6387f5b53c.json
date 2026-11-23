@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `.yaml` `.yml` `.json` | yes | none | none | Keys, values, `steps:` entries, CI job names, anything structural; also \"YAML and JSON are deliberate non-symbols.\"\nVERDICT: HIT\nWHY: The answer states YAML/JSON have a `path` row (registered) but no symbols. It contrasts them with shell/CMake, which do get symbols, so the two groups are treated differently."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes how zero-row replies are graded now, including \"an index that cannot look must not report a negative.\" It never says a single non-matching token was previously treated as proof of absence, and it never names that old conflation of \"nothing exists\" with \"I did not look there.\""
+}

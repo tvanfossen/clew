@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer's practical rule is about how much to trust an empty result and when to switch corpus or read the source. It never states the rule that a wrong empty-result claim is fixed by correcting the corpus rather than rewording the note about it."
+}

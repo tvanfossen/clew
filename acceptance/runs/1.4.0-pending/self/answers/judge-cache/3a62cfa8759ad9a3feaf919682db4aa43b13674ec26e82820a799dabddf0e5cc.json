@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"yes, broken  \u2192 logged WARNING, falls through to whole-repo\" and \"If no root survives, the block is rejected as \"declares index_scope but no usable roots\", and the build falls back to whole-repo.\" and \"no section   \u2192 whole-repo tier (the default)\"\nVERDICT: HIT\nWHY: The answer states that a declared index_scope is used when usable, and that a missing, broken, or no-usable-roots declaration falls through to indexing the whole repository."
+}

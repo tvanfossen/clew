@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Only `SearchScreen` shows a search field.\" and the table row \"`app/screens/home/search/search.tsx` | `SearchScreen` | Yes, `hasSearch={true}`\"\nVERDICT: HIT\nWHY: The answer names search.tsx as the only renderer of NavigationHeader that enables the search field."
+}

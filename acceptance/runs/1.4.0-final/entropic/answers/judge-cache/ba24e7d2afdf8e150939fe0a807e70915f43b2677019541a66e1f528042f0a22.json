@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"So with no allow match, the call runs if a callback is registered, and a deny match still stops it in `execute`.\"\nVERDICT: MISS\nWHY: The answer says a call needs an allow match or a registered callback, and otherwise gets \"Permission denied\". It never concludes that a tool matching neither list runs by default."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The second call runs unconditionally. It does not repeat on failure, so it is not retry. It is the standard two-phase sizing pattern for C APIs that cannot allocate for you.\"\nVERDICT: HIT\nWHY: The answer concludes this is size negotiation (a size probe followed by a fill), not retry, with exactly one unconditional second call. It never mentions backoff, delay, or an attempt counter, but the core conclusion matches the item."
+}

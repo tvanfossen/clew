@@ -1,0 +1,133 @@
+{
+  "cell": "Q5_claude-haiku-5-5_baseline_r2",
+  "arm": "baseline",
+  "rubric_version": "3.1.0",
+  "rubric_digest": "bbf6195f605be452",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.5,
+  "unmarked_pct": 0.0,
+  "split_decisions": 1,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "names mbedtls_ct_compiler_opaque as the primitive that stops the compiler from knowing a value, and locates it in library/constant_time_impl.h",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: `mbedtls_ct_compiler_opaque(x)` stops the optimiser from learning a value. With asm it is an empty `asm volatile` barrier. Without asm it is `x ^ mbedtls_ct_zero`, where `mbedtls_ct_zero` is a `volatile` global. | WHY: The answer names mbedtls_ct_compiler_opaque as the primitive that stops the optimiser from knowing a value, and its section header ties the primitives to `library/constant_time_impl.h`. || QUOTE: \"`mbedtls_ct_compiler_opaque(x)` stops the optimiser from learning a value. With asm it is an empty `asm volatile` barrier. Without asm it is `x ^ mbedtls_ct_zero`\" and the section header \"**1. The primitives (`library/constant_time_impl.h`, `library/constant_time.c`)**\" | WHY: The answer names mbedtls_ct_compiler_opaque as the primitive that stops the optimiser from learning a value, and it lists constant_time_impl.h as the location of the primitives.",
+      "agreement": 0.6666666666666666,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "explains that the asm path is an EMPTY asm volatile statement with the value as an input-output register operand \u2014 it emits no instruction and exists solely as an optimisation barrier",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: With asm it is an empty `asm volatile` barrier. | WHY: The answer says the asm form is an empty `asm volatile` barrier, but it never says the value is an input-output register operand or that no instruction is emitted. The item needs both of those. || QUOTE: With asm it is an empty `asm volatile` barrier. | WHY: The answer says it's an empty `asm volatile` barrier, but it doesn't mention the input-output register operand or say that it emits no instruction and exists only to block optimisation. || QUOTE: With asm it is an empty `asm volatile` barrier. | WHY: The answer says the asm path is an empty `asm volatile` barrier. It never says the value is an input-output register operand, and it never says that no instruction is emitted.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that when assembly is unavailable the SAME function falls back to XOR-ing with an extern volatile global that holds zero, and identifies that global",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: Without asm it is `x ^ mbedtls_ct_zero`, where `mbedtls_ct_zero` is a `volatile` global. | WHY: The answer states that mbedtls_ct_compiler_opaque, when asm is unavailable, XORs with the volatile global mbedtls_ct_zero, and it names that global. || QUOTE: Without asm it is `x ^ mbedtls_ct_zero`, where `mbedtls_ct_zero` is a `volatile` global. | WHY: The answer states that without asm, `mbedtls_ct_compiler_opaque` XORs with the volatile global `mbedtls_ct_zero`, which holds zero. It names the global and the XOR fallback. It does not say \"extern\", and it does not say that the same function is the one that falls back. The asm variant it mentions is the same function, `mbedtls_ct_compiler_opaque`, so that part is covered. || QUOTE: Without asm it is `x ^ mbedtls_ct_zero`, where `mbedtls_ct_zero` is a `volatile` global. | WHY: The answer says that without asm, `mbedtls_ct_compiler_opaque` XORs with `mbedtls_ct_zero`, a volatile global. That names the fallback mechanism and the global. The item's \"same function\" and \"extern\" details are only implied.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that MBEDTLS_CT_ASM is DERIVED rather than configured \u2014 it is set from MBEDTLS_HAVE_ASM together with compiler predefined macros, not from an entry in mbedtls_config.h",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer says the asm is \"gated on `MBEDTLS_CT_ASM`\" and requires `MBEDTLS_HAVE_ASM` plus a GNU-style compiler and architecture. It never states that MBEDTLS_CT_ASM is derived in a header rather than set in mbedtls_config.h. || QUOTE: NONE | WHY: The answer says the asm is \"gated on `MBEDTLS_CT_ASM`\" and requires `MBEDTLS_HAVE_ASM`, a GNU-style compiler and a target architecture. It never says MBEDTLS_CT_ASM is derived rather than set in mbedtls_config.h. || QUOTE: NONE | WHY: The answer says the asm is \"gated on `MBEDTLS_CT_ASM`\" and mentions `MBEDTLS_HAVE_ASM` and compiler conditions. It never says MBEDTLS_CT_ASM is derived rather than set in mbedtls_config.h.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that the PUBLIC API surface is a single function, mbedtls_ct_memcmp, while the rest of the primitives are library-internal",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never says the public API is a single function (mbedtls_ct_memcmp) with other primitives library-internal; it only mentions memcmp among many primitives and call sites. || QUOTE: NONE | WHY: The answer never says the public API surface is a single function, `mbedtls_ct_memcmp`, or that the other primitives are library-internal. || QUOTE: NONE | WHY: The answer never concludes that the public API surface is just mbedtls_ct_memcmp; it mentions that function and an \"internal\" header but makes no claim about public versus internal surface.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "conveys that the primitives are consumed broadly across the library \u2014 on the order of twenty modules \u2014 rather than being confined to one or two",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: About 200 call-site lines in about 20 files use `mbedtls_ct_*` (counted with grep, so this is lines, not distinct sites). | WHY: The answer states the primitives are used across roughly twenty files and lists many modules, matching the item. || QUOTE: About 200 call-site lines in about 20 files use `mbedtls_ct_*` (counted with grep, so this is lines, not distinct sites). | WHY: The answer states the primitives are used across about 20 files and lists many modules, showing broad consumption. || QUOTE: About 200 call-site lines in about 20 files use `mbedtls_ct_*` (counted with grep, so this is lines, not distinct sites). | WHY: The answer states the primitives are used across roughly 20 files and lists many modules, which conveys broad consumption.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies that the constant-flow property is VERIFIED by a separate, off-by-default testing facility built on MemorySanitizer or valgrind, and that it is explicitly not part of the library API",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: The sanitizer components in `tests/scripts/components-sanitizers.sh` and `components-configuration-crypto.sh` build with `MBEDTLS_TEST_CONSTANT_FLOW_VALGRIND` or `_MEMSAN`. `TEST_CF_SECRET()` marks secret inputs as uninitialised, so Valgrind or MemorySanitizer reports any branch or memory index that depends on them. | WHY: The answer describes the Valgrind/MemSan constant-flow testing, but it never says the facility is off by default or that it is not part of the library API. || QUOTE: The sanitizer components in `tests/scripts/components-sanitizers.sh` and `components-configuration-crypto.sh` build with `MBEDTLS_TEST_CONSTANT_FLOW_VALGRIND` or `_MEMSAN`. `TEST_CF_SECRET()` marks secret inputs as uninitialised, so Valgrind or MemorySanitizer reports any branch or memory index that depends on them. | WHY: The answer describes the MemSan/Valgrind testing, but it never says the facility is off by default or that it is explicitly not part of the library API. || QUOTE: The sanitizer components in `tests/scripts/components-sanitizers.sh` and `components-configuration-crypto.sh` build with `MBEDTLS_TEST_CONSTANT_FLOW_VALGRIND` or `_MEMSAN`. `TEST_CF_SECRET()` marks secret inputs as uninitialised, so Valgrind or MemorySanitizer reports any branch or memory index that depends on them. | WHY: The answer describes the MSan/Valgrind-based constant-flow checking in CI. It never says the facility is off by default or that it is explicitly not part of the library API.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "the source files that make up the constant-time implementation \u2014 include/mbedtls/constant_time.h",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": false,
+      "detail": "not named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the source files that make up the constant-time implementation \u2014 library/constant_time.c",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the source files that make up the constant-time implementation \u2014 library/constant_time_internal.h",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the source files that make up the constant-time implementation \u2014 library/constant_time_impl.h",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the source files that make up the constant-time implementation \u2014 precision",
+      "kind": "set_precision",
+      "weight": 2,
+      "hit": true,
+      "detail": "clean",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    }
+  ]
+}

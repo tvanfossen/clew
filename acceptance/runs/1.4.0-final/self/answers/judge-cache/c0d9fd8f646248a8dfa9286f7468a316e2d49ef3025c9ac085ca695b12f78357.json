@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `db_status` ... compares the index with the world on three axes: | `data` | ... | `schema` | ... | `code` |\nVERDICT: HIT\nWHY: The answer explicitly states staleness is measured on three separate axes and names them data, schema, and code, each with distinct detection and remedy."
+}

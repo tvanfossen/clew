@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Without a callback, a non-allowed call is denied.\nVERDICT: MISS\nWHY: The answer says that with no allow match and no frontend callback the call is refused. It says approval comes from \"auto_approve_tools || is_explicitly_allowed\", or from the notify callback. The item says a tool on neither list is not denied and runs. The answer never concludes that, and its stance is the opposite."
+}

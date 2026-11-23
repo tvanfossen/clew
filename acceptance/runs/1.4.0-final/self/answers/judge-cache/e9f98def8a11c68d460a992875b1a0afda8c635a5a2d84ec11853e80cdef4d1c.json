@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`code` | `code_identity()` says the running process's source fingerprint differs from the tree on disk | The server is running stale logic | Restart the MCP client. A rebuild is refused.\" and \"`_data_stale` returns false if the process predates its source. This keeps an auto-refresh from running old pipeline logic and re-stamping the index with it.\"\nVERDICT: MISS\nWHY: The answer says a build is refused from a stale process and why (old logic would re-stamp the index), but never states that reads stay current because query tools open the database per call."
+}

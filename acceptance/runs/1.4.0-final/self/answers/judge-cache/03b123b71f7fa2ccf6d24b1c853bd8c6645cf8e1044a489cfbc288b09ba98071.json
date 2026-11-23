@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the callers list is a set of enclosing functions where a function calling twice appears once, but it never says the surface returns one row per neighbour rather than one per layer, with variants collapsed to the strongest evidence."
+}

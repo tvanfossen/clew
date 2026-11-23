@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It is a source-level guard, not a runtime or ABI mechanism. The macro only renames fields, so struct layout is identical whether or not the opt-in is on.\nVERDICT: HIT\nWHY: The answer says that opacity is enforced at compile time by renaming fields to private_member, and that the struct layout is unchanged, so the fields stay visible and sized."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`LlamaCppBackend::tokenize` (`src/inference/llama_cpp_backend.cpp:788-800`) does no llama.cpp calls. It forwards to the `Tokenizer` seam and returns `{}` if no tokenizer is wired.\" and \"`LlamaCppTokenizer::tokenize` returns an empty `std::vector<int32_t>`\" on failure.\nVERDICT: MISS\nWHY: The answer says the backend wrapper returns `{}` when no tokenizer is wired, and that the tokenizer returns empty on failure. But the failure-empty return is attributed to the inner tokenizer, not the backend wrapper, and the answer never says the wrapper's failure value is the same as its no-tokenizer value."
+}

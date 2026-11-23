@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `python/src/entropic/__init__.py` exposes the C symbols directly with lazy (PEP 562) imports, so `entropic install-engine` can run before the `.so` exists.\nVERDICT: HIT\nWHY: The answer states that lazy imports in `__init__.py` let `entropic install-engine` run before the `.so` exists. That is the substance of the item: the package imports without the engine, so an install-engine subcommand can ship inside it."
+}

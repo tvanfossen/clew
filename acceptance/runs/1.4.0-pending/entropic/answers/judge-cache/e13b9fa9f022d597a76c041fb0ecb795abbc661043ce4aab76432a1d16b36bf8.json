@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: An empty vector is the same value as a legitimate empty input, so the only failure signal is the log line.\nVERDICT: MISS\nWHY: The answer says failure is indistinguishable from empty input, but it states that some callers do check (generate_mtp checks size < 2), so it does not conclude that no caller checks for it."
+}

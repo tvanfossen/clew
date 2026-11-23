@@ -39,8 +39,12 @@ REPO = Path(__file__).resolve().parent.parent
 ## thirteen defects shipped, and it was NOT caught: the anti-vacuity assertion was
 ## `len(surfaces) > 100`, and `server.py` alone clears 100. A count cannot detect a blinded
 ## scan. The partition below can, because a module in neither tuple is an error.
+## 1.3.1: the emptiness grading and the reply-content helpers moved into `clew.query` (shared with
+## the export API), so the served text they carry is scanned at its new home.
 RUNTIME_SERVED_MODULES = (
-    "clew/mcp_server/emptiness.py",
+    "clew/query/emptiness.py",
+    "clew/query/payload.py",
+    "clew/query/export.py",
     "clew/mcp_server/freshness.py",
     "clew/mcp_server/tools_query.py",
     "clew/mcp_server/server.py",
@@ -55,8 +59,11 @@ PLUMBING_MODULES = {
     "clew/mcp_server/__init__.py": "re-exports only",
     "clew/mcp_server/__main__.py": "entry point",
     "clew/mcp_server/_sdk.py": "SDK compatibility shims",
+    "clew/mcp_server/emptiness.py": "alias of clew.query.emptiness (moved in 1.3.1); no text",
     "clew/mcp_server/descriptions.py": "loads the JSON; the text lives in the JSON",
     "clew/mcp_server/state.py": "target resolution and registry bookkeeping",
+    "clew/mcp_server/watcher.py": "file-change watching for the refresh loop; logs only (1.3.6)",
+    "clew/mcp_server/wikihub.py": "HTML to a browser over loopback HTTP, never text to the model (P4c)",
 }
 
 DESCRIPTIONS_DIR = REPO / "clew/mcp_server/descriptions"
@@ -106,7 +113,10 @@ PAYLOAD_FIELDS = frozenset({"callers", "callees", "graph_stats", "source", "cand
 ## matching and the mention is reported again. `_stale_negations` closes the other half —
 ## an entry whose phrase is gone anywhere in the served text is itself an error, so this
 ## cannot rot into a permanent hole.
-NEGATED = (("set_target", "There is no set_target tool"),)
+##
+## EMPTY SINCE 1.3.8: the instructions were cut to fit the per-turn token budget and no longer
+## mention `set_target` at all, so there is nothing left to exempt — and a stale entry is an error.
+NEGATED: tuple[tuple[str, str], ...] = ()
 
 
 ## @brief Every string literal in a module that is not a docstring.

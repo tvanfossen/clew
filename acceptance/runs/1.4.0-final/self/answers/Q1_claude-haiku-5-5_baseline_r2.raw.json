@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 35824,
+  "stop_reason": "end_turn",
+  "session_id": "1fe2f3d4-f424-4dab-8d0b-5a2871526c78",
+  "total_cost_usd": 0.013026610000000001,
+  "usage": {
+    "input_tokens": 22,
+    "cache_creation_input_tokens": 26326,
+    "cache_read_input_tokens": 475071,
+    "output_tokens": 6017,
+    "output_tokens_details": {
+      "thinking_tokens": 2164
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 26326,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2802,
+        "cache_read_input_tokens": 58418,
+        "cache_creation_input_tokens": 2288,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2288
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 22,
+      "outputTokens": 6017,
+      "cacheReadInputTokens": 475071,
+      "cacheCreationInputTokens": 26326,
+      "webSearchRequests": 0,
+      "costUSD": 0.013026610000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2164,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 26326,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 13,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The short answer: a file gets into the index only if it survives four filters in sequence. Which scope applies depends on whether the repo declared one. With nothing declared, clew indexes the whole repository minus what git ignores and minus dot and cache directories. I read the code but did not run a build, so the claims below are from source.\n\n```\n declared scope (stated tool arg > .clew.yaml index_scope:)   \u2190 else whole-repo tier\n          \u2502\n          \u25bc\n + excludes: toolchain.toml `ignore`, suppress.toml (tool=\"*\"), operator --exclude\n          \u2502\n          \u25bc\n enumerate_tree: walk roots, prune excluded subtrees, no extension filter\n          \u2502\n          \u25bc\n binary filter: classify_file on first 8 KiB \u2192 binary files dropped (INFO log)\n          \u2502\n          \u25bc\n doxygen pass: RECURSIVE=YES, FILE_PATTERNS forced to doxygen default set\n               (JS/TS come through the parse front end instead)\n```\n\n**1. Choosing the root scope (`clew/scope.py`, `derive_scope`)**\n\n- A scope passed directly by a tool call wins. Otherwise `_declared_index_scope` reads `index_scope:` from the repo's `.clew.yaml`. Its accepted keys are `roots` and `excludes`.\n- `roots` is required. `excludes` alone does nothing. Roots that don't exist on disk are dropped. Unknown keys reject the whole section.\n- A rejected section logs a WARNING, and the build falls back to the whole-repo tier with the rejection stated as the reason. An absent section falls back silently with a reason saying none was declared.\n\n**2. Adding excludes**\n\n- `toolchain.toml` `[ignore] paths` globs, and `suppress.toml` entries with `tool = \"*\"`, are expanded and appended to the build's exclude list (`clew/cli.py`, toolchain fold-in; `clew/toolchain.py`, `load_toolchain_config`). Entries with `tool = \"clew\"` only affect the gate.\n- `--exclude` is recorded as `operator_excludes` and replayed on later builds.\n\n**3. Enumeration (`clew/treescan.py`)**\n\n`enumerate_tree` walks each root and prunes excluded directories during the walk. It is deliberately not filtered by extension, so the content hash cache also covers files doxygen will never read.\n\n**4. Binary skip (`clew/filetypes.py`)**\n\nFiles classified as binary are dropped by content, not extension. Each skip is logged at INFO. Empty files and large text files are kept.\n\n**5. Doxygen's file-type filter (`clew/doxygen.py`)**\n\nclew forces `RECURSIVE = YES` and sets `FILE_PATTERNS` to doxygen's own default set (C, C++, Java and similar), overriding any target Doxyfile. A target's own `EXCLUDE` lists are cleared. So doxygen reads only source extensions in its default set. A guard in `clew/treescan.py` (`roots_matching_no_file_pattern`) refuses an `--extra-input` root whose files all fail that filter. JS/TS files pass through `claims()` and are parsed by the front end.\n\n**What happens when nothing is declared**\n\n`whole_repo_scope` in `clew/scope.py` takes the whole repository as one root. The excludes come from three sources:\n\n- **Git ignores.** `git ls-files --others --ignored --exclude-standard --directory` runs for the repo, and again for each nested git tree. Git runs through `git_argv` and `git_env`, so a target's `.git/config` cannot execute code.\n- **Dot and cache directories.** Any directory whose name starts with `.` (`.git`, `.venv`, and so on) plus `__pycache__` and `node_modules` is pruned. Their paths are passed to doxygen as EXCLUDE entries.\n- **Depth limit.** Descent stops at depth 16. Directories past that are recorded and logged rather than walked.\n\nNested git trees (submodules, vendored clones) are included, not excluded (gh#333). `external.py` tags their rows after the build so answers can tell the codebases apart. Their own top-level dot directories are still pruned.\n\nIf git is missing or the directory isn't a repository, nothing is excluded by git, the scope is wider than intended, and the log says so. The repo's Doxyfile no longer sets the INPUT; it supplies only aliases and predefined macros.\n\n**Caveats**\n\n- I did not check how the prose ingestion path picks non-source files such as `.md`. Doxygen's pattern filter does not decide those.\n- The tagging in `external.py` and the operator-exclude replay were read, not traced.",
+  "ttft_ms": 1592,
+  "type": "result",
+  "duration_ms": 37081,
+  "uuid": "dcc68e6b-4b66-4f88-beb2-e5ab2327e855",
+  "ttft_stream_ms": 1196,
+  "time_to_request_ms": 154,
+  "first_content_frame_ms": 1196,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

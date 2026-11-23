@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Detokenize** (`llama_cpp_tokenizer.cpp:93-104`): Same idea with a 256-byte stack buffer. If the piece doesn't fit, the function returns the negated required size, and the code retries once with an exact-size heap buffer.\nVERDICT: HIT\nWHY: The answer states detokenize uses a 256-byte stack buffer first and falls back to an exact-size heap buffer. It also says tokenize does a sizing call first, with a null buffer and size 0, before filling."
+}

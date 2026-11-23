@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`mbedtls_ct_` is used 286 times across 29 files.\"\nVERDICT: HIT\nWHY: The answer states the primitives are used across 29 files (roughly twenty-plus modules), with a broad list of callers, rather than being confined to one or two."
+}

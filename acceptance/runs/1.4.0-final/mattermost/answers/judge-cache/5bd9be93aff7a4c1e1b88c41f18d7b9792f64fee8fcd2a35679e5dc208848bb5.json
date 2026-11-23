@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `retryFailedPost` (`app/actions/remote/post.ts:228-301`) runs when the user picks \"Try Again\" in the bottom sheet (`post/body/failed/index.tsx:46-49`)\nVERDICT: HIT\nWHY: The answer says the retry is manual, triggered only by the user choosing \"Try Again\", and names `retryFailedPost` as the function that runs. It also says there are no automatic retries."
+}

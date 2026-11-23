@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says the option names in an embedding caller's `options` mapping are the same words as the `.clew.yaml` section names and the diagnostics' wording. It only says the mapping is handed to `apply_options` and that unknown keys are refused by name."
+}

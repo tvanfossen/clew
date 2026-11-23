@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Edges are per pair, not per site. Two calls from `f` to `g` on different lines give one edge.\nVERDICT: MISS\nWHY: The answer says one edge per caller-callee pair, but it doesn't say layer variants are collapsed to the strongest evidence. It lists `source` and `confidence` per neighbour without describing that collapse."
+}

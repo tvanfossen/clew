@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_THREADING_C` and `MBEDTLS_THREADING_PTHREAD` both default to off (`include/mbedtls/mbedtls_config.h:3787` and `:2196`). ... Every mutex call I checked sits behind `#if defined(MBEDTLS_THREADING_C)`.\nVERDICT: HIT\nWHY: The answer names both macros and says the mutex code is gated behind them, including THREADING_C as the `#if` guard."
+}

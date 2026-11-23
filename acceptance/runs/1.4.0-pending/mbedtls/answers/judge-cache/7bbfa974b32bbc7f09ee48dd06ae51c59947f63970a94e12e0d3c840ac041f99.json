@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Option C, use the bundled heap: `mbedtls_memory_buffer_alloc_init(buf, len)` (`library/memory_buffer_alloc.c:566`) calls `mbedtls_platform_set_calloc_free()` with its own `buffer_alloc_calloc` / `buffer_alloc_free`. It serves allocations from a caller-supplied buffer, using a mutexed wrapper when `MBEDTLS_THREADING_C` is on.\nVERDICT: MISS\nWHY: The answer mentions a mutexed wrapper under MBEDTLS_THREADING_C but does not say a plain pair is installed otherwise, nor that the choice is made at compile time inside the init function."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: the file set is decided by a single declaration, `index_scope:` in the repo's `.clew.yaml`. If none is usable, clew indexes the whole repository minus what git ignores.\nVERDICT: HIT\nWHY: The answer states the declared index_scope is preferred and that no section or an invalid one falls back to whole-repo scope, which covers every failure to find a usable declaration."
+}

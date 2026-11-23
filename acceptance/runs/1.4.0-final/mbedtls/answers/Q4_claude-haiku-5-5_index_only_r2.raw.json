@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 23545,
+  "stop_reason": "end_turn",
+  "session_id": "1b39396b-97cc-4258-897e-c548c54796b2",
+  "total_cost_usd": 0.00753104,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 16914,
+    "cache_read_input_tokens": 205024,
+    "output_tokens": 4194,
+    "output_tokens_details": {
+      "thinking_tokens": 1841
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 16914,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2532,
+        "cache_read_input_tokens": 50269,
+        "cache_creation_input_tokens": 3488,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 3488
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 4194,
+      "cacheReadInputTokens": 205024,
+      "cacheCreationInputTokens": 16914,
+      "webSearchRequests": 0,
+      "costUSD": 0.00753104,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1841,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 16914,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 14,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** `mbedtls_strerror()` in `library/error.c` splits the code into a high-level and a low-level part, and looks up each part in a `switch` table. That table is generated from the public headers, so a contributor adds a new string by adding the `MBEDTLS_ERR_*` macro in a header and regenerating `error.c`, not by editing the table.\n\n**The path, from a negative return to a string**\n\n```\nret = -0x0F80 - ...           caller gets negative int\n  \u2502\n  \u25bc\nmbedtls_strerror(ret, buf, buflen)        library/error.c:792\n  \u2502  buflen==0 \u2192 return; memset buf to 0\n  \u2502  ret = -ret                           (make positive)\n  \u2502\n  \u251c\u2500 high = ret & 0xFF80                  (module bits)\n  \u2502    \u2514\u2500 mbedtls_high_level_strerr(ret)  error.c:174\n  \u2502         switch on high bits, e.g. \"CIPHER - Authentication failed\u2026\"\n  \u2502         NULL \u2192 \"UNKNOWN ERROR CODE (%04X)\"\n  \u2502    SSL fatal alert (MBEDTLS_SSL_TLS_C)? \u2192 stop here, skip low level\n  \u2502\n  \u251c\u2500 low = ret & ~0xFF80                  (detail bits)\n  \u2502    (only if non-zero)\n  \u2502    if buf already has text: append \" : \"\n  \u2502    \u2514\u2500 mbedtls_low_level_strerr(ret)   error.c:537\n  \u2502         switch on low bits, e.g. \"AES - Invalid key length\"\n  \u2502         NULL \u2192 \"UNKNOWN ERROR CODE (%04X)\"\n  \u2502\n  \u25bc\nbuf = \"CIPHER - \u2026 : AES - \u2026\"   (truncated to buflen, always NUL-terminated)\n```\n\nDetails that matter:\n\n- The sign is dropped first, so the lookups compare positive values against `-(MBEDTLS_ERR_\u2026)` cases.\n- A code can carry both parts. The result is \"high : low\", and the separator is only written if there is room.\n- Unknown codes are not silent. They come back as `UNKNOWN ERROR CODE (XXXX)` with the masked value, so the caller still sees a number.\n- The two `switch` tables are wrapped in `#if defined(MBEDTLS_<MODULE>_C)` blocks, so a string only exists when its module is compiled in.\n\n**How a contributor adds a new one**\n\nI can't see the generator's internals from the index (see caveats), so the steps below come from what the code shows:\n\n1. **Define the error macro** in the module's public header, with a negative value in that module's range. The high bits identify the module and the low bits the specific error. Use the existing `MBEDTLS_ERR_<MODULE>_*` macros as the pattern.\n2. **Don't hand-edit `library/error.c`.** Its switch blocks sit between the `/* Begin Auto-Generated Code. */` markers. The build regenerates the file: `library/CMakeLists.txt:134` runs `scripts/generate_errors.pl` over `include/mbedtls` with `scripts/data_files/error.fmt`.\n3. **Rebuild**, so the generator picks up the new macro and emits a `case` with its description string. The description follows the `MODULE - text` pattern.\n4. **Check the gating.** The new case should land inside the same `#if defined(MBEDTLS_<MODULE>_C)` block as its siblings.\n5. **Document it**, if it is user-visible. `docs/3.0-migration-guide.md` records past changes to error codes, which is the usual place for a removed or renamed one.\n\n**Caveats**\n\n- The generator script and `error.fmt` are not indexed, so I could not read how the generator selects headers or formats entries. Step 2 is confirmed by the CMake rule and the file header only.\n- `library/error.c` appears in the index as a plain source file, while the CMake rule writes its output to the build directory. I could not tell whether the repo ships a checked-in copy that is regenerated, or whether the index read a build artefact. Check this before editing anything.\n- The module-range convention and the exact header format are not verified here. Read an existing error header, such as the one for the module you're adding to, before writing the macro.",
+  "ttft_ms": 2079,
+  "type": "result",
+  "duration_ms": 27759,
+  "uuid": "0df50b2f-1200-49a8-92c1-dd36fbc5ed46",
+  "ttft_stream_ms": 1175,
+  "time_to_request_ms": 132,
+  "first_content_frame_ms": 1175,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

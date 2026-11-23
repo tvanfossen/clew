@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_ct_compiler_opaque(x)` is an empty `asm volatile` with `\"+r\"(x)` when assembly is enabled. Otherwise it returns `x ^ mbedtls_ct_zero`, where `mbedtls_ct_zero` is a `volatile` global\nVERDICT: HIT\nWHY: The answer says the asm path is an empty `asm volatile` with `\"+r\"(x)` (an input-output register operand) and that it stops the compiler from knowing the value. It doesn't say outright that no instruction is emitted, but \"empty\" asm with a purpose of defeating compiler optimisation carries the substance."
+}

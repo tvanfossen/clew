@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `BaseDataOperator`, which `AppDataOperator` also extends (`app_data_operator/index.ts`). So the app-level database shares the same write pipeline, but none of the server handlers.\nVERDICT: HIT\nWHY: The answer names AppDataOperator as another BaseDataOperator subclass for the app-level database, and says it shares the same write pipeline."
+}

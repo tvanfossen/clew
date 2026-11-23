@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_memory_buffer_alloc_init(buf, len)` (line 566) calls `mbedtls_platform_set_calloc_free` with its own functions, locking them if threading is enabled.\nVERDICT: MISS\nWHY: The answer only says \"locking them if threading is enabled\", with no mention of a mutexed pair versus a plain pair chosen at compile time (MBEDTLS_THREADING_C), so the specific mechanism is absent."
+}

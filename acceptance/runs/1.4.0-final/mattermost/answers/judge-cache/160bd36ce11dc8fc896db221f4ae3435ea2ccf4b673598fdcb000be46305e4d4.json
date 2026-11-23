@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never mentions `Header` from `navigation_header/header.tsx`, a navigation hook, or the thread route. It doesn't say they are excluded from the NavigationHeader renderers."
+}

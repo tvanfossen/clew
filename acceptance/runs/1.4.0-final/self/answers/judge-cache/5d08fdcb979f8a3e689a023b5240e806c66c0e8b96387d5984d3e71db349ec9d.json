@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"| 1 explicit | CLI flag, or the `options` argument for embedding callers and MCP | Replaces the stated layer |\" and \"`options` is the structured argument that gives MCP and embedding callers the same reach as flags.\"\nVERDICT: HIT\nWHY: The answer states tier 1 is reachable via both a CLI flag and the structured `options` argument for embedding callers."
+}

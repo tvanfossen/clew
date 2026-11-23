@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It is declared in `include/mbedtls/error.h:165` and defined at `library/error.c:792`.\nVERDICT: HIT\nWHY: The answer names `mbedtls_strerror` as the caller-facing entry point and places its definition in `library/error.c`."
+}

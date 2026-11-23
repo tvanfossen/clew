@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_HAVE_ASM` and GCC or Clang (or armcc \u2265 6) | `MBEDTLS_CT_ASM` defined\nVERDICT: MISS\nWHY: The answer shows MBEDTLS_CT_ASM being defined under HAVE_ASM plus compiler conditions in constant_time_impl.h, but it never states that the symbol is derived rather than a user-configured entry in mbedtls_config.h."
+}

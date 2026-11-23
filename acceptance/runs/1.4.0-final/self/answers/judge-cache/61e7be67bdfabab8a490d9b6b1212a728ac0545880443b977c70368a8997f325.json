@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `options` is keyed by the `.clew.yaml` section names, and an unknown key is refused by name.\nVERDICT: HIT\nWHY: The answer states that the embedding caller's `options` mapping uses the same words as the `.clew.yaml` section names, and that unknown keys are refused by name. That covers the \"same words as the declaration file's section names\" part and touches the diagnostics. It never says the diagnostics use those same words, so the diagnostics half is weak. The core identity of the option names with the section names is stated."
+}

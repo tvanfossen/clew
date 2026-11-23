@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Macro mode and runtime mode are mutually exclusive in practice. Pick one per build.\"\nVERDICT: HIT\nWHY: The answer distinguishes compile-time macros (CALLOC_MACRO/FREE_MACRO) from the runtime pair of function pointers set via mbedtls_platform_set_calloc_free(), and explicitly says the two modes are mutually exclusive."
+}

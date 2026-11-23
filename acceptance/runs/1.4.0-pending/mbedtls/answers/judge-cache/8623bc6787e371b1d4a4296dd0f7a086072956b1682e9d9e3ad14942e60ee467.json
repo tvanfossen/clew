@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It is not a security boundary. The struct layout, `sizeof`, and field offsets stay public in the header, and anyone can spell the explicit form.\nVERDICT: HIT\nWHY: The answer says that without the define the field is named `private_foo`, so `ctx->foo` fails to compile. It also says the layout, `sizeof` and offsets stay visible in the header, which matches opacity enforced by name-breaking rather than by hiding the layout."
+}

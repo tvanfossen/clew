@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: By default a member such as `ssl->state` is declared as `private_state`. Application code that writes `ssl->state` fails to compile... define `MBEDTLS_ALLOW_PRIVATE_ACCESS` before including the header; \"Every library translation unit sees real member names. ... does not leak to applications.\"\nVERDICT: HIT\nWHY: The answer shows the macro branches: by default consumers see `private_` names, while code defining the allow macro sees plain names, and library or opted-in code gets real names while applications don't."
+}

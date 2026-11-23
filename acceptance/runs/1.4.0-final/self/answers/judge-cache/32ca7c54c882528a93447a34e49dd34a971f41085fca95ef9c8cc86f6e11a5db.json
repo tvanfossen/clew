@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer's table keys the \"definitive\" wording to conditions (unread-corpus hits, `file_docs` presence). It then says `_verdict` never reads `not_indexed`, and that is presented as a gap. It never says the wording is earned per call by querying which corpora were not read, as opposed to being tied to a result shape."
+}

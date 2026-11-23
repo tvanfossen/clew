@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says concurrency code is in `programs/` and lists locks in the library, but it never states that nothing in `library/` creates a thread, and it never frames the library as supplying the mutex abstraction for threaded callers."
+}

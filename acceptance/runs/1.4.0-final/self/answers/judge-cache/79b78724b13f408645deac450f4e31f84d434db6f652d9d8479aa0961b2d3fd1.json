@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **The ways to say so, highest precedence first** (`clew/tiers.py`): 1. **Explicit call-time options.** ... 2. **Declared, in `<repo>/.clew.yaml`.** ... 3. **Target facts someone else wrote.** ... 4. **Ecosystem signatures**... 5. **Heuristics**\nVERDICT: HIT\nWHY: The answer enumerates five named precedence tiers and explains how they resolve, not a single override."
+}

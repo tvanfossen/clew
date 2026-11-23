@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Python does not embed or re-implement the engine. It loads `librentropic.so` with `ctypes` and calls the C ABI declared in `include/entropic/entropic.h`. No pybind11, cffi, or Python C extension is involved.\nVERDICT: HIT\nWHY: The answer states that ctypes loads librentropic.so and explicitly rules out pybind11, cffi, and any C extension module."
+}

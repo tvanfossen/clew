@@ -1085,7 +1085,7 @@ def test_ingest_requirements_yaml_reads_the_mapping_keyed_shape(tmp_path: Path) 
     )
     ## name_column='name' as the guard's own config declares it; id_column is irrelevant
     ## to this shape and is passed as the csv default to prove it is not consulted.
-    guard_cfg = {"impact": {"requirements": {"name_column": "name", "id_column": "Req ID"}}}
+    guard_cfg = {"requirements": {"name_column": "name", "id_column": "Req ID"}}
     ingest_requirements_yaml(db, yaml_path, guard_cfg)
 
     conn = sqlite3.connect(str(db))
@@ -2128,7 +2128,7 @@ def test_a_declared_catalog_path_is_honoured_without_a_cli_flag(tmp_path: Path) 
 
     (tmp_path / "docs").mkdir()
     (tmp_path / "docs" / "reqs.yaml").write_text("requirements: {}\n", encoding="utf-8")
-    cfg = {"impact": {"requirements": {"file": "docs/reqs.yaml"}}}
+    cfg = {"requirements": {"file": "docs/reqs.yaml"}}
 
     assert declared_catalog_path(cfg, tmp_path) == (tmp_path / "docs" / "reqs.yaml").resolve()
     ## No declaration and no config are both simply "nothing declared", not errors.
@@ -2162,7 +2162,7 @@ def test_the_catalog_precedence_is_declaration_then_convention(tmp_path: Path) -
     declared.write_text("requirements: {}\n", encoding="utf-8")
     conventional = tmp_path / "requirements.yaml"
     conventional.write_text("requirements: {}\n", encoding="utf-8")
-    cfg = {"impact": {"requirements": {"file": "docs/reqs.yaml"}}}
+    cfg = {"requirements": {"file": "docs/reqs.yaml"}}
 
     ## BOTH present: the declaration wins. This is the case that differed per entry point.
     assert resolve_catalog_path(cfg, tmp_path) == declared.resolve()
@@ -2238,7 +2238,7 @@ def test_a_declaration_still_beats_every_conventional_location(tmp_path: Path) -
         conventional.parent.mkdir(exist_ok=True)
         conventional.write_text("requirements: {}\n", encoding="utf-8")
 
-    cfg = {"impact": {"requirements": {"file": "spec/reqs.yaml"}}}
+    cfg = {"requirements": {"file": "spec/reqs.yaml"}}
     assert resolve_catalog_path(cfg, tmp_path) == declared.resolve()
 
 
@@ -2251,7 +2251,7 @@ def test_a_declared_catalog_that_does_not_exist_degrades_rather_than_raising(
     else's config cost them the whole index."""
     from clew.requirements import declared_catalog_path
 
-    cfg = {"impact": {"requirements": {"file": "docs/not_here.yaml"}}}
+    cfg = {"requirements": {"file": "docs/not_here.yaml"}}
     assert declared_catalog_path(cfg, tmp_path) is None
 
 

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The export list comes from `_bindings_manifest.py`, which does not load the `.so`.\nVERDICT: MISS\nWHY: The answer mentions a manifest that doesn't load the .so, but never says the generated surface is deliberately split in two (names-only manifest with no ctypes import vs. the bindings module that loads the library), so the specific mechanism is only partly stated."
+}

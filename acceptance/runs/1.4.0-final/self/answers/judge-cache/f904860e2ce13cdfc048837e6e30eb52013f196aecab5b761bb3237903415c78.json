@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `staleness_notices()` (`server.py`) returns a list of `{axis, message}` and attaches it to query replies as a `staleness` block. The block is absent when the index is current.\nVERDICT: HIT\nWHY: The answer says the staleness block is attached to query replies and absent when the index is current, which covers riding on every reply and being empty when current."
+}

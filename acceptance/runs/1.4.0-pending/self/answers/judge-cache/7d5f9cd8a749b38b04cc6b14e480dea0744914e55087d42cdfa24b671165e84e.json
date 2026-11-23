@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The attachment is size-budgeted and never raises.\nVERDICT: MISS\nWHY: The answer says only that attaching the notices never raises. The item is about measuring staleness never raising, so that a failed measurement degrades to no annotation instead of turning a successful reply into an error. The answer doesn't state that."
+}

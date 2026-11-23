@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"If the index holds a matching row in a corpus `search` skips, the reply says \"NOT DEFINITIVE\" and names the rows and the tool to use\"\nVERDICT: HIT\nWHY: The answer says the \"definitive\" wording is decided on each call by checking whether the index holds matches in corpora `search` did not read, and downgrades it when it does, instead of tying it to a zero-row result."
+}

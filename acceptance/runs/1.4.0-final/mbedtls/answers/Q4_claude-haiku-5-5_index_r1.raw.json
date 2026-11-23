@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 24609,
+  "stop_reason": "end_turn",
+  "session_id": "916a9cb2-1429-4766-b9da-048aa7c79c6e",
+  "total_cost_usd": 0.01158339,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 36911,
+    "cache_read_input_tokens": 195369,
+    "output_tokens": 4493,
+    "output_tokens_details": {
+      "thinking_tokens": 1815
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 36911,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3080,
+        "cache_read_input_tokens": 53818,
+        "cache_creation_input_tokens": 2076,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2076
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 4493,
+      "cacheReadInputTokens": 195369,
+      "cacheCreationInputTokens": 36911,
+      "webSearchRequests": 0,
+      "costUSD": 0.01158339,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1815,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 36911,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 9,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** the string comes from `mbedtls_strerror()` in `library/error.c`, which splits the code into a high-level part and a low-level part and looks each one up in a generated `switch`. To add a new code you define the macro in the module's header, add the module to the generator's lists if it is new, and regenerate `error.c`. Don't hand-edit `error.c`.\n\n**Runtime path**\n\n```\nret (negative int)\n  \u2514\u2500 mbedtls_strerror(ret, buf, buflen)        error.c:792   (public: error.h:165)\n       \u251c\u2500 buflen == 0 \u2192 return; else memset(buf, 0)\n       \u251c\u2500 ret = -ret                             (codes are stored negated)\n       \u251c\u2500 ret & 0xFF80  \u2192 mbedtls_high_level_strerr(ret)   error.c:174\n       \u2502                    \"CIPHER - Authentication failed \u2026\"\n       \u2502     \u2514\u2500 if it's MBEDTLS_ERR_SSL_FATAL_ALERT_MESSAGE \u2192 return now\n       \u251c\u2500 ret & ~0xFF80 \u2192 mbedtls_low_level_strerr(ret)    error.c:537\n       \u2502                    \"ASN1 - Out of data when parsing \u2026\"\n       \u2514\u2500 join:  \"HIGH : LOW\"   (or just one part if the other is zero)\n          unknown part \u2192  \"UNKNOWN ERROR CODE (%04X)\"\n```\n\n- The high/low split uses the bit layout documented in `include/mbedtls/error.h` (high-level modules in the `0xFF80` bits, low-level modules in the low 7 bits).\n- Each lookup is a `switch` over `case -(MBEDTLS_ERR_X):` returning a `\"MODULE - description\"` literal. Cases are wrapped in `#if defined(MBEDTLS_<MOD>_C)`, so a disabled module's strings are not compiled in.\n- The output is written through `mbedtls_snprintf`, so it is truncated to `buflen` and always NUL-terminated.\n- If `MBEDTLS_ERROR_C` is off, the dummy at `error.c:867` just writes an empty string.\n\n**Where the switch comes from**\n\n`library/error.c` is generated. `scripts/generate_errors.pl` does this:\n\n1. Scans every `include/mbedtls/*.h` for `#define MBEDTLS_ERR_<NAME> -0x....` with a Doxygen description, either before the macro (`/** \u2026 */`) or after it (`/*!< \u2026 */`).\n2. Takes the module name from the `MBEDTLS_ERR_<MODULE>` prefix (with a few renames such as `MPI`\u2192`BIGNUM`) and sorts it into the `@low_level_modules` or `@high_level_modules` list at `scripts/generate_errors.pl:36-43`.\n3. Writes the cases and the `#include`s into the template `scripts/data_files/error.fmt`, producing `library/error.c`.\n\nRegeneration is wired into `library/Makefile:355-360`, `library/CMakeLists.txt:139-146`, and `scripts/make_generated_files.bat`. `tests/scripts/check-generated-files.sh:135` checks that the committed `error.c` matches the generator output.\n\n**To add a new error code**\n\n1. **Pick a free value.** Use an unused `-0x....` in the module's range, from the allocation table in `include/mbedtls/error.h` (around lines 37\u201360). The generator dies on duplicate values.\n2. **Define the macro** in the module's public header, e.g. `include/mbedtls/<module>.h`:\n   ```c\n   /** Short description, ending without a period. */\n   #define MBEDTLS_ERR_FOO_BAR    -0x0042\n   ```\n   Use exactly one comment, either before or after. Both, or neither, is an error. The description text becomes the user-visible string, so write it for the caller who reads it.\n3. **If the module is new**, add it to the right list in `scripts/generate_errors.pl`. An unlisted module makes the generator print `Do not know how to handle` and exit 1. Add an explicit `define_name` mapping only if the `MBEDTLS_<X>_C` gate name differs from the prefix.\n4. **Regenerate** through the build (`make` in `library/`, or the CMake build), or run `perl scripts/generate_errors.pl` from the repo root. Commit the regenerated `library/error.c` together with the header change.\n5. **Verify** with `check-generated-files.sh`, and run the project's pre-commit gate as `AGENTS.md` describes.\n\n**What I did not check:** I did not read `error.fmt` itself, the table of allocated ranges in full, or whether any test asserts specific error strings. Those would be the next places to look if the string needs special handling.",
+  "ttft_ms": 1532,
+  "type": "result",
+  "duration_ms": 25997,
+  "uuid": "8469f848-6eb1-4fd3-8f26-310e068bea35",
+  "ttft_stream_ms": 1187,
+  "time_to_request_ms": 153,
+  "first_content_frame_ms": 1188,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

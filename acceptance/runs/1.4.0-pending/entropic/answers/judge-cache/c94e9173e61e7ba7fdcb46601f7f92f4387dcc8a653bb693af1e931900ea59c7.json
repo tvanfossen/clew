@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `LlamaCppBackend::tokenize` (`llama_cpp_backend.cpp:788-800`) returns `{}` if `tokenizer_` is unset, and otherwise passes the seam's result through. There is no status code, so the empty vector is the only signal.\nVERDICT: HIT\nWHY: The answer says a failed tokenization yields `{}` and an unwired tokenizer also yields `{}` at the backend wrapper, with no way to tell them apart."
+}

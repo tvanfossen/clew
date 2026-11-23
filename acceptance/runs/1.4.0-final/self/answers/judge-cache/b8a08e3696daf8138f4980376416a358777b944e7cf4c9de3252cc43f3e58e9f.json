@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The docs say the answer is \"registered in the file set, no symbols, no error, and the not-indexed report names the types.\" ... The third part fails.\nVERDICT: MISS\nWHY: The answer finds that the no-grammar install does not fail, but it says the not-indexed report does NOT name the shell/CMake files. It also never says a router consults a capability gate, so the item's conclusion is contradicted rather than demonstrated."
+}

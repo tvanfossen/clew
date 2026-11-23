@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names these as containing uses of `MBEDTLS_PRIVATE`: `programs` (the `ssl_context_info.c` and `fuzz_dtlsserver.c` examples) and `tests` (the `tests/suites/*.function` files). It also says `include` declares the private fields with the macro. For `library`, it says the code uses real field names rather than the macro. It says `grep MBEDTLS_PRIVATE` finds nothing in `ssl_server2.c` and `ssl_client2.c`.\n\nITEMS:\ninclude\nprograms\ntests\nEND"
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Nested git trees are included,** not excluded. They are tagged as external afterwards in `external.py`, so `chain_trace` can say what a call does instead of stopping at a submodule boundary.\nVERDICT: HIT\nWHY: The answer explicitly states nested git trees are included in the index scope and tagged as external afterward, rather than excluded."
+}

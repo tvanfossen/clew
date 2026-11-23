@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Without a callback and without an allow match, the call is denied.\nVERDICT: MISS\nWHY: The answer says that a tool matching neither list is denied when no callback is registered, and approved when one is. It never concludes that such a tool is not denied and runs by default, so this contradicts or misses the default-allow posture at the blocking gate."
+}

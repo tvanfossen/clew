@@ -7,7 +7,6 @@ from this output. If a field here changes shape, CONTRACT_VERSION must move with
 from __future__ import annotations
 
 import json
-from textwrap import dedent
 
 from clew.guard.config import (
     CONFIG_DEFAULTS,
@@ -39,13 +38,16 @@ class TestSchemaContract:
         assert (contract["config_file"], contract["config_section"]) == (".clew.yaml", "guard")
 
     def test_open_nodes_are_marked_not_dropped(self):
+        ## 2.0.0 (R5-CFG F12): `tags` and `languages` are no longer open — any NAME, each entry of
+        ## one checked shape — and the contract publishes that shape under "<name>".
         schema = build_schema_contract()["config_schema"]
-        assert schema["validate"]["languages"] == "<any>"
-        assert schema["validate"]["tags"] == "<any>"
+        assert schema["validate"]["languages"]["<name>"]["extensions"] == "list"
+        assert schema["validate"]["tags"]["<name>"]["pattern"] == "str"
 
     def test_types_encoded_by_name(self):
         schema = build_schema_contract()["config_schema"]
-        assert schema["output_dir"] == "str"
+        ## 2.0.0 (R5-CFG F7/F9/F14): the key this tested moved; the test follows it.
+        assert schema["impact"]["report_dir"] == "str"
         assert schema["validate"]["presence"]["require_doxygen"] == "bool"
 
     def test_catalog_constants_match_the_module(self):
@@ -67,16 +69,8 @@ class TestSchemaContract:
 class TestEffectiveContract:
     def test_reports_declared_requirements(self, tmp_path):
         config_file = tmp_path / ".clew.yaml"
-        config_file.write_text(
-            guard_yaml(
-                dedent("""\
-                impact:
-                  requirements:
-                    file: docs/requirements.yaml
-                    format: yaml
-            """)
-            )
-        )
+        ## 2.0.0 (R5-CFG F7/F9/F14): the key this tested moved; the test follows it.
+        config_file.write_text("requirements:\n  file: docs/requirements.yaml\n  format: yaml\n")
         resolved = build_effective_contract(load_config(config_file))["resolved"]
         assert resolved["requirements"]["declared"] is True
         assert resolved["requirements"]["file"] == "docs/requirements.yaml"
@@ -155,17 +149,21 @@ class TestContractRoundTrips:
         assert load_config(tmp_path / ".clew.yaml")
 
     def test_private_keys_are_stripped(self):
+        ## 2.0.0 (R5-CFG F7/F9/F14): the key this tested moved; the test follows it.
         config = deep_merge(
             CONFIG_DEFAULTS,
-            {"validate": {"version_gate": {"current_version": "auto:git", "_resolved": "v1.2.3"}}},
+            {"validate": {"current_version": "auto:git", "_current_version_resolved": "v1.2.3"}},
         )
         contract = build_effective_contract(config)
-        assert "_resolved" not in contract["config"]["validate"]["version_gate"]
-        assert "_resolved" not in contract["resolved"]["version_gate"]
+        assert "_current_version_resolved" not in contract["config"]["validate"]
+        assert contract["resolved"]["current_version"] == "auto:git"
+        assert "requirements" not in contract["config"], "the catalog is not a guard: key"
 
     def test_null_section_is_accepted_by_the_schema(self):
-        """impact.requirements ships as None; the schema must permit that shape."""
-        assert validate_config_schema({"impact": {"requirements": None}}) == []
+        """A section may be an explicit null (the shape `config --effective` can emit); the schema
+        must permit it. 2.0.0: `impact.requirements` (the old null-by-default node) moved to the
+        top-level catalog section, so a remaining `guard:` node carries the property."""
+        assert validate_config_schema({"impact": None}) == []
 
 
 class TestResolvedIsGeneratedFromSchema:
@@ -177,13 +175,13 @@ class TestResolvedIsGeneratedFromSchema:
     """
 
     def test_scalar_validate_keys_all_appear(self):
-        from clew.guard.config import _OPEN_DICT
+        from clew.guard.config import _OPEN_DICT, _MapOf
 
         resolved = build_effective_contract(CONFIG_DEFAULTS)["resolved"]
         expected = [
             k
             for k, spec in CONFIG_SCHEMA["validate"].items()
-            if spec is not _OPEN_DICT and not isinstance(spec, dict)
+            if spec is not _OPEN_DICT and not isinstance(spec, dict | _MapOf)
         ]
         assert expected, "expected scalar keys under validate.*"
         for key in expected:
@@ -191,12 +189,12 @@ class TestResolvedIsGeneratedFromSchema:
 
     def test_adding_a_schema_key_shows_up_without_touching_contract_py(self):
         """The property that makes drift impossible, asserted directly."""
-        from clew.guard.config import _OPEN_DICT
+        from clew.guard.config import _OPEN_DICT, _MapOf
 
         scalars = {
             k
             for k, v in CONFIG_SCHEMA["validate"].items()
-            if v is not _OPEN_DICT and not isinstance(v, dict)
+            if v is not _OPEN_DICT and not isinstance(v, dict | _MapOf)
         }
         resolved_keys = set(build_effective_contract(CONFIG_DEFAULTS)["resolved"])
         assert scalars <= resolved_keys
@@ -275,7 +273,8 @@ class TestFilesAgreesWithTheGate:
         (tmp_path / "src" / "a.c").write_text("void A(void) { }")
         (tmp_path / "tests" / "t.c").write_text("void T(void) { }")
         monkeypatch.chdir(tmp_path)
-        config = deep_merge(CONFIG_DEFAULTS, {"validate": {"exclude": ["^tests/"]}})
+        ## 2.0.0 (R5-CFG F18): excludes are globs; a regex is written `re:`.
+        config = deep_merge(CONFIG_DEFAULTS, {"validate": {"exclude": ["tests/**"]}})
 
         listed = build_files_contract(["."], config)["files"]
         assert not any("tests/t.c" in f for f in listed)
@@ -291,7 +290,8 @@ class TestFilesAgreesWithTheGate:
         (tmp_path / "src" / "tests").mkdir(parents=True)
         (tmp_path / "src" / "tests" / "n.c").write_text("void N(void) { }")
         monkeypatch.chdir(tmp_path)
-        config = deep_merge(CONFIG_DEFAULTS, {"validate": {"exclude": ["^tests/"]}})
+        ## 2.0.0 (R5-CFG F18): excludes are globs; a regex is written `re:`.
+        config = deep_merge(CONFIG_DEFAULTS, {"validate": {"exclude": ["tests/**"]}})
 
         listed = build_files_contract(["."], config)["files"]
         assert any("src/tests/n.c" in f for f in listed)

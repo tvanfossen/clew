@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """Source discovery and @req tag collection.
 
 @brief Walk source trees, parse documented functions, and model their requirement tags.
@@ -7,7 +8,6 @@
 from __future__ import annotations
 
 import logging
-import re
 import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -44,11 +44,16 @@ class TaggedFunction:
     file_path: str
     reqs: list[str] = field(default_factory=list)
     is_exempt: bool = False
+    # The function's identity, `Class::name(params)` (2.0.0, PG2): a declaration and its
+    # definition share it, so coverage treats them as one function.
+    qualified: str = ""
+    # Which exemption tags it carries, for the per-tag counts beside the ratio (2.0.0, PG3).
+    exemptions: tuple[str, ...] = ()
 
 
 ## @brief List tracked source files under a directory via git ls-files.
 #  @version 2.0
-#  @dg_internal
+#  @utility
 #  @return Matching paths, or None if the directory is not a usable git tree
 def _git_ls_files(source_dir: str, extensions: set[str]) -> list[Path] | None:
     try:
@@ -77,7 +82,7 @@ def _git_ls_files(source_dir: str, extensions: set[str]) -> list[Path] | None:
 
 ## @brief Fallback source discovery via filesystem glob.
 #  @version 2.0
-#  @dg_internal
+#  @utility
 #  @return Matching paths, or None if the directory does not exist
 def _rglob_source_files(source_dir: str, extensions: set[str]) -> list[Path] | None:
     source_path = Path(source_dir)
@@ -94,7 +99,8 @@ def _rglob_source_files(source_dir: str, extensions: set[str]) -> list[Path] | N
 
 ## @brief Find source files for configured languages, applying validate.exclude patterns.
 #  @details Also drops what the shared toolchain config ignores and binary files.
-#  @version 1.1
+#  v1.2: excludes are globs, re: for a regex (2.0.0, R5-CFG F18)
+#  @version 1.2
 #  @req REQ-DDB-GUARD-013
 #  @return Sorted source paths that survive the exclude patterns
 def find_source_files(source_dir: str, config: dict[str, Any]) -> list[Path]:
@@ -110,12 +116,12 @@ def find_source_files(source_dir: str, config: dict[str, Any]) -> list[Path]:
     if candidates is None:
         return []
 
-    from .filters import gate_exclusion
+    from .filters import excluded_by, gate_exclusion
 
     kept = sorted(
         f
         for f in candidates
-        if not any(re.search(p, str(f)) for p in exclude_patterns) and gate_exclusion(f) is None
+        if excluded_by(f, exclude_patterns) is None and gate_exclusion(f) is None
     )
     logger.info(
         "Source scan %s: %d candidate(s), %d kept after %d exclude pattern(s)",
@@ -128,8 +134,10 @@ def find_source_files(source_dir: str, config: dict[str, Any]) -> list[Path]:
 
 
 ## @brief Build a TaggedFunction for a documented function, or None if undocumented.
-#  @version 1.1
-#  @dg_internal
+#  v1.2: carries the function's qualified identity (2.0.0, PG2)
+#  v1.3: and its exemption tags (2.0.0, PG3)
+#  @version 1.3
+#  @utility
 #  @return TaggedFunction for any function carrying a doxygen block, else None
 def _extract_tagged_function(func: Function, file_path: str) -> TaggedFunction | None:
     if func.doxygen is None:
@@ -140,12 +148,14 @@ def _extract_tagged_function(func: Function, file_path: str) -> TaggedFunction |
         file_path=file_path,
         reqs=tags.get("req", []),
         is_exempt=bool(EXEMPTION_TAGS & set(tags)),
+        qualified=func.qualified,
+        exemptions=tuple(sorted(EXEMPTION_TAGS & set(tags))),
     )
 
 
 ## @brief Parse one source file into its documented functions.
 #  @version 1.0
-#  @dg_internal
+#  @utility
 def _process_source_file(source_file: Path, config: dict[str, Any]) -> list[TaggedFunction]:
     result = parse_source_file_with_content(str(source_file), config)
     if result is None:

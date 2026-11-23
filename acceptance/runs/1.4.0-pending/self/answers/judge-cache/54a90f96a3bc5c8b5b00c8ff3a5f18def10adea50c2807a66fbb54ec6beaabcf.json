@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Fuzzy edges are not filtered here. This surface keeps them on purpose (`_direct_call_edges`, `symbols.py:389`)... Multi-hop paths go through `chain_trace` or traversal, which filters `fuzzy` edges. So the two can disagree on the same function.\nVERDICT: MISS\nWHY: The answer says the flat surface keeps fuzzy edges and traversal filters them, but it never gives the reason that a walk expands each hop, so one fuzzy edge multiplies into a wrong subtree."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Call with a null buffer and capacity 0. It returns the negative of the required token count. 2. Negate it, allocate a `std::vector<int32_t>` of that size, and call again to fill it.\"\nVERDICT: HIT\nWHY: The answer states the first call returns a negative required count and that the code negates it to size the buffer for the second call."
+}

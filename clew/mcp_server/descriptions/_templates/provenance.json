@@ -34,6 +34,6 @@
     "told the file did not parse."
   ],
   "text": [
-    "`provenance` ABSENT means doxygen documented the symbol — the normal case. `provenance: 'ast'` means the parser recovered it from source doxygen never emitted, so an empty brief there means UNPARSED, not undocumented."
+    "`provenance: 'ast'` means the parser recovered the symbol where doxygen did not, so an empty brief means UNPARSED, not undocumented; absent means doxygen documented it."
   ]
 }

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says rows are enclosing functions (a function calling three times appears once), but never states that the surface returns one row per neighbour rather than one per layer, or that variants collapse to the strongest evidence."
+}

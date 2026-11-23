@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says callers are functions rather than call sites (a function calling three times appears once), but never states one row per neighbour rather than per layer, nor collapsing variants to the strongest evidence."
+}

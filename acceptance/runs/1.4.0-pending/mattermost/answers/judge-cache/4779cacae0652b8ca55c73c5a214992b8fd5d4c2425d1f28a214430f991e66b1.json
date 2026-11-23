@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Retrying happens only when the user chooses \"Try Again.\"; \"The failed post's \"Try Again\" action ... calls this function.\" under heading \"Manual retry (`retryFailedPost`, ...)\"\nVERDICT: HIT\nWHY: The answer says retry occurs only on the user's \"Try Again\" choice and names `retryFailedPost` as the function it calls."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A gate-layer downgrade was built and reverted (gh#393) because it would hedge nearly every reply.\nVERDICT: HIT\nWHY: The answer says the search reply deliberately avoids downgrading on layer absence, and that a gate-layer downgrade was reverted because it would hedge nearly every reply. That conveys the deliberate limit and its reason. It also has `test_an_absent_symbol_keeps_the_definitive_note` as \"the control against hedging every answer.\""
+}

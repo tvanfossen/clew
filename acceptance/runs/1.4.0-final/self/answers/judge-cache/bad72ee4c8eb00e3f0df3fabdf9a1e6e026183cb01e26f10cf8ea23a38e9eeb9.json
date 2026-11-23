@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `.clew.yaml` at the repo root | 2, declared | Every convention: `index_scope` ... Committed with the code. Read fresh on every build.\nVERDICT: MISS\nWHY: The answer names `.clew.yaml` at the repo root as tier 2 (declared) but never says both entry points (CLI and MCP/build_index) discover it from the root rather than plumbing it per section."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: bash.execute:python*` | bash calls whose first arg starts with `python`; \"`args_to_pattern`, which is the raw first arg\"; \"If args don't parse, `args_to_pattern` returns `*`\"\nVERDICT: HIT\nWHY: The answer says that only the first arg reaches the pattern (`args_to_pattern` is the raw first arg) and that unparseable args collapse to `*`. The non-string case isn't mentioned, but the item's substance is otherwise present."
+}

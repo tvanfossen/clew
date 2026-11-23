@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"It installs its own calloc/free through `mbedtls_platform_set_calloc_free`. With `MBEDTLS_THREADING_C` it uses mutex-wrapped variants.\"\nVERDICT: MISS\nWHY: The answer says that mutex-wrapped variants are used with MBEDTLS_THREADING_C. It never says that a plain pair is used otherwise, or that the choice is made at compile time inside the init function."
+}

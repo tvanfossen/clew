@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Engine \u2192 caller (`char*` returns, e.g. `entropic_run`'s `result_json`) | Caller owns it; free with `entropic_free()`.\" and \"`const char*` returns | Owned by the handle; valid only until the next call on that handle. Do not free.\"\nVERDICT: HIT\nWHY: The answer states both halves: a returned char* is caller-owned and freed with entropic_free, and a const char* is handle-owned and valid only until the next call on the handle."
+}

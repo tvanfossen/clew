@@ -69,7 +69,7 @@ EXTERNAL_ROOTS_META_KEY = "external_roots"
 ## @param column Column name to look for.
 ## @return True when the column is present.
 ## @version 1
-## @dg_internal
+## @utility
 def _has_column(conn: sqlite3.Connection, table: str, column: str) -> bool:
     """@brief Report whether one column exists on one table.
 
@@ -117,7 +117,7 @@ def ensure_external_provenance(conn: sqlite3.Connection) -> None:
 ## @param nested Absolute path of a nested git tree beneath it.
 ## @return POSIX repo-relative path, or '' when the nested tree is not beneath the root.
 ## @version 1
-## @dg_internal
+## @utility
 def _relative_root(root: Path, nested: Path) -> str:
     """REPO-RELATIVE, ALWAYS. Anything stored here is published over MCP, and
     stamping an absolute path is the machine-layout disclosure that forced the
@@ -175,7 +175,7 @@ def external_roots(repo_root: Path) -> list[str]:
 ## @param roots Repo-relative external roots.
 ## @return The matching root, or '' when the path is first party.
 ## @version 1
-## @dg_internal
+## @utility
 def _owning_root(name: str, roots: list[str]) -> str:
     """PREFIX MATCHING ON A PATH SEPARATOR, never a bare `startswith`. `vendor/llama`
     and `vendor/llama-utils` share a prefix, and matching without the `/` would tag

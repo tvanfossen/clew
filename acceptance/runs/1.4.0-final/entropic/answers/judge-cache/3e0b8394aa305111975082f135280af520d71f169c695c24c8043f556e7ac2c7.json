@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Caller \u2192 engine, buffer the engine will free | Must be allocated with `entropic_alloc()`, not Python's allocator. | Hook `modified_json`. `hooks.py:_alloc_c_string` and the trampoline follow this.\nVERDICT: HIT\nWHY: The answer states the rule that engine-freed buffers must come from entropic_alloc and names the Python location, `hooks.py:_alloc_c_string`."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The index finds 4 spawn sites, all in `programs/`, none in `library/`\" and \"The library has no thread-spawning code of its own.\"\nVERDICT: MISS\nWHY: The answer states that library/ creates no threads, but it never says library/ supplies the mutex abstraction for threaded callers; it says only that the mutex code is compiled out by default and is initialised in `library/threading.c`."
+}

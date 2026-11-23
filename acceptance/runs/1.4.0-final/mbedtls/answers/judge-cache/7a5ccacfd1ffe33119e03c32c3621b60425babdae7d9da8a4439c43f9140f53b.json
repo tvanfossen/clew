@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "ITEMS:\nscripts/generate_errors.pl\ndata_dir (the generator's input data directory, filename unknown)\ninclude_dir (the generator's usage argument, headers of modules)\nlibrary/error.c"
+}

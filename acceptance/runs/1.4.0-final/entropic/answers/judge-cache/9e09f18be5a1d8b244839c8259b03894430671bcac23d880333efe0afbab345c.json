@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: This is a size probe, not retry logic. Nothing loops, and nothing re-runs after a failure. The first call only measures, and the second call is the real work.\nVERDICT: HIT\nWHY: The answer concludes it's size negotiation (probe with null buffer, then fill) rather than retry, noting no loop and exactly two calls."
+}

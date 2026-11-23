@@ -39,7 +39,7 @@ class FileIdentity:
 
     ## @brief Store one file's size, mtime_ns, and content sha.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def __init__(self, size_bytes: int, mtime_ns: int, content_sha: str) -> None:
         self.size_bytes = size_bytes
         self.mtime_ns = mtime_ns
@@ -59,7 +59,7 @@ class ScanSummary:
 
     ## @brief Store the four change buckets.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def __init__(
         self,
         unchanged: list[str],
@@ -149,7 +149,7 @@ def rel_key(path: Path, repo_root: Path) -> str:
 ## @brief True when `path` sits under any of the excluded roots.
 ## @return True if the path is inside an exclude root (or is one).
 ## @version 1
-## @dg_internal
+## @utility
 def _is_excluded(path: Path, excludes: list[Path]) -> bool:
     return any(path == ex or ex in path.parents for ex in excludes)
 
@@ -159,7 +159,7 @@ def _is_excluded(path: Path, excludes: list[Path]) -> bool:
 ## @param excludes EXCLUDE roots, pruned during descent rather than filtered after.
 ## @return List of regular files under the root (the root itself when a file).
 ## @version 1
-## @dg_internal
+## @utility
 def _files_under(root: Path, excludes: list[Path]) -> list[Path]:
     """PRUNE DURING THE WALK. An excluded directory is never descended into, so
     the scan is sized by what survives rather than by what the repository holds.
@@ -262,7 +262,7 @@ def extra_input_clears_exclude(extra_input: list[str] | None) -> bool:
 ## @param patterns Effective FILE_PATTERNS globs.
 ## @return True when doxygen would read a file of this name.
 ## @version 1
-## @dg_internal
+## @utility
 def _matches_file_patterns(name: str, patterns: list[str]) -> bool:
     """CASE-INSENSITIVE, and that choice is a fail-safe rather than a fidelity
     claim. The two possible errors are not symmetric: flagging a root doxygen would

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer places all the llama.cpp-including source files under `src/inference/`. It says `src/facade/entropic.cpp` reaches llama only indirectly. It never says a minority of the reaching files sit outside `src/inference`, so it doesn't conclude \"concentrated but not contained\"."
+}

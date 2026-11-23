@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: the default expansion is `private_##member`, so `ssl->MBEDTLS_PRIVATE(conf)` becomes `ssl->private_conf`. ... Defining that macro before the Mbed TLS headers are included makes `MBEDTLS_PRIVATE(member)` expand to plain `member`\nVERDICT: HIT\nWHY: The answer states both the default rename to private_<member> and that defining MBEDTLS_ALLOW_PRIVATE_ACCESS makes it expand to the plain member name."
+}

@@ -1,0 +1,93 @@
+{
+  "cell": "Q5_claude-haiku-5-5_index_only_r3",
+  "arm": "index_only",
+  "rubric_version": "1.0.0",
+  "rubric_digest": "32294778c2753056",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.8125,
+  "unmarked_pct": 0.0,
+  "split_decisions": 1,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "explains that ServerDataOperator is composed with a mixin helper \u2014 `mix(ServerDataOperatorBase).with(...)` \u2014 rather than declaring the handlers itself",
+      "kind": "retrieval",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: `ServerDataOperator` (`app/database/operator/server_data_operator/index.ts:40`) is `class ServerDataOperator extends mix(ServerDataOperatorBase).with(...)`. | WHY: The answer explicitly states the class is composed via `mix(ServerDataOperatorBase).with(...)` mixing in handler mixins rather than declaring handlers itself. || QUOTE: `ServerDataOperator` (`app/database/operator/server_data_operator/index.ts:40`) is `class ServerDataOperator extends mix(ServerDataOperatorBase).with(...)`. | WHY: The answer states ServerDataOperator extends mix(ServerDataOperatorBase).with(...) and mixes in handler mixins rather than declaring handlers itself. || QUOTE: `ServerDataOperator` (`app/database/operator/server_data_operator/index.ts:40`) is `class ServerDataOperator extends mix(ServerDataOperatorBase).with(...)`. The base is `ServerDataOperatorBase`... It mixes in 13 handler mixins | WHY: The answer states ServerDataOperator extends `mix(ServerDataOperatorBase).with(...)` and mixes in handler mixins rather than declaring the handlers itself.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "explains that a same-named interface extends each handler's `...Mix` type, so the class is typed with every mixed-in method",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: the interface at `index.ts:23` declares matching `*HandlerMix` types so the methods type-check. | WHY: The answer states that an interface in index.ts declares matching handler Mix types so the mixed-in methods type-check, which is the declaration-merging mechanism the item describes. || QUOTE: the interface at `index.ts:23` declares matching `*HandlerMix` types so the methods type-check. | WHY: The answer states that an interface in the same file declares the handler Mix types so the mixed-in methods type-check, which is the substance of the item. || QUOTE: the interface at `index.ts:23` declares matching `*HandlerMix` types so the methods type-check. | WHY: The answer states that an interface in index.ts declares matching handler Mix types so the class's mixed-in methods type-check, which is the substance of the item.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "every file outside the operator's own handlers directory that defines one of its handlers \u2014 app/products/agents/database/operators/handlers/index.ts",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every file outside the operator's own handlers directory that defines one of its handlers \u2014 app/products/boards/database/operators/handlers/index.ts",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every file outside the operator's own handlers directory that defines one of its handlers \u2014 app/products/playbooks/database/operators/handlers/index.ts",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every file outside the operator's own handlers directory that defines one of its handlers \u2014 precision",
+      "kind": "set_precision",
+      "weight": 2,
+      "hit": true,
+      "detail": "clean",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that every handler's writes go through `batchRecords` inherited from `BaseDataOperator`, because each mixin is constrained to extend ServerDataOperatorBase",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: \"`BaseDataOperator.batchRecords` (`app/database/operator/base_data_operator/index.ts:191`) performs the write... That `batchRecords` body is the only place the write happens.\" | WHY: The answer says writes funnel through BaseDataOperator.batchRecords, but it never says this holds because every mixin is constrained to extend ServerDataOperatorBase. It also says the product handlers call it directly, which is a different mechanism. || QUOTE: \"`BaseDataOperator.batchRecords` (`app/database/operator/base_data_operator/index.ts:191`) performs the write... That `batchRecords` body is the only place the write happens.\" | WHY: The answer says all writes funnel through `BaseDataOperator.batchRecords`. It never concludes this follows from each mixin being constrained to extend ServerDataOperatorBase, and it hedges on whether some handlers call it.",
+      "agreement": 0.6666666666666666,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "names AppDataOperator as the other subclass of BaseDataOperator, sharing the same write path for the app-level database",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: `AppDataOperator` also extends `BaseDataOperator`, so the app-level database uses the same write path. | WHY: The answer names AppDataOperator as another BaseDataOperator subclass sharing the write path for the app-level database.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    }
+  ]
+}

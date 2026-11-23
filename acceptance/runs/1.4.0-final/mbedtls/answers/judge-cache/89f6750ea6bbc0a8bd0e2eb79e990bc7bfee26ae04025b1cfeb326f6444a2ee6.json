@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: the benchmark alarm handlers (`benchmark.c:430, 444`)\nVERDICT: MISS\nWHY: The answer mentions benchmark alarm handlers as spawn sites in programs/ but never says the timer thread is Windows-only or gated on a platform condition."
+}

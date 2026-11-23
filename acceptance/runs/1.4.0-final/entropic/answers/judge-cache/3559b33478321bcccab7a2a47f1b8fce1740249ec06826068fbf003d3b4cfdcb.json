@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Poll an `int*` cancel flag every 10 ms and raise a `std::atomic<bool>`\nVERDICT: MISS\nWHY: The answer describes the poller bridging an int* to an atomic but never says the C ABI boundary can't carry an atomic, and the direction (atomic into plain int) is reversed."
+}

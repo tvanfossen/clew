@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Each poller watches a flag every 10 ms and sets an atomic.\nVERDICT: MISS\nWHY: The answer describes cancel pollers setting atomics but never says the observer exists to bridge an atomic into a plain int because the C ABI can't carry an atomic."
+}

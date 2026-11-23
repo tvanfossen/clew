@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: default platform_calloc_uninit and platform_free_uninit (platform.c:24-42) are used when nothing else is configured. Under MBEDTLS_PLATFORM_MEMORY, an unconfigured build fails every allocation with NULL. ... stubs: calloc returns NULL, free is a no-op\nVERDICT: HIT\nWHY: The answer states that the uninitialised default pointers point to stubs where calloc returns NULL and free does nothing, so allocation fails instead of falling back."
+}

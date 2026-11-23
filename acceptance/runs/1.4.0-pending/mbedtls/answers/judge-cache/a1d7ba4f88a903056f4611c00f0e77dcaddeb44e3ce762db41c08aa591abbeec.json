@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Compile time. Set `MBEDTLS_PLATFORM_MEMORY` in the user config and define `MBEDTLS_PLATFORM_CALLOC_MACRO` and `MBEDTLS_PLATFORM_FREE_MACRO` to your functions. The header documents this as the path that avoids a runtime pointer.\" and \"Runtime. Set only `MBEDTLS_PLATFORM_MEMORY` and call `mbedtls_platform_set_calloc_free(my_calloc, my_free)`\"\nVERDICT: MISS\nWHY: The answer distinguishes the compile-time macro pair from the runtime function-pointer setter, but it never states that the two are mutually exclusive. It only says the macro path avoids a runtime pointer."
+}

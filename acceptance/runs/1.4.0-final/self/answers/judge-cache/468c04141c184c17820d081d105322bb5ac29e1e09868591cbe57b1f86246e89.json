@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Index stamped by a newer build than this process expects | Nothing through this process. A rebuild re-stamps the same newer version, so it stays stale\"\nVERDICT: HIT\nWHY: The answer states the schema axis occurs when the index is newer than the process and that rebuilding re-stamps the same newer version, so no rebuild clears it."
+}

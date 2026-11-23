@@ -47,12 +47,39 @@
 # neighbour surfaces make OPPOSITE decisions about fuzzy edges with each site documenting only
 # its own; and the precedence rule, its tier-2 source, its tier-1 entry point and its record of
 # what won are four modules of which none holds two.
+#
+# 6.0.0 (2026-11-17, the 2.0.0 rubric cross-check; every change re-read at the pin).
+#
+# CIRCULAR MARKS REWRITTEN TOWARD SOURCE-ONLY FACTS (owner ruling). This target IS the tool, so
+# a mark whose answer the 2.0.0 SERVED text states (tool descriptions, server INSTRUCTIONS, the
+# status scope reason) rewards an index arm for reading the tool's own description rather than
+# the source. Each such mark now asks for a fact of the same mechanism that only the source
+# holds — the module, the constant, the placement, the per-call query — and says so in its
+# evidence. Rewritten: Q1 M3, M5; Q2 M2; Q3 M1-M6; Q5 M7. DISCLOSED: the circular overlap is
+# reduced, not removed — pin docs (README, docs/) remain readable by every arm, which is
+# arm-neutral, and the served text is measured against the 2.0.0 descriptions.
+#
+# WRONG AT THE PIN, rewritten: Q6 M4 (claimed files are registered with no symbols, never
+# "reported as not indexed": synth.py:191-199, cli.py:1909, cli.py:2673-2676); Q2 M7 (grade 2
+# was list_files-only and is deleted, emptiness.py:27-29); Q4 M3 (the collapse ranks
+# CALL_MATCH confidence then CALL_SOURCE ORDER, symbols.py:253-272 — CALL_SOURCE.rank is read
+# by tests only, and at equal confidence doxygen wins); Q1 M2 (a rejected declaration is
+# REFUSED at build time, cli.py:807-823, server.py:3048-3057); Q4 M6 (dossier serves call-only
+# callers/callees with writes/reads separate; merging happens in the depth >= 2 walk and the
+# library functions); Q5 M8 (the entry-level refusal is the inline form only,
+# buildoptions.py:100-107); Q1 M4 ("loosen its quality bar" is in no source at the pin).
+# PROMPT: Q4 now asks about clew's SOURCE — with the index brief, all six index cells
+# described a live reply for an arbitrary function instead.
+# JUDGING SPLITS reworded: Q3 M2, Q2 M8, Q5 M6, Q2 M2, Q1 M6. Q2 M3 no longer grades bug
+# history. Q5 precision: `.clew.yaml` is the file the prompt asks about and is not a stray.
+# WEIGHTS (saturated): Q1 M5 3->2, Q3 M5 3->2, Q3 M6 3->1, Q5 M2 3->2, Q5 M5 3->2, Q6 M2
+# 3->1, Q2 M6 2->1. Line and ref drift fixed throughout.
 
 schema: 1
 
 target: tvanfossen/clew
 commit: a6dd8ed919e69dd0549ae2b14306c339c62db0a2
-version: 5.0.0
+version: 6.0.0
 
 ground_truth: |
   clew's own source at the commit above, read directly. Line numbers were taken from the
@@ -84,25 +111,37 @@ questions:
         refs: [["clew/scope.py", 634, 660]]
 
       - text: >-
-          states that a repository's own declared index_scope is preferred, and that every
-          failure to find one falls through to indexing the whole repository
+          states that a repository's own declared index_scope is preferred and that no config or
+          no section falls through to indexing the whole repository; a present-but-unusable
+          declaration falls back inside derive_scope but is REFUSED at build time — either
+          account of the rejected case earns this if it is attributed correctly
         type: conclusion
         weight: 3
         evidence: |
-          derive_scope reads the declaration and returns whole_repo_scope (clew/scope.py:683) on
-          every failure mode — no config, no index_scope section, no declared root that exists.
-        refs: [["clew/scope.py", 640, 643], ["clew/scope.py", 678, 683]]
+          derive_scope (clew/scope.py:639) returns whole_repo_scope (:674-675) when nothing is
+          declared. A rejected declaration also falls back there (:667-674) for every internal
+          caller, but both build entry points refuse it first: cli.py:807-823 (`sys.exit(1)`)
+          and mcp_server/server.py:3048-3057 (`raise ValueError`), "rather than silently falling
+          back to the whole repository".
+        refs:
+          - ["clew/scope.py", 640, 643]
+          - ["clew/scope.py", 667, 675]
+          - ["clew/cli.py", 807, 823]
+          - ["clew/mcp_server/server.py", 3048, 3057]
 
       - text: >-
-          conveys that the fallback carries a REASON explaining which scope was used and why,
-          so an unstated scope is never silently guessed
+          states that a rejected declaration is logged as a WARNING as well as carried in the
+          returned scope reason, because a reason carried only in the payload would leave the
+          log claiming the declaration was absent
         type: conclusion
         weight: 2
         evidence: |
-          whole_repo_scope carries the reason; a rejected declaration is logged as a WARNING as
-          well as returned, because a reason carried only in the payload leaves the log still
-          claiming absence.
-        refs: [["clew/scope.py", 640, 643], ["clew/scope.py", 669, 673]]
+          clew/scope.py:667-673: `logger.warning("index_scope: %s", declared)` before
+          `whole_repo_scope(root, rejected=...)`, with the comment "a reason carried only in the
+          payload leaves the WARNING still claiming absence". SOURCE-ONLY (6.0.0): the scope
+          reason itself is served in a status reply, so the mark asks for the log half, which is
+          not.
+        refs: [["clew/scope.py", 640, 643], ["clew/scope.py", 667, 674]]
 
       - text: >-
           states that a Doxyfile's own INPUT is deliberately NOT used to decide the indexed
@@ -111,27 +150,31 @@ questions:
         type: conclusion
         weight: 3
         evidence: |
-          The Doxyfile fallback was removed from derive_scope. Honouring it made a documentation
-          target stand in for a reasoning boundary, which penalises a repository for documenting
-          itself. The index says what should be REASONED ABOUT; the gate says what must be
-          DOCUMENTED, and coupling them forces a repo to loosen its quality bar to widen its
-          graph.
-        refs: [["clew/scope.py", 645, 649]]
+          The Doxyfile fallback was removed from derive_scope (:645-649). The module docstring
+          (clew/scope.py:8-16) gives the reason and its measurement: a repo shipping no Doxyfile
+          got whole-repo scope while one shipping a Doxyfile got its published-API subset
+          (mbedtls: 1,571 header declarations and zero of 108 library/*.c), so a repo was
+          punished for documenting itself. The Doxyfile is still read for ALIASES and
+          PREDEFINED; only its INPUT is replaced. The gate's `files:` pattern is likewise not a
+          tier (:18-20): it answers what must be DOCUMENTED, not what should be reasoned about.
+        refs: [["clew/scope.py", 8, 20], ["clew/scope.py", 645, 649]]
 
       - text: >-
-          states that nested git trees are INDEXED and tagged rather than excluded from the
-          scope
+          states that nested git trees are INDEXED and then TAGGED as external by a separate
+          pass (clew/external.py), rather than excluded from the scope
         type: conclusion
-        weight: 3
+        weight: 2
         evidence: |
           The containment pass that cut nested trees out of every scope was removed, not
-          bypassed — tagging lives in clew/external.py. A trace that stops at a submodule
-          boundary answers "this call leaves the repo" when it could answer what the call does.
-        refs: [["clew/scope.py", 651, 655]]
+          bypassed — tagging lives in clew/external.py (scope.py:22-29, :651-655). A trace that
+          stops at a submodule boundary answers "this call leaves the repo" when it could answer
+          what the call does. SOURCE-ONLY (6.0.0): "INCLUDING any nested git trees" is served in
+          the status scope reason, so the mark asks for the tagging pass, which is not.
+        refs: [["clew/scope.py", 22, 29], ["clew/scope.py", 651, 655]]
 
       - text: >-
-          conveys that the containment call was REMOVED rather than left in place with its
-          callers dropped
+          conveys that the nested-repo containment pass (`_with_nested_repos_contained`) was
+          REMOVED rather than left in place with its callers dropped
         type: conclusion
         weight: 2
         evidence: |
@@ -157,15 +200,17 @@ questions:
           (:213-242) writes the rows, before the shared parse, because the harvest's file set IS
           the `path` table.
 
-          `clew/filetypes.py:41-56` — `binary_file` classifies from metadata and the first 8 KiB,
-          so a 2 GB zip named `.c` is skipped by the index AND the gate before anything parses or
-          hashes it.
+          `clew/filetypes.py:41-56` — `binary_file` classifies from metadata and the first 8 KiB
+          (the rationale, including the 2 GB zip named `.c`, is the module docstring at :2-16),
+          so such a file is skipped by the index AND the gate before anything parses or hashes
+          it.
 
           EITHER filter earns this mark. Both is better and is not required: the component under
           test is that the scope is a boundary rather than the membership rule.
         refs:
           - ["clew/synth.py", 56, 83]
           - ["clew/synth.py", 186, 199]
+          - ["clew/filetypes.py", 2, 16]
           - ["clew/filetypes.py", 41, 56]
 
   - id: Q2
@@ -187,28 +232,36 @@ questions:
         type: retrieval
         weight: 1
         evidence: |
-          The module's whole job. _verdict is at :330.
+          The module's whole job. search_emptiness is at :298 and _verdict at :361.
         refs: [["clew/mcp_server/emptiness.py", 355, 395]]
 
       - text: >-
-          states that the strong wording is EARNED PER CALL by querying which corpora the search
-          did not read, rather than being attached to a result shape
+          states that on an empty result the reply asks the database, per call, whether a corpus
+          search does not read holds this query (`unsearched_corpora`), publishes any such rows
+          as `unsearched_corpus_hits`, and words the miss as definitive only when that comes
+          back empty
         type: conclusion
         weight: 3
         evidence: |
-          _verdict calls unsearched_corpora (clew/query/symbols.py:1806), which asks the database
-          which corpora search did not read and whether any holds this query. "Definitive" is
-          asserted only after that comes back empty.
-        refs: [["clew/mcp_server/emptiness.py", 363, 368], ["clew/query/symbols.py", 1806]]
+          search_emptiness (clew/mcp_server/emptiness.py:298) calls `q.unsearched_corpora`
+          (:324; clew/query/symbols.py:1806), stores hits as `unsearched_corpus_hits` (:325-326)
+          "so the claim is checkable rather than merely worded", and passes them to `_verdict`
+          (:332), which returns `_DEFINITIVE` only when there are none (:393-395). SOURCE-ONLY
+          (6.0.0): the served search description states the certainty rule; the mark asks for
+          the per-call query and the published hits, which it does not.
+        refs:
+          - ["clew/mcp_server/emptiness.py", 321, 336]
+          - ["clew/mcp_server/emptiness.py", 393, 395]
+          - ["clew/query/symbols.py", 1806]
 
       - text: >-
-          explains that a single token matching nothing was previously treated as proof of
-          absence, and that this confuses "nothing exists" with "I did not look there"
+          states that a single-token miss is not proof of absence — "nothing exists" and "I did
+          not look there" are different claims — so the verdict is computed rather than fixed
         type: conclusion
         weight: 3
         evidence: |
-          Stated in _verdict. The distinction is the module's reason for existing.
-        refs: [["clew/mcp_server/emptiness.py", 357, 364]]
+          Stated in _verdict (:362-367). The distinction is the module's reason for existing.
+        refs: [["clew/mcp_server/emptiness.py", 361, 368]]
 
       - text: >-
           states that the downgrades are ORDERED most-specific first, and explains why — a
@@ -218,8 +271,9 @@ questions:
         weight: 3
         evidence: |
           If a typedef matched, saying "rebuild to get file docs" would send the caller to fix
-          the wrong thing.
-        refs: [["clew/mcp_server/emptiness.py", 369, 373]]
+          the wrong thing. Docstring :369-372; the code at :393-395 checks `unread` before
+          `has_file_docs`.
+        refs: [["clew/mcp_server/emptiness.py", 369, 373], ["clew/mcp_server/emptiness.py", 393, 395]]
 
       - text: >-
           conveys that there is exactly ONE absent-corpus downgrade and that keeping it to one is
@@ -228,16 +282,16 @@ questions:
         type: conclusion
         weight: 3
         evidence: |
-          A second downgrade was built and reverted. Most indexes lacking a layer lack it because
-          a hand-built fixture never made one, so downgrading on absence would hedge nearly every
-          reply and spend the strong wording the module exists to earn.
+          Most indexes lacking a layer lack it because a hand-built fixture never made one, so
+          downgrading on absence would hedge nearly every reply and spend the strong wording the
+          module exists to earn.
         refs: [["clew/mcp_server/emptiness.py", 374, 381]]
 
       - text: >-
           conveys the general rule the module leaves behind — fix the corpus, not the sentence
           about the corpus
         type: conclusion
-        weight: 2
+        weight: 1
         evidence: |
           A wording change that compensates for missing data hedges every honest answer to
           excuse one dishonest one. The motivating case was fixed upstream in the harvest, after
@@ -245,27 +299,33 @@ questions:
         refs: [["clew/mcp_server/emptiness.py", 55, 57]]
 
       - text: >-
-          distinguishes all three grades an empty reply can receive: definitive for the scope,
-          definitive for a reason that is not absence, and not definitive
+          distinguishes the grades search's empty reply actually emits: a definitive miss; NOT
+          definitive because an unread corpus holds matching rows; NOT definitive because the
+          query is an over-specified conjunction (naming the token that emptied it); and NOT
+          definitive because the file-docs corpus is absent
         type: conclusion
         weight: 3
         evidence: |
-          The module docstring enumerates exactly three. (1) a single token matched nothing in
-          any corpus, so retrying will not help; (2) the pattern's extension appears in no
-          indexed file at all — certain about the index AND about why, which makes "widen the
-          scope" the next move rather than "give up"; (3) an over-specified conjunction or a
-          corpus this index does not carry, where the reply names the token that emptied it.
+          `_DEFINITIVE` (emptiness.py:150), `_UNREAD_CORPUS` (:161), the conjunction note
+          (`_conjunction_note`, :259-289, with `_NOT_DEFINITIVE` :170) and `_NO_FILE_DOCS` (:139),
+          chosen in search_emptiness (:321-336) and _verdict (:393-395). CORRECTED IN 6.0.0: the
+          docstring's "definitive for a reason that is not absence" (an extension in no indexed
+          file) was list_files' case and is gone with it (:27-29, :398-406); search cannot emit
+          it.
 
           NOT A SET MARK, deliberately. Set members are compared on a normalised key built for
           paths and identifiers; prose values are fragile under it, since an answer saying
           "definitive" would not match a member spelled "definitive for the scope". A set mark
           whose members have no canonical spelling grades phrasing.
-        refs: [["clew/mcp_server/emptiness.py", 31, 37]]
+        refs:
+          - ["clew/mcp_server/emptiness.py", 139, 172]
+          - ["clew/mcp_server/emptiness.py", 259, 336]
+          - ["clew/mcp_server/emptiness.py", 393, 395]
 
       - text: >-
-          states that the reply also names the file types that WERE in scope and produced no
-          rows, so "this repository does not contain that" and "that file type is not indexed
-          here" are distinguishable rather than the same empty answer
+          states that the empty reply names, by extension with counts (`scope.not_indexed`), the
+          file types the build walked but did not index, so a miss in one of those types means
+          "not read", not "absent"
         type: conclusion
         weight: 3
         evidence: |
@@ -314,54 +374,63 @@ questions:
 
     marks:
       - text: >-
-          states that staleness is THREE distinguishable axes rather than one flag, and names
-          them
+          locates the staleness axes in clew/mcp_server/freshness.py, declared as stable tokens
+          (AXIS_DATA / AXIS_CODE / AXIS_SCHEMA) that a consumer branches on while the messages may
+          be reworded
         type: retrieval
         weight: 1
         evidence: |
-          clew/mcp_server/freshness.py:62-64 declares AXIS_DATA, AXIS_CODE and AXIS_SCHEMA as the
-          stable tokens; the module docstring at :2-21 lays out what each one means.
+          clew/mcp_server/freshness.py:60-64: "The three axes, as tokens a consumer can branch on.
+          A message is prose and may be reworded; the axis is the stable field." SOURCE-ONLY
+          (6.0.0): the served index description names the three axes; the module and the
+          token-versus-message design are not served.
         refs:
           - ["clew/mcp_server/freshness.py", 60, 65]
 
       - text: >-
-          explains that each axis is cleared by a DIFFERENT action — a rebuild for data, a client
-          restart for code — which is why one flag would not have been enough
+          explains that freshness.py measures nothing itself: `db_status` (state.py) already
+          measured the data and schema axes as raw fields, and this module turns those fields
+          into the sentence naming the action that clears each one
         type: conclusion
         weight: 3
         evidence: |
-          freshness.py:2-21. The `data` axis means the database is older than the source and a
-          rebuild clears it; `code` means the running process imported its modules at launch, so
-          only restarting the client clears it. The module exists to turn already-measured fields
-          into the sentence naming the action.
+          freshness.py:2-8: "`db_status` already measured freshness and already published the
+          diagnosis for two of these axes as raw fields that nothing read out loud. This module
+          turns those fields into a sentence naming the ACTION that clears them". The schema
+          axis reads `build_version` versus `expected_build_version` (:16-21), "two integers
+          already in the payload". SOURCE-ONLY (6.0.0): the per-axis remedies are in the served
+          index description; the split between measuring and interpreting is not.
         refs:
           - ["clew/mcp_server/freshness.py", 2, 22]
 
       - text: >-
-          identifies that the schema axis can be UNRESOLVABLE — when the index is newer than the
-          server, no rebuild clears it, because rebuilding re-stamps the same newer version
+          explains WHY a newer index cannot be cleared by a rebuild — rebuilding re-stamps the
+          same newer build_version, so the comparison against the server's expected version
+          stays unequal — and locates the comparison in freshness.py's schema notice
         type: conclusion
-        weight: 3
+        weight: 2
         evidence: |
-          freshness.py:17-21: build_version against expected_build_version, and when the index is
-          the newer of the two "stale: true is UNRESOLVABLE by any action the consumer can take".
-          This is the axis that changes what advice is correct, and an answer that offers
-          "rebuild" as the universal remedy is wrong here specifically.
+          freshness.py:16-21 ("rebuilding re-stamps the same newer version and the flag stays
+          up"), with the notice in `_schema_notice` (:407-442). SOURCE-ONLY (6.0.0): the served
+          index description states that a newer index is not fixable by a rebuild; the
+          re-stamping mechanism and the location are not served.
         refs:
           - ["clew/mcp_server/freshness.py", 16, 22]
           - ["clew/mcp_server/freshness.py", 407, 442]
 
       - text: >-
-          states the read/write asymmetry on the code axis: READS stay current because query
-          tools open the database per call, while a BUILD through a stale process writes old
-          pipeline logic
+          states that the read exemption and the write hazard of the code axis are each written
+          ONCE, as module constants shared by the notice and the refusal, so the two cannot drift
+          apart
         type: conclusion
         weight: 3
         evidence: |
-          The two halves are written once as constants, freshness.py:69-77 — _READ_EXEMPTION
-          ("query tools open the database per call and read it live") and _WRITE_HAZARD ("can
-          silently DROP WHOLE LAYERS and then report the result as healthy") — precisely so the
-          notice and the refusal cannot drift apart.
+          freshness.py:66-77: _READ_EXEMPTION ("query tools open the database per call and read it
+          live") and _WRITE_HAZARD ("can silently DROP WHOLE LAYERS and then report the result as
+          healthy"), introduced by "They are constants rather than inline prose because the
+          notice and the write refusal must not be able to drift apart". SOURCE-ONLY (6.0.0): the
+          served index description states both halves; that they are single shared constants,
+          and why, is not served.
 
           Stating only the read exemption is the failure this wording exists to prevent: it tells
           a reader not to worry immediately before the case that matters.
@@ -370,40 +439,41 @@ questions:
           - ["clew/mcp_server/freshness.py", 24, 41]
 
       - text: >-
-          identifies that the write path REFUSES rather than warning, and that the refusal is
-          placed ahead of the build decision so a force flag cannot override it
+          identifies where the stale-code refusal is placed — after target resolution and
+          immediately before the build lock, ahead of the build decision so `force` cannot argue
+          past it — with its wording owned by freshness.stale_code_refusal
         type: conclusion
-        weight: 3
+        weight: 2
         evidence: |
           clew/mcp_server/server.py:2276-2280: `stale_code_refusal(identity)` is consulted after
-          target resolution and before the build lock is taken, returning
-          `{"ok": False, "error": refusal}`. The docstring at :1080-1086 states the placement
-          rationale — after target resolution so a missing target keeps its own answer,
-          immediately before the lock so nothing can be written past it.
-
-          The refusal's wording lives in freshness.stale_code_refusal (:370), not at the call
-          site, which is what keeps it identical to the notice.
+          `_build_subject` resolves the target and before `self._build_lock`, returning
+          `{"ok": False, "error": refusal}`. The docstring at :2244-2250 states the placement
+          rationale — after target resolution so "you have no target" keeps its own answer,
+          immediately before the lock so nothing can be written past it. The wording lives in
+          freshness.stale_code_refusal (:531), with the `force` rationale at :536-538.
+          SOURCE-ONLY (6.0.0): the served index description says a build through a stale process
+          is refused; the placement is not served.
         refs:
-          - ["clew/mcp_server/server.py", 2262, 2282]
+          - ["clew/mcp_server/server.py", 2244, 2282]
           - ["clew/mcp_server/freshness.py", 526, 564]
 
       - text: >-
-          states that the annotation RIDES ON EVERY QUERY REPLY rather than waiting to be asked
-          for, and that it is empty on a current tool
+          identifies that an attached staleness notice also WITHDRAWS a definitive-negative note
+          from the reply — a stale index cannot earn "definitive" — rather than only adding a
+          warning beside it
         type: conclusion
-        weight: 3
+        weight: 1
         evidence: |
-          clew/mcp_server/server.py:1544-1570 supplies the notices; clew/mcp_server/tools_query.py
-          :1583-1605 attaches them on the way out of each reply. `notices` (freshness.py:567-591)
-          returns only the axes actually in play, and its docstring names the empty case as the
-          load-bearing half: "a warning that is always present is a warning nobody reads".
+          clew/mcp_server/tools_query.py:1839-1844 attaches the notices on the way out of each
+          reply and calls `_withdraw_definitive` (:257-279), which REWRITES a definitive note
+          (rather than appending to it) when the schema axis is up, or the data axis on a
+          subject miss. The notices are supplied by the server (server.py:1548-1570).
+          SOURCE-ONLY (6.0.0): the served INSTRUCTIONS say staleness rides on every reply; the
+          withdrawal is not served.
 
-          A status call reports the same facts, but reading it requires already suspecting a
-          problem — which a consumer holding a fresh-looking answer does not have. That is the
-          design decision the question is asking for.
         refs:
-          - ["clew/mcp_server/server.py", 1544, 1570]
-          - ["clew/mcp_server/freshness.py", 567, 591]
+          - ["clew/mcp_server/tools_query.py", 1836, 1846]
+          - ["clew/mcp_server/tools_query.py", 257, 279]
 
       - text: >-
           identifies that measuring staleness NEVER raises — a failed measurement degrades to no
@@ -416,8 +486,8 @@ questions:
           bound. Both docstrings state the contract in the same words, because the function runs
           on the way out of replies that already succeeded.
         refs:
-          - ["clew/mcp_server/server.py", 1544, 1570]
-          - ["clew/mcp_server/tools_query.py", 1890, 1905]
+          - ["clew/mcp_server/server.py", 1548, 1570]
+          - ["clew/mcp_server/tools_query.py", 1885, 1905]
 
       - text: >-
           states that a routed reply is annotated for the repository it actually read, not for
@@ -440,7 +510,7 @@ questions:
         evidence: |
           tools_query.py:152-191. `_staleness_within_budget` measures the room the real payload
           left, then takes the first of three tiers that fits: full prose, a compact per-axis
-          message (:139-142), and a minimal one (:143). The docstring gives the reason for
+          message (:145-148), and a minimal one (:149). The docstring gives the reason for
           compacting rather than dropping — a warning that disappears exactly when the answer is
           largest inverts the point.
         refs:
@@ -457,9 +527,9 @@ questions:
           - value: clew/mcp_server/freshness.py
             evidence: "the axes, their messages, and the write refusal's wording"
           - value: clew/mcp_server/server.py
-            evidence: ":549-571 supplies the notices, :1113-1118 refuses a stale build"
+            evidence: ":1548-1570 supplies the notices, :2276-2280 refuses a stale build"
           - value: clew/mcp_server/tools_query.py
-            evidence: ":1583-1605 attaches them, :152-187 sizes them"
+            evidence: ":1839-1844 attaches them, :152-191 sizes them"
           - value: clew/mcp_server/state.py
             evidence: "db_status, the measured payload the data and schema axes read"
 
@@ -476,13 +546,18 @@ questions:
       other only in passing; nor from the vocabulary, which holds the ranking that decides the
       collapse but nothing about who applies it.
 
-      The trap is treating a neighbour list as a list of calls. It is not — `callers` merges
-      shared-key dataflow into the same list, tagged by a field the caller has to read, and a
-      dataflow neighbour does not call the function and may run on another thread.
+      The trap is treating a neighbour list as a list of calls. Shared-key dataflow is a
+      separate kind of neighbour: dossier keeps it out of `callers`/`callees` (as `writes` /
+      `reads`), but the depth >= 2 walk and the library `callers()` / `callees()` merge it into
+      the same list, tagged by a field the caller has to read, and a dataflow neighbour does not
+      call the function and may run on another thread.
+
+      REWORDED IN 6.0.0 to name the source: "clew can tell you what calls a function" plus the
+      index brief sent all six index cells to describe a live reply for an arbitrary function.
 
     prompt: |
-      clew can tell you what calls a function. What is actually in that answer, and what would
-      make it wrong to read it as a list of call sites?
+      In clew's source, how is the callers/callees answer for a function built from what the
+      index stores, and what would make it wrong to read that answer as a list of call sites?
 
     marks:
       - text: >-
@@ -511,25 +586,29 @@ questions:
           edge appear TWICE, so it looked like more evidence and was actually the same evidence
           counted twice.
         refs:
-          - ["clew/query/symbols.py", 277, 302]
-          - ["clew/query/symbols.py", 418, 427]
+          - ["clew/query/symbols.py", 275, 302]
+          - ["clew/query/symbols.py", 458, 466]
 
       - text: >-
-          identifies that which layer's provenance a collapsed row reports is decided by a
-          RANKING held in the vocabulary module, not by SQL
+          identifies that the collapsed row's provenance is chosen in Python by a ranking over
+          vocabulary values — confidence first (`CALL_MATCH.rank`: exact > resolved > fuzzy), then
+          the declared `CALL_SOURCE` order as a tie-break — not by SQL
         type: conclusion
         weight: 3
         evidence: |
-          `_collapse_variants` is `max(variants, key=_variant_rank)`; the ranks live on
-          clew/vocabulary.py:216-253 as CALL_SOURCE's `rank` map. The comment at :418-419 states
-          why the grouping is in Python — "the collapse rule is a ranking over a vocabulary, not
-          something SQL should encode".
-
-          The ranking itself is not the obvious one: a DECLARED dispatch edge outranks doxygen's
-          own exact cross-reference, because the others are inferences graded by how well a name
-          resolved while a declared edge is a statement of fact by whoever wrote the indirection.
+          `_collapse_variants` is `max(variants, key=_variant_rank)` (symbols.py:302);
+          `_variant_rank` (:253-272) returns `(CALL_MATCH.rank[confidence], -position in
+          CALL_SOURCE.values)`, so an equal-confidence tie goes to the earlier extractor in the
+          pipeline's declared order (doxygen_sqlite first). The comment at :458-462 states why
+          the grouping is in Python. CORRECTED IN 6.0.0: an earlier version said the ranks were
+          CALL_SOURCE's `rank` map and that a declared dispatch edge outranks doxygen's exact
+          cross-reference; `CALL_SOURCE.rank` is read only by tests, and at equal confidence
+          doxygen wins. (vocabulary.py:228-239's comment states the old claim — a code/comment
+          disagreement, not something an answer must repeat.)
         refs:
-          - ["clew/vocabulary.py", 216, 253]
+          - ["clew/query/symbols.py", 253, 272]
+          - ["clew/query/symbols.py", 458, 462]
+          - ["clew/vocabulary.py", 216, 226]
 
       - text: >-
           states that the same collapse function serves BOTH the flat neighbour surface and the
@@ -567,25 +646,27 @@ questions:
           Two files, opposite decisions, one shared reason. Each site documents its own choice;
           neither documents both.
         refs:
-          - ["clew/query/symbols.py", 353, 372]
+          - ["clew/query/symbols.py", 398, 407]
           - ["clew/query/traversal.py", 124, 150]
 
       - text: >-
-          concludes that `callers`/`callees` return TWO KINDS of neighbour in one list —
-          direct calls and shared-key dataflow — distinguished by an `edge_class` field the
-          consumer must read
+          states that shared-key dataflow is a SEPARATE kind of neighbour — kept out of dossier's
+          `callers`/`callees` (served as `writes`/`reads`) but merged with call hops in the
+          depth >= 2 walk and in the library `callers()`/`callees()`, tagged by `edge_class`
         type: conclusion
         weight: 3
         evidence: |
-          clew/query/symbols.py:755-762 and :738-753. Both docstrings say it outright: a `'key'`
-          neighbour does NOT call the function, and may run on another thread.
-
-          This is the component that makes reading the reply as a list of call sites wrong, and
-          it is not visible from the storage layer at all — the dataflow half comes from a
-          different table and is merged at :704-707.
+          clew/query/symbols.py:744-747 merges `_dataflow_edges` only when `include_dataflow`;
+          the library `callers`/`callees` (:756-791) pass it, and their docstrings say a `'key'`
+          neighbour does NOT call the function and may run on another thread. dossier
+          (dossier.py:578-581) asks for the call half only and serves `writes`/`reads`
+          separately. The depth >= 2 walk merges call and key hops (`traversal._neighbors`,
+          traversal.py:216-219). CORRECTED IN 6.0.0: no MCP or CLI surface serves the merged
+          library lists at the pin.
         refs:
-          - ["clew/query/symbols.py", 714, 754]
-          - ["clew/query/symbols.py", 700, 708]
+          - ["clew/query/symbols.py", 744, 791]
+          - ["clew/query/dossier.py", 578, 581]
+          - ["clew/query/traversal.py", 216, 219]
 
       - text: >-
           notes that the causal polarity is INVERTED between the two halves — the "callers" of a
@@ -614,7 +695,7 @@ questions:
           dossier's call site — which passes nothing, so a reader scanning for the flag finds no
           mention of it there at all.
         refs:
-          - ["clew/query/dossier.py", 520, 530]
+          - ["clew/query/dossier.py", 578, 581]
           - ["clew/query/symbols.py", 721, 728]
 
       - text: >-
@@ -623,8 +704,8 @@ questions:
         type: conclusion
         weight: 3
         evidence: |
-          clew/query/symbols.py:425-430 comments that filtering by name unioned every same-named
-          function's edges onto whichever one was described, and :406 resolves
+          clew/query/symbols.py:425-432 comments that filtering by name unioned every same-named
+          function's edges onto whichever one was described, and :433 resolves
           `identity_rowids(conn, fn, qualified)` instead. clew/query/traversal.py:148 still reads
           `WHERE {focal}.name=?`.
 
@@ -632,7 +713,7 @@ questions:
           reports "edges are resolved by identity" without qualifying which surface has
           generalised from one of the two.
         refs:
-          - ["clew/query/symbols.py", 394, 410]
+          - ["clew/query/symbols.py", 423, 435]
           - ["clew/query/traversal.py", 144, 150]
 
       - text: the modules that decide what a neighbour list contains
@@ -652,7 +733,7 @@ questions:
           - value: clew/vocabulary.py
             evidence: "the source ranking the collapse compares"
           - value: clew/query/dossier.py
-            evidence: ":526-527, the caller that takes the call half only"
+            evidence: ":578-579, the caller that takes the call half only"
 
   - id: Q5
     intent: |
@@ -692,12 +773,13 @@ questions:
           concludes that the rule is ASYMMETRIC — the stated tiers REPLACE one another while the
           discovered layers ACCUMULATE and survive whatever anyone states
         type: conclusion
-        weight: 3
+        weight: 2
         evidence: |
           clew/tiers.py:4 states the combination as
           `resolved = (tier1 or tier2 or tier5) union tier3 union tier4`, glossed as "you can
           correct our guesses; you cannot un-discover a fact". `resolve_layered` at :330-338
-          implements exactly that: `_ordered_unique((*facts, *ecosystem, *stated))`.
+          implements exactly that: `_ordered_unique((*facts, *ecosystem, *stated))`. Weight 3->2
+          in 6.0.0: earned 9/9 from the module's first line.
 
           The consequence is the point of the design: an operator stating an entry pattern
           cannot drop a discovered entry point, so reachability cannot collapse because someone
@@ -742,7 +824,7 @@ questions:
           states that tier 1 is reachable from BOTH entry points — a CLI flag and a structured
           options argument — so an embedding caller with no shell can still state the top tier
         type: conclusion
-        weight: 3
+        weight: 2
         evidence: |
           clew/buildoptions.py:2-9 exists for that caller, and its docstring names the failure a
           CLI-only top tier produces: "a five-tier precedence rule whose top tier no consumer can
@@ -755,7 +837,8 @@ questions:
 
       - text: >-
           notes that the option names an embedding caller states are the SAME WORDS as the
-          declaration file's section names, and the same words the diagnostics use
+          declaration file's section names (naming the diagnostics' shared vocabulary as well is
+          better and not required)
         type: conclusion
         weight: 2
         evidence: |
@@ -767,33 +850,37 @@ questions:
           - ["clew/buildoptions.py", 10, 20]
 
       - text: >-
-          identifies that an unknown SECTION is refused by name against the allowed set rather
-          than ignored, and gives the reason — an ignored section builds with defaults while
-          reporting the declaration was honoured
+          gives the reason an unknown SECTION is refused rather than ignored — an ignored section
+          builds with built-in defaults while reporting that the declaration was honoured — and
+          locates the check in clew/declaration.py
         type: conclusion
         weight: 3
         evidence: |
-          clew/declaration.py:349-355 raises with the offending key, the file path it came from,
-          and the full allowed set from KNOWN_SECTIONS (:234). The message states the failure it
-          prevents in those words.
+          clew/declaration.py:345-357 raises with the offending key, the file path it came from,
+          and the full allowed set ACCEPTED_SECTIONS (:261, KNOWN_SECTIONS at :238 plus the
+          gate's `guard:`). The message states the failure it prevents: "Nothing reads an unknown
+          section, so the build would have used built-in defaults while reporting that your
+          declaration was honoured". SOURCE-ONLY (6.0.0): the served index description says an
+          unknown section is refused by name; the reason and the location are not served.
         refs:
           - ["clew/declaration.py", 345, 356]
 
       - text: >-
-          identifies a SECOND refusal one level down — an unknown key INSIDE a well-named section
-          — and that a correctly-spelled derived key is refused with its reason rather than as
-          unknown
+          identifies a SECOND refusal one level down for the structured (inline) options form —
+          an unknown key inside a well-named manifest entry — while the file form still reads it
+          as absent; and that a correctly-spelled derived key is refused with its reason rather
+          than as unknown
         type: conclusion
         weight: 3
         evidence: |
-          clew/buildoptions.py:100-115 states the two levels explicitly, matching
-          declaration.KNOWN_SECTIONS above them. `_refuse` at :383-395 branches: a derived key
-          gets "cannot be stated: <why>", anything else gets "unknown build option — accepted:
-          ...". The comment at :385-388 gives the reason — naming a correctly-spelled derived key
-          "unknown" sends the reader hunting a typo that is not there.
-
-          The entry level is the quieter of the two: a misspelled entry parses into a valid
-          mapping that no consumer reads, so nothing raises and nothing applies.
+          clew/buildoptions.py:100-107: "THE INLINE FORM IS VALIDATED HARDER THAN THE FILE FORM":
+          `MANIFEST_SCHEMAS` refuses an unknown ENTRY key on the inline route, while the file
+          form's loaders read a misspelling (`key_arg_idx`) as absent and the build reports
+          success. `_refuse` at :418-430 branches: a derived key gets "cannot be stated: <why>",
+          anything else gets "unknown build option — accepted: ...". Its docstring (:419-421)
+          gives the reason — naming a correctly-spelled derived key "unknown" sends the reader
+          hunting a typo that is not there. An answer that says file-form entry typos are
+          silently accepted is correct.
         refs:
           - ["clew/buildoptions.py", 99, 115]
           - ["clew/buildoptions.py", 413, 430]
@@ -819,9 +906,11 @@ questions:
         type: set
         weight: 1
         extract: |
-          List every file path the answer names as taking part in stating, discovering, combining
-          or recording a build option. Paths only, one per line, exactly as the answer writes
-          them. If the answer names none, reply NONE.
+          List every clew/ source module the answer names as taking part in stating,
+          discovering, combining or recording a build option. Do NOT list `.clew.yaml` or any
+          other declaration file the options are written in — only clew's own modules. Paths
+          only, one per line, exactly as the answer writes them. If the answer names none, reply
+          NONE.
         members:
           - value: clew/tiers.py
             evidence: "the tier tokens, the combination rule, and the record of what won"
@@ -866,7 +955,7 @@ questions:
           states that YAML and JSON are registered in the file set but carry NO symbols, so the
           two file groups are treated differently rather than alike
         type: conclusion
-        weight: 3
+        weight: 1
         evidence: |
           clew/synth.py:71-80. YAML and JSON have no function concept at all — their grammars
           offer `block_mapping_pair` and `pair` — so a `path` row is written and nothing is
@@ -895,8 +984,8 @@ questions:
 
       - text: >-
           concludes that an installation lacking the grammars DEGRADES rather than failing — the
-          router consults a capability gate before routing, and those file types are then
-          reported as not indexed
+          router consults a capability gate (`_grammar_available` -> substrate) before routing;
+          those files stay registered in the file set with no symbols, and nothing raises
         type: conclusion
         weight: 3
         evidence: |
@@ -909,10 +998,20 @@ questions:
           The comment at :142-144 draws the line — the other keys are NOT gated, because a parser
           without C or Python is a broken install and a loud failure is the right answer there.
           So "degrade quietly" is a decision made per grammar, not a blanket policy.
+
+          CORRECTED IN 6.0.0: an earlier version said those file types are "reported as not
+          indexed". At the pin `claims()` is not grammar-gated (synth.py:191-199),
+          `register_paths` writes their `path` rows unconditionally (cli.py:1909), and
+          `_not_indexed_scope` subtracts `path` rows (cli.py:2673-2676), so they are in the file
+          set with no symbols and absent from `not_indexed` (tests/test_script_front_end.py:19-23
+          says the same). substrate.py:12-15 and docs/languages/SCRIPT_INTEGRATION.md:73-74 state
+          the old claim — a doc defect at the pin, not something an answer must repeat.
         refs:
           - ["clew/harvest.py", 140, 145]
           - ["clew/harvest.py", 208, 225]
           - ["clew/substrate.py", 2, 24]
+          - ["clew/synth.py", 191, 199]
+          - ["clew/cli.py", 1905, 1911]
 
       - text: >-
           states that the root node type cannot be the discriminator, because shell shares its

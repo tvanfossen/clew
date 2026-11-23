@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`code` | The server process loaded clew before its source changed | Only a client restart; a rebuild cannot fix it\" and \"`data` | Indexed source files changed since the build | A rebuild (`index(action='refresh')`)\"\nVERDICT: HIT\nWHY: The answer states that data is cleared by a rebuild and code only by a client restart, with a rebuild unable to fix code. It doesn't say outright that this is why one flag would not suffice, but it names the differing remedies per axis, and the item asks for that substance."
+}

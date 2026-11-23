@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Each section name is also the option name, so a section can be moved verbatim into an `options` mapping.\nVERDICT: HIT\nWHY: The answer states that the declaration file's section names are the same as the option names an embedding caller passes. It does not mention the diagnostics. The item's core point, that the names match, is stated."
+}

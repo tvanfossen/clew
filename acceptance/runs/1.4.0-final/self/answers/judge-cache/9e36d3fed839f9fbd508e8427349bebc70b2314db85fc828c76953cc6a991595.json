@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`key` edges, where a function writes a value another reads with no call between them, are kept out of the dossier's `callers`. Where they appear, `edge_class='key'` marks them.\"\nVERDICT: MISS\nWHY: The answer says key edges are kept out of `callers` and mentions `edge_class='key'` only in passing. It does not conclude that callers/callees return two kinds of neighbour in one list that the consumer must tell apart by reading `edge_class`."
+}

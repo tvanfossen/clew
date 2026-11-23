@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_CT_ASM` is set only when `MBEDTLS_HAVE_ASM` is defined, the compiler is GNU-compatible (GCC or Clang, not MSVC or old armcc), and the architecture is one of the four listed.\nVERDICT: HIT\nWHY: The answer states that MBEDTLS_CT_ASM is set automatically from MBEDTLS_HAVE_ASM plus compiler and architecture conditions, which means it is derived rather than a config entry."
+}

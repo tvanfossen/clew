@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: An empty vector also means \"legitimately empty input\", so the seam contract (`include/entropic/inference/tokenizer.h`) reads \"empty on failure or empty input\". Callers cannot tell the two apart.\nVERDICT: MISS\nWHY: The answer says failure and empty input are indistinguishable, but it never says that no caller checks for it. It says generation proceeds on empty input and that a failed count is reported as zero, but it doesn't state that no caller checks for the failure. It says only that `do_complete` and `do_generate_text_only` don't check for empty tokens, and that is not \"no caller checks\"."
+}

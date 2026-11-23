@@ -33,6 +33,7 @@ Three stages, run after the call-graph layers and before reachability:
 
 from __future__ import annotations
 
+import json
 import re
 import sqlite3
 from pathlib import Path
@@ -138,24 +139,27 @@ def resolve_req_id_pattern(guard_cfg: dict | None) -> re.Pattern[str]:
 
 ## @brief Resolve the DECLARED requirements-catalog id/name column names.
 ## @param guard_cfg Parsed `guard:` section of .clew.yaml, or None.
-## @return (id_column, name_column) — declared mapping or {id,title} default.
-## @version 4
+## @return (id_column, name_column) — declared mapping or the shared {id,name} default.
+## v5 (2.0.0): reads the top-level `requirements:` section; the default pair is the gate's.
+## @version 5
 ## @req REQ-DDB-CONFIG-001
 def resolve_catalog_columns(guard_cfg: dict | None) -> tuple[str, str]:
     """Return the id/name column keys for a flat requirements catalog.
 
-    Reads `impact.requirements.{id_column,name_column}` when the guard config
-    declares them (matching how doxygen-guard itself reads the catalog);
-    otherwise the clew convention `{id, title}`.
+    Reads `requirements.{id_column,name_column}` (the top-level section, which the gate reads
+    too); otherwise the ONE default pair both readers share (R5-CFG F8).
 
-    @brief Resolve declared catalog id/name columns (id/title default).
-    @version 4
+    @brief Resolve declared catalog id/name columns (id/name default).
+    @version 5
     """
-    id_col, name_col = "id", "title"
-    if guard_cfg:
-        from .guard import config as dg_config
+    from .guard import config as dg_config
 
-        req = dg_config.get_impact(guard_cfg).get("requirements") or {}
+    id_col, name_col = (
+        dg_config.REQUIREMENTS_ID_COLUMN_DEFAULT,
+        dg_config.REQUIREMENTS_NAME_COLUMN_DEFAULT,
+    )
+    if guard_cfg:
+        req = dg_config.get_requirements(guard_cfg)
         id_col = req.get("id_column", id_col)
         name_col = req.get("name_column", name_col)
     return id_col, name_col
@@ -185,13 +189,18 @@ def _is_flat_req_list(data: object, id_col: str) -> bool:
 
 
 ## @brief Create (or reset) the `requirements` table.
-## @version 1
-## @dg_internal
+## v2 (2.0.0, S4): the 29148 columns and `extra`.
+## @version 2
+## @utility
 def _create_requirements_table(conn: sqlite3.Connection) -> None:
     """Create the requirements table schema, dropping any prior rows.
 
+    S4 (2.0.0): the IEEE 29148 attributes `status`, `rationale`, `verification` and `parent`
+    are columns, and `extra` holds every catalog key the reader does not map (JSON; NULL when
+    there is none — absent, not empty).
+
     @brief Create the requirements table.
-    @version 1
+    @version 2
     """
     conn.execute("DROP TABLE IF EXISTS requirements")
     conn.execute(
@@ -201,11 +210,58 @@ def _create_requirements_table(conn: sqlite3.Connection) -> None:
             block     TEXT,
             title     TEXT,
             acceptance TEXT,
-            priority  TEXT
+            priority  TEXT,
+            status    TEXT,
+            rationale TEXT,
+            verification TEXT,
+            parent    TEXT,
+            extra     TEXT
         )
         """,
     )
     conn.commit()
+
+
+## @brief Create (or reset) the `requirement_links` table (GH #68).
+## @version 1
+## @utility
+def _create_links_table(conn: sqlite3.Connection) -> None:
+    """ALWAYS CREATED, even with no catalogue: an empty table means "looked, no links"; an absent
+    one means an index from before the layer.
+
+    @brief Create the links table.
+    """
+    conn.execute("DROP TABLE IF EXISTS requirement_links")
+    conn.execute(
+        "CREATE TABLE requirement_links (req_id TEXT NOT NULL, satisfies TEXT NOT NULL, "
+        "PRIMARY KEY (req_id, satisfies))"
+    )
+    conn.commit()
+
+
+## A token of a `satisfies` value: anything that is not a separator, bracket or quote.
+_LINK_TOKEN = re.compile(r"[^\s,\[\]'\"]+")
+
+
+## @brief The requirement ids a `satisfies` value names, in every spelling a catalogue uses.
+## @param value A list, one id, a comma-separated cell, or a list a loader already made text.
+## @return The ids, in order, without duplicates.
+## @version 1
+## @req REQ-DDB-SCHEMA-015
+def satisfies_ids(value: object) -> list[str]:
+    """ONE NORMALISER for the index and the gate, so they never disagree about what an entry
+    links to.
+
+    @brief Normalise satisfies.
+    @return Ids.
+    """
+    items = value if isinstance(value, list) else [value] if value else []
+    out: list[str] = []
+    for item in items:
+        for tok in _LINK_TOKEN.findall(str(item)):
+            if tok not in out:
+                out.append(tok)
+    return out
 
 
 ## @brief First present, non-empty value among several candidate keys.
@@ -213,7 +269,7 @@ def _create_requirements_table(conn: sqlite3.Connection) -> None:
 ## @param keys Candidate keys, most specific first.
 ## @return The first truthy value, or None.
 ## @version 2
-## @dg_internal
+## @utility
 def _first(entry: dict, *keys: str) -> object | None:
     """ONE CATALOG, TWO VOCABULARIES. Our own flat shape says `{block, title, acceptance,
     priority}`; doxygen-guard's keyed YAML catalog says `{subsystem, name,
@@ -244,7 +300,8 @@ def _first(entry: dict, *keys: str) -> object | None:
 ## @param id_col Declared/convention id column key.
 ## @param name_col Declared/convention title/name column key.
 ## @return 1 if a row was inserted, 0 if the entry had no id.
-## @version 3
+## v4 (2.0.0, S4): the 29148 columns, and every unmapped key kept in `extra` and logged.
+## @version 4
 ## @req REQ-DDB-CONFIG-003
 def _insert_req_entry(
     conn: sqlite3.Connection,
@@ -255,26 +312,89 @@ def _insert_req_entry(
     """Insert a single flat catalog row, tolerating either the declared or
     the convention id/name keys.
 
+    A KEY NO COLUMN READS IS KEPT, NOT DROPPED (2.0.0, S4): it lands verbatim in `extra` and the
+    build log names it, so a catalog field the index does not model is visible rather than
+    indistinguishable from one the catalog never had.
+
     @brief Insert one flat requirements-catalog row.
-    @version 2
+    @version 3
     """
     rid = entry.get(id_col) or entry.get("id")
     if not rid:
         return 0
+    columns = {col: _first(entry, *keys) for col, keys in _COLUMN_KEYS.items()}
+    columns["title"] = _first(entry, name_col, *_COLUMN_KEYS["title"])
+    read = {
+        id_col,
+        "id",
+        name_col,
+        *_READ_ELSEWHERE,
+        *(k for keys in _COLUMN_KEYS.values() for k in keys),
+    }
+    extra = {k: entry[k] for k in sorted(entry) if k not in read}
+    if extra:
+        logger.info(
+            "requirements: %s carries keys no column reads, kept in `extra`: %s",
+            rid,
+            ", ".join(extra),
+        )
     conn.execute(
-        """
-        INSERT OR REPLACE INTO requirements (id, block, title, acceptance, priority)
-        VALUES (?, ?, ?, ?, ?)
-        """,
+        f"INSERT OR REPLACE INTO requirements (id, {', '.join(columns)}, extra) "
+        f"VALUES (?, {', '.join('?' * len(columns))}, ?)",
         (
             rid,
-            _first(entry, "block", "subsystem"),
-            _first(entry, name_col, "name", "title"),
-            _first(entry, "acceptance", "acceptance_criteria"),
-            _first(entry, "priority", "x-priority"),
+            *(_scalar(v) for v in columns.values()),
+            json.dumps(extra, default=str) if extra else None,
         ),
     )
     return 1
+
+
+## Column -> the catalog keys that fill it, most specific first: our flat shape, doxygen-guard's
+## keyed shape (`subsystem`, `acceptance_criteria`, `x-` extras) and the S4 (IEEE 29148) names.
+_COLUMN_KEYS: dict[str, tuple[str, ...]] = {
+    "block": ("block", "subsystem"),
+    "title": ("name", "title"),
+    "acceptance": ("acceptance", "acceptance_criteria"),
+    "priority": ("priority", "x-priority"),
+    "status": ("status", "x-status"),
+    "rationale": ("rationale", "x-rationale"),
+    "verification": ("verification", "verification_method", "x-verification"),
+    "parent": ("parent", "x-parent"),
+}
+
+
+## @brief A catalogue entry's value for one column, through that column's aliases.
+## @param entry One catalogue entry, as written.
+## @param column A `_COLUMN_KEYS` column, e.g. `rationale`.
+## @return The first non-empty aliased value, or "".
+## @version 1
+## @req REQ-DDB-WIKI-022
+def catalog_value(entry: dict, column: str) -> object:
+    """ONE READING of a catalogue field, so the wiki's S4 checklist and the index's
+    `requirements` table cannot disagree about whether an entry carries one.
+
+    @brief Aliased catalogue lookup.
+    @return Value or "".
+    """
+    return next((entry[k] for k in _COLUMN_KEYS[column] if entry.get(k)), "")
+
+
+## Keys a different reader consumes: `satisfies` (requirement_links), `version` (the gate's
+## version field). Not "unread", so not disclosed as such.
+_READ_ELSEWHERE = ("satisfies", "version", "x-version")
+
+
+## @brief A catalog value as a column holds it: text as written, a list or mapping as JSON.
+## @param value The catalog value.
+## @return Text, or None.
+## @version 1
+## @utility
+def _scalar(value: object) -> str | None:
+    """@brief Column text. @return Text or None."""
+    if value is None or isinstance(value, str):
+        return value
+    return json.dumps(value, default=str) if isinstance(value, (list, dict)) else str(value)
 
 
 ## The key under which doxygen-guard's catalog contract puts the requirement entries,
@@ -323,7 +443,9 @@ def _keyed_req_entries(data: object) -> list[dict]:
 ## @param db_path Path to the clew.db being built.
 ## @param requirements_yaml Path to requirements.yaml, or None if absent.
 ## @param guard_cfg Parsed `guard:` section of .clew.yaml (declares column mapping), or None.
-## @version 6
+## v7: also `requirement_links` from each entry's `satisfies` (GH #68), created on every build.
+## @version 7
+## @req REQ-DDB-SCHEMA-015
 ## @req REQ-DDB-SCHEMA-006
 def ingest_requirements_yaml(
     db_path: Path,
@@ -357,6 +479,7 @@ def ingest_requirements_yaml(
     """
     conn = sqlite3.connect(str(db_path))
     _create_requirements_table(conn)
+    _create_links_table(conn)
     if requirements_yaml is None or not requirements_yaml.exists():
         conn.close()
         logger.info("requirements: no requirements.yaml found — table empty")
@@ -382,6 +505,12 @@ def ingest_requirements_yaml(
     imported = 0
     for entry in entries:
         imported += _insert_req_entry(conn, entry, id_col, name_col)
+        rid = entry.get(id_col) or entry.get("id")
+        if rid:
+            conn.executemany(
+                "INSERT OR IGNORE INTO requirement_links (req_id, satisfies) VALUES (?, ?)",
+                [(str(rid), target) for target in satisfies_ids(entry.get("satisfies"))],
+            )
     conn.commit()
     conn.close()
     logger.info(
@@ -402,7 +531,7 @@ _SENTENCE_TAIL = ".,;:"
 ## @return The matching id, or '' when the token denotes none.
 ## @version 1
 ## @req REQ-DDB-SCHEMA-006
-## @dg_internal
+## @utility
 def _matched_req_id(token: str, req_id_pattern: re.Pattern[str]) -> str:
     """GREEDY FIRST, AND THAT ORDER IS THE WHOLE SAFETY ARGUMENT (gh#20). A `@req` that
     follows `@brief` with no blank line continues the brief paragraph, and doxygen appends
@@ -501,7 +630,7 @@ def _extract_xref_req_tags(
 
 ## @brief Create (or reset) the `req_edges` table + indexes.
 ## @version 3
-## @dg_internal
+## @utility
 def _create_req_edges_table(conn: sqlite3.Connection) -> None:
     """Create the req_edges table schema, dropping any prior rows.
 
@@ -585,7 +714,7 @@ def import_req_edges(
 ## @param file_path Indexed file path (relative to repo root).
 ## @return True if the name/path matches common test-function conventions.
 ## @version 1
-## @dg_internal
+## @utility
 def _looks_like_test_function(name: str, file_path: str | None) -> bool:
     """Test-name heuristic: `test_` prefix, or the file path contains 'test'.
 
@@ -602,7 +731,7 @@ def _looks_like_test_function(name: str, file_path: str | None) -> bool:
 
 ## @brief Create (or reset) the `req_test_edges` table.
 ## @version 1
-## @dg_internal
+## @utility
 def _create_req_test_edges_table(conn: sqlite3.Connection) -> None:
     """Create the req_test_edges table schema, dropping any prior rows.
 
@@ -627,9 +756,12 @@ def _create_req_test_edges_table(conn: sqlite3.Connection) -> None:
 
 ## @brief Materialize the test-function subset of req_edges into req_test_edges.
 ## @param db_path Path to the clew.db being built.
-## @version 2
+## @param test_patterns The resolved test-path patterns, or None for the name/path heuristic.
+## v3 (round 4, R9): with patterns, a covering test is a function in a file they match — the
+## substring heuristic made clew/testscope.py's `mark_test_scope` its own covering test.
+## @version 3
 ## @req REQ-DDB-SCHEMA-006
-def import_req_test_edges(db_path: Path) -> None:
+def import_req_test_edges(db_path: Path, test_patterns: tuple[str, ...] | None = None) -> None:
     """Link test functions to requirements via req_edges → req_test_edges.
 
     For every req_edges row whose memberdef matches `_looks_like_test_function`,
@@ -660,7 +792,12 @@ def import_req_test_edges(db_path: Path) -> None:
 
     imported = 0
     for row in rows:
-        if not _looks_like_test_function(row["name"], row["file_path"]):
+        if test_patterns is not None:
+            from .testscope import is_test_path
+
+            if not is_test_path(str(row["file_path"] or ""), test_patterns):
+                continue
+        elif not _looks_like_test_function(row["name"], row["file_path"]):
             continue
         imported += conn.execute(
             """
@@ -677,7 +814,7 @@ def import_req_test_edges(db_path: Path) -> None:
 ## @brief Return True if a table exists in the connected DB.
 ## @version 1
 ## @return True if a table with the given name exists in the connected DB, else False.
-## @dg_internal
+## @utility
 def _table_exists(conn: sqlite3.Connection, name: str) -> bool:
     """Check whether a table exists (build-time equivalent of the docs
     server's `_has_table`).
@@ -697,7 +834,8 @@ def _table_exists(conn: sqlite3.Connection, name: str) -> bool:
 ## @param guard_cfg Parsed `guard:` section of .clew.yaml, or None.
 ## @param repo_root Repo root the declared path is relative to.
 ## @return Resolved catalog path when declared and present, else None.
-## @version 2
+## v3: reads the top-level requirements: section (2.0.0, R5-CFG F7)
+## @version 3
 ## @req REQ-DDB-SCHEMA-006
 def declared_catalog_path(guard_cfg: dict | None, repo_root: Path) -> Path | None:
     """Honour `impact.requirements.file`, which the GATE already reads.
@@ -727,13 +865,13 @@ def declared_catalog_path(guard_cfg: dict | None, repo_root: Path) -> Path | Non
     path = (repo_root / str(declared)).resolve()
     if not path.exists():
         logger.warning(
-            "requirements: .clew.yaml guard: declares impact.requirements.file=%s but %s "
+            "requirements: .clew.yaml declares requirements.file=%s but %s "
             "does not exist — ingesting no catalog; @req edges still populate from tags",
             declared,
             path,
         )
         return None
-    logger.info("requirements: using DECLARED catalog impact.requirements.file=%s", declared)
+    logger.info("requirements: using DECLARED catalog requirements.file=%s", declared)
     return path
 
 
@@ -756,7 +894,8 @@ _CONVENTIONAL_CATALOGS = (
 ## @param guard_cfg Parsed `guard:` section of .clew.yaml, or None.
 ## @param repo_root Repo root both candidates are relative to.
 ## @return Resolved catalog path, or None when none exists.
-## @version 2
+## v3: reads the top-level requirements: section (2.0.0, R5-CFG F7)
+## @version 3
 ## @req REQ-DDB-SCHEMA-006
 def resolve_catalog_path(guard_cfg: dict | None, repo_root: Path) -> Path | None:
     """ONE RESOLVER, BECAUSE THERE WERE TWO AND THEY DISAGREED. `cli` resolved
@@ -796,7 +935,7 @@ def resolve_catalog_path(guard_cfg: dict | None, repo_root: Path) -> Path | None
     if len(found) > 1:
         logger.warning(
             "requirements: %d conventional catalogs exist (%s) — using %s. Declare "
-            "impact.requirements.file to choose deliberately.",
+            "requirements.file to choose deliberately.",
             len(found),
             ", ".join(found),
             found[0],
@@ -806,11 +945,12 @@ def resolve_catalog_path(guard_cfg: dict | None, repo_root: Path) -> Path | None
     return repo_root / found[0]
 
 
-## @brief The raw `impact.requirements.file` value a config declares, if any.
+## @brief The raw `requirements.file` value a config declares, if any.
 ## @param guard_cfg Parsed `guard:` section of .clew.yaml, or None.
 ## @return The declared path string, or '' when nothing is declared.
-## @version 2
-## @dg_internal
+## v3: reads the top-level requirements: section (2.0.0, R5-CFG F7)
+## @version 3
+## @utility
 def _declared_catalog_field(guard_cfg: dict | None) -> str:
     """Split out purely to keep `declared_catalog_path` inside the max-3-returns
     standard, which the combined form breached at four.
@@ -823,4 +963,116 @@ def _declared_catalog_field(guard_cfg: dict | None) -> str:
         return ""
     from .guard import config as dg_config
 
-    return str((dg_config.get_impact(guard_cfg).get("requirements") or {}).get("file") or "")
+    return str(dg_config.get_requirements(guard_cfg).get("file") or "")
+
+
+# --- catalogues read from a path or a pinned revision (GH #68) ------------------------------------
+
+## A source that names a remote location rather than a local path or checkout.
+_URLISH = re.compile(r"^[a-z][a-z0-9+.-]*://|^[\w.-]+@[\w.-]+:", re.I)
+
+
+## @brief Run git in a local checkout through the hardened environment.
+## @param cwd The checkout.
+## @param args Git arguments.
+## @return stdout, or None when git failed.
+## @version 1
+## @req REQ-DDB-GUARD-027
+def git_text(cwd: Path, *args: str) -> str | None:
+    """THE HARDENED ENVIRONMENT (`gitenv.git_argv`): a checkout's own config is data, never code.
+
+    @brief Run git.
+    @return Output or None.
+    """
+    import subprocess
+
+    from .gitenv import git_argv
+
+    try:
+        out = subprocess.run(
+            git_argv(*args), cwd=cwd, capture_output=True, text=True, check=False, timeout=30
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    return out.stdout if out.returncode == 0 else None
+
+
+## @brief Read a requirements catalogue from a local path or a pinned revision of a local checkout.
+## @param repo_root The repository the source is relative to.
+## @param source A path, or `{repo, rev, path}`.
+## @return {requirement id: its row, values as text}.
+## @version 1
+## @req REQ-DDB-GUARD-027
+def read_catalog_at(repo_root: Path | str, source: str | dict) -> dict[str, dict[str, str]]:
+    """ONE READER for the gate's external catalogues and the wiki's pinned sub-catalogues (GH #68).
+
+    A URL is REFUSED BY NAME (owner 2026-11-16): reading one would make a pre-commit gate depend
+    on the network. A pinned source is read with `git show <rev>:<path>` from a LOCAL clone or
+    submodule, so it is the catalogue as it was at that revision, not as the working tree has it.
+    Both shapes are read — the `requirements:`-keyed mapping and the flat list of rows — and
+    anything else raises rather than yielding an empty catalogue that would pass every tag.
+
+    @brief Read a catalogue.
+    @return Rows by id.
+    """
+    import yaml
+
+    root = Path(repo_root)
+    if isinstance(source, dict):
+        missing = [k for k in ("repo", "rev", "path") if not source.get(k)]
+        if missing:
+            raise ValueError(f"a pinned catalogue needs repo, rev and path (missing: {missing})")
+        _refuse_url(str(source["repo"]))
+        text = git_text(root / str(source["repo"]), "show", f"{source['rev']}:{source['path']}")
+        where = f"{source['repo']}@{source['rev']}:{source['path']}"
+        if text is None:
+            raise ValueError(f"catalogue {where} is not readable at that revision")
+    else:
+        _refuse_url(str(source))
+        where = str(source)
+        try:
+            text = (root / where).read_text(encoding="utf-8")
+        except OSError as exc:
+            raise ValueError(f"catalogue {where} is not readable: {exc.strerror}") from exc
+    try:
+        rows = _catalog_rows(yaml.safe_load(text))
+    except yaml.YAMLError as exc:
+        raise ValueError(f"catalogue {where} is not YAML") from exc
+    if not rows:
+        raise ValueError(f"catalogue {where} holds no requirement rows")
+    return rows
+
+
+## @brief Refuse a source that is a URL.
+## @param text The source.
+## @return None.
+## @version 1
+## @utility
+def _refuse_url(text: str) -> None:
+    """@brief URL check. @return None."""
+    if _URLISH.match(text.strip()):
+        raise ValueError(
+            f"{text!r} is a URL: a catalogue is read from a local path or a local clone pinned "
+            "by revision, never fetched"
+        )
+
+
+## @brief The rows of a parsed catalogue, in either shape.
+## @param data The parsed document.
+## @return {id: row}.
+## @version 1
+## @utility
+def _catalog_rows(data: object) -> dict[str, dict[str, str]]:
+    """@brief Rows. @return Mapping."""
+    if isinstance(data, dict) and isinstance(data.get("requirements"), dict):
+        data = data["requirements"]
+    out: dict[str, dict[str, str]] = {}
+    if isinstance(data, list):
+        for row in data:
+            if isinstance(row, dict) and (row.get("id") or row.get("ID")):
+                out[str(row.get("id") or row.get("ID"))] = {k: str(v) for k, v in row.items()}
+    elif isinstance(data, dict):
+        for key, row in data.items():
+            if isinstance(row, dict) or row is None:
+                out[str(key)] = {k: str(v) for k, v in (row or {}).items()}
+    return out

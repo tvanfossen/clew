@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Declared scope... \"Whole repo, when nothing usable is declared.\" ... \"absent / unusable\" \u2500\u2500\u25ba whole_repo_scope(root)\nVERDICT: HIT\nWHY: The answer states a declared index_scope is preferred (tool-stated, then .clew.yaml) and that absent, unusable or non-existent roots fall through to whole_repo_scope, which indexes the whole repository."
+}

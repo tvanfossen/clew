@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Bare names can merge namesakes. `dossier` resolves to two candidates, `QueryTools.dossier` and `query/subject.py:dossier`. A bare-name caller list can mix them, so pass `qualified` or `kind` to pick one identity.\nVERDICT: MISS\nWHY: The answer notes that bare names can merge namesakes, but it never says the flat surface selects by resolved identity while the traversal surface still matches on the bare name for the focal side."
+}

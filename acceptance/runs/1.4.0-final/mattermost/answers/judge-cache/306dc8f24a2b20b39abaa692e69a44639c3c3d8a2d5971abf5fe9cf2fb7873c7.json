@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `app/routes/(authenticated)/thread.tsx` also passes `hasSearch={false}`, but it uses the lower-level `Header` directly, not `NavigationHeader`.\nVERDICT: HIT\nWHY: The answer excludes the thread route as a NavigationHeader renderer because it renders `Header` directly. It doesn't mention the navigation hook, but the item's core claim, that `Header` renderers aren't counted, is stated."
+}

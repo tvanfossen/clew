@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 49675,
+  "stop_reason": "end_turn",
+  "session_id": "97091b73-226f-4a4f-b0ef-7bd619041222",
+  "total_cost_usd": 0.01959209,
+  "usage": {
+    "input_tokens": 18,
+    "cache_creation_input_tokens": 45684,
+    "cache_read_input_tokens": 574799,
+    "output_tokens": 9411,
+    "output_tokens_details": {
+      "thinking_tokens": 4456
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 45684,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 5152,
+        "cache_read_input_tokens": 83767,
+        "cache_creation_input_tokens": 219,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 219
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 18,
+      "outputTokens": 9411,
+      "cacheReadInputTokens": 574799,
+      "cacheCreationInputTokens": 45684,
+      "webSearchRequests": 0,
+      "costUSD": 0.01959209,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 4456,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 45684,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 16,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "## Short answer\n\nConstant-time behaviour in mbedtls is a convention enforced by construction, not a guarantee the toolchain checks. Secret-dependent values are handled as all-ones or all-zero bitmasks, combined with bitwise operations. Inline asm on four architectures stops the optimizer from turning those masks back into branches. Everywhere else, a plain C fallback is used, and nothing verifies that it stayed branch-free. The facility is used in the places that handle secrets, but not across the whole library. I read the source and did not compile or disassemble anything, so the instruction-level claims are from the code, not from generated output.\n\n## How it is enforced at the instruction level\n\nThe primitives live in `library/constant_time_impl.h` and are declared in `library/constant_time_internal.h`. The header says `mbedtls_ct_condition_t` must be treated as opaque. `mbedtls_ct_bool(x)` turns any non-zero value into an all-ones mask, and `mbedtls_ct_if`, `mbedtls_ct_uint_lt` and the rest are built from `&`, `|`, `^` and arithmetic on that mask.\n\nTwo mechanisms stop the compiler from undoing this:\n\n- **`mbedtls_ct_compiler_opaque(x)`** (`constant_time_impl.h:85`). With asm, it is an empty `asm volatile(\"\" : [x] \"+r\"(x))`, so the compiler cannot prove the value. Without asm, it is `x ^ mbedtls_ct_zero`, where `mbedtls_ct_zero` is a `volatile` zero defined in `library/constant_time.c:29`.\n- **Hand-written asm per ISA.** `constant_time_impl.h` defines `MBEDTLS_CT_ASM` only when `MBEDTLS_HAVE_ASM` is set, the compiler is GNU-compatible (`__GNUC__`, and not old armcc5), and the target is one of: 32-bit ARM/Thumb (`MBEDTLS_CT_ARM_ASM`), AArch64, x86-64, or i386. Each primitive has a branch-free sequence for each of these. For example, x86-64 `mbedtls_ct_bool` is `mov; neg; or; sar $63`, and `mbedtls_ct_uint_lt` is a sign-of-difference computation with no `cmp`/`jcc`.\n\n## What happens on a compiler that cannot support it\n\nThe `#else` branches are plain C. Each primitive is written with masks and avoids comparison operators, plus the volatile-zero barrier. The header's own comment says this is \"observed to be constant-time on latest gcc, clang and MSVC as of May 2023\". That is an observation about compiler output at one point in time, not a guarantee.\n\nThe fallback triggers when any of these holds:\n\n- `MBEDTLS_HAVE_ASM` is undefined. It is on by default in `include/mbedtls/mbedtls_config.h:52`.\n- The compiler is not GNU-compatible, such as MSVC or IAR.\n- The target is not one of the four covered ISAs.\n\nThere is no `#error` and no warning. The build succeeds and the constant-time guarantee quietly weakens to \"whatever the compiler does with C\". `mbedtls_ct_memcmp` also depends on `volatile` to force full reads, and that too is a C-level request.\n\n## How far it reaches\n\nThe `mbedtls_ct_*` / `MBEDTLS_CT_*` symbols and the `constant_time` header appear in about 35 library files, roughly 444 occurrences in total.\n\n| Area | Where the facility is used |\n|---|---|\n| RSA | PKCS#1 v1.5 decrypt and verify, OAEP decrypt (`rsa.c`), using `mbedtls_ct_zeroize_if` and \"bad\" flags |\n| Bignum | `bignum_core.c`, `bignum_mod_raw.c`, `bignum.c`: `mbedtls_mpi_core_lt_ct`, `check_zero_ct`, the odd-modulus GCD/inverse path |\n| ECC | `ecp.c` builds on `mbedtls_mpi_safe_cond_assign` / `swap`. `ecp_select_comb` reads the whole precomputed table, and the comb recoding uses constant-time parity fixing |\n| AEAD and MAC tag checks | `gcm.c`, `ccm.c`, `chachapoly.c`, `cmac.c`, `cipher.c` (`mbedtls_cipher_check_tag`), `nist_kw.c`, and PSA MAC/hash verify |\n| TLS | `ssl_msg.c` record decryption and padding, `ssl_tls12_server.c` and `ssl_tls13_server.c` (PSK binder and identity), Finished verification, `ssl_cookie.c` |\n| Other | `base64.c`, the PSA driver wrappers |\n\nThings that are explicitly not constant-time, per their comments:\n\n- `mbedtls_ecp_mul_shortcuts` (`ecp.c` ~2734) is marked \"NOT constant-time\". It takes shortcuts for m = 0, 1 and -1.\n- `mbedtls_ecp_muladd_restartable` (`ecp.c` ~2769) is marked \"NOT constant-time\".\n- The `mbedtls_ct_memcmp` documentation says it is not constant-time with respect to `n`, which is treated as public.\n\nThe grep found no constant-time primitive in `aes.c`, `dhm.c`, `ecdsa.c`, or the hash files. Software AES table lookups therefore appear to be outside this facility, with the usual cache-timing caveat. I did not verify AES table design, so treat that as a likely gap, not a confirmed one.\n\n## How it is checked\n\n- `tests/scripts/components-configuration-crypto.sh` runs the `*constant_time*` suites under Valgrind memcheck, with `--track-origins=yes`. Memcheck flags branches on undefined data, which is how secret-dependence is detected.\n- `test_suite_constant_time.function` says it relies on `framework/tests/include/test/constant_flow.h`, which is not present in this checkout because the framework submodule is absent. I could not confirm how secrets are marked.\n- Valgrind runs only the dedicated constant-time suites, and `test_suite_constant_time_hmac.data` is excluded. Other modules that use the primitives are covered only indirectly.\n\n## Limits to keep in mind\n\n- Constant-time is per-operation. Variable-latency instructions in other code, and length-dependent loops such as `mbedtls_ct_memcmp`'s over `n`, are outside the guarantee.\n- The asm path is only as good as its instruction selection. `asm volatile` keeps the block in place, but it does not prove the surrounding C stays branch-free.",
+  "ttft_ms": 1370,
+  "type": "result",
+  "duration_ms": 50984,
+  "uuid": "ee458631-4dd9-4d95-a7bd-a2962efff1fa",
+  "ttft_stream_ms": 1025,
+  "time_to_request_ms": 78,
+  "first_content_frame_ms": 1025,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

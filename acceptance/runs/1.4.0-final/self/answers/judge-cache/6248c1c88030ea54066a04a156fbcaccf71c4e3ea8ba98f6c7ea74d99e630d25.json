@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never discusses inverted causal polarity between the two halves (e.g., callers of a reader being the functions whose writes it observes); it only describes callers as enclosing functions of call sites."
+}

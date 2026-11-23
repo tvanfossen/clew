@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 23165,
+  "stop_reason": "end_turn",
+  "session_id": "c41487c8-0433-4537-b0d6-da5bb90fb75d",
+  "total_cost_usd": 0.0106183,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 27776,
+    "cache_read_input_tokens": 293740,
+    "output_tokens": 4249,
+    "output_tokens_details": {
+      "thinking_tokens": 1638
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 27776,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2158,
+        "cache_read_input_tokens": 62641,
+        "cache_creation_input_tokens": 3415,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 3415
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 4249,
+      "cacheReadInputTokens": 293740,
+      "cacheCreationInputTokens": 27776,
+      "webSearchRequests": 0,
+      "costUSD": 0.0106183,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1638,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 27776,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 17,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** with nothing declared, clew indexes the whole repository. Every file under the root is a candidate, minus what git ignores, minus dot and cache directories, and the extension filter then applies. Declaring an `index_scope:` is the only thing that narrows the walk to chosen roots.\n\n**Decision order** (`derive_scope`, `clew/scope.py:639`):\n\n```\nstated by a tool call (tier 1)  \u2500\u2500\u25ba _declared_index_scope(root, stated)\n        \u2502 none\n        \u25bc\nindex_scope: in .clew.yaml      \u2500\u2500\u25ba _declared_index_scope(root)\n        \u2502 absent / unusable\n        \u25bc\nwhole_repo_scope(root)          \u2500\u2500\u25ba roots=(repo root,), excludes=derived\n```\n\n1. **Declared scope.** `_declared_index_scope` (`clew/scope.py:991`) reads `index_scope:` from `.clew.yaml`. `roots` is required and each root must exist on disk; a missing root is dropped with a warning. `excludes` is optional and only trims. Unknown keys inside the block are refused by name, as is a non-mapping section or a block with no usable roots. These are rejected, not silently treated as absent.\n2. **Whole repo, when nothing usable is declared.** `whole_repo_scope` (`clew/scope.py:683`) is the default tier, not a last resort. Its single root is the repository, and its excludes are:\n   - **Git-ignored paths**, from `git ls-files --others --ignored --exclude-standard --directory`, run with `git_env()` so a target's own `.git/config` cannot execute code. This runs per nested git tree too.\n   - **Dot and cache directories**, via `_pruned_dirs` and `_skip_dir` (names starting with `.`, or in `_SKIP_DIR_NAMES`).\n   - The walk stops at nested git trees, keeping only their top-level dot directories, and stops at a depth limit (`_MAX_DEPTH`, recorded in `_DEPTH_LIMITED`).\n   - Nested trees are indexed, not excluded. `external.py` tags their rows afterwards so answers can still tell codebases apart.\n   - The Doxyfile no longer supplies INPUT (gh#333). It still contributes ALIASES and PREDEFINED.\n3. **Extension filter.** A file must match doxygen's `FILE_PATTERNS` and not match `EXCLUDE_PATTERNS` (`in_doxygen_scope`, `clew/doxygen.py:308`). `effective_file_patterns` (`clew/doxygen.py:279`) returns the forced `DOXYGEN_DEFAULT_FILE_PATTERNS` whatever the target's Doxyfile declares (gh#340). So the target's own patterns do not decide which extensions are indexed. I did not read the constant's value, so I can't list the extensions.\n\n**Live check on this repo** (`index(action='status')`):\n- `.clew.yaml` exists but carries no `index_scope`, so `source: whole-repo` and root `.`.\n- 435 files in scope, 397 indexed, 14 not indexed. The not-indexed set is listed by extension: no-extension=3, .csv=3, .rs=2, .toml=2, .jsonl=1, .lock=1, .motor=1, .sql=1.\n- Excludes are `.git`, `.claude-plugin`, `.github`. I did not trace why the two `.rs` files fall outside the extension filter.\n\n**What \"nothing declared\" means in practice:** the index covers the whole tree, including vendored trees. The build reports the reason in its log, and `propose_declaration` only proposes YAML; it never applies it. Narrowing requires writing an `index_scope:` with `roots:`.",
+  "ttft_ms": 1574,
+  "type": "result",
+  "duration_ms": 24670,
+  "uuid": "52ca3b4f-8989-4a01-bc3e-72ea758ad774",
+  "ttft_stream_ms": 1074,
+  "time_to_request_ms": 74,
+  "first_content_frame_ms": 1074,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

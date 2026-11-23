@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It's a size-probe, not retry... There's no loop, no backoff, and no reaction to a failed first call.\nVERDICT: HIT\nWHY: The answer concludes this is size negotiation (null buffer probe, then one fill call) rather than retry, and notes there is no loop or backoff. It does not mention an attempt counter explicitly, but the substance is there."
+}

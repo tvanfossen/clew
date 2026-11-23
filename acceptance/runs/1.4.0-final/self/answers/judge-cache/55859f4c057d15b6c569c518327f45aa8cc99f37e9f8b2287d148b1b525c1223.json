@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A write refused by the `code` axis returns `ok: false` with a message starting `REFUSED:`, and nothing is written. ... Writes are refused, and `force` does not override the refusal.\nVERDICT: HIT\nWHY: States the write path refuses (not warns) and that `force` cannot override it. The answer never says where the check sits relative to the build decision, but \"force does not override\" is the substance of that placement."
+}

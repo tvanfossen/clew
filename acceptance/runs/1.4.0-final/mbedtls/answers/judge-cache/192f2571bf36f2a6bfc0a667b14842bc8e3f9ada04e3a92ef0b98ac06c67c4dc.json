@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The build regenerates the file: `library/CMakeLists.txt:134` runs `scripts/generate_errors.pl` over `include/mbedtls` with `scripts/data_files/error.fmt`.\nVERDICT: HIT\nWHY: The answer states error.c is auto-generated from the public headers by generate_errors.pl using error.fmt, though it hedges on the generator's internals."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Three axes come out of that: | `data` | `source_changed_files > 0` | ... | `schema` | `build_version` \u2260 `expected_build_version` ... | `code` | `matches_source` false ...\nVERDICT: HIT\nWHY: The answer explicitly says staleness has three axes, names them (data, schema, code), and reports them as a `staleness` list rather than a single flag."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It is an empty `asm volatile` barrier, or `x ^ mbedtls_ct_zero` where a volatile global holds zero (`:85`). This stops the optimizer from proving a secret's value and folding the mask logic away.\nVERDICT: MISS\nWHY: The answer names an empty asm volatile barrier that stops the optimizer, but never says the value is an input-output register operand or that it emits no instruction."
+}

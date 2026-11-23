@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Eight files render `NavigationHeader`, and only one of them shows a search field: `app/screens/home/search/search.tsx`.\nVERDICT: HIT\nWHY: The answer explicitly identifies search.tsx as the only file that enables the search field (`hasSearch={true}`), and the others as passing false or omitting the prop."
+}

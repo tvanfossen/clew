@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A gate-layer downgrade was built and reverted (gh#393) because it would hedge nearly every reply.\nVERDICT: HIT\nWHY: The answer states that a further layer-based downgrade was deliberately reverted because it would hedge nearly every reply. That is the substance of keeping the downgrade to one, and it is supported by the control test against hedging every answer."
+}

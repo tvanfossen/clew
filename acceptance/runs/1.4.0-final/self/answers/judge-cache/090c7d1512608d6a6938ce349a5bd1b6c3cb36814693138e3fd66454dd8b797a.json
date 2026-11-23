@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Explicit beats declared, wholesale. If `--declare` or `options` states a value for an option, that value replaces the `.clew.yaml` value for that option. It does not merge with it. ... **Facts accumulate.** Tier-3 and tier-4 values survive every stated tier. A declaration cannot remove a macro that the Doxyfile defines.\nVERDICT: HIT\nWHY: The answer says stated tiers replace one another while discovered tier-3/4 facts accumulate and survive any stated value, which is the asymmetry the item asks for."
+}

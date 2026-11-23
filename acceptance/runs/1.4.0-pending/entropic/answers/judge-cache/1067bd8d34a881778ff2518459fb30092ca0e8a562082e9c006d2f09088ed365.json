@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The entry is split at the first `:`. The left part must match the tool name. - With no colon, the entry matches the tool on any arguments. `git.commit` allows every `git.commit` call.\nVERDICT: HIT\nWHY: The answer states plain fnmatch, a split at the first colon into a tool part and an argument part, and that a colon-less pattern matches the tool name alone."
+}

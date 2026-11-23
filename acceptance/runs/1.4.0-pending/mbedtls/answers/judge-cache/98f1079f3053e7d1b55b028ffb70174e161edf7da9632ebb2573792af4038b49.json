@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`mbedtls_memory_buffer_alloc_init(buf, len)` (`memory_buffer_alloc.c:566-576`) calls `mbedtls_platform_set_calloc_free` with its own `buffer_alloc_calloc`/`buffer_alloc_free`. ... With `MBEDTLS_THREADING_C` it installs mutex-wrapped variants (`:541-563`).\"\nVERDICT: MISS\nWHY: The answer says the mutex-wrapped variants are used with MBEDTLS_THREADING_C, but it never says a plain pair is installed otherwise, nor that the choice is made at compile time inside the init function."
+}

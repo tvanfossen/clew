@@ -180,7 +180,7 @@ class AccessorPattern:
 
     ## @brief Store the name glob, key-argument index, and dispatch-mode provenance.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def __init__(self, pattern: str, key_arg_index: int, dispatch_mode: str = "unknown") -> None:
         self.pattern = pattern
         self.key_arg_index = key_arg_index
@@ -212,7 +212,7 @@ class NamePrefixPattern:
 
     ## @brief Store the literal callee-name prefix and dispatch-mode provenance.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def __init__(self, prefix: str, dispatch_mode: str = "unknown") -> None:
         self.prefix = prefix
         self.dispatch_mode = dispatch_mode
@@ -410,7 +410,7 @@ def resolve_key_alias_prefixes(
 ## @param role 'writer' or 'reader', for the message.
 ## @return None.
 ## @version 1
-## @dg_internal
+## @utility
 def _warn_shadowed_defaults(
     declared: list[AccessorPattern | NamePrefixPattern],
     defaults: Sequence[AccessorPattern | NamePrefixPattern],
@@ -445,7 +445,7 @@ def _warn_shadowed_defaults(
 ## @param source A patterns manifest path or an already-parsed mapping.
 ## @return The declared prefixes, or [] when the source declares none.
 ## @version 2
-## @dg_internal
+## @utility
 def _declared_alias_prefixes(source: Path | dict) -> list[str]:
     """Reads the raw declaration only; the COMBINATION is
     `resolve_key_alias_prefixes`' job and lives there alone.
@@ -467,7 +467,7 @@ def _declared_alias_prefixes(source: Path | dict) -> list[str]:
 ## @param path Path to the YAML file.
 ## @return The parsed mapping, or {} when the file is empty.
 ## @version 2
-## @dg_internal
+## @utility
 def _read_patterns_yaml(path: Path) -> dict:
     """@brief Read one accessor-patterns YAML file.
 
@@ -529,7 +529,7 @@ def load_shared_key_patterns(
 ## @param origin Where the entry was declared, for a fail-closed error message.
 ## @return A NamePrefixPattern when the entry has a name_prefix, else an AccessorPattern.
 ## @version 3
-## @dg_internal
+## @utility
 def _parse_pattern_entry(
     entry: dict,
     origin: str = "shared-key patterns",
@@ -619,7 +619,7 @@ def _ensure_shared_key_edges_table(conn: sqlite3.Connection) -> None:
 ## @param patterns Writer or reader pattern list (mixed AccessorPattern/NamePrefixPattern).
 ## @return `(kind, value, dispatch_mode)` where kind∈{"arg","name"}, or None.
 ## @version 3
-## @dg_internal
+## @utility
 def _match_accessor(
     name: str,
     patterns: list[AccessorPattern | NamePrefixPattern],
@@ -648,7 +648,7 @@ def _match_accessor(
 ## @brief Extract the Nth positional argument node from a call_expression.
 ## @return The AST node for the Nth (0-indexed) named argument, or None when out of range.
 ## @version 1
-## @dg_internal
+## @utility
 def _nth_call_argument(call_node: Any, index: int) -> Any | None:
     """Return the AST node for the Nth (0-indexed) argument, or None.
 
@@ -671,7 +671,7 @@ def _nth_call_argument(call_node: Any, index: int) -> Any | None:
 ## @param prefixes Alias prefixes to strip (first match wins).
 ## @return The key with its alias prefix removed, or `text` unchanged.
 ## @version 1
-## @dg_internal
+## @utility
 def _strip_key_alias(text: str, prefixes: tuple[str, ...]) -> str:
     """A prefix that consumes the WHOLE token is refused: `DM_KEY_` alone is the
     enum's namespace, not a key, and stripping it to "" would silently merge
@@ -692,7 +692,7 @@ def _strip_key_alias(text: str, prefixes: tuple[str, ...]) -> str:
 ## @param alias_prefixes Enum-alias prefixes to normalize off an identifier key.
 ## @return The literal key text, or None if the argument isn't a literal.
 ## @version 3
-## @dg_internal
+## @utility
 def _resolve_literal_key(
     node: Any, src_bytes: bytes, alias_prefixes: tuple[str, ...] = ()
 ) -> str | None:
@@ -743,7 +743,7 @@ class _KeyCallSite:
 
     ## @brief Store the caller rowid, resolved key name, and dispatch-mode provenance.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def __init__(self, rowid: int, key_name: str, dispatch_mode: str = "unknown") -> None:
         self.rowid = rowid
         self.key_name = key_name
@@ -763,7 +763,7 @@ class _SharedKeyCounters:
 
     ## @brief Initialize the unresolved-argument counter to zero.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def __init__(self) -> None:
         self.unresolved = 0
 
@@ -785,7 +785,7 @@ class _SharedKeyPatterns:
     ## @param readers Reader accessor patterns.
     ## @param alias_prefixes Enum-alias prefixes to normalize off identifier keys.
     ## @version 2
-    ## @dg_internal
+    ## @utility
     def __init__(
         self,
         writers: list[AccessorPattern | NamePrefixPattern],
@@ -811,7 +811,7 @@ class _SharedKeyCollector:
 
     ## @brief Initialize empty writer/reader site lists and a fresh counter.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def __init__(self) -> None:
         self.writer_sites: list[_KeyCallSite] = []
         self.reader_sites: list[_KeyCallSite] = []
@@ -820,7 +820,7 @@ class _SharedKeyCollector:
 
 ## @brief First-match a callee name as writer or reader; None if neither.
 ## @version 2
-## @dg_internal
+## @utility
 def _match_writer_or_reader(
     callee_name: str,
     patterns: _SharedKeyPatterns,
@@ -844,7 +844,7 @@ def _match_writer_or_reader(
 
 ## @brief Classify one call_expression as a writer/reader hit, if it matches.
 ## @version 2
-## @dg_internal
+## @utility
 def _classify_call_site(
     node: Any,
     src_bytes: bytes,
@@ -873,7 +873,7 @@ def _classify_call_site(
 ## @param alias_prefixes Enum-alias prefixes to normalize off the resolved key.
 ## @return The literal key text at the given argument index, or None when missing or non-literal.
 ## @version 2
-## @dg_internal
+## @utility
 def _resolve_arg_mode_key(
     node: Any, src_bytes: bytes, key_arg_index: int, alias_prefixes: tuple[str, ...] = ()
 ) -> str | None:
@@ -902,7 +902,7 @@ def _resolve_arg_mode_key(
 ## @param out The per-file `{"w","r","u"}` collector.
 ## @param alias_prefixes Enum-alias prefixes to normalize off an argument key.
 ## @version 4
-## @dg_internal
+## @utility
 def _record_call_site(
     node: Any,
     src_bytes: bytes,
@@ -941,7 +941,7 @@ def _record_call_site(
 ## @param out The per-file `{"w","r","u"}` collector.
 ## @param alias_prefixes Enum-alias prefixes to normalize off the case literal.
 ## @version 3
-## @dg_internal
+## @utility
 def _record_case_site(
     case_node: Any,
     src_bytes: bytes,
@@ -980,7 +980,7 @@ def _record_case_site(
 ## @param alias_prefixes Enum-alias prefixes to normalize off a name key.
 ## @return The literal key text, or None when the argument is computed.
 ## @version 4
-## @dg_internal
+## @utility
 def _resolve_py_literal_key(
     node: Any, src_bytes: bytes, alias_prefixes: tuple[str, ...] = ()
 ) -> str | None:
@@ -1033,7 +1033,7 @@ def _resolve_py_literal_key(
 ## @param patterns The active writer/reader accessor patterns.
 ## @return {"w": [...], "r": [...], "u": [...]} of line-keyed, rowid-free sites.
 ## @version 4
-## @dg_internal
+## @utility
 def _walk_py_shared_key_calls(
     tree: Any,
     src_bytes: bytes,
@@ -1083,7 +1083,7 @@ def _walk_py_shared_key_calls(
 ## @param out The per-file `{"w","r","u"}` collector.
 ## @param alias_prefixes Enum-alias prefixes to normalize off the key.
 ## @version 1
-## @dg_internal
+## @utility
 def _record_py_call_site(
     node: Any,
     src_bytes: bytes,
@@ -1121,7 +1121,7 @@ def _record_py_call_site(
 ## @brief Walk one parsed file's AST, harvesting writer/reader key sites.
 ## @return {"w": [...], "r": [...], "u": [...]} of line-keyed, rowid-free sites.
 ## @version 4
-## @dg_internal
+## @utility
 def _walk_shared_key_calls(
     tree: Any,
     src_bytes: bytes,
@@ -1199,7 +1199,7 @@ class _SharedKeyHarvester(Harvester):
 
     ## @brief Store the accessor-pattern bundle plus the manifest cache key.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def __init__(self, patterns: _SharedKeyPatterns, extra_key: str) -> None:
         super().__init__(extra_key)
         self.patterns = patterns
@@ -1239,7 +1239,7 @@ def shared_key_harvester(
 
 ## @brief Resolve one file's harvested key sites into the cross-file collector.
 ## @version 1
-## @dg_internal
+## @utility
 def _fold_shared_key_payload(
     payload: dict[str, list],
     funcs_in_file: list[tuple[int, str, int, int]],
@@ -1268,7 +1268,7 @@ def _fold_shared_key_payload(
 ## @brief Group call sites by key name into rowid sets.
 ## @return A dict mapping each key name to the set of caller rowids touching it.
 ## @version 1
-## @dg_internal
+## @utility
 def _group_sites_by_key(sites: list[_KeyCallSite]) -> dict[str, set[int]]:
     """Group call sites by key name into rowid sets.
 
@@ -1310,7 +1310,7 @@ def _writer_dispatch_map(sites: list[_KeyCallSite]) -> dict[tuple[str, int], str
 ## @param writer_dispatch (key, writer rowid) → the writer's accessor dispatch_mode.
 ## @return (edge tuples, suppressed keys as (name, writers, readers) triples).
 ## @version 3
-## @dg_internal
+## @utility
 ## @req REQ-DDB-PIPE-010
 def _build_inferred_edges(
     writer_by_key: dict[str, set[int]],
@@ -1356,7 +1356,7 @@ def _build_inferred_edges(
 ## @param suppressed (key name, writers, readers) triples that were dropped.
 ## @return None.
 ## @version 1
-## @dg_internal
+## @utility
 ## @req REQ-DDB-PIPE-010
 def _log_suppressed_keys(suppressed: list[tuple[str, int, int]]) -> None:
     """Silent when nothing was suppressed, so a clean build gains no line — but
@@ -1383,7 +1383,7 @@ def _log_suppressed_keys(suppressed: list[tuple[str, int, int]]) -> None:
 
 ## @brief Insert inferred shared-key edges, ignoring duplicates.
 ## @version 3
-## @dg_internal
+## @utility
 def _insert_inferred_edges(
     conn: sqlite3.Connection,
     edges: list[tuple[int, int, str, str]],
@@ -1416,7 +1416,7 @@ def _insert_inferred_edges(
 ## @brief Walk every indexed file's AST, collecting shared-key call sites.
 ## @return Cross-file collector of writer/reader sites + unresolved counters.
 ## @version 3
-## @dg_internal
+## @utility
 def _walk_all_files_for_shared_keys(
     conn: sqlite3.Connection,
     repo_root: Path,
@@ -1574,7 +1574,7 @@ def detect_undeclared_accessor_families(
 ## @param conn Open connection.
 ## @return SQL selecting (name, external_root) over the accessor corpus kinds.
 ## @version 1
-## @dg_internal
+## @utility
 def _accessor_corpus_sql(conn: sqlite3.Connection) -> str:
     """`LEFT JOIN`, and `COALESCE(bodyfile_id, file_id)`: a macro definition has no body file,
     and a header declaration's `file_id` is the only site it has. Preferring the BODY file
@@ -1604,7 +1604,7 @@ def _accessor_corpus_sql(conn: sqlite3.Connection) -> str:
 ## @param conn Open connection.
 ## @return True when the column is present.
 ## @version 1
-## @dg_internal
+## @utility
 def _has_external_column(conn: sqlite3.Connection) -> bool:
     """@brief Report whether `path` carries the external-root column.
     @return True when present.
@@ -1623,7 +1623,7 @@ def _has_external_column(conn: sqlite3.Connection) -> bool:
 ## @param patterns The active writer+reader patterns.
 ## @return None.
 ## @version 2
-## @dg_internal
+## @utility
 def _log_undeclared_accessor_hint(conn: sqlite3.Connection, patterns: list[Any]) -> None:
     """Turn the correct-but-silent empty/sparse dataflow layer into an
     actionable prompt: name the top undeclared accessor families and their key
@@ -1674,7 +1674,7 @@ def _log_undeclared_accessor_hint(conn: sqlite3.Connection, patterns: list[Any])
 ## @param extra The dispatch manifest's `shared_key_wrappers` document, or None.
 ## @return The extract_cache key component for this pass.
 ## @version 1
-## @dg_internal
+## @utility
 def _inferred_cache_key(patterns_path: Path | dict | None, extra: Path | dict | None) -> str:
     """BOTH manifests decide what the per-file harvest matches, so both belong in
     the key — a dispatch declaration that grew a `shared_key_wrappers` entry must
@@ -1800,7 +1800,7 @@ class _DeclaredKey:
 
     ## @brief Store the key name, event flag, writer/reader names, and R1 dispatch fields.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def __init__(
         self,
         name: str,
@@ -1823,7 +1823,7 @@ class _DeclaredKey:
 ## @param data_model_path Path to the TOML manifest.
 ## @return List of declared keys parsed from `[[keys]]` tables.
 ## @version 2
-## @dg_internal
+## @utility
 def _parse_data_model_toml(
     toml_mod: Any,
     data_model_path: Path,
@@ -1854,7 +1854,7 @@ def _coerce_edge_triggered(value: Any) -> bool | None:
 ## @param origin Manifest path, for a fail-closed error message.
 ## @return A list of _DeclaredKey entries, one per named `keys` table in the manifest.
 ## @version 4
-## @dg_internal
+## @utility
 def _declared_keys_from_doc(doc: dict, origin: str = "data-model manifest") -> list[_DeclaredKey]:
     """Shared shape for the TOML and YAML data-model manifests: a top-level
     `keys` list of {name, event?, writers?, readers?, dispatch_mode?,
@@ -1901,7 +1901,7 @@ def _declared_keys_from_doc(doc: dict, origin: str = "data-model manifest") -> l
 ## models alongside ingot-style TOML. Returns [] if yaml is unavailable.
 ## @return A list of _DeclaredKey entries parsed from the YAML manifest ([] when the top level isn't a mapping).
 ## @version 2
-## @dg_internal
+## @utility
 def _parse_data_model_yaml(data_model_path: Path) -> list[_DeclaredKey]:
     import yaml
 
@@ -1912,7 +1912,7 @@ def _parse_data_model_yaml(data_model_path: Path) -> list[_DeclaredKey]:
 ## @brief Load declared keys from a TOML or YAML data-model manifest by suffix.
 ## @return List of declared keys, or [] when unparseable/unsupported.
 ## @version 2
-## @dg_internal
+## @utility
 def _load_declared_keys(data_model_path: Path) -> list[_DeclaredKey]:
     """This path is reached only because an owner DECLARED a data-model manifest,
     so `require_toml_module` rather than the tolerant `toml_module`: it used to
@@ -1962,7 +1962,7 @@ def _definition_preferring_name_index(
 ## @param name_to_rowids Index built from _build_function_indexes.
 ## @return (resolved_rowids, unresolved_name_count).
 ## @version 1
-## @dg_internal
+## @utility
 def _resolve_names(
     names: list[str],
     name_to_rowids: dict[str, list[int]],
@@ -1990,7 +1990,7 @@ _DeclaredEdge = tuple[int, int, str, str, str, "bool | None"]
 
 ## @brief Resolve one declared key's writer/reader names into edge tuples.
 ## @version 2
-## @dg_internal
+## @utility
 def _resolve_one_declared_key(
     key: _DeclaredKey,
     name_to_rowids: dict[str, list[int]],
@@ -2021,7 +2021,7 @@ def _resolve_one_declared_key(
 
 ## @brief Resolve declared writer/reader function names to memberdef rowids.
 ## @version 2
-## @dg_internal
+## @utility
 def _resolve_declared_edges(
     keys: list[_DeclaredKey],
     name_to_rowids: dict[str, list[int]],
@@ -2044,7 +2044,7 @@ def _resolve_declared_edges(
 
 ## @brief Insert declared shared-key edges, ignoring duplicates.
 ## @version 2
-## @dg_internal
+## @utility
 def _insert_declared_edges(
     conn: sqlite3.Connection,
     edges: list[_DeclaredEdge],
@@ -2132,7 +2132,7 @@ class _SubscribePattern:
 
     ## @brief Store the subscribe callee name and topic/handler argument indices.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def __init__(self, fn_name: str, topic_arg_index: int, handler_arg_index: int) -> None:
         self.fn_name = fn_name
         self.topic_arg_index = topic_arg_index
@@ -2198,7 +2198,7 @@ class _SubscribeSite:
 
     ## @brief Store the registrar rowid, topic literal, and handler-fn name.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def __init__(self, registrar_rowid: int, topic: str, handler_name: str) -> None:
         self.registrar_rowid = registrar_rowid
         self.topic = topic
@@ -2208,7 +2208,7 @@ class _SubscribeSite:
 ## @brief Resolve one subscribe call site, if the handler is an identifier.
 ## @return [line, topic, handler_name], or None when the handler isn't a bare identifier.
 ## @version 2
-## @dg_internal
+## @utility
 def _resolve_subscribe_site(
     call_node: Any,
     src_bytes: bytes,
@@ -2236,7 +2236,7 @@ def _resolve_subscribe_site(
 ## @brief Walk one file, harvesting subscribe call sites.
 ## @return List of [line, topic, handler_name] triples in walk order.
 ## @version 2
-## @dg_internal
+## @utility
 def _walk_subscribe_sites(
     tree: Any,
     src_bytes: bytes,
@@ -2283,7 +2283,7 @@ class _SubscribeHarvester(Harvester):
 
     ## @brief Store the subscribe-pattern map plus the manifest cache key.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def __init__(self, patterns_by_name: dict[str, _SubscribePattern], extra_key: str) -> None:
         super().__init__(extra_key)
         self.patterns_by_name = patterns_by_name
@@ -2318,7 +2318,7 @@ def subscribe_harvester(mqtt_dispatch_path: Path | dict | None = None) -> Harves
 ## @brief Harvest subscribe sites across all indexed files.
 ## @return Flat list of _SubscribeSite with registrar rowids resolved.
 ## @version 3
-## @dg_internal
+## @utility
 def _harvest_subscribe_sites(
     conn: sqlite3.Connection,
     repo_root: Path,

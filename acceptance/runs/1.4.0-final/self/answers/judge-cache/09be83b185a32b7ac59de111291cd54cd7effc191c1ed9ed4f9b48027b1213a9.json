@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer explains how to read empty-result scope and confidence. It never states the general rule to fix the corpus, meaning the index coverage, rather than the wording of claims about it."
+}

@@ -31,6 +31,7 @@ from ._common import (
     capped_detail,
     connect,
     extract_version,
+    has_columns,
     function_candidates,
     identity_rowids,
     is_overloaded,
@@ -38,7 +39,9 @@ from ._common import (
     symbol_provenance,
     table_exists,
 )
+from .corpus import file_license, file_owners, generation_rule
 from .externcalls import external_callees
+from .keysites import same_key_sites
 from .kconfig import gates_covering
 from .locks import (
     context_conflicts_for_rowids,
@@ -47,7 +50,7 @@ from .locks import (
     sections_for_rowids,
 )
 from .macros import MACRO_KIND, config_defaults_conn, macro_definitions_conn
-from .models import BodyExcerpt, Dossier, ExternalCallee, MacroDef, ReqRef
+from .models import BodyExcerpt, DeclarationSite, Dossier, ExternalCallee, MacroDef, ReqRef
 from .source import DEFAULT_BODY_LINES, body_excerpt
 from .symbols import (
     _call_edges,
@@ -110,17 +113,25 @@ def _sibling_prose(conn: sqlite3.Connection, fn: str) -> tuple[str, str]:
 ## @brief Fetch identity fields (name/signature/file/lines/brief/detail/version/static).
 ## @return A dict of the function's identity columns, or None if the rowid has no memberdef row.
 ## Calls the shared `_common.capped_detail` since C1; the cap and the notice are unchanged.
-## @version 4
-## @dg_internal
+## v5 (2.0.0, T2): `file` is the body's file when a body is recorded.
+## @version 5
+## @utility
 def _identity(conn: sqlite3.Connection, rowid: int) -> dict | None:
     """@brief Read one function's identity columns (definition row already chosen).
 
-    @version 2
+    @version 5
     """
+    ## THE BODY'S FILE WHEN THERE IS A BODY (T2, 2.0.0). `bodystart` is a line of the body's file,
+    ## and pairing it with the DECLARING file named a range that does not exist: entropic's
+    ## `pattern_matches` read `permission_manager.h:101-125` in a 90-line header. The declaration
+    ## is served separately, as `declared_at`.
     row = conn.execute(
-        "SELECT m.name, m.definition, m.argsstring, COALESCE(p.name,''), "
+        "SELECT m.name, m.definition, m.argsstring, "
+        "CASE WHEN COALESCE(m.bodyfile_id, 0) > 0 AND COALESCE(m.bodystart, 0) > 0 "
+        "THEN COALESCE(b.name, p.name, '') ELSE COALESCE(p.name, '') END, "
         "m.bodystart, m.bodyend, m.briefdescription, m.detaileddescription, "
         "m.kind, m.static FROM memberdef m LEFT JOIN path p ON p.rowid = m.file_id "
+        "LEFT JOIN path b ON b.rowid = m.bodyfile_id "
         "WHERE m.rowid=?",
         (rowid,),
     ).fetchone()
@@ -152,6 +163,38 @@ def _identity(conn: sqlite3.Connection, rowid: int) -> dict | None:
         "kind": row[8],
         "static": bool(row[9]),
     }
+
+
+## @brief Where one function identity is declared, outside the file that holds its body.
+## @param conn Open connection.
+## @param ids The identity's memberdef rowids (declaration and definition rows).
+## @param body_file The file `file` names.
+## @return Distinct declaration sites, by file then line; empty when there are none.
+## @version 1
+## @req REQ-DDB-QUERY-004
+## @utility
+def _declaration_sites(
+    conn: sqlite3.Connection, ids: list[int], body_file: str
+) -> list[DeclarationSite]:
+    """ONE RULE FOR BOTH SHAPES (T2; entropic F1, mbedtls F2). A C++ out-of-line member is ONE row
+    whose `file_id` (the class header) differs from its `bodyfile_id`; a C function with a header
+    prototype is TWO rows, the prototype's `file_id` being the header. Either way a declaration
+    site is a row's declaring file and line where that file is not the body's.
+
+    @brief List declaration sites.
+    @return Sites.
+    """
+    if not ids:
+        return []
+    marks = ",".join("?" * len(ids))
+    ## A hand-built fixture's memberdef may lack `line` (doxygen's own schema always has it).
+    line = "m.line" if has_columns(conn, "memberdef", "line") else "NULL"
+    rows = conn.execute(
+        f"SELECT DISTINCT p.name, {line} FROM memberdef m JOIN path p ON p.rowid = m.file_id "  # noqa: S608
+        f"WHERE m.rowid IN ({marks}) AND p.name != ? ORDER BY 1, 2",
+        (*ids, body_file),
+    ).fetchall()
+    return [DeclarationSite(file=str(f), line=line) for f, line in rows]
 
 
 ## @brief Requirements (with titles) + covering tests for one function.
@@ -191,7 +234,7 @@ def _reqs_and_tests(conn: sqlite3.Connection, fn: str) -> tuple[list[ReqRef], li
 ## @brief Liveness status for a resolved rowid ('' when unknown).
 ## @return The symbol_liveness status string for the rowid, or '' when unknown or the table is absent.
 ## @version 1
-## @dg_internal
+## @utility
 def _liveness(conn: sqlite3.Connection, rowid: int) -> str:
     """@brief Read one rowid's symbol_liveness status, or ''."""
     if not table_exists(conn, "symbol_liveness"):
@@ -210,7 +253,7 @@ def _liveness(conn: sqlite3.Connection, rowid: int) -> str:
 ## @param max_body_lines Cap on the body excerpt's line count.
 ## @return (body excerpt or None, ExternalCallee rows).
 ## @version 1
-## @dg_internal
+## @utility
 def _body_and_external(
     conn: sqlite3.Connection,
     rowid: int,
@@ -337,7 +380,7 @@ MACRO_COLLISION_NOTE = (
 ## @param line_start The chosen identity's recorded body start, or None when it has none.
 ## @return The note, or '' when the shape does not apply.
 ## @version 1
-## @dg_internal
+## @utility
 def _macro_collision(macros: list[MacroDef], line_start: int | None) -> str:
     """TWO DATABASE FACTS AND NO HEURISTIC. The name is `#define`d somewhere in this index,
     and the row this dossier chose records no body extent. Both are read off columns; neither
@@ -427,7 +470,7 @@ def function_dossier(
 ## @param max_body_lines Excerpt cap, forwarded so the probe reads what the panel would.
 ## @return The rowid the dossier should describe.
 ## @version 1
-## @dg_internal
+## @utility
 def _anchored_pick(
     conn: sqlite3.Connection,
     cands: list[tuple],
@@ -478,9 +521,13 @@ def _anchored_pick(
 ## commented out, shipped header first. `macros` is doxygen's ACTIVE definitions, so a
 ## commented-out shipped default could never appear there; the reply named a TFM profile
 ## header and omitted the shipped config, reading as enabled when the default is off.
-## @version 9
+## v10: declared_at; file is the body's file (2.0.0, T2)
+## v11: generated_by from the body's file (2.0.0, T4)
+## v12: owners and license of the body's file (2.0.0, S2/S3/S5 served)
+## v13: same_key_sites (2.0.0, F1-mm)
+## @version 13
 ## @req REQ-DDB-QUERY-004
-## @dg_internal
+## @utility
 def _dossier_conn(
     conn: sqlite3.Connection,
     fn: str,
@@ -547,6 +594,14 @@ def _dossier_conn(
         static=ident["static"],
         liveness=_liveness(conn, rowid),
         provenance=symbol_provenance(conn, rowid),
+        declared_at=_declaration_sites(conn, ids, ident["file"]),
+        ## T4 (2.0.0; mbedtls F4): `mbedtls_strerror` lives in the generated `error.c`, and a reader
+        ## arriving by the function's name had no route to that fact but asking for the file.
+        generated_by=generation_rule(conn, ident["file"]),
+        ## 2.0.0 (S2/S3/S5 served): the file's owners and licence, as its file dossier has them.
+        owners=list(file_owners(conn, ident["file"]) or ()),
+        license=file_license(conn, ident["file"]),
+        same_key_sites=same_key_sites(conn, ident["file"], ident["line_start"], ident["line_end"]),
         candidates=overloads,
         # Membership is per-rowid, and doxygen splits one function across a
         # declaration row and a definition row — so asking only the chosen

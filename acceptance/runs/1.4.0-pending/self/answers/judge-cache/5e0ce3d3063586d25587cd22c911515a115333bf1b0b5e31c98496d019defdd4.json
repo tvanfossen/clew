@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The code message says a rebuild cannot fix it and the MCP client must be restarted.\" and \"A write from a process that predates its source is refused ... The refusal exists because a stale process once rebuilt an index at an older version and dropped a layer.\"\nVERDICT: MISS\nWHY: The answer covers the code-axis refusal on writes, but it never says reads stay current because query tools open the database per call, so the read/write asymmetry is absent."
+}

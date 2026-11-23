@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The code defends the \"definitive\" wording by checking the unread corpora first.\"\nVERDICT: HIT\nWHY: The answer says \"definitive\" is earned per empty result by checking the corpora `search` did not read, and shows typedef rows existing elsewhere downgrading it to \"NOT DEFINITIVE\". It does not tie the wording to the shape of the result."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Direct `#include <llama.h>`, `<common.h>`, `<chat.h>`, `<sampling.h>`, `<mtmd.h>` in `llama_cpp_backend.cpp`, ... `adapter_manager.cpp`, `orchestrator.cpp`, and `tool_call_markers.h`. ... `src/facade/` | Reaches llama only transitively ... forward declarations `struct llama_context;` / `struct llama_model;` in `inference/orchestrator.h:44-45`\n\nVERDICT: MISS\nWHY: The answer lists inference files and mentions facade and include/ forward declarations. But these are transitive or forward-declaration reach, not a conclusion that a minority of the reaching files sit outside src/inference. It never states that concentration-but-not-containment finding."
+}

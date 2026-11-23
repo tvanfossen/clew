@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"the code calls the callback and then sets `approved = true`. So a host that registers the callback to \"ask the user\" gets a notification, not a gate.\"\nVERDICT: HIT\nWHY: The answer states the callback is called and then approved is set to true unconditionally, so it can't gate; it doesn't mention the void return explicitly, but the substance (callback cannot refuse) is stated."
+}

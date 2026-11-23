@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says the reply names file types that were in scope but produced no rows. It covers target, not_searched, unread corpora and staleness, but not that distinction."
+}

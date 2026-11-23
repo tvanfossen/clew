@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 15388,
+  "stop_reason": "end_turn",
+  "session_id": "849ae9a8-e576-4ada-840e-67dcdf140d4e",
+  "total_cost_usd": 0.00800729,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 24996,
+    "cache_read_input_tokens": 164529,
+    "output_tokens": 2724,
+    "output_tokens_details": {
+      "thinking_tokens": 882
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 24996,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1555,
+        "cache_read_input_tokens": 50424,
+        "cache_creation_input_tokens": 10725,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 10725
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 8,
+      "outputTokens": 2724,
+      "cacheReadInputTokens": 164529,
+      "cacheCreationInputTokens": 24996,
+      "webSearchRequests": 0,
+      "costUSD": 0.00800729,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 882,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 24996,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 9,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**How it's brought in:** llama.cpp is a git submodule at `extern/llama.cpp`, pinned to commit b8420 (per the file doc in `src/inference/llama_cpp_backend.cpp`). `extern/CMakeLists.txt` documents the arrangement: header-only libraries are fetched at configure time via FetchContent, and llama.cpp is a submodule. The architecture doc describes it as direct C-API linkage with no wrapper layer. The index does not expose the CMake logic itself, so I can't confirm the exact link target or flags from it.\n\n**One stale point:** the `extern/CMakeLists.txt` comment says llama.cpp \"is NOT built in v1.8.0.\" That is a v1.8.0-era note. The code now calls the llama.cpp API directly, so the comment is out of date, and I couldn't check the current build wiring through the index.\n\n**How far it reaches into entropic's source:** it stops at the inference layer and does not leak into the public interface.\n\n- **Confined to `src/inference/`:** `llama_cpp_backend.{h,cpp}`, `llama_cpp_sampler.{h,cpp}`, and `llama_cpp_tokenizer.{h,cpp}` are the only first-party files that call llama.cpp types and functions (`llama_model`, `llama_context`, `llama_sampler`, `llama_vocab`, `llama_decode`, and the `common_chat` and mtmd helpers).\n- **Concrete classes only:** `LlamaCppBackend` derives from `InferenceBackend`. `LlamaCppSampler` derives from `Sampler`, `LlamaCppSamplerFactory` implements `SamplerFactory`, and `LlamaCppTokenizer` implements `Tokenizer`. Callers use the abstract types. The llama.cpp types are hidden behind these implementations.\n- **One C-API touchpoint:** `entropic_create_inference_backend` in `src/inference/inference_c_api.cpp` constructs `LlamaCppBackend`. `adapter_manager.cpp` also takes `llama_context*` directly.\n- **Tests:** several unit tests (`adapter_manager_test.cpp`, `speculative_compat_test.cpp`, `vocab_only_smoke_test.cpp`) define mock `llama_*` symbols, so they link against stand-ins rather than the real library.\n- **Public headers:** the `llama`-named search hits under `include/` were only the `llama_log_path` config field. The design rule in `.claude/CLAUDE.md` says no third-party headers in interface contracts. My search was capped at 50 rows, so this is a strong indication rather than a full proof.\n\n**Caveat:** I answered only from the index. The `llama.h` entry at the repo root is indexed with zero symbols and was never harvested, so I could not check what it declares or how it is included.",
+  "ttft_ms": 1489,
+  "type": "result",
+  "duration_ms": 16801,
+  "uuid": "943edc59-9770-4991-9466-7583eede33d7",
+  "ttft_stream_ms": 1237,
+  "time_to_request_ms": 66,
+  "first_content_frame_ms": 1237,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

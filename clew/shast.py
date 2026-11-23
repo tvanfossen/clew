@@ -54,7 +54,7 @@ _NAME_TYPE = "word"
 ## @param tree A parsed tree.
 ## @return True for a `program`-rooted tree containing a bash `function_definition`.
 ## @version 1
-## @dg_internal
+## @utility
 def is_sh_tree(tree: Any) -> bool:
     """A JS tree is also `program`-rooted, so the root alone decides nothing: the answer
     is whether a definition node of bash's shape is present. A shell script that defines
@@ -72,7 +72,7 @@ def is_sh_tree(tree: Any) -> bool:
 ## @param node A tree node.
 ## @return The function's name, or "".
 ## @version 1
-## @dg_internal
+## @utility
 def _definition_name(node: Any) -> str:
     """THE DISCRIMINATOR. C's `function_definition` has no `name` field at all (its name
     lives under `declarator`), so the field test alone separates the two grammars; the
@@ -123,7 +123,7 @@ def harvest_definitions(tree: Any, src_bytes: bytes) -> dict[str, list[dict[str,
 ## @param lines The file's lines, for the comment block above.
 ## @return The record.
 ## @version 1
-## @dg_internal
+## @utility
 def _function_record(node: Any, name: str, lines: list[str]) -> dict[str, Any]:
     """`args` is empty because the language has no parameter list — arguments arrive as
     `$1`/`$@` — and `ret` for the same reason. Reporting an invented signature would put a

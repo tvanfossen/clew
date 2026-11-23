@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `AppDataOperator` (`app/database/operator/app_data_operator/index.ts:15`) extends `BaseDataOperator` directly. It shares `batchRecords`, `prepareRecords`, and `processRecords`, but has none of the handler mixins. It operates on the global app database.\nVERDICT: HIT\nWHY: The answer names AppDataOperator as a direct BaseDataOperator subclass that shares the batchRecords/prepareRecords/processRecords write path for the app database."
+}

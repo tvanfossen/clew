@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Explicit call-time options.** `index(action='refresh', ...)` takes `scope`, `exclude`, `doxyfile`, `force` and an `options` mapping.\" and \"**Same setting, flag versus `.clew.yaml`:** the flag replaces the declaration outright.\"\n\nVERDICT: MISS\nWHY: The answer mentions a CLI flag and a structured `options` argument separately, but never states that tier 1 is reachable from both entry points, and it never says an embedding caller with no shell can still reach the top tier."
+}

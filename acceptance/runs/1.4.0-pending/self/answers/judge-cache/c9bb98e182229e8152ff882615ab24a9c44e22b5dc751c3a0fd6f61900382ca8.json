@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says that a single-token no-match was previously treated as proof of absence; it describes the current scoping of empty results but not that prior flaw or the \"nothing exists\" vs \"didn't look there\" confusion about single tokens."
+}

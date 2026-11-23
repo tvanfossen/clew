@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_MEMORY_BUFFER_ALLOC_C` (`library/memory_buffer_alloc.c`) is itself a client of this mechanism. `mbedtls_memory_buffer_alloc_init(buf, len)` carves a static caller-supplied buffer into a free-list heap and calls `mbedtls_platform_set_calloc_free` on its own functions (`memory_buffer_alloc.c:572-575`).\nVERDICT: MISS\nWHY: The answer says the buffer allocator calls the setter from its init function. It never says it is the only in-tree user, so the \"only\" claim is missing."
+}

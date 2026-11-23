@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `programs/ssl/ssl_client2.c:8` | Test/debug client program ... \"They are test drivers, not application examples.\"\nVERDICT: MISS\nWHY: The answer lists the programs as defining the macro but explicitly says they are not application examples, so it never states that example programs deliberately reach past the public API they otherwise demonstrate."
+}

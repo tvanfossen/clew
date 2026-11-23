@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Direct C API: `llama_model_load_from_file`, `llama_init_from_model`, decode, state save/restore, MTP and speculative decode, mtmd.\nVERDICT: HIT\nWHY: The answer says llama.cpp is used directly through its C API and lists llama_-prefixed free functions such as `llama_model_load_from_file`, `llama_init_from_model` and `llama_adapter_lora_init`."
+}

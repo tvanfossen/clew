@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Seven indexed files touch it: `llama_cpp_backend.{h,cpp}`, `llama_cpp_sampler.{h,cpp}`, `llama_cpp_tokenizer.{h,cpp}`, and `adapter_manager.cpp`\nVERDICT: MISS\nWHY: The answer says seven files in `src/inference/` plus one orchestrator leak, which is about eight files. That is not \"roughly a dozen\" files of entropic's own source, and it frames the dependency as concentrated in the inference layer."
+}

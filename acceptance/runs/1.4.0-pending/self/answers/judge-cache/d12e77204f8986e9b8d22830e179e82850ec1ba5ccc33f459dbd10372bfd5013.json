@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never mentions that collapsing duplicate rows picks a layer's provenance via a ranking in the vocabulary module rather than SQL; it only says `_direct_call_edges` collapses duplicates and lists sources from `vocabulary.py`."
+}

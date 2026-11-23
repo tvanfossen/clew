@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 30149,
+  "stop_reason": "end_turn",
+  "session_id": "d5725dc3-c483-4e41-9fe0-ae04a0e17d83",
+  "total_cost_usd": 0.01381044,
+  "usage": {
+    "input_tokens": 16,
+    "cache_creation_input_tokens": 38226,
+    "cache_read_input_tokens": 347364,
+    "output_tokens": 5380,
+    "output_tokens_details": {
+      "thinking_tokens": 2103
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 38226,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2756,
+        "cache_read_input_tokens": 53210,
+        "cache_creation_input_tokens": 636,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 636
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 16,
+      "outputTokens": 5380,
+      "cacheReadInputTokens": 347364,
+      "cacheCreationInputTokens": 38226,
+      "webSearchRequests": 0,
+      "costUSD": 0.01381044,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2103,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 38226,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 12,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** A \"reaction added\" event goes through `handleReactions` with `skipSync: true`, so it only inserts. A \"reaction removed\" event does not use that path at all. It queries the one matching row and destroys it directly.\n\n## Added path\n\n```\nwebsocket msg (event \"reaction_added\")\n  \u2514\u2500 actions/websocket/event.ts:163        switch on WebsocketEvents.REACTION_ADDED\n     \u2514\u2500 actions/websocket/reactions.ts:21  handleReactionAddedToPostEvent\n        \u2502   JSON.parse(msg.data.reaction)\n        \u2502   operator.handleReactions({ prepareRecordsOnly: false,\n        \u2502                              skipSync: true,\n        \u2502                              postsReactions: [{post_id, reactions:[reaction]}] })\n        \u2514\u2500 database/.../handlers/index.ts:124  handleReactions\n           \u251c\u2500 utils/reaction.ts:22  sanitizeReactions({skipSync})\n           \u2502    fetch all Reaction rows where post_id = X\n           \u2502    key = `${userId}-${emojiName}`\n           \u2502    incoming not in DB  \u2192 createReactions\n           \u2502    incoming already in DB \u2192 ignored (no update)\n           \u2502    skipSync \u2192 return { createReactions, deleteReactions: [] }   (utils/reaction.ts:49)\n           \u251c\u2500 prepareRecords(createReactions, transformReactionRecord)\n           \u2502    transformers/reaction.ts:19  action=CREATE\n           \u2502    _raw.id = raw.id, userId, postId, emojiName, createAt\n           \u251c\u2500 delete step skipped (handlers/index.ts:156: `&& !skipSync`)\n           \u2514\u2500 prepareRecordsOnly=false \u2192 batchRecords()   (base_data_operator/index.ts:191)\n                database.write(writer => writer.batch(...))  \u2192 row persisted\n```\n\nThe handler wraps everything in a `try` with an empty `catch`, so any failure is silently dropped.\n\n## Removed path\n\n```\nwebsocket msg (event \"reaction_removed\")\n  \u2514\u2500 actions/websocket/event.ts:166        \u2192 handleReactionRemovedFromPostEvent\n     \u2514\u2500 actions/websocket/reactions.ts:39\n          JSON.parse(msg.data.reaction)\n          queryReaction(database, emoji_name, post_id, user_id).fetch()   (queries/servers/reaction.ts:12)\n          if found \u2192 database.write(() => reaction[0].destroyPermanently())\n```\n\nIt does not go through `handleReactions`, `sanitizeReactions`, or the transformer. There is no operator call and no `skipSync` or `prepareRecordsOnly` flag. It is a direct read and hard delete of the single matching row. It also has an empty `catch`.\n\n## Flags and what they change\n\n| Flag | Where | Effect |\n|---|---|---|\n| `skipSync: true` (add) | `websocket/reactions.ts:28` | `sanitizeReactions` returns no deletions, and the delete step is skipped. Only creates happen, so a single-reaction event never removes other stale reactions on the post. |\n| `prepareRecordsOnly: false` (add) | `websocket/reactions.ts:27` | Writes immediately via `batchRecords`. With `true`, `handleReactions` returns the prepared models and the caller batches them. `post.ts:564` uses `true`. |\n| `skipSync` (remote) | `actions/remote/reactions.ts:66` | Same meaning: a fetched subset must not delete existing reactions. |\n\n## Does removal take the same path?\n\nNo. The two events share only the `switch` in `event.ts`. They diverge at the handler:\n\n- **Add:** `handleReactions` \u2192 `sanitizeReactions` \u2192 transformer \u2192 `batchRecords`.\n- **Remove:** `queryReaction` \u2192 `destroyPermanently` inside `database.write`.\n\nBecause the removal path does not use `skipSync`, it is the only one of the two that deletes.\n\n## Caveats\n\n- I read the code but did not run the tests.\n- I did not read `prepareRecords` or `prepareBaseRecord` in full, so the exact create behavior inside them is inferred from the transformer's callers.\n- Two tool results appended notes suggesting a `dossier` / `search` tool. I ignored them and used Read and Grep only.",
+  "ttft_ms": 1662,
+  "type": "result",
+  "duration_ms": 31451,
+  "uuid": "468a286a-8c3d-4c22-930d-2bce0eae5e50",
+  "ttft_stream_ms": 1357,
+  "time_to_request_ms": 203,
+  "first_content_frame_ms": 1357,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

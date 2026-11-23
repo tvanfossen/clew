@@ -3,6 +3,21 @@
 The depth behind [the README](../README.md): what clew indexes, how it is built and refreshed,
 what it promises and what it does not. Start with the README if you are new here.
 
+```mermaid
+flowchart LR
+  repo[your repository<br/>source · .clew.yaml · requirements.yaml]
+  repo --> harvest[index build<br/>doxygen + tree-sitter layers]
+  harvest --> db[(clew.db<br/>SQLite)]
+  db --> query[clew.query<br/>the stable API]
+  query --> mcp[MCP server<br/>dossier · search · index]
+  query --> cli[CLI<br/>clew query · refresh · wiki]
+  query --> wiki[wiki<br/>HTML · Markdown · live hub]
+  mcp --> agent([an agent])
+  wiki --> person([a person])
+  repo -. pre-commit .-> guard[clew guard<br/>doc gate + change impact]
+  guard -. impact.json .-> wiki
+```
+
 ## Before you point it at a repository
 
 **Files that are not source are never read**, whatever their extension: a zip or object file
@@ -31,18 +46,23 @@ nothing gets its whole tree indexed, and three of the four reference repositorie
 that way. The gate ships in this package and stays off until a repo declares its hook. See
 [docs/GUARD.md](GUARD.md).
 
-## The four tools
+## The tools
 
-An agent is the user, and these are the whole of what the server exposes. A human-facing browser
-over the index is deliberately deferred: repository searchability for a person is what an IDE
-already is, so building a second one is not where the value is.
+An agent is the user, and these are the whole of what the server exposes to it. The person's view
+of the same index is the generated wiki — requirements, flows, a system map, a page per function —
+described in [WIKI.md](WIKI.md).
 
 | tool | for |
 |---|---|
 | **`dossier`** | Everything about one named symbol in ONE reply: body excerpt, brief, both edge directions, locks held, the thread it runs on, requirements and covering tests, liveness. There is no separate `callers` or `chain_trace` tool — this is why. |
 | **`search`** | Find the name when you do not have one, or enumerate a whole layer. `corpus=` picks: symbols, prose, files, config, locks, threads. An empty result is graded and says what it did *not* read. |
-| **`index(action=…)`** | Administration, not questions: `refresh` builds, `status` diagnoses, `targets` lists every indexed repo, `stats` grades one, `cull` deletes aged-out databases. |
-| **`propose_declaration`** | Reads the repo's evidence and proposes a `.clew.yaml`, entirely as comments, for when a causal layer looks emptier than the code warrants. |
+| **`index(action=…)`** | Administration, not questions: `refresh` builds, `status` diagnoses, `targets` lists every indexed repo. Since 2.0.0, grading an index is `clew query stats` and deleting aged-out databases is `clew cull` — both CLI. |
+
+Since 2.0.0 the declaration proposer is an MCP **prompt**, `propose_declaration` (in Claude Code:
+`/mcp__clew__propose_declaration`), and the `clew propose` CLI: it reads the repo's evidence and
+proposes a `.clew.yaml`, entirely as comments, for when a causal layer looks emptier than the code
+warrants. A prompt costs nothing until someone invokes it. The wiki is readable as MCP resources:
+`clew://wiki/<slug>/llms.txt` and `clew://wiki/<slug>/flow/<name>`.
 
 **How to use them so they cost less than reading the source** is [SKILLS.md](../SKILLS.md) — batching,
 when depth pays, which layers to enumerate, and a blunt section on what clew cannot answer. Every
@@ -97,6 +117,17 @@ copy cannot outlive it.
 
 ## Refreshing an index
 
+```mermaid
+flowchart LR
+  save[a file is saved] --> event[OS file event<br/>MCP server watcher]
+  event --> fast{same definitions?<br/>≤ 4 files}
+  fast -- yes --> tier1[FAST tier, in place<br/>positions · outgoing calls · code text<br/>under a second]
+  fast -- no --> full
+  tier1 --> derived[replies carry the<br/>`derived` staleness axis]
+  derived --> full[FULL refresh in the background<br/>threads · locks · reachability · …]
+  full --> current[index current]
+```
+
 **A refresh is incremental, and a stale query refreshes itself before answering.** Both exist
 for the same reason: an agent that believes the index is expensive to correct stops using the
 index, and then reasons from a stale one — which is worse than not having it.
@@ -105,11 +136,25 @@ index, and then reasons from a stale one — which is worse than not having it.
   and the result is spliced into the existing database rather than replacing it. The closure is
   the part that has to be right: doxygen's xref pass is global, so editing `b.c` invalidates
   `a.c`'s edges into it even though `a.c` did not change, and a second pass over the include
-  graph recovers calls the edit itself introduces. On this repository doxygen went from 6218 ms
-  to 325 ms, taking a warm refresh from 8672 ms to ~2700 ms.
-- **Automatic.** When a query arrives against an index whose sources have moved, the refresh
-  runs first and the answer describes the current tree. That is the ~2700 ms above, once, rather
-  than a wrong answer immediately.
+  graph recovers calls the edit itself introduces.
+- **Two tiers.** A save that keeps a file's set of definitions takes the FAST tier: that file's
+  symbol positions, its outgoing call edges, its code-search text, file docs, requirement
+  mentions and blocking call sites are updated in place, in one transaction. Everything that is
+  a property of the whole index — reachability, threads, locks, conflicts, shared-key edges,
+  doxygen's own call layer — is left as it was and NAMED on every reply as the `derived`
+  staleness axis until a full refresh replaces the index. Measured with
+  `scripts/refresh_bench.py --fast` (a shared clone, one cold build, three one-comment edits,
+  median; 2026-11-18 at 0f25ff05, editing `clew/cli.py`, `library/ssl_tls.c`,
+  `src/facade/entropic.cpp` and `app/actions/remote/post.ts` of the acceptance pins): 233 ms on
+  this repository, 364 ms on mbedtls, 239 ms on entropic and 324 ms on mattermost-mobile,
+  in-process. An added, removed or renamed definition, a configuration file, or more than four
+  edited files takes the full tier instead — 3.2 s, 4.1 s, 4.3 s and 8.4 s on those repositories.
+  From a shell or an editor hook: `clew refresh`.
+- **Automatic.** The MCP server watches the repositories it has answered from (OS file events),
+  so a save is refreshed by the fast tier within about a second and the full refresh follows in
+  the background. A query that arrives against a stale index refreshes first; behind someone
+  else's build it waits at most a second and answers from the index as it stands, with its
+  staleness notice.
 - **You can still ask.** `index(action='refresh')` refreshes on demand; add `force=True` for a
   full rebuild.
 
@@ -131,15 +176,54 @@ Three limits worth knowing, none of them silent:
 output shape, so when it moves the cached doxygen output is discarded and no index of the old
 shape survives to be queried. Upgrading clew therefore costs one full build, once.
 
+## Programmatic use
+
+The MCP tools are one surface over the index; three more give the **same answer** to a consumer
+that is not an MCP client. All four build every reply through the same functions, so they cannot
+word one answer differently.
+
+| from | use |
+|---|---|
+| Python | `clew.query.export_dossier(db, subject, ...)` and `clew.query.export_search(db, text, corpus=...)` |
+| any process | `clew query dossier NAME [NAME ...]` / `clew query search TEXT --corpus C` — the same payload as JSON on stdout |
+| a long-lived host | one `clew-mcp` process: MCP is JSON-RPC 2.0 over stdio |
+
+What the export leaves out is the MCP **boundary**, not any of the answer: no byte budget, no
+default neighbour cap, and no `target`/`staleness` stamps — an export caller names its database
+and checks freshness with `read_build_signature`. Every export payload carries `wire_version`.
+
+`clew query` exits 0 with the payload on stdout, 1 when there is no index (stdout stays empty),
+and 2 when the request is refused (the reason on stderr).
+
 ## What semver covers
 
 **Covered** — a breaking change here means a major bump:
 
-- the `clew` CLI verbs and their flags (`init`, `propose`, `export`, and the
-  build invocation)
+- the `clew` CLI verbs and their flags: `init`, `propose`, `export`, `query`, the build
+  invocation, and since 2.0.0 **`clew guard` and `clew wiki`** with every subcommand, because
+  pre-commit hooks and CI call them. They are listed in
+  [`docs/cli-surface.json`](cli-surface.json), generated from the parsers; a test fails when one
+  is renamed or removed
 - the MCP **tool names and their wire keys** — a consumer reads `edge_class`,
-  `confidence`, `source` and friends by name
-- `clew.query`'s public functions and the dataclasses they return
+  `confidence`, `source` and friends by name. The keys are listed in
+  [`docs/wire-keys.json`](wire-keys.json), generated from the reply dataclasses; a
+  test fails when one is renamed or removed
+- **`clew wiki flow` JSON** (2.0.0): the `Flow` / `Lane` / `Step` / `Frame` fields, under
+  `flow` in [`docs/wire-keys.json`](wire-keys.json), with `flow_version`. A later change is
+  additive or moves `flow_version`
+- **the gate's machine outputs** (2.0.0):
+  - `impact.json` is `{"schema_version": 1, "entries": [...]}`; its keys are under `impact` in
+    [`docs/wire-keys.json`](wire-keys.json). The wiki still reads a pre-2.0.0 bare array.
+  - `clew guard validate --format sarif|gitlab|github` are covered as "conforms to that format"
+    (SARIF 2.1.0, GitLab Code Quality, GitHub workflow commands), schema-tested; the rule ids
+    and messages inside may change
+- **the wiki's exports** (2.0.0), as **format conformance only**: `requirements.reqif` is ReqIF
+  1.2, `needs.json` has Sphinx-needs' layout, `system.dsl` is a Structurizr workspace, and each
+  flow is valid Mermaid, PlantUML and Graphviz DOT; `llms.txt` follows the llms.txt layout. Their
+  CONTENTS follow the repository and are not covered
+- `clew.query`'s public functions and the dataclasses they return, including the
+  export API (`export_dossier`, `export_search`, `WIRE_VERSION`) — see
+  [Programmatic use](#programmatic-use)
 
 **Not covered**, and deliberately so:
 
@@ -267,22 +351,6 @@ installs no hook at all.
 `doxygen` is a C++ binary, so it cannot be a Python dependency — `clew init` checks for it and
 tells you if it is missing. Everything else, including the MCP SDK, comes with the package.
 
-### Working on clew itself
-
-```bash
-python3 -m venv .venv
-.venv/bin/pip install -e .[dev]   # pipeline + the doxygen gate + dev tooling
-sudo apt install doxygen          # external binary (plantuml optional)
-.venv/bin/pre-commit install      # the commit-time gate — not optional
-```
-
-That last line is listed because this repository reached 1.1.0 without it: nothing gated a commit,
-and every green in its history was a human remembering to run one. The `gate-hygiene` hook now
-refuses to report success in a checkout where it is missing.
-
-[AGENTS.md](../AGENTS.md) is the contributor contract — the gate, the `@version` rule on doxygen
-blocks, "absence is not emptiness", and the seven places a new index layer has to touch.
-
 ## Build a database
 
 ```bash
@@ -317,18 +385,41 @@ requirements:         docs/requirements.yaml
 thread_patterns:      {spawns: [{name: osThreadNew, entry_arg_index: 0}]}
 shared_key_patterns:  {writers: [{name_prefix: Store_Set}], readers: [{name_prefix: Store_Get}]}
 locks:                {locks: [{name: MyGuard, form: raii}]}
-dispatch:             {interfaces: [...]}
-mqtt_dispatch:        {subscribe_functions: [...]}
+dispatch:             {interfaces: [{interface: ops, binds: struct_ops, methods: [read, write]}]}
+mqtt_dispatch:        {subscribe_functions: [{fn_name: mqtt_subscribe, topic_arg_index: 0, handler_arg_index: 1}]}
 data_model:           tools/dm_full.toml
-kconfig:              {path: Kconfig}
-event_tags:           {emits: produce, handles: consume}
+kconfig:              {root: Kconfig}
+event_tags:           {emits: producer, handles: consumer}
 entry_patterns:       ["%trampoline%", "on_%"]
 enrich:               docs/architecture_topics.yaml
+doxyfile:             doxygen/project.doxyfile
+tests:                {paths: ["test/*", "*_test.cpp"], junit: [build/junit.xml]}  # + evidence: docs/WIKI.md
+vendored:             [third_party/json]
+owners:               {codeowners: meta/OWNERS}   # default: .github/CODEOWNERS etc. and MAINTAINERS
+blocking:             {primitives: [{name: os_sem_wait, timeout_arg_index: 1}], isr_predicates: [up_interrupt_context]}
+sub_indexes:          {deps-slam: {excludes: [deps/slam/third_party]}}
+guard:                {validate: {tags: {req: {cross_reference: true}}}}   # the gate: docs/GUARD.md
+wiki:                 {title: My project, flows: [{entry: main, depth: 2}]}  # the wiki: docs/WIKI.md
 ```
 
 Nothing about a target repo is hardcoded: every section above is a declared override of
 a built-in default. The identical mapping is the `options` argument of `build_index()` and
 of the MCP `index(action="refresh")` tool, so an agent with no shell can state any of it.
+
+### What the walk skips, and what `vendored:` changes
+
+- **Dot-directories are never walked.** `.github/`, `.vscode/` and every other directory whose
+  name starts with `.`, plus `__pycache__` and `node_modules`, are pruned (`scope._skip_dir`).
+  A script under `.github/scripts/` is therefore never indexed, whatever `index_scope` says
+  beneath it. That is a scope decision, not an oversight.
+- **External code is a nested git tree** (a submodule, or a directory with its own `.git`).
+  Its files are indexed and stamped with the tree that owns them, and counts that exclude
+  external code are counts over that stamp.
+- **`vendored:` is a statement, not a filter.** A declared path is recorded as
+  `scope.vendored_roots`, with a path that does not exist named in
+  `scope.vendored_declared_missing`. It is reported in the index's scope (`status`,
+  `doc_scope`), and the wiki draws it in the Vendor block beside nested git trees. It never removes a file from the
+  index or from a count. To leave a path out, use `index_scope.excludes`.
 
 The declared `@req` id pattern and the catalog column mapping come from the `guard:` section
 of the same `.clew.yaml` — the gate's config, read by the index with the gate's schema (see
@@ -373,7 +464,7 @@ module findable by a query naming the concept rather than a function name.
 ## Without an agent
 
 `clew.query` is importable and returns JSON-serializable dataclasses. It is what the MCP server
-is a view over, so no query logic exists twice — and it is **wider than the four tools**, by
+is a view over, so no query logic exists twice — and it is **wider than the MCP tools**, by
 design: `callers`, `callees`, `chain_trace`, `req_trace` and `thread_of` are functions here,
 folded into `dossier` at the tool layer to keep one call answering a whole question.
 
@@ -390,28 +481,19 @@ search("clew.db", "retry backoff")    # find the name when you do not have one
 requirement or Kconfig symbol — and its reply names which kind resolved. `function_dossier` is
 the narrower form that describes a function or macro and returns `None` for anything else.
 
-## Layout
+`clew wiki` turns the same index into a static documentation site — derived sequence
+diagrams, the requirement trace with CI evidence, charts and a burndown. See
+[WIKI.md](WIKI.md).
 
-| Path | What |
-|---|---|
-| `clew/` | The pipeline (`python -m clew`) |
-| `clew/query/` | The stable query API the MCP server is a view over |
-| `clew/guard/` | The doxygen gate (`clew guard`, formerly doxygen-guard); tests in `tests/guard/` |
-| `tests/` | `.venv/bin/python -m pytest tests/ -q` (add `--integration` for the tier that builds real repos) |
-| `acceptance/DESIGN.md` | The schema and grading routine for the instrument being rebuilt |
-| `acceptance/operational/` | Build and refresh cost, and judge variance — measured beside the matrix, never inside it |
+## Working on clew itself
 
-## Dogfooding
-
-clew runs its own gate: `.venv/bin/pre-commit run --all-files` → ruff (lint +
-format), the doxygen gate (`@brief`/`@version`/`@return` presence on the shipped
-package, run from this tree as `python -m clew guard`), and the full test suite. Its own
-catalog lives in `requirements.yaml`.
+Contributor material — the development setup, the package layout and how clew runs its own gate —
+is in [DESIGN.md](DESIGN.md); the contributor contract is [AGENTS.md](../AGENTS.md).
 
 ## The doxygen gate (`clew guard`)
 
 doxygen-guard was a separate tool that clew consumed as a pip dependency. It is now part of
-clew (`clew/guard/`, absorbed at its 1.4.2 release). Its config is the `guard:` section of the
+clew (`clew/guard/`, absorbed at doxygen-guard's own 1.4.2 release). Its config is the `guard:` section of the
 repo's `.clew.yaml`, so the gate and the index read one file with one schema;
 `.doxygen-guard.yaml` is no longer read. The tags are unchanged; THE HOOK ID IS NOT — it is
 `clew-guard` now, because one tool in one repository should not answer to the name of the

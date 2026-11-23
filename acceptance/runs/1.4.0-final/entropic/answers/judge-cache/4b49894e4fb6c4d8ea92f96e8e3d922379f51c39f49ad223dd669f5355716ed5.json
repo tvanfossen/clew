@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"In `check_approval`, though, the callback path sets `approved = true` unconditionally after calling `on_tool_call`. As the body reads, the callback is a notification and not a yes/no gate\"\nVERDICT: HIT\nWHY: The answer states the callback is a notification, not a gate, and that approved is set to true unconditionally after it fires. It does not mention the void return type, but the mechanism is covered."
+}

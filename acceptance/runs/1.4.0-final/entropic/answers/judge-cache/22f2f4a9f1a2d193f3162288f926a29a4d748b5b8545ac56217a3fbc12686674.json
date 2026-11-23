@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Patterns are strings matched with `fnmatch` (flags 0, so `*` also crosses `/`). Each has the form `tool` or `tool:argpattern`.\" and \"**`tool` with no colon** (`filesystem.read_file`): matches the tool name only, for any arguments.\"\nVERDICT: MISS\nWHY: The answer states fnmatch matching and that a pattern with no colon matches the tool name only. It never says the pattern is split at the first colon into a tool part and an argument part. It only says the tool part must match and then the full string must match."
+}

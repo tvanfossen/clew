@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 22111,
+  "stop_reason": "end_turn",
+  "session_id": "66acf74a-1808-400a-94ed-bf1833218f30",
+  "total_cost_usd": 0.01579262,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 56689,
+    "cache_read_input_tokens": 229032,
+    "output_tokens": 4327,
+    "output_tokens_details": {
+      "thinking_tokens": 1426
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 56689,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2593,
+        "cache_read_input_tokens": 65788,
+        "cache_creation_input_tokens": 5531,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 5531
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 4327,
+      "cacheReadInputTokens": 229032,
+      "cacheCreationInputTokens": 56689,
+      "webSearchRequests": 0,
+      "costUSD": 0.01579262,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1426,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 56689,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 14,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** The add and remove events both start in `handleWebSocketEvent`, but they take different paths after that. Add goes through the sync-handler machinery (`sanitizeReactions` \u2192 `handleReactions` \u2192 transformer \u2192 `batchRecords`). Remove bypasses that machinery entirely and destroys the row directly. The only flag on the path is `skipSync: true` on the add side, and it does not change what gets written on add.\n\n```\nwebsocket msg (event: \"reaction_added\")\n  \u2514\u2500 websocket_manager.createClient \u2192 handleWebSocketEvent(serverUrl, msg)   [event.ts:44]\n       switch(msg.event) case REACTION_ADDED                                  [event.ts:163]\n         \u2514\u2500 handleReactionAddedToPostEvent(serverUrl, msg)                    [websocket/reactions.ts:21]\n              \u251c\u2500 DatabaseManager.getServerDatabaseAndOperator(serverUrl)\n              \u251c\u2500 reaction = JSON.parse(msg.data.reaction)\n              \u2514\u2500 operator.handleReactions({prepareRecordsOnly:false, skipSync:true,\n                                           postsReactions:[{post_id, reactions:[reaction]}]})\n                   \u2514\u2500 handleReactions                                         [handlers/index.ts:124]\n                        \u251c\u2500 sanitizeReactions({database, post_id, rawReactions, skipSync})  [utils/reaction.ts:22]\n                        \u2502    \u251c\u2500 load all Reaction rows for post_id\n                        \u2502    \u251c\u2500 map existing by `${userId}-${emojiName}`\n                        \u2502    \u251c\u2500 raw not in map \u2192 createReactions.push({raw})\n                        \u2502    \u2514\u2500 skipSync \u2192 return {createReactions, deleteReactions: []}\n                        \u251c\u2500 prepareRecords({createRaws, transformer: transformReactionRecord, tableName: REACTION})\n                        \u2502    \u2514\u2500 transformReactionRecord [transformers/reaction.ts:19]\n                        \u2502         \u2514\u2500 prepareBaseRecord \u2192 database.collections.get(REACTION).prepareCreate(fieldsMapper)\n                        \u2502              fieldsMapper: _raw.id = raw.id, userId, postId, emojiName, createAt\n                        \u2514\u2500 batchRecords(batchRecords, 'handleReactions')      [base_data_operator:191]\n                             \u2514\u2500 database.write(writer => writer.batch(...))   \u2190 row lands in SQLite here\n```\n\n**Add path, step by step**\n\n1. `handleWebSocketEvent` maps `WebsocketEvents.REACTION_ADDED` (`'reaction_added'`, `constants/websocket.ts:47`) to `handleReactionAddedToPostEvent`. The call is not awaited in the switch.\n2. The handler parses `msg.data.reaction`, which is a JSON string, and passes it as a one-element `postsReactions` array to the server operator's `handleReactions`.\n3. `sanitizeReactions` decides what to create. It skips any raw reaction whose `user_id + emoji_name` already exists on the post, so a duplicate add writes nothing.\n4. `handleReactions` builds `ReactionModel` records with `transformReactionRecord`. On create, the record's `_raw.id` comes from the server's reaction id.\n5. `batchRecords` runs the writes inside `database.write`.\n\n**Flags that matter on the add path**\n\n- **`skipSync: true`** (set by the websocket handler). In `sanitizeReactions`, this returns early with `deleteReactions: []`, so a single add event never deletes other reactions on the post. Without it, the function would diff the full DB set against the incoming list and mark anything missing for deletion. In `handleReactions`, the same flag gates the `deleteReactions` branch.\n- **`prepareRecordsOnly: false`** means the handler actually writes. With `true`, it would return the prepared records without persisting them.\n- Errors are swallowed twice. `batchRecords` is called without `propagateError`, so a write failure only logs a warning. The websocket handler also has an empty `catch`.\n\n**Remove path: no, it does not take the same path**\n\n`handleReactionRemovedFromPostEvent` (`websocket/reactions.ts:39`) does not call `handleReactions`, `sanitizeReactions`, or any transformer:\n\n1. Parse `msg.data.reaction`.\n2. `queryReaction(database, emoji_name, post_id, user_id).fetch()` finds the row (`queries/servers/reaction.ts:12`).\n3. If a row is found, `database.write` calls `reaction[0].destroyPermanently()`.\n\nSo the remove path has no flags. `skipSync` and `prepareRecordsOnly` do not apply. It also cannot leave a stale row behind, because it deletes whatever row matches the three-field key. It does not use `handleReactions` in any way, so the `deleteReactions` branch is never reached on this path. The write is a direct, permanent destroy rather than a soft delete, and it only ever removes `reaction[0]`.\n\n**Caveats**\n\n- I did not open the body of `destroyPermanently`, so I am assuming it is the standard WatermelonDB model method.\n- Both websocket handlers swallow all errors with empty `catch` blocks, so a failed add or remove is silent in the logs.",
+  "ttft_ms": 1786,
+  "type": "result",
+  "duration_ms": 25345,
+  "uuid": "2ec5d0bc-a937-4b50-8a58-9798782c3f44",
+  "ttft_stream_ms": 1139,
+  "time_to_request_ms": 77,
+  "first_content_frame_ms": 1140,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

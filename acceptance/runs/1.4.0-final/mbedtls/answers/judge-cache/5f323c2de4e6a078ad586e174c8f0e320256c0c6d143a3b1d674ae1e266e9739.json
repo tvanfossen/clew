@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `programs/ssl/ssl_client2.c:8` | The `ssl_client2` test/sample program | Raw member access in that program\nVERDICT: HIT\nWHY: The answer lists example programs (ssl_client2, ssl_server2) as defining MBEDTLS_ALLOW_PRIVATE_ACCESS themselves to get raw member access, which is the opt-out. It also says that \"the code is coupled to the struct layout\"."
+}

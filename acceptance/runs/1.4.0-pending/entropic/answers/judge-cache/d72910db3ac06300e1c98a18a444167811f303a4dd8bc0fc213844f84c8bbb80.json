@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `stop()` sets `running_` false, notifies `wake_cv_`, and joins.\nVERDICT: HIT\nWHY: The answer states that HealthMonitor's stop() sets a running flag, notifies a condition variable, and joins the thread. That covers the wake and the join. It never calls the flag an atomic exchange, so that detail is only implied."
+}

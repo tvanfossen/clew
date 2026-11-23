@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: If the project has not defined those, the defaults are stubs: calloc returns NULL and free does nothing (`platform.c:25-42`). The stubs are there so that a missing setup fails safely rather than crashing.\nVERDICT: HIT\nWHY: The answer states that uninitialised default pointers resolve to stubs where calloc returns NULL and free does nothing, i.e. they fail rather than falling back to libc."
+}

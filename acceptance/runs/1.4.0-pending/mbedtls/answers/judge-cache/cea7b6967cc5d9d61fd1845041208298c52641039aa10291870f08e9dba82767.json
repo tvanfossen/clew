@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_ct_compiler_opaque(x)` is `asm volatile(\"\" : \"+r\"(x))` when assembly is enabled. Otherwise it is `x ^ mbedtls_ct_zero`... This stops the compiler from proving a value and turning the mask arithmetic back into a `cmp`/`jcc`.\nVERDICT: HIT\nWHY: The answer shows the empty `asm volatile(\"\" : \"+r\"(x))` with the value as an in-out register operand and says it exists to stop compiler optimisation. It never says outright that no instruction is emitted, but an empty asm string implies that."
+}

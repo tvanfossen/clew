@@ -336,7 +336,7 @@ _OPERATOR_FILELESS = (
 # @brief Drain stdin fully while keeping only the first `_MAX_EVENT` bytes.
 # @return The retained prefix of the event.
 # @version 1
-# @dg_internal
+# @utility
 def _drain_stdin() -> bytes:
     """DRAIN EVERYTHING, KEEP ALMOST NOTHING. The caller writes the event into a pipe and would
     block if nobody emptied it, so the read cannot be cut short — but nothing requires holding the
@@ -373,7 +373,7 @@ def _drain_stdin() -> bytes:
 # @param token A candidate path from `tool_input`, of unknown type and content.
 # @return A name in `[A-Za-z0-9._-]{1,64}` not starting with `.`, or None.
 # @version 1
-# @dg_internal
+# @utility
 def _safe_token(token: object) -> str | None:
     """THIS FUNCTION IS THE SECURITY BOUNDARY. Its return set is the complete set of bytes that can
     reach a consumer's model from outside this file, so it is written to be read in one sitting and
@@ -418,7 +418,7 @@ _WRITE_MARKERS = (">", "<<")
 # @param command The raw `tool_input.command` string.
 # @return True when some segment runs a reading verb.
 # @version 1
-# @dg_internal
+# @utility
 def _is_inspection(command: object) -> bool:
     """gh#11. This hook fired on EVERY Bash call, so `git push`, `sleep 25` and `rm -rf` were
     counted and then REPORTED as file inspections — the note's own text says "N file-inspection
@@ -457,7 +457,7 @@ def _is_inspection(command: object) -> bool:
 # @param segment One pipeline/list segment of a command.
 # @return The bare verb, or '' when the segment names none.
 # @version 1
-# @dg_internal
+# @utility
 def _segment_verb(segment: str) -> str:
     """@brief Read a segment's command word.
     @return The basenamed verb, or ''.
@@ -474,7 +474,7 @@ def _segment_verb(segment: str) -> str:
 # @param command The raw `tool_input.command` string.
 # @return A candidate path, or None whenever anything is uncertain.
 # @version 1
-# @dg_internal
+# @utility
 def _bash_target(command: object) -> str | None:
     """BIASED HARD TOWARD None, AND THAT IS THE DESIGN. A note saying "you read foo.py" when the
     agent read `bar.py` costs more credibility than a fileless note costs attention — and this
@@ -512,7 +512,7 @@ def _bash_target(command: object) -> str | None:
 # @param raw The undecoded stdin bytes.
 # @return The command string, or '' when the event does not carry one.
 # @version 1
-# @dg_internal
+# @utility
 def _event_command(raw: bytes) -> str:
     """SAME RUNGS AS `_target_name`, and every one of them falls to `''`. This runs on the hot
     path — before the note is due — so it must be as unable to raise as that function is: a
@@ -548,7 +548,7 @@ def _event_command(raw: bytes) -> str:
 # @param modality The argv-supplied modality flag.
 # @return A safe basename, or None to use the fileless note.
 # @version 1
-# @dg_internal
+# @utility
 def _target_name(raw: bytes, modality: str) -> str | None:
     """EVERY RUNG FALLS TO None, AND None IS ALWAYS SAFE — it selects the fileless note, which is
     where this component was before 1.0.10. There is no rung that raises and none that returns
@@ -592,7 +592,7 @@ def _target_name(raw: bytes, modality: str) -> str | None:
 # @param modality Which tool ran, from argv.
 # @return The value as the event carried it, or None.
 # @version 1
-# @dg_internal
+# @utility
 def _input_value(event: object, modality: str) -> object:
     """SHARED WITH `_target_name` SO ONE RULE READS THE EVENT. Two extractions would be two
     answers to "which file did this call inspect", and the containment check below and the note's
@@ -624,7 +624,7 @@ def _input_value(event: object, modality: str) -> object:
 # @param modality Which tool ran, from argv.
 # @return True only on positive evidence of a path outside the root.
 # @version 1
-# @dg_internal
+# @utility
 def _outside_repo(raw: bytes, modality: str) -> bool:
     """gh#44. THE TALLY COUNTED INSPECTIONS ANYWHERE ON DISK AND THE NOTE CALLED THEM "in this
     repository". A session auditing markdown under `~/.claude/projects/<id>/memory/` accumulated
@@ -667,7 +667,7 @@ def _outside_repo(raw: bytes, modality: str) -> bool:
 # @brief The once-per-session marker path for this hook invocation.
 # @return Path string under the temp directory.
 # @version 4
-# @dg_internal
+# @utility
 def _marker_path() -> str:
     """The marker gives "once per session" its memory: the hook is a fresh process every time, so
     the fact that it has already spoken has to live somewhere.
@@ -698,7 +698,7 @@ def _marker_path() -> str:
 # @param suffix Which tally to read.
 # @return The count, or 0 when it cannot be read.
 # @version 1
-# @dg_internal
+# @utility
 def _tally(suffix: str) -> int:
     """SIZE IS THE COUNT. Each event appends one byte, so a tally needs no parsing, no
     read-modify-write and no lock — two concurrent tool calls both append and both are counted,
@@ -721,7 +721,7 @@ def _tally(suffix: str) -> int:
 # @param suffix Which tally to append to.
 # @return None.
 # @version 1
-# @dg_internal
+# @utility
 def _record(suffix: str) -> None:
     """@brief Append one byte to a tally, ignoring any failure.
     @return None.
@@ -739,7 +739,7 @@ def _record(suffix: str) -> None:
 # @param suffix Which tally to clear.
 # @return None.
 # @version 1
-# @dg_internal
+# @utility
 def _clear(suffix: str) -> None:
     """THE DECAY THE POLICY WAS MISSING. Without it the tally is monotonic and the loudest tier is
     a one-way door: a session measured at 1,339 searches needed ~408 consecutive index calls to
@@ -766,7 +766,7 @@ def _clear(suffix: str) -> None:
 # @param pressure Searches since the index was last used.
 # @return The JSON reply to write on stdout.
 # @version 1
-# @dg_internal
+# @utility
 def _payload_for(pressure: int, modality: str, name: str | None) -> str:
     """TWO RUN-TIME VALUES REACH THE MODEL AND BOTH ARE BOUNDED: an `int` through `%d`, and a string
     that came out of `_safe_token`. `int()` first, so a corrupted tally can only widen a number; and
@@ -813,7 +813,7 @@ def _payload_for(pressure: int, modality: str, name: str | None) -> str:
 # @param pressure Searches since the index was last used.
 # @return True when a note is due.
 # @version 2
-# @dg_internal
+# @utility
 def _is_due(pressure: int) -> bool:
     """THE LOUD TIER NO LONGER FIRES ON EVERY CALL, AND THAT IS A FIX RATHER THAN A SOFTENING. It
     did, and one measured session took ~30 near-identical injections past the threshold — which is

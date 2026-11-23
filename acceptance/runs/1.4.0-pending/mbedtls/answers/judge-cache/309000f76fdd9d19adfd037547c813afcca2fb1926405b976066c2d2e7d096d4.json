@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: MBEDTLS_PLATFORM_MEMORY off (default)\n  mbedtls_calloc -> calloc          (macro, platform.h:163-167)\n  mbedtls_free   -> free\n\nVERDICT: HIT\nWHY: The answer states that in the default config (MEMORY off) mbedtls_calloc and mbedtls_free are macros mapping directly to calloc and free."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: about 889 occurrences across 74 files, e.g. `ssl.h` has 210\nVERDICT: HIT\nWHY: The answer gives the scale (~889 sites) and says the public header struct declarations wrap their fields in the macro, naming `ssl.h` with 210 occurrences. That shows the usage is mostly in the public headers."
+}

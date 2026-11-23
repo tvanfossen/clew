@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_THREADING_C` has `default_state: off`, declared at `include/mbedtls/mbedtls_config.h:3787`.\nVERDICT: MISS\nWHY: The answer says only MBEDTLS_THREADING_C is off by default; it never states that both threading macros (including MBEDTLS_THREADING_PTHREAD) are left undefined in the shipped config."
+}

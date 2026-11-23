@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 24824,
+  "stop_reason": "end_turn",
+  "session_id": "d88b131b-46eb-48a8-9c12-867520f8d925",
+  "total_cost_usd": 0.01384802,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 42433,
+    "cache_read_input_tokens": 307872,
+    "output_tokens": 4563,
+    "output_tokens_details": {
+      "thinking_tokens": 2201
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 42433,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2925,
+        "cache_read_input_tokens": 72220,
+        "cache_creation_input_tokens": 13559,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 13559
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 4563,
+      "cacheReadInputTokens": 307872,
+      "cacheCreationInputTokens": 42433,
+      "webSearchRequests": 0,
+      "costUSD": 0.01384802,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2201,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 42433,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 11,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The setting is a single server config value, `ExperimentalViewArchivedChannels`. The app reads it in one place and treats only the literal string `'false'` as off. When the server doesn't send it, the app behaves as if it were on.\n\n**How the value is read** (`app/queries/servers/system.ts`)\n- `archivedChannelsViewable(value)` returns `value !== 'false'` (line 304).\n- `canViewArchivedChannels(database)` (line 306) reads the stored config value and passes it through that check. It is the one-shot async form.\n- `observeCanViewArchivedChannels(database)` (line 310) is the reactive form. It maps the same check over `observeConfigValue` and applies `distinctUntilChanged`.\n\n**Where the behaviour depends on it**\n\n| Location | What changes when the setting is off (`'false'`) | What changes when it is on or absent |\n|---|---|---|\n| `app/actions/remote/channel.ts:1390` `archiveChannel` | Removes the current user from the channel locally. | Sets `delete_at` locally on the channel and keeps the membership row. |\n| `app/actions/websocket/channel.ts:441` `handleChannelDeletedEvent` | If the user is viewing the channel, calls `handleKickFromChannel` with `CHANNEL_ARCHIVED`, then removes the user from the channel. | Only records `delete_at`; the channel stays in the local DB. |\n| `app/actions/remote/search.ts:58` `searchPosts` (line 62) | Sends `include_deleted_channels: false` to the server. | Sends `include_deleted_channels: true`. |\n| `app/screens/browse_channels/index.ts:21` | Passes `canShowArchivedChannels` down to `browse_channels.tsx`, `channel_dropdown.tsx` and `dropdown_slideup.tsx`. The archived filter in `search_handler.tsx:39` only applies when the option is shown. I did not read the exact gating condition. | Same props, with the value set to true. |\n| `app/screens/channel_settings/archive/index.ts:21` and `archive.tsx:111-123` | After a successful archive, calls `close(!canViewArchivedChannels)`. I did not read `close`'s signature, so I can't say exactly what the flag does. | Keeps the screen open per the flag's meaning. |\n| `app/screens/home/channel_list/categories_list/categories/header/index.ts:15` | Passes the flag into the category header. I inferred that it reaches `CategoryModel.observeHasChannels(canViewArchived, channelId)` (`app/database/models/server/category.ts:107`), but the caller link did not resolve in the index. | When true, archived channels count as channels in the category, plus the currently open one. When false, only channels with `delete_at === 0` count. |\n\nTwo more are reached through the same check in the archive flow: `archiveChannel` and `handleChannelDeletedEvent` both call `canViewArchivedChannels`.\n\n**When the server does not send the setting**\n\n`getConfigValue` and `observeConfigValue` return `undefined` when there is no row (`system.ts:170-173` and `266-270`). `archivedChannelsViewable(undefined)` evaluates `undefined !== 'false'`, which is `true`. So an absent setting means:\n- Archiving marks channels with `delete_at` and keeps membership.\n- Deleted-channel events don't kick the user out.\n- Post search asks the server for deleted channels.\n- The browse and category UI shows archived channels.\n\nThe absent case is therefore the \"viewable\" path, not the legacy removal path.\n\n**Caveats**\n- I did not inspect where the config value is written. The index shows only the read side.\n- The `close(!canViewArchivedChannels)` argument and the `canShowArchivedChannels` gating in the dropdowns are unverified beyond the call sites shown above.",
+  "ttft_ms": 1467,
+  "type": "result",
+  "duration_ms": 28903,
+  "uuid": "6881dacd-ad59-4309-b819-cc9c24fb5eeb",
+  "ttft_stream_ms": 1121,
+  "time_to_request_ms": 65,
+  "first_content_frame_ms": 1121,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

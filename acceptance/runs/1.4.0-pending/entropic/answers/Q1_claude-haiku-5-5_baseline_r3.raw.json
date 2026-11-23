@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 37264,
+  "stop_reason": "end_turn",
+  "session_id": "99584284-4169-407d-901a-f15114ad0f6c",
+  "total_cost_usd": 0.01025568,
+  "usage": {
+    "input_tokens": 18,
+    "cache_creation_input_tokens": 16352,
+    "cache_read_input_tokens": 359998,
+    "output_tokens": 6767,
+    "output_tokens_details": {
+      "thinking_tokens": 3117
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 16352,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2323,
+        "cache_read_input_tokens": 48460,
+        "cache_creation_input_tokens": 1644,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1644
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 18,
+      "outputTokens": 6767,
+      "cacheReadInputTokens": 359998,
+      "cacheCreationInputTokens": 16352,
+      "webSearchRequests": 0,
+      "costUSD": 0.01025568,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 3117,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 16352,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 13,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Why it calls twice:** `LlamaCppTokenizer::tokenize` (`src/inference/llama_cpp_tokenizer.cpp:49-71`) uses llama.cpp's two-phase sizing protocol. The first `llama_tokenize` call passes a null buffer and zero capacity, so llama.cpp returns the negated token count it would need. The code flips the sign, allocates a vector of that size, and makes the second call to fill it. The first call is a size query, not an attempt that failed.\n\n**Is it retry logic?** No. The second call is unconditional and runs on every input, whether or not the first one \"failed.\" The only error check is on the second call. Nothing re-runs the same operation on failure.\n\nThe \"two places\" are the same pattern in two functions:\n- `tokenize` always makes two `llama_tokenize` calls.\n- `detokenize` (lines 86-105) makes a second `llama_token_to_piece` call only when the 256-byte stack buffer is too small. That is size-on-demand, and it is still not retry.\n\n**What the caller receives on failure:**\n\n| Layer | Failure result | Notes |\n|---|---|---|\n| `LlamaCppTokenizer::tokenize` | `{}` | Also `{}` when `vocab_` is null. Logs one error line. |\n| `LlamaCppBackend::tokenize` (`llama_cpp_backend.cpp:788`) | `{}` | Also `{}` when `tokenizer_` is unset. |\n| `LlamaCppTokenizer::detokenize` | `\"\"` | Logs nothing on the second-call failure path. |\n\nThe empty vector is indistinguishable from a legitimate empty result. With `add_special=false` and `\"\"`, `{}` is correct. No error code or flag reaches the caller.\n\n**What the callers do with it:**\n\n- **`do_count_tokens`** (`:825`) returns 0. `count_tokens` and `entropic_inference_count_tokens` (`inference_c_api.cpp:548`) pass 0 through. The C API has no error channel for this, so a caller doing context budgeting sees \"0 tokens\" and proceeds.\n- **`tokenize_text`** (`:837`) returns an empty vector to its caller.\n- **Generation entry points** (`do_generate_text_only` `:2561`, the cancellable variant `:2643`, the stream variant `:2728`, `do_complete` `:3947`) log \"0 input tokens\" and pass the empty vector to `run_prefill_cached`. `run_prefill` (`:1484`) loops over zero chunks and returns `true` (`:1502`). So generation proceeds with no prompt decoded, and no error is returned. I did not trace the cache-HIT path or the decode loop after that, so I can't say exactly what text the model produces. The only signal is the log line.\n- **Speculative and MTP paths** (`:3593`, `:3921`) check `tokens.size() < 2` and return `ENTROPIC_ERROR_GENERATE_FAILED`. This is the only place a tokenizer failure surfaces as an error, and the message (\"prompt must have at least 2 tokens\") misattributes the cause.\n- **System-prompt token accounting** (`:2066`) returns 0, which corrupts prefix-count bookkeeping without any error.\n- **`detokenize` failure** returns `\"\"`. In generation (`:1534`), the piece is appended as empty, `on_token` fires with an empty `string_view`, and the stop-sequence check runs on unchanged text. Streamed output silently drops a token.\n\n**Bottom line:** the sizing double-call is correct and not retry logic. The failure contract is the problem. Tokenization failure is reported as an empty vector, which the generation paths treat as a valid zero-length prompt, and the only log is one error line in the tokenizer. Most callers do not check for it. If you want this fixed, the smallest change is to return a `Result`-style status from `LlamaCppTokenizer::tokenize` and have the generation entry points reject an empty prompt when the input text was non-empty. That is a design change, so I have not made it.\n\nI did not run any tests or builds. The findings come from reading the code.",
+  "ttft_ms": 1597,
+  "type": "result",
+  "duration_ms": 38223,
+  "uuid": "849b108f-039f-4e28-86e2-f8cc33f16e4e",
+  "ttft_stream_ms": 1291,
+  "time_to_request_ms": 140,
+  "first_content_frame_ms": 1291,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

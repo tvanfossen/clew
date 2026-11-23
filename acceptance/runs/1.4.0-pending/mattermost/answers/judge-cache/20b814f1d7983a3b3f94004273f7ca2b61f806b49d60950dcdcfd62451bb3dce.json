@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It is not retried automatically... `client.createPost` passes `noRetry: true` (`app/client/rest/posts.ts:46`), which sets `retryLimit: 0`... So a failed send gets one attempt and no automatic resend.\nVERDICT: HIT\nWHY: The answer explicitly states the create-post request is sent once with no automatic retry, citing noRetry/retryLimit 0."
+}

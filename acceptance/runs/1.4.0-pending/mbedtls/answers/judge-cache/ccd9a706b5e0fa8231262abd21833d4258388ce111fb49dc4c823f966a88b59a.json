@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: or to \"always fail\" stubs if those are undefined (platform.c:24-45)\nVERDICT: MISS\nWHY: The answer mentions always-fail stubs only when the STD macros are undefined, and does not say that uninitialised pointers fail (calloc returns NULL, free does nothing)."
+}

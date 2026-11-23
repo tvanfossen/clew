@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The app-wide default in `app/managers/network_manager.ts:68-73` is exponential retry with `retryLimit: 3`, but the per-request override replaces it for posts.\nVERDICT: HIT\nWHY: The answer states the default is exponential retry with limit 3 in the network manager and that createPost opts out via noRetry."
+}

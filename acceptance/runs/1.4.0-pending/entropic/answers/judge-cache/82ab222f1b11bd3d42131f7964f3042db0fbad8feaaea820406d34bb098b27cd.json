@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It forwards to the `Tokenizer` seam and returns `{}` if no tokenizer is wired. ... `LlamaCppTokenizer::tokenize` returns an empty `std::vector<int32_t>`.\nVERDICT: MISS\nWHY: The answer says the backend wrapper returns `{}` with no tokenizer, and the tokenizer returns empty on failure. It never says the backend wrapper's failed-tokenization result is the same empty value as its no-tokenizer result."
+}

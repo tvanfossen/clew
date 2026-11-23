@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"ExternalBridge `accept_loop`\", \"HealthMonitor `monitor_loop`\", \"StdioTransport `stderr_reader_loop`\", \"SSETransport `sse_reader_loop`\", \"Cancel pollers: `iface_generate_with_cancel`\"\nVERDICT: HIT\nWHY: The answer lists thread spawn sites across the external bridge, the MCP transports (stdio and SSE), the health monitor and the inference cancel pollers. That shows thread creation is spread across subsystems, even though it never says \"not centralised\" in so many words."
+}

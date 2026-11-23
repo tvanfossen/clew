@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The C ABI carries only `int*`, so no `std::atomic` crosses the `.so` boundary.\nVERDICT: MISS\nWHY: The answer notes the C ABI carries only `int*`, but never says the cancellation observer or poller thread exists to bridge an atomic into a plain int. It lists the threads and the flags separately without tying them together."
+}

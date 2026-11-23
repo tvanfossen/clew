@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Routed replies are annotated only for the repository they actually read.\nVERDICT: HIT\nWHY: The answer states that routed replies are annotated only for the repository they actually read, which matches the item. It does not mention the \"not the default target\" contrast, but the core fact is there."
+}

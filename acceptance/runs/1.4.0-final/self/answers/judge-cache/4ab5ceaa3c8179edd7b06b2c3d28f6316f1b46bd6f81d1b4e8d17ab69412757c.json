@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`corpus='code'`, 0 rows | \"A definitive empty result from the database.\" | High, but bounded.\"\nVERDICT: MISS\nWHY: The answer separates only two grades, a non-definitive symbols miss and a definitive-but-bounded code miss. It never names a third grade, an empty reply that is definitive for a reason other than absence."
+}

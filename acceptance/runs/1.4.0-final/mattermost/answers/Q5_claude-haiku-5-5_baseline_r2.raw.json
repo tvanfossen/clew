@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 32731,
+  "stop_reason": "end_turn",
+  "session_id": "3ffe23b9-d2d7-44cf-b5c0-1f9846d85032",
+  "total_cost_usd": 0.013493240000000002,
+  "usage": {
+    "input_tokens": 14,
+    "cache_creation_input_tokens": 32925,
+    "cache_read_input_tokens": 373334,
+    "output_tokens": 6347,
+    "output_tokens_details": {
+      "thinking_tokens": 2075
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 32925,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3299,
+        "cache_read_input_tokens": 72402,
+        "cache_creation_input_tokens": 1432,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1432
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 14,
+      "outputTokens": 6347,
+      "cacheReadInputTokens": 373334,
+      "cacheCreationInputTokens": 32925,
+      "webSearchRequests": 0,
+      "costUSD": 0.013493240000000002,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2075,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 32925,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 16,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "## How `ServerDataOperator` is built\n\n`ServerDataOperator` (`app/database/operator/server_data_operator/index.ts:40`) is a runtime mixin chain:\n\n```\nServerDataOperatorBase                     (handlers/index.ts:31)\n  \u2514\u2500 AgentsHandler                         (products/agents/database/operators/handlers/index.ts)\n     \u2514\u2500 BoardsHandler                      (products/boards/database/operators/handlers/index.ts)\n        \u2514\u2500 CategoryHandler                 (handlers/category.ts)\n           \u2514\u2500 ChannelHandler               (handlers/channel.ts)\n              \u2514\u2500 CustomProfileHandler      (handlers/custom_profile.ts)\n                 \u2514\u2500 GroupHandler           (handlers/group.ts)\n                    \u2514\u2500 PlaybookHandler     (products/playbooks/database/operators/handlers/index.ts)\n                       \u2514\u2500 PostHandler      (handlers/post.ts)\n                          \u2514\u2500 PropertiesHandler (handlers/properties.ts)\n                             \u2514\u2500 TeamHandler    (handlers/team.ts)\n                                \u2514\u2500 ThreadHandler (handlers/thread.ts)\n                                   \u2514\u2500 TeamThreadsSyncHandler (handlers/team_threads_sync.ts)\n                                      \u2514\u2500 UserHandler (handlers/user.ts)\n                                         = ServerDataOperator\n```\n\n- **Mechanism:** `mix(...)` in `app/utils/mix.ts` is a `reduce` that applies each mixin function to the previous class, so each handler is a subclass of the one before it. Each handler is `const X = (superclass) => class extends superclass { ...arrow methods }`.\n- **Types:** the `interface ServerDataOperator extends ...HandlerMix` block (lines 23\u201338) merges each mixin's method signatures into the class type. The mixin itself does not carry type information.\n- **Base class:** `ServerDataOperatorBase` (`handlers/index.ts`) holds the shared logic. It defines `handleRole`, `handleCustomEmojis`, `handleSystem`, `handleConfigs`, `handleReactions`, `handleFiles`, and `execute`, and it extends `BaseDataOperator` (`base_data_operator/index.ts`). It also has a `serverUrl` field set by the constructor.\n\n### Defined elsewhere (not next to it)\n\nThree of the 13 mixins live in product folders, not in `server_data_operator/handlers/`:\n\n| Mixin | Location |\n|---|---|\n| `AgentsHandler` | `app/products/agents/database/operators/handlers/index.ts` |\n| `BoardsHandler` | `app/products/boards/database/operators/handlers/index.ts` |\n| `PlaybookHandler` | `app/products/playbooks/database/operators/handlers/index.ts` |\n\nThe other 10 are in `app/database/operator/server_data_operator/handlers/`. The product handlers import the base type from there, so the dependency runs one way.\n\n### Construction\n\n`DatabaseManager` creates it per server at `app/database/manager/index.ts:184` with `new ServerDataOperator(database, serverUrl)`. The App database uses `AppDataOperator`, which extends `BaseDataOperator` directly and does not get these handlers.\n\n## The write path\n\nMost handlers do not write directly. They call `handleRecords` or `prepareRecords`, then `batchRecords`:\n\n```\nhandler (e.g. handleAIBots)\n  \u2514\u2500 this.handleRecords(...)                    base_data_operator:224\n       \u251c\u2500 processRecords()    query existing rows by fieldName, split into create/update/delete\n       \u251c\u2500 prepareRecords()    transformer per row; deletes via prepareDestroyPermanently()\n       \u2514\u2500 if !prepareRecordsOnly \u2192 batchRecords()\n                                                base_data_operator:191\n            \u2514\u2500 this.database.write(writer => writer.batch(...models))   \u2190 the actual write\n```\n\n- **The actual write** is `BaseDataOperator.batchRecords` (`app/database/operator/base_data_operator/index.ts:191\u2013211`). It calls WatermelonDB's `database.write` and `writer.batch`.\n- **Error handling:** it catches errors and logs a warning. If the error is a database corruption error, it emits `Events.DATABASE_CORRUPTION_DETECTED`. It rethrows only when `propagateError` is true, which is not the default. Callers therefore do not see write failures unless they opt in.\n- **Shared by:** every `this.batchRecords(...)` call in the handlers (for example `post.ts`, `thread.ts`, `group.ts`, `properties.ts`, `user.ts`, and the three product mixins). `ServerDataOperatorBase.execute` and `handleRecords` also go through it. The `prepareRecordsOnly` flag lets a caller collect models from several handlers and write them in one batch.\n- **Also shared:** the transformers, comparators, and `prepareDestroyPermanently` helpers used upstream in the same flow.\n\n## Writes that bypass `batchRecords`\n\nNot every write goes through this path. Some handlers and most actions call `database.write` directly, for example:\n\n- `thread.ts:74` (destroying threads and their children)\n- `post.ts:516` (destroying posts)\n- `app/actions/*` and `app/queries/servers/*`\n\nThese skip the `batchRecords` error handling, so they can throw. The `propagateError=false` default applies only to `batchRecords`.",
+  "ttft_ms": 2199,
+  "type": "result",
+  "duration_ms": 34845,
+  "uuid": "7aaf2140-b8ff-4d9c-8141-1a921b575670",
+  "ttft_stream_ms": 1840,
+  "time_to_request_ms": 352,
+  "first_content_frame_ms": 1840,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

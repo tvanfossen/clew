@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_ct_*` and the `MBEDTLS_CT_TRUE`/`FALSE` constants appear about 456 times across 29 library files.\nVERDICT: HIT\nWHY: States the primitives are used across 29 library files, which is broad use on the order of twenty-plus modules rather than one or two."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: There is no indirection, and the runtime setter is compiled out (`platform.c:20-22`).\nVERDICT: MISS\nWHY: The answer says macros expand directly only when the user defines CALLOC_MACRO/FREE_MACRO. It describes the default as function pointers with an uninitialized stub, not as direct macros to calloc and free."
+}

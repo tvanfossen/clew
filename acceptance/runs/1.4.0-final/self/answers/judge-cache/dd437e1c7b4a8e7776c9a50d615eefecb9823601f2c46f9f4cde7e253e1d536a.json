@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Inline document via `--declare`, or the structured `options` argument for embedding callers\"\nVERDICT: HIT\nWHY: The answer lists tier 1 as reachable via both a CLI flag (`--declare` and other flags) and the structured `options` argument for embedding callers."
+}

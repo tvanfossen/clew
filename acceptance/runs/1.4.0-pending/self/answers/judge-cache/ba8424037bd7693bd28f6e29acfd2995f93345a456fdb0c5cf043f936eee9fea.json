@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A file must match doxygen's `FILE_PATTERNS` and not match `EXCLUDE_PATTERNS` (`in_doxygen_scope`...). `effective_file_patterns` returns the forced `DOXYGEN_DEFAULT_FILE_PATTERNS`\nVERDICT: MISS\nWHY: The answer describes only a doxygen extension filter. It never names the parse-built front end claiming file types doxygen can't read, or binary classification dropping files whose extension lies."
+}

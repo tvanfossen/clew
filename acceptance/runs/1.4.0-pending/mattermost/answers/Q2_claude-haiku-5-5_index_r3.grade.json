@@ -1,0 +1,63 @@
+{
+  "cell": "Q2_claude-haiku-5-5_index_r3",
+  "arm": "index",
+  "rubric_version": "1.0.0",
+  "rubric_digest": "32294778c2753056",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 1.0,
+  "unmarked_pct": 0.0,
+  "split_decisions": 0,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "names the websocket event dispatcher that routes `reaction_added` to its handler (`handleWebSocketEvent` \u2192 `handleReactionAddedToPostEvent`)",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: `app/actions/websocket/event.ts:163   switch(msg.event) \u2192 handleReactionAddedToPostEvent(serverUrl, msg)   (not awaited)` | WHY: The answer identifies the websocket event.ts switch dispatcher routing \"reaction_added\" to handleReactionAddedToPostEvent, though it doesn't name `handleWebSocketEvent` explicitly. || QUOTE: `app/actions/websocket/event.ts:163   switch(msg.event) \u2192 handleReactionAddedToPostEvent(serverUrl, msg)   (not awaited)` | WHY: The answer identifies the dispatcher in event.ts that switches on msg.event and routes reaction_added to handleReactionAddedToPostEvent. It never names the function `handleWebSocketEvent`, but the file, the switch dispatch and the handler are all given. || QUOTE: `app/actions/websocket/event.ts:163   switch(msg.event) \u2192 handleReactionAddedToPostEvent(serverUrl, msg)   (not awaited)` | WHY: The answer identifies the websocket event.ts switch dispatching reaction_added to handleReactionAddedToPostEvent, but it does not name `handleWebSocketEvent`, so the match rests on the dispatcher location and routing.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the added reaction is stored through the database operator's `handleReactions`, which prepares Reaction records and writes them with `batchRecords`",
+      "kind": "retrieval",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: operator.handleReactions({prepareRecordsOnly: false, skipSync: true, ... \u2514\u2500 prepareRecords({createRaws, transformer: transformReactionRecord, tableName: REACTION}) \u2514\u2500 prepareRecordsOnly false \u2192 batchRecords(batch)   \u2192 written to the Reaction table | WHY: The answer says the added reaction is stored via the operator's handleReactions, which prepares Reaction records with prepareRecords and writes them via batchRecords. || QUOTE: operator.handleReactions({prepareRecordsOnly: false, skipSync: true, postsReactions: [{post_id, reactions: [reaction]}]}) ... prepareRecords({createRaws, transformer: transformReactionRecord, tableName: REACTION}) ... prepareRecordsOnly false \u2192 batchRecords(batch)   \u2192 written to the Reaction table | WHY: The answer states that the added reaction goes through the operator's handleReactions, which prepares Reaction records via prepareRecords and writes them with batchRecords. || QUOTE: operator.handleReactions({prepareRecordsOnly: false, skipSync: true, ... \u2514\u2500 prepareRecords({createRaws, transformer: transformReactionRecord, tableName: REACTION}) \u2514\u2500 prepareRecordsOnly false \u2192 batchRecords(batch)   \u2192 written to the Reaction table | WHY: The answer says the add path goes through the operator's handleReactions, which prepares Reaction records via prepareRecords and writes them with batchRecords.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that a removed reaction does NOT go through the operator: its handler queries the reaction and destroys it with a direct `database.write`",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: reaction = DatabaseManager...   (note: no operator) ... queryReaction(emoji_name, post_id, user_id).fetch() ... if (reaction.length) database.write(() => reaction[0].destroyPermanently()) | WHY: The answer states removal bypasses the operator, queries the reaction, and destroys it via a direct database.write. || QUOTE: reaction = DatabaseManager...   (note: no operator) ... queryReaction(emoji_name, post_id, user_id).fetch() ... if (reaction.length) database.write(() => reaction[0].destroyPermanently()) | WHY: The answer states the removal handler bypasses the operator, queries the reaction, and destroys it via a direct database.write. || QUOTE: reaction = JSON.parse(msg.data.reaction) | WHY: The answer says removal does not go through the operator, queries the reaction via queryReaction, and destroys it with a direct database.write.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "explains that `skipSync: true` stops the single incoming reaction being treated as the post's complete set \u2014 without it every other reaction on the post would be deleted",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: Without it, `sanitizeReactions` would compute `deleteReactions` as \"every stored reaction on this post not in the payload.\" A payload carrying only one reaction would then wipe the post's other reactions. | WHY: The answer explains that without `skipSync`, a single-reaction payload is treated as the full set, so the post's other reactions would be deleted. || QUOTE: Without it, `sanitizeReactions` would compute `deleteReactions` as \"every stored reaction on this post not in the payload.\" A payload carrying only one reaction would then wipe the post's other reactions. | WHY: The answer explains that without `skipSync: true`, a single-reaction payload is treated as the full set and the post's other reactions are deleted. || QUOTE: Without it, `sanitizeReactions` would compute `deleteReactions` as \"every stored reaction on this post not in the payload.\" A payload carrying only one reaction would then wipe the post's other reactions. | WHY: The answer explains that without skipSync, a single-reaction payload is treated as the full set and the post's other reactions get deleted.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "notes that both handlers swallow any error silently (empty catch), so a failed write leaves no trace",
+      "kind": "conclusion",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: **Errors are swallowed.** The whole body is in `try {} catch { // Do nothing }`, and the dispatcher doesn't await the promise, so a failed write leaves no trace. | WHY: The answer states the add handler swallows errors with an empty catch so a failed write leaves no trace, and says the removal handler has \"the same silent `catch`\". || QUOTE: **Errors are swallowed.** The whole body is in `try {} catch { // Do nothing }`, and the dispatcher doesn't await the promise, so a failed write leaves no trace. | WHY: The answer states the add handler swallows errors in an empty catch so a failed write leaves no trace, and says the removal handler uses \"the same silent `catch`\", which covers both handlers. || QUOTE: **Errors are swallowed.** The whole body is in `try {} catch { // Do nothing }`, and the dispatcher doesn't await the promise, so a failed write leaves no trace. | WHY: The answer states the add path's empty catch swallows errors and a failed write leaves no trace, and says the removal path has \"the same silent `catch`\".",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Internal users (grep counts of `mbedtls_ct_`):** `rsa.c` (about 37 sites...), `cipher.c`, `ssl_msg.c`, `bignum_core.c`, `base64.c`, `psa_crypto*.c`, `ssl_tls12_server.c`, `nist_kw.c`, and `ccm.c`, `gcm.c`, `chachapoly.c`\nVERDICT: MISS\nWHY: The answer lists roughly a dozen consumer modules, which shows use beyond one or two, but it never says the primitives are used across about twenty modules. A dozen named files and \"not everywhere\" is not that claim."
+}

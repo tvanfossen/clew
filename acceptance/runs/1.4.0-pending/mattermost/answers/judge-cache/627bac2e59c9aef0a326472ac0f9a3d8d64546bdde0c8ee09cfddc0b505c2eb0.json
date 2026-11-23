@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The merged interface at line 23 declares the matching `*HandlerMix` types, so the typed surface comes from those interfaces.\nVERDICT: HIT\nWHY: The answer states that a merged interface in the same file declares the `*HandlerMix` types, which gives the class its typed surface from the mixed-in handlers. That is the declaration-merging mechanism the item describes."
+}

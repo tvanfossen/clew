@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Without `MBEDTLS_ALLOW_PRIVATE_ACCESS`, `MBEDTLS_PRIVATE(foo)` expands to `private_foo`... so application code that writes `ctx->foo` fails to compile... With the define, it expands to `foo`\" and \"Applications are the ones who get the rename.\"\nVERDICT: HIT\nWHY: The answer contrasts code that defines the macro, which sees plain names, with ordinary application consumers, who see the `private_` renamed members."
+}

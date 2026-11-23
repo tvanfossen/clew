@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer concludes that llama use is confined to `src/inference/` plus tests, and never says a minority of reaching files sit outside that directory."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A rejected section logs a WARNING, and the build falls back to the whole-repo tier with the rejection stated as the reason. An absent section falls back silently with a reason saying none was declared.\nVERDICT: HIT\nWHY: The answer states the whole-repo fallback carries a reason (rejection stated, or none declared), so the unstated scope is explained rather than silently guessed."
+}

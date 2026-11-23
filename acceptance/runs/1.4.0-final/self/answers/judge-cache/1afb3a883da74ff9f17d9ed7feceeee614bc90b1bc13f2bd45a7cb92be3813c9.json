@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A failed build degrades to answering from the stale index, with the notice attached.\nVERDICT: MISS\nWHY: The answer describes a failed rebuild degrading to the stale index, but never says that measuring staleness itself never raises or degrades to no annotation."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says that a single token matching nothing was previously treated as proof of absence; it only describes the current empty-reply fields and the repo's \"Absence is not emptiness\" rule, with no account of the old behavior."
+}

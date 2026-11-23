@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer only says find() looks through \"candidate paths\" then falls back to ctypes.util.find_library; it never states the env-override, user-directory, system-cache order or the two layouts per root."
+}

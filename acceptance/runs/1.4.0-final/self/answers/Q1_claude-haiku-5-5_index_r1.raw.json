@@ -1,0 +1,108 @@
+{
+  "duration_api_ms": 22874,
+  "stop_reason": "end_turn",
+  "session_id": "7bffed4b-537b-4fff-837e-91be8e21762e",
+  "total_cost_usd": 0.01369094,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 44266,
+    "cache_read_input_tokens": 277204,
+    "output_tokens": 4129,
+    "output_tokens_details": {
+      "thinking_tokens": 1423
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 44266,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2156,
+        "cache_read_input_tokens": 60532,
+        "cache_creation_input_tokens": 2713,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2713
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 4129,
+      "cacheReadInputTokens": 277204,
+      "cacheCreationInputTokens": 44266,
+      "webSearchRequests": 0,
+      "costUSD": 0.01369094,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1423,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 44266,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [
+    {
+      "tool_name": "mcp__clew__propose_declaration",
+      "tool_use_id": "toolu_01255STdKojtAsno2aKKx2kD",
+      "tool_input": {}
+    }
+  ],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 15,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** the index is built from one resolved \"scope\", a set of INPUT roots plus EXCLUDE patterns, which `clew/scope.py:derive_scope` picks from a declaration in `.clew.yaml`. If nothing usable is declared, the whole repository becomes the scope, minus what git ignores and a fixed set of dot and cache directories. The Doxyfile no longer decides the file set.\n\n**The decision, in order**\n\n```\nbuild starts\n  \u2514\u2500 derive_scope(repo_root)                       clew/scope.py:639\n       \u251c\u2500 _declared_index_scope()                  clew/scope.py:991\n       \u2502    \u251c\u2500 no index_scope: section  \u2192 None      (fall through)\n       \u2502    \u251c\u2500 bad shape / unknown key / no\n       \u2502    \u2502   usable roots             \u2192 _Rejected (logged WARNING, then fall through\n       \u2502    \u2502                                        with the rejection as the reason)\n       \u2502    \u2514\u2500 roots exist              \u2192 DerivedScope(source=declared)\n       \u2514\u2500 whole_repo_scope(root)                    clew/scope.py:683   \u2190 the default tier\n  \u2514\u2500 _fold_scope_into_args()                        clew/cli.py:739\n       sets extra_input = scope.roots, extra_exclude = scope.excludes, replace_input = True\n  \u2514\u2500 doxygen runs over those roots\n```\n\n1. **Declared scope (tier 1 or 2).** `.clew.yaml` (`CONFIG_FILE_NAME`, `clew/guard/config.py:29`) may carry an `index_scope:` with `roots:` and `excludes:`. Roots are taken at their word and never walked. Roots that do not exist on disk are dropped. `roots:` is required, so `excludes:` alone does nothing. Unknown keys inside the section are refused by name rather than ignored. A declared root that contains a nested git clone gets that clone indexed too, and `external.py` tags its rows so the two codebases can be told apart in answers. A caller can also state a scope on the tool call, which is treated like a declaration with a different \"reason\" string.\n\n2. **Whole-repo default (tier 3).** `whole_repo_scope` is labelled \"THE DEFAULT TIER since gh#333, not the last resort\". It is used when there is no `index_scope:`, or when the declared one is rejected. Its single root is the repo root. Its excludes are:\n   - paths git ignores, read per tree, including inside nested git trees (their `.gitignore` is invisible to the parent);\n   - dot-directories and `__pycache__` / `node_modules` (`_SKIP_DIR_NAMES`, `clew/scope.py:57`), walked by `_pruned_dirs`, which stops at nested git trees and at `_MAX_DEPTH = 16` (`clew/scope.py:62`). Hitting the depth limit logs a warning and records the directory in `_DEPTH_LIMITED`.\n\n   Nested git trees are indexed, not excluded.\n\n3. **What does not decide the set.** A Doxyfile's `INPUT` no longer supplies the roots (`clew/scope.py:683` docstring; `clew/declaration.py:205`). Its `FILE_PATTERNS` are replaced by clew's own list (`clew/doxygen.py:270`, `DOXYGEN_DEFAULT_FILE_PATTERNS`). The Doxyfile still contributes aliases and predefined macros. The quality gate's `doxygen-guard` settings are also not read here, because they say what must be documented, not what should be indexed.\n\n**What happens with nothing declared**\n\nThe build still runs and indexes the whole tree minus the subtractions above. Its `reason` string says that no `index_scope` was declared and names where it looked, and it adds advice to declare one in `.clew.yaml`. The scope decision is stored in build metadata, so `status` and empty query answers can state what was covered. The point of that reason string is that a fallback scope says the boundary was not chosen.\n\n**Caveats**\n\n- I could not run `propose_declaration` because the permission was not granted, so I have not checked what it would suggest for this repo.\n- I read the exclusion and file-pattern details from function bodies and comments, not from a run against a sample repo. The `_SKIP_DIR_NAMES` and depth values are the ones in the source at the time of this index build.",
+  "ttft_ms": 1918,
+  "type": "result",
+  "duration_ms": 24964,
+  "uuid": "061e2f1e-671b-4872-bcfb-0d84f66d231a",
+  "ttft_stream_ms": 1123,
+  "time_to_request_ms": 99,
+  "first_content_frame_ms": 1123,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

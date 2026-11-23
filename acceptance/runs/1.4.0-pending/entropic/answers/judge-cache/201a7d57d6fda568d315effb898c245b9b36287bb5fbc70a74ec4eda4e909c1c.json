@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"it is the value of the first key that holds a string, or `*` if the args are empty or unparseable. Because nlohmann objects are key-sorted, \"first\" means alphabetically first key\"\nVERDICT: HIT\nWHY: The answer says a single argument value (the first string-valued key) is matched, which implies the other arguments are not seen, and that unparseable args become `*`. It does not say a non-string value collapses to the wildcard."
+}

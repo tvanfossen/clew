@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`LlamaCppTokenizer::tokenize` logs an error with the text length (not the text or llama's return code) and returns an empty `std::vector<int32_t>`. A null vocab also returns empty. 2. `LlamaCppBackend::tokenize` (`llama_cpp_backend.cpp:795-799`) passes the empty vector through. It also returns empty when no tokenizer is wired.\"\nVERDICT: HIT\nWHY: The answer says the backend wrapper passes through an empty vector on failed tokenization and also returns empty when no tokenizer is wired, so both cases give the same value. It also notes that failure \"looks like empty input\" to callers."
+}

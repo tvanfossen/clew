@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The 16-bit layout (documented in `include/mbedtls/error.h:17-60`) splits the code into a 3-bit high-level module (mask `0xFF80`) and a 7-bit low-level module. That is why one return value can carry two names.\" and \"join as \"high : low\" into buf (or whichever part exists\"\nVERDICT: HIT\nWHY: The answer states that a code has a high-level module part and a low-level part, and that mbedtls_strerror renders both joined as \"high : low\" when both are present."
+}

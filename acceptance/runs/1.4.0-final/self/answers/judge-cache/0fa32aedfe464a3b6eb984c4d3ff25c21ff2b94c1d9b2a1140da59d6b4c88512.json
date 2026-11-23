@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"present but rejected \u2500\u2500\u25ba whole_repo_scope(rejected=<reason>) (internal callers)\" and \"**2. Nothing declared.** `derive_scope` falls through to `whole_repo_scope`\" and \"With no declaration, clew indexes the whole git repository\"\nVERDICT: HIT\nWHY: The answer states that a declared index_scope takes precedence, and that both an absent declaration and a rejected one fall through to whole_repo_scope, which indexes the whole repository."
+}

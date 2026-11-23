@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Define it** in the module's public header, e.g. `include/mbedtls/asn1.h`: ... `/** Out of data when parsing an ASN1 data structure. */ #define MBEDTLS_ERR_ASN1_OUT_OF_DATA -0x0060`\" and \"**Regenerate** `library/error.c`... `library/error.c` is therefore generated. Editing it by hand will be overwritten.\"\nVERDICT: HIT\nWHY: The answer says to add the Doxygen-documented #define to the public header, then regenerate error.c. It also says error.c is generated and hand edits get overwritten."
+}

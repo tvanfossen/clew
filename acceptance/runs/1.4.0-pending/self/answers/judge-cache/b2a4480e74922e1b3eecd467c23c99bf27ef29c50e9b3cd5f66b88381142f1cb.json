@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The only file path the answer names as taking part is `clew/harvest.py`. It appears as the location of `_harvest_one_file` and of its caller and callees.\n\nITEMS:\nclew/harvest.py\nEND"
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Public headers use it to rename struct members, so application code that writes `ctx->state` no longer compiles.\" and \"although they are publicly visible in headers\"\nVERDICT: HIT\nWHY: The answer says that members are renamed to `private_##member`, so direct access fails to compile. It also says the structs stay publicly visible in the headers, which means the layout is not hidden."
+}

@@ -477,9 +477,12 @@ def test_every_declared_index_action_is_dispatched() -> None:
     @return None.
     @version 1
     """
-    from clew.mcp_server.server import INDEX_ACTIONS, TARGET_ROUTING_ACTIONS
+    from clew.mcp_server.server import INDEX_ACTIONS, RETIRED_INDEX_ACTIONS, TARGET_ROUTING_ACTIONS
 
-    assert INDEX_ACTIONS == ("status", "refresh", "targets", "cull", "stats")
+    ## 2.0.0 (owner 2026-11-16): `stats` and `cull` retired to the CLI; they are refused by name,
+    ## never dispatched, so they may not also be declared actions.
+    assert INDEX_ACTIONS == ("status", "refresh", "targets")
+    assert not set(RETIRED_INDEX_ACTIONS) & set(INDEX_ACTIONS)
     ## A ROUTING action misspelled here would be refused a target it is supposed to honour —
     ## the mirror of the defect the set exists to prevent, and silent in the same way, since
     ## the guard reads the set rather than the dispatch.
@@ -510,9 +513,9 @@ async def test_index_stamps_the_action_that_produced_the_reply(tmp_path: Path) -
     assert listed["action"] == "targets"
     assert listed["results"] == [], "an empty registry lists nothing, in the wrapped shape"
 
-    culled = await state.index(None, action="cull")
-    assert culled["action"] == "cull"
-    assert "culled" in culled, "the mapping-shaped result must survive the stamp"
+    ## 2.0.0: `cull` retired; `status` is the remaining mapping-shaped result.
+    reported = await state.index(None, action="status")
+    assert reported["action"] == "status", "the mapping-shaped result must survive the stamp"
 
 
 @pytest.mark.anyio
@@ -623,7 +626,7 @@ async def test_the_registry_wide_actions_refuse_a_target_and_still_answer_withou
     real = tmp_path / "an_actual_directory"
     real.mkdir()
 
-    for action in ("status", "targets", "cull"):
+    for action in ("status", "targets"):  # 2.0.0: `cull` retired to the CLI
         with pytest.raises(ValueError) as exc:
             await state.index(_FakeCtx(), action=action, target=str(real))
         message = str(exc.value)
@@ -633,8 +636,6 @@ async def test_the_registry_wide_actions_refuse_a_target_and_still_answer_withou
     ## The other half: omitted, every one of them still answers.
     listed = await state.index(_FakeCtx(), action="targets")
     assert listed["results"] == [], "an empty registry still lists, in the wrapped shape"
-    culled = await state.index(_FakeCtx(), action="cull")
-    assert "culled" in culled, "cull still sweeps the registry"
     reported = await state.index(_FakeCtx(), action="status")
     assert "error" in reported or reported.get("active") is True, (
         "status still reports on the derived target, or says plainly there is none"

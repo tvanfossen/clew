@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_HAVE_ASM` and `__GNUC__` (GCC or Clang, not old armcc) | `MBEDTLS_CT_ASM` is defined.\nVERDICT: HIT\nWHY: The answer shows MBEDTLS_CT_ASM is set in an `#if` cascade in constant_time_impl.h from MBEDTLS_HAVE_ASM plus compiler macros (`__GNUC__`), i.e. derived, not a config entry."
+}

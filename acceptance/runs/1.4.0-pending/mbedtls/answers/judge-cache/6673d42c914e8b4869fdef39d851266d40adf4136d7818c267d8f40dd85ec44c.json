@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"If `MBEDTLS_ERROR_C` is disabled, a dummy version writes an empty string.\"\nVERDICT: MISS\nWHY: The answer only mentions the disabled case conditionally and never states that MBEDTLS_ERROR_C is enabled in the shipped mbedtls_config.h."
+}

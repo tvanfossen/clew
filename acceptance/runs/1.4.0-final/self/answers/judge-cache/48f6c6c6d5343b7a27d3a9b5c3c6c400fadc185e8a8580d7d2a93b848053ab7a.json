@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Only `code` and `schema` are measured against the server's own build... | `data` | ... | Cleared by | `index(action='refresh')` | ... | `code` | ... | Restart the MCP client. A rebuild is refused.\n\nVERDICT: MISS\n\nWHY: The answer's table shows different remedies per axis (refresh for data, restart for code), but it never explains that this difference is the reason a single flag would not have sufficed."
+}

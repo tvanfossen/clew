@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Without it, `sanitizeReactions` would compute `deleteReactions` as \"every stored reaction on this post not in the payload.\" A payload carrying only one reaction would then wipe the post's other reactions.\nVERDICT: HIT\nWHY: The answer explains that without skipSync, a single-reaction payload is treated as the full set and the post's other reactions get deleted."
+}

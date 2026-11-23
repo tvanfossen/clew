@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Without asm it XORs with a `volatile` zero (`library/constant_time.c:23`).\nVERDICT: MISS\nWHY: The answer says the fallback XORs with a volatile zero but never names the global (mbedtls_ct_zero), and it doesn't clearly identify an extern volatile global."
+}

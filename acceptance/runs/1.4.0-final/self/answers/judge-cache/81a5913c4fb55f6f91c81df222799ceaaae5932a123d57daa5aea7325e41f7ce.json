@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**YAML and JSON:** a `path` row only. Their grammars offer `block_mapping_pair` and `pair`, and those were deliberately not written as symbols\" and \"No symbols at all for any YAML or JSON file\"\nVERDICT: HIT\nWHY: The answer states YAML and JSON are registered by path only with no symbols, contrasted with shell and CMake, which do carry symbols."
+}

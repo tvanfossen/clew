@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 17295,
+  "stop_reason": "end_turn",
+  "session_id": "0d040ab8-c827-4dd6-9f38-3203726ffad8",
+  "total_cost_usd": 0.010368120000000002,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 33372,
+    "cache_read_input_tokens": 228172,
+    "output_tokens": 2822,
+    "output_tokens_details": {
+      "thinking_tokens": 767
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 33372,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1794,
+        "cache_read_input_tokens": 62177,
+        "cache_creation_input_tokens": 7354,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 7354
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 2822,
+      "cacheReadInputTokens": 228172,
+      "cacheCreationInputTokens": 33372,
+      "webSearchRequests": 0,
+      "costUSD": 0.010368120000000002,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 767,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 33372,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 9,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**How Python reaches the engine**\n\nThe Python package is a thin `ctypes` binding over the C ABI in `include/entropic/entropic.h`. There is no C++ or pybind layer, and the README describes it as \"no OOP wrapper.\"\n\n```\nPython (entropic/*.py)\n   \u2502  ctypes CFUNCTYPE callbacks / function calls\n   \u25bc\n_bindings.py   \u2190 generated from entropic.h by scripts/gen_bindings.py (\"do not edit\")\n   \u2502  _loader.py locates and loads librentropic.so\n   \u25bc\nlibrentropic.so  \u2192 entropic_* C functions (src/facade/entropic.cpp)\n   \u2502\n   \u25bc\nC++ engine internals (never cross the .so boundary)\n```\n\n- `_bindings.py` exposes the whole C surface: about 220 symbols, IntEnums, `ctypes.Structure` types and CFUNCTYPE typedefs.\n- `hooks.py` and `streams.py` are hand-written Pythonic facades over the raw callbacks.\n- `entropic.h` says all functions are pure C with no C++ types crossing the boundary.\n\n**Memory rules that cross the boundary**\n\n1. **Engine-returned `char*` belongs to the caller.** Functions that return `char*` transfer ownership, and the caller must release them with `entropic_free()`. `entropic_free` is a thin wrapper around `free()` (`src/facade/entropic.cpp:1954`). Strings returned as `const char*` are owned by the handle and are valid only until the next call on that handle.\n2. **Consumer-provided buffers that the engine will free must come from `entropic_alloc()`.** This applies to things like a hook's `modified_json`. `entropic_alloc` is a wrapper around `malloc()` (`:1944`), so the engine's `free()` receives memory of the right provenance. `hooks.py` follows this in `_alloc_c_string` and in `_build_trampoline`, which copies the JSON into an `entropic_alloc` buffer and writes the pointer into `*mod_out`.\n3. **Handles are opaque.** `entropic_create` returns a heap-allocated engine struct, and `entropic_destroy` tears it down and releases subsystems in reverse order (`:1877`). The handle is invalid after destroy, and `destroy` must not race other calls on the same handle.\n4. **Python callables must outlive the C engine's use of them.** A `CFUNCTYPE` wrapper that is garbage-collected while C still holds its pointer leads to a use-after-free. The `hooks.py` docstring names this as the main foot-gun. `register_token_observer` in `streams.py` avoids it by keeping the wrapper in a module-level `_observers` dict keyed by handle address (`:50-82`).\n5. **No exceptions cross the boundary.** Python callbacks catch all exceptions, print a traceback, and return a neutral value. In the hook trampoline, a raised exception becomes \"pass through\" (`rc = 0`). The C ABI reports errors through error codes and `entropic_last_error(handle)`.\n6. **Bytes are copied, not borrowed.** The stream observer uses `ctypes.string_at(token_ptr, length)`, which copies the token before decoding it. Hook context arrives as JSON and is decoded into a dict.\n\n**Things to watch**\n\n- The stream observer can fire from the engine thread and from the external-bridge worker thread, so Python token callbacks must be thread-safe (`entropic_set_stream_observer` docs).\n- I did not verify whether `entropic_destroy` or re-registration releases the Python-side `_observers` entry. The observer is replaced on re-register, but I did not confirm cleanup on destroy.\n- The index does not cover `_loader.py`'s full search order. I saw only the last step (`ctypes.util.find_library`).",
+  "ttft_ms": 1549,
+  "type": "result",
+  "duration_ms": 19932,
+  "uuid": "45d02bdd-4f90-446c-b39a-652ea0298010",
+  "ttft_stream_ms": 1302,
+  "time_to_request_ms": 92,
+  "first_content_frame_ms": 1302,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

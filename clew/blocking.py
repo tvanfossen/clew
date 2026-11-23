@@ -30,6 +30,7 @@ recorded, the site is reported as guarded, and the count says how many were with
 
 from __future__ import annotations
 
+import re
 import sqlite3
 from pathlib import Path
 from typing import Any
@@ -81,6 +82,20 @@ _BOUNDED_PREFIXES = (
 )
 
 
+## @brief The regex for a call of any of these ISR predicates, as a whole identifier (W7).
+## @param predicates The predicate names.
+## @return The compiled regex.
+## @version 1
+## @utility
+def _isr_call(predicates: tuple[str, ...]) -> re.Pattern[str]:
+    """@brief Compile the predicate-call regex. @return Regex."""
+    return re.compile(r"(?<![A-Za-z0-9_])(?:" + "|".join(map(re.escape, predicates)) + r")\s*\(")
+
+
+## A call of any built-in ISR predicate.
+_ISR_CALL = _isr_call(ISR_PREDICATES)
+
+
 ## @brief One blocking primitive: its name and where its timeout argument sits.
 ## @version 1
 class BlockingPattern:
@@ -99,7 +114,7 @@ class BlockingPattern:
     ## @param name The callee identifier as written at the call site.
     ## @param timeout_arg_index 0-based index of the timeout argument, or None.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def __init__(self, name: str, timeout_arg_index: int | None = None) -> None:
         self.name = name
         self.timeout_arg_index = timeout_arg_index
@@ -199,13 +214,110 @@ DEFAULT_BLOCKING_PATTERNS: list[BlockingPattern] = [
 ]
 
 
+## @brief The words one build reads blocking calls with: the built-ins plus a declaration.
+## @version 1
+class BlockingVocabulary:
+    """R5-CORE C1 (2.0.0): `blocking:` ADDS to the built-in primitives, ISR predicates and wait
+    tokens, which are facts about the RTOSes they come from — a declaration widens the set, it
+    never removes Zephyr's `K_FOREVER`.
+
+    @brief A blocking vocabulary.
+    @version 1
+    """
+
+    ## @brief Build the vocabulary from the built-ins and a declaration.
+    ## @param declared The `blocking:` section, or None.
+    ## @version 1
+    ## @utility
+    def __init__(self, declared: dict | None = None) -> None:
+        declared = _checked_blocking(declared or {})
+        tokens = declared.get("wait_tokens") or {}
+        self.patterns_by_name = {p.name: p for p in DEFAULT_BLOCKING_PATTERNS}
+        for entry in declared.get("primitives") or []:
+            self.patterns_by_name[entry["name"]] = BlockingPattern(
+                entry["name"], entry.get("timeout_arg_index")
+            )
+        self.isr_call = _isr_call((*ISR_PREDICATES, *(declared.get("isr_predicates") or [])))
+        self.none_tokens = _NO_WAIT_TOKENS | set(tokens.get("none") or [])
+        self.forever_tokens = _FOREVER_TOKENS | set(tokens.get("forever") or [])
+        self.bounded_prefixes = (*_BOUNDED_PREFIXES, *(tokens.get("bounded_prefixes") or []))
+
+
+## The keys of the `blocking:` section and of its `wait_tokens`.
+BLOCKING_KEYS = frozenset({"primitives", "isr_predicates", "wait_tokens"})
+_WAIT_TOKEN_KEYS = frozenset({"none", "forever", "bounded_prefixes"})
+_PRIMITIVE_KEYS = frozenset({"name", "timeout_arg_index"})
+
+
+## @brief Refuse a malformed `blocking:` section by name.
+## @param declared The section.
+## @return The section; raises DeclarationError naming what is wrong.
+## @version 1
+## @utility
+def _checked_blocking(declared: dict) -> dict:
+    """AN UNKNOWN KEY OR A WRONG SHAPE IS REFUSED, never defaulted: a misspelled
+    `timeout_arg` would silently make a timed wait read as unconditional.
+
+    @brief Validate the blocking declaration.
+    @return The section.
+    """
+    from .vocabulary import DeclarationError
+
+    problems = [f"unknown key {k!r}" for k in declared if k not in BLOCKING_KEYS]
+    for i, entry in enumerate(declared.get("primitives") or []):
+        if not isinstance(entry, dict) or not entry.get("name"):
+            problems.append(f"primitives[{i}] needs a `name`")
+            continue
+        problems += [
+            f"primitives[{i}]: unknown key {k!r}" for k in entry if k not in _PRIMITIVE_KEYS
+        ]
+        index = entry.get("timeout_arg_index")
+        if index is not None and (
+            not isinstance(index, int) or isinstance(index, bool) or index < 0
+        ):
+            problems.append(f"primitives[{i}].timeout_arg_index must be a non-negative integer")
+    preds = declared.get("isr_predicates")
+    if preds is not None and (
+        not isinstance(preds, list) or not all(isinstance(p, str) for p in preds)
+    ):
+        problems.append("isr_predicates must be a list of names")
+    tokens = declared.get("wait_tokens") or {}
+    if not isinstance(tokens, dict):
+        problems.append("wait_tokens must map none / forever / bounded_prefixes to lists")
+        tokens = {}
+    problems += [f"wait_tokens: unknown key {k!r}" for k in tokens if k not in _WAIT_TOKEN_KEYS]
+    if problems:
+        raise DeclarationError(
+            f"blocking: {'; '.join(problems)} — allowed: {', '.join(sorted(BLOCKING_KEYS))}"
+        )
+    return declared
+
+
+## The built-in vocabulary, for callers that state no declaration.
+_BUILT_IN = None
+
+
+## @brief The built-in vocabulary, built once.
+## @return The vocabulary.
+## @version 1
+## @utility
+def _built_in() -> BlockingVocabulary:
+    """@brief Built-in vocabulary. @return It."""
+    global _BUILT_IN
+    if _BUILT_IN is None:
+        _BUILT_IN = BlockingVocabulary()
+    return _BUILT_IN
+
+
 ## @brief Classify one timeout argument's text.
 ## @param operand The argument text as written, or "" when the pattern takes none.
 ## @param has_timeout Whether the pattern declares a timeout argument at all.
+## @param vocab The build's vocabulary, or None for the built-ins.
 ## @return A BLOCKING_WAIT member.
-## @version 1
-## @dg_internal
-def classify_wait(operand: str, has_timeout: bool) -> str:
+## v2 (2.0.0, C1): the wait tokens come from the vocabulary (built-ins plus a declaration).
+## @version 2
+## @utility
+def classify_wait(operand: str, has_timeout: bool, vocab: BlockingVocabulary | None = None) -> str:
     """Read off the TEXT, never off the callee name: the same primitive is legal or illegal in
     an interrupt depending on this one argument.
 
@@ -213,29 +325,48 @@ def classify_wait(operand: str, has_timeout: bool) -> str:
     @return The wait class.
     @version 1
     """
+    vocab = vocab or _built_in()
     if not has_timeout:
         return WAIT_UNCONDITIONAL
     token = operand.replace(" ", "")
     if not token:
         return WAIT_UNDECIDABLE
-    if token in _NO_WAIT_TOKENS:
+    if token in vocab.none_tokens:
         return WAIT_NONE
-    if token in _FOREVER_TOKENS:
+    if token in vocab.forever_tokens:
         return WAIT_FOREVER
-    if token.startswith(_BOUNDED_PREFIXES):
+    if token.startswith(vocab.bounded_prefixes):
         return WAIT_BOUNDED
     if token.isdigit():
         return WAIT_NONE if int(token) == 0 else WAIT_BOUNDED
     return WAIT_UNDECIDABLE
 
 
+## @brief Whether a condition CALLS an ISR predicate (a whole name followed by `(`).
+## @param text Condition or operand text.
+## @return True when a predicate is called in it.
+## @version 1
+## @utility
+def _names_isr_predicate(text: str, vocab: BlockingVocabulary | None = None) -> bool:
+    """A SUBSTRING IS NOT A CALL (agent C's W7): `in_irq` sits inside `within_irq_window(dev)`, and
+    reading that as a guard downgraded a real blocking-in-ISR conflict to "guarded".
+
+    @brief Predicate call.
+    @return Bool.
+    """
+    return (vocab.isr_call if vocab else _ISR_CALL).search(text) is not None
+
+
 ## @brief The nearest enclosing condition text for a node, up to a few levels.
 ## @param node The call node.
 ## @param src The file's raw bytes.
 ## @return The condition source text, or "".
-## @version 1
-## @dg_internal
-def _enclosing_condition(node: Any, src: bytes) -> str:
+## @param vocab The build's vocabulary, or None for the built-ins.
+## v2 (W7): a predicate counts only when CALLED (`_names_isr_predicate`).
+## v3 (2.0.0, C1): the predicates come from the vocabulary.
+## @version 3
+## @utility
+def _enclosing_condition(node: Any, src: bytes, vocab: BlockingVocabulary | None = None) -> str:
     """Three levels up at most. A guard further away than that is not a guard a reader would
     call one, and the point is to SHOW the condition rather than to evaluate it.
 
@@ -254,7 +385,7 @@ def _enclosing_condition(node: Any, src: bytes) -> str:
             if condition is not None
             else ""
         )
-        if any(predicate in text for predicate in ISR_PREDICATES):
+        if _names_isr_predicate(text, vocab):
             return text
         current = statement
     return ""
@@ -265,9 +396,14 @@ def _enclosing_condition(node: Any, src: bytes) -> str:
 ## @param src_bytes The file's raw bytes.
 ## @param patterns_by_name Blocking patterns keyed by callee name.
 ## @return A list of [primitive, line, wait, wait_operand, guard] records.
-## @version 2
+## @param vocab The build's vocabulary (predicates, wait tokens), or None for the built-ins.
+## v3 (W7): a guard in the operand counts only when a predicate is CALLED.
+## v4 (2.0.0, C1): predicates and wait tokens from the vocabulary.
+## @version 4
 ## @req REQ-DDB-SCHEMA-011
-def walk_blocking_sites(tree: Any, src_bytes: bytes, patterns_by_name: dict) -> list[list[Any]]:
+def walk_blocking_sites(
+    tree: Any, src_bytes: bytes, patterns_by_name: dict, vocab: BlockingVocabulary | None = None
+) -> list[list[Any]]:
     """Rowid-free like every harvest payload: the holder is resolved by LINE at insert time,
     exactly as a lock acquisition's is.
 
@@ -306,17 +442,17 @@ def walk_blocking_sites(tree: Any, src_bytes: bytes, patterns_by_name: dict) -> 
             operand = src_bytes[argument.start_byte : argument.end_byte].decode(
                 "utf-8", errors="replace"
             )
-        guard = _enclosing_condition(node, src_bytes)
+        guard = _enclosing_condition(node, src_bytes, vocab)
         ## THE GUARD CAN LIVE IN THE ARGUMENT ITSELF. Zephyr's power-management path writes
         ## `k_sem_take(&pm->lock, k_is_in_isr() ? K_NO_WAIT : K_FOREVER)`
         ## (subsys/pm/device_runtime.c:71) — ten interrupt handlers reach it.
-        if not guard and any(predicate in operand for predicate in ISR_PREDICATES):
+        if not guard and _names_isr_predicate(operand, vocab):
             guard = operand
         sites.append(
             [
                 name,
                 node.start_point[0] + 1,
-                classify_wait(operand, pattern.timeout_arg_index is not None),
+                classify_wait(operand, pattern.timeout_arg_index is not None, vocab),
                 operand,
                 guard,
             ]
@@ -340,31 +476,67 @@ class _BlockingHarvester(Harvester):
     label = "blocking calls"
 
     ## @brief Store the pattern map.
-    ## @version 1
-    ## @dg_internal
-    def __init__(self, patterns_by_name: dict, extra_key: str = "") -> None:
+    ## v2 (2.0.0, C1): and the vocabulary.
+    ## @version 2
+    ## @utility
+    def __init__(
+        self, patterns_by_name: dict, extra_key: str = "", vocab: BlockingVocabulary | None = None
+    ) -> None:
         super().__init__(extra_key)
         self.patterns_by_name = patterns_by_name
+        self.vocab = vocab
 
     ## @brief Harvest one file's blocking call sites.
     ## @return List of site records.
-    ## @version 1
+    ## v2 (2.0.0, C1): reads with the vocabulary.
+    ## @version 2
     ## @req REQ-DDB-SCHEMA-011
     def harvest(self, tree: Any, src_bytes: bytes) -> Any:
-        return walk_blocking_sites(tree, src_bytes, self.patterns_by_name)
+        return walk_blocking_sites(tree, src_bytes, self.patterns_by_name, self.vocab)
+
+
+## @brief The blocking harvester a repository's own `.clew.yaml` configures.
+## @param repo_root The repository.
+## @return The harvester (built-in vocabulary when nothing is declared or the file is unreadable).
+## @version 1
+## @utility
+def declared_blocking_harvester(repo_root: Path) -> Harvester:
+    """THE FAST TIER'S CONSTRUCTION SITE (2.0.0, C1): it must read an edited file with the same
+    vocabulary the full build used, or a save would drop the declared sites of that file. A
+    declaration that cannot be read falls back to the built-ins here; the full build refuses it.
+
+    @brief Harvester from the declaration.
+    @return Harvester.
+    """
+    from .declaration import load_declaration
+    from .vocabulary import DeclarationError
+
+    try:
+        declared = load_declaration(repo_root).get("blocking")
+    except DeclarationError:
+        declared = None
+    return blocking_harvester(declared if isinstance(declared, dict) else None)
 
 
 ## @brief The blocking-call stage's harvester.
-## @return A Harvester over the built-in blocking primitives.
-## @version 1
+## @param declared The `blocking:` section, or None.
+## @return A Harvester over the built-in blocking primitives plus any declared ones.
+## v2 (2.0.0, R5-CORE C1): a declared vocabulary accumulates over the built-ins.
+## @version 2
 ## @req REQ-DDB-SCHEMA-011
-def blocking_harvester() -> Harvester:
-    """@brief Build this stage's harvester.
+def blocking_harvester(declared: dict | None = None) -> Harvester:
+    """THE DECLARATION IS IN THE CACHE KEY (`manifest_key`), so a payload harvested with the
+    built-in vocabulary is never served for a declared one. With nothing declared the key is the
+    built-in one and every cached payload still applies.
 
+    @brief Build this stage's harvester.
     @return The harvester.
-    @version 1
+    @version 2
     """
-    return _BlockingHarvester({p.name: p for p in DEFAULT_BLOCKING_PATTERNS})
+    from .treescan import manifest_key
+
+    vocab = BlockingVocabulary(declared)
+    return _BlockingHarvester(vocab.patterns_by_name, manifest_key(declared or None), vocab)
 
 
 ## @brief Create the blocking_calls table.

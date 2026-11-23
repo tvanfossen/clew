@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It is triggered from the failed-post sheet (`app/components/post_list/post/body/failed/index.tsx:46-49`). It does not go through `createPost`\nVERDICT: HIT\nWHY: The answer says only a manual \"Try Again\" resends the failed post and names `retryFailedPost` as the function that does it."
+}

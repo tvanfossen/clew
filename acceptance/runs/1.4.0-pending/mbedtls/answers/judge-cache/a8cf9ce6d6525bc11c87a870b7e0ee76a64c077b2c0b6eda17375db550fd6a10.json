@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_memory_buffer_alloc_init()` (line 566) installs its own `buffer_alloc_calloc` / `buffer_alloc_free` (or mutex-wrapped variants when `MBEDTLS_THREADING_C` is on) through `mbedtls_platform_set_calloc_free`.\nVERDICT: MISS\nWHY: The answer says the buffer allocator's init installs itself via the setter. It never says this is the only in-tree user, and it never names MBEDTLS_MEMORY_BUFFER_ALLOC_C."
+}

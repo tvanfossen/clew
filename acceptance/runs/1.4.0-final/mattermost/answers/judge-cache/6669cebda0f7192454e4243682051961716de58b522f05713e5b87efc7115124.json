@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: the `interface ServerDataOperator extends ...HandlerMix` block (lines 23\u201338) merges each mixin's method signatures into the class type. The mixin itself does not carry type information.\nVERDICT: HIT\nWHY: The answer states that a same-named interface extends each handler's Mix type, merging the mixed-in method signatures into the class type."
+}

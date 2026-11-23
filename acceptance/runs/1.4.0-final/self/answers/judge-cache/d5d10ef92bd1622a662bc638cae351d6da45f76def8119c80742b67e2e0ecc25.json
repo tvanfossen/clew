@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer covers scope resolution (declared roots, whole repo minus ignores) but never says that files within scope must be readable by something, nor names the parse-built front end or binary classification filters; it even admits not knowing which extensions doxygen keeps."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"A bad declaration does not fall back silently in the CLI. `cli.py` (around line 807) calls `declared_scope_rejection` and exits 1, because a silent fall-back would give the widest scope for the narrowest request.\"\nVERDICT: MISS\nWHY: The answer says a declared scope sets the roots and that an absent declaration gives the whole repo. But it says a bad declaration in the CLI exits 1 rather than falling through, which contradicts \"every failure to find one falls through to the whole repository.\""
+}

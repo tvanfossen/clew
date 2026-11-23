@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A write refused by the `code` axis returns `ok: false` with a message starting `REFUSED:`, and nothing is written. ... Writes are refused, and `force` does not override the refusal.\n\nVERDICT: HIT\n\nWHY: The answer states that writes are refused (not warned) and that `force` cannot override the refusal. It doesn't explicitly say the refusal sits ahead of the build decision, but it does give the key consequence that the force flag cannot override it."
+}

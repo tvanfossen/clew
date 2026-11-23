@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"the post is written to the local database before the network call, with a temporary `pending_post_id`. If `client.createPost` throws, ... the record is rewritten with `props.failed = true` and `update_at = now`, and it stays visible in the channel.\"\nVERDICT: HIT\nWHY: The answer states the post is saved locally before sending and, on failure, is kept and marked `failed = true`."
+}

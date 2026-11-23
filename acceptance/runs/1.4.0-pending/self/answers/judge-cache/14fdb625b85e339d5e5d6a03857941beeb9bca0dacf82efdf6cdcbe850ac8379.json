@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A write from a process that predates its source is refused with \"Nothing was written,\" and `force` does not override the refusal.\nVERDICT: HIT\nWHY: The answer states that the write path refuses (rather than warns) and that `force` cannot override it. It does not say where the refusal sits relative to the build decision, but the force-flag immunity carries the substance."
+}

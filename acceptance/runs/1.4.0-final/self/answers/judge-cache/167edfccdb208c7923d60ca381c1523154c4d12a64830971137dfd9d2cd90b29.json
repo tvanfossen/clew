@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: | `data` | ... | Rebuild (`index(action='refresh')`) | ... | `code` | ... | Only restarting the client |\nVERDICT: HIT\nWHY: The table shows data is cleared by a rebuild and code only by a client restart, and the answer says a rebuild cannot clear the schema and code notices. The \"which is why one flag would not have been enough\" part is implied by the separate axes with different remedies rather than stated outright."
+}

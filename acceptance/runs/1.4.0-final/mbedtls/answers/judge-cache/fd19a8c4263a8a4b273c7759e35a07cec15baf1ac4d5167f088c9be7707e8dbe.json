@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: In-tree programs `programs/ssl/ssl_server2.c:8` and `ssl_client2.c:8` | Yes, defined on line 8 before any include | The whole translation unit sees plain names, so these two programs are coupled to the internal layout.\nVERDICT: HIT\nWHY: The answer states that example programs (ssl_server2.c, ssl_client2.c) define the opt-out themselves, coupling them to internal layout beyond the public API."
+}

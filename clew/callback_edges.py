@@ -179,7 +179,7 @@ class _FunctionSignature:
 
     ## @brief Store a function's name and ordered parameter-name list.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def __init__(self, name: str, param_names: list[str | None]) -> None:
         self.name = name
         self.param_names = param_names
@@ -208,7 +208,7 @@ class _CallbackCollector:
 
     ## @brief Initialize empty signature, registration, and call-site maps.
     ## @version 4
-    ## @dg_internal
+    ## @utility
     def __init__(self) -> None:
         self.signatures: dict[int, _FunctionSignature] = {}
         ## Memoised set of `signatures`' names, with the size it was built at. See
@@ -237,7 +237,7 @@ class _CallbackCollector:
     ## @brief The set of function names any collected signature uses.
     ## @return Frozen set of signature names.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def known_names(self) -> frozenset[str]:
         """MEMOISED BECAUSE THE SCAN IT REPLACES WAS THE BUILD'S LARGEST SINGLE COST. See
         `_is_known_function`: the linear form evaluated 180 million comparisons on a
@@ -267,7 +267,7 @@ class _CallbackCollector:
 ## @brief Find the innermost function_declarator inside a possibly-wrapped declarator.
 ## @return The function_declarator node, or None if none is found by descending declarator wrappers.
 ## @version 1
-## @dg_internal
+## @utility
 def _find_function_declarator(declarator: Any) -> Any | None:
     """Return the `function_declarator` node, descending through a
     pointer return-type wrapper (`char *foo(...)`) if present.
@@ -284,7 +284,7 @@ def _find_function_declarator(declarator: Any) -> Any | None:
 ## @brief Descend through wrapper declarators to the innermost identifier.
 ## @return The innermost identifier node, or None if the declarator chain dead-ends before one.
 ## @version 2
-## @dg_internal
+## @utility
 def _innermost_identifier(node: Any) -> Any | None:
     """Unwrap `function_declarator`/`pointer_declarator` (both expose a
     `declarator` field) and `parenthesized_declarator` (no field, just
@@ -313,7 +313,7 @@ def _innermost_identifier(node: Any) -> Any | None:
 ## @brief Extract one parameter_declaration's declared name, if any.
 ## @return The decoded parameter name, or None for a bare-type/unnamed or unrecognized declarator.
 ## @version 2
-## @dg_internal
+## @utility
 def _param_name(param_node: Any, src_bytes: bytes) -> str | None:
     """Return the parameter's declared name — handling both a plain
     identifier declarator (`int x`, or any typedef'd type) and a raw
@@ -340,7 +340,7 @@ def _param_name(param_node: Any, src_bytes: bytes) -> str | None:
 ## @brief Extract a function_definition's signature (name + param names).
 ## @return A (name, ordered param-name list) tuple, or None if the declarator shape isn't recognized.
 ## @version 1
-## @dg_internal
+## @utility
 def _function_signature(func_def: Any, src_bytes: bytes) -> tuple[str, list[str | None]] | None:
     """Return (name, ordered param names), or None if the declarator
     shape isn't recognized (best-effort).
@@ -371,7 +371,7 @@ def _function_signature(func_def: Any, src_bytes: bytes) -> tuple[str, list[str 
 ## @brief Harvest one function_definition's body line + name + parameter names.
 ## @return [body_line, name, param_names], or None when the shape isn't recognized.
 ## @version 1
-## @dg_internal
+## @utility
 def _harvest_signature(func_def: Any, src_bytes: bytes) -> list[Any] | None:
     """Record the signature against its BODY START LINE — the same line the
     original rowid resolution used — so the fold can map it to a memberdef
@@ -393,7 +393,7 @@ def _harvest_signature(func_def: Any, src_bytes: bytes) -> list[Any] | None:
 ## @brief Harvest one `identifier = identifier;` assignment as a candidate registration.
 ## @return [line, lhs_name, rhs_name], or None when either side isn't a bare identifier.
 ## @version 2
-## @dg_internal
+## @utility
 def _harvest_registration(assign_node: Any, src_bytes: bytes) -> list[Any] | None:
     """The RHS-is-a-parameter test needs the enclosing function's signature,
     which is rowid-resolved, so it moves to the fold; the harvest only records
@@ -423,7 +423,7 @@ def _harvest_registration(assign_node: Any, src_bytes: bytes) -> list[Any] | Non
 ## @param src_bytes The file's raw bytes.
 ## @return The enclosing `impl`/`struct` literal's type name, or None.
 ## @version 1
-## @dg_internal
+## @utility
 def _rust_enclosing_type(node: Any, src_bytes: bytes) -> str | None:
     """A bare field name (`callback`) is meaningless on its own — many structs
     can have one — so, exactly as `locks._class_scope` scope-qualifies a
@@ -446,7 +446,7 @@ def _rust_enclosing_type(node: Any, src_bytes: bytes) -> str | None:
 ## @param src_bytes The file's raw bytes.
 ## @return [line, "Type::field", rhs_name, []], or None when the shape doesn't match.
 ## @version 1
-## @dg_internal
+## @utility
 def _harvest_rust_field_registration(assign_node: Any, src_bytes: bytes) -> list[Any] | None:
     """The Rust analog of `_harvest_registration`'s `GLOBAL = identifier;`: Rust
     has no free-standing mutable global for a closure/handler to live in, so
@@ -484,7 +484,7 @@ def _harvest_rust_field_registration(assign_node: Any, src_bytes: bytes) -> list
 ## @param src_bytes The file's raw bytes.
 ## @return [line, "Type::field", rhs_name, []], or None when the value isn't a bare identifier.
 ## @version 1
-## @dg_internal
+## @utility
 def _harvest_rust_struct_literal_field(field_init_node: Any, src_bytes: bytes) -> list[Any] | None:
     """The MORE idiomatic Rust registration shape, alongside `self.field = param`:
     a constructor built as `Self { field: handler, .. }` rather than assigning
@@ -525,7 +525,7 @@ def _harvest_rust_struct_literal_field(field_init_node: Any, src_bytes: bytes) -
 ## @param src_bytes The file's raw bytes.
 ## @return A registration record, or None when neither shape matches.
 ## @version 1
-## @dg_internal
+## @utility
 def _harvest_assignment_registration(assign_node: Any, src_bytes: bytes) -> list[Any] | None:
     """@brief Dispatch one assignment to the C or Rust registration harvester."""
     return _harvest_registration(assign_node, src_bytes) or _harvest_rust_field_registration(
@@ -538,7 +538,7 @@ def _harvest_assignment_registration(assign_node: Any, src_bytes: bytes) -> list
 ## @param src_bytes The file's bytes, for slicing.
 ## @return [line, bound_name, rhs_name], or None when the shape isn't a name-to-name bind.
 ## @version 2
-## @dg_internal
+## @utility
 def _harvest_init_binding(decl_node: Any, src_bytes: bytes) -> list[Any] | None:
     """The FILE-SCOPE half of gh#1, and the shape Mbed-TLS uses:
 
@@ -610,7 +610,7 @@ _UNEVALUABLE = "#elif"
 ## @param src_bytes The file's raw bytes.
 ## @return List of [condition text, negated] pairs; empty when the node is unguarded.
 ## @version 1
-## @dg_internal
+## @utility
 def _guard_chain(node: Any, src_bytes: bytes) -> list[list[Any]]:
     """`#ifdef X` / `#ifndef X` are NORMALISED to `defined(X)` with a polarity, so the
     evaluator has one atom form to decide instead of three spellings of the same test.
@@ -645,7 +645,7 @@ def _guard_chain(node: Any, src_bytes: bytes) -> list[list[Any]]:
 ## @param negated True when the node of interest sits in this guard's `#else` arm.
 ## @return [condition text, negated] for this directive.
 ## @version 1
-## @dg_internal
+## @utility
 def _guard_of(node: Any, src_bytes: bytes, negated: bool) -> list[Any]:
     """`#ifndef X` inverts on TOP of an `#else`, so the two polarities compose rather
     than one overwriting the other — a binding in the `#else` of an `#ifndef` is live
@@ -667,7 +667,7 @@ def _guard_of(node: Any, src_bytes: bytes, negated: bool) -> list[Any]:
 ## @brief Harvest one call_expression's callee name + argument identifiers.
 ## @return [line, callee_name, arg_texts], or None when the callee isn't an identifier.
 ## @version 1
-## @dg_internal
+## @utility
 def _harvest_call_site(call_node: Any, src_bytes: bytes) -> list[Any] | None:
     """Argument slots that aren't plain identifiers record as None — the raw
     material both registration resolution and final edge emission read from.
@@ -699,7 +699,7 @@ def _harvest_call_site(call_node: Any, src_bytes: bytes) -> list[Any] | None:
 ## @param src_bytes The file's raw bytes.
 ## @return One entry per argument: its text if a bare identifier, else None.
 ## @version 1
-## @dg_internal
+## @utility
 def _rust_arg_texts(args_node: Any, src_bytes: bytes) -> list[str | None]:
     """@brief Shared arg-list reader for both Rust call-site harvesters below."""
     arg_texts: list[str | None] = []
@@ -713,7 +713,7 @@ def _rust_arg_texts(args_node: Any, src_bytes: bytes) -> list[str | None]:
 ## @param src_bytes The file's raw bytes.
 ## @return [line, callee_name, arg_texts], or None when neither shape matches.
 ## @version 1
-## @dg_internal
+## @utility
 def _harvest_rust_call_site(call_node: Any, src_bytes: bytes) -> list[Any] | None:
     """Two shapes, both needed by the SAME downstream resolution
     (`collector.call_sites`, keyed by name, serves both "calls to the
@@ -766,7 +766,7 @@ def _harvest_rust_call_site(call_node: Any, src_bytes: bytes) -> list[Any] | Non
 ## @param src_bytes The file's raw bytes.
 ## @return A call-site record, or None when no shape matches.
 ## @version 1
-## @dg_internal
+## @utility
 def _harvest_call(call_node: Any, src_bytes: bytes) -> list[Any] | None:
     """@brief Dispatch one call_expression to the C or Rust call-site harvester."""
     return _harvest_call_site(call_node, src_bytes) or _harvest_rust_call_site(call_node, src_bytes)
@@ -777,7 +777,7 @@ def _harvest_call(call_node: Any, src_bytes: bytes) -> list[Any] | None:
 ## @param src_bytes The file's raw bytes.
 ## @return (name, ordered param-name list), or None when the name is unreadable.
 ## @version 1
-## @dg_internal
+## @utility
 def _rust_function_signature(
     func_item: Any, src_bytes: bytes
 ) -> tuple[str, list[str | None]] | None:
@@ -822,7 +822,7 @@ def _rust_function_signature(
 ## @param src_bytes The file's raw bytes.
 ## @return [body_line, name, param_names], or None when the shape isn't recognized.
 ## @version 1
-## @dg_internal
+## @utility
 def _harvest_rust_signature(func_item: Any, src_bytes: bytes) -> list[Any] | None:
     """@brief Per-file Rust signature harvest (mirrors `_harvest_signature`)."""
     body = func_item.child_by_field_name("body")
@@ -837,7 +837,7 @@ def _harvest_rust_signature(func_item: Any, src_bytes: bytes) -> list[Any] | Non
 
 ## @brief Route one AST node into the matching harvest bucket.
 ## @version 4
-## @dg_internal
+## @utility
 def _harvest_callback_node(node: Any, src_bytes: bytes, out: dict[str, list]) -> None:
     """Dispatch by node type — extracted from `_harvest_callback_file` to keep
     that function's complexity low.
@@ -875,7 +875,7 @@ def _harvest_callback_node(node: Any, src_bytes: bytes, out: dict[str, list]) ->
 ## @brief Walk one parsed file's AST, harvesting signatures/registrations/call sites.
 ## @return {"sigs": [...], "regs": [...], "calls": [...]} in walk order.
 ## @version 3
-## @dg_internal
+## @utility
 def _harvest_callback_file(tree: Any, src_bytes: bytes) -> dict[str, list]:
     """Single stack-based walk collecting everything Layer 4 needs from one
     file, keyed by SOURCE LINE rather than memberdef rowid so the result is
@@ -944,7 +944,7 @@ def callback_harvester() -> Harvester:
 
 ## @brief Resolve one file's harvested signatures into the collector.
 ## @version 1
-## @dg_internal
+## @utility
 def _fold_signatures(
     payload: dict[str, list],
     funcs_in_file: list[tuple[int, str, int, int]],
@@ -959,7 +959,7 @@ def _fold_signatures(
 
 ## @brief Resolve one file's harvested registrations into the collector.
 ## @version 3
-## @dg_internal
+## @utility
 def _fold_registrations(
     payload: dict[str, list],
     funcs_in_file: list[tuple[int, str, int, int]],
@@ -1006,7 +1006,7 @@ def _fold_registrations(
 
 ## @brief Fold one file's cached callback payload into the cross-file collector.
 ## @version 1
-## @dg_internal
+## @utility
 def _fold_callback_payload(
     payload: dict[str, list],
     funcs_in_file: list[tuple[int, str, int, int]],
@@ -1031,7 +1031,7 @@ def _fold_callback_payload(
 
 ## @brief Recursively resolve a (function, parameter) binding to concrete function names.
 ## @version 1
-## @dg_internal
+## @utility
 def _resolve_binding(
     func_name: str,
     param_index: int,
@@ -1070,7 +1070,7 @@ def _resolve_binding(
 
 ## @brief Resolve one call site's contribution to a binding.
 ## @version 1
-## @dg_internal
+## @utility
 def _resolve_one_call_site(
     caller_rowid: int,
     arg: str,
@@ -1101,7 +1101,7 @@ def _resolve_one_call_site(
 ## @brief True if `name` is a known indexed function (per collected signatures).
 ## @return True if `name` is non-None and matches a collected function signature, else False.
 ## @version 2
-## @dg_internal
+## @utility
 def _is_known_function(name: str | None, collector: _CallbackCollector) -> bool:
     """A name is "known" if some collected function signature uses it —
     cheaper than a DB round-trip, and sufficient since only indexed
@@ -1130,7 +1130,7 @@ def _is_known_function(name: str | None, collector: _CallbackCollector) -> bool:
 
 ## @brief Return the calling function's signature, if known.
 ## @version 1
-## @dg_internal
+## @utility
 def _caller_signature(
     caller_rowid: int,
     rowid_to_name: dict[int, str],
@@ -1168,7 +1168,7 @@ class _ExternalBoundary:
 
     ## @brief Store an external-boundary terminus record's identifying fields.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def __init__(
         self,
         memberdef_rowid: int,
@@ -1270,7 +1270,7 @@ def _record_external_boundary(
 ## @param defined The macro names the declared configuration defines.
 ## @return True (holds), False (does not), or None (undecidable).
 ## @version 1
-## @dg_internal
+## @utility
 def _guard_holds(text: str, negated: bool, defined: frozenset[str]) -> bool | None:
     """@brief Apply a guard's polarity to its evaluated condition.
 
@@ -1287,7 +1287,7 @@ def _guard_holds(text: str, negated: bool, defined: frozenset[str]) -> bool | No
 ## @return True (live and certain), False (definitively dead), None (unknown).
 ## @version 1
 ## @req REQ-DDB-PIPE-003
-## @dg_internal
+## @utility
 def _binding_branch(guards: tuple, config: PreprocessorConfig) -> bool | None:
     """gh#35's three-way answer, and each value means something different downstream:
     True emits a 'resolved' edge, None emits a 'fuzzy' one, False emits NOTHING.
@@ -1322,7 +1322,7 @@ def _binding_branch(guards: tuple, config: PreprocessorConfig) -> bool | None:
 ## @param config The resolved preprocessor configuration.
 ## @return name -> True when its branch is certain, False when it is unknown.
 ## @version 2
-## @dg_internal
+## @utility
 def _live_direct_bindings(
     global_name: str,
     collector: _CallbackCollector,
@@ -1356,7 +1356,7 @@ def _live_direct_bindings(
 ## @return name -> False (never branch-certain), for every eliminated binding.
 ## @version 1
 ## @req REQ-DDB-PIPE-003
-## @dg_internal
+## @utility
 def _branch_eliminated_bindings(
     global_name: str,
     collector: _CallbackCollector,
@@ -1399,7 +1399,7 @@ def _branch_eliminated_bindings(
 
 ## @brief Emit call_edges rows for every resolved callback global.
 ## @version 6
-## @dg_internal
+## @utility
 def _emit_resolved_edges(
     collector: _CallbackCollector,
     name_to_rowids: dict[str, list[int]],
@@ -1573,7 +1573,7 @@ def _insert_external_boundaries(
 ## @param collector The cross-file collector, after every file is folded.
 ## @param config The resolved preprocessor configuration.
 ## @version 2
-## @dg_internal
+## @utility
 def _log_branch_verdicts(collector: _CallbackCollector, config: PreprocessorConfig) -> None:
     """Says nothing at all when the target has NO conditional binding, which is most of
     them — a line reading "0 dropped, 0 weakened" on every build trains a reader to skip

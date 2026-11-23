@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`check_approval` sets `approved = true` right after calling `on_tool_call`, and the callback returns `void`. The header comment says tools are \\\"approved via callback\\\" (`permission_manager.h:6`), but a wired prompt cannot reject a call.\"\nVERDICT: HIT\nWHY: The answer states the callback returns void, approved is set to true right after firing it, and so the callback cannot refuse."
+}

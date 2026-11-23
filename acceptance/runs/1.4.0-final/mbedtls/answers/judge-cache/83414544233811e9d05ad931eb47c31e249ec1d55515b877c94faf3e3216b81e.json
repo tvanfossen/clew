@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It installs its own `buffer_alloc_calloc` / `buffer_alloc_free`, or the `_mutexed` variants when `MBEDTLS_THREADING_C` is on, through `mbedtls_platform_set_calloc_free`.\nVERDICT: HIT\nWHY: The answer states that `mbedtls_memory_buffer_alloc_init` installs the mutexed pair when MBEDTLS_THREADING_C is on and the plain pair otherwise. That is a compile-time choice made inside the init function."
+}

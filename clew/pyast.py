@@ -137,7 +137,7 @@ def dotted_name(node: Any, src_bytes: bytes) -> str | None:
 ## @param node An identifier / attribute / dotted_name node.
 ## @return Whether the chain contains only names (no call, subscript, literal).
 ## @version 1
-## @dg_internal
+## @utility
 def _is_static_chain(node: Any) -> bool:
     """Walks down the `object` side of an `attribute` chain. `dotted_name` is
     always static (the grammar only builds it from identifiers), and an
@@ -231,7 +231,7 @@ class PyBindings:
 
     ## @brief Start with an empty binding table.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def __init__(self) -> None:
         self.names: dict[str, str] = {}
 
@@ -299,7 +299,7 @@ def collect_bindings(tree: Any, src_bytes: bytes) -> PyBindings:
 ## @param types Node types to collect.
 ## @return Matching nodes, ordered by start byte.
 ## @version 1
-## @dg_internal
+## @utility
 def _collect_by_type(root: Any, types: tuple[str, ...]) -> list[Any]:
     """Document order matters for bindings: a later rebinding of the same name
     should win, which only holds if the nodes are visited as written.
@@ -323,7 +323,7 @@ def _collect_by_type(root: Any, types: tuple[str, ...]) -> list[Any]:
 ## @param src_bytes The file's raw bytes.
 ## @param bindings Table mutated in place.
 ## @version 1
-## @dg_internal
+## @utility
 def _bind_import(node: Any, src_bytes: bytes, bindings: PyBindings) -> None:
     """`import a.b` binds the HEAD (`a`), because that is the name that becomes
     usable; `import a.b as c` binds `c` to the full path instead.
@@ -346,8 +346,10 @@ def _bind_import(node: Any, src_bytes: bytes, bindings: PyBindings) -> None:
 ## @param node An `import_from_statement` node.
 ## @param src_bytes The file's raw bytes.
 ## @param bindings Table mutated in place.
-## @version 1
-## @dg_internal
+## v2 (round 5): `from .. import x` binds `..x`, not `...x` (the extra dot climbed one package
+## too far, so the package-alias rule could only match by tree-wide suffix).
+## @version 2
+## @utility
 def _bind_import_from(node: Any, src_bytes: bytes, bindings: PyBindings) -> None:
     """The imported name binds to `<module>.<name>`, so a relative import
     (`from .models import Thread`) yields `.models.Thread` — deliberately a
@@ -358,7 +360,7 @@ def _bind_import_from(node: Any, src_bytes: bytes, bindings: PyBindings) -> None
     every call through it stays unresolved instead of being attributed to `x`.
 
     @brief Bind a from-import statement's names.
-    @version 1
+    @version 2
     """
     module_node = node.child_by_field_name("module_name")
     module = node_text(module_node, src_bytes) if module_node is not None else ""
@@ -375,7 +377,10 @@ def _bind_import_from(node: Any, src_bytes: bytes, bindings: PyBindings) -> None
             continue
         local, imported = _import_from_pair(child, src_bytes)
         if local is not None and imported is not None:
-            bindings.names[local] = f"{module}.{imported}" if module else imported
+            ## `from .. import api` is the module `..api`, not `...api`: a relative module that
+            ## already ends in a dot takes the name directly (round 5, found by agent C's W5).
+            joiner = "" if module.endswith(".") else "."
+            bindings.names[local] = f"{module}{joiner}{imported}" if module else imported
 
 
 ## @brief The (local name, imported name) pair for one from-import clause.
@@ -383,7 +388,7 @@ def _bind_import_from(node: Any, src_bytes: bytes, bindings: PyBindings) -> None
 ## @param src_bytes The file's raw bytes.
 ## @return (local binding name, imported name), or (None, None) for a wildcard.
 ## @version 2
-## @dg_internal
+## @utility
 def _import_from_pair(child: Any, src_bytes: bytes) -> tuple[str | None, str | None]:
     """@brief Resolve one from-import clause to its local and imported names.
 
@@ -409,7 +414,7 @@ def _import_from_pair(child: Any, src_bytes: bytes) -> tuple[str | None, str | N
 ## @param bindings Table mutated in place (and read, to resolve the constructor).
 ## @param producers Receiver-producing functions → the type they return.
 ## @version 1
-## @dg_internal
+## @utility
 def _bind_receiver(
     node: Any,
     src_bytes: bytes,
@@ -438,7 +443,7 @@ def _bind_receiver(
 ## @param node An `assignment` or `as_pattern` node.
 ## @return (target, value), either element None when the shape is not a simple bind.
 ## @version 1
-## @dg_internal
+## @utility
 def _binding_target_and_value(node: Any) -> tuple[Any, Any]:
     """`assignment` names the target on the left; `as_pattern` puts it in an
     `as_pattern_target` AFTER the value. A destructuring target (a tuple
@@ -547,10 +552,14 @@ def callee_tail(callee: Any, src_bytes: bytes) -> tuple[str, bool] | None:
 ## @param call_node A Python `call` node.
 ## @param src_bytes The file's raw bytes.
 ## @param source_binding Provenance tag for a bound (not called) reference.
+## @param local Names the enclosing function binds (they shadow functions).
 ## @return One [name, line, source_binding] row per bare-identifier keyword value.
-## @version 2
-## @dg_internal
-def _keyword_bindings(call_node: Any, src_bytes: bytes, source_binding: str) -> list[list[Any]]:
+## v3: a value naming a parameter or local is not a binding.
+## @version 3
+## @utility
+def _keyword_bindings(
+    call_node: Any, src_bytes: bytes, source_binding: str, local: frozenset[str] = frozenset()
+) -> list[list[Any]]:
     """gh#1's Python instance. `sub.set_defaults(func=cmd_rubric)` hands a function
     reference to argparse, which calls it later; no layer looking for a CALL to
     `cmd_rubric` finds one, so every argparse subcommand handler in this repo's own
@@ -562,14 +571,12 @@ def _keyword_bindings(call_node: Any, src_bytes: bytes, source_binding: str) -> 
     grading a BINDING that weakly would put a guess into a layer whose whole claim is
     that the reference is written down. Fail closed instead.
 
-    Known and accepted imprecision: an identifier is not proven to name a function
-    here. `cfg(mode=timeout)` where a local `timeout` shadows a function of that name
-    yields a spurious edge. This is the same name-resolution bet Layer 3 already makes
-    for a bare-identifier call site, and `_ast_record_call_edge` still has to find an
-    indexed function of that name before any row is written.
+    A NAME THE ENCLOSING FUNCTION BINDS is not a function reference (v3, round 3): a parameter
+    or local passed along (`cwd=repo_root` in `def commit(repo_root)`) used to resolve to any
+    function of that name — clew's own wiki drew `_commit → repo_root`, a pytest fixture.
 
     @brief Harvest keyword-argument function bindings from one call.
-    @version 2
+    @version 3
     """
     args_node = call_node.child_by_field_name("arguments")
     rows: list[list[Any]] = []
@@ -580,7 +587,8 @@ def _keyword_bindings(call_node: Any, src_bytes: bytes, source_binding: str) -> 
         if value is None or value.type != "identifier":
             continue
         name = src_bytes[value.start_byte : value.end_byte].decode("utf-8", errors="replace")
-        rows.append([name, value.start_point[0] + 1, source_binding])
+        if name not in local:
+            rows.append([name, value.start_point[0] + 1, source_binding])
     return rows
 
 
@@ -591,7 +599,11 @@ def _keyword_bindings(call_node: Any, src_bytes: bytes, source_binding: str) -> 
 ## @param source_member Provenance tag for an attribute-qualified callee.
 ## @param source_binding Provenance tag for a keyword-argument function binding (gh#1).
 ## @return Rowid-free call sites in walk order.
-## @version 4
+## v5: member sites whose receiver an import binds carry the module path (9th element); keyword
+## bindings naming a local are dropped.
+## v6 (round 5, agent C's W2): a BARE call whose name the enclosing function binds — a parameter
+## or an assigned local — is not a call of the same-named function, and is not emitted.
+## @version 6
 ## @req REQ-DDB-PIPE-003
 def harvest_calls(
     tree: Any,
@@ -628,37 +640,305 @@ def harvest_calls(
     emitting it would cost a count per call site to break no tie.
 
     @brief Harvest Python call sites with call/member/binding provenance.
-    @return List of [callee_name, line, source, qualifier, receiver].
-    @version 4
+    @return List of [callee_name, line, source, qualifier, receiver(, -1, False, None, module)].
+    @version 5
     """
     sites: list[list[Any]] = []
     ## Computed once per file rather than per call site: `enclosing_class` is a containing-span
     ## lookup, and rebuilding the range list inside the walk would make it quadratic on a module
     ## of many classes.
     ranges = class_ranges(tree, src_bytes)
+    imports = import_bindings(tree, src_bytes)
+    shadows: dict[int, frozenset[str]] = {}
+    own: dict[int, frozenset[str]] = {}
     stack = [tree.root_node]
     while stack:
         node = stack.pop()
         stack.extend(node.children)
         if node.type != "call":
             continue
-        sites.extend(_keyword_bindings(node, src_bytes, source_binding))
+        local = _locals_of(_enclosing_function(node), src_bytes, shadows)
+        sites.extend(_keyword_bindings(node, src_bytes, source_binding, local))
         callee = node.child_by_field_name("function")
         tail = callee_tail(callee, src_bytes)
         if tail is None:
             continue
         name, qualified = tail
+        if not qualified and name in _own_locals(_enclosing_function(node), src_bytes, own):
+            ## `def go(finish): finish()` calls what was passed in (agent C's W2): resolving
+            ## it to a function named `finish` minted a resolved edge from a spelling.
+            continue
         qualifier, receiver = _call_scope(callee, name, ranges, node.start_byte, src_bytes)
-        sites.append(
-            [
-                name,
-                node.start_point[0] + 1,
-                source_member if qualified else source_plain,
-                qualifier,
-                receiver,
-            ]
-        )
+        site = [
+            name,
+            node.start_point[0] + 1,
+            source_member if qualified else source_plain,
+            qualifier,
+            receiver,
+        ]
+        module = _receiver_module(callee, src_bytes, imports) if qualified else None
+        if module:
+            ## NINTH ELEMENT: the module the receiver is bound to by an IMPORT. Elements 6-8
+            ## (argc, construction, via_import) are C / JS facts and stay at their neutral values.
+            site += [-1, False, None, module]
+        sites.append(site)
     return sites
+
+
+## @brief A file's IMPORT bindings only: aliases that name modules or imported names.
+## @param tree The parsed Python tree.
+## @param src_bytes The file's raw bytes.
+## @return The binding table, with no local constructions in it.
+## @version 1
+## @req REQ-DDB-PIPE-003
+def import_bindings(tree: Any, src_bytes: bytes) -> PyBindings:
+    """A LOCAL CONSTRUCTION IS NOT A MODULE: `ex = Executor()` binds `ex` to a class, and a call
+    `ex.submit()` must never be looked up as a module path, so only import statements count.
+
+    @brief Import bindings.
+    @return Table.
+    """
+    bindings = PyBindings()
+    for node in _collect_by_type(tree.root_node, ("import_statement", "import_from_statement")):
+        if node.type == "import_statement":
+            _bind_import(node, src_bytes, bindings)
+        else:
+            _bind_import_from(node, src_bytes, bindings)
+    return bindings
+
+
+## @brief The module a member call's receiver is bound to by an import, if any.
+## @param callee The call's `function` child (an `attribute`).
+## @param src_bytes The file's raw bytes.
+## @param imports The file's import bindings.
+## @return The dotted module path (`..query.export`, `pkg.query.export`), or None.
+## @version 1
+## @utility
+def _receiver_module(callee: Any, src_bytes: bytes, imports: PyBindings) -> str | None:
+    """THE OBJECT MUST BE A PLAIN DOTTED NAME (`_export`, `pkg.query.export`): a call result or a
+    subscript names no module. Whether the path IS a module, and not an imported function, is the
+    resolver's question — it asks whether a file bears it.
+
+    @brief Resolve the receiver through imports.
+    @return Module path or None.
+    """
+    obj = callee.child_by_field_name("object") if callee is not None else None
+    if obj is None or obj.type not in ("identifier", "attribute"):
+        return None
+    text = node_text(obj, src_bytes)
+    if not all(part.isidentifier() for part in text.split(".")):
+        return None
+    return imports.resolve(text)
+
+
+## @brief The function definition enclosing a node, or None at module level.
+## @param node Any node.
+## @return The `function_definition` node or None.
+## @version 1
+## @utility
+def _enclosing_function(node: Any) -> Any:
+    """@brief Walk up. @return Function node or None."""
+    parent = node.parent
+    while parent is not None and parent.type != "function_definition":
+        parent = parent.parent
+    return parent
+
+
+## @brief Names a function binds itself: parameters and assignment / loop / `with` targets.
+## @param func The `function_definition` node, or None (module level binds nothing here).
+## @param src_bytes The file's raw bytes.
+## @param cache Names per function start byte; updated.
+## @return The names.
+## @version 1
+## @utility
+def _locals_of(func: Any, src_bytes: bytes, cache: dict[int, frozenset[str]]) -> frozenset[str]:
+    """A PARAMETER OR LOCAL SHADOWS a function of the same name: `cwd=repo_root` inside
+    `def commit(repo_root)` passes the parameter along. Locals are assignment, loop,
+    comprehension, `with ... as` and walrus targets. Nested functions' own names are included
+    too — over-reading a local only ever withholds a binding edge, never invents one.
+
+    @brief Local names.
+    @return Names.
+    """
+    if func is None:
+        return frozenset()
+    if func.start_byte not in cache:
+        names: set[str] = set()
+        params = func.child_by_field_name("parameters")
+        for node in _collect_by_type(params, ("identifier",)) if params is not None else []:
+            names.add(node_text(node, src_bytes))
+        targets = (
+            "assignment",
+            "augmented_assignment",
+            "for_statement",
+            "for_in_clause",
+            "as_pattern",
+            "named_expression",
+        )
+        for node in _collect_by_type(func, targets):
+            left = (
+                node.child_by_field_name("left")
+                or node.child_by_field_name("alias")
+                or node.child_by_field_name("name")
+            )
+            for ident in _collect_by_type(left, ("identifier",)) if left is not None else []:
+                names.add(node_text(ident, src_bytes))
+        cache[func.start_byte] = frozenset(names)
+    return cache[func.start_byte]
+
+
+## Scopes whose bindings belong to themselves, not to the function that contains them.
+_NESTED_SCOPES = ("function_definition", "lambda", "class_definition")
+
+
+## @brief Names a function itself binds: its parameters and what it assigns, not nested scopes'.
+## @param func The function node, or None at module level.
+## @param src_bytes The file's raw bytes.
+## @param cache Per-function cache, keyed by start byte.
+## @return The names.
+## @version 1
+## @utility
+def _own_locals(func: Any, src_bytes: bytes, cache: dict[int, frozenset[str]]) -> frozenset[str]:
+    """STRICTER THAN `_locals_of`, deliberately. That set over-reads into nested functions, which
+    only ever withholds a keyword binding; here it would withhold a CALL. Python makes a name
+    assigned anywhere in a function local to all of it, so the function's own assignments count
+    wherever they sit; a nested function's, lambda's or class's bindings do not shadow the outer
+    call. A nested `def` name is not a shadow either — calling it is a real call.
+
+    @brief Own local names.
+    @return Names.
+    """
+    if func is None:
+        return frozenset()
+    if func.start_byte not in cache:
+        names: set[str] = set()
+        params = func.child_by_field_name("parameters")
+        for node in _collect_by_type(params, ("identifier",)) if params is not None else []:
+            names.add(node_text(node, src_bytes))
+        body = func.child_by_field_name("body")
+        for node in _own_nodes(body):
+            left = (
+                node.child_by_field_name("left")
+                or node.child_by_field_name("alias")
+                or node.child_by_field_name("name")
+            )
+            names.update(_bound_names(left, src_bytes))
+        cache[func.start_byte] = frozenset(names)
+    return cache[func.start_byte]
+
+
+## @brief The names an assignment target binds.
+## @param target A target node, or None.
+## @param src_bytes The file's raw bytes.
+## @return Names: a bare identifier, or each name in a tuple / list pattern.
+## @version 1
+## @utility
+def _bound_names(target: Any, src_bytes: bytes) -> list[str]:
+    """A SUBSCRIPT OR ATTRIBUTE TARGET BINDS NOTHING: `found[rel_key(p)] = p` assigns into
+    `found`; reading every identifier in it made `rel_key` a "local" and dropped a real call
+    (measured on clew's own tree before this landed).
+
+    @brief Bound names.
+    @return Names.
+    """
+    if target is None:
+        return []
+    if target.type == "identifier":
+        return [node_text(target, src_bytes)]
+    if target.type in (
+        "pattern_list",
+        "tuple_pattern",
+        "list_pattern",
+        "parenthesized_expression",
+        "expression_list",
+        "list_splat_pattern",
+        "tuple",
+        "list",
+    ):
+        return [n for c in target.named_children for n in _bound_names(c, src_bytes)]
+    return []
+
+
+## @brief Binding nodes in a body, not descending into nested scopes.
+## @param body The function body, or None.
+## @return Assignment-like nodes.
+## @version 1
+## @utility
+def _own_nodes(body: Any) -> list[Any]:
+    """@brief Own binders. @return Nodes."""
+    targets = (
+        "assignment",
+        "augmented_assignment",
+        "for_statement",
+        "for_in_clause",
+        "as_pattern",
+        "named_expression",
+    )
+    found: list[Any] = []
+    stack = [body] if body is not None else []
+    while stack:
+        node = stack.pop()
+        if node.type in targets:
+            found.append(node)
+        stack.extend(c for c in node.children if c.type not in _NESTED_SCOPES)
+    return found
+
+
+## @brief Whether a name, at a node, is the enclosing method's receiver.
+## @param node The node the name is read at.
+## @param name The identifier's text.
+## @param src_bytes The file's raw bytes.
+## @return True for `self` / `cls`, or the first parameter of the enclosing non-static method.
+## @version 1
+## @req REQ-DDB-PIPE-003
+def is_receiver(node: Any, name: str, src_bytes: bytes) -> bool:
+    """R5-CORE D1 (2.0.0): `SELF_NAMES` is PEP 8 convention, not grammar — `def m(this)`, a
+    metaclass's `mcs` and a `klass` receiver were missed. THE TREE STATES THE RECEIVER: the first
+    parameter of the nearest enclosing function, when that function is defined directly in a class
+    body and is not a `@staticmethod`. `self` / `cls` still count wherever they appear, as before.
+
+    @brief Receiver test.
+    @return Bool.
+    """
+    if name in SELF_NAMES:
+        return True
+    from .harvest import enclosing
+
+    func = enclosing(node, ("function_definition",))
+    return func is not None and _first_parameter(func, src_bytes) == name
+
+
+## @brief The receiver parameter of a method defined directly in a class body, or "".
+## @param func A `function_definition` node.
+## @param src_bytes The file's raw bytes.
+## @return The first parameter's name, or "" (not a method, a staticmethod, or no parameters).
+## @version 1
+## @utility
+def _first_parameter(func: Any, src_bytes: bytes) -> str:
+    """@brief A method's receiver name. @return Name or ""."""
+    holder = func.parent
+    decorators: list[str] = []
+    if holder is not None and holder.type == "decorated_definition":
+        decorators = [node_text(d, src_bytes) for d in holder.children if d.type == "decorator"]
+        holder = holder.parent
+    in_class = holder is not None and holder.type == "block" and holder.parent is not None
+    if not in_class or holder.parent.type != "class_definition":
+        return ""
+    if any("staticmethod" in d for d in decorators):
+        return ""
+    params = func.child_by_field_name("parameters")
+    first = (
+        next((c for c in params.named_children if c.type != "comment"), None) if params else None
+    )
+    if first is not None and first.type in (
+        "typed_parameter",
+        "default_parameter",
+        "typed_default_parameter",
+    ):
+        first = first.child_by_field_name("name") or (
+            first.named_children[0] if first.named_children else None
+        )
+    return node_text(first, src_bytes) if first is not None and first.type == "identifier" else ""
 
 
 ## @brief What a Python call site says about the class it targets: a qualifier, or a receiver.
@@ -668,7 +948,8 @@ def harvest_calls(
 ## @param offset The call's start byte, for the enclosing-class lookup.
 ## @param src_bytes The file's raw bytes.
 ## @return (qualifier, receiver); at most one is non-empty.
-## @version 1
+## v2 (2.0.0, R5-CORE D1): the receiver is the method's first parameter (`is_receiver`).
+## @version 2
 ## @req REQ-DDB-PIPE-003
 def _call_scope(
     callee: Any,
@@ -695,14 +976,14 @@ def _call_scope(
 
     @brief Classify a Python call site as class-qualified or receiver-borne.
     @return (qualifier, receiver).
-    @version 1
+    @version 2
     """
     if callee is None or callee.type != "attribute":
         return "", ""
     obj = callee.child_by_field_name("object")
     if obj is None:
         return "", ""
-    if obj.type == "identifier" and node_text(obj, src_bytes) in SELF_NAMES:
+    if obj.type == "identifier" and is_receiver(obj, node_text(obj, src_bytes), src_bytes):
         owner = enclosing_class(ranges, offset)
         return (f"{owner}.{name}" if owner else ""), ""
     ## The tail of the receiver chain, matching the C rule one grammar over.
@@ -808,7 +1089,7 @@ def entry_names(arg: Any, src_bytes: bytes, class_name: str | None) -> tuple[str
 ## @param class_name Enclosing class, for a `self.`-qualified callee.
 ## @return (qualified, tail), or None when the inner callee names nothing.
 ## @version 1
-## @dg_internal
+## @utility
 def _awaited_call_entry(
     arg: Any, src_bytes: bytes, class_name: str | None
 ) -> tuple[str, str] | None:
@@ -829,8 +1110,9 @@ def _awaited_call_entry(
 ## @param src_bytes The file's raw bytes.
 ## @param class_name Enclosing class, for a `self.`-qualified entry.
 ## @return (qualified, tail), or None when the node names nothing static.
-## @version 1
-## @dg_internal
+## v2: the receiver is the method's first parameter (2.0.0, R5-CORE D1)
+## @version 2
+## @utility
 def _named_entry_names(
     arg: Any, src_bytes: bytes, class_name: str | None
 ) -> tuple[str, str] | None:
@@ -844,7 +1126,7 @@ def _named_entry_names(
         return None
     tail = tail_name(dotted)
     head = dotted.partition(".")[0]
-    if head in SELF_NAMES and dotted.count(".") == 1 and class_name:
+    if is_receiver(arg, head, src_bytes) and dotted.count(".") == 1 and class_name:
         return f"{class_name}.{tail}", tail
     return dotted, tail
 
@@ -855,7 +1137,7 @@ def _named_entry_names(
 ## @param class_name Enclosing class, for a `self.`-qualified callee.
 ## @return (qualified, tail), or None when the body has zero or several calls.
 ## @version 1
-## @dg_internal
+## @utility
 def _lambda_entry(node: Any, src_bytes: bytes, class_name: str | None) -> tuple[str, str] | None:
     """A body with EXACTLY ONE call is that thread's entry; more than one is
     ambiguous ("which is the loop?") and stays fail-closed so a thread is never

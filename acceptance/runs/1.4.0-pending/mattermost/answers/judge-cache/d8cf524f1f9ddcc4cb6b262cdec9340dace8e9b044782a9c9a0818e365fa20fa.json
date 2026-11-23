@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"It then calls `client.createPost` again. On success it writes the server post and updates the last-post time for the channel... On failure, the same error handling applies: the three \"removal\" errors delete the post, and everything else sets `failed: true` again.\"\nVERDICT: HIT\nWHY: The answer says retryFailedPost calls createPost once more and, on failure, either removes the post for the same three errors or marks it failed again. Part 1 says nothing in `createPost` loops or reschedules, and the retry just re-runs that send, so the no-loop point is covered."
+}

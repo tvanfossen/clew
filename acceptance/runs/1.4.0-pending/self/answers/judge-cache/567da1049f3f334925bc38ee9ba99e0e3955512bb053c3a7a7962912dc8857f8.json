@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: | 2 | The repo's `.clew.yaml`, one section per convention (`index_scope`, `shared_key_patterns`, ... `sub_indexes`, and others) | Replaces the layer below it |\nVERDICT: MISS\nWHY: The answer names `.clew.yaml` as tier 2 but never says it is discovered from the repo root by both entry points rather than plumbed per section."
+}

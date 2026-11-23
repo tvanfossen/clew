@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Nested git trees under a root are indexed and tagged afterwards by `external.py`, so two codebases in one index can still be told apart.\nVERDICT: HIT\nWHY: The answer explicitly says nested git trees are indexed and tagged afterward rather than excluded."
+}

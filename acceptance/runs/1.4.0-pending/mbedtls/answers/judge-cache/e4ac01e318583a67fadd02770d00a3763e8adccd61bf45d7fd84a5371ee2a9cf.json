@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Define the new `MBEDTLS_ERR_<MODULE>_<NAME>` macro in the module's public header under `include/mbedtls/`... Do not edit the `Begin Auto-Generated Code` block in `library/error.c` by hand. Regenerate it with `scripts/generate_errors.pl`\nVERDICT: HIT\nWHY: The answer says to add the macro to the public header, regenerate with the script, and not hand-edit error.c. It never mentions the `/** */` doc comment form of the #define, which the item names, but the mechanism and location are clearly stated."
+}

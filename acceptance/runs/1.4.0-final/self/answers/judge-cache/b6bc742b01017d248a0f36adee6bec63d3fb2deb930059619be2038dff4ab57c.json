@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Its reason string says no `index_scope` was declared and names where `.clew.yaml` was looked for.\nVERDICT: HIT\nWHY: The answer says the whole-repo fallback carries a reason string stating no scope was declared and where it was looked for, and it also mentions `rejected=<reason>`, so an unstated scope is never silently guessed."
+}

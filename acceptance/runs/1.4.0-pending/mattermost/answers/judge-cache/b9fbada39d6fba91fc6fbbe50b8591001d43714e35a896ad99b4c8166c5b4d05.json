@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**All server handlers.** Every in-tree and product handler calls `this.batchRecords` or `this.handleRecords`.\" and \"`ServerDataOperatorBase`... BaseDataOperator ... + AgentsHandler, ...\"\n\nVERDICT: MISS\n\nWHY: The answer says handlers go through `batchRecords` in `BaseDataOperator`. It never says each mixin is constrained to extend `ServerDataOperatorBase`, which is the item's reason. It also notes playbook local actions bypass `batchRecords`, so it does not conclude that every write goes through it."
+}

@@ -38,7 +38,9 @@ from ..declaration import (
     SECTION_DOXYFILE,
     SECTION_ENRICH,
     SECTION_ENTRY_PATTERNS,
-    SECTION_TEST_PATHS,
+    SECTION_BLOCKING,
+    SECTION_OWNERS,
+    SECTION_TESTS,
     SECTION_EVENT_TAGS,
     SECTION_KCONFIG,
     SECTION_LOCKS,
@@ -83,6 +85,20 @@ _DETECTED: tuple[tuple[str, Detector], ...] = (
 ## writes a specific, wrong claim into the graph, which is worse than an empty
 ## layer because nothing downstream can tell it from a measured fact.
 HAND_DECLARED: dict[str, str] = {
+    SECTION_BLOCKING: (
+        "whether a call can park its caller is a fact about the RTOS or library that defines it; "
+        "the built-ins cover Zephyr, FreeRTOS, RIOT and POSIX, read with the line that forbids "
+        "interrupt context beside each. A project's own primitive (`os_sem_wait(sem, ms)`), its "
+        "own ISR predicate (`up_interrupt_context()`) or its own wait spelling is stated here and "
+        "ADDED to them, never guessed (clew/blocking.py)."
+    ),
+    SECTION_OWNERS: (
+        "ownership is read from the CODEOWNERS and MAINTAINERS files the repository already keeps, "
+        "at their conventional locations (.github/CODEOWNERS, CODEOWNERS, docs/CODEOWNERS, "
+        ".gitlab/CODEOWNERS; MAINTAINERS) — this section only names them when they live "
+        "elsewhere. Who owns code is a fact the repository publishes, never one clew infers "
+        "(clew/owners.py)."
+    ),
     SECTION_VENDORED: (
         "whether a committed directory is code this project WROTE or code it merely SHIPS "
         "is a fact about authorship, and nothing in the tree carries it. `external` covers "
@@ -146,8 +162,8 @@ HAND_DECLARED: dict[str, str] = {
         "keeps them declared rather than guessed (clew/declaration.py, "
         "SECTION_ENTRY_PATTERNS)."
     ),
-    SECTION_TEST_PATHS: (
-        "these are glob patterns naming the paths that hold TEST code, so a bare ambiguous "
+    SECTION_TESTS: (
+        "`tests.paths` are glob patterns naming the paths that hold TEST code, so a bare ambiguous "
         "function name resolves to the library definition rather than a same-named test "
         "helper. Measured on a real C++ target: `run_turn` had four definitions and the "
         "resolver picked a file-local helper in tests/, because the real method is declared "
@@ -311,7 +327,7 @@ def propose(
 ## @param ctx Shared detector inputs.
 ## @return One SectionProposal per `.clew.yaml` section.
 ## @version 1
-## @dg_internal
+## @utility
 def _sections(ctx: Context) -> tuple[SectionProposal, ...]:
     """@brief Run the detectors, then the hand-declared and report-only sections."""
     blocking = _blocking(ctx)
@@ -327,7 +343,7 @@ def _sections(ctx: Context) -> tuple[SectionProposal, ...]:
 ## @param ctx Shared detector inputs.
 ## @return (status, reason) when detection is impossible, else None.
 ## @version 4
-## @dg_internal
+## @utility
 def _blocking(ctx: Context) -> tuple[SectionStatus, str] | None:
     """Ordered most-fundamental first, so the reported reason is the root cause
     rather than a downstream symptom of it (a missing grammar also produces zero
@@ -365,7 +381,7 @@ def _blocking(ctx: Context) -> tuple[SectionStatus, str] | None:
 ## @param blocking (status, reason) from `_blocking`.
 ## @return The SectionProposal standing in for the detector.
 ## @version 1
-## @dg_internal
+## @utility
 def _blocked_section(name: str, blocking: tuple[SectionStatus, str]) -> SectionProposal:
     """@brief Report a detector that was never able to look."""
     status, reason = blocking
@@ -378,7 +394,7 @@ def _blocked_section(name: str, blocking: tuple[SectionStatus, str]) -> SectionP
 ## @param reason Why clew will not propose it.
 ## @return The SectionProposal.
 ## @version 2
-## @dg_internal
+## @utility
 def _hand_section(ctx: Context, name: str, reason: str) -> SectionProposal:
     """A declared section reports ALREADY_DECLARED rather than repeating the
     refusal: the owner has clearly already read this, and the draft's job then is
@@ -401,7 +417,7 @@ def _hand_section(ctx: Context, name: str, reason: str) -> SectionProposal:
 ## @param detected The detector sections (for cross-section conflict warnings).
 ## @return The REPORT_ONLY SectionProposal.
 ## @version 1
-## @dg_internal
+## @utility
 def _index_scope_section(ctx: Context, detected: tuple[SectionProposal, ...]) -> SectionProposal:
     """`report_not_indexed` derives its directory list from the AST corpus, so
     with no corpus its "nothing outside the scope" line would be an artefact of

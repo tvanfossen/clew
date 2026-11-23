@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Otherwise it is `x ^ mbedtls_ct_zero`, where `mbedtls_ct_zero` is a variable the compiler cannot see the value of.\nVERDICT: HIT\nWHY: The answer says the fallback XORs with `mbedtls_ct_zero` and names that global. It doesn't say \"extern volatile\", but it does say the compiler can't see the value, and it names the global and the XOR mechanism."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `programs/ssl/ssl_client2.c:8` | The `ssl_client2` test/sample program | Raw member access in that program\nVERDICT: HIT\nWHY: The answer lists the example programs ssl_client2 and ssl_server2 as defining MBEDTLS_ALLOW_PRIVATE_ACCESS themselves, so they get raw member access past the public API."
+}

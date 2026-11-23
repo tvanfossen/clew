@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 15779,
+  "stop_reason": "end_turn",
+  "session_id": "cee43e47-9b03-476d-a023-6313fb6356fd",
+  "total_cost_usd": 0.00819137,
+  "usage": {
+    "input_tokens": 6,
+    "cache_creation_input_tokens": 27066,
+    "cache_read_input_tokens": 117207,
+    "output_tokens": 3211,
+    "output_tokens_details": {
+      "thinking_tokens": 1072
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 27066,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2140,
+        "cache_read_input_tokens": 43545,
+        "cache_creation_input_tokens": 20352,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 20352
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 6,
+      "outputTokens": 3211,
+      "cacheReadInputTokens": 117207,
+      "cacheCreationInputTokens": 27066,
+      "webSearchRequests": 0,
+      "costUSD": 0.00819137,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1072,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 27066,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 7,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** with default settings, mbedtls runs no threads of its own and takes no locks. The mutex code is compiled out, so the library is single-threaded from its own point of view. Concurrency only appears if the integrator enables `MBEDTLS_THREADING_C` and runs the library from several threads.\n\n**What is on by default**\n\n- `MBEDTLS_THREADING_C` and `MBEDTLS_THREADING_PTHREAD` both default to off (`include/mbedtls/mbedtls_config.h:3787` and `:2196`). `MBEDTLS_THREADING_ALT` also defaults to off (`:2185`).\n- Every mutex call I checked sits behind `#if defined(MBEDTLS_THREADING_C)`. That covers `ssl_cache_get`, `entropy_func`, `psa_unregister_read_under_mutex`, and the `buffer_alloc_*_mutexed` wrappers in `memory_buffer_alloc.c`.\n- The index's `configured_macros` lists THREADING_C and PTHREAD, but that comes from the operator's build flags, not the shipped default. I am relying on the default-state values above.\n\n**What runs concurrently**\n\nThe index finds four thread or signal-handler spawn sites, all in `programs/`, none in `library/`:\n\n| Entry | Where | What it is |\n|---|---|---|\n| `handle_ssl_connection` (pthread) | `programs/ssl/ssl_pthread_server.c:277` | Example server, one thread per connection (about 1,094 members) |\n| `TimerProc` (Win32) | `programs/test/benchmark.c:430` | Timer thread for the benchmark alarm |\n| `sighandler` (ISR) | `programs/test/benchmark.c:444` | Signal handler for the alarm |\n| `term_handler` (ISR) | `programs/ssl/ssl_server2.c:1699` | Signal handler that sets a termination flag |\n\nOnly the pthread server is a real multi-threaded use of the library. Its `my_mutexed_debug` uses the same mutex abstraction.\n\n**What the mutexes protect (with THREADING_C on)**\n\n| Mutex | Protects | Where |\n|---|---|---|\n| `heap.mutex` | The `memory_buffer_alloc` heap (calloc/free) | `memory_buffer_alloc.c:541` |\n| `ctx->mutex` in entropy | The entropy accumulator and sources | `entropy.c` (`entropy_func` at ~`:270`) |\n| `cache->mutex` | The SSL session cache, around find, load and store | `ssl_cache.c:74` |\n| `mbedtls_threading_key_slot_mutex` | PSA key slots, around `psa_unregister_read` | `psa_crypto_slot_management.c:931` |\n| `mbedtls_threading_psa_globaldata_mutex`, `psa_rngdata_mutex` | PSA global and RNG state | `threading.c:189\u2013190` (I did not trace their callers) |\n| `mbedtls_threading_readdir_mutex` | `readdir`, which is not thread-safe | `threading.c:182`, only with `MBEDTLS_FS_IO` |\n| `mbedtls_threading_gmtime_mutex` | `gmtime`, which is not thread-safe | `threading.c:185`, only with `THREADING_USE_GMTIME` |\n\nThe mutex is initialized by `mbedtls_threading_set_alt`. The key-slot, globaldata and rngdata mutexes are set up only when `MBEDTLS_PSA_CRYPTO_C` is on, which it is by default.\n\n**Limits of this answer**\n\n- The lock layer shows a single lock identity, `mutex->mutex`, with low confidence. It does not separate the per-object mutexes above. The mapping here comes from the per-function dossiers, not the lock layer.\n- The layer reports no nested two-lock holdings. That does not prove deadlock-freedom.\n- The index has no config header for this target, so the shipped default comes from the `default_state` values on the gate sites, not from a direct read of the header.",
+  "ttft_ms": 1477,
+  "type": "result",
+  "duration_ms": 16950,
+  "uuid": "82b41d3e-cb7f-4e53-bffa-8d95c7a8f7eb",
+  "ttft_stream_ms": 1128,
+  "time_to_request_ms": 92,
+  "first_content_frame_ms": 1128,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

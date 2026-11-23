@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The direction matters. If the index is newer than the server, a rebuild cannot clear it.\" and \"says not to rebuild when the server predates the index\" and \"If the server is newer, the caller restarts the client.\"\nVERDICT: HIT\nWHY: The answer states that when the index is newer than the server, a rebuild cannot clear the schema-axis staleness. It does not give the re-stamping reason, but the substance of the item is present."
+}

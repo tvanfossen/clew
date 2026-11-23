@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Tier 3 and 4 facts. These accumulate and no stated tier removes them. A Doxyfile's aliases survive a `.clew.yaml` that says otherwise.\nVERDICT: MISS\nWHY: The answer says tier 3/4 facts accumulate, but it never says tiers 3 and 4 combine identically, that the distinction between them is inert, or that the load-bearing line is fact versus guess."
+}

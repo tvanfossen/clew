@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer separates only two grades, a strong negative within the indexed scope and a weak \"not in the repo\". It never describes an empty reply that is definitive for a reason other than absence, so the third grade is missing."
+}

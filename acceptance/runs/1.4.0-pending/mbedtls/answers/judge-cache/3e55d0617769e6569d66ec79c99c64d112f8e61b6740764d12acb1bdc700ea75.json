@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: I assume the second is the variant used when `MBEDTLS_ERROR_STRERROR_DUMMY` is set, but I did not verify that.\nVERDICT: MISS\nWHY: The answer only guesses the DUMMY variant exists, without saying it keeps strerror linkable while the table is compiled out, and never states it is enabled by default."
+}

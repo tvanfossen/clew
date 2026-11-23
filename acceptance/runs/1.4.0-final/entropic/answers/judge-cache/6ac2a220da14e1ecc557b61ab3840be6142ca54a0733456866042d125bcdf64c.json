@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"where `argvalue` is the first string-valued argument (`ServerManager::args_to_pattern`). Empty args, `{}`, or unparseable JSON become `*`.\"\nVERDICT: HIT\nWHY: The answer states that only the first string-valued argument reaches the pattern and that unparseable or empty args collapse to `*`. It doesn't say that other arguments are invisible, or that a non-string argument becomes a wildcard. The single-value mechanism and the wildcard fallback are both stated, though, and the rest follows from them."
+}

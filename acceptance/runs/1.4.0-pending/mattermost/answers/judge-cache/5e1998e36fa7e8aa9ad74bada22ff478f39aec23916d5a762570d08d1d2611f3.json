@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It makes one `client.createPost(...)` call. If that throws, it logs the error and builds an error copy of the post with `props.failed: true`. ... Every other failure saves the post with `failed: true`.\nVERDICT: HIT\nWHY: The answer states that an optimistic local post is written first (before the server call), and that on failure the post is kept and saved with `failed: true`."
+}

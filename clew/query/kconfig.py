@@ -31,8 +31,16 @@ from __future__ import annotations
 import sqlite3
 from dataclasses import replace
 
-from ..vocabulary import LAYER_STATE_ABSENT, LAYER_STATE_EMPTY, LAYER_STATE_POPULATED
-from ._common import DbSource, connect, has_columns, is_shipped_config, table_exists
+from ..vocabulary import (
+    CONFIG_DEFAULT_OFF,
+    CONFIG_DEFAULT_ON,
+    KCONFIG_GATE_IFDEF,
+    KCONFIG_GATE_IFNDEF,
+    LAYER_STATE_ABSENT,
+    LAYER_STATE_EMPTY,
+    LAYER_STATE_POPULATED,
+)
+from ._common import DbSource, connect, decided_default, has_columns, table_exists
 from .models import KconfigEntry, KconfigGate, KconfigSpace
 
 ## The `build_meta` prefix `kconfig.as_meta` writes under. Spelled here rather than
@@ -192,7 +200,7 @@ def macros_meaning(macros: str, source: str, header: str, stated_only: str = "")
 ## @param conn Open connection.
 ## @return Unprefixed kconfig keys plus the raw preprocessor macro list, source and header.
 ## @version 3
-## @dg_internal
+## @utility
 def _meta(conn: sqlite3.Connection) -> dict[str, str]:
     """Degrades to {} when `build_meta` is absent, matching the query layer's standing
     contract: it returns empty results on a partial database rather than raising,
@@ -228,7 +236,7 @@ def _meta(conn: sqlite3.Connection) -> dict[str, str]:
 ## @param conn Open connection.
 ## @return Symbol entries in declaration order.
 ## @version 1
-## @dg_internal
+## @utility
 def _symbols(conn: sqlite3.Connection) -> tuple[KconfigEntry, ...]:
     """Joins the choice group in as its HUMAN identity — the prompt, falling back to
     the name — rather than exposing the synthetic `choice_key`. The key is a per-build
@@ -261,7 +269,7 @@ def _symbols(conn: sqlite3.Connection) -> tuple[KconfigEntry, ...]:
 ## @param conn Open connection to the index.
 ## @return Comma-joined column expressions.
 ## @version 1
-## @dg_internal
+## @utility
 def _gate_columns(conn: sqlite3.Connection) -> str:
     """EVERY OPTIONAL COLUMN IS SELECTED AS A LITERAL WHEN ABSENT rather than omitted, because
     `KconfigGate(*row)` is positional: omitting `origin` on an older index would shift `end_line`
@@ -288,7 +296,7 @@ def _gate_columns(conn: sqlite3.Connection) -> str:
 ## @return Gate rows in file order, carrying each macro's resolved default where it is known.
 ## v4 (C3): routed through `_with_defaults`, which only the function route was using.
 ## @version 4
-## @dg_internal
+## @utility
 def _gates(conn: sqlite3.Connection, symbol: str | None) -> tuple[KconfigGate, ...]:
     """Accepts the symbol either bare or `CONFIG_`-prefixed, because a caller reading
     a gate out of source code has the prefixed form in front of them and requiring
@@ -336,7 +344,7 @@ _NAME_CAP = 400
 ## @return (names, total distinct matching) — names capped at `_NAME_CAP`.
 ## @version 1
 ## @req REQ-DDB-QUERY-006
-## @dg_internal
+## @utility
 def _gate_symbol_names(conn: sqlite3.Connection, text: str | None) -> tuple[tuple[str, ...], int]:
     """WHICH SYMBOLS EXIST, which is the question this corpus says it answers and the one it was
     not answering. `_search_config` asked for the whole space with no symbol, so the reply carried
@@ -581,7 +589,7 @@ _MACRO_CHUNK = 500
 ## @param macros The distinct gating macros to resolve.
 ## @return Rows of (macro, state, file_path, line, origin) across every chunk.
 ## @version 1
-## @dg_internal
+## @utility
 def _defaults_for_macros(conn: sqlite3.Connection, macros: list[str]) -> list[tuple]:
     """Split out of `_with_defaults` so the resolution RULE and the parameter bound are
     separately readable; the rule is what `test_shipped_config_tiebreak` pins and it should not
@@ -621,8 +629,12 @@ def _defaults_for_macros(conn: sqlite3.Connection, macros: list[str]) -> list[tu
 ## list a caller and RIOT's 2,029 distinct gating macros bind one parameter each.
 ## v4: an AGREEING set cites the shipped header too, not whichever path sorted first — the state
 ## was right and the citation pointed at an alternate profile.
-## @version 4
-## @dg_internal
+## v5: and `in_default_build`, polarity and default combined (2.0.0, T5 served).
+## v6: decides through `_common.decided_default`, shared with the build's macro attribution; a
+## disagreement inside the deciding tier (two declared, or two shipped rows) is undecided rather
+## than the last row read (2.0.0, T5 served).
+## @version 6
+## @utility
 def _with_defaults(
     conn: sqlite3.Connection, gates: tuple[KconfigGate, ...]
 ) -> tuple[KconfigGate, ...]:
@@ -639,70 +651,48 @@ def _with_defaults(
 
     @brief Join shipped defaults onto gates.
     @return Gates with defaults where they are unambiguous.
-    @version 4
+    @version 6
     """
     if not gates or not table_exists(conn, "config_defaults"):
         return gates
     macros = sorted({gate.macro for gate in gates})
-    rows = _defaults_for_macros(conn, macros)
-    decided: dict[str, tuple[str, str]] = {}
-    seen: dict[str, set[str]] = {}
-    for macro, state, path, line_no, origin in rows:
-        site = f"{path}:{line_no}"
-        if origin == "declared":
-            decided[macro] = (str(state), site)
-            continue
-        seen.setdefault(macro, set()).add(str(state))
-        decided.setdefault(macro, (str(state), site))
-    ## COMPUTED ONCE, not per macro. It is the same set every iteration, and unpacking five
-    ## positional fields inside the loop to rebuild it is both slower and how `l` ended up
-    ## shadowing nothing legible.
-    settled = {str(row[0]) for row in rows if row[4] == "declared"}
-    ## THE SHIPPED CONFIG SETTLES A DISAGREEMENT AMONG GUESSES, and dropping instead turned a
-    ## known fact into silence. Measured on mbedtls Q3: `MBEDTLS_PLATFORM_MEMORY` has three
-    ## heuristic rows — `on` in a TFM profile, `off` in `include/mbedtls/mbedtls_config.h`, `on`
-    ## in a test config — so the gate came back with NO default, `dossier("mbedtls_calloc")`
-    ## returned both preprocessor branches with nothing to choose between them, and the answer
-    ## described the `MBEDTLS_PLATFORM_MEMORY`-ON path as the normal one. The default build has it
-    ## OFF, where platform.h #undefs the names straight onto `calloc`/`free`, so a weight-3 mark
-    ## was answered with its opposite, confidently.
-    ##
-    ## An alternate profile and a test fixture are NOT peers of the repository's own default
-    ## header; treating them as peers is what produced the silence. `default_site` names the file
-    ## that was believed, so a reader can disagree with the choice.
-    shipped = {
-        str(row[0]): (str(row[1]), f"{row[2]}:{row[3]}")
-        for row in rows
-        if row[4] != "declared" and is_shipped_config(str(row[2]))
-    }
-    for macro, states in seen.items():
-        if macro in settled:
-            continue
-        ## AGREEING SITES STILL CITE THE SHIPPED HEADER. The state was never wrong here — every
-        ## row says the same thing — but `default_site` is the field a reader FOLLOWS to check
-        ## the claim, and with nothing to settle this kept whichever row it met first, which is
-        ## whichever file path sorted first. Replayed on the frozen mbedtls index:
-        ## `MBEDTLS_THREADING_C` is `off` in three places and cited
-        ## `configs/config-symmetric-only.h:73` — an alternate build profile — while the
-        ## repository's own `include/mbedtls/mbedtls_config.h:3787` says the same thing and is
-        ## the file a default build actually reads. `default_site` exists "so a reader can
-        ## disagree with the choice", and they cannot do that usefully against a file not in play.
-        ##
-        ## NO NEW JUDGEMENT ABOUT WHICH FILE IS AUTHORITATIVE: `is_shipped_config` is already the
-        ## rule for the disagreement case below. This applies the same rule when the states match.
-        if len(states) <= 1:
-            if macro in shipped:
-                decided[macro] = shipped[macro]
-            continue
-        if macro in shipped:
-            ## The shipped header's own state, not the first row encountered.
-            decided[macro] = shipped[macro]
-            continue
-        ## STILL DROPPED WHEN EVERY SITE IS AN EQUAL GUESS. Inventing one is worse than silence.
-        decided.pop(macro, None)
+    by_macro: dict[str, list[tuple[str, str, int, str]]] = {}
+    for macro, state, path, line_no, origin in _defaults_for_macros(conn, macros):
+        by_macro.setdefault(str(macro), []).append(
+            (str(state), str(path), int(line_no), str(origin))
+        )
+    ## ONE RULE WITH THE BUILD (`_common.decided_default`): declared, then shipped, then all rows,
+    ## the first non-empty tier deciding only when unanimous. The history this replaces is in the
+    ## version notes above; `default_site` still names the file that was believed.
+    decided = {m: d for m, rows in by_macro.items() if (d := decided_default(rows)) is not None}
     return tuple(
-        replace(gate, default_state=decided[gate.macro][0], default_site=decided[gate.macro][1])
+        replace(
+            gate,
+            default_state=decided[gate.macro][0],
+            default_site=decided[gate.macro][1],
+            in_default_build=_in_default_build(gate.form, decided[gate.macro][0]),
+        )
         if gate.macro in decided
         else gate
         for gate in gates
     )
+
+
+## @brief Whether a gate's guarded code is in the default build.
+## @param form The gate's form.
+## @param state The macro's decided default state.
+## @return True or False where both decide it; None otherwise.
+## @version 1
+## @req REQ-DDB-QUERY-004
+## @utility
+def _in_default_build(form: str, state: str) -> bool | None:
+    """T5 served (2.0.0). `ifdef` is in when the macro is on, `ifndef` when it is off. `if_expr`
+    asserts dependence without a polarity, so it decides nothing.
+
+    @brief Combine polarity and default.
+    @return The answer, or None.
+    """
+    polarity = {KCONFIG_GATE_IFDEF: True, KCONFIG_GATE_IFNDEF: False}.get(form)
+    if polarity is None or state not in (CONFIG_DEFAULT_ON, CONFIG_DEFAULT_OFF):
+        return None
+    return (state == CONFIG_DEFAULT_ON) == polarity

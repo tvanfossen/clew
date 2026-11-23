@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The build logs the choice. A declared scope logs at INFO. The whole-repo default logs at WARNING with the reason, for example \"no index_scope is declared \u2026 so the whole repository is the index scope.\"\nVERDICT: HIT\nWHY: The answer says the whole-repo fallback is logged with a reason stating which scope applies and why no declared scope was used, so it isn't silently guessed."
+}

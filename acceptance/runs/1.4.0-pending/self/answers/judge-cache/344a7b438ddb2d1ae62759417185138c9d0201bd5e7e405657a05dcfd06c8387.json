@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"unless the repo declares an `index_scope:` in its `.clew.yaml`, clew indexes the whole repository\" and \"nothing declared (the default) \u2500\u2500 whole_repo_scope(repo)\"\nVERDICT: HIT\nWHY: The answer says a declared `index_scope` is used when present and that the whole repository is indexed whenever none is found. It also notes `derive_scope` alone falls back to whole-repo when a declaration is unusable, though the CLI refuses in that case."
+}

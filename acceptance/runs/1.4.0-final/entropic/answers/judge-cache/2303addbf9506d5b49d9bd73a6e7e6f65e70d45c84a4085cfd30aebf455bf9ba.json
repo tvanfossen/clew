@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The failure becomes an **empty `std::vector<int32_t>`**. The same empty vector also means \"empty input\" and \"vocab is null\", which the code handles silently with no log.\nVERDICT: HIT\nWHY: The answer says the failure returns an empty vector, the same value returned when the vocab is null (no tokenizer wired), so the item is stated."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`NavigationHeader` is a `forwardRef<SearchRef, Props>`. It does not use the ref itself. Only when `hasSearch` is true does it render `<NavigationSearch ... ref={ref} />`.\" and \"a ref passed to `NavigationHeader` without `hasSearch` is silently dropped, because the `NavigationSearch` branch that consumes it never renders.\"\nVERDICT: HIT\nWHY: The answer states that NavigationHeader forwards its ref to NavigationSearch only when hasSearch is true, and that otherwise the ref goes nowhere."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer lists extensions the index skips (`scope.not_indexed`) and the layers searched. It never says the reply names file types that were in scope and returned no rows, which is the item's specific mechanism."
+}

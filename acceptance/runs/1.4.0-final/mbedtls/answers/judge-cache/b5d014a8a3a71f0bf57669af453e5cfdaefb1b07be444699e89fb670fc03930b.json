@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_PRIVATE(member)` renames each member for outside code... the default expansion is `private_##member`, so `ssl->MBEDTLS_PRIVATE(conf)` becomes `ssl->private_conf`. An application that touches `ssl->conf` directly therefore fails to compile instead of silently depending on the layout.\nVERDICT: HIT\nWHY: The answer says opacity is enforced at compile time by renaming members to `private_<name>`, so direct access fails to compile. It never says the struct layout stays visible, but the renaming mechanism is stated, and that is what the item requires."
+}

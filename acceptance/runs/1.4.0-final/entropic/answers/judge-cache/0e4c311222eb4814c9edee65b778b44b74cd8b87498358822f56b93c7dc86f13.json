@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The allow list only skips the prompt. It doesn't grant anything by itself beyond skipping the callback.\nVERDICT: HIT\nWHY: The answer says the allow list only skips the approval prompt rather than granting execution, and that it is consulted via `check_approval` in `tool_executor.cpp`. `check_approval` is a different file from `permission_manager.cpp`, where the allow check is defined, and the answer shows both."
+}

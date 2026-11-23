@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the dependency \"stays inside `src/inference/`\", and the facade reaching it is described as indirect. That is the opposite of the item's conclusion. The item needs a minority of the reaching files to sit outside `src/inference`, and the answer never says so."
+}

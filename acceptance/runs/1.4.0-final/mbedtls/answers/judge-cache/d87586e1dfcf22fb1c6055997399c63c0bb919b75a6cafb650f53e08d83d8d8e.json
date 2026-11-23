@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The facility is used in about 27 library files, but most of the library still uses ordinary branches and `memcmp`.\nVERDICT: HIT\nWHY: The answer states the primitives appear in about 27 library files, matching the \"order of twenty modules\" breadth, and lists many different users."
+}

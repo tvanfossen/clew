@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer mentions \"the generated file\" only in passing and never states that the bindings are generated from the C header by scripts/gen_bindings.py."
+}

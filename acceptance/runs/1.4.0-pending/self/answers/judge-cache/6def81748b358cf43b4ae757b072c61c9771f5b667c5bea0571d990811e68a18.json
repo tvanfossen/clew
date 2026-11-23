@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Doxygen then applies the forced `FILE_PATTERNS` list (C/C++, Java, Python, Markdown, Fortran, and so on). The tree-sitter layers route by extension. A file that matches no pattern is walked and hashed but produces no rows.\nVERDICT: HIT\nWHY: The answer says scope isn't the whole answer: in-scope files reach the index only if doxygen's patterns or the tree-sitter front end claims them. That covers the parse-built front end for file types doxygen can't read."
+}

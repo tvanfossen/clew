@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Struct fields are declared as `MBEDTLS_PRIVATE(foo)`, so by default a field `foo` is actually named `private_foo`. Code outside the library that writes `ctx->foo` fails to compile\nVERDICT: HIT\nWHY: The answer shows the macro's two branches and says that by default fields are renamed `private_foo`, while the library and sample programs that define the opt-out get plain `ctx->foo`. That covers both consumer views."
+}

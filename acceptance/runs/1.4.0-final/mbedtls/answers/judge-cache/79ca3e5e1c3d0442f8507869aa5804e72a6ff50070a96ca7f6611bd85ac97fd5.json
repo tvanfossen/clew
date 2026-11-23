@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: If that macro is not defined, the index shows a static fallback, `platform_calloc_uninit`, which always returns NULL (platform.c:25\u201333). My reading is that a build with no standard functions and no setter call fails every allocation.\nVERDICT: MISS\nWHY: The answer says the uninitialised calloc fallback returns NULL, but it never says the uninitialised free does nothing. The item needs both halves, and the answer also hedges the calloc half."
+}

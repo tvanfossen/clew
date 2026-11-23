@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Unsearched corpora are checked. `search` reads symbol names, `@brief` text, macros, classes, config symbols, and file docs. It does not read markdown or Kconfig prose, or function bodies. If the index holds a matching row in a corpus `search` skips, the reply says \"NOT DEFINITIVE\"\"\nVERDICT: HIT\nWHY: The answer says the \"definitive\" wording depends on a per-query check of the corpora `search` did not read, and it downgrades to \"NOT DEFINITIVE\" when a matching row exists there."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The hook trampoline catches everything, prints the traceback, and returns 0, which passes the call through unmodified. A hook that raises therefore fails silently from the engine's point of view.\"\nVERDICT: HIT\nWHY: The answer states the trampoline catches all exceptions, so none cross into C, and that a failed hook returns 0 and passes the call through."
+}

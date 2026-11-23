@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes three routes (with tiers 3\u20135 grouped as defaults) and says \"three ways\", so it never presents five distinct named precedence tiers, even though the formula mentions tier1 through tier5."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Only `search.tsx` shows a search field.** It is the only one that passes `hasSearch={true}`.\nVERDICT: HIT\nWHY: The answer explicitly names `app/screens/home/search/search.tsx` as the only renderer that passes `hasSearch={true}`, which is what the item asks for."
+}

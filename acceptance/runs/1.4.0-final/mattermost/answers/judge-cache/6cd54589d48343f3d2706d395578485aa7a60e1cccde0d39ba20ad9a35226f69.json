@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `retryFailedPost` (`app/actions/remote/post.ts:228-301`) runs when the user picks \"Try Again\" in the bottom sheet (`post/body/failed/index.tsx:46-49`)\nVERDICT: HIT\nWHY: The answer says retryFailedPost runs when the user picks \"Try Again\" and that no automatic retry occurs, which covers the item."
+}

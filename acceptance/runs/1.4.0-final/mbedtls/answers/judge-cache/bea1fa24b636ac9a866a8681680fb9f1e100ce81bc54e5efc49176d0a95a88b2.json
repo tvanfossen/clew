@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Define the code** in the module's header as `#define MBEDTLS_ERR_<MODULE>_<NAME> -0x00XX`. Give it exactly one description comment... **Regenerate** with the normal build (`make` in `library/`, or the CMake build). Do not edit `library/error.c`.\nVERDICT: HIT\nWHY: The answer says to add the documented #define to the module header, regenerate, and not edit library/error.c."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **CLI flags or the structured `options` argument (tier 1, explicit).** This is a one-off override for a single run, such as `--entry-patterns` or `--doxyfile`. MCP callers can now reach it through the `options` argument in `clew/buildoptions.py`.\nVERDICT: HIT\nWHY: The answer says tier 1 is reachable via both CLI flags and the structured `options` argument, and that MCP callers (no shell) can use `options`."
+}

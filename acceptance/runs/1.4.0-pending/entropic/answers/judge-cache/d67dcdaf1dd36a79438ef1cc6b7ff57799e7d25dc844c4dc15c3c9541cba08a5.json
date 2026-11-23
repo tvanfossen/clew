@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `_bindings_manifest.py` drives the lazy exports.\nVERDICT: MISS\nWHY: The answer mentions a manifest file but never says it is names-only and imports no ctypes, nor that the split is deliberate versus the bindings module that loads the library."
+}

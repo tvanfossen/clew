@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `call_edges` holds one row per extraction layer, so one caller can appear several times. The index keeps the strongest confidence.\nVERDICT: HIT\nWHY: The answer states that call_edges stores one row per extraction layer, so the same caller-callee edge can appear multiple times."
+}

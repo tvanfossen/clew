@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_THREADING_C` is commented out (`include/mbedtls/mbedtls_config.h:3787`), and so are `MBEDTLS_THREADING_PTHREAD` and `MBEDTLS_THREADING_ALT`. Every mutex use in the library sits behind `#if defined(MBEDTLS_THREADING_C)`.\nVERDICT: HIT\nWHY: The answer names MBEDTLS_THREADING_C as the guard for mutex code and names MBEDTLS_THREADING_PTHREAD as the implementation option that must also be enabled, so both gating macros are identified."
+}

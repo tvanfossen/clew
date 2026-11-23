@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Callbacks | Pointers are valid only during the call. Do not re-enter the API from a callback. Exceptions must not escape. ... `hooks.py` catches all exceptions.\nVERDICT: HIT\nWHY: The answer states hooks.py catches all exceptions so none escape into the engine. It doesn't say a failed hook is treated as a pass-through, but the item's central mechanism of swallowing every exception is stated."
+}

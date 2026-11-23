@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Deny patterns are checked in `execute()` after approval, so a tool that is both allowed and denied is still blocked. Deny wins.\" and \"For any consumer that wires one, the allow list has no effect on approval, and only the deny list gates execution.\"\nVERDICT: HIT\nWHY: The answer states that ServerManager::execute consults is_denied and that, with a callback wired, only the deny list gates execution."
+}

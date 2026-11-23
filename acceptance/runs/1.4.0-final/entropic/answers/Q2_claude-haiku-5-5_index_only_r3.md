@@ -1,0 +1,13 @@
+**How it's brought in:** llama.cpp is a git submodule at `extern/llama.cpp`, pinned to commit b8420 (per the file doc in `src/inference/llama_cpp_backend.cpp`). `extern/CMakeLists.txt` documents the arrangement: header-only libraries are fetched at configure time via FetchContent, and llama.cpp is a submodule. The architecture doc describes it as direct C-API linkage with no wrapper layer. The index does not expose the CMake logic itself, so I can't confirm the exact link target or flags from it.
+
+**One stale point:** the `extern/CMakeLists.txt` comment says llama.cpp "is NOT built in v1.8.0." That is a v1.8.0-era note. The code now calls the llama.cpp API directly, so the comment is out of date, and I couldn't check the current build wiring through the index.
+
+**How far it reaches into entropic's source:** it stops at the inference layer and does not leak into the public interface.
+
+- **Confined to `src/inference/`:** `llama_cpp_backend.{h,cpp}`, `llama_cpp_sampler.{h,cpp}`, and `llama_cpp_tokenizer.{h,cpp}` are the only first-party files that call llama.cpp types and functions (`llama_model`, `llama_context`, `llama_sampler`, `llama_vocab`, `llama_decode`, and the `common_chat` and mtmd helpers).
+- **Concrete classes only:** `LlamaCppBackend` derives from `InferenceBackend`. `LlamaCppSampler` derives from `Sampler`, `LlamaCppSamplerFactory` implements `SamplerFactory`, and `LlamaCppTokenizer` implements `Tokenizer`. Callers use the abstract types. The llama.cpp types are hidden behind these implementations.
+- **One C-API touchpoint:** `entropic_create_inference_backend` in `src/inference/inference_c_api.cpp` constructs `LlamaCppBackend`. `adapter_manager.cpp` also takes `llama_context*` directly.
+- **Tests:** several unit tests (`adapter_manager_test.cpp`, `speculative_compat_test.cpp`, `vocab_only_smoke_test.cpp`) define mock `llama_*` symbols, so they link against stand-ins rather than the real library.
+- **Public headers:** the `llama`-named search hits under `include/` were only the `llama_log_path` config field. The design rule in `.claude/CLAUDE.md` says no third-party headers in interface contracts. My search was capped at 50 rows, so this is a strong indication rather than a full proof.
+
+**Caveat:** I answered only from the index. The `llama.h` entry at the repo root is indexed with zero symbols and was never harvested, so I could not check what it declares or how it is included.

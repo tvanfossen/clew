@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Option A: compile time (no runtime indirection).** Define ... `MBEDTLS_PLATFORM_CALLOC_MACRO = my_calloc` ... `MBEDTLS_PLATFORM_FREE_MACRO = my_free`\" and \"**Option B: runtime.** Define only `MBEDTLS_PLATFORM_MEMORY`, then call this before any Mbed TLS allocation: `mbedtls_platform_set_calloc_free(my_calloc, my_free);`\"\nVERDICT: MISS\nWHY: The answer describes both the compile-time macro pair and the runtime function-pointer setter, but it never says they are mutually exclusive. The table only implies it, because the wrappers are compiled out when the macros are defined."
+}

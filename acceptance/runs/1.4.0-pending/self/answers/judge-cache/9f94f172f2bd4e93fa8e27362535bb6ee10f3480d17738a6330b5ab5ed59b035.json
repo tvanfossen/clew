@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `$1`-style args (empty by design)\nVERDICT: MISS\nWHY: The answer only notes that shell args are empty by design; it never states that functions have no argument list and no return because the language lacks them."
+}

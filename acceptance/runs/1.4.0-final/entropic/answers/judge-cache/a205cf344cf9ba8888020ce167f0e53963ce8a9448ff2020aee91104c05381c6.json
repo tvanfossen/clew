@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `allow` is checked only in `check_approval`. Neither list is checked in the other place. ... auto_ok = permissions.auto_approve OR is_allowed(...); if !auto_ok and on_tool_call set \u2192 approved = true\nVERDICT: MISS\nWHY: The answer says allow is checked only in check_approval (tool_executor.cpp) and that the callback approves anyway. It never states that the allow list does not grant execution but only suppresses the approval step, and it gives no cross-file distinction."
+}

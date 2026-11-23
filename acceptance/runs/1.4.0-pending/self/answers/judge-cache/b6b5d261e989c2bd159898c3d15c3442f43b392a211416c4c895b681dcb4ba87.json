@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Same vocabulary as the declaration file. Manifest options accept either a path or an inline mapping.\nVERDICT: MISS\nWHY: The answer says the `options=` vocabulary matches the declaration file, but it never says the option names are the same words the diagnostics use."
+}

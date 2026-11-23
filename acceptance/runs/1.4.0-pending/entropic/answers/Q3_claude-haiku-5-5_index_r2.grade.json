@@ -1,0 +1,143 @@
+{
+  "cell": "Q3_claude-haiku-5-5_index_r2",
+  "arm": "index",
+  "rubric_version": "3.1.1",
+  "rubric_digest": "705c131e354e5c22",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.4666666666666667,
+  "unmarked_pct": 0.0,
+  "split_decisions": 1,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "names PermissionManager and locates the allow and deny lists as coming from the PermissionsConfig the ServerManager is constructed with",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer names PermissionManager and the allow/deny lists, but never says they come from the PermissionsConfig that ServerManager is constructed with. It only mentions a config-parsing path through `loader.cpp:365 parse_permissions_config`. || QUOTE: NONE | WHY: The answer names PermissionManager and the deny/allow checks, but never says the lists come from the PermissionsConfig the ServerManager is constructed with. It only mentions a generic \"config permissions\" parse. || QUOTE: NONE | WHY: The answer never names PermissionsConfig or says the allow/deny lists come from the config the ServerManager is constructed with; it mentions PermissionManager::is_denied and a generic \"config permissions\" parse, but not that provenance.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that the DENY list is the only one that blocks execution \u2014 ServerManager's execute path consults is_denied and nothing else before routing the call",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: Deny entries are consulted in `ServerManager::execute`, so a denied call fails even if auto-approve or the callback approved it. | WHY: The answer says deny is checked in ServerManager::execute and overrides approval, but it also describes other blocking checks (anti-spiral, schema, MCP authorization, tier, duplicate, and a no-callback denial). It never concludes that the deny list is the only thing that blocks execution. || QUOTE: Deny entries are consulted in `ServerManager::execute`, so a denied call fails even if auto-approve or the callback approved it. | WHY: The answer says deny is checked in ServerManager::execute and overrides approvals, but it also lists other pre-execution checks that can block a call (schema, tier, duplicate, no-callback denial). It never concludes that the deny list is the only blocking list.",
+      "agreement": 0.6666666666666666,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the ALLOW list does not grant execution but suppresses the approval step \u2014 it is consulted only from ToolExecutor::check_approval, in a different file",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: Auto-approve or the allow list is the only thing that skips prompting... Allow entries are consulted in `check_approval`. | WHY: The answer says the allow list skips prompting (suppresses approval) and that allow entries are consulted in `check_approval` (tool_executor.cpp:161), while deny is checked in a different file's `ServerManager::execute`. || QUOTE: Auto-approve or the allow list is the only thing that skips prompting... `auto_ok = auto_approve_tools || ServerManager::is_explicitly_allowed (allow list)` ... \"Allow entries are consulted in `check_approval`. Deny entries are consulted in `ServerManager::execute`\" | WHY: The answer says the allow list only skips prompting and is consulted in check_approval (tool_executor.cpp), with is_explicitly_allowed living in ServerManager, a different file. || QUOTE: Auto-approve or the allow list is the only thing that skips prompting... Allow entries are consulted in `check_approval`. | WHY: The answer says the allow list only skips prompting (approval) and is consulted in `check_approval` (tool_executor.cpp), while the deny list is checked in a different file (`ServerManager::execute`, server_manager.cpp), which matches the item's substance.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that the effective posture is default-ALLOW at the blocking gate \u2014 a tool matching neither list is not denied and runs",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never states that a tool matching neither the allow nor deny list is not denied and runs. It says that a registered callback approves every non-allow-listed call, and that only a missing callback denies. That is a related point, not the default-allow conclusion. || QUOTE: if no callback \u2192 denied (\"No approval callback \u2014 denying\"); \"So with a callback registered, every call not on the allow list runs. ... The deny list still holds.\" | WHY: The answer says that with a callback registered, calls not on the allow list run, which is a default-allow claim. But it hedges on the no-callback case, where it says the call is denied, and it never states the posture for a tool that matches neither list. || QUOTE: NONE | WHY: The answer never states that a tool matching neither list is not denied and runs. It only says that calls not on the allow list run when a callback is registered, and that the deny list overrides everything. It never gives the default-allow conclusion for tools matching neither list.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies that the approval callback CANNOT refuse \u2014 it returns void, and the code sets approved to true unconditionally after firing it",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"**The approval callback cannot deny.** `EngineCallbacks::on_tool_call` returns `void` (`engine_types.h:370`). In `check_approval` (`tool_executor.cpp:168-171`), any non-null callback sets `approved = true` after it fires.\" | WHY: The answer states the callback returns void and that approved is set to true unconditionally after it fires, so it cannot refuse. || QUOTE: \"**The approval callback cannot deny.** `EngineCallbacks::on_tool_call` returns `void` (`engine_types.h:370`). In `check_approval` (`tool_executor.cpp:168-171`), any non-null callback sets `approved = true` after it fires.\" | WHY: The answer states that the callback returns void and that approved is set to true unconditionally after it fires, so it cannot refuse. || QUOTE: \"The approval callback cannot deny. `EngineCallbacks::on_tool_call` returns `void` (`engine_types.h:370`). In `check_approval` (`tool_executor.cpp:168-171`), any non-null callback sets `approved = true` after it fires.\" | WHY: The answer states the callback returns void and that approved is set to true unconditionally after it fires, so it cannot refuse.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "explains that a pattern is matched with fnmatch, split at the first colon into a tool part and an argument part, and that a pattern with no colon matches on the tool name alone",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: The entry is split at the first `:`. The left part must match the tool name. - With no colon, the entry matches the tool on any arguments. `git.commit` allows every `git.commit` call. | WHY: The answer names plain fnmatch, the split at the first colon into tool and argument parts, and that a colon-less pattern matches on the tool name alone. || QUOTE: The entry is split at the first `:`. The left part must match the tool name. - With no colon, the entry matches the tool on any arguments. `git.commit` allows every `git.commit` call. | WHY: The answer states plain fnmatch, a split at the first colon into a tool part and an argument part, and that a colon-less pattern matches the tool name alone. || QUOTE: The entry is split at the first `:`. The left part must match the tool name. - With no colon, the entry matches the tool on any arguments. `git.commit` allows every `git.commit` call. | WHY: The answer states fnmatch matching, a split at the first colon into tool part and argument part, and that a colon-less entry matches on the tool name alone.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that only ONE argument value ever reaches the pattern \u2014 the rest of the call's arguments are invisible to permission matching, and a non-string or unparseable argument collapses to a wildcard",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: With a colon, the right part is matched against `tool:<arg>`, where `<arg>` is the first JSON value in the arguments (`args_to_pattern`, `server_manager.cpp:426`). Empty args become `*`. | WHY: The answer says only the first value is used and empty args become `*`, but never states that other arguments are invisible to matching or that non-string/unparseable arguments collapse to a wildcard. || QUOTE: \"the right part is matched against `tool:<arg>`, where `<arg>` is the first JSON value in the arguments (`args_to_pattern`, `server_manager.cpp:426`). Empty args become `*`.\" | WHY: The answer says only the first JSON value is used and empty args become `*`, but it never says that non-string or unparseable arguments collapse to a wildcard, and it does not say the other arguments are invisible to matching. || QUOTE: \"the right part is matched against `tool:<arg>`, where `<arg>` is the first JSON value in the arguments (`args_to_pattern`, `server_manager.cpp:426`). Empty args become `*`.\" | WHY: The answer says only the first JSON value is used and empty args become `*`, but it never says that a non-string or unparseable argument collapses to a wildcard.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies that a decision can be PERSISTED for future sessions by appending to config.local.yaml, separately from the in-memory add_permission call",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer mentions \"Always Allow\" persistence only in passing via `get_permission_pattern`, but never states that decisions are persisted by appending to config.local.yaml, separate from the in-memory add_permission call. || QUOTE: NONE | WHY: The answer mentions \"Always Allow\" persistence only in passing via get_permission_pattern. It never mentions config.local.yaml or persisting a decision separately from the in-memory add_permission call. || QUOTE: NONE | WHY: The answer mentions \"Always Allow\" persistence only in passing (the bash.cpp override) and never says a decision can be saved to config.local.yaml, separately from the in-memory add_permission call.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "the files a permission decision passes through \u2014 src/mcp/permission_manager.cpp",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the files a permission decision passes through \u2014 src/mcp/server_manager.cpp",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the files a permission decision passes through \u2014 src/mcp/tool_executor.cpp",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the files a permission decision passes through \u2014 include/entropic/types/config.h",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": false,
+      "detail": "not named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the files a permission decision passes through \u2014 precision",
+      "kind": "set_precision",
+      "weight": 2,
+      "hit": false,
+      "detail": "named 4 not in the set: ['bash.cpp', 'engine_types.h', 'entropic.cpp', 'loader.cpp']",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    }
+  ]
+}

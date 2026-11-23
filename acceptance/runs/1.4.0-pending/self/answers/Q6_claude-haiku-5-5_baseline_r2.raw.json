@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 65280,
+  "stop_reason": "end_turn",
+  "session_id": "524d53dd-9a84-422b-bf6b-bdb1e7efc17c",
+  "total_cost_usd": 0.025409380000000002,
+  "usage": {
+    "input_tokens": 40,
+    "cache_creation_input_tokens": 42621,
+    "cache_read_input_tokens": 1152668,
+    "output_tokens": 10709,
+    "output_tokens_details": {
+      "thinking_tokens": 4391
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 42621,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2576,
+        "cache_read_input_tokens": 76204,
+        "cache_creation_input_tokens": 845,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 845
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 40,
+      "outputTokens": 10709,
+      "cacheReadInputTokens": 1152668,
+      "cacheCreationInputTokens": 42621,
+      "webSearchRequests": 0,
+      "costUSD": 0.025409380000000002,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 4391,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 42621,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 21,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "## Short answer\n\nThe index holds a `path` row for every YAML and JSON file, so they are visible by name. It holds `memberdef` rows for shell functions and CMake functions and macros, with doc blocks taken from the `#` comments above them. It holds nothing about what the files configure: no keys, values, or structure. On an installation whose substrate lacks the bash and cmake grammars, the design says shell and CMake files degrade to \"registered, no symbols, named in the miss report.\" My probe found the miss report does not name them, so that part of the design is broken.\n\n## What the index holds, by file type\n\n| File | `path` row | Symbols | Doc source | What it does not hold |\n|---|---|---|---|---|\n| `.sh` `.bash` | yes | `memberdef` per `name() {}` or `function name {}` | `#` block directly above, no blank line | Top-level commands, variables, `source` chains, `$1`-style args (empty by design) |\n| `CMakeLists.txt` `.cmake` | yes | `memberdef` per `function()`; `macro()` as `kind = 'macro definition'` | `#` block above | `add_executable`/`add_library` targets, `set()` variables, `option()` |\n| `.yaml` `.yml` `.json` | yes | none | none | Keys, values, `steps:` entries, CI job names, anything structural |\n\nRelevant code: `clew/synth.py` (`SCRIPT_EXTS`, `DATA_EXTS`, `register_paths`, `emit_definitions`), `clew/shast.py`, `clew/cmakeast.py`, and `docs/languages/SCRIPT_INTEGRATION.md`.\n\nOther facts:\n- YAML and JSON are deliberate non-symbols. Their grammars expose `block_mapping_pair` and `pair`, and writing those as symbols would flood the namespace with every `steps:` key.\n- Markdown is excluded from `path` on purpose. It goes to the prose corpus instead.\n- The scope walk prunes dot directories, so `.github/workflows/*.yml` is not in scope on any tier. Only YAML under `conf/`, `deploy/`, or the root is indexed.\n- Call edges for shell are unverified. The docs say call edges \"work on them unchanged,\" but `call_edges.py` has no bash-specific walker. I found no evidence that shell call sites produce edges.\n\n## What happens without the grammars\n\nThe intended behaviour, per `clew/substrate.py` and `clew/harvest.py`:\n- `_OPTIONAL_KEYS = {\"bash\", \"cmake\"}` means a missing grammar routes to `None` and nothing raises.\n- A `.sh` or CMake file gets no symbols.\n- `_not_indexed_scope` in `clew/cli.py` should list the file types with no `path` rows, so an empty answer tells the caller to read the file.\n\n**The gap:** `claims()` and `register_paths()` in `synth.py` never consult the substrate. They register `.sh` and `CMakeLists.txt` as `path` rows whether or not bash or cmake is compiled in. `_not_indexed_scope` counts only scanned files that lack a `path` row, so those files are never reported.\n\nI checked this by running the repo's code from its own directory, using the clew venv's interpreter and substrate. I monkeypatched `compiled_languages()` to a set without bash or cmake, which simulates the published wheel. This is a simulation, not a real published install. Results:\n\n```\nbash route:  None\ncmake route: None\npath rows:   ['.github/workflows/ci.yml', 'CMakeLists.txt', 'conf/a.yaml', 'conf/b.json', 'scripts/deploy.sh']\nnot_indexed: {'not_indexed': '.c=1', 'not_indexed_count': '1'}\n```\n\n`deploy.sh` and `CMakeLists.txt` are registered but carry no symbols, and the report says nothing about them. A `dossier(\"deploy\")` on that install comes back empty with no statement that the file type was skipped. That is the silent gap the design was meant to prevent.\n\nThe test `tests/test_not_indexed_report.py` does not catch this. Its fixture builds a `path` table by hand that holds only `.c` rows, so it never exercises the real registration path.\n\n## Suggested fix (not applied)\n\nGate the script claims on the substrate, so that a missing grammar means no `path` row. The miss report would then name `.sh` and `.cmake` correctly. Add a test that runs `register_paths` against a `compiled_languages` stub without bash and asserts the report names `.sh`. Separately, either implement shell call edges or remove the claim from the docs. I have not changed any files.",
+  "ttft_ms": 1686,
+  "type": "result",
+  "duration_ms": 67511,
+  "uuid": "ec589170-47f9-49ad-bf09-8294c0cb3d94",
+  "ttft_stream_ms": 1189,
+  "time_to_request_ms": 140,
+  "first_content_frame_ms": 1189,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

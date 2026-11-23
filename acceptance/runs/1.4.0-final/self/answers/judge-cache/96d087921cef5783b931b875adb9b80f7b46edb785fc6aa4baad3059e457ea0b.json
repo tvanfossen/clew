@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Confidence attaches to the scope the reply states, not to the repository as a whole.\nVERDICT: MISS\nWHY: The answer says each reply reports its own scope, but it never says the strong \"definitive\" wording is earned per call by checking which corpora went unread, as opposed to being tied to an empty-result shape."
+}

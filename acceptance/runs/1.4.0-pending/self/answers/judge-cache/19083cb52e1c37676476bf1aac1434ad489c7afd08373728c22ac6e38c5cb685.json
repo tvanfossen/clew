@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer discusses caller lists and edge metadata but never mentions flat versus traversal surfaces, fuzzy-confidence edges being kept or excluded, or why a walk would multiply them."
+}

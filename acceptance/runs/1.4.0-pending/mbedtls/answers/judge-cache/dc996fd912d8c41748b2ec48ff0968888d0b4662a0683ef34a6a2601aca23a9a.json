@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Without asm it is `x ^ mbedtls_ct_zero`, where `mbedtls_ct_zero` is a `volatile` global.\nVERDICT: HIT\nWHY: The answer states that without asm, `mbedtls_ct_compiler_opaque` XORs with the volatile global `mbedtls_ct_zero`, which holds zero. It names the global and the XOR fallback. It does not say \"extern\", and it does not say that the same function is the one that falls back. The asm variant it mentions is the same function, `mbedtls_ct_compiler_opaque`, so that part is covered."
+}

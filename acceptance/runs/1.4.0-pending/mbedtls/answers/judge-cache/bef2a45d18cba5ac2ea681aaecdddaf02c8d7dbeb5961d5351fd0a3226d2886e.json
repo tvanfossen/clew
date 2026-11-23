@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Without `MBEDTLS_ERROR_C`**, `error.c` compiles to a dummy `mbedtls_strerror` that writes an empty string.\nVERDICT: MISS\nWHY: The answer only describes behavior without MBEDTLS_ERROR_C and never states that it is enabled in the shipped config, so the string table is present by default."
+}

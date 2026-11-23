@@ -166,7 +166,7 @@ def ensure_kconfig_gates_table(conn: sqlite3.Connection) -> None:
 ## @param node A `preproc_ifdef` node.
 ## @return The matching KCONFIG_GATE_* form.
 ## @version 1
-## @dg_internal
+## @utility
 def _ifdef_form(node: Any) -> str:
     """The grammar uses ONE node type for both directives, so the sense lives only in
     the leading token. Reading it is not a nicety: `#ifndef CONFIG_X` means the code
@@ -182,11 +182,13 @@ def _ifdef_form(node: Any) -> str:
 
 
 ## @brief Whether an ifndef node is an INCLUDE GUARD rather than a configuration gate.
-## @param node A `preproc_ifdef` node already known to be `#ifndef`.
+## @param node A `#ifndef` node, or a `#if !defined(X)` node.
+## @param guarded The tested symbol, when the node has no `name` field (a `#if`).
 ## @return True when the guarded block immediately defines the same symbol.
-## @version 1
-## @dg_internal
-def _is_include_guard(node: Any) -> bool:
+## v2 (2.0.0, UPERF T5): also the spelled-out `#if !defined(X)` form.
+## @version 2
+## @utility
+def _is_include_guard(node: Any, guarded: str | None = None) -> bool:
     """STRUCTURAL, NOT A NAME HEURISTIC. `#ifndef FOO_H` / `#define FOO_H` is the C
     idiom for "include me once", and the discriminator is that the guarded block DEFINES
     THE SAME SYMBOL it just tested — which no configuration gate ever does, because a
@@ -206,12 +208,13 @@ def _is_include_guard(node: Any) -> bool:
 
     @brief Detect the ifndef/define include-guard idiom.
     @return True for an include guard.
-    @version 1
+    @version 2
     """
-    name_field = node.child_by_field_name("name")
-    if name_field is None:
-        return False
-    guarded = name_field.text.decode("utf-8", errors="replace")
+    if guarded is None:
+        name_field = node.child_by_field_name("name")
+        if name_field is None:
+            return False
+        guarded = name_field.text.decode("utf-8", errors="replace")
     for child in node.children:
         if child.type != "preproc_def":
             continue
@@ -224,8 +227,9 @@ def _is_include_guard(node: Any) -> bool:
 ## @brief The CONFIG tokens, form and line range one conditional node contributes.
 ## @param node A preproc_ifdef / preproc_if / preproc_elif node.
 ## @return List of (symbol, macro, form, line, end_line) tuples; empty when it names none.
-## @version 4
-## @dg_internal
+## v5 (2.0.0, UPERF T5): a single-symbol `#if [!]defined(X)` has a polarity.
+## @version 5
+## @utility
 def _gates_from_node(node: Any) -> list[tuple[str, str, str, int, int]]:
     """Reads the DIRECTIVE's own text, not the guarded block's. A `preproc_ifdef`
     node spans everything up to its `#endif`, so matching `CONFIG_` over
@@ -264,22 +268,28 @@ def _gates_from_node(node: Any) -> list[tuple[str, str, str, int, int]]:
     expression conditional inherits `if_expr`, which already means "polarity unknown to this
     layer": the branch's presence genuinely depends on an expression nothing here evaluates.
 
+    A SINGLE-SYMBOL `#if [!]defined(X)` IS AN IFDEF / IFNDEF (2.0.0, UPERF T5): the condition tests
+    one symbol, so the branch's polarity is known; its `#else` inverts as usual.
+
     @brief Extract the gates one preprocessor conditional declares.
     @return (symbol, macro, form, line, end_line) tuples.
-    @version 4
+    @version 5
     """
     line = node.start_point[0] + 1
     alternative = node.child_by_field_name("alternative")
     end = (alternative.start_point[0] if alternative is not None else node.end_point[0]) + 1
     if node.type == _IFDEF_NODE:
         field, form = node.child_by_field_name("name"), _ifdef_form(node)
-        if form == KCONFIG_GATE_IFNDEF and _is_include_guard(node):
-            return []
     else:
         field, form = node.child_by_field_name("condition"), KCONFIG_GATE_IF_EXPR
     if field is None:
         return []
     text = field.text.decode("utf-8", errors="replace")
+    simple = _single_defined(text) if node.type == _IF_NODE else None
+    if simple is not None:
+        text, form = simple
+    if form == KCONFIG_GATE_IFNDEF and _is_include_guard(node, text):
+        return []
     seen = dict.fromkeys(t for t in _IDENTIFIER.findall(text) if t not in _NOT_A_SYMBOL)
     rows = [(_bare_symbol(macro), macro, form, line, end) for macro in seen]
     return rows + _else_branch_gates(alternative, form, seen)
@@ -291,7 +301,7 @@ def _gates_from_node(node: Any) -> list[tuple[str, str, str, int, int]]:
 ## @param macros The macro tokens the parent condition named.
 ## @return (symbol, macro, form, line, end_line) tuples for the else branch.
 ## @version 1
-## @dg_internal
+## @utility
 def _else_branch_gates(alternative: Any, form: str, macros: Any) -> list[tuple]:
     """AN `#else` IS A GATE, WITH THE POLARITY THE OTHER WAY. Without these rows the else
     branch reads as ungated — an under-report — and with the parent's own extent it reads as
@@ -320,7 +330,7 @@ def _else_branch_gates(alternative: Any, form: str, macros: Any) -> list[tuple]:
 ## @param macro The token as the source wrote it.
 ## @return The symbol name.
 ## @version 1
-## @dg_internal
+## @utility
 def _bare_symbol(macro: str) -> str:
     """`kconfig_gates.symbol` joins `kconfig_symbols.name`, which stores the symbol WITHOUT
     Kconfig's `CONFIG_` prefix — so the prefix is stripped for exactly the names that carry
@@ -332,6 +342,36 @@ def _bare_symbol(macro: str) -> str:
     @version 1
     """
     return macro[len("CONFIG_") :] if macro.startswith("CONFIG_") else macro
+
+
+## `#if [!]defined(X)` / `#if [!]defined X` — ONE symbol, so the branch's polarity is known.
+_SINGLE_DEFINED = re.compile(
+    r"^\s*(?P<neg>!)?\s*defined\s*(?:\(\s*(?P<a>\w+)\s*\)|\s+(?P<b>\w+))\s*$"
+)
+## The grammar's `#if` node (an `#elif` is `preproc_elif`, and is NOT given a polarity: its branch
+## exists only when every earlier branch was false, which depends on more than its own symbol).
+_IF_NODE = "preproc_if"
+
+
+## @brief The symbol and form of a single-symbol `defined` condition, or None.
+## @param text The condition's text.
+## @return (macro, ifdef|ifndef), or None for anything else.
+## @version 1
+## @utility
+def _single_defined(text: str) -> tuple[str, str] | None:
+    """UPERF T5 (2.0.0, mbedtls F1): `#if defined(MBEDTLS_PLATFORM_MEMORY)` and its `#else` were
+    both `if_expr` ("polarity unknown") though the condition tests exactly one symbol, so which
+    branch the default build takes could not be answered. `#ifdef X` already said so.
+
+    @brief Classify a one-symbol condition.
+    @return Macro and form, or None.
+    """
+    match = _SINGLE_DEFINED.match(text)
+    if match is None:
+        return None
+    return match.group("a") or match.group("b"), (
+        KCONFIG_GATE_IFNDEF if match.group("neg") else KCONFIG_GATE_IFDEF
+    )
 
 
 ## @brief Per-file harvester for `CONFIG_*` preprocessor gating sites.
@@ -360,7 +400,9 @@ class _GateHarvester(Harvester):
     ## polarity inverted. A version-3 payload has four fields where the reader now unpacks five,
     ## so this bump is load-bearing rather than hygienic — and it is what makes "which gates cover
     ## this function" answerable at all, since a gate recorded as a single line covers nothing.
-    stage_version = 4
+    ## 4 -> 5 (2.0.0, UPERF T5): a single-symbol `#if [!]defined(X)` is ifdef / ifndef, not
+    ## if_expr; a version-4 payload holds the unevaluated form.
+    stage_version = 5
     label = "kconfig gates"
 
     ## @brief Harvest one file's CONFIG gating sites.
@@ -411,7 +453,7 @@ def gate_harvester() -> Harvester:
 ## @param declared Macro names the target's preprocessor declaration supplies.
 ## @return A GATE_ORIGIN_* value.
 ## @version 1
-## @dg_internal
+## @utility
 def _origin(symbol: str, macro: str, declared: frozenset[str]) -> str:
     """Kconfig's prefix wins first because it is a UNIVERSAL convention rather than a
     per-repo statement — a `CONFIG_X` is Kconfig's whatever else a target declares, and
@@ -437,7 +479,7 @@ def _origin(symbol: str, macro: str, declared: frozenset[str]) -> str:
 ## @param macros Declared entries, doxygen PREDEFINED style (`NAME` or `NAME=value`).
 ## @return The bare names.
 ## @version 2
-## @dg_internal
+## @utility
 def declared_macro_names(macros: Iterable[str]) -> frozenset[str]:
     """PREDEFINED entries carry an optional `=value`, and a value is not part of the
     identity a gate is matched on: a header defining `MBEDTLS_X 1` and a conditional
@@ -525,7 +567,7 @@ def import_kconfig_gates(
 ## @param harvested (path_rowid, payload) pairs from run_harvest.
 ## @return (symbol, macro, form, file_path, line, end_line) tuples.
 ## @version 2
-## @dg_internal
+## @utility
 def _rows_from_harvest(
     conn: sqlite3.Connection, harvested: list[tuple[int, Any]]
 ) -> list[tuple[str, str, str, str, int, int]]:

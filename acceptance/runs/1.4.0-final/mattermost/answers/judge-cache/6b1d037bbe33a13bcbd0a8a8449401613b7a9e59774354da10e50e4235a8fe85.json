@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The post was already written to the local database as an optimistic record before the request, keyed by `pendingPostId`. ... On error, the post is stored with `props.failed = true`\nVERDICT: HIT\nWHY: The answer states the post is written locally before sending and is kept and marked `failed = true` on error."
+}

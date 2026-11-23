@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"It is a size-probe, not retry logic.\" and \"Nothing re-attempts a failed operation, so this is two-phase sizing, not retry.\"\nVERDICT: HIT\nWHY: The answer concludes it is size negotiation (null buffer probe, then exactly one fill call) rather than retry, though it doesn't explicitly list backoff or counter absence."
+}

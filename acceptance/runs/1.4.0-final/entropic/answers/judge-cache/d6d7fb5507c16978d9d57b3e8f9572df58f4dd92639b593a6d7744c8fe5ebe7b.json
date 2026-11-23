@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "ITEMS:\nsrc/mcp/health_monitor.cpp\nsrc/facade/external_bridge.cpp\ninference_c_api.cpp\ninterface_factory.cpp\nresponse_generator.cpp\nsrc/mcp/transport_stdio.cpp\nsrc/mcp/transport_sse.cpp\nEND"
+}

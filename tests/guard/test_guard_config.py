@@ -109,26 +109,23 @@ class TestLoadConfig:
         assert config["validate"]["tags"]["req"]["pattern"] == r"^REQ-\w+$"
 
     def test_impact_section_override(self, tmp_path):
+        ## 2.0.0 (R5-CFG F7/F9/F14): the key this tested moved; the test follows it.
         config_file = tmp_path / ".clew.yaml"
         config_file.write_text(
-            guard_yaml(
-                dedent("""\
-                impact:
-                  requirements:
-                    file: reqs.csv
-                    format: csv
-            """)
-            )
+            "requirements:\n  file: reqs.csv\n  format: csv\n"
+            + guard_yaml("impact:\n  report_dir: out/impact/\n")
         )
         config = load_config(config_file)
-        assert config["impact"]["requirements"]["file"] == "reqs.csv"
+        assert config["requirements"]["file"] == "reqs.csv"
+        assert config["impact"]["report_dir"] == "out/impact/"
 
     def test_full_config(self, tmp_path):
         config_file = tmp_path / ".clew.yaml"
         config_file.write_text(
             guard_yaml(
                 dedent("""\
-                output_dir: docs/out/
+                impact:
+                  report_dir: docs/out/
                 validate:
                   languages:
                     kotlin:
@@ -138,19 +135,15 @@ class TestLoadConfig:
                   version:
                     tag: "@ver"
                   exclude:
-                    - "^gen/"
-                impact:
-                  requirements:
-                    file: reqs.csv
-                    format: csv
+                    - "gen/**"
             """)
             )
         )
         config = load_config(config_file)
         assert "kotlin" in config["validate"]["languages"]
         assert config["validate"]["version"]["tag"] == "@ver"
-        assert config["validate"]["exclude"] == ["^gen/"]
-        assert config["output_dir"] == "docs/out/"
+        assert config["validate"]["exclude"] == ["gen/**"]
+        assert config["impact"]["report_dir"] == "docs/out/"
 
     def test_non_mapping_config_returns_defaults(self, tmp_path):
         config_file = tmp_path / ".clew.yaml"
@@ -165,13 +158,14 @@ class TestLoadConfig:
                 dedent("""\
                 validate:
                   exclude:
-                    - "^gen/"
+                    - "re:^gen/"
                     - "vendor/"
             """)
             )
         )
+        ## 2.0.0 (R5-CFG F18): excludes are globs; a regex is written `re:`.
         config = load_config(config_file)
-        assert config["validate"]["exclude"] == ["^gen/", "vendor/"]
+        assert config["validate"]["exclude"] == ["re:^gen/", "vendor/"]
 
 
 class TestGetLanguageConfig:
@@ -213,7 +207,8 @@ class TestValidateConfigSchema:
         assert validate_config_schema({}) == []
 
     def test_valid_output_dir(self):
-        assert validate_config_schema({"output_dir": "docs/"}) == []
+        ## 2.0.0 (R5-CFG F7/F9/F14): the key this tested moved; the test follows it.
+        assert validate_config_schema({"impact": {"report_dir": "docs/"}}) == []
 
     def test_unknown_top_level_key(self):
         errors = validate_config_schema({"bogus": 1})
@@ -226,7 +221,8 @@ class TestValidateConfigSchema:
         assert "validate.bogus" in errors[0]
 
     def test_wrong_type_string(self):
-        errors = validate_config_schema({"output_dir": 123})
+        ## 2.0.0 (R5-CFG F7/F9/F14): the key this tested moved; the test follows it.
+        errors = validate_config_schema({"impact": {"report_dir": 123}})
         assert len(errors) == 1
         assert "expected str" in errors[0]
 
@@ -256,7 +252,8 @@ class TestValidateConfigSchema:
         assert "test_mapping" in errors[0]
 
     def test_version_gate_accepted(self):
-        errors = validate_config_schema({"validate": {"version_gate": {"current_version": "v1.0"}}})
+        ## 2.0.0 (R5-CFG F7/F9/F14): the key this tested moved; the test follows it.
+        errors = validate_config_schema({"validate": {"current_version": "v1.0"}})
         assert errors == []
 
     def test_non_dict_where_dict_expected(self):
@@ -372,9 +369,11 @@ class TestNoPassthroughKeys:
 
     def test_the_rest_of_clew_yaml_is_not_the_gates(self, tmp_path):
         config_file = tmp_path / ".clew.yaml"
-        config_file.write_text("index_scope:\n  roots: [src]\n" + guard_yaml("output_dir: o/\n"))
+        config_file.write_text(
+            "index_scope:\n  roots: [src]\n" + guard_yaml("impact:\n  report_dir: o/\n")
+        )
         config = load_config(config_file)
-        assert config["output_dir"] == "o/"
+        assert config["impact"]["report_dir"] == "o/"
         assert "index_scope" not in config
 
 

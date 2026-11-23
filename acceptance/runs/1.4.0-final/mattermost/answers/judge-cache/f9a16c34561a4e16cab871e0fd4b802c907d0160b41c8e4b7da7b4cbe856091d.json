@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`ClientPosts.createPost` passes `noRetry: true` (`app/client/rest/posts.ts:46`), and `tracking.ts:383-384` turns that into `retryPolicyConfiguration = {retryLimit: 0}`. So the request is not retried at the HTTP layer either.\"\nVERDICT: HIT\nWHY: The answer states that the create-post request is sent once with no automatic retries (noRetry: true, retryLimit 0, \"zero automatic retries\"), and that retry is manual only."
+}

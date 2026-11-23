@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Declared: the repo's `.clew.yaml` | Replaces the stated layer\nVERDICT: MISS\nWHY: The answer names `.clew.yaml` as tier 2, but never says it is discovered from the repo root by both entry points rather than plumbed per section."
+}

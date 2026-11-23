@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`do_count_tokens` | returns `0`, which `entropic_inference_count_tokens` passes to the C client\"\nVERDICT: HIT\nWHY: The answer states that a tokenization failure yields an empty vector, which the count path reports as 0 with no error signal, and it names this as a flaw."
+}

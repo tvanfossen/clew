@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"For bash and CMake, `harvest._ts_language_for` checks `_grammar_available` and returns no grammar instead of raising.\" and \"The not-indexed report, stamped at build time, names those file types with a count... Nothing crashes.\"\nVERDICT: HIT\nWHY: The answer says a missing grammar degrades rather than fails, because a capability gate (`has_language` / `_grammar_available`) is checked first, and the affected file types are named in the not-indexed report."
+}

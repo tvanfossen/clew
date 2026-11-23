@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer covers only scope derivation (roots/excludes, git-ignore, dot dirs) and never says that files within scope must also be readable, nor names the parse-built front end or binary classification filters."
+}

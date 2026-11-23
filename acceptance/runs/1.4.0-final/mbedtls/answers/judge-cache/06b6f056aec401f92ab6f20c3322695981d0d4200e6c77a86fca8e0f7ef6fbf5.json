@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The library creates no threads. The four spawn sites the index found are all in `programs/`... `programs/ssl/ssl_pthread_server.c:277` (`pthread_create`) | one thread per TLS connection | refuses to build unless `MBEDTLS_THREADING_C` and `MBEDTLS_THREADING_PTHREAD` are set (line 24)\nVERDICT: MISS\nWHY: The answer says the library creates no threads and that the pthread example refuses to build without threading. It never says a default build creates no threads at all, and it never says the example compiles to a stub main. It also lists a benchmark timer thread as a default-build site."
+}

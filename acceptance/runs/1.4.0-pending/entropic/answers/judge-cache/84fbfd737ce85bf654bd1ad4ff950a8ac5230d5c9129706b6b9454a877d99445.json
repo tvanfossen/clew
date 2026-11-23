@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Tool part:** `fnmatch` against the fully qualified tool name, such as `filesystem.read`. `*` and `?` work as shell globs. - **No colon:** the tool match alone is sufficient, so `bash.execute` matches every call to that tool. - **With colon:** the full string `tool:arg` is also fnmatch'd.\"\nVERDICT: HIT\nWHY: The answer states that patterns are in the form `tool[:args]`, matched with fnmatch, with a tool part and an argument part, and that a pattern with no colon matches on the tool name alone. It never says explicitly that the split happens at the first colon, but the tool/argument split on a colon is clearly described."
+}

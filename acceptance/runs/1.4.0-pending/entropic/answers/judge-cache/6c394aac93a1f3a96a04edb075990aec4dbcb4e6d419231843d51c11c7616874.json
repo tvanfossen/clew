@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"if no allow-list or auto-approve match exists and an `on_tool_call` callback is registered, `approved` is set to `true` after the callback fires. The callback's return value is ignored (it returns void).\"\nVERDICT: HIT\nWHY: The answer states the callback returns void and that approved is set to true after it fires, so the callback cannot refuse."
+}

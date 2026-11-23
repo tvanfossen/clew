@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `resolved = (tier1 or tier2 or tier5) \u222a tier3 \u222a tier4` ... \"**Tiers 3 and 4:** these accumulate. Nothing stated can remove a target fact or an ecosystem signature.\"\nVERDICT: HIT\nWHY: The answer states that stated tiers replace each other (tier1 or tier2 or tier5) while the discovered tiers 3 and 4 accumulate and cannot be removed by anything stated."
+}

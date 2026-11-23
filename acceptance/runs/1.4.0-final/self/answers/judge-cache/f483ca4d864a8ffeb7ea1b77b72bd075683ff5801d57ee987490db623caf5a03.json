@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer gives a confidence table based on scope and corpora, but never says the strong wording is earned per call by querying which corpora the search did not read versus being tied to a result shape."
+}

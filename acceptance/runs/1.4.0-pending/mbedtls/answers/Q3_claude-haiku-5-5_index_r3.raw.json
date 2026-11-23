@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 27179,
+  "stop_reason": "end_turn",
+  "session_id": "86df61e6-4757-4918-a6f1-be4ee3c39933",
+  "total_cost_usd": 0.01279133,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 37268,
+    "cache_read_input_tokens": 260073,
+    "output_tokens": 5472,
+    "output_tokens_details": {
+      "thinking_tokens": 2809
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 37268,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3721,
+        "cache_read_input_tokens": 71842,
+        "cache_creation_input_tokens": 3710,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 3710
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 5472,
+      "cacheReadInputTokens": 260073,
+      "cacheCreationInputTokens": 37268,
+      "webSearchRequests": 0,
+      "costUSD": 0.01279133,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2809,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 37268,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 10,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "## What actually gets called\n\nThe library never calls `malloc`, `calloc` or `free` directly. A grep of `library/` finds only comments and one debug-only `free()` in `memory_buffer_alloc.c:404`. Every allocation goes through `mbedtls_calloc()` and `mbedtls_free()`, which are called from cipher contexts, the ASN.1/X.509 parsers, PK, PSA, SSL and bignum code.\n\nWhat those two names resolve to depends on the build config, in `include/mbedtls/platform.h`:\n\n```\nMBEDTLS_PLATFORM_MEMORY off (default)\n  mbedtls_calloc -> calloc          (macro, platform.h:163-167)\n  mbedtls_free   -> free\n\nMBEDTLS_PLATFORM_MEMORY on, + both CALLOC_MACRO and FREE_MACRO\n  mbedtls_calloc -> your macro      (compile-time, platform.h:139-144)\n  mbedtls_free   -> your macro\n\nMBEDTLS_PLATFORM_MEMORY on, no macros\n  mbedtls_calloc() -> (*mbedtls_calloc_func)()   (platform.c:47-50)\n  mbedtls_free()   -> (*mbedtls_free_func)()     (platform.c:52-55)\n      pointers default to MBEDTLS_PLATFORM_STD_CALLOC/FREE (calloc/free),\n      or to \"always fail\" stubs if those are undefined (platform.c:24-45)\n```\n\n## How a project substitutes its allocator\n\nTwo routes, both requiring `MBEDTLS_PLATFORM_C` (platform.c:10):\n\n1. **Compile time (no runtime indirection).** In the project's user config, define `MBEDTLS_PLATFORM_MEMORY`, `MBEDTLS_PLATFORM_CALLOC_MACRO=my_calloc` and `MBEDTLS_PLATFORM_FREE_MACRO=my_free`. `tests/configs/user-config-malloc-0-null.h` is a working example. When both macros are set, the runtime setter is compiled out.\n\n2. **Runtime.** Define only `MBEDTLS_PLATFORM_MEMORY`, then call `mbedtls_platform_set_calloc_free(my_calloc, my_free)` before any library allocation. The setter is declared only in the `MBEDTLS_PLATFORM_MEMORY` branch (platform.h:160), so it does not exist in the other configurations.\n\nRequirements the config header places on the replacements (mbedtls_config.h:4113-4133):\n- `calloc` must zero the memory.\n- It may return NULL on failure.\n- For a zero size it may return NULL or a valid pointer.\n- `free(NULL)` must be a no-op.\n\nCaveat from the code: `mbedtls_platform_set_calloc_free` always returns 0 (platform.c:62) and does not check whether memory is already outstanding. Swapping allocators after the library has allocated will leave blocks that are later freed by the wrong function. Do the swap during init.\n\n## What the library does with the facility\n\nThe library uses the same hook itself. `mbedtls_memory_buffer_alloc_init(buf, len)` (`library/memory_buffer_alloc.c:566-600`) is a built-in heap:\n\n- It zeroes a static `heap` context and calls `mbedtls_platform_set_calloc_free()` with `buffer_alloc_calloc_mutexed`/`buffer_alloc_free_mutexed` when `MBEDTLS_THREADING_C` is on, or the unmutexed pair otherwise.\n- It carves all allocations out of the caller's buffer. `buffer_alloc_calloc` checks for `n*size` overflow, rounds to `MBEDTLS_MEMORY_ALIGN_MULTIPLE`, and does a first-fit search of the free list.\n- Init failures are silent. If `len` is too small, init returns after installing the function pointers but with `heap.buf` NULL, and every later `calloc` returns NULL.\n- The heap is a single process-wide static, so there is one buffer heap per process.\n\nThe doc comment on that init function says it \"does not call calloc() and free()\", which matches the code. `benchmark.c` and the library's own self-test use it, so a constrained target can get a fixed-memory heap without writing an allocator. The same runtime hook is what a project would use for its own allocator.",
+  "ttft_ms": 1661,
+  "type": "result",
+  "duration_ms": 28471,
+  "uuid": "53641832-1681-414d-8dbf-16bdb0d918f2",
+  "ttft_stream_ms": 1113,
+  "time_to_request_ms": 72,
+  "first_content_frame_ms": 1114,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

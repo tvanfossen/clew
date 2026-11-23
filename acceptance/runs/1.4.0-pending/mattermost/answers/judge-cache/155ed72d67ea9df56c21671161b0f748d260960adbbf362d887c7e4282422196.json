@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"It is not retried automatically: the index shows zero automatic retries.\" and \"`ClientPosts.createPost` passes `noRetry: true` to `doFetch`\"\nVERDICT: HIT\nWHY: The answer states the create-post request is sent once with no automatic retry, citing the `noRetry: true` flag."
+}

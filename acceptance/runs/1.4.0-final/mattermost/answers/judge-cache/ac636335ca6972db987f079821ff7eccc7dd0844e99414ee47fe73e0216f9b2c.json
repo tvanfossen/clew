@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Only `search.tsx` sets `hasSearch`, and it is the only one that sets `ref` on the header.\nVERDICT: HIT\nWHY: The answer names `app/screens/home/search/search.tsx` as the only call site passing `hasSearch` (true), which means it is the only renderer enabling the search field."
+}

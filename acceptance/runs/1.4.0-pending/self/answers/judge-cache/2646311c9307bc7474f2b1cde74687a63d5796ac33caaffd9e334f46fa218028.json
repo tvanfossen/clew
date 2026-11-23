@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Write paths are refused by `stale_code_refusal` (`freshness.py:531`), and `force` deliberately does not bypass that refusal.\nVERDICT: HIT\nWHY: The answer states that write paths are refused (not merely warned) and that force does not bypass the refusal, which covers the refusal being placed ahead of the build decision. It also says a build through a stale-code process is refused."
+}

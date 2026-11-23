@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"But the not-indexed report does not name them either, which contradicts the repo's own doc.\"\nVERDICT: MISS\nWHY: The answer says a missing grammar degrades without a crash and that `harvest._grammar_available` gates the routing. It then says the `.sh` and CMake files are not reported as not indexed, which contradicts the item's final clause."
+}

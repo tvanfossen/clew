@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`db_status` (`clew/mcp_server/state.py:1140`) measures three things and sets `stale` if any is true:\" followed by a table naming the `schema`, `data` and `code` axes, with \"A `code` mismatch means the server process is old, not the index.\"\nVERDICT: HIT\nWHY: The answer states staleness is measured on three separate axes (schema, data, code), each with its own cause and remedy, rather than as a single flag."
+}

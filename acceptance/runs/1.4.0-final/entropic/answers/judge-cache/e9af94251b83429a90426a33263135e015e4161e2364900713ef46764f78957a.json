@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`event_mutex_` guards the queue, which is swapped out and drained on the caller's thread\" and \"The health monitor queues events and delivers them on the caller's thread via `process_events()`, so user callbacks do not run on the monitor thread.\"\nVERDICT: HIT\nWHY: The answer states that the monitor queues events under a mutex and the caller drains them on its own thread, so callbacks don't run on the monitor thread."
+}

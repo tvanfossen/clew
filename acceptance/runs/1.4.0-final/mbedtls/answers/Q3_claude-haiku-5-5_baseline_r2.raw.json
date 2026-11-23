@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 26523,
+  "stop_reason": "end_turn",
+  "session_id": "26063fd4-d497-4b38-9e00-68e0abe4c923",
+  "total_cost_usd": 0.00845843,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 16846,
+    "cache_read_input_tokens": 241453,
+    "output_tokens": 5347,
+    "output_tokens_details": {
+      "thinking_tokens": 1007
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 16846,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2040,
+        "cache_read_input_tokens": 49442,
+        "cache_creation_input_tokens": 1788,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1788
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 5347,
+      "cacheReadInputTokens": 241453,
+      "cacheCreationInputTokens": 16846,
+      "webSearchRequests": 0,
+      "costUSD": 0.00845843,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1007,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 16846,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 12,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** Every allocation in the library goes through two internal names, `mbedtls_calloc` and `mbedtls_free`. By default they forward to the C library's `calloc` and `free`. A project can replace them at compile time with macros, or at runtime with `mbedtls_platform_set_calloc_free()`. Nothing else in `library/` calls libc allocation directly.\n\n**What gets called**\n\n- **Default (`MBEDTLS_PLATFORM_MEMORY` off):** `include/mbedtls/platform.h:163-167` defines `mbedtls_calloc` as `calloc` and `mbedtls_free` as `free` as plain macros. There is no indirection.\n- **`MBEDTLS_PLATFORM_MEMORY` on:** `library/platform.c:44-55` holds two function pointers, initialised to `MBEDTLS_PLATFORM_STD_CALLOC` and `MBEDTLS_PLATFORM_STD_FREE`. `mbedtls_calloc()` and `mbedtls_free()` are real functions that call through those pointers.\n- **No standard functions (`MBEDTLS_PLATFORM_NO_STD_FUNCTIONS`):** the defaults become `platform_calloc_uninit` (always returns NULL) and `platform_free_uninit` (does nothing), so an unconfigured build fails allocations cleanly rather than linking against `calloc`. (`platform.c:24-42`)\n\n**How a project substitutes its allocator**\n\nOption A, compile time (no indirection, fastest):\n1. Enable `MBEDTLS_PLATFORM_MEMORY` in its config.\n2. Define both `MBEDTLS_PLATFORM_CALLOC_MACRO` and `MBEDTLS_PLATFORM_FREE_MACRO`. They must be defined together (`mbedtls_config.h:197-198`).\n3. `platform.h:138-145` then aliases `mbedtls_calloc`/`mbedtls_free` to those macros, and `platform.c` compiles out its runtime machinery.\n\nOption B, runtime:\n1. Enable `MBEDTLS_PLATFORM_MEMORY` without the two macros. Optionally set `MBEDTLS_PLATFORM_STD_CALLOC`/`_FREE` to change the defaults.\n2. Call `mbedtls_platform_set_calloc_free(my_calloc, my_free)` before any other Mbed TLS call. The setter is a plain pointer assignment with no lock (`platform.c:57-63`), so calling it while other threads use the library is a race.\n\nThe contract the replacement must honour is in `mbedtls_config.h:4113-4133`:\n- `calloc` must zero the returned memory and return NULL on failure.\n- `free` must accept NULL.\n- `free` only receives pointers that came from the matching `calloc`.\n\n**What the library does with the facility**\n\n- **Everything routes through it.** About 50 `library/*.c` files call `mbedtls_calloc` or `mbedtls_free`, roughly 170 and 190 call sites respectively. The only raw libc allocation in `library/` is the default in `platform.c` itself, plus a `free(hdr->trace)` in the buffer allocator's debug path.\n- **Secure cleanup.** `mbedtls_zeroize_and_free()` (`library/platform_util.c:139-146`) zeroes the buffer and then calls `mbedtls_free`. Key and secret buffers use this, so the zeroing happens on the same path whichever allocator is installed.\n- **A built-in allocator plugs into the same hook.** `library/memory_buffer_alloc.c:566-576`, `mbedtls_memory_buffer_alloc_init()`, carves allocations out of a caller-supplied static buffer. It does this by calling `mbedtls_platform_set_calloc_free()` itself, so it is one more client of the same substitution mechanism. Its `_mutexed` variants take the library mutex when `MBEDTLS_THREADING_C` is on. The programs under `programs/ssl/` and `programs/test/` use it this way.\n\n**Consequences to watch for**\n\n- Since `memory_buffer_alloc_init()` swaps the global pointers, it silently overrides any allocator set earlier. Only one allocator is active at a time.\n- Because the pointers are global, two independent allocators in one process cannot coexist. The setter is the only switch.\n- Using `MBEDTLS_PLATFORM_MEMORY` is a prerequisite for runtime substitution, but not for the compile-time macro path. The two options are mutually exclusive: when both macros are defined, the runtime setter is compiled out.",
+  "ttft_ms": 1799,
+  "type": "result",
+  "duration_ms": 27641,
+  "uuid": "27ef25a3-de25-4963-bcf4-a2877aca71a1",
+  "ttft_stream_ms": 1251,
+  "time_to_request_ms": 195,
+  "first_content_frame_ms": 1251,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

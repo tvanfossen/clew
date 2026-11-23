@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Clew decides staleness itself, from three separate checks. ... `data` ... `schema` ... `code` ... `db_status.stale` is true when any axis fires.\nVERDICT: HIT\nWHY: The answer states staleness is measured on three separate axes (data, schema, code), each with distinct meaning and remedy, rather than a single flag."
+}

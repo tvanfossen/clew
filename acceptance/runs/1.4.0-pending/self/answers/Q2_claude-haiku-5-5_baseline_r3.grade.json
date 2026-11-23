@@ -1,0 +1,93 @@
+{
+  "cell": "Q2_claude-haiku-5-5_baseline_r3",
+  "arm": "baseline",
+  "rubric_version": "5.0.0",
+  "rubric_digest": "d8447c7b18eafbf5",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.42857142857142855,
+  "unmarked_pct": 0.0,
+  "split_decisions": 1,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "locates the grading in clew/mcp_server/emptiness.py",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: **The verdict** (`clew/mcp_server/emptiness.py`, `search_emptiness` and `_verdict`) | WHY: The answer explicitly names clew/mcp_server/emptiness.py as the location of the emptiness grading logic (search_emptiness, _verdict). || QUOTE: **The verdict** (`clew/mcp_server/emptiness.py`, `search_emptiness` and `_verdict`) | WHY: The answer explicitly names clew/mcp_server/emptiness.py as the location of the emptiness grading logic. || QUOTE: **The verdict** (`clew/mcp_server/emptiness.py`, `search_emptiness` and `_verdict`) | WHY: The answer explicitly names clew/mcp_server/emptiness.py as the location of the emptiness verdict grading logic.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the strong wording is EARNED PER CALL by querying which corpora the search did not read, rather than being attached to a result shape",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"`q.unsearched_corpora` must find no matching rows in corpora that `search` does not read.\" and \"the strong wording ... is used, but only after two checks.\" | WHY: The answer says the definitive wording is gated per query on `unsearched_corpora`, which finds rows in corpora search did not read, so the wording is earned per call and not tied to a result shape. || QUOTE: \"`q.unsearched_corpora` must find no matching rows in corpora that `search` does not read. And `q.has_file_docs` must confirm the file-docs corpus exists.\" and \"the strong wording (\"definitive\u2026 do not retry or fall back to guessing\") is used, but only after two checks.\" | WHY: The answer says the definitive wording is gated on a per-query check of which corpora `search` does not read (`unsearched_corpora`), not on a result shape alone. It also contrasts this with a blanket hedge. || QUOTE: \"`q.unsearched_corpora` must find no matching rows in corpora that `search` does not read. And `q.has_file_docs` must confirm the file-docs corpus exists.\" | WHY: The answer says the strong wording is used case by case, only after a per-query check of unsearched corpora, rather than being tied to a result shape (\"Only the verdict is worded as definitive, and it is earned case by case\").",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "explains that a single token matching nothing was previously treated as proof of absence, and that this confuses \"nothing exists\" with \"I did not look there\"",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer describes the current definitive/not-definitive logic but never says that a single token matching nothing was previously treated as proof of absence, or that this conflated \"nothing exists\" with \"I did not look there.\" || QUOTE: NONE | WHY: The answer describes the current definitive/not-definitive verdict logic and scope block, but never states that a single zero-match token was previously treated as proof of absence, conflating \"nothing exists\" with \"I did not look there.\" || QUOTE: NONE | WHY: The answer describes how single-token emptiness is now guarded (checks of unread corpora, scope block), but it never states that a single unmatched token was previously treated as proof of absence or that this conflated \"nothing exists\" with \"not looked there.\"",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the downgrades are ORDERED most-specific first, and explains why \u2014 a matching row in an unread corpus is a statement about THIS query and outranks statements about the index as a whole",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: \"The docstring explains why this check outranks the others: the reply should not send the caller to fix the wrong thing.\" | WHY: The answer says the unread-corpus check outranks the others, but it never states a most-specific-first ordering. Its reason is \"don't send the caller to fix the wrong thing\", not that a matching row is a statement about this query and outranks statements about the whole index. || QUOTE: \"The docstring explains why this check outranks the others: the reply should not send the caller to fix the wrong thing.\" | WHY: The answer says the unread-corpus check outranks the others, but it never states a most-specific-first ordering. Its reason is \"don't send the caller to fix the wrong thing\", not that a matching row speaks to this query while the other checks speak to the index as a whole.",
+      "agreement": 0.6666666666666666,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "conveys that there is exactly ONE absent-corpus downgrade and that keeping it to one is deliberate, because downgrading on every absent layer turns the grading into a blanket hedge",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer describes several different non-definitive downgrades (unread corpus, conjunction, prose, missing file-docs) and never says there is exactly one absent-corpus downgrade kept to one on purpose. Its only nod to hedging is a passing mention of a control test. || QUOTE: The code also has a control test, `test_an_absent_symbol_keeps_the_definitive_note`, that is meant to stop the wording from becoming a blanket hedge. | WHY: The answer never says there is exactly one absent-corpus downgrade or that keeping it to one is deliberate. It only mentions a control test against a blanket hedge, and it describes several different downgrade conditions. || QUOTE: NONE | WHY: The answer describes several different \"NOT DEFINITIVE\" downgrades (unread corpus, conjunction, missing file docs, prose) and never says there is exactly one absent-corpus downgrade kept deliberately singular to avoid a blanket hedge. The control test mention only vaguely gestures at blanket hedging.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "conveys the general rule the module leaves behind \u2014 fix the corpus, not the sentence about the corpus",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: The design rule stated in the code is \"fix the corpus, not the sentence about the corpus.\" | WHY: The answer quotes the general design rule and explains it as the reasoning behind the check ordering, so the item's substance is stated. || QUOTE: The design rule stated in the code is \"fix the corpus, not the sentence about the corpus.\" | WHY: The answer quotes the general design rule and also explains that the check outranks others so the reply doesn't send the caller to fix the wrong thing. || QUOTE: The design rule stated in the code is \"fix the corpus, not the sentence about the corpus.\" | WHY: The answer quotes the rule explicitly, and its description of the NOT DEFINITIVE branch (the reply should not send the caller to fix the wrong thing) matches the principle.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "distinguishes all three grades an empty reply can receive: definitive for the scope, definitive for a reason that is not absence, and not definitive",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer separates definitive absence from \"NOT DEFINITIVE\" replies. It never names a third grade, an empty reply that is definitive for a reason other than absence. || QUOTE: \"Single token, nothing matched anywhere: the strong wording (\"definitive\u2026 do not retry or fall back to guessing\") is used... Single token, but the index holds rows in an unread corpus: the reply says \"NOT DEFINITIVE\"... Multi-token query: never definitive.\" | WHY: The answer separates definitive-for-scope from not-definitive. It never names a third grade, \"definitive for a reason that is not absence\", as distinct from those two. The prose case (\"this repository does use these terms\") is labeled NOT DEFINITIVE, not as that third grade. || QUOTE: NONE | WHY: The answer separates a definitive absence verdict from several \"NOT DEFINITIVE\" cases. It never describes a middle grade that is definitive for a reason other than absence, so only two grades are covered.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the reply also names the file types that WERE in scope and produced no rows, so \"this repository does not contain that\" and \"that file type is not indexed here\" are distinguishable rather than the same empty answer",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: `not_indexed` present | The listed file types were in scope and produced no rows. Read those files directly. | WHY: The answer states that the reply names file extensions that were in scope but produced no rows (`not_indexed`), and distinguishes this from an absent key and from a definitive absence. || QUOTE: `not_indexed` present | The listed file types were in scope and produced no rows. Read those files directly. | WHY: The answer says the reply includes `not_indexed`, the file extensions in scope that produced no rows. It also contrasts this with the absent-key case, so \"not indexed here\" is distinguishable from \"not present\". || QUOTE: `not_indexed` present | The listed file types were in scope and produced no rows. Read those files directly. | WHY: The answer states the reply includes `not_indexed`, the file extensions in scope that produced no rows, and contrasts present vs. absent so \"not indexed\" differs from \"nothing missed.\"",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    }
+  ]
+}

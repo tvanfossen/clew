@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: By default every field is therefore named `private_<name>`. Code outside the library that writes `ctx->state` gets a compile error, and code that writes `ctx->MBEDTLS_PRIVATE(state)` compiles to `private_state`. The point is to make the internal layout unavailable to applications\nVERDICT: MISS\nWHY: The answer explains the name-mangling mechanism, but it never says the struct layout stays visible and sized. It says the aim is to make the layout \"unavailable\", which points the other way."
+}

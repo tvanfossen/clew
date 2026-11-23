@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: If the payload is too large, the notices are compacted and then minimised rather than dropped (`_staleness_within_budget`, `tools_query.py:158`).\nVERDICT: HIT\nWHY: States that the staleness annotation is fitted to the budget by compacting and minimising the notices rather than dropping them, which is the substance of the item."
+}

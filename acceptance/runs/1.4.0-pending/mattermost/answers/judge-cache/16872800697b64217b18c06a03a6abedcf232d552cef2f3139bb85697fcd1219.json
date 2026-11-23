@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Every handler write goes through one method, `BaseDataOperator.batchRecords`.\nVERDICT: HIT\nWHY: The answer states that all handlers write via `BaseDataOperator.batchRecords`. It also says `ServerDataOperatorBase` extends `BaseDataOperator` and that the mixins are layered onto it, so the inheritance mechanism is named."
+}

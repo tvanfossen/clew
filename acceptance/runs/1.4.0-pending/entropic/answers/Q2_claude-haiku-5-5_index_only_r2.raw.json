@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 20021,
+  "stop_reason": "end_turn",
+  "session_id": "448acdd0-deb5-4104-bfc4-f40974de6955",
+  "total_cost_usd": 0.01386832,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 49182,
+    "cache_read_input_tokens": 225592,
+    "output_tokens": 3550,
+    "output_tokens_details": {
+      "thinking_tokens": 1427
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 49182,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1592,
+        "cache_read_input_tokens": 66327,
+        "cache_creation_input_tokens": 18841,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 18841
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 3550,
+      "cacheReadInputTokens": 225592,
+      "cacheCreationInputTokens": 49182,
+      "webSearchRequests": 0,
+      "costUSD": 0.01386832,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1427,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 49182,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 10,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** llama.cpp comes in as a git submodule, and it is linked by the inference library rather than built by the top-level build. Its API reaches into entropic's source only through a small `src/inference/llama_cpp_*` adapter layer. The public headers and the rest of the engine see only entropic's own abstractions.\n\n**How it's brought in (what the index shows):**\n\n- **Submodule:** `src/inference/llama_cpp_backend.cpp` is documented as \"Pinned against llama.cpp submodule b8420\", and `speculative_compat.cpp` refers to `extern/llama.cpp/common/speculative.cpp`. The index does not hold the submodule's own files.\n- **Link:** `src/inference/CMakeLists.txt` is described as \"Links against llama.cpp, nlohmann/json, and spdlog.\"\n- **Stale comment:** `extern/CMakeLists.txt` says llama.cpp \"is a submodule but NOT built in v1.8.0\" and describes FetchContent for header-only libraries. That comment predates the current engine. I could not read the CMake logic through the index, so I can't confirm the exact mechanism from it.\n- **Pin mismatch:** the file header says b8420, and the speculative-decoding notes say pin `253ba110b`. Those may be different pins, or one may be stale. Check the submodule SHA.\n\n**How far it reaches into entropic's source:**\n\n| Layer | llama.cpp reach |\n|---|---|\n| `src/inference/llama_cpp_backend.{h,cpp}` | Deep. `LlamaCppBackend` owns `llama_model*`, `llama_context*` and `mtmd` handles. It calls the C API directly (`llama_model_load_from_file`, decode, KV seq ops, state save/restore) and uses the `common_chat` and `common_speculative` helpers. It also holds the speculative, MTP and batched decode loops. |\n| `src/inference/llama_cpp_sampler.{h,cpp}` | Wraps a `llama_sampler` chain. Implements the `Sampler` / `SamplerFactory` seam. |\n| `src/inference/llama_cpp_tokenizer.{h,cpp}` | Wraps a borrowed `llama_vocab*`. Implements the `Tokenizer` seam. |\n| `src/inference/adapter_manager.cpp`, `speculative_compat.cpp`, `prompt_cache.h`, `tool_call_markers.h`, `image_preprocessor.cpp` | Use llama.cpp LoRA, vocab, state, chat-format and `stb_image` calls directly. |\n| `include/entropic/interfaces/i_inference_backend.h`, `include/entropic/inference/{sampler,tokenizer}.h` | Abstract seams with no llama.cpp types. The public `entropic_inference_log_*` C functions are documented as silencing llama/ggml logs. |\n| `include/entropic/types/config.h` | Config fields that name llama.cpp concepts, such as `frequency_penalty`, `presence_penalty` and `ggml_logging`. These are config names, not llama.cpp types. |\n| Tests under `tests/unit/inference` and `tests/model` | Mock the `llama_*` functions at link time, or load real or vocab-only GGUFs. |\n\nOther engine code, such as the orchestrator and agent loop, reaches llama.cpp only through `InferenceBackend`. One caveat: the orchestrator's `resolve_target_model` and `resolve_speculative_pair` return raw `llama_model*` pointers, so a few non-adapter symbols do see llama types.\n\n**Limits of this answer:** the index does not hold llama.cpp's own sources, and I could not read the CMake files, so the build wiring is inferred from doc comments. The symbol list was capped at 200 results. I'm not aware of anything beyond the 200, but I can't rule it out from this index.",
+  "ttft_ms": 1518,
+  "type": "result",
+  "duration_ms": 22556,
+  "uuid": "73ee21d5-7c95-4716-a957-41d9a3d443a6",
+  "ttft_stream_ms": 1221,
+  "time_to_request_ms": 130,
+  "first_content_frame_ms": 1221,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

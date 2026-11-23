@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: There is no pybind11 or C++ extension. The Python package is a `ctypes` binding over the C ABI in `include/entropic/entropic.h`: ... `load()` ... returns a `ctypes.CDLL`.\nVERDICT: HIT\nWHY: The answer states ctypes loading of librentropic.so via CDLL and explicitly rules out pybind11/C++ extension modules."
+}

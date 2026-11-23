@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Without `qualified`, the focal side is resolved by identity (gh#26), but the `key` half is still unioned by bare name, and this gap is documented in `_call_edges`.\nVERDICT: MISS\nWHY: The answer says the call half resolves by identity while the key half is unioned by bare name, but it does not identify a flat surface versus a traversal surface that differ in how they resolve the focal side."
+}

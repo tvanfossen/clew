@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Shell functions have empty `argsstring`; arguments arrive as `$1`/`$@`.\nVERDICT: MISS\nWHY: The answer says shell functions have an empty argsstring and take `$1`/`$@`, but it never says they have no return, and it doesn't say the language lacks both as the reason."
+}

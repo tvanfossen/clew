@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: If none resolve, it raises an error telling the user to run `entropic install-engine`.\nVERDICT: MISS\nWHY: The answer mentions install-engine only as an error hint. It never says the split exists so `import entropic` succeeds before the engine is on disk, or that this is what lets the subcommand ship in the same package."
+}

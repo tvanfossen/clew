@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: For `code`: write paths refuse. `stale_code_refusal` returns a message telling the caller to restart the client and refresh with `force=True`. `force` does not bypass the refusal, because it only skips the freshness check.\nVERDICT: HIT\nWHY: The answer states that write paths refuse (not warn) on code staleness and that force cannot override the refusal because force only skips the freshness check."
+}

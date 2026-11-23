@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Every query reply gets a `staleness` list of `{axis, message}`, and the key is absent when the index is current. The README states this as the contract.\nVERDICT: HIT\nWHY: The answer says every query reply carries the `staleness` list and that it is absent when the index is current, which matches the item's \"rides on every reply\" and \"empty on a current tool\"."
+}

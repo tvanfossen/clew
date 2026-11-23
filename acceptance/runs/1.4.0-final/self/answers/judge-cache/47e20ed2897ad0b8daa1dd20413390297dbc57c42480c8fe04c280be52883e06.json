@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Target's own `.clew.yaml` | 2, declared | Standing conventions: `index_scope`, `preprocessor`, ... | Lives in the repo\nVERDICT: MISS\nWHY: The answer identifies `.clew.yaml` as tier 2 and a repo-resident standing declaration, but never says it is discovered from the repo root by both entry points (CLI and MCP) rather than plumbed per section."
+}

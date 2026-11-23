@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"the first call (line 55) passes a null buffer and zero length. llama.cpp answers with the negated token count it needs. The code allocates that many slots and makes the second call\"\nVERDICT: MISS\nWHY: The answer says llama.cpp returns a negated count but never says the code negates it to size the buffer; it only says the code allocates that many slots."
+}

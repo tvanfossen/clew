@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Under the shipped config, `MBEDTLS_PLATFORM_STD_CALLOC` is off (`include/mbedtls/mbedtls_config.h:4124`).\nVERDICT: MISS\nWHY: The answer says MBEDTLS_PLATFORM_MEMORY gates the macros in platform.h, but it never says it is commented out in the shipped mbedtls_config.h. The \"shipped config\" claim it makes is about MBEDTLS_PLATFORM_STD_CALLOC, which is a different symbol."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A Doxyfile's `INPUT` no longer supplies the roots (`clew/scope.py:683` docstring; `clew/declaration.py:205`).\nVERDICT: MISS\nWHY: The answer says Doxyfile INPUT no longer decides the roots but never explains the reasoning (documented subset for repos shipping a Doxyfile vs whole tree for repos without)."
+}

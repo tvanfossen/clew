@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `schema` \u2014 \"Nothing through this process. A rebuild re-stamps the same newer version, so it stays stale\"; `data` \u2014 \"`index(action='refresh')`\"; `code` \u2014 \"Restart the MCP client, then `index(action='refresh', force=True)`\"\nVERDICT: MISS\nWHY: The table lists different remedies per axis, but the answer never states that the axes need different actions, which is why one flag wouldn't be enough. Its `code` remedy also adds a refresh after the restart, which blurs the \"rebuild for data, restart for code\" split."
+}

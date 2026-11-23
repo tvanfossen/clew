@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names no top-level directories that contain uses of MBEDTLS_PRIVATE. It mentions `include/`, `library/`, `programs/` and `docs/`, but only as locations of the macro definition, the opt-out defines, the accessors or the migration guide. It never says these directories contain uses of MBEDTLS_PRIVATE.\n\nITEMS:\nNONE\nEND"
+}

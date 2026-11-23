@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"It is used when there is no `index_scope:`, or when the declared one is rejected.\" and \"`.clew.yaml` ... may carry an `index_scope:` ... If nothing usable is declared, the whole repository becomes the scope\"\nVERDICT: HIT\nWHY: The answer states that a declared index_scope is tried first and that both absence and rejection of it fall through to whole-repo indexing."
+}

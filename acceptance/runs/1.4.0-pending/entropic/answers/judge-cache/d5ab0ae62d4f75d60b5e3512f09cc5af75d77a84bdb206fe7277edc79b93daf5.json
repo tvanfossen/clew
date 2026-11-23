@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: There is no C++ extension module. The Python package talks to the engine through `ctypes` over the public C API.\nVERDICT: HIT\nWHY: The answer states that ctypes loads librentropic.so (`ctypes.CDLL(librentropic.so)`) and that no compiled extension module is involved."
+}

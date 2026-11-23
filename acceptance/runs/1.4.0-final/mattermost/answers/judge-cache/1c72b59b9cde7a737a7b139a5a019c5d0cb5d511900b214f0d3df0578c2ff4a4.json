@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: In `app/database/operator/server_data_operator/index.ts:40`, it is `mix(ServerDataOperatorBase).with(...)` over 13 handler classes.\nVERDICT: HIT\nWHY: The answer states that ServerDataOperator is built via `mix(ServerDataOperatorBase).with(...)` over handler classes defined elsewhere, not declared in the class itself."
+}

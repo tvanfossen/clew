@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"It goes straight to the database, finds the matching row, and calls `destroyPermanently()` in its own write transaction.\" and \"database.write(() => reaction[0].destroyPermanently())\"\nVERDICT: HIT\nWHY: The answer states that removal bypasses the operator and queries the reaction, then destroys it with a direct `database.write`."
+}

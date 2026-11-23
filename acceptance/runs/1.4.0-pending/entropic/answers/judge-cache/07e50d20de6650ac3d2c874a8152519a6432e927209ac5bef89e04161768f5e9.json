@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer lists HealthMonitor's mutexes (`event_mutex_`) but never says events are queued and drained by the caller instead of invoking a callback from the monitor thread."
+}

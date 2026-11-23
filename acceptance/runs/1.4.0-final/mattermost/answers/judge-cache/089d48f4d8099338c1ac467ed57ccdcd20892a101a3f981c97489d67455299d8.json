@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The app makes zero automatic retries.\" and \"`ClientPosts.createPost` passes `noRetry: true` ... `retryLimit: 0`. So the request is not retried at the HTTP layer either.\"\nVERDICT: HIT\nWHY: The answer explicitly states createPost is sent once with no automatic retries (noRetry: true, retryLimit 0)."
+}

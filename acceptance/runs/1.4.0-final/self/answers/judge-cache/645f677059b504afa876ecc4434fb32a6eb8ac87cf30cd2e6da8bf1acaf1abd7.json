@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`scope.not_indexed` lists extensions that were never read: `.rs=2`, `.toml=2`, `.csv=3`, `.sql=1`, `.lock=1`, `.jsonl=1`, `.motor=1`, and 3 extensionless files. A miss in those is \"never looked,\" not \"absent,\"...\"\nVERDICT: MISS\nWHY: The item requires naming file types that were in scope and produced no rows. The answer names file types that were not indexed (`not_indexed`), which is the opposite set, and says nothing about in-scope types with zero rows."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"they are ranked by a five-tier rule. Where two statements disagree, the higher tier wins\" and \"`resolved = (tier1 or tier2 or tier5) \u222a tier3 \u222a tier4`\"\nVERDICT: HIT\nWHY: The answer explicitly describes five named precedence tiers (explicit, declared, stated facts, ecosystem signatures, heuristic floor) with a resolution rule, rather than a single override."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says to add a #define in the public header and rebuild, but it says the description source is unverified and never states that the /** */ doc comment drives the generator. It also frames the process as a rebuild, not re-running the generator."
+}

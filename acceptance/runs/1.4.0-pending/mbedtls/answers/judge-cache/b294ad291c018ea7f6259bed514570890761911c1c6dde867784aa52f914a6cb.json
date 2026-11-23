@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer names many mbedtls_ct_* primitives (mbedtls_ct_hmac, mbedtls_ct_rsaes_pkcs1_v15_unpadding) and never says the public API is just mbedtls_ct_memcmp with the others internal."
+}

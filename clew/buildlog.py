@@ -65,7 +65,7 @@ def log_path(output: Path) -> Path:
 ##
 # @brief A logging handler that flushes every record immediately.
 # @version 1
-# @dg_internal
+# @utility
 class _FlushingFileHandler(logging.FileHandler):
     """THE FLUSH IS THE FEATURE. `logging.FileHandler` buffers, so a killed build would leave a
     truncated or empty file — precisely the build whose log matters. Flushing per record costs a
@@ -80,7 +80,7 @@ class _FlushingFileHandler(logging.FileHandler):
     ## @param record The record to write.
     ## @return None.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def emit(self, record: logging.LogRecord) -> None:
         """@brief Write and flush.
         @version 1

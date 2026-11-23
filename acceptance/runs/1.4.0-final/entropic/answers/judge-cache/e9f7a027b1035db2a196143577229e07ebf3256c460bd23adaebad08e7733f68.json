@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Otherwise, if the consumer registered an `on_tool_call` callback, the callback is fired and `approved = true` is set at :172. ... For any consumer that wires one, the allow list has no effect on approval, and only the deny list gates execution.\nVERDICT: MISS\nWHY: The answer says default-deny holds when no callback is registered, and only describes allow-all behavior for callback consumers; it never concludes that an unlisted tool is simply allowed and runs by default."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It calls the C ABI directly through `ctypes`... `_loader.load() \u2192 ctypes.CDLL(librentropic.so)`... The Python package is pure Python.\nVERDICT: HIT\nWHY: The answer names ctypes.CDLL over librentropic.so as the mechanism and states the package is pure Python, with no compiled extension."
+}

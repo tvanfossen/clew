@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes tiers 1, 2, 3/4, and 5 (four to five partial labels) across scattered sources, but never states that option resolution goes through five named precedence tiers; it frames it as \"four places, plus a fallback.\""
+}

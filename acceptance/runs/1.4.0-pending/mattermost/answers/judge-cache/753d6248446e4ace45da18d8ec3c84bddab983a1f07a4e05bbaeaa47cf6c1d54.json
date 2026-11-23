@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Channel deleted websocket event ... Only stores `delete_at`; the user stays a member | If viewing that channel, kicks the user out with the `CHANNEL_ARCHIVED` event. Then removes the current user from the channel locally. | Archive a channel ... Sets `delete_at` locally to now | Removes the current user from the channel locally\nVERDICT: HIT\nWHY: The table states that when the gate is off, the user is removed from the channel (and kicked out if currently viewing it), and that when it is on, only `delete_at` is set and the user stays a member."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"binary files \u2192 dropped and reported as skipped [cli._drop_binary_files]\" and \"Extension logic appears later, in the language front ends and in `filedocs.EXTENSIONS`.\"\nVERDICT: HIT\nWHY: The answer says the resolved scope is not the final filter, since later stages drop binary files and the language front ends only parse what they understand. That names the binary-classification filter, though it doesn't mention extensions that lie about the file type."
+}

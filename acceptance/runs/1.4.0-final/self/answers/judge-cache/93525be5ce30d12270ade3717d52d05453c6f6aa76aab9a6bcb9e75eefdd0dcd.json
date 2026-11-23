@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Every query reply carries a `staleness` block when any axis is tripped. ... `freshness.notices()` ... returns an empty list when the index is current, so a current index adds nothing to a reply.\nVERDICT: HIT\nWHY: The answer states that every query reply carries the staleness annotation and that it is empty/adds nothing when the index is current."
+}

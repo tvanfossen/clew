@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The user retries manually with \"Try Again,\" which makes one more send attempt.\" and \"'Try Again' calls `retryFailedPost`\"\nVERDICT: HIT\nWHY: The answer says the retry is manual only, triggered by the user choosing \"Try Again\" on the failed post, and names `retryFailedPost` as what it calls."
+}

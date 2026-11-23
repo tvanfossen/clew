@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"So \"no vocab\", \"no tokenizer\", \"llama failed\", and \"empty input\" all look the same to callers.\" and \"the API cannot distinguish failure from empty text\"\nVERDICT: HIT\nWHY: The answer states that tokenization failure is indistinguishable from empty input. It also notes that most callers do not check for empty results, and that only the speculative and MTP paths do, and they misreport the cause."
+}

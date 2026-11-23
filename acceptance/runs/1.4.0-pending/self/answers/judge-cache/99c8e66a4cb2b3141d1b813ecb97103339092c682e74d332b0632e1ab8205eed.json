@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Facts already written in the repo, such as a Doxyfile, add to the result rather than replacing it. ... Tier 3 or 4 vs anything stated: no conflict. Facts always survive, so a stated `--entry-patterns` cannot drop `main`\nVERDICT: HIT\nWHY: The answer says stated tiers replace one another while discovered facts accumulate and survive any stated option."
+}

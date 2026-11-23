@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Without the define: `MBEDTLS_PRIVATE(m)` \u2192 `private_m`. Members are renamed and hidden. With the define: `MBEDTLS_PRIVATE(m)` \u2192 `m`. Members keep their real names. ... Inside the library and the two SSL sample programs, code can read and write struct fields directly... Everywhere else, which includes external applications ... the fields are renamed and direct access fails to compile.\n\nVERDICT: HIT\nWHY: The answer explains both branches and that defining consumers (library, sample programs) see plain names while ordinary consumers see renamed members."
+}

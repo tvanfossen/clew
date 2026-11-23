@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer mentions a thread-local `HandleLogScope` routing logs per handle, and says the async worker is \"tagged\", but never states that every thread body installs it as its first statement."
+}

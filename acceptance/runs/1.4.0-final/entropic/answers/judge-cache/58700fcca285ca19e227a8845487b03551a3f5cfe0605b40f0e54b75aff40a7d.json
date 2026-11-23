@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the dependency is \"contained in one layer\" and treats outside-inference references as trivial, rather than concluding it is concentrated but not contained. It does list `src/facade/entropic.cpp` including `llama_cpp_backend.h` and `src/config/loader.cpp` parsing llama config keys, but it never states that a minority of the reaching files sit outside `src/inference`."
+}

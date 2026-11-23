@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer lists about 8\u201310 adapter-layer files and calls it a \"small\" adapter layer, never stating that the dependency reaches roughly a dozen of entropic's own source files. It leans toward a thin wrapper, which is the opposite of the item."
+}

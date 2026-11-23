@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The function is compiled under `MBEDTLS_ERROR_C`. When that is off, the stub gated by `MBEDTLS_ERROR_STRERROR_DUMMY` (around `error.c:867`) is used, per `include/mbedtls/mbedtls_config.h:1170`.\nVERDICT: MISS\nWHY: The answer says the function is gated on MBEDTLS_ERROR_C but never states it is enabled by default in the shipped config."
+}

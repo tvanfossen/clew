@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Option C, use the bundled heap: `mbedtls_memory_buffer_alloc_init(buf, len)` (`library/memory_buffer_alloc.c:566`) calls `mbedtls_platform_set_calloc_free()` with its own `buffer_alloc_calloc` / `buffer_alloc_free`.\"\nVERDICT: MISS\nWHY: The answer says the buffer allocator installs itself via the runtime setter from its init function. It also says the bundled allocator is the only allocator the library ships. It never says it is the only in-tree caller of the setter, and that claim is the core of the item."
+}

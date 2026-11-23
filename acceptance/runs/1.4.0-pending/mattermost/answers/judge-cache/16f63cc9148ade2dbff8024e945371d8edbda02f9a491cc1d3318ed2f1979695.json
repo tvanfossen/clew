@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Retry is triggered by the user. Tapping the failed indicator opens a bottom sheet (`app/components/post_list/post/body/failed/index.tsx`), and \"Try Again\" calls `retryFailedPost` (`app/actions/remote/post.ts`, around lines 228\u2013305).\nVERDICT: HIT\nWHY: The answer says retry is user-triggered via \"Try Again\" on the failed post, calls `retryFailedPost`, and states nothing retries automatically."
+}

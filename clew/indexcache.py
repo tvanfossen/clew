@@ -114,7 +114,7 @@ class IndexCache:
 
     ## @brief Open (creating if needed) the sidecar cache and load prior state.
     ## @version 5
-    ## @dg_internal
+    ## @utility
     def __init__(self, cache_path: Path, repo_root: Path, read_enabled: bool = True) -> None:
         self.cache_path = cache_path
         self.repo_root = repo_root
@@ -137,7 +137,7 @@ class IndexCache:
 
     ## @brief Rebuild `doxygen_cache` when an older sidecar predates one of its columns.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def _align_doxygen_cache(self) -> None:
         """`CREATE TABLE IF NOT EXISTS` does NOTHING to a table that already exists, so a
         sidecar written before `output_sha` keeps its three-column shape and the first
@@ -166,7 +166,7 @@ class IndexCache:
 
     ## @brief Wipe every cached artifact when CLEW_BUILD_VERSION changed.
     ## @version 4
-    ## @dg_internal
+    ## @utility
     def _invalidate_on_build_version(self) -> None:
         """A build-version bump means the pipeline's logic moved; belt-and-
         braces, drop everything rather than reason about which stage moved.
@@ -199,7 +199,7 @@ class IndexCache:
     ## @brief Load the previous run's per-file identities.
     ## @return Mapping of repo-relative path to its stored FileIdentity.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def _load_source_files(self) -> dict[str, FileIdentity]:
         return {
             row[0]: FileIdentity(row[1], row[2], row[3])
@@ -210,12 +210,19 @@ class IndexCache:
 
     ## @brief Identity of one file, re-hashing only when the prefilter misses.
     ## @return FileIdentity for the path, or None when it cannot be stat'ed.
-    ## @version 1
-    ## @dg_internal
+    ## v2: regular files only (entropic, 2.0.0)
+    ## @version 2
+    ## @utility
     def _identity(self, rel: str, abs_path: Path) -> FileIdentity | None:
+        import stat as stat_mode
+
         try:
             stat = abs_path.stat()
         except OSError:
+            return None
+        ## A DIRECTORY HAS NO IDENTITY (entropic, 2.0.0): doxygen's path rows include directories,
+        ## and recording them made every next scan report them "removed" — 61 on entropic.
+        if not stat_mode.S_ISREG(stat.st_mode):
             return None
         prev = self._previous.get(rel)
         if (
@@ -279,11 +286,27 @@ class IndexCache:
         self._current[rel] = identity
         return identity.content_sha
 
+    ## @brief The content sha the last committed build recorded for one path.
+    ## @param rel Repo-relative path.
+    ## @return The recorded sha, or None when the last build did not record the path.
+    ## @version 1
+    ## @req REQ-DDB-INDEX-006
+    def previous_sha(self, rel: str) -> str | None:
+        """THE FAST TIER'S BASELINE (1.3.5): what the index describes, as distinct from what the
+        working tree now holds (`sha_for`).
+
+        @brief Read the recorded sha.
+        @return Sha or None.
+        @version 1
+        """
+        known = self._previous.get(rel)
+        return None if known is None else known.content_sha
+
     ## @brief Whether a lookup may be served from the store at all.
     ## @param key The full (content_sha, stage, stage_version, extra_key) tuple.
     ## @return True when reads are enabled or this run wrote the entry itself.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def _readable(self, key: tuple[str, str, int, str]) -> bool:
         """@brief Apply the --rebuild rule, exempting this run's own writes.
 
@@ -388,7 +411,7 @@ class IndexCache:
     ## @param extra Additional key material.
     ## @return A seeded hasher, ready for the per-file fold or a direct hexdigest.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def _config_digest(self, doxyfile_content: str, extra: list[str]) -> Any:
         """SHARED WITH `tree_sha` ON PURPOSE. `config_sha` must be a strict prefix of what
         `tree_sha` folds, or the two could disagree about what counts as a configuration and
@@ -751,3 +774,52 @@ class IndexCache:
     ## @req REQ-DDB-INDEX-002
     def close(self) -> None:
         self.conn.close()
+
+
+## @brief A per-file result, from the cache when this content was seen before, else computed and stored.
+## @param cache The run's index cache, or None for an uncached build.
+## @param rel Repo-relative path.
+## @param abs_path Absolute path, read only to hash it when the scan did not.
+## @param stage Stage name the payload belongs to.
+## @param version Stage version; bump it when `compute` changes what it returns.
+## @param extra_key Anything besides the file's bytes the result depends on, or "".
+## @param compute Produces the result; must be JSON-serializable and depend only on the
+##        file's content and `extra_key`.
+## @return The result.
+## @version 1
+## @req REQ-DDB-INDEX-002
+def memoized(
+    cache: IndexCache | None,
+    rel: str,
+    abs_path: Path,
+    stage: str,
+    version: int,
+    extra_key: str,
+    compute: Any,
+) -> Any:
+    """1.3.4, Track 2. The whole-tree text stages (file docs, requirement mentions, code text,
+    generated-file banners) re-scanned every indexed file on every build; a refresh after a
+    one-file edit paid for all of them. Keyed like every other extract payload — content sha,
+    stage, stage version, extra key — so an unchanged file is served and an edited one is not.
+
+    WRAPPED IN A ONE-KEY OBJECT, because `extract_get` answers None for a miss and a stage's
+    legitimate result is often None ("this file has no docstring"). Storing the bare value would
+    make every such file a permanent miss — correct, and never faster.
+
+    An unreadable file (no sha) is computed, not cached: there is no identity to key it by.
+
+    @brief Memoize one file's stage result on its content.
+    @return The result.
+    @version 1
+    """
+    sha = cache.sha_for(rel, abs_path) if cache is not None else None
+    if cache is None or sha is None:
+        return compute()
+    hit = cache.extract_get(sha, stage, version, extra_key)
+    if hit is not None:
+        cache.record(True)
+        return hit["v"]
+    value = compute()
+    cache.extract_put(sha, stage, version, extra_key, {"v": value})
+    cache.record(False)
+    return value

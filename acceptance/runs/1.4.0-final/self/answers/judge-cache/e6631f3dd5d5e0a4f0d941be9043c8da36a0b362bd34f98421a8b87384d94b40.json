@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer lists files only as callers of `git_argv`. It doesn't name any file as storing, collapsing or filtering call edges, or as deciding what a neighbour reply contains.\n\nITEMS:\nNONE\nEND"
+}

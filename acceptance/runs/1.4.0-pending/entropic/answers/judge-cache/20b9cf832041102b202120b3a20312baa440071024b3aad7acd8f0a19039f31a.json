@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The second call runs unconditionally. It does not repeat on failure, so it is not retry.\" and the table row \"`LlamaCppTokenizer::tokenize` | empty `vector<int32_t>` | `llama_cpp_tokenizer.cpp:64-68`, after one `logger->error`\"\nVERDICT: HIT\nWHY: The answer says the second call (line 61) is not retried on failure and that the failure path (lines 64-68) logs once and returns an empty vector. That matches \"terminal, returns empty\". It never names the exact condition (`actual <= 0`), but the mechanism is stated."
+}

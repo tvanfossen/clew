@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Its reason string says no `index_scope` was declared and names where `.clew.yaml` was looked for.\" The diagram also shows `whole_repo_scope(rejected=<reason>)`, and the answer adds \"The warning 'indexing the WHOLE repository' is logged at WARNING level\".\nVERDICT: HIT\nWHY: The answer says the whole-repo fallback carries a reason string stating why it was used (no scope declared, or a rejection reason) and logs a warning, so the scope is not silently guessed."
+}

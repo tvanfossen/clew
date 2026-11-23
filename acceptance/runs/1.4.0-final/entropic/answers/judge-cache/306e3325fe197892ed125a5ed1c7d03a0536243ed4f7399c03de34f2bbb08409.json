@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `LlamaCppBackend::tokenize` (`llama_cpp_backend.cpp:788`) | `{}` (also `{}` if no tokenizer is wired, with no log) | Passes it through\nVERDICT: HIT\nWHY: The answer states the backend wrapper returns `{}` on tokenization failure and also `{}` when no tokenizer is wired, which is the same empty value in both cases."
+}

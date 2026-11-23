@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the health monitor is \"Pushes events to a queue\" and notes `running_` is an atomic, but it never describes the monitor's shutdown as an atomic flag exchange plus a condition variable wake, nor that `stop()` joins that thread."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `CMakeLists.txt`, `*.cmake` ... \"Matching is by whole path component for `CMakeLists.txt`, so `.txt` in general is not claimed.\"\nVERDICT: HIT\nWHY: The answer names the shell extensions (`*.sh`, `*.bash`) and CMake extension (`*.cmake`), and states that `CMakeLists.txt` is matched by file name (path component) rather than by `.txt`."
+}

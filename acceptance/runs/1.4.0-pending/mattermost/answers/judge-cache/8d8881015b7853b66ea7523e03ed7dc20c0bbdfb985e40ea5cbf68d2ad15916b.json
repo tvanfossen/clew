@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: handleReactions builds `ReactionModel` records with `transformReactionRecord`... `batchRecords` runs the writes inside `database.write`. Also the diagram: \"operator.handleReactions({...})\" ... \"prepareRecords({createRaws, transformer: transformReactionRecord, tableName: REACTION})\" ... \"batchRecords(batchRecords, 'handleReactions')\"\nVERDICT: HIT\nWHY: The answer states the added reaction goes through the operator's handleReactions, which prepares Reaction records via prepareRecords/transformer and writes them with batchRecords."
+}

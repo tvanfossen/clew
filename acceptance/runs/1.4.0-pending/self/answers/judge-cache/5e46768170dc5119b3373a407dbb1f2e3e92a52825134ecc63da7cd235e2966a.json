@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"| data | `index(action='refresh')`. Cheap and incremental. | ... | code | Restart the MCP client. Refresh is refused. |\" and \"The code message says a rebuild cannot fix it and the client must restart.\"\nVERDICT: HIT\nWHY: The answer states that data is cleared by a refresh/rebuild while code requires a client restart (a rebuild cannot fix it), which matches the item's substance of different actions per axis."
+}

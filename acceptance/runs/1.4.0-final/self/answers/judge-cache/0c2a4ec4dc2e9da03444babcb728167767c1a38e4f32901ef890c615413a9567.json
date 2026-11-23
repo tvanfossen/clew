@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `callers()` appends shared-key writers whose values `fn` reads. Those may run asynchronously on another thread.\nVERDICT: HIT\nWHY: The answer says that for reads, the \"callers\" are the shared-key writers whose values the function reads, which is the inverted polarity the item describes."
+}

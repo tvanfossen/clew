@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `#ifndef MBEDTLS_ALLOW_PRIVATE_ACCESS #define MBEDTLS_PRIVATE(member) private_##member #else #define MBEDTLS_PRIVATE(member) member #endif` and \"Library code writes `ctx->state` directly... Consumers who define `MBEDTLS_ALLOW_PRIVATE_ACCESS` themselves get the same access\" and \"Code that writes `ssl->state` against the public header fails to compile\"\nVERDICT: HIT\nWHY: The answer states that defining the macro yields plain member names while ordinary consumers of the public headers see the `private_`-prefixed names."
+}

@@ -27,7 +27,7 @@ from typing import Any
 ## @param root The node to walk from.
 ## @return An iterator over the root and its descendants.
 ## @version 1
-## @dg_internal
+## @utility
 def walk_nodes(root: Any) -> Iterator[Any]:
     """Iterative rather than recursive: a generated or vendored file can nest deeply
     enough to exhaust the interpreter's stack, and a parser front end must not be the
@@ -46,7 +46,7 @@ def walk_nodes(root: Any) -> Iterator[Any]:
 ## @param node A tree node, or None.
 ## @return The node's UTF-8 text, replacing undecodable bytes.
 ## @version 1
-## @dg_internal
+## @utility
 def node_text(node: Any) -> str:
     """`errors="replace"` because the substrate hands back the file's real bytes and a
     source file is not required to be valid UTF-8.

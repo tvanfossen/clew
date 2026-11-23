@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Row 1: \"Channel stays in the local DB and the user stays a member | If the user is viewing it, kick them with `Events.CHANNEL_ARCHIVED`; then `removeCurrentUserFromChannel`\"; Row 2: \"Set `delete_at` locally to now | Remove the current user from the channel locally\"\nVERDICT: HIT\nWHY: The answer says that when archived channels aren't viewable, the user is removed from the channel and kicked out if they're viewing it. When viewable, the channel stays and `delete_at` is set, which marks it deleted."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Default build (`MBEDTLS_PLATFORM_MEMORY` off, the shipped default)\nVERDICT: HIT\nWHY: The answer names MBEDTLS_PLATFORM_MEMORY as the enabling define and says it is off in the shipped default. That matches the item's claim that it is commented out in the shipped config."
+}

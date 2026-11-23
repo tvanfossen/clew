@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `_bindings.py` is generated from `entropic.h` by `scripts/gen_bindings.py`, which the index describes as a full C-to-ctypes generator.\nVERDICT: HIT\nWHY: The answer explicitly says the bindings are generated from the C header by scripts/gen_bindings.py."
+}

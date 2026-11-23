@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"\\\"Try Again\\\" calls `retryFailedPost`, which rebuilds the API post with `failed: false`... then calls `client.createPost` once more.\" and \"On failure, it sets `failed: true` again. The same three error IDs remove the post instead.\"\nVERDICT: HIT\nWHY: The answer says `retryFailedPost` makes one more `createPost` call, marks the post failed again on error, and removes it for the same three errors. It does not mention a loop or backoff explicitly. The \"once more\" wording and the \"zero automatic retries\" framing cover the one-attempt claim."
+}

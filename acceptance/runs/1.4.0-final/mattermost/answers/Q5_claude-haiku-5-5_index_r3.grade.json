@@ -1,0 +1,93 @@
+{
+  "cell": "Q5_claude-haiku-5-5_index_r3",
+  "arm": "index",
+  "rubric_version": "1.0.0",
+  "rubric_digest": "32294778c2753056",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.8125,
+  "unmarked_pct": 0.0,
+  "split_decisions": 0,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "explains that ServerDataOperator is composed with a mixin helper \u2014 `mix(ServerDataOperatorBase).with(...)` \u2014 rather than declaring the handlers itself",
+      "kind": "retrieval",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: In `app/database/operator/server_data_operator/index.ts:40`, it is `mix(ServerDataOperatorBase).with(...)` over 13 handler classes. | WHY: The answer states that ServerDataOperator is built via `mix(ServerDataOperatorBase).with(...)` over handler classes defined elsewhere, not declared in the class itself. || QUOTE: In `app/database/operator/server_data_operator/index.ts:40`, it is `mix(ServerDataOperatorBase).with(...)` over 13 handler classes. | WHY: The answer states that ServerDataOperator is composed via `mix(ServerDataOperatorBase).with(...)` over handler classes defined elsewhere. || QUOTE: In `app/database/operator/server_data_operator/index.ts:40`, it is `mix(ServerDataOperatorBase).with(...)` over 13 handler classes. | WHY: The answer explicitly states ServerDataOperator is built via `mix(ServerDataOperatorBase).with(...)` over handler classes, with handlers defined elsewhere rather than declared in the class itself.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "explains that a same-named interface extends each handler's `...Mix` type, so the class is typed with every mixed-in method",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: A matching `interface ServerDataOperator extends ...Mix` block (lines 23\u201338) gives TypeScript the method signatures. | WHY: The answer states that a same-named interface extends the handlers' Mix types so TypeScript knows the mixed-in method signatures. || QUOTE: A matching `interface ServerDataOperator extends ...Mix` block (lines 23\u201338) gives TypeScript the method signatures. | WHY: The answer states a same-named interface extends the handlers' `...Mix` types to give TypeScript the mixed-in method signatures. || QUOTE: A matching `interface ServerDataOperator extends ...Mix` block (lines 23\u201338) gives TypeScript the method signatures. | WHY: The answer states that a same-named interface extends the handler Mix types to give TypeScript the mixed-in method signatures.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "every file outside the operator's own handlers directory that defines one of its handlers \u2014 app/products/agents/database/operators/handlers/index.ts",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every file outside the operator's own handlers directory that defines one of its handlers \u2014 app/products/boards/database/operators/handlers/index.ts",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every file outside the operator's own handlers directory that defines one of its handlers \u2014 app/products/playbooks/database/operators/handlers/index.ts",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "every file outside the operator's own handlers directory that defines one of its handlers \u2014 precision",
+      "kind": "set_precision",
+      "weight": 2,
+      "hit": true,
+      "detail": "clean",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that every handler's writes go through `batchRecords` inherited from `BaseDataOperator`, because each mixin is constrained to extend ServerDataOperatorBase",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer says handlers call `handleRecords`, which calls `batchRecords` on `BaseDataOperator`. It never says each mixin is constrained to extend ServerDataOperatorBase. It also names two exceptions that bypass `batchRecords`, which contradicts a claim that every handler's writes go through it. || QUOTE: NONE | WHY: The answer says handlers call `this.handleRecords`, which calls `batchRecords` on `BaseDataOperator`. It never says each mixin is constrained to extend ServerDataOperatorBase. It also says two handlers bypass `batchRecords`, which contradicts \"every handler\". || QUOTE: NONE | WHY: The answer says handlers reach `batchRecords` via `BaseDataOperator.handleRecords`, but it never says the mixins are constrained to extend ServerDataOperatorBase. It also names exceptions that bypass `batchRecords`, which contradicts the item's \"every handler\" claim.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "names AppDataOperator as the other subclass of BaseDataOperator, sharing the same write path for the app-level database",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: **`AppDataOperator`** (`app/database/operator/app_data_operator/index.ts`) extends `BaseDataOperator`, so it shares `handleRecords`, `prepareRecords`, `processRecords`, and `batchRecords` against the app database. | WHY: The answer names AppDataOperator as extending BaseDataOperator and sharing the same write-path methods for the app database. || QUOTE: **`AppDataOperator`** (`app/database/operator/app_data_operator/index.ts`) extends `BaseDataOperator`, so it shares `handleRecords`, `prepareRecords`, `processRecords`, and `batchRecords` against the app database. | WHY: The answer names AppDataOperator as extending BaseDataOperator and sharing the write path (batchRecords etc.) against the app database. || QUOTE: **`AppDataOperator`** (`app/database/operator/app_data_operator/index.ts`) extends `BaseDataOperator`, so it shares `handleRecords`, `prepareRecords`, `processRecords`, and `batchRecords` against the app database. | WHY: The answer names AppDataOperator as a BaseDataOperator subclass that shares the same write path (batchRecords and the related methods) for the app database.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    }
+  ]
+}

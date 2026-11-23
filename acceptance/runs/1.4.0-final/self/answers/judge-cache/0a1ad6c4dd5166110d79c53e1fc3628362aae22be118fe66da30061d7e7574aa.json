@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says fuzzy edges are kept and tells the reader to filter on confidence. It never contrasts a flat surface that keeps them with a traversal surface that excludes them. It also never says that a walk multiplies one fuzzy edge into a wrong subtree."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Library sources (`library/*.c`) | Yes, via `library/common.h:132` | Plain member names. `library/ssl_misc.h` includes `common.h` before `ssl.h`, so the define is in place when the structs are parsed.\nVERDICT: HIT\nWHY: The answer says library sources get the opt-out define through the shared header `library/common.h`, so every library translation unit sees plain member names."
+}

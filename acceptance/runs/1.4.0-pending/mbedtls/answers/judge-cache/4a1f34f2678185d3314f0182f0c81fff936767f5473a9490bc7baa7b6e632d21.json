@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `library/common.h:132` | Defines the macro for every library TU that includes `common.h`. The three library `.c` files that use `MBEDTLS_PRIVATE` (`ecdh.c`, `md.c`, `x509_crt.c`) all include it first, so their member accesses resolve to real names.\nVERDICT: HIT\nWHY: The answer states that the shared internal header library/common.h defines the opt-out for every library TU including it, so members resolve to real names."
+}

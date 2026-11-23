@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes callers of `git_argv` and notes threads reach it via a spawn, but never states that for a reader the \"callers\" are the functions whose writes it observes (inverted polarity)."
+}

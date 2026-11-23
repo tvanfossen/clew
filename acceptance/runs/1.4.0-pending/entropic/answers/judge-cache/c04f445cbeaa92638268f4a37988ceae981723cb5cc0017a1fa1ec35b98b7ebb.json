@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The second call is not conditional on the first call succeeding. ... When `actual < 0`, the function logs an error with the text length only and returns `{}`, an empty vector (`llama_cpp_tokenizer.cpp:64-67`).\nVERDICT: HIT\nWHY: The answer states that a negative result from the second call logs an error and returns an empty vector, with no further attempt, and it frames the two calls as size-then-fill rather than retry."
+}

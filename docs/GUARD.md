@@ -1,8 +1,8 @@
 # The doxygen gate (`clew guard`)
 
 `clew guard` is the pre-commit gate formerly published as
-[doxygen-guard](https://github.com/tvanfossen/doxygen-guard), absorbed into clew at its 1.4.2
-release. It **enforces** doxygen documentation and reports the **change impact** of a commit.
+[doxygen-guard](https://github.com/tvanfossen/doxygen-guard), absorbed into clew at
+doxygen-guard's own 1.4.2 release. It **enforces** doxygen documentation and reports the **change impact** of a commit.
 It is optional: nothing in the index pipeline runs it, and a repo that does not declare the
 hook is unaffected.
 
@@ -12,6 +12,19 @@ pre-commit hook id is now `clew-guard`** rather than `doxygen-guard`, Rust is su
 [Rust](#rust) — and **the config is the `guard:` section of the repo's `.clew.yaml`**, the
 same file that carries clew's index declarations. `.doxygen-guard.yaml` is no longer read;
 see [Migrating from doxygen-guard](#migrating-from-doxygen-guard).
+
+```mermaid
+flowchart LR
+  commit[git commit] --> hook[clew-guard hook<br/>staged files]
+  hook --> presence[every function documented<br/>@brief · @param · @return]
+  hook --> version[a changed body bumps<br/>its @version]
+  hook --> req["every @req names a requirement<br/>in the catalog"]
+  presence & version & req --> verdict{all pass?}
+  verdict -- yes --> ok[commit proceeds]
+  verdict -- no --> refuse[refused, each violation named]
+  hook -. clew guard impact .-> impact[impact.json<br/>requirements whose code changed]
+  impact -.-> wiki[the wiki's Change impact page]
+```
 
 ## Why it lives here
 
@@ -43,21 +56,21 @@ Installing the hook installs clew; there is no lighter gate-only distribution.
 
 ```yaml
 # .clew.yaml
-guard:
-  output_dir: docs/generated/
+requirements:                    # the catalog — one section the gate, the index and the wiki read
+  file: docs/requirements.yaml
+  format: yaml
 
+guard:
   validate:
     exclude:
-      - "^tests/"
-      - "^\\.venv/"
+      - "tests/**"
+      - ".venv/**"
     tags:
       req:
         pattern: "^REQ-[A-Z]+-[0-9]{3}$"
 
   impact:
-    requirements:
-      file: docs/requirements.yaml
-      format: yaml
+    report_dir: docs/generated/impact/   # the default
 ```
 
 The gate reads `.clew.yaml` from the directory it runs in (the repo root, under pre-commit);
@@ -80,8 +93,8 @@ int Sensor_ReadTemperature(void) {
 }
 ```
 
-`pre-commit run --all-files` prints violations to stderr and writes the impact report to
-`<output_dir>/impact/`.
+`pre-commit run --all-files` prints violations to stderr and writes the impact report
+(`impact.md`, `impact.json`) to `guard.impact.report_dir`.
 
 ## Migrating from doxygen-guard
 
@@ -90,11 +103,24 @@ int Sensor_ReadTemperature(void) {
    old id was being held in place by a code comment naming a file that no longer exists,
    and nothing resolves the string programmatically. One tool, one name.
 2. Move the contents of `.doxygen-guard.yaml` under a `guard:` key in `.clew.yaml`, indented
-   one level, and delete `.doxygen-guard.yaml`. clew does not read it.
+   one level, and delete `.doxygen-guard.yaml`. clew does not read it. Three keys then move, and
+   each is refused, naming where it went, until it does:
+   - `output_dir` (and `impact.output`) → `guard.impact.report_dir`;
+   - `impact.requirements` → the top-level `requirements:` section, beside `guard:`;
+   - a `validate.exclude` regex such as `^gen/` → a glob (`gen/**`), or the `re:` prefix
+     (`re:^gen/`) to keep it a regex.
+   `clew guard validate` lists every refusal in one run, so one pass fixes them all.
 3. If the old file carried an `x-clew:` section, move its sections to the top level of
    `.clew.yaml` (beside `guard:`, not inside it). The `x-` passthrough is gone.
 4. If the hook passed `--config conf/doxygen-guard.yaml`, drop the argument (the gate reads
    `.clew.yaml` at the root) or point it at the moved file.
+5. The gate refuses to run while `.doxygen-guard.yaml` exists, or while
+   `.pre-commit-config.yaml` still names the `doxygen-guard` hook id, naming each leftover.
+   2.0.0 is the hard cut: nothing doxygen-guard wrote is read. (`clew index` only warns, since
+   it indexes repositories it must not change.)
+6. Replace every `@dg_internal` with `@utility` (a plain text replace; the gate refuses the old
+   tag, naming the new one). Where a member's doc block sits inside a class body, the class may
+   then ask for its own `@version` bump, because its body text changed.
 
 ## What it checks
 
@@ -103,14 +129,27 @@ Every function in a staged file is checked for:
 - **Presence**: `@brief`, the revision tag (`@version`), and `@return` on non-void functions.
 - **Version staleness**: when the function body changed against git `HEAD`, the revision tag
   must have been incremented.
-- **Tag syntax**: tag values match the configured patterns.
+- **Tag syntax**: tag values match the configured patterns. Every doxygen built-in command
+  (`@p`, `@c`, `@code`, `@sa`, `@retval` ...) is a known tag; an unknown one is a typo or a
+  project tag, which `validate.extra_tags` declares (and `clew guard doxyfile` aliases).
 - **Requirement coverage**: `@req`, or an exemption tag.
+
+**A C/C++ declaration and its definition are one function.** A prototype that carries its own
+doc block, in a header or in a class body, has that block checked like a definition's:
+`@brief`, `@version`, `@return`, every `@req` resolving to the catalog, unknown and removed tags,
+and `@version` staleness of its own text. A prototype with no doc block is skipped, because its
+definition carries the documentation. The "`@req` or an exemption" rule stays with the
+definition, so a header never needs its `@req` written twice. `clew guard coverage` matches the
+two sides by `Class::name(params)`, so a requirement tagged on either side counts once.
 
 | Exemption tag | Effect |
 |---|---|
-| `@dg_internal` | Exempt from `@req`; left out of the coverage report's unmapped list |
-| `@utility` | Exempt from `@req` |
-| `@callback` | Exempt from `@req` |
+| `@utility` | Exempt from `@req`, and left out of the coverage report's unmapped list: a helper with no requirement behind it |
+| `@callback` | Exempt from `@req`, and left out of the unmapped list: a function a framework calls |
+
+`@dg_internal`, doxygen-guard's tag, was removed in 2.0.0 and is refused with a pointer to
+`@utility`. It is not `@internal` on purpose: doxygen's `\internal` hides every tag after it in
+the block when `INTERNAL_DOCS` is off, which is doxygen's default.
 
 These are tool vocabulary, not doxygen commands; `clew guard doxyfile` emits the `ALIASES`
 that keep doxygen quiet about them. `@internal` is recognised but grants no exemption (it
@@ -118,7 +157,8 @@ hides the rest of the block from doxygen when `INTERNAL_DOCS` is off).
 
 **Change impact.** The `impact` subcommand, and the pre-commit run when a catalog is declared,
 cross-reference the diff with parsed functions and report which requirements the change
-touches, as markdown and JSON under `<output_dir>/impact/`.
+touches, as markdown and JSON under `guard.impact.report_dir`. `clew guard impact` prints the
+report (`--format markdown|json|text`); `--write` writes both files there instead.
 
 **Requirement coverage.** `clew guard coverage` reports covered, uncovered and orphan
 requirements, plus documented functions carrying no `@req`. Exit code 1 when gaps exist.
@@ -292,11 +332,40 @@ Every key below lives under the `guard:` section of `.clew.yaml`.
 | `version.tag` | string | `@version` | Tag used as the per-function revision counter |
 | `version.require_present` | bool | `true` | Require the revision tag |
 | `version.require_increment_on_change` | bool | `true` | Require a bump when the body changes |
-| `exclude` | list | `[]` | Regexes for files to skip (`clew guard files` shows the result) |
+| `exclude` | list | `[]` | Globs for files to skip (`tests/**`, `vendor/`), the syntax every other path filter uses; a regex is written `re:<regex>` (2.0.0 — a 1.x `^tests/` is refused with both forms). `clew guard files` shows the result |
 | `duplicate_tags_error` | bool | `true` | Flag a repeated `@brief`/`@version`/`@return`/`@file` |
+| `extra_tags` | list | `[]` | Further tag names to accept as known |
+| `known_tags_warn` | bool | `true` | Report a tag no rule knows (`false` silences the unknown-tag check) |
+| `exemption_reason` | `optional` \| `required` | `optional` | `required`: every `@utility` / `@callback` carries a one-line reason (`@utility parses the header for X`), the standards' "justified exception" form. Off by default; turn it on once a repository's reasons are written |
+| `bus.handlers` | list | — | Name globs of functions that cross a bus, which must carry a bus tag |
+| `bus.senders` | list | — | Calls that choose a topic; a function calling one must carry a bus tag |
+| `bus.vocabulary` | list | — | Allowed first words of a bus tag |
+
+The **bus tags are the event vocabulary** — the top-level `event_tags:` the index reads, or the
+index's built-in one when none is declared (2.0.0; `validate.bus.tags` is refused with that
+pointer). Those words are also known tags everywhere, and `@node` is known when `wiki.sources` is
+declared, so a convention one part of clew asks for is never an unknown tag to another.
+
+**`tags.<tag>`** — per-tag rules, for `req` or any tag you name (each key is checked):
+
+| Key | Type | Description |
+|---|---|---|
+| `pattern` | string | Regex the tag's value must match |
+| `require_prefix` | list | The value must start with one of these |
+| `require_contains` | string | The value must contain this |
+| `cross_reference` | bool | `req` only: ids must exist in the catalog |
+
+**`languages.<lang>`** — per-language parsing (each key is checked):
+
+| Key | Type | Description |
+|---|---|---|
+| `extensions` | list | File extensions of the language |
+| `function_pattern` | string | Regex locating a function definition |
+| `exclude_names` | list | Function names never required to carry a block |
+| `comment_style` | mapping | `start` / `end` regexes of a doc comment |
+| `require_return` | bool | Overrides `presence.require_return` |
 | `tags.req.cross_reference` | bool | `true` | `@req` ids must exist in the catalog |
-| `version_gate.current_version` | string | — | `auto:git`, `auto:cmake`, or an explicit version |
-| `version_gate.version_field` | string | — | Catalog field holding a requirement's minimum version |
+| `current_version` | string | — | The release the version gate compares against: `auto:git`, `auto:cmake`, or an explicit version (with `requirements.version_field`) |
 
 `version.tag` exists because the gate treats the tag as a **revision counter**, where doxygen
 documents `\version` as prose. A project using `\version` idiomatically can point the gate at
@@ -306,10 +375,56 @@ another tag and alias it: `version: {tag: "@revision"}` plus `extra_tags: ["revi
 
 | Key | Type | Default | Description |
 |---|---|---|---|
-| `requirements.file` | string | — | Path to the requirements catalog |
-| `requirements.format` | string | `yaml` | `yaml`, `csv` or `json` |
-| `requirements.id_column` | string | `Req ID` | Id column (`csv`/`json` only) |
-| `requirements.name_column` | string | `name` | Name column or field |
+| `report_dir` | string | `docs/generated/impact/` | Where the pre-commit run and `clew guard impact --write` write `impact.md` and `impact.json`, and where the wiki reads them |
+| `base` | string | `origin/main` | The branch the pre-commit impact report diffs against (merge-base to HEAD); a repository on `master`, `develop` or an `upstream` remote states its own |
+
+### `coverage`
+
+| Key | Type | Default | Description |
+|---|---|---|---|
+| `min_req_ratio` | number in (0, 1] | none (no floor) | Fail when the share of non-test functions carrying `@req`, among those carrying `@req` or an exemption (`@utility`, `@callback`), falls below this |
+
+The ratio counts one function per identity (`Class::name(params)`), so a declaration and its
+definition count once. Test code is the declared `tests.paths`, else the index's built-in test
+paths. There is no built-in floor: no standard sets one (DO-178C, ISO 26262 and IEC 62304
+require every function to trace to a requirement or be justified), and the right number is the
+repository's. Every run prints the counts, pass or fail. clew's own, measured with
+`clew guard coverage .` at the repository root on 2026-11-19 (feat/1.3.1, after the `@utility`
+fold):
+
+```
+Traceability: 1016 with @req, 1629 exempt (@utility 1629) — ratio 0.3841 (no floor declared)
+```
+
+**Coverage runs in the hook.** When a catalog or a floor is declared, `clew guard <files>` (the
+pre-commit entry) also runs the coverage gate over the repository. Uncovered catalog entries,
+`@req` naming no entry, and a ratio below the floor fail the commit. `clew guard coverage`
+reports the same, with the full lists.
+
+### The top-level `requirements:` section
+
+The catalog is the repository's, not the gate's: one top-level section that the gate, the index
+and the wiki all read (2.0.0 — it was `guard.impact.requirements`, and the old location is
+refused with a pointer here). One path is the short form of `{file: <path>}`.
+
+| Key | Type | Default | Description |
+|---|---|---|---|
+| `file` | string | — | Path to the requirements catalog |
+| `format` | string | `yaml` | `yaml`, `csv` or `json` |
+| `id_column` | string | `id` | Id column (`csv`/`json` and the flat YAML list) |
+| `name_column` | string | `name` | Name column or field |
+| `external` | list | — | Catalogues this repository does not own: a path, or `{repo, rev, path, name}` read at that revision from a local clone or submodule. A URL is refused. Pinned entries are also the wiki's sub-catalogues |
+| `status_field` | string | `status` | The catalogue field that holds a requirement's status |
+| `exempt_status` | list | — | Statuses that exempt an untagged requirement from `clew guard coverage` (e.g. `planned`, `configuration`); each exemption is listed in the report, never dropped |
+| `version_field` | string | — | Catalog field naming the release a requirement becomes active in (with `guard.validate.current_version`) |
+| `needs` | string | — | A Sphinx-needs `needs.json` whose needs join the wiki's requirement trace |
+
+Moved in 2.0.0, each refused with where it went: `guard.impact.requirements` → `requirements:`,
+`guard.output_dir` and `guard.impact.output` → `guard.impact.report_dir`,
+`guard.validate.version_gate.current_version` → `guard.validate.current_version`,
+`guard.validate.version_gate.version_field` → `requirements.version_field`, `wiki.catalogs` →
+`requirements.external`, `wiki.needs` → `requirements.needs`, `wiki.impact` → the gate's
+`report_dir`.
 
 The preferred catalog is a mapping keyed by id:
 
@@ -323,11 +438,33 @@ requirements:
       Every function must have a doxygen comment
     acceptance_criteria: >-           # optional
       Undocumented functions produce presence violations
+    satisfies: [REQ-PRD-004]          # optional: requirements this one serves
 ```
+
+`satisfies` names requirements in this catalogue, in an `external` one, or as `<catalog>:<id>`;
+a link no catalogue holds is a violation. The index records each link, and a requirement's
+`dossier` carries both directions, `satisfies` and `satisfied_by`.
 
 A missing file, an unknown format, a wrong shape, a missing `name`, or an id failing
 `validate.tags.req.pattern` raises `RequirementsError`. The run fails rather than continuing
 with an empty catalog.
+
+A library whose requirements are owned by the product that consumes it names the product's
+catalogue under `external` and needs no `file` of its own:
+
+```yaml
+requirements:
+  external:
+    - product/requirements.yaml                                   # a path in this checkout
+    - {repo: ../product, rev: v3.2.0, path: requirements.yaml}    # a local clone, at a pin
+```
+
+A pinned entry is read with `git show rev:path`, so it is the catalogue as of that revision, not
+the clone's working tree. The gate never fetches: a URL is refused by name.
+
+**No catalogue, a tag: a violation.** With `tags.req.cross_reference` on and no catalogue
+declared anywhere, every `@req` tag is reported as one that cannot be checked. (Before 2.0.0 it
+passed unchecked.) Declare a catalogue, or set `cross_reference: false`.
 
 ### Validation of the config itself
 
@@ -342,7 +479,7 @@ tag in prose, write `\@req` or `@@req`.
 ## Using doxygen alongside the gate
 
 ```bash
-clew guard doxyfile > doxygen-guard.doxyfile   # then: @INCLUDE = doxygen-guard.doxyfile
+clew guard doxyfile > clew-guard.doxyfile   # then: @INCLUDE = clew-guard.doxyfile
 ```
 
 The fragment declares the gate's tags as `ALIASES` (`@req` becomes a cross-referenced
@@ -368,6 +505,7 @@ added the toolchain fields to `files`, and 5 moved the config into `.clew.yaml` 
 ```bash
 clew guard [--config path] [files...]      # pre-commit mode (what the hook runs)
 clew guard validate --no-git src/*.c
+clew guard validate --format sarif src/*.c > guard.sarif
 clew guard impact --staged src/*.c
 clew guard coverage src/
 clew guard config --schema | --effective
@@ -378,12 +516,35 @@ clew guard -v coverage src/                # log which config sections were decl
 
 `clew-guard` is the same entry point as a console script.
 
+### Machine-readable output
+
+`clew guard validate --format sarif|gitlab|github` writes the violations to **stdout** for a
+code host to annotate. The default, `text`, keeps the `file:line: [check] message` lines on
+stderr. The exit code is the same in every format, and zero violations still produce a document
+(an empty SARIF run, `[]`, or no lines).
+
+| format | consumer | shape |
+|---|---|---|
+| `sarif` | GitHub code scanning and other SARIF 2.1.0 readers | one run, one rule per check class |
+| `gitlab` | GitLab Code Quality (merge-request widget) | JSON array of issues |
+| `github` | GitHub Actions annotations | one `::error file=…,line=…` line per violation |
+
+**The fingerprint ignores line numbers.** SARIF `partialFingerprints` and the GitLab
+`fingerprint` hash the check, the file, the function's qualified identity (class, name,
+parameters) and the message. Inserting lines above a function keeps its fingerprint the same,
+and two overloads get different ones.
+
+**Complexity is not in these outputs.** Cognitive complexity and return counts are checked by a
+separate pre-commit hook, not by `clew guard`, so the SARIF, GitLab and GitHub documents never
+carry them.
+
 ## Adopting on an existing codebase
 
 1. Start with presence and revision only. Add `@brief` and `@version` as you touch functions,
-   and use `version_gate` to require `@req` only on requirements from a given version on.
+   and use `validate.current_version` with `requirements.version_field` to require `@req` only
+   on requirements from a given version on.
 2. Turn off `presence.require_return` during migration if needed.
-3. Exclude what you are not ready to cover (`validate.exclude: ["^vendor/", "^legacy/"]`).
+3. Exclude what you are not ready to cover (`validate.exclude: ["vendor/**", "legacy/**"]`).
 
 ## Requirement ids in clew's own catalog
 

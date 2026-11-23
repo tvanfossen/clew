@@ -52,7 +52,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 # @param out_dir Directory to build into.
 # @return Path to the built wheel.
 # @version 1
-# @dg_internal
+# @utility
 def _build_wheel(out_dir: Path) -> Path:
     """`sys.executable`, never a bare `python` — a subprocess test that shells out to whatever
     `python` means on PATH broke CI on all three interpreter legs once already, and the venv rule
@@ -118,7 +118,7 @@ def test_wheel_contains_every_console_script_module(tmp_path: Path) -> None:
 # @param out_dir Directory to build into.
 # @return Path to the built sdist.
 # @version 1
-# @dg_internal
+# @utility
 def _build_sdist(out_dir: Path) -> Path:
     """Same `sys.executable` rule and the same reason as `_build_wheel`: the venv interpreter,
     never whatever `python` resolves to on PATH.

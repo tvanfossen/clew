@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The one-line rule is that only an explicit `'false'` turns archived-channel viewing off. Anything else, including the key being absent, leaves it on.\"\nVERDICT: HIT\nWHY: The answer explicitly states that an absent key leaves archived channels viewable and only an explicit 'false' disables them."
+}

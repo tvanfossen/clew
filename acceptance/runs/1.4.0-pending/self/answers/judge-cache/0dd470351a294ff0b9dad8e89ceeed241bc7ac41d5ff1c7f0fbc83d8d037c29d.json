@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`code`: restart the client. Reads are still accurate because queries reopen the database per call, but writes are refused, since an old process rebuilding would drop layers.\"\nVERDICT: HIT\nWHY: The answer states that reads stay current because queries reopen the database per call, and that an old process rebuilding would drop layers, so builds are refused. That covers the read/write asymmetry on the code axis."
+}

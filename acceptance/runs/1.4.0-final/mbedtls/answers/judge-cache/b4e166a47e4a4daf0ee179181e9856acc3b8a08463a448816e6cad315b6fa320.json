@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Otherwise it is `x ^ mbedtls_ct_zero`, where `mbedtls_ct_zero` is a `volatile` zero, so the optimiser cannot prove the value.\nVERDICT: HIT\nWHY: The answer says that without assembly the opacity function XORs with `mbedtls_ct_zero`, a volatile zero, which names the global. It doesn't say \"extern\", but it does give the mechanism and the name."
+}

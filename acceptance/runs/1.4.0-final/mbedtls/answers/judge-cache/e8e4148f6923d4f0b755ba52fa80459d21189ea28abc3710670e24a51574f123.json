@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A built-in allocator plugs into the same hook. `library/memory_buffer_alloc.c:566-576`, `mbedtls_memory_buffer_alloc_init()`, carves allocations out of a caller-supplied static buffer. It does this by calling `mbedtls_platform_set_calloc_free()` itself, so it is one more client of the same substitution mechanism.\nVERDICT: MISS\nWHY: The answer says the buffer allocator's init calls the setter, but it calls it \"one more client\" and never says it is the only in-tree user. It also doesn't name MBEDTLS_MEMORY_BUFFER_ALLOC_C."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `DocsDbServer.staleness_notices()` (`server.py:1548`) runs on every reply and never raises.\nVERDICT: HIT\nWHY: The answer states that the staleness-notice measurement runs on every reply and never raises, which matches the item's core claim. It does not spell out the degrade-to-no-annotation behaviour."
+}

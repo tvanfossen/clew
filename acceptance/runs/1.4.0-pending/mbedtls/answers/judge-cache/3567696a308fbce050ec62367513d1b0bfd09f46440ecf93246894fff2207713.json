@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: the public surface in `include/mbedtls/constant_time.h` (`mbedtls_ct_memcmp`) and internal types in `library/constant_time_internal.h`\nVERDICT: HIT\nWHY: The answer says the public surface is include/mbedtls/constant_time.h with mbedtls_ct_memcmp, and places the other primitives in library-internal headers."
+}

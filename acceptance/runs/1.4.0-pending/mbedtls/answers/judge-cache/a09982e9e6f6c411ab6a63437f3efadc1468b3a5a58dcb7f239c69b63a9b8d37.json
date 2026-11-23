@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: With `MBEDTLS_CT_ASM` it is an empty `asm volatile` taking `x` as an in/out register. Otherwise it is `x ^ mbedtls_ct_zero`... Its job is to stop the compiler proving a value and turning the mask arithmetic back into a branch.\nVERDICT: HIT\nWHY: The answer states the asm path is an empty `asm volatile` with x as an in/out register, and that it is an anti-optimisation barrier."
+}

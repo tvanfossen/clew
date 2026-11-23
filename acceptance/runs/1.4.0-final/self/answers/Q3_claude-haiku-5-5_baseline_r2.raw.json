@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 29035,
+  "stop_reason": "end_turn",
+  "session_id": "bda1a1bf-94f6-488a-b888-86a7df80d2d2",
+  "total_cost_usd": 0.016320340000000003,
+  "usage": {
+    "input_tokens": 16,
+    "cache_creation_input_tokens": 46891,
+    "cache_read_input_tokens": 445254,
+    "output_tokens": 4976,
+    "output_tokens_details": {
+      "thinking_tokens": 1499
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 46891,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2209,
+        "cache_read_input_tokens": 77989,
+        "cache_creation_input_tokens": 3274,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 3274
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 16,
+      "outputTokens": 4976,
+      "cacheReadInputTokens": 445254,
+      "cacheCreationInputTokens": 46891,
+      "webSearchRequests": 0,
+      "costUSD": 0.016320340000000003,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1499,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 46891,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 14,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "A clew index can be stale on three independent axes. The tool detects each one differently, reports them as a `staleness` list on every query reply, and the caller's remedy depends on which axis fired. The axis logic lives in `clew/mcp_server/freshness.py`, the detection in `state.py`, and the refresh and reply plumbing in `server.py` and `tools_query.py`. I read the code and did not run the tests.\n\n**How it knows**\n\n| Axis | Detected by | Meaning |\n|---|---|---|\n| `data` | `state._source_drift`: stats each indexed source file and counts those with mtime newer than `clew.db` | Sources changed since the build. Reads answer from current data, but the index is out of date. |\n| `schema` | `build_version` (stamped in the db) vs `CLEW_BUILD_VERSION` (this server) | The index was built by a different pipeline version. |\n| `code` | `freshness.source_fingerprint`: sha256 over relative path and bytes of every `*.py` in the package, compared with the fingerprint taken at process import | The running server process predates the source tree, so its logic is old. |\n\nTwo details matter. The data axis uses mtime, but a future-dated mtime more than 300 s ahead is ignored, so a skewed clock cannot keep the index stale forever. The code axis hashes content rather than mtime, because a `git checkout` that restores identical bytes should not trip a safety gate.\n\n**What the caller sees**\n\n- `db_status` carries `stale`, `source_changed_files`, `newest_changed_source`, `build_version`, `expected_build_version`, and a `code` block (`process_fingerprint`, `source_fingerprint`, `matches_source`).\n- Every query reply gets a `staleness` list of `{axis, message}`, and the key is absent when the index is current. The README states this as the contract.\n- On a subject miss with a `data` notice, the reply withdraws its \"definitive\" wording. With a `schema` notice it says a layer may be missing rather than empty.\n- A write refused by the `code` axis returns `ok: false` with a message starting `REFUSED:`, and nothing is written.\n\n**What the caller does**\n\n1. **`data`:** queries normally refresh first. `_auto_refresh` calls `_data_stale`, then `_refresh_stale`, which is an incremental splice under a bounded build lock with a re-check inside it. A notice that survives into the reply means that refresh was skipped or failed, and the message says to call `index(action='refresh')`.\n2. **`schema`, index older than server:** this axis does not auto-refresh, because `_data_stale` looks only at the data axis. The caller must call `index(action='refresh', force=True)`.\n3. **`schema`, index newer than server:** a rebuild re-stamps the same newer version, so the flag cannot be cleared from the consumer's side. The fix is to restart the MCP client.\n4. **`code`:** reads are unaffected, since they open the db per call. Writes are refused, and `force` does not override the refusal. The fix is to restart the MCP client, then run `index(action='refresh', force=True)`. A rebuild alone does not clear it.\n\nA background `keep_current` loop also refreshes sessions' touched indexes between queries, so the next query usually finds nothing to do.\n\n**Gaps to be aware of**\n\n- The data axis is mtime-based, so `git checkout` or `touch` can mark an index stale even when content is identical. The cost is one unnecessary incremental refresh, not a wrong answer.\n- A index stamped by an older pipeline with no source changes will not auto-refresh. It is flagged `stale` and the caller has to force the refresh.",
+  "ttft_ms": 1606,
+  "type": "result",
+  "duration_ms": 29968,
+  "uuid": "70c26c22-d4a3-4f77-af99-9e0287c00809",
+  "ttft_stream_ms": 1222,
+  "time_to_request_ms": 164,
+  "first_content_frame_ms": 1222,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

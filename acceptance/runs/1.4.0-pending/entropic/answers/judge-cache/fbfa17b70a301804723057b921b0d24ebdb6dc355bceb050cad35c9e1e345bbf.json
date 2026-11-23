@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: generated from `entropic.h` by `scripts/gen_bindings.py` (`inv gen-bindings`, with `--check` for drift)\nVERDICT: MISS\nWHY: The answer mentions a `--check` drift mode on the generator but never says a pre-commit check re-runs the generator and diffs."
+}

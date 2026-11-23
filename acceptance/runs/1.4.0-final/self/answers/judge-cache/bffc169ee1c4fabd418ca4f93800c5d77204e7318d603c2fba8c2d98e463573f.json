@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Every query reply carries the same block when stale. ... the key is absent when the index is current.\nVERDICT: HIT\nWHY: The answer says the staleness block is attached to every query reply (not on request) and is absent when the index is current."
+}

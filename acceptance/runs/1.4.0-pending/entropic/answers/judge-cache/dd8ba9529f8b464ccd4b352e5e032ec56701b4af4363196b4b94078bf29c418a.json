@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `scripts/gen_bindings.py` parses the public headers with a hand-rolled parser (not pycparser) and emits `_bindings.py` and `_bindings_manifest.py`.\nVERDICT: HIT\nWHY: The answer says `_bindings.py` is emitted by `scripts/gen_bindings.py` from the headers, and its diagram labels it \"generated ctypes\", so the bindings are generated rather than hand-written."
+}

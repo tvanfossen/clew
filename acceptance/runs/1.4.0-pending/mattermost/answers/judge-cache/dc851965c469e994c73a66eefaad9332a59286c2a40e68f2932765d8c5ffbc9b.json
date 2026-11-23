@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says up to 3 native retries may occur and that the user decides retries, which contradicts the item's claim that the create-post request is sent once with no automatic retry."
+}

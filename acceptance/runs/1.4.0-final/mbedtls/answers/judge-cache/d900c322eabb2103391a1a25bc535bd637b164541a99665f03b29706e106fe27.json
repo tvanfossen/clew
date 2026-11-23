@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The two sample programs are the only user-level code in the tree that depends on internal field names.\nVERDICT: HIT\nWHY: The answer says that `ssl_server2.c` and `ssl_client2.c` define `MBEDTLS_ALLOW_PRIVATE_ACCESS` themselves. It also says these sample programs reach into SSL internals."
+}

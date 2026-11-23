@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A declared `index_scope` in `.clew.yaml` sets the roots, and if none is usable the whole repository is the scope. ... A missing `.clew.yaml`, or one with no `index_scope:`, falls through to `whole_repo_scope` ... A declaration that is present but unusable also falls through, with the rejection reason carried into the reason string.\nVERDICT: HIT\nWHY: The answer states that a declared index_scope is used when usable and that missing file, missing section, or unusable declaration all fall through to whole-repo scope."
+}

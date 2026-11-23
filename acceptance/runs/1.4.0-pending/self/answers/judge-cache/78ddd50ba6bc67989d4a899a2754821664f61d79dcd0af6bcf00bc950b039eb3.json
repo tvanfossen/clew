@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `not_indexed` and `not_indexed_count`: file types the build walked that hold no rows, by extension (`cli._not_indexed_scope`). ... `not_indexed` is what separates \"outside the declared scope\" from \"this build does not index that file type\" from \"not in the repo.\"\nVERDICT: HIT\nWHY: The answer states that empty replies name the file types walked that produced no rows (`not_indexed`), explicitly distinguishing \"not in the repo\" from \"file type not indexed.\""
+}

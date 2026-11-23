@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It does not go through the operator. There is no `sanitizeReactions`, no `handleReactions`, no transformer and no `batchRecords`. It talks to `database` directly.\nVERDICT: HIT\nWHY: The answer states the removal handler queries the reaction and destroys it via `database.write` with `destroyPermanently`, bypassing the operator."
+}

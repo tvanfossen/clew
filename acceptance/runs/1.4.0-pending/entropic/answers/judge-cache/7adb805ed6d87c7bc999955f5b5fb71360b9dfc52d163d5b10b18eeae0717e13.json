@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says \"Exceptions do not cross\" but only via error codes. It states the trampoline builder wasn't opened and never says hook trampolines swallow Python exceptions and pass through on failure."
+}

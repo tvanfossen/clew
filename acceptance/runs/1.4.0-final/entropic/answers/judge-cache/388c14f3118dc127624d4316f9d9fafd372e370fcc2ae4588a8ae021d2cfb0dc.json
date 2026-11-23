@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The Python package is a thin `ctypes` binding over the C ABI in `include/entropic/entropic.h`. There is no C++ or pybind layer\nVERDICT: HIT\nWHY: The answer names ctypes loading librentropic.so via _loader.py and explicitly says there is no pybind/C++ extension layer."
+}

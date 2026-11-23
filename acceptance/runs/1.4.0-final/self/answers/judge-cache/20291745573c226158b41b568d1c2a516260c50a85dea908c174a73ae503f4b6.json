@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Routed replies carry only the staleness of the repository they actually read.\nVERDICT: HIT\nWHY: The answer states that routed replies carry staleness annotations for the repository actually read, which is the substance of the item. It does not name the server's default target, but the contrast is implied."
+}

@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 17420,
+  "stop_reason": "end_turn",
+  "session_id": "48edba29-3e92-4fc9-8b60-0fc64071111d",
+  "total_cost_usd": 0.00849011,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 24120,
+    "cache_read_input_tokens": 219361,
+    "output_tokens": 2943,
+    "output_tokens_details": {
+      "thinking_tokens": 648
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 24120,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1833,
+        "cache_read_input_tokens": 55524,
+        "cache_creation_input_tokens": 7044,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 7044
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 2943,
+      "cacheReadInputTokens": 219361,
+      "cacheCreationInputTokens": 24120,
+      "webSearchRequests": 0,
+      "costUSD": 0.00849011,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 648,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 24120,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 9,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** the file set is decided by the repo's own `index_scope:` declaration in `.clew.yaml`, and if there isn't one, by the whole repository minus what git ignores. A Doxyfile's `INPUT` no longer plays any part in it.\n\n```\nclew build --scope from-guard (the default)\n        \u2502\n        \u25bc\ncli._apply_scope                              clew/cli.py:758\n        \u2502\n        \u251c\u2500 --scope is not from-guard?  \u2192 refuse if index_scope was stated, else return\n        \u2502\n        \u251c\u2500 declared_scope_rejection()          clew/scope.py:612\n        \u2502     index_scope present but unusable (e.g. excludes-only, no roots)?\n        \u2502         \u2192 log error, sys.exit(1)   (no silent fallback)\n        \u2502\n        \u25bc\nscope.derive_scope()                           clew/scope.py:639\n        \u2502\n        \u251c\u2500 _declared_index_scope()             clew/scope.py:991\n        \u2502     reads .clew.yaml index_scope: roots / excludes\n        \u2502     roots taken as written (repo-relative); missing roots dropped with a warning\n        \u2502     returns a DerivedScope, or None if no index_scope key\n        \u2502\n        \u2514\u2500 None \u2192 whole_repo_scope()           clew/scope.py:683\n              roots = (repo root,)\n              excludes = git-ignored paths\n                       + dot-dirs and __pycache__/node_modules\n                       + nested git trees' own ignores\n        \u2502\n        \u25bc\n_fold_scope_into_args \u2192 args.extra_input = roots, args.extra_exclude = excludes,\n                        replace_input = True                 clew/cli.py:739\n```\n\n**How the decision is made, in order:**\n\n1. **Declaration first.** `_declared_index_scope` reads `index_scope:` from `.clew.yaml`. It accepts only `roots:` and `excludes:`, and rejects unknown keys. Roots are repo-relative and taken at face value, so the tool never walks them to check. A declaration with `excludes:` but no `roots:` is refused outright at build time, because the old behaviour of quietly widening to the whole repo caused a 900s doxygen timeout (per the comments on `declared_scope_rejection`).\n\n2. **Whole repo when nothing is declared.** `whole_repo_scope` is the default tier since gh#333. It indexes the entire tree, including nested git repos and submodules. The subtractions are only what the repo already says about itself:\n   - Paths matched by `git ls-files --ignored --exclude-standard`, run through `gitenv.git_argv` so a cloned repo's config can't execute code.\n   - Each nested repo's own ignores, which git otherwise hides at the submodule boundary.\n   - Dot-directories and `__pycache__`/`node_modules`, pruned by `_skip_dir`, down to a depth of 16 (`_MAX_DEPTH`).\n\n3. **The Doxyfile is not a tier.** Its `INPUT` used to be the fallback. That inverted the tool: a repo that shipped a Doxyfile got only its published-API headers, and a repo without one got everything. The Doxyfile still supplies `ALIASES` and `PREDEFINED`, but its `INPUT` is replaced. The doxygen-guard `files:` pattern is also not a scope input; it governs what must be documented, not what gets indexed.\n\n4. **Nested trees are indexed and tagged, not excluded.** `external.py` tags their rows after the build, so an answer can still say which codebase a symbol came from.\n\n**What this repo does:** its `.clew.yaml` has only a `guard:` section and no `index_scope:`. So a bare build takes the whole-repo path. Git-ignored paths are excluded, nested trees are included, and dot/cache directories are pruned. `AGENTS.md` says the same thing: this repo \"declares nothing here and builds on its defaults.\"\n\n**Two details worth knowing:**\n- `--scope from-guard` is the default and is the only value that reads the declaration. `from-declaration` is an alias for it, per `tests/test_scope_alias.py`. Stating an `index_scope` with any other `--scope` is refused, not silently ignored.\n- `derive_scope` itself never refuses. It absorbs a rejected declaration into the whole-repo tier. Only the CLI and the MCP refresh path check `declared_scope_rejection` first and stop. Internal callers can therefore end up with a wider scope than the declaration asked for, unless they run that check themselves.",
+  "ttft_ms": 1622,
+  "type": "result",
+  "duration_ms": 18708,
+  "uuid": "8c8dc8e0-be8a-4c4b-acfe-2658c1af678e",
+  "ttft_stream_ms": 1075,
+  "time_to_request_ms": 81,
+  "first_content_frame_ms": 1075,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

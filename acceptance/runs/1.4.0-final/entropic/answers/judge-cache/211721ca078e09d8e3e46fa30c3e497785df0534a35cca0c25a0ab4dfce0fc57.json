@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Converts the C-ABI `int*` cancel flag into an `atomic<bool>` every 10 ms\nVERDICT: HIT\nWHY: The answer describes cancel poller threads that bridge the C-ABI `int*` flag to an `atomic<bool>`, which matches the item's bridging mechanism. The ABI-boundary reason is also stated: \"Making it an `std::atomic<int>` at the C ABI boundary\u2026\"."
+}

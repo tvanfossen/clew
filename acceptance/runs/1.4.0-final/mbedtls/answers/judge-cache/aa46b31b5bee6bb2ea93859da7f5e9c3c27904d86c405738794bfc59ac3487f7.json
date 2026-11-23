@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Otherwise they expand to plain `calloc` / `free`.\" (conditional on MBEDTLS_PLATFORM_MEMORY on); also \"`MBEDTLS_PLATFORM_MEMORY` defaults to off\"\nVERDICT: MISS\nWHY: The answer says that with the default (memory off) the library dispatches through function pointers in platform.c. That is the opposite of the item's claim that a default build has no indirection and the macros expand directly to calloc/free."
+}

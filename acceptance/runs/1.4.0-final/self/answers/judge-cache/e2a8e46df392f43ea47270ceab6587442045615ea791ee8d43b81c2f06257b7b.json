@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: On an install whose substrate lacks the bash or cmake grammar, shell and CMake degrade to path-only rows. ... `bash` and `cmake` are gated by `_OPTIONAL_KEYS`. With them absent, `_ts_language_for` returns None, so `.sh` and CMake files get path rows and no symbols. ... Nothing raises, and the rest of the build proceeds.\nVERDICT: MISS\nWHY: The answer shows degradation (path-only rows, nothing raises), but it states that the not-indexed report does NOT name those types in a real build, contradicting the item's conclusion, and it does not describe a router capability gate before routing."
+}

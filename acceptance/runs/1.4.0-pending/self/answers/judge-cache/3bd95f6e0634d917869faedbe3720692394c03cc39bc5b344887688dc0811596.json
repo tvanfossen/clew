@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A stale process returns `REFUSED` and writes nothing, and `force` does not bypass it. The reason is a past incident where a stale process rebuilt a newer index at its own older version and dropped the `external` layer while reporting healthy.\nVERDICT: MISS\nWHY: The answer covers write refusal, but never states that reads stay current because query tools open the database per call, so the read/write asymmetry is absent."
+}

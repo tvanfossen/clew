@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes tiers numbered 1, 2 and 5, plus tiers 3 and 4 for facts, but it never names five distinct precedence tiers for build options. It presents a mixed table and describes override rules instead."
+}

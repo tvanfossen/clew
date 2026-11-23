@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Clew decides staleness itself, from three separate checks.\" and the table listing axes `data`, `schema`, `code` with distinct meanings and remedies\nVERDICT: HIT\nWHY: The answer explicitly states staleness is three separate axes (data, schema, code), each with a different meaning and remedy, rather than a single flag."
+}

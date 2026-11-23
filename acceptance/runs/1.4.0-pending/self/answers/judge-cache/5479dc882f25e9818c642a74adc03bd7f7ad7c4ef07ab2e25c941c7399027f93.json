@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Unknown section name:** a hard refusal. A typo would otherwise run on defaults while reporting the declaration was honoured.\nVERDICT: HIT\nWHY: The answer states that an unknown section is a hard refusal, and gives the reason: otherwise a typo would build on defaults while reporting the declaration was honoured. It doesn't mention \"against the allowed set\", but the mechanism and the reason are both stated."
+}

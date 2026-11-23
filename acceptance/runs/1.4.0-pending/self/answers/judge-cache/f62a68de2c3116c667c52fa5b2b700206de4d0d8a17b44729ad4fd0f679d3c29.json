@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `.sh` `.bash` | yes ... `CMakeLists.txt` `.cmake` | yes\nVERDICT: HIT\nWHY: The table names `.sh`, `.bash`, and `.cmake` extensions and lists `CMakeLists.txt` separately as a file name, and `register_paths` and `SCRIPT_EXTS` are cited."
+}

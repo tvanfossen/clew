@@ -102,7 +102,7 @@ FANOUT_SOURCES = (CALL_SOURCE_AST, CALL_SOURCE_AST_MEMBER)
 ## @param conn Open connection to the database being built.
 ## @return Mapping of memberdef rowid to its (name, qualified identity) pair.
 ## @version 1
-## @dg_internal
+## @utility
 def _identity_index(conn: sqlite3.Connection) -> dict[int, tuple[str, str]]:
     """Built once per build; the classification below needs an identity for both
     endpoints of every edge and a per-row query would be thousands of lookups.
@@ -137,7 +137,7 @@ def _identity_index(conn: sqlite3.Connection) -> dict[int, tuple[str, str]]:
 ## @param identity rowid → (name, qualified identity) map.
 ## @return Set of frozensets, each holding the two identities of one override relation.
 ## @version 1
-## @dg_internal
+## @utility
 def _override_pairs(
     conn: sqlite3.Connection,
     identity: dict[int, tuple[str, str]],
@@ -176,7 +176,7 @@ def _override_pairs(
 ## @param identity rowid → (name, qualified identity) map.
 ## @return {(caller_rowid, callee_name): {anchor identities}}.
 ## @version 1
-## @dg_internal
+## @utility
 def _anchors(
     rows: list[tuple[int, int, str, str]],
     identity: dict[int, tuple[str, str]],
@@ -252,7 +252,7 @@ def classify_dominated(
 ## @param doomed (caller, callee, source) triples to remove.
 ## @return Number of rows actually deleted.
 ## @version 2
-## @dg_internal
+## @utility
 def _delete(conn: sqlite3.Connection, doomed: list[tuple[int, int, str]]) -> int:
     """Deletes on the full `(caller_rowid, callee_rowid, source)` key — the table's
     own UNIQUE key — so one triple can never match a row from a different layer.
@@ -276,7 +276,7 @@ def _delete(conn: sqlite3.Connection, doomed: list[tuple[int, int, str]]) -> int
 ## @param deleted Rows actually removed.
 ## @return None.
 ## @version 2
-## @dg_internal
+## @utility
 def _log_verdict(tally: Counter, deleted: int) -> None:
     """Names all four verdicts every time, including the zeros. A silent exemption
     is indistinguishable from an exemption that never fires, and both of this

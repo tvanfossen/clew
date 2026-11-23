@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Build failures degrade to answering from the stale index with its notice intact.\nVERDICT: MISS\nWHY: The answer says build failures degrade, but not that the staleness measurement itself never raises and degrades to no annotation."
+}

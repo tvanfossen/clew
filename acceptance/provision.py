@@ -210,13 +210,29 @@ def build_index(rubric: Rubric, repo: Path, state_home: Path, declare_file: Path
         )
 
 
+## @brief The environment the shipped plugin gives its MCP server.
+## @return plugin.json's `mcpServers.clew.env`, or {} when absent.
+## @version 1
+def _plugin_server_env() -> dict[str, str]:
+    """@brief Read the plugin's server env. @return The mapping."""
+    manifest = Path(__file__).resolve().parent.parent / ".claude-plugin" / "plugin.json"
+    try:
+        data = json.loads(manifest.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+    return {
+        str(k): str(v) for k, v in data.get("mcpServers", {}).get("clew", {}).get("env", {}).items()
+    }
+
+
 ## @brief Write the MCP config the index arm needs.
 ## @param db The built index.
 ## @param repo The target tree.
 ## @param path Where to write the config.
 ## @param state_home CLEW_STATE_HOME shared with the build.
 ## @return None.
-## @version 1
+## v2 (1.4.0): the server gets the plugin's own environment (CLEW_WIRE=compact).
+## @version 2
 def write_mcp_config(db: Path, repo: Path, path: Path, state_home: Path) -> None:
     """WRITTEN LAST, so it cannot exist before the index it points at. A config naming a database
     that was never built sends the index arm to an empty index, which answers — badly — rather
@@ -224,7 +240,7 @@ def write_mcp_config(db: Path, repo: Path, path: Path, state_home: Path) -> None
 
     @brief Write the index arm's MCP config.
     @return None.
-    @version 1
+    @version 2
     """
     if not db.is_file():
         raise ProvisionError(
@@ -255,7 +271,11 @@ def write_mcp_config(db: Path, repo: Path, path: Path, state_home: Path) -> None
                         "args": ["--repo", str(repo.resolve())],
                         ## THE SAME STATE ROOT THE BUILD USED. The server derives its database
                         ## from --repo under this root, so config and build cannot disagree.
-                        "env": {"CLEW_STATE_HOME": str(state_home)},
+                        ##
+                        ## AND THE PLUGIN'S OWN SERVER ENVIRONMENT (1.4.0): the plugin sets
+                        ## `CLEW_WIRE=compact`, so an index arm without it would measure a reply
+                        ## shape no plugin user receives. Read from plugin.json, never restated.
+                        "env": {**_plugin_server_env(), "CLEW_STATE_HOME": str(state_home)},
                     }
                 }
             },

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A file must match doxygen's `FILE_PATTERNS` and not match `EXCLUDE_PATTERNS` (`in_doxygen_scope`, `clew/doxygen.py:308`).\nVERDICT: MISS\nWHY: The answer describes an extension filter and lists not-indexed files, but it never names the parse-built front end claiming file types doxygen can't read, nor binary classification dropping files with misleading extensions."
+}

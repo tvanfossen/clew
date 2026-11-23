@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `.yaml` `.yml` `.json` | One `path` row. The file is findable by name and has no symbols. | `synth.py` `DATA_EXTS`\nVERDICT: HIT\nWHY: The answer states that YAML/JSON are registered as file-set path rows with no symbols, while shell and CMake get function and macro rows, so the two groups are treated differently."
+}

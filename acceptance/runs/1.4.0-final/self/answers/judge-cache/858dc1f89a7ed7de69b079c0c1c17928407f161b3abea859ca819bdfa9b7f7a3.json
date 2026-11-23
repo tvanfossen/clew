@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Refresh with `force=True` if the index is older. If the index is *newer* than the server, a rebuild cannot clear it. Restart the MCP client. | `data` ... Cleared by `index(action='refresh')` | `code` ... Restart the MCP client. A rebuild is refused.\nVERDICT: MISS\nWHY: The answer shows that data is cleared by a rebuild and code by a client restart, but it never says this is why separate axes (rather than one flag) are needed."
+}

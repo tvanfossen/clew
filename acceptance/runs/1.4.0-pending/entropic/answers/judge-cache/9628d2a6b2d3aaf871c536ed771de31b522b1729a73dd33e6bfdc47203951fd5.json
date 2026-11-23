@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The deny list is enforced later, inside `ServerManager::execute`, not in the approval step. ... `is_denied(tool, pattern)? \u2192 \"Permission denied\" JSON, call stops` then `route_tool_call`\n\nVERDICT: MISS\n\nWHY: The answer places the deny check in ServerManager::execute before routing, but it never concludes that deny is the only list that blocks execution. It also describes other blocking checks, including an allow-list gate that denies a call when there is no approval, and it says \"Otherwise the call is denied\"."
+}

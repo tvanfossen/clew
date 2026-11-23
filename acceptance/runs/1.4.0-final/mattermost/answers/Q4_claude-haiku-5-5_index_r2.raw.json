@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 26622,
+  "stop_reason": "end_turn",
+  "session_id": "01c133a8-36c0-4c7a-b5ad-54393981ebbd",
+  "total_cost_usd": 0.012131739999999998,
+  "usage": {
+    "input_tokens": 14,
+    "cache_creation_input_tokens": 28572,
+    "cache_read_input_tokens": 387994,
+    "output_tokens": 5072,
+    "output_tokens_details": {
+      "thinking_tokens": 1407
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 28572,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2181,
+        "cache_read_input_tokens": 72860,
+        "cache_creation_input_tokens": 672,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 672
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 14,
+      "outputTokens": 5072,
+      "cacheReadInputTokens": 387994,
+      "cacheCreationInputTokens": 28572,
+      "webSearchRequests": 0,
+      "costUSD": 0.012131739999999998,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1407,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 28572,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 16,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The setting is a single client-side gate with one rule: only an explicit `'false'` turns archived-channel viewing off. Absent, `undefined`, or `'true'` all mean on.\n\n**The gate**\n\n`app/queries/servers/system.ts:297-315` holds the only logic:\n\n```ts\nconst archivedChannelsViewable = (value?: string) => value !== 'false';\n```\n\n`canViewArchivedChannels()` (async) and `observeCanViewArchivedChannels()` (observable, with `distinctUntilChanged`) both read `ExperimentalViewArchivedChannels` from the server config and pass it through this function. Every behaviour below goes through one of these two.\n\n**Where the behaviour depends on it**\n\n| # | Location | What changes when the value is `false` (true = on) |\n|---|---|---|\n| 1 | `app/actions/websocket/channel.ts:463` | When a channel is archived over the websocket and the setting is off, the app kicks the user out if that channel is current (`handleKickFromChannel` with `CHANNEL_ARCHIVED`) and removes the user's membership. When on, the membership is kept. |\n| 2 | `app/actions/remote/channel.ts:1397` (`archiveChannel`) | On success, if on, the app sets `delete_at` locally so the channel stays as an archived membership. If off, it removes the current user from the channel locally. |\n| 3 | `app/actions/remote/search.ts:62-73` (`searchPosts`) | Sends `include_deleted_channels` to the server with the value of the setting, so archived channels appear in search results only when on. |\n| 4 | `app/screens/browse_channels/index.ts:21` \u2192 `dropdown_slideup.tsx:74`, `browse_channels.tsx:190-195`, `search_handler.tsx:196`, `channel_dropdown.tsx:67` | Controls whether the \"Archived Channels\" entry appears in the Browse Channels dropdown and whether the archived list is populated. |\n| 5 | `app/screens/browse_channels/browse_channels.tsx:117-139` (`onSelectChannel`) | Not a direct branch on the setting, but the comment relies on it: an archived channel is only visible here to existing members when the setting is on, so the code skips `joinChannel` for archived channels. |\n| 6 | `app/screens/home/channel_list/categories_list/categories/header/index.ts:15-22` \u2192 `app/database/models/server/category.ts:107-118` (`observeHasChannels`) | When on, a category counts as non-empty if it has any channel with `delete_at === 0` or the current channel, so the header stays visible for a category holding only archived channels. When off, only active channels count. |\n| 7 | `app/screens/channel_settings/archive/archive.tsx:109` and `:121` | Chooses the archive confirmation text (`archiveDescriptionCanViewArchived` vs `archiveDescriptionCannotViewArchived`) and calls `close(!canViewArchivedChannels)` after archiving, so the screen closes when the user will lose access to the channel. |\n\nNot gated: `app/screens/home/search/search.tsx:77` hardcodes `include_deleted_channels: true`, so that search path ignores the setting. Detox tests in `detox/` also reference the setting but only for provisioning and test baselines, not app behaviour.\n\n**When the server does not send the setting**\n\nThe app treats it as enabled. `archivedChannelsViewable(undefined)` returns `true`, and the existing tests in `app/queries/servers/system.test.ts:692-717` assert this for both the async and observable forms. The code comment at `system.ts:297-303` says the reason: servers newer than v10.11 stopped sending this field because the feature is always on. Older supported servers (down to v5.26.2) still send it, and only an explicit `'false'` disables archived channels. The detox baseline (`detox/shared/server-baseline.ts:80`) marks it `absentIsBaseline: true` for the same reason.\n\nThe comment's TODO says these helpers and their callers can be removed once servers \u2264 v10.11 are no longer supported. Until then, the app keeps the gate for those older servers.\n\nI did not open the websocket handler's enclosing function name or trace the config-storage path for a missing key. The \"absent \u2192 true\" conclusion rests on the helper's logic and the tests, not on a read of how the config handler stores missing keys.",
+  "ttft_ms": 1346,
+  "type": "result",
+  "duration_ms": 28835,
+  "uuid": "8c3557d5-3dd5-4ca6-8ea1-402982f8fead",
+  "ttft_stream_ms": 1149,
+  "time_to_request_ms": 67,
+  "first_content_frame_ms": 1149,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

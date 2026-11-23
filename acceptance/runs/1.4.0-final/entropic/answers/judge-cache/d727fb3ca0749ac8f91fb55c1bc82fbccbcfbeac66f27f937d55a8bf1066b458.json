@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Cancel poller (backend) | `src/inference/inference_c_api.cpp:385` | Converts the C-ABI `int*` cancel flag into an `atomic<bool>` every 10 ms\n\nVERDICT: MISS\nWHY: The answer says the poller converts the C-ABI `int*` flag into an `atomic<bool>`, but it never says the thread exists because the C ABI cannot carry an atomic. It also describes the bridge in the opposite direction from the item (atomic into a plain int), and it frames the plain `int` as a data race."
+}

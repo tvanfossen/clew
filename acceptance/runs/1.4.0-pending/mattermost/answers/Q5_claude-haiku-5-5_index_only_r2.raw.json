@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 19922,
+  "stop_reason": "end_turn",
+  "session_id": "509064b5-30f7-459f-adaa-e840784960aa",
+  "total_cost_usd": 0.008184,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 20206,
+    "cache_read_input_tokens": 235180,
+    "output_tokens": 3580,
+    "output_tokens_details": {
+      "thinking_tokens": 1314
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 20206,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1980,
+        "cache_read_input_tokens": 56412,
+        "cache_creation_input_tokens": 6990,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 6990
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 3580,
+      "cacheReadInputTokens": 235180,
+      "cacheCreationInputTokens": 20206,
+      "webSearchRequests": 0,
+      "costUSD": 0.008184,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1314,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 20206,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 10,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Composition.** `ServerDataOperator` (`app/database/operator/server_data_operator/index.ts:40`) is `class ServerDataOperator extends mix(ServerDataOperatorBase).with(...)`. The mixin list is AgentsHandler, BoardsHandler, CategoryHandler, ChannelHandler, CustomProfileHandler, GroupHandler, PlaybookHandler, and the rest of the handler set. Its only own member is the constructor (`database: Database, serverUrl?: string`, line 55). The merged interface at line 23 declares the matching `*HandlerMix` types, so the typed surface comes from those interfaces.\n\n**Base.** `ServerDataOperatorBase` (`handlers/index.ts:31`) extends `BaseDataOperator`. It holds `serverUrl` and the shared helpers: `handleRole`, `handleCustomEmojis`, `handleSystem`, `handleConfigs`, `handleReactions`, `handleFiles`, and `execute`.\n\n**Defined next to it** (`app/database/operator/server_data_operator/handlers/`): category, channel, custom_profile, group, post, properties, team, team_threads_sync, thread, user. Each file exports a factory of the form `const XHandler = <TBase extends Constructor<ServerDataOperatorBase>>(superclass) => class extends superclass`, plus its `XHandlerMix` interface. PostHandler is the largest at about 728 lines.\n\n**Defined elsewhere** \u2014 the three product handlers, in `app/products/`:\n- `AgentsHandler`: `agents/database/operators/handlers/index.ts:35`\n- `BoardsHandler`: `boards/database/operators/handlers/index.ts:24`\n- `PlaybookHandler`: `playbooks/database/operators/handlers/index.ts:57`\n\nThey follow the same mixin pattern and are constrained to `Constructor<ServerDataOperatorBase>`.\n\n**Where the write happens.** A handler does not write directly. The chain is:\n\n1. A handler method (e.g. `PostHandler.handlePosts`, `UserHandler.handlePreferences`, `PlaybookHandler.handlePlaybookRun`) builds raw values and calls `this.execute(...)` or `prepareRecords`/`handleRecords`.\n2. `ServerDataOperatorBase.execute` (`handlers/index.ts:234`) calls `prepareRecords` to build prepared Watermelon models, then `batchRecords` if there are any.\n3. `BaseDataOperator.batchRecords` (`app/database/operator/base_data_operator/index.ts:191`) is the actual write. It calls `this.database.write(async (writer) => writer.batch(...models), description)`. On error it logs a warning. If the error is a database-corruption error, it emits `Events.DATABASE_CORRUPTION_DETECTED` on `DeviceEventEmitter`. It rethrows only when `propagateError` is true, which is off by default.\n\n**What shares it.**\n- `BaseDataOperator` is also the base of `AppDataOperator` (`app/database/operator/app_data_operator/index.ts`), so the app database uses the same `batchRecords` write path.\n- Within the server operator, `batchRecords` is called directly by PostHandler methods (scheduled posts, channel posts, post chunks, received posts), by `ServerDataOperatorBase` (`execute`, `handleFiles`, `handleReactions`), and by handlers in channel, group, user, properties, and the agents and playbooks products. The index reports 32 callers in total and shows 25.\n- `batchRecords` is also reached through `prepareRecords` and `handleRecords` on the same base class, so the create/update and dedupe paths converge there.\n\n**Caveat.** The index also lists `batchRecords` entries in `app/actions/local/ephemeral_mode/cleanup.ts`. Those are name collisions with local symbols, not confirmed callers of the base method, so I have not counted them as sharing the write path.",
+  "ttft_ms": 2027,
+  "type": "result",
+  "duration_ms": 23963,
+  "uuid": "7dcce3ed-4f68-4a06-b149-a80cbc26a654",
+  "ttft_stream_ms": 1558,
+  "time_to_request_ms": 132,
+  "first_content_frame_ms": 1558,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_PRIVATE(member)` expands to `private_##member`. So `ssl->MBEDTLS_PRIVATE(state)` becomes `ssl->private_state`... **Defined:** it expands to plain `member`, and the field is accessible by its real name.\nVERDICT: HIT\nWHY: The answer states the default rename to private_<member> and that defining MBEDTLS_ALLOW_PRIVATE_ACCESS yields the unchanged member name."
+}

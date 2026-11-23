@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: So every handler's write ends in `BaseDataOperator.batchRecords`.\nVERDICT: MISS\nWHY: The answer concludes all writes reach `batchRecords`, but it never says this is because each mixin is constrained to extend ServerDataOperatorBase. It only says the base is ServerDataOperatorBase and traces call chains."
+}

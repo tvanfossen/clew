@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"These are CLI flags such as `--shared-key-patterns` or `--doxyfile`, or, for an embedding caller, one structured `options` argument to `build_index`/`build_or_refresh`.\" and the table row \"| 1 | CLI flag / `options` | replaces the layer below |\"\nVERDICT: HIT\nWHY: The answer names both the CLI flag and the structured `options` argument for embedding callers as the top-tier (tier 1) explicit statement routes."
+}

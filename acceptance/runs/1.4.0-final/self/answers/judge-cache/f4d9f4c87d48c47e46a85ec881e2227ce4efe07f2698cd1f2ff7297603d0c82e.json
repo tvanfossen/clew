@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer distinguishes a definitive empty (with scope) from an empty in an unsearched corpus and from \"did not look\" (not_indexed/not_searched), but it never names a third grade as a definitive empty for a reason other than absence, so the three-way grading isn't stated."
+}

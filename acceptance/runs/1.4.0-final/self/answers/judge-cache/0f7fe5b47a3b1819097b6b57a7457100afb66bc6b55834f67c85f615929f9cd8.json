@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"One token, no matching rows in any unread corpus, file docs present | `_DEFINITIVE` ... | Strong, but only about the indexed corpora\" and \"One token, but the index holds matching rows in a corpus `search` doesn't read ... `_UNREAD_CORPUS` ... \"NOT DEFINITIVE\", names the counts, points to `dossier` | None for \"does not exist\"; the name does exist\"\nVERDICT: MISS\nWHY: The answer shows a definitive-for-scope grade and several not-definitive grades. It also says the name exists in unread corpora. It never presents \"definitive for a reason that is not absence\" as a distinct grade of an empty reply, so it does not give the three-way distinction."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer mentions Valgrind constant-flow tests in CI and the PSA docs, but never says the facility is a separate, off-by-default testing facility (MSan/valgrind) that is explicitly not part of the library API."
+}

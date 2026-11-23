@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: the two calls are not in two places. They are adjacent lines in one function, `LlamaCppTokenizer::tokenize` (`src/inference/llama_cpp_tokenizer.cpp:55` and `:61`). The first call is a size probe\nVERDICT: HIT\nWHY: The answer locates the two llama_tokenize calls in llama_cpp_tokenizer.cpp (lines 55 and 61) and explains the size-probe-then-fill pattern."
+}

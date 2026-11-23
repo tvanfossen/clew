@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_THREADING_C` defaults off (`include/mbedtls/mbedtls_config.h:3787`). `library/threading.c` is wholly gated on it (lines 18\u2013193), so every lock site in the library is `#if`'d out. / `MBEDTLS_THREADING_PTHREAD` and `MBEDTLS_THREADING_ALT` also default off\n\nVERDICT: HIT\nWHY: The answer names MBEDTLS_THREADING_C as the gate on threading.c and mentions MBEDTLS_THREADING_PTHREAD as a threading flag, so both macros are named. It is a loose HIT, since it does not explicitly call PTHREAD a gating macro."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Calls with no args, or a non-string first arg, present `*`.\nVERDICT: MISS\nWHY: The answer says the arg part is matched against the first string argument and a non-string first arg becomes `*`, but it never says the rest of the call's arguments are invisible to matching, nor that an unparseable argument collapses to a wildcard."
+}

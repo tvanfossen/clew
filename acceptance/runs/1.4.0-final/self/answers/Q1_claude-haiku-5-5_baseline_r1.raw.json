@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 34228,
+  "stop_reason": "end_turn",
+  "session_id": "58e721c9-a0d2-4495-837a-7f69b250f24f",
+  "total_cost_usd": 0.01748732,
+  "usage": {
+    "input_tokens": 18,
+    "cache_creation_input_tokens": 51143,
+    "cache_read_input_tokens": 422642,
+    "output_tokens": 6061,
+    "output_tokens_details": {
+      "thinking_tokens": 2109
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 51143,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2256,
+        "cache_read_input_tokens": 65193,
+        "cache_creation_input_tokens": 1566,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1566
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 18,
+      "outputTokens": 6061,
+      "cacheReadInputTokens": 422642,
+      "cacheCreationInputTokens": 51143,
+      "webSearchRequests": 0,
+      "costUSD": 0.01748732,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2109,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 51143,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 16,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** nothing filters by file type at the scope stage. The scope decides which *directories* are walked. Binary files are removed next. Each downstream parser then picks up only the languages it understands. With no declaration, the scope is the whole repository minus what git ignores, dot-directories and caches, and nested git trees are included.\n\n**The chain, in order** (paths relative to the repo root):\n\n```\nderive_scope(root)                      clew/scope.py:639\n \u251c\u2500 declared index_scope: in .clew.yaml?  \u2192 use its roots, minus its excludes\n \u2502    (roots are taken at their word, never walked)\n \u2514\u2500 otherwise \u2192 whole_repo_scope(root)   clew/scope.py:683\n      roots    = (repo root,)\n      excludes = git-ignored paths\n               + nested-repo ignores\n               + dot-dirs and __pycache__/node_modules  (_pruned_dirs, :908)\n            \u2193\nenumerate_tree(roots, excludes)         clew/treescan.py:203\n      walks everything not excluded; no extension filter, by design\n            \u2193\n_drop_binary_files                      clew/cli.py:2554 \u2192 clew/filetypes.py\n      classifies each file by content (magic bytes, NUL/control ratios),\n      not by extension; binaries are dropped and added to doxygen's excludes\n            \u2193\ndoxygen (INPUT = roots, EXCLUDE = excludes)\n      reads only files matching DOXYGEN_DEFAULT_FILE_PATTERNS (clew/doxygen.py:203)\n      C/C++, Java, C#, PHP, *.h, and so on\n            \u2193\ntree-sitter harvest                     clew/harvest.py:184\n      _ts_language_for(): C, C++, Python, Rust, CMake, by extension or name\n```\n\n**What decides membership.** Three things, in this order:\n\n1. **Declaration.** An `index_scope:` section in `.clew.yaml` with at least one existing `roots:` entry replaces the whole-repo scope. `excludes` alone is rejected. Unknown keys are rejected too, and a rejected declaration falls back to the whole repo with a logged warning (`scope.py:612\u2013675`).\n2. **Git ignore plus structure.** Ignored files are excluded by `git ls-files --others --ignored --exclude-standard --directory` (`scope.py:845`). This includes untracked-but-ignored paths only. Tracked files that happen to match `.gitignore` are not excluded. Untracked files that are not ignored are included.\n3. **Content and language.** Binaries are dropped by content sniffing. Parsing is then decided per consumer: doxygen by its FILE_PATTERNS list, tree-sitter by grammar extension.\n\n**What happens when nothing is declared.** This is the default, and this repo is an example. Its `.clew.yaml` configures only `guard:` and `validate:` and has no `index_scope:`, so the comment in that file says the index \"builds this repo on its defaults\". In that case:\n\n- The scope is the whole repository, including nested git trees (gh#333). Those trees are tagged by `external.py` so their rows can be told apart in answers.\n- Git-ignored paths, dot-directories such as `.git`, `.venv`, `.claude` and `.github`, plus `__pycache__` and `node_modules`, are excluded.\n- The Doxyfile does not set the scope. Its INPUT is ignored. Its ALIASES and PREDEFINED still apply.\n- The walk stops at a depth of 16. Below that it takes the tree wholesale and logs a warning.\n- The reason string recorded in the build log says that no declaration was found and the whole repository was used. It also suggests how to declare a narrower scope.\n\n**Consequence worth knowing.** On an undeclared repo, anything not gitignored gets indexed, including scratch files, generated output not listed in `.gitignore`, and vendored code. The only guard is the binary sniff. A narrower scope requires a declaration.\n\nI did not run an index build to confirm the file counts. The description above is from reading the code paths.",
+  "ttft_ms": 1535,
+  "type": "result",
+  "duration_ms": 35145,
+  "uuid": "8c700748-7fe8-4696-bdbc-ff6de1b7cffa",
+  "ttft_stream_ms": 1189,
+  "time_to_request_ms": 141,
+  "first_content_frame_ms": 1189,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

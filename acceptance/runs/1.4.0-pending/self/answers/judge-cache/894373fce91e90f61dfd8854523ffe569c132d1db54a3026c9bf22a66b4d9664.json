@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Accumulating facts survive everything. Tiers 3 and 4 are never removed by a stated tier. Tiers 1 and 2 displace only the tier-5 guesses. So stating `entry_patterns` cannot drop `main`.\nVERDICT: HIT\nWHY: The answer says stated tiers replace one another (section replaced wholesale), while accumulating discovered tiers 3/4 survive whatever is stated."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `python/src/entropic/_loader.py` `find()` searches, in order: `$ENTROPIC_LIB`, then `$ENTROPIC_HOME` (nested and flat layouts), then `~/.entropic/...`, then `ctypes.util.find_library(\"rentropic\")`.\nVERDICT: MISS\nWHY: The answer gives env overrides, default user dir, and system cache order, but the two-layouts-per-root claim is only given for `$ENTROPIC_HOME`, not for each root as the item requires."
+}

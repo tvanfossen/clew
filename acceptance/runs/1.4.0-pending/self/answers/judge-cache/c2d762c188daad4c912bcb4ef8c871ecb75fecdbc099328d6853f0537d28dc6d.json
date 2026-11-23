@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The automatic path refuses to build when the code axis is stale (`_data_stale`, server.py:1209; `stale_code_refusal`, freshness.py:531). `force` does not override that refusal.\"\nVERDICT: HIT\nWHY: The answer says a stale code axis makes the write path refuse rather than warn, and that `force` cannot override the refusal. That implies the check sits ahead of the build decision, so the substance is stated."
+}

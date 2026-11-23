@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer says llama.cpp-calling code is in two directories under src/. The diagram lists `src/inference/` as the home of the `llama.h` includes. It also lists `src/facade/entropic.cpp`, which includes `llama_cpp_backend.h` and calls `llama_model_ptr()` and `llama_context_ptr()`.\n\nITEMS:\nsrc/inference\nsrc/facade\nEND"
+}

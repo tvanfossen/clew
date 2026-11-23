@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The index detects staleness itself on three axes and reports it on each reply, with a per-axis remedy.\" Also: \"three separate checks, one per axis\" with axes data, code, schema named and defined.\nVERDICT: HIT\nWHY: The answer explicitly says staleness has three distinct axes (data, code, schema) and names each, with distinct remedies."
+}

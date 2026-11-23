@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `app/hooks/navigation_header.tsx` also renders a header, but it uses the lower-level `Header` from `header.tsx`, not `NavigationHeader`, so it is not in the list.\nVERDICT: HIT\nWHY: The answer excludes the navigation hook's `Header` from `header.tsx` as a renderer of NavigationHeader. It doesn't mention the thread route, but the item's core fact is stated."
+}

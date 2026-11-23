@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 21046,
+  "stop_reason": "end_turn",
+  "session_id": "688bb93e-9124-4f0f-9d3a-3a1c6d0f54e9",
+  "total_cost_usd": 0.01628177,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 59960,
+    "cache_read_input_tokens": 254207,
+    "output_tokens": 3493,
+    "output_tokens_details": {
+      "thinking_tokens": 994
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 59960,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1669,
+        "cache_read_input_tokens": 58945,
+        "cache_creation_input_tokens": 1015,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1015
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 3493,
+      "cacheReadInputTokens": 254207,
+      "cacheCreationInputTokens": 59960,
+      "webSearchRequests": 0,
+      "costUSD": 0.01628177,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 994,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 59960,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 8,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The spawn sites are all in the MCP transports, the external bridge, and the inference cancel path. Five of them (the four background loops plus the async-ask worker) can outlive the call that started them. The index finds 10 spawn sites in first-party code, and I did not read a vendored dependency. Each one's safety comes from a mix of mutexes, atomics, and join-before-return.\n\n**Threads that run off the caller's thread**\n\n| Spawn site | Thread | Lifetime | What keeps it safe |\n|---|---|---|---|\n| `ExternalBridge::start` \u2192 `accept_loop` (`external_bridge.cpp:796`) | Accept thread | Joined in `stop()` | `running_` is an atomic flag; `client_threads_` is guarded by `client_threads_mutex_`. `stop()` clears `running_`, closes the listen fd, and joins the accept thread before touching clients. |\n| `accept_loop` \u2192 per-client thread (`:945`) | One per connected client | Joined in `stop()` | Each client thread closes its own fd and sets `finished`. `stop()` calls `shutdown(SHUT_RDWR)` to wake blocked reads, then joins. Connections are gated by `SO_PEERCRED`, so a different uid is closed before a thread is spawned. |\n| `ExternalBridge::run_async_ask` (`:1158`) | Detached worker that runs `entropic_run` for `entropic.ask` | **Detached** (`.detach()` at `:1222`) | `tasks_mutex_` guards the task registry. The result and the sentinel file are written under that lock, before the progress notification fires. |\n| `HealthMonitor::start` \u2192 `monitor_loop` (`health_monitor.cpp:92`) | Health poller | Joined in `stop()` | Event queue is guarded by `event_mutex_`. `process_events()` swaps the queue out under the lock, then runs callbacks on the engine thread with the lock released. |\n| `StdioTransport::open` \u2192 `stderr_reader_loop` (`:164`) | stderr reader | Joined on close | `io_mutex_` guards I/O. |\n| `SSETransport::open` \u2192 `sse_reader_loop` (`:107`) | SSE reader | Joined at `:139` | `pending_mutex_` guards the pending-request map. |\n| `ResponseGenerator::dispatch_batch_generate` \u2192 `observer` (`response_generator.cpp:413`) | Short-lived interrupt mirror | Joined before return | Captures the flag by reference, but it is joined before the locals go out of scope. The atomic `interrupt_flag_` is read with acquire ordering. |\n| `iface_generate_with_cancel` \u2192 `poller` (`interface_factory.cpp:246`) | Short-lived cancel poller | Joined before return | Same join-before-scope pattern. |\n| `CancelFlagBridge` \u2192 `poller_` (`inference_c_api.cpp:385`) | Cancel poller | Joined in destructor (`:403`) | RAII wrapper; the cancel state is an atomic. |\n\nTwo patterns cover most of this. Short-lived pollers always join before their stack variables die, so capturing by reference is safe. The cancel flag crosses the C ABI as a plain `int*` and is bridged to an `atomic<bool>` on the other side, so no C++ atomics cross the `.so` boundary.\n\n**Lock ordering**\n\nThe index shows three two-lock nestings, all with `resolved_sites=0`, so none is confirmed.\n- `HealthMonitor::event_mutex_` \u2192 `AdapterManager::adapter_mutex_` (in `process_events`)\n- `MCPAuthorizationManager::auth_mutex_` \u2192 `MCPKeySet::key_mutex_` (in `check_access`)\n- `MockSSEServer::mu_` \u2192 `adapter_mutex_` (test code)\n\nNo pair appears in opposite order, so I see no deadlock risk from the index alone.\n\n**Gap I did not close**\n\n`run_async_ask` is detached and captures `this` (the `ExternalBridge`) and `handle_`. `stop()` joins only the accept and client threads, not the async workers. I found no in-flight counter or join for them. The only cancellation I saw is `cancel_inflight_async_tasks`, which runs on `entropic.context_clear`. If an `ExternalBridge` is destroyed while an async ask is still running, that detached thread dereferences a dead object. I did not read the destructor path or `entropic_destroy` to see whether something else waits for those workers. That is the first thing to check. The quick test is to start an async ask and destroy the handle while it runs, under ThreadSanitizer or ASan.",
+  "ttft_ms": 1510,
+  "type": "result",
+  "duration_ms": 23502,
+  "uuid": "1c5c7680-1a81-40e4-b503-0b439b9b097e",
+  "ttft_stream_ms": 1261,
+  "time_to_request_ms": 118,
+  "first_content_frame_ms": 1261,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

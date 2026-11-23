@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Most handlers do not write directly. They go through `handleRecords` in `BaseDataOperator`\" and \"Two handlers skip that path\"\nVERDICT: MISS\nWHY: The answer notes that each handler is typed `Constructor<ServerDataOperatorBase>`. It does not conclude that every handler's writes go through the inherited `batchRecords`. It says only most do, names exceptions, and calls the rest an unchecked inference."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says declared scope is tried first and whole repo is the default when nothing is declared, but it never states that every failure to find one, such as an invalid, rootless or unusable declaration, falls through to whole-repo indexing. It even says a present-but-rootless section is \"rejected with a reason, not treated as absent,\" which doesn't establish the fall-through."
+}

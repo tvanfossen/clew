@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The `NetworkManager` default config sets `retryPolicyConfiguration` to `EXPONENTIAL_RETRY`, `retryLimit: 3`, base 2, scale 0.5 (`app/managers/network_manager.ts:68-73`). That is up to 3 retries inside the native network client, with exponential backoff\nVERDICT: MISS\nWHY: The answer states the general exponential retry limit 3 from the network manager, but it explicitly says nothing in the post send path overrides it (\"Nothing in the post send path does\") and that it didn't check whether POST is retried. That is the opposite of the item's claim that posting opts out of retries."
+}

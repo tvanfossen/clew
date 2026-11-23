@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A bad declaration does not fall back silently in the CLI. `cli.py` (around line 807) calls `declared_scope_rejection` and exits 1, because a silent fall-back would give the widest scope for the narrowest request.\nVERDICT: MISS\nWHY: The answer never says the fallback carries a reason string explaining which scope was used and why. It only describes the rejection of a bad declaration and the tier structure."
+}

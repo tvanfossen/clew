@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"A repo's own Doxyfile still supplies ALIASES and PREDEFINED. Its `INPUT` no longer decides the file set. The module docstring says this was a deliberate reversal (gh#333): honouring the Doxyfile's `INPUT` meant a repo that documented itself got a narrower index than one that did not.\"\nVERDICT: HIT\nWHY: The answer says the Doxyfile's INPUT deliberately no longer decides the file set. It explains that honouring it gave a repo that ships one a narrower index than a repo that ships none."
+}

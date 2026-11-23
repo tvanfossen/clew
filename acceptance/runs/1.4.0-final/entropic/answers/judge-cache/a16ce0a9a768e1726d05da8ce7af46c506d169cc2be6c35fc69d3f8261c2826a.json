@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer mentions `permission_persist_` and `get_permission_pattern` but says persistence isn't wired; it never states that decisions can be persisted by appending to config.local.yaml separately from add_permission."
+}

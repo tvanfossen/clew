@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Archive action | `app/actions/remote/channel.ts:1397-1401` | Sets `delete_at` locally, keeps the channel | Removes the current user from the channel locally; WebSocket channel-archived event | ... | Only updates `delete_at` | If the user is in that channel, kicks them out (`CHANNEL_ARCHIVED`), then removes membership\nVERDICT: HIT\nWHY: The answer states that with viewing disabled the user is removed from the channel and kicked out if it is the current channel, and that with viewing enabled the channel is kept with `delete_at` set (marked deleted)."
+}

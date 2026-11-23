@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: When `MBEDTLS_ERROR_C` is off, `error.c:867` provides a stub that just writes an empty string.\nVERDICT: MISS\nWHY: The answer only describes behavior when MBEDTLS_ERROR_C is off and never states it is enabled in the shipped config or present in a default build."
+}

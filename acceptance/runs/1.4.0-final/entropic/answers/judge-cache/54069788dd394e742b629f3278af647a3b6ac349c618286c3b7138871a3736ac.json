@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `deny` is checked only in `execute`. `allow` is checked only in `check_approval`. Neither list is checked in the other place.\nVERDICT: MISS\nWHY: The answer says deny is checked in execute but also says allow gates approval (denying unlisted tools when no callback), so it doesn't conclude deny is the only blocking list; it contradicts the item."
+}

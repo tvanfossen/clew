@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The index shows the header included by roughly 20 library files and called from many more:\"\nVERDICT: HIT\nWHY: The answer states the primitives' header is included by roughly 20 library files and lists broad use across bignum, RSA, TLS, PSA and other areas."
+}

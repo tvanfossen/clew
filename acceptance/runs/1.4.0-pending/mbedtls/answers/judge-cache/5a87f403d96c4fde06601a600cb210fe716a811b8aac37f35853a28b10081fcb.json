@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never mentions MBEDTLS_ERROR_C or that it is enabled in the default mbedtls_config.h."
+}

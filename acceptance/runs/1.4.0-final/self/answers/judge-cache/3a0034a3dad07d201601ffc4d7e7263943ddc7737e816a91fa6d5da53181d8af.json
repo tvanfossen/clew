@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Nested trees are indexed and tagged, not excluded.** `external.py` tags their rows after the build, so an answer can still say which codebase a symbol came from.\"\nVERDICT: HIT\nWHY: The answer explicitly states that nested git trees are indexed and tagged rather than excluded."
+}

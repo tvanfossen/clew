@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never identifies the seam as llama.cpp's C API (free `llama_` functions); it only mentions `llama_log_set` and `llama_model*` pointers in passing and discusses build and linking, not the C-API-versus-classes distinction."
+}

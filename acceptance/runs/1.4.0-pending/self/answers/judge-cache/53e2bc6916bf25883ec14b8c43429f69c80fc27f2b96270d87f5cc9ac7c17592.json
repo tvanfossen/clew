@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says a single no-match token was previously treated as proof of absence. It describes the current graded verdicts, and its `scope` field distinguishes \"outside what was indexed\" from \"not in the repo\". It gives no account of the earlier behaviour or of the nothing-exists versus did-not-look confusion as a fixed flaw."
+}

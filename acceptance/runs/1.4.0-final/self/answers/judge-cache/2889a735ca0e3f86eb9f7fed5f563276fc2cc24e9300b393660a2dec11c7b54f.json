@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer ties \"definitive\" versus \"not definitive\" wording to the corpus and query shape (symbols multi-token vs code). It never says the strong wording is earned per call by checking which corpora went unread."
+}

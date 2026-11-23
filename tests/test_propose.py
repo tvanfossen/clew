@@ -745,8 +745,10 @@ def test_a_declared_hand_section_is_reported_as_already_declared(tmp_path: Path)
     draft must confirm clew SEES it — otherwise the same "not analysed" text
     appears whether or not the owner has already done the work."""
     root = _repo(tmp_path / "declared", _PLAIN_SOURCE)
+    ## FIXTURE CHANGED (2.0.0, R5-CFG F1): `locks:` written as a bare list was never read — the
+    ## section is the manifest document, `{locks: [...]}` — and the loader now refuses it.
     (root / DECLARATION_NAME).write_text(
-        "locks:\n  - name: AcmeGuard\n    form: raii\n", encoding="utf-8"
+        "locks:\n  locks:\n    - {name: AcmeGuard, form: raii}\n", encoding="utf-8"
     )
     proposal = propose(root, None)
     assert _section(proposal, SECTION_LOCKS).status is SectionStatus.ALREADY_DECLARED

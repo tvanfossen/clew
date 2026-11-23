@@ -1,0 +1,83 @@
+{
+  "cell": "Q1_claude-haiku-5-5_baseline_r2",
+  "arm": "baseline",
+  "rubric_version": "5.0.0",
+  "rubric_digest": "d8447c7b18eafbf5",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.5625,
+  "unmarked_pct": 0.0,
+  "split_decisions": 1,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "names derive_scope in clew/scope.py as where the decision is resolved",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: [clew/scope.py derive_scope] | WHY: The answer's decision-flow diagram names derive_scope in clew/scope.py as where the index scope is resolved. || QUOTE: [clew/scope.py derive_scope] | WHY: The answer's decision flow explicitly names derive_scope in clew/scope.py as where the scope decision (declared vs whole-repo) is resolved. || QUOTE: [clew/scope.py derive_scope] | WHY: The answer's flow diagram names derive_scope in clew/scope.py as where the index_scope decision is resolved.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that a repository's own declared index_scope is preferred, and that every failure to find one falls through to indexing the whole repository",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"yes, broken  \u2192 logged WARNING, falls through to whole-repo\" and \"If no root survives, the block is rejected as \"declares index_scope but no usable roots\", and the build falls back to whole-repo.\" and \"no section   \u2192 whole-repo tier (the default)\" | WHY: The answer says a declared index_scope is used when usable, and that a missing, broken, or rootless declaration falls through to indexing the whole repository. || QUOTE: \"yes, broken  \u2192 logged WARNING, falls through to whole-repo\" and \"If no root survives, the block is rejected as \"declares index_scope but no usable roots\", and the build falls back to whole-repo.\" and \"no section   \u2192 whole-repo tier (the default)\" | WHY: The answer states that a declared index_scope is used when usable, and that a missing, broken, or no-usable-roots declaration falls through to indexing the whole repository. || QUOTE: \"yes, broken  \u2192 logged WARNING, falls through to whole-repo\" and \"If no root survives, the block is rejected as \"declares index_scope but no usable roots\", and the build falls back to whole-repo.\" and \"no section   \u2192 whole-repo tier (the default)\" | WHY: The answer states that a declared index_scope is used when usable, and that a missing, broken, or rootless declaration falls through to indexing the whole repository.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "conveys that the fallback carries a REASON explaining which scope was used and why, so an unstated scope is never silently guessed",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: The build logs the choice. A declared scope logs at INFO. The whole-repo default logs at WARNING with the reason, for example \"no index_scope is declared \u2026 so the whole repository is the index scope.\" | WHY: The answer says the whole-repo fallback is logged with a reason stating which scope applies and why no declared scope was used, so it isn't silently guessed. || QUOTE: The build logs the choice. A declared scope logs at INFO. The whole-repo default logs at WARNING with the reason, for example \"no index_scope is declared \u2026 so the whole repository is the index scope.\" | WHY: The answer states the whole-repo fallback is logged with a reason explaining which scope was used and why, so the undeclared scope is not silently guessed. || QUOTE: The build logs the choice. A declared scope logs at INFO. The whole-repo default logs at WARNING with the reason, for example \"no index_scope is declared \u2026 so the whole repository is the index scope.\" | WHY: The answer states the fallback (whole-repo default) is logged with a reason explaining which scope was used and why.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that a Doxyfile's own INPUT is deliberately NOT used to decide the indexed tree, and explains why \u2014 a repository that ships one would get only its documented subset while a repository that ships none gets its whole tree",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: \"The repo's Doxyfile no longer supplies the INPUT. It still contributes aliases and predefined macros.\" | WHY: The answer notes the Doxyfile INPUT was removed from scope resolution, but never explains why (a repo shipping a Doxyfile would get only its documented subset while one without gets its whole tree). || QUOTE: \"The repo's Doxyfile no longer supplies the INPUT. It still contributes aliases and predefined macros.\" and \"still says a missing declaration 'drops the resolution to the Doxyfile's own INPUT'. That fallback was removed in gh#333\" | WHY: The answer says the Doxyfile INPUT was removed as the source of scope, but it never explains why (documented subset for repos with a Doxyfile versus whole tree for repos without one). || QUOTE: \"The repo's Doxyfile no longer supplies the INPUT. It still contributes aliases and predefined macros.\" | WHY: The answer says the Doxyfile INPUT was dropped (gh#333). It never gives the reason, that a repo shipping a Doxyfile would get only its documented subset while one with none gets the whole tree.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that nested git trees are INDEXED and tagged rather than excluded from the scope",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: Nested repositories are indexed and tagged, not excluded (gh#333). | WHY: The answer explicitly states nested repositories are indexed and tagged rather than excluded. || QUOTE: Nested repositories are indexed and tagged, not excluded (gh#333). | WHY: The answer explicitly states that nested repositories are indexed and tagged rather than excluded.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "conveys that the containment call was REMOVED rather than left in place with its callers dropped",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never says a containment call was removed; the only removal mentioned is the Doxyfile INPUT fallback, which is unrelated. || QUOTE: NONE | WHY: The answer never mentions a containment call being removed; it only notes a Doxyfile INPUT fallback removed in gh#333, which is unrelated. || QUOTE: NONE | WHY: The answer never mentions a containment call being removed; it discusses index scope, and its only removal is the Doxyfile INPUT fallback, which is unrelated.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the resolved scope is not the whole answer \u2014 within it, a file reaches the index only if something can read it, and names at least one of the two filters: the parse-built front end claiming the file types doxygen cannot read, or binary classification dropping files whose extension lies about them",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: binary files \u2502 \u2192 dropped and reported as skipped [cli._drop_binary_files] | WHY: The answer lists binary dropping, but as \"minus binaries\" in the scope, not as binary classification dropping files whose extension lies about them. It also says nothing is filtered by extension and that no front end was traced. It never says that a file reaches the index only if something can read it, and it names neither the parse-built front end nor extension-lying files. || QUOTE: binary files \u2502 \u2192 dropped and reported as skipped [cli._drop_binary_files] | WHY: The answer lists binary dropping but never says extensions lie about it or that the parse-built front end claims the types doxygen can't read. It also states \"Nothing is filtered by file extension,\" which doesn't match the item.",
+      "agreement": 0.6666666666666666,
+      "samples": 3,
+      "errors": 0
+    }
+  ]
+}

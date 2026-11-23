@@ -1,45 +1,52 @@
-# clew's own declaration file. Only the gate is configured: the `guard:` section is what
-# `clew guard` enforces on this repo (dogfooding — we enforce on ourselves). The index
-# declares nothing here and builds this repo on its defaults.
+# clew's own declaration file. clew adopts its own tools in full (round 3, P6c):
+#
+#   guard:  what `clew guard` enforces on every commit — presence, @version bumps, @req ids that
+#           exist in requirements.yaml, `satisfies` links that resolve — and the change-impact
+#           report (guard.impact.report_dir) the wiki's Change impact page reads.
+#   wiki:   clew's own wiki — docs labelled by kind, the MCP tool handlers as flows, requirement
+#           tiers from the gate's own JUnit (build/junit.xml) and CI's coverage (build/coverage.xml).
+#           `clew wiki check` runs in pre-commit; CI builds the site (Pages deploys at 2.0.0).
+#
+# The index declares no scope and builds this repo on its defaults.
 #
 # Every function/class in the shipped Python package carries:
 #   ## @brief    one-line summary
 #   ## @version  bumped on body change
 #   ## @return   on non-void functions
 #
-# @req COVERAGE IS NOT GATED. It was, by scripts/req_coverage_audit.py, which is
-# DELETED. Nothing now checks that a requirement claiming `implemented` resolves to
-# an implementing function, or that one claiming `planned` resolves to none.
-# Last measured by hand: 30 of 34 resolve; the 4 that do not are untagged
-# deliberately (two satisfied by configuration and human review, two unbuilt).
-#
-# Also not gated: whether a TEST covers a requirement. req_test_edges is sparse.
+# Measured figures live in the wiki (its Requirements page counts implemented, tested and
+# passing requirements from the index and the reports), not in this header: a figure written
+# here goes stale the commit after it is measured, as the coverage figure it once quoted did.
+
+# The requirements catalog — ONE section the index, the gate and the wiki all read (2.0.0).
+# Not cosmetic dogfooding: `bd2d34e` taught clew to honour a declared catalog precisely because a
+# repo that declared one had it read by the gate and ignored by the index — and we then shipped
+# that fix without applying it to ourselves. A bare build of this repo ingested ZERO catalog rows,
+# so `req_trace` returned implementers with no title, status or acceptance.
+requirements:
+  file: requirements.yaml
+  # round 3, P6c: `clew guard coverage` (a pre-commit hook) fails when a catalogued requirement
+  # has no @req implementer, unless its status exempts it — unbuilt (`planned`) or satisfied by
+  # configuration files rather than a function (`configuration`). Exemptions are listed in every
+  # coverage report by id and status, never silently.
+  status_field: x-status
+  exempt_status: [planned, configuration]
 
 guard:
-  output_dir: docs/generated/
-
-  # Declare where our catalog lives, so the INDEX finds it without a CLI flag.
-  # Not cosmetic dogfooding: `bd2d34e` taught clew to honour this field
-  # precisely because a repo that declares its catalog had the declaration read by
-  # the gate and ignored by the index — and we then shipped that fix without
-  # applying it to ourselves. A bare `--scope from-guard` build of this repo
-  # ingested ZERO catalog rows, so `req_trace` returned implementers with no title,
-  # status or acceptance, and the "30 of 34" figure was reproducible only with an
-  # undocumented `--requirements` argument. Through the MCP server, which passes no
-  # flags, it could not be reproduced at all.
+  # round 3, P6c: the `clew-guard-impact` hook (`clew guard impact --write`) writes impact.md and
+  # impact.json here, which is where the wiki's Change impact page reads it. Gitignored.
   impact:
-    requirements:
-      file: requirements.yaml
+    report_dir: docs/generated/impact/
 
   validate:
-    exclude:
-      - "^\\.venv/"
-      - "^\\.claude/"
-      - "^workspace/"
-      - "^tests/"           # tests are exempt (fixtures, asserts)
-      - "^scripts/"         # dev helpers
-      - "^acceptance/"      # benchmark harness + evidence, not shipped code
-      - "^docs/generated/"
+    exclude:                # globs (2.0.0); a regex would be written `re:<regex>`
+      - ".venv/**"
+      - ".claude/**"
+      - "workspace/**"
+      - "tests/**"          # tests are exempt (fixtures, asserts)
+      - "scripts/**"        # dev helpers
+      - "acceptance/**"     # benchmark harness + evidence, not shipped code
+      - "docs/generated/**"
     # NOTE: this key was DUPLICATED — an empty `tags:` sat directly above the real
     # one. YAML takes the last, so the real block won and nothing broke, which is
     # why it survived. The trap is that a reorder or an insertion between them
@@ -62,3 +69,148 @@ guard:
       # hold only one value states nothing.
       req:
         pattern: "^REQ-DDB-[A-Z]+-[0-9]{3}$"
+
+# Where our tests live is the built-in default; what their runs leave is declared (2.0.0: one
+# top-level `tests:` section, read by the index and the wiki). The gate's own run is the
+# evidence: scripts/run_tests.py writes JUnit on every run, and CI's wiki job adds Cobertura
+# (`run_tests.py --coverage`).
+tests:
+  junit: [build/junit.xml]
+  coverage: build/coverage.xml
+  contexts: .coverage   # coverage.py's data file with per-test contexts: measured links
+  # X-2 (owner review 2, 2026-11-22): real values on the dossier flow. Recorded with
+  # `clew wiki trace-run --test tests/test_mcp_server.py::test_the_dossier_body_caps_and_reports_truncation
+  # --out build/traces/dossier.json`; a master flow takes the subtree a traced test reached under it.
+  traces: ["build/traces/*.json"]
+
+# clew's own wiki (round 3, P6): clew documents itself with the site it generates. Human guides
+# are grouped by kind; the agent-facing documents (AGENTS.md, SKILLS.md) are kept apart. The MCP
+# tool handlers are declared as product flows, so the site shows what a `dossier` call does.
+wiki:
+  title: clew
+  ## Round 4, R1: the map's blocks are what clew DOES, not its directories. Declared blocks win; a
+  ## file named by none joins the block it shares the most calls with, labelled as inferred.
+  components:
+    "Answer: query engine + MCP server": ["clew/query/*", "clew/mcp_server/*", "clew/wire.py",
+      "clew/query_command.py", "clew/export_command.py", "clew/mcp_config.py"]
+    "Build: orchestration": ["clew/cli.py", "clew/harvest.py", "clew/harvest_plan.py",
+      "clew/fasttier*.py", "clew/indexcache.py", "clew/build*.py", "clew/refresh_command.py",
+      "clew/init_command.py", "clew/cull_command.py", "clew/scope.py", "clew/treescan.py",
+      "clew/signature.py", "clew/stagetimer.py", "clew/declaration.py", "clew/config_defaults.py",
+      "clew/toolchain.py", "clew/languages.py", "clew/filetypes.py", "clew/gitenv.py",
+      "clew/diagnostics.py", "clew/errors.py", "clew/_common.py", "clew/vocabulary.py",
+      "clew/tiers.py", "clew/tomlcompat.py", "clew/__main__.py"]
+    "Build: parse front ends": ["clew/ast_symbols.py", "clew/pyast.py", "clew/jsast.py",
+      "clew/shast.py", "clew/cmakeast.py", "clew/scriptast.py", "clew/substrate.py",
+      "clew/tsnode.py", "clew/synth.py", "clew/doxygen*.py", "clew/c_extent.py",
+      "clew/preprocessor.py", "clew/pydocs.py", "clew/rustdoc.py", "clew/py_entrypoints.py",
+      "clew/external.py", "clew/datamodel.py", "clew/generated.py", "clew/enrichment.py"]
+    "Build: call and data edges": ["clew/call_edges.py", "clew/dispatch*.py",
+      "clew/callback_edges.py", "clew/event_edges.py", "clew/shared_key_edges.py",
+      "clew/macro_refs.py", "clew/dominated_edges.py", "clew/reachability.py"]
+    "Build: concurrency and config layers": ["clew/threads.py", "clew/locks.py",
+      "clew/blocking.py", "clew/isr.py", "clew/critical_sections.py", "clew/context.py",
+      "clew/kconfig*.py"]
+    "Build: docs, requirements and tests layers": ["clew/filedocs.py", "clew/prose.py",
+      "clew/code_text.py", "clew/req_mentions.py", "clew/requirements.py", "clew/coverage.py",
+      "clew/testscope.py", "clew/guardconfig.py"]
+    "Guard: the pre-commit gate": ["clew/guard/*"]
+    "Wiki: this site": ["clew/wiki/*"]
+    "Propose: declaration proposals": ["clew/propose/*"]
+    "Acceptance: measuring clew": ["acceptance/*"]
+    "Tooling: scripts": ["scripts/*"]
+  docs: [README.md, SKILLS.md, AGENTS.md, SECURITY.md, "docs/*.md"]
+  doc_kinds:
+    README.md: tutorial
+    docs/WIKI.md: howto
+    docs/GUARD.md: howto
+    docs/OVERVIEW.md: explanation
+    docs/CORE_HYPOTHESIS.md: explanation
+    docs/DESIGN.md: explanation
+    SECURITY.md: reference
+    docs/SECURITY.md: reference
+    AGENTS.md: agents
+    SKILLS.md: agents
+  # W-1/W-5 (owner review 2026-11-22): plain titles, what each flow is for, its scenario (Gherkin,
+  # declared — never derived) and, for the lookup, a worked example from this repository's index.
+  flows:
+    - entry: dossier
+      file: clew/mcp_server/tools_query.py
+      depth: 2
+      lanes: packages
+      title: "Look up one name: everything the index holds about it"
+      intent: >-
+        An agent names a function, file or other symbol and gets, in one reply, its source and
+        every relation the index recorded for it.
+      # X-1 (owner review 2): each `at` names the call where that part of the diagram begins.
+      scenario:
+        - Given an index of the repository
+        - step: When an agent asks dossier about one or several names
+          at: _accepted_batch
+        - step: Then several names are answered together, sharing one size budget
+          at: _batched_dossiers
+        - step: And one name is resolved and flattened into its subject, whatever its kind
+          at: subject_payload
+        - step: And the reply is stamped with the repository that answered and any staleness
+          at: _answered
+        - step: And it is trimmed to the response budget, each cut named
+          at: _budgeted_dossier
+        - step: And callers and callees are capped, each cut disclosed
+          at: _capped_neighbors
+        - step: And it is shaped for the wire and linked to its wiki page
+          at: _wire_shape
+      example:
+        input: 'dossier(subject="derive_flow")'
+        output: |
+          subject_kind: function
+          file: clew/wiki/flow.py   lines 142-179
+          brief: Derive the flow from an entry function.
+          liveness: live
+          callers: 19 (flow_page, expected_steps, and the flow tests)
+          callees: _entry_rowids, connect, qualified_name_of
+          requirements: REQ-DDB-WIKI-001, REQ-DDB-WIKI-041
+          body: the function's own lines, verbatim
+    - entry: search
+      file: clew/mcp_server/tools_query.py
+      depth: 2
+      lanes: packages
+      title: "Find a name you do not have yet"
+      intent: >-
+        An agent describes what it is looking for in a few words and gets back names it can hand
+        to the lookup.
+      scenario: |
+        Given an index of the repository
+        When an agent searches with words and a corpus (symbols, prose, code, threads, ...)
+        Then every word must appear in one searchable unit
+        And each row names the kind to pass back to dossier
+        And an empty result says what it did not read rather than claiming nothing exists
+    - entry: index
+      file: clew/mcp_server/server.py
+      depth: 2
+      lanes: packages
+      title: "Build, refresh and check the index"
+      intent: >-
+        Keep the index current with the working tree, and say plainly when it is not.
+      scenario: |
+        Given a repository the server knows
+        When an agent asks for a refresh
+        Then clew rebuilds only what changed, or the whole index when it must
+        When an agent asks for status
+        Then clew names each way the index is stale: the data, the schema, or the server's code
+    - entry: build_wiki
+      depth: 2
+      lanes: packages
+      title: "Build this wiki from the index"
+      intent: >-
+        Turn the index and the repository's declarations into this site, so a reader can see what
+        clew knows without asking it.
+      scenario: |
+        Given an index and this repository's .clew.yaml
+        When clew wiki build runs
+        Then each declared flow is derived from the index's call graph
+        And pages are written for requirements, tests, symbols, the map and the architecture
+        And Sphinx renders the pages into one static site
+  tooling: ["scripts/*", "acceptance/*", "tools/*"]
+  issues: {github: tvanfossen/clew}
+  links:
+    template: "https://github.com/tvanfossen/clew/blob/{commit}/{file}#L{line}"

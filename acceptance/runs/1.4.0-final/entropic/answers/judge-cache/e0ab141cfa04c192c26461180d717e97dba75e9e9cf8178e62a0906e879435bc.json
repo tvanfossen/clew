@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Direct `#include <llama.h>`, `<common.h>`, `<chat.h>`, `<sampling.h>`, `<mtmd.h>` in `llama_cpp_backend.cpp`, `llama_cpp_sampler.cpp`, `llama_cpp_tokenizer.cpp`, `grammar_registry.cpp`, `speculative_compat.cpp`, `adapter_manager.cpp`, `orchestrator.cpp`, and `tool_call_markers.h`.\nVERDICT: MISS\nWHY: The answer lists about 8 inference files plus a few headers and tests, but frames it as \"a handful of helpers\" and never conveys a dozen files or that it isn't a single wrapper."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Accept loop | `running_` is atomic; the fd is closed in `stop()` | Joined in `stop()` ... `external_bridge.cpp:945` | One thread per MCP client | `client_threads_` under `client_threads_mutex_`\n\nVERDICT: HIT\nWHY: The table lists an accept-loop thread in the external bridge and a separate one-thread-per-MCP-client entry, which is the two-level structure."
+}

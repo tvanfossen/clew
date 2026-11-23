@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The payload only carries the one new reaction, so every other reaction on the post would be destroyed. The flag turns off the diff-and-delete step\"\nVERDICT: HIT\nWHY: The answer states that without skipSync the lone incoming reaction would be treated as the full set, so all other reactions on the post would be deleted."
+}

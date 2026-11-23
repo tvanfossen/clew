@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Option A, compile-time (zero indirection): ... `#define MBEDTLS_PLATFORM_CALLOC_MACRO my_calloc`\" and \"Option B, runtime: `#define MBEDTLS_PLATFORM_MEMORY /* and no *_MACRO defines */ ... mbedtls_platform_set_calloc_free(my_calloc, my_free);`\" and \"`check_config.h:558-573` requires that both macros are set together, and that `MBEDTLS_PLATFORM_STD_*` is not also set.\"\nVERDICT: HIT\nWHY: The answer separates the compile-time macro pair from the runtime function-pointer pair, and the runtime option is defined by having no `*_MACRO` defines, so the two are exclusive. The mutual exclusivity is implied rather than stated outright, but the substance is present."
+}

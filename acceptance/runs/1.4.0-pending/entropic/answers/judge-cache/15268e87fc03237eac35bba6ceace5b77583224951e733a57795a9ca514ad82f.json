@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Async `entropic.ask` worker | `tasks_` under `tasks_mutex_`; subscribers under `subscribers_mutex_` | **Detached**; never joined\" and \"`run_async_ask` ... captures `this` and `handle_`, then detaches... So destroying a handle while an async ask is running can let the worker call `entropic_run` on a freed handle\"\nVERDICT: HIT\nWHY: The answer identifies the async ask worker as the detached, never-joined thread and explains it outlives the bridge/caller scope."
+}

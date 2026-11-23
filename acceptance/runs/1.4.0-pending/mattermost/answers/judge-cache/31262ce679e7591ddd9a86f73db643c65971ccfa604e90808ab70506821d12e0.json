@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Errors are swallowed.** The whole body is in `try {} catch { // Do nothing }`, and the dispatcher doesn't await the promise, so a failed write leaves no trace.\nVERDICT: HIT\nWHY: The answer states the add path's empty catch swallows errors and a failed write leaves no trace, and says the removal path has \"the same silent `catch`\"."
+}

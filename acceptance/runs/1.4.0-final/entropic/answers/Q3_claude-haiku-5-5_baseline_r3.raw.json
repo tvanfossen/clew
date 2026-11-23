@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 44019,
+  "stop_reason": "end_turn",
+  "session_id": "b4f7fd82-2120-412c-bc56-88a34b2c51e9",
+  "total_cost_usd": 0.019532579999999997,
+  "usage": {
+    "input_tokens": 22,
+    "cache_creation_input_tokens": 45381,
+    "cache_read_input_tokens": 674068,
+    "output_tokens": 7427,
+    "output_tokens_details": {
+      "thinking_tokens": 3692
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 45381,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3632,
+        "cache_read_input_tokens": 78018,
+        "cache_creation_input_tokens": 1072,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1072
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 22,
+      "outputTokens": 7427,
+      "cacheReadInputTokens": 674068,
+      "cacheCreationInputTokens": 45381,
+      "webSearchRequests": 0,
+      "costUSD": 0.019532579999999997,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 3692,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 45381,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 16,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** a call runs only if it clears a fixed sequence of checks in `ToolExecutor`. Approval is the only check that consults the permission lists, and deny is enforced later, inside `ServerManager::execute`. One part of the approval step does not match the documented default-deny model (see the callback note below).\n\n**Flow for one call** (`src/mcp/tool_executor.cpp`, `process_single_call` at :729)\n\n```\nPRE_TOOL_CALL hook \u2500\u2500cancel?\u2500\u2500\u25ba denied (\"Cancelled by hook\")\n        \u2502\ncheck_call_preconditions (:667), in order:\n  1. anti-spiral hard block        (:938)\n  2. schema validation             (:640)\n  3. MCP key set for identity      (:575)\n  4. tier allowed_tools            (:198)\n  5. duplicate-call check          (:117)\n  6. approval  check_approval()    (:161)  \u25c4\u2500\u2500 only step that reads the permission lists\n        \u2502 pass\nexecute_tool \u2192 ServerManager::execute (server_manager.cpp:153)\n  7. deny list  is_denied()  \u2500\u2500match\u2500\u2500\u25ba \"Error: Permission denied for <tool>\"\n        \u2502 pass\n  route to in-process server or external MCP client\n```\n\n**What `check_approval` does** (:161\u2013188)\n\n- Approved if `loop_config_.auto_approve_tools` is set (from `permissions.auto_approve`, facade `entropic.cpp:1489`), or if `is_explicitly_allowed()` matches the allow list.\n- Otherwise, if the consumer registered an `on_tool_call` callback, the callback is fired and `approved = true` is set at :172.\n- With no callback, the call is denied with \"Permission denied\".\n\n**Caveat:** because the callback sets `approved = true` unconditionally, the default-deny described in `permission_manager.h` only holds for consumers with no `on_tool_call` callback. For any consumer that wires one, the allow list has no effect on approval, and only the deny list gates execution. I did not run tests to confirm this is unintended, but the code is clear.\n\n**Where the lists come from**\n\n- `permissions.allow`, `permissions.deny` and `permissions.auto_approve` are parsed from YAML in `config/loader.cpp:365\u2013373`.\n- They are copied into `PermissionManager` when `ServerManager` is constructed (`server_manager.cpp:32\u201336`, called from `facade/entropic.cpp:792`). Later config edits do not affect it. `add_permission()` changes it at runtime.\n\n**What a pattern means**\n\nBoth lists use the same matcher (`permission_manager.cpp:101\u2013125`):\n\n| Pattern form | Matches |\n|---|---|\n| `filesystem.*` | Any call whose tool name matches the glob. Argument values are ignored. |\n| `bash.execute:python*` | Tool name matches the part before `:`, and `tool:<value>` matches the full pattern. |\n\n- The value is `args_to_pattern()` (`server_manager.cpp:426`): the first argument in the JSON object whose value is a string, or `*` if there is none. nlohmann's default object type sorts keys, so \"first\" means alphabetically first, not first in the call. If that first key is not a string, the value is `*`.\n- `fnmatch` runs with flags 0, so `*` also matches `/` and `:`.\n- Allow patterns only skip the approval prompt. Schema, MCP-key and tier checks still run first and can still reject the call.\n- Deny patterns are checked in `execute()` after approval, so a tool that is both allowed and denied is still blocked. Deny wins.\n- A denied call returns an error result to the model. It does not stop the loop.\n\n**Dead code to note:** `BashServer::get_permission_pattern()` (`bash.cpp:200`) would build `bash.execute:<base> *`, but nothing calls it. Matching always uses `args_to_pattern()`. The documented `bash.execute:python*` form works. Any pattern written with the `base *` shape would not match the way that method suggests.",
+  "ttft_ms": 1670,
+  "type": "result",
+  "duration_ms": 45707,
+  "uuid": "df18493d-455a-4286-8fc2-d31c78843c94",
+  "ttft_stream_ms": 1273,
+  "time_to_request_ms": 169,
+  "first_content_frame_ms": 1273,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

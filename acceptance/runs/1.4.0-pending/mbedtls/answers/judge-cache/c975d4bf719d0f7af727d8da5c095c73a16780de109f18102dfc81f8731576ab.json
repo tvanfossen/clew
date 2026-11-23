@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_strerror()` splits the integer into a module part and a low-level part, looks each up in a generated `switch`, and joins the results.\nVERDICT: HIT\nWHY: The answer states the code has a module (high-level) part and a low-level part, and that strerror joins both (with \" : \") when both are present."
+}

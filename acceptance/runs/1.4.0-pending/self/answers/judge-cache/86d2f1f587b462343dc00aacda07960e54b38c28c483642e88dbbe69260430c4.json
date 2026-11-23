@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Shell and CMake get `memberdef` rows with `argsstring` empty for shell and populated for CMake.\"\nVERDICT: MISS\nWHY: The answer notes shell argsstring is empty but never says there is no return recorded or that this is because the language has neither."
+}

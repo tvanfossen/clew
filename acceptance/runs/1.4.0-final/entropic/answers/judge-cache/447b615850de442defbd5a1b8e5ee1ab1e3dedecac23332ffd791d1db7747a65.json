@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The log scope is thread-local, so logs from a worker thread still route to the right session.\nVERDICT: MISS\nWHY: The answer says the log scope is thread-local and attaches to API entry points via HandleApiLock. It never says that each thread body installs a per-handle logging scope as its first statement."
+}

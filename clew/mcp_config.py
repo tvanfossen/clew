@@ -280,7 +280,7 @@ def config_path(scope: str, repo_root: Path) -> Path:
 ## @param bindir Directory to check beside the interpreter (defaults to sys.executable's).
 ## @return (path to the script or None, whether it came from PATH).
 ## @version 1
-## @dg_internal
+## @utility
 def _locate_script(which: Any, bindir: Path) -> tuple[Path | None, bool]:
     """PATH first, because that is what a `pip install clew` user has.
     The interpreter's own `bin/` second, which is the developer-checkout case:
@@ -303,7 +303,7 @@ def _locate_script(which: Any, bindir: Path) -> tuple[Path | None, bool]:
 ## @param repo_root Repo root to express it against.
 ## @return POSIX relative path, or None when `path` is outside the repo.
 ## @version 1
-## @dg_internal
+## @utility
 def _repo_relative(path: Path, repo_root: Path) -> str | None:
     """@brief Make a path repo-relative, or report that it is not inside.
 
@@ -321,7 +321,7 @@ def _repo_relative(path: Path, repo_root: Path) -> str | None:
 ## @param on_path Whether it was found via PATH.
 ## @return The resolution to write.
 ## @version 1
-## @dg_internal
+## @utility
 def _path_or_name(path: Path, on_path: bool) -> CommandResolution:
     """@brief Prefer the PATH-resolvable name; fall back to an absolute path.
 
@@ -468,7 +468,7 @@ def load_document(path: Path) -> tuple[dict[str, Any], str]:
 ## @param raw Original file text ("" for a new file).
 ## @return An indent string, or the default width for a new/unindented file.
 ## @version 1
-## @dg_internal
+## @utility
 def _indent_of(raw: str) -> int | str:
     """Reuses whatever the file already used, so registering a server does not
     reformat a config the user maintains by hand (and does not produce a diff
@@ -487,7 +487,7 @@ def _indent_of(raw: str) -> int | str:
 ## @param entry The entry this tool would write.
 ## @return A unified diff, or "" when there is nothing to show.
 ## @version 1
-## @dg_internal
+## @utility
 def _entry_diff(existing: dict[str, Any] | None, entry: dict[str, Any]) -> str:
     """Rendered over pretty-printed JSON rather than the raw file text: the point
     is to show the user WHAT would change about this one server, not where the
@@ -512,7 +512,7 @@ def _entry_diff(existing: dict[str, Any] | None, entry: dict[str, Any]) -> str:
 ## @param entry The entry this tool would write.
 ## @return One of the `init_action` vocabulary's values.
 ## @version 1
-## @dg_internal
+## @utility
 def _classify(file_existed: bool, existing: dict[str, Any] | None, entry: dict[str, Any]) -> str:
     """@brief Decide the merge action for a target file.
 

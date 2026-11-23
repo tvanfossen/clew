@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The allow list is consulted only at the approval gate. ... **Allow:** lets the call pass approval. It does not bypass the MCP keys or tier checks that run earlier.\nVERDICT: MISS\nWHY: The answer says allow is consulted only at the approval gate (`check_approval`), but it never says the allow list doesn't grant execution, and it doesn't note that deny is enforced separately in a different file. It also doesn't frame allow as suppressing approval rather than granting execution."
+}

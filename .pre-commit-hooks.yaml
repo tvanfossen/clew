@@ -11,3 +11,16 @@
   language: python
   types_or: [c, c++, python, rust, javascript, jsx, ts, tsx]
   require_serial: true
+
+## The wiki's static check (1.4.0, #67): every key of the `wiki:` section known, everything it
+## points at present — flows, reports, the catalog's pins, theme files. `--refresh` brings the
+## index current first (fast tier when it can), so the hook works in a fresh checkout. Sphinx is
+## not needed; `clew wiki build` is a separate CI stage.
+- id: clew-wiki-check
+  name: clew wiki check
+  description: Validate the wiki section of .clew.yaml against the repository and its index
+  entry: clew wiki check --refresh --before-tests
+  language: python
+  pass_filenames: false
+  always_run: true
+  require_serial: true

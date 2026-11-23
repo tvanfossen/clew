@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Edges are stored once per layer, and the query collapses them to the strongest evidence; \"the same pair can exist in several layers. `UNIQUE(caller, callee, source)` means the raw table is inflated, and the query collapses it.\"\nVERDICT: HIT\nWHY: The answer states that edges are stored per extraction layer (source) and the same caller/callee pair can appear in multiple layers, inflating the raw table."
+}

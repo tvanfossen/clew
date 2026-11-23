@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Fuzzy rows are kept in `callers` on purpose: this repo has 21.3% fuzzy edges, and entropic has 79.8%. The `dominated_edges.py` pass only removes fan-out when a stronger layer already named a different function at that call site.\nVERDICT: MISS\nWHY: The answer says fuzzy edges are kept in callers but never contrasts this with a traversal surface that excludes them, and gives no reason that a walk multiplies one fuzzy edge into a wrong subtree."
+}

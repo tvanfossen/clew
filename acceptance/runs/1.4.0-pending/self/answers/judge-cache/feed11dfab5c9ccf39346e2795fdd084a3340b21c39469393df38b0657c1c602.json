@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names these file paths:\n\nITEMS:\nguard/main.py\nguard/tags.py\nscope.py\nguard/git.py\npropose/notindexed.py\ntests/test_security_surface.py\nEND"
+}

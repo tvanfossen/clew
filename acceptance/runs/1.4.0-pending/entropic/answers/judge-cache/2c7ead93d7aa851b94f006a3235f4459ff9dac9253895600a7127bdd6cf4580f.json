@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"the two calls are a size probe followed by the real call, not retry logic.\" and \"Neither path retries a transient failure. Retry logic would mean repeating the same call after an error and possibly backing off. Here the second call is the work itself.\"\nVERDICT: HIT\nWHY: The answer concludes it is size negotiation, not retry, and notes that the second call uses the reported size. It does not explicitly list \"no delay, no attempt counter\", but it denies retry and backoff and says exactly one second call is made."
+}

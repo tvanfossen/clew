@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says that `Header` from `navigation_header/header.tsx` is a separate component rendered by a navigation hook and thread route and excluded from NavigationHeader renderers. It only says NavigationHeader imports `Header` internally."
+}

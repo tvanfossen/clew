@@ -133,7 +133,7 @@ _DEFINED = re.compile(r"^defined\s*\(\s*([A-Za-z_]\w*)\s*\)$|^defined\s+([A-Za-z
 ## @param op Either `&&` or `||`.
 ## @return The operands; a single-element list when the operator is absent at top level.
 ## @version 1
-## @dg_internal
+## @utility
 def _split_top(text: str, op: str) -> list[str]:
     """Depth-tracked rather than `text.split(op)`, because `defined(A) && (B || C)` must
     not be cut inside the parenthesised group — and because `defined(...)` puts
@@ -166,7 +166,7 @@ def _split_top(text: str, op: str) -> list[str]:
 ## @param decisive True for OR (a single True decides), False for AND.
 ## @return The combined verdict, or None when no operand decides it.
 ## @version 1
-## @dg_internal
+## @utility
 def _combine(vals: list[bool | None], decisive: bool) -> bool | None:
     """Short-circuit semantics deliberately, not "any unknown poisons the result":
     `defined(A) || <arithmetic we cannot read>` is TRUE when A is defined, and treating
@@ -189,7 +189,7 @@ def _combine(vals: list[bool | None], decisive: bool) -> bool | None:
 ## @param defined The macro names this configuration defines.
 ## @return True, False, or None when the atom is not a `defined` test.
 ## @version 1
-## @dg_internal
+## @utility
 def _atom(text: str, defined: frozenset[str]) -> bool | None:
     """@brief Evaluate a `defined` atom against the configured macros.
 
@@ -209,7 +209,7 @@ def _atom(text: str, defined: frozenset[str]) -> bool | None:
 ## @param text The expression text, already stripped.
 ## @return The text with fully-enclosing parentheses removed.
 ## @version 1
-## @dg_internal
+## @utility
 def _unwrap(text: str) -> str:
     """Only strips when the OPENING paren closes at the very end — `(A) && (B)` also
     starts with `(` and ends with `)` and must be left alone, which a naive
@@ -407,7 +407,7 @@ class PreprocessorConfig:
 ## @param text Raw text following the macro name.
 ## @return The cleaned value, empty when the macro is object-like with no value.
 ## @version 1
-## @dg_internal
+## @utility
 def _clean_value(text: str) -> str:
     """@brief Remove block and line comments from a macro value.
 
@@ -422,7 +422,7 @@ def _clean_value(text: str) -> str:
 ## @param line A single source line from a config header.
 ## @return (name, value) with an empty value for a bare define, else None.
 ## @version 1
-## @dg_internal
+## @utility
 def _define_from_line(line: str) -> tuple[str, str] | None:
     """SKIPS A CONTINUED MACRO ENTIRELY rather than truncating it. A value spanning
     lines with a trailing backslash cannot be read by a line-at-a-time scan, and half a
@@ -524,7 +524,7 @@ def macros_from_header(path: Path) -> tuple[str, ...]:
 ## @param value Macro value, empty for a bare define.
 ## @return A quoted `"NAME"` or `"NAME=value"` token.
 ## @version 1
-## @dg_internal
+## @utility
 def _token(name: str, value: str) -> str:
     """QUOTED ALWAYS. Doxygen splits a PREDEFINED list on whitespace, so an unquoted
     `SIZE=1 + 2` becomes three entries — two of them nonsense macros. Quoting every
@@ -542,7 +542,7 @@ def _token(name: str, value: str) -> str:
 ## @param repo_root Resolved repo root to search.
 ## @return (path or None, the locations tried).
 ## @version 2
-## @dg_internal
+## @utility
 def _discover_config_header(repo_root: Path) -> tuple[Path | None, tuple[str, ...]]:
     """REFUSES ON AMBIGUITY, following `doxygen.discover_doxyfile` for the reason it
     records: it once resolved
@@ -586,7 +586,7 @@ def _discover_config_header(repo_root: Path) -> tuple[Path | None, tuple[str, ..
 ## @param declared The section's `config_header` value, or None.
 ## @return (path or None, the locations tried).
 ## @version 1
-## @dg_internal
+## @utility
 def _resolve_config_header(
     repo_root: Path, declared: object
 ) -> tuple[Path | None, tuple[str, ...]]:
@@ -613,7 +613,7 @@ def _resolve_config_header(
 ## @param declared The repo-relative path the declaration names.
 ## @return (path or None, the declared location).
 ## @version 2
-## @dg_internal
+## @utility
 def _named_config_header(repo_root: Path, declared: str) -> tuple[Path | None, tuple[str, ...]]:
     """Split out of `_resolve_config_header` to keep both inside the max-3-returns
     standard, which caught the combined version at four.
@@ -648,7 +648,7 @@ def _named_config_header(repo_root: Path, declared: str) -> tuple[Path | None, t
 ## @param secondary Tokens contributed second.
 ## @return Merged tokens, primary first, one per macro name.
 ## @version 1
-## @dg_internal
+## @utility
 def _merged(primary: tuple[str, ...], secondary: tuple[str, ...]) -> tuple[str, ...]:
     """AN EXPLICIT `predefined:` ENTRY BEATS A SCRAPED ONE. Doxygen's own behaviour on a
     duplicated PREDEFINED name is not something to rely on, so the collision is resolved
@@ -668,7 +668,7 @@ def _merged(primary: tuple[str, ...], secondary: tuple[str, ...]) -> tuple[str, 
 ## @param section The parsed `preprocessor:` section.
 ## @return Quoted PREDEFINED tokens, or () when the key is absent or malformed.
 ## @version 1
-## @dg_internal
+## @utility
 def _declared_macros(section: dict[str, Any]) -> tuple[str, ...]:
     """Accepts entries either bare (`MBEDTLS_SSL_TLS_C`) or valued
     (`MBEDTLS_MAX_BLOCK_LENGTH=16`), and re-quotes both through `_token` so an author
@@ -787,7 +787,7 @@ def resolve_preprocessor(
 ## @return Bare names present in `declared` and absent from `harvested`, sorted.
 ## @version 1
 ## @req REQ-DDB-CONFIG-004
-## @dg_internal
+## @utility
 def _stated_only(declared: tuple[str, ...], harvested: tuple[str, ...]) -> tuple[str, ...]:
     """COMPARED BY BARE NAME, never by token. Both sides are rendered doxygen PREDEFINED tokens —
     `'"NAME"'` or `'"NAME=value"'` — so a token comparison would call `"X"` and `"X=1"` different
@@ -813,7 +813,7 @@ def _stated_only(declared: tuple[str, ...], harvested: tuple[str, ...]) -> tuple
 ## @param harvested Tokens read from a config header.
 ## @return One of the SOURCE_* provenance values.
 ## @version 1
-## @dg_internal
+## @utility
 def _source_of(
     section: dict[str, Any], declared: tuple[str, ...], harvested: tuple[str, ...]
 ) -> str:

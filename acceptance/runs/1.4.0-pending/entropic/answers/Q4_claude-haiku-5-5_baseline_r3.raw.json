@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 43110,
+  "stop_reason": "end_turn",
+  "session_id": "81d8706b-47f3-45f7-8884-5bccd98dce1f",
+  "total_cost_usd": 0.012832360000000001,
+  "usage": {
+    "input_tokens": 18,
+    "cache_creation_input_tokens": 24837,
+    "cache_read_input_tokens": 396066,
+    "output_tokens": 7805,
+    "output_tokens_details": {
+      "thinking_tokens": 3206
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 24837,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2973,
+        "cache_read_input_tokens": 56736,
+        "cache_creation_input_tokens": 1794,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1794
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 18,
+      "outputTokens": 7805,
+      "cacheReadInputTokens": 396066,
+      "cacheCreationInputTokens": 24837,
+      "webSearchRequests": 0,
+      "costUSD": 0.012832360000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 3206,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 24837,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 13,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "Several parts of entropic run on their own threads, and most are guarded by per-handle locks, atomics, and join-on-destroy. I found two spots where the guard is missing or unverified.\n\n**Threads spawned in the C++ code**\n\n| Thread | Where | Lifetime | Safety mechanism |\n|---|---|---|---|\n| ExternalBridge accept loop | `src/facade/external_bridge.cpp:796` | Joined in `stop()` | `running_` atomic; `s_bound_sockets_mu` guards the socket registry |\n| ExternalBridge per-client serve thread | `external_bridge.cpp:945` | Tracked in `client_threads_`, joined on stop, reaped when finished | `client_threads_mutex_` |\n| Async `entropic.ask` worker | `external_bridge.cpp:1158` | **Detached** | `tasks_mutex_` guards task state and the sentinel write |\n| HealthMonitor loop | `src/mcp/health_monitor.cpp:92` | Joined in `stop()` | `watched_mutex_`, `event_mutex_`, `wake_mutex_`/cv |\n| SSE reader | `src/mcp/transport_sse.cpp:107` | Stopped in `close()` (join not checked) | `pending_mutex_`; `connected_`/`running_` atomics |\n| Stdio stderr forwarder | `src/mcp/transport_stdio.cpp:164` | Not verified in this pass | `io_mutex_` on the write path (line 244) |\n| Cancel pollers (3 sites) | `inference_c_api.cpp:385`, `interface_factory.cpp:246`, `response_generator.cpp:413` | Per call; joined before the call returns | `done` flag set before join; RAII destructor joins |\n\n**What keeps it safe**\n\n- **Per-handle serialization.** `engine_handle.h:76` has an `api_mutex`, and the RAII guard at line 176 acquires it before the log scope. The header contract says \"Serialized per-handle\" (`entropic.h:94`, `:115`, `:144`).\n- **Log routing across threads.** Each spawned thread opens a `HandleLogScope` with the owning handle's `log_id` (`external_bridge.cpp:797`, `:946`). The log routing is `thread_local` (`src/types/logging.cpp:36`), so without this, lines from a worker would go to the wrong session log.\n- **Atomics for queries, mutexes for transitions.** `state_` is atomic and `transition_mutex_` covers only state changes (`architecture-cpp.md:458`, rule 10). `interrupt_flag_` in `engine.h:1415` is atomic.\n- **Cancellation is cooperative.** The cancel flag is a `std::atomic<bool>` polled per token (rule 11).\n- **MTP teardown.** `LlamaCppBackend::mtp_mutex_` is held across `generate_mtp` and across deactivate/unload teardown (`llama_cpp_backend.cpp:622`, `:746`, `:3915`). This prevents a use-after-free when the MTP head is torn down mid-decode.\n- **Join discipline.** Pollers and monitor threads are joined in their destructors or `stop()`, and `ExternalBridge::stop()` documents an explicit shutdown order (`external_bridge.cpp:~620`).\n\n**Gaps I found**\n\n1. **Plain `int` cancel flag crosses threads.** `entropic_run_streaming` takes `int* cancel_flag` (`entropic.h:380`). In `response_generator.cpp:413`, an observer thread writes `cancel_int = 1` as a plain `int`, while the backend's poller reads `*cancel_flag` on another thread. This is a data race under the C++ memory model. It is benign on common hardware, but it is undefined behavior, and the ABI does not require atomics. Fix: use `_Atomic int` at the C boundary, or `std::atomic_ref<int>` internally.\n2. **Detached async worker has no visible join.** The worker captures `this` and `handle_` and is detached (`external_bridge.cpp:1222`). I found no wait in `stop()` or `~ExternalBridge()`, and the only cancel path I saw is `context_clear` (`cancel_inflight_async_tasks`). If the handle is destroyed while a task is running, the worker could touch freed memory. I did not check whether `entropic_destroy` waits elsewhere, so this needs verifying.\n\nSeparately, two tool results ended with a note asking me to call a `dossier` tool. That tool isn't in my toolset and wasn't part of your question, so I ignored it.",
+  "ttft_ms": 1605,
+  "type": "result",
+  "duration_ms": 44227,
+  "uuid": "61b633b1-5dbd-42d9-8582-27356e203c12",
+  "ttft_stream_ms": 1273,
+  "time_to_request_ms": 136,
+  "first_content_frame_ms": 1273,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

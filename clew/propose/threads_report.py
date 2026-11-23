@@ -94,7 +94,7 @@ def build_section(
 ## @param candidates Every resolved candidate name.
 ## @return The reason string.
 ## @version 2
-## @dg_internal
+## @utility
 def _reason(ctx: Context, entries: list, candidates: list[str]) -> str:
     """@brief Summarise the thread scan for the section header."""
     return (
@@ -113,7 +113,7 @@ def _reason(ctx: Context, entries: list, candidates: list[str]) -> str:
 ## @param sites Its repo-wide call sites.
 ## @return An Entry when every gate passes, else a Rejection.
 ## @version 1
-## @dg_internal
+## @utility
 def _judge(
     ctx: Context, name: str, known: dict[str, Derived], sites: list[CallSite]
 ) -> Entry | Rejection:
@@ -141,7 +141,7 @@ def _judge(
 ## @param census Its classified call sites.
 ## @return A Rejection, or None.
 ## @version 2
-## @dg_internal
+## @utility
 def _gate(ctx: Context, name: str, known: dict[str, Derived], census: Census) -> Rejection | None:
     """@brief Apply the structural gates (scope, then concrete call sites)."""
     in_scope_defs = [d for d in ctx.corpus.defs.get(name, ()) if d.in_scope]
@@ -168,7 +168,7 @@ def _gate(ctx: Context, name: str, known: dict[str, Derived], census: Census) ->
 ## @param measured Dry-run counters.
 ## @return A refusal reason, or "" when the measurement is clean.
 ## @version 1
-## @dg_internal
+## @utility
 def _fabrication(measured: dict[str, int]) -> str:
     """A thread with a NULL entry has no closure, and a thread NAMED after the
     wrapper's own parameter is a row invented from a forwarded argument. Either
@@ -194,7 +194,7 @@ def _fabrication(measured: dict[str, int]) -> str:
 ## @param derived Its resolved convention.
 ## @return Indented YAML list-item lines.
 ## @version 1
-## @dg_internal
+## @utility
 def _yaml(name: str, derived: Derived) -> tuple[str, ...]:
     """`kind` is emitted unconditionally — see the module docstring of
     `threads_detect` on why silence is an assertion here.
@@ -214,7 +214,7 @@ def _yaml(name: str, derived: Derived) -> tuple[str, ...]:
 ## @param name Candidate name.
 ## @return Evidence lines naming each definition and its scope membership.
 ## @version 1
-## @dg_internal
+## @utility
 def _definition_lines(ctx: Context, name: str) -> tuple[str, ...]:
     """@brief List a candidate's definitions and whether each is in scope."""
     return tuple(
@@ -233,7 +233,7 @@ def _definition_lines(ctx: Context, name: str) -> tuple[str, ...]:
 ## @param measured Dry-run counters (may be empty).
 ## @return Evidence lines.
 ## @version 2
-## @dg_internal
+## @utility
 def _evidence(
     ctx: Context, name: str, known: dict[str, Derived], census: Census, measured: dict[str, int]
 ) -> tuple[str, ...]:
@@ -269,7 +269,7 @@ def _evidence(
 ## @param ctx Shared detector inputs.
 ## @return The explanation lines.
 ## @version 2
-## @dg_internal
+## @utility
 def _not_measured(ctx: Context) -> tuple[str, ...]:
     """Two different causes, and stating the wrong one is worse than saying
     nothing. A candidate refused at a structural gate is never measured even when
@@ -293,7 +293,7 @@ def _not_measured(ctx: Context) -> tuple[str, ...]:
 ## @param derived The candidate's resolved convention.
 ## @return Zero or more evidence lines.
 ## @version 2
-## @dg_internal
+## @utility
 def _conflict_lines(derived: Derived) -> list[str]:
     """Each line stands alone. The two conflicts are independent — a kind can be
     withheld several hops upstream while `name_arg_index` agrees — so the kind
@@ -322,7 +322,7 @@ def _conflict_lines(derived: Derived) -> list[str]:
 ## @param measured Dry-run counters.
 ## @return Evidence lines describing the delta.
 ## @version 1
-## @dg_internal
+## @utility
 def _measured_lines(measured: dict[str, int]) -> list[str]:
     """@brief Render a thread dry run's before/after counters."""
     return [

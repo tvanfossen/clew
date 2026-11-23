@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The field is still in the header, but its name is changed, so code that reaches into it by the plain name fails to compile. C has no access control, so this rename is the only barrier.\"\nVERDICT: HIT\nWHY: The answer says that opacity is enforced at compile time by renaming the member to `private_##member`. It also says the field stays in the header, so the layout is not hidden."
+}

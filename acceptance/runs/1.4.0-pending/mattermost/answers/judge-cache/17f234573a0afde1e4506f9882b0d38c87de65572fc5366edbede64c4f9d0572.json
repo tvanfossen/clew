@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It is triggered from the failed-post indicator (`app/components/post_list/post/body/failed/index.tsx`, `Failed.onPress`). ... `retryFailedPost`, `app/actions/remote/post.ts:228`\nVERDICT: HIT\nWHY: The answer says retry is manual, triggered by the user via the failed-post indicator's onPress, and names `retryFailedPost`. It never quotes \"Try Again\" but gives the user-initiated trigger and the function."
+}

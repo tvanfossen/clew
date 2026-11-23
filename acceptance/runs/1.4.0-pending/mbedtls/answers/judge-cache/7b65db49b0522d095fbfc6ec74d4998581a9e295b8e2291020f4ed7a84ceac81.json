@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names three top-level directories in connection with `MBEDTLS_PRIVATE`: `include` (the macro's definition and the public headers that use it), `library` (`common.h`), and `programs` (the two SSL sample programs). Strictly, the `library` and `programs` files define `MBEDTLS_ALLOW_PRIVATE_ACCESS` rather than use `MBEDTLS_PRIVATE`, but the answer lists them as places where the macro resolves to real member names, so I included them.\n\nITEMS:\ninclude\nlibrary\nprograms\nEND"
+}

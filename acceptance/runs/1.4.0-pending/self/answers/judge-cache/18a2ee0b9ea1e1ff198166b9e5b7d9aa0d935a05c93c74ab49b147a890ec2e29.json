@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says a declared scope is used and undeclared falls to whole repo, but it says a rejected declaration stops the build rather than falling through. It never states that every failure to find a declaration falls through to the whole repo."
+}

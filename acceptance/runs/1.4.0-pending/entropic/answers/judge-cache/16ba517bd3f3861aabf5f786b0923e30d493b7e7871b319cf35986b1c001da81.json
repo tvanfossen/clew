@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Always Allow/Deny\" writes patterns back to project YAML through `PermissionPersister`.\nVERDICT: MISS\nWHY: The answer says persistence goes to \"project YAML\" via PermissionPersister, but never names config.local.yaml or an append mechanism separate from the in-memory add_permission call."
+}

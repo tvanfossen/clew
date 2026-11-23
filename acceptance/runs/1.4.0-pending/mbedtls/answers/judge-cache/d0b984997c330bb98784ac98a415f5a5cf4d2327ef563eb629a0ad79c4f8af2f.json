@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: About 200 call-site lines in about 20 files use `mbedtls_ct_*` (counted with grep, so this is lines, not distinct sites).\nVERDICT: HIT\nWHY: The answer states the primitives are used across roughly twenty files and lists many modules, matching the item."
+}

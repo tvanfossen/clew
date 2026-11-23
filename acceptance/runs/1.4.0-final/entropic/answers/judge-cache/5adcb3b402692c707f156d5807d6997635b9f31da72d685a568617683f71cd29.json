@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Buffers the engine will free must come from `entropic_alloc()`.** That is `malloc` on the engine side. Hook `modified_json` is the main case.\" and \"`hooks.py::_alloc_c_string` and `_build_trampoline` allocate through `entropic_alloc`, copy UTF-8 bytes, and set `*modified_json`\"\nVERDICT: HIT\nWHY: The answer states the rule that engine-freed buffers must come from entropic_alloc and names the Python location (hooks.py `_alloc_c_string`/`_build_trampoline`) where it is applied."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The messages are sized to the response budget in three tiers: full prose, compact, then minimal.\"\nVERDICT: HIT\nWHY: The answer states that the staleness notices are fitted to the response budget by degrading wording through full, compact and minimal tiers. The notice is not dropped."
+}

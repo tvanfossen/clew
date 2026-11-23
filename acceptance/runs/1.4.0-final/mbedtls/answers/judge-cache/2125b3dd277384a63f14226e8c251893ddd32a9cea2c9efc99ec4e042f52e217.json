@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `library/CMakeLists.txt:134` runs `scripts/generate_errors.pl` over `include/mbedtls` with `scripts/data_files/error.fmt`.\nVERDICT: HIT\nWHY: The answer says error.c is generated from the public headers by generate_errors.pl using error.fmt as its template, and it backs this with the CMake rule and the auto-generated markers."
+}

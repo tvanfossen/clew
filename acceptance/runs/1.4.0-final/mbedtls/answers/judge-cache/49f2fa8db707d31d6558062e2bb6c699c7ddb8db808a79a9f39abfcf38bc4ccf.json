@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Opacity.** `mbedtls_ct_compiler_opaque(x)` is an empty asm with a `+r` constraint (`constant_time_impl.h`). It stops the optimiser from proving that a mask is 0 or all-ones and turning it back into a branch.\nVERDICT: HIT\nWHY: The answer names mbedtls_ct_compiler_opaque as the primitive that stops the compiler from reasoning about values, and places it in constant_time_impl.h. The path is given without the `library/` prefix, but the file is identified."
+}

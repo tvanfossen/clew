@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"It does not repeat on failure, so it is not retry.\" and the table row \"`LlamaCppTokenizer::tokenize` | empty `vector<int32_t>` | `llama_cpp_tokenizer.cpp:64-68`, after one `logger->error`\"\nVERDICT: HIT\nWHY: The answer says the second call (line 61) is not retried on failure and that failure returns an empty vector after one error log. That is terminal-empty behaviour, though it never names the negative result of the second call explicitly."
+}

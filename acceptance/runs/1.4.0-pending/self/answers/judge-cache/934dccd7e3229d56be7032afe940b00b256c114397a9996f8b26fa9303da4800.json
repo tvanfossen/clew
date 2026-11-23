@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The row is one per endpoint identity, not one per layer (`CallEdge`, `models.py:145`). `source` and `confidence` describe the strongest evidence found for that endpoint.\nVERDICT: HIT\nWHY: The answer states rows are one per endpoint rather than per layer, with source/confidence reflecting the strongest evidence."
+}

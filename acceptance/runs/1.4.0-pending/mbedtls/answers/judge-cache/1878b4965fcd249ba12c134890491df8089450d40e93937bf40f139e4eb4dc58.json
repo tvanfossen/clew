@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `tests/scripts/components-configuration-crypto.sh` runs the `*constant_time*` suites under Valgrind memcheck, with `--track-origins=yes`. Memcheck flags branches on undefined data, which is how secret-dependence is detected.\nVERDICT: MISS\nWHY: The answer mentions valgrind-based testing of the constant-time suites. It never says the facility is off-by-default, separate from the library, or explicitly not part of the library API."
+}

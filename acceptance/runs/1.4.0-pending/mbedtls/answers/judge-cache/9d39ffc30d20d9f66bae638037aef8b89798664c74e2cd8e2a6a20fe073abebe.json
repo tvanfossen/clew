@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Only what the application starts. The library creates no threads.\" and \"Every mutex field, lock call, and the `mbedtls_mutex_*` function pointers are inside `#if defined(MBEDTLS_THREADING_C)`\" and the table of locks/`mbedtls_threading_*` mutexes enabled with THREADING_C + pthread.\nVERDICT: MISS\nWHY: The answer says the library creates no threads, but it doesn't state that library/ supplies the mutex abstraction for threaded callers. It frames the locks as compiled-in internal protection and says they are compiled out by default."
+}

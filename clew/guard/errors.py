@@ -1,4 +1,5 @@
-"""Typed exceptions for doxygen-guard.
+# SPDX-License-Identifier: MIT
+"""Typed exceptions for clew guard.
 
 @brief Library-level errors that callers can catch; exit codes belong to the CLI.
 @version 1.0

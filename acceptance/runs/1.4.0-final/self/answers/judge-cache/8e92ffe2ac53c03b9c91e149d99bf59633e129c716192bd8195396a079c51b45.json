@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `_staleness_within_budget` sizes it to the room left in the payload: full prose first, then a compact form, then a minimal form. The block is never dropped silently.\nVERDICT: HIT\nWHY: The answer states that the staleness annotation is fitted to the budget by degrading from full prose to compact to minimal wording, and that it is never dropped."
+}

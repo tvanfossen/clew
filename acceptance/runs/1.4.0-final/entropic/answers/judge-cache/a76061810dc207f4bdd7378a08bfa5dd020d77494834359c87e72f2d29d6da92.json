@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"through `ctypes`, with no C extension and no cffi. The Python package loads `librentropic.so` at import time and binds each C symbol by hand.\"\nVERDICT: HIT\nWHY: The answer explicitly states ctypes loading librentropic.so with no C extension module involved."
+}

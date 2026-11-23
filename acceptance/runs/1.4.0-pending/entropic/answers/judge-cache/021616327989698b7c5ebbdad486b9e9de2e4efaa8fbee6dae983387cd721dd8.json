@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer lists mostly src/inference files but never concludes the dependency is concentrated there yet not contained, with a minority of reaching files outside src/inference. It mentions the facade and public headers, but not as that concentrated-but-not-contained conclusion."
+}

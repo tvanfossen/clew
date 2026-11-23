@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 21298,
+  "stop_reason": "end_turn",
+  "session_id": "34d9166f-ce79-4743-ab69-7d485d67b4fd",
+  "total_cost_usd": 0.0127163,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 39151,
+    "cache_read_input_tokens": 300240,
+    "output_tokens": 3765,
+    "output_tokens_details": {
+      "thinking_tokens": 1080
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 39151,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1937,
+        "cache_read_input_tokens": 72036,
+        "cache_creation_input_tokens": 3274,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 3274
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 3765,
+      "cacheReadInputTokens": 300240,
+      "cacheCreationInputTokens": 39151,
+      "webSearchRequests": 0,
+      "costUSD": 0.0127163,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1080,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 39151,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 14,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** Python never links against the C++ code or uses a Python-side C++ wrapper. It calls the C ABI in `librentropic.so` directly through `ctypes`. Memory crosses that boundary under the rules in `entropic.h`: whoever allocates frees, `entropic_alloc`/`entropic_free` are the only allocator pair for buffers that cross, and borrowed `const char*` strings die on the next call.\n\n**Call path**\n\n```\nPython (entropic package)\n  _bindings.py   ctypes shims, one per ENTROPIC_EXPORT symbol\n       \u2502  _bind(name, restype, *argtypes) pins restype/argtypes\n  _loader.py     finds librentropic.so (env var, ~/.entropic, then ldconfig)\n       \u2502  dlopen-style ctypes.CDLL\n  hooks.py       Pythonic @hook layer on top of the raw C hook API\n       \u25bc\nlibrentropic.so   pure C API from include/entropic/entropic.h\n       \u25bc\nC++ engine (src/facade/entropic.cpp and below)\n```\n\n- `_bindings.py` is generated from `entropic.h` by `scripts/gen_bindings.py`, which the index describes as a full C-to-ctypes generator. The module covers about 220 symbols: functions, IntEnums, `ctypes.Structure` types and CFUNCTYPE callback typedefs.\n- `__init__.py` has no `EntropicEngine` class. The package is a flat binding, and imports are lazy (PEP 562) so `install-engine` can run before the `.so` exists.\n- The header's design rules say all `.so`-boundary functions are pure C with opaque handles. No C++ types or exceptions cross, and errors come back as `entropic_error_t` plus `entropic_last_error(handle)`.\n\n**Memory rules that cross the boundary**\n\nFrom `entropic.h` (`@par Memory ownership`) and the `i_inference_backend.h` header:\n\n1. **Engine-returned `char*` transfers ownership to the caller.** Free it with `entropic_free()`. `entropic_free` is a plain `free()` on the engine side, and NULL is a no-op.\n2. **Buffers the engine will free must come from `entropic_alloc()`.** That is `malloc` on the engine side. Hook `modified_json` is the main case.\n3. **`const char*` returns are borrowed.** The handle owns them, and they are valid only until the next call on that handle. Copy them out immediately.\n4. **Each handle is serialized.** Calls on one handle run one at a time. Different handles are independent. `entropic_destroy` is single-threaded and must not race other calls on the same handle.\n\n**How the Python side applies those rules**\n\n- `hooks.py::_alloc_c_string` and `_build_trampoline` allocate through `entropic_alloc`, copy UTF-8 bytes, and set `*modified_json`, so the engine's `free()` gets a pointer of the right provenance.\n- The hook trampoline never lets a Python exception reach C. It prints the traceback and returns 0 (pass-through).\n- **Callback lifetime:** a `CFUNCTYPE` object must stay referenced for as long as C may call it. A bare `entropic_register_hook(h, p, HOOK_CB(f), None, 0)` is a use-after-free risk, because the wrapper is dropped when the call returns. `hooks.py` keeps trampolines in a per-handle list (`_bound`). `helpers.py` documents the same pattern for the delegation and attempt-boundary callbacks, and tells the caller to hold the `CFUNCTYPE` object for the engine's lifetime.\n\n**Gaps I could not settle from the index**\n\n- I did not confirm the `restype` the bindings use for `char*` returns (`c_void_p` or `c_char_p`). That determines whether Python code must call `entropic_free` on them itself. The `_build_trampoline` cast to `c_char_p` suggests the bindings use `c_char_p` for hook-supplied strings only.\n- In `hooks.py`, if `entropic_alloc` returns NULL the trampoline still returns 1 (transform), with no `modified_json` set. I have not checked how the engine handles that case.\n- `_bound` is keyed by the handle's address, and I did not find a cleanup path for it on `entropic_destroy`. A reused address could match stale entries.",
+  "ttft_ms": 1742,
+  "type": "result",
+  "duration_ms": 24868,
+  "uuid": "064110df-c4f2-4f7c-b661-d38acda98ffa",
+  "ttft_stream_ms": 1275,
+  "time_to_request_ms": 125,
+  "first_content_frame_ms": 1275,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

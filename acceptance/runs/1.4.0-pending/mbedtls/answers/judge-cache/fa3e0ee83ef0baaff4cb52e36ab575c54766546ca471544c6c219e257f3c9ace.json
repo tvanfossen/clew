@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The library creates no threads. In the default build, each context has no internal protection\nVERDICT: MISS\nWHY: The answer says the library creates no threads, but it never mentions the pthread example compiling to a stub main under the default build."
+}

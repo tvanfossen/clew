@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 14371,
+  "stop_reason": "end_turn",
+  "session_id": "b95f8b42-fdfb-426c-a7eb-7b5774e3c3db",
+  "total_cost_usd": 0.0070262200000000006,
+  "usage": {
+    "input_tokens": 6,
+    "cache_creation_input_tokens": 24711,
+    "cache_read_input_tokens": 94592,
+    "output_tokens": 2275,
+    "output_tokens_details": {
+      "thinking_tokens": 770
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 24711,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1493,
+        "cache_read_input_tokens": 39830,
+        "cache_creation_input_tokens": 1176,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1176
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 6,
+      "outputTokens": 2275,
+      "cacheReadInputTokens": 94592,
+      "cacheCreationInputTokens": 24711,
+      "webSearchRequests": 0,
+      "costUSD": 0.0070262200000000006,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 770,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 24711,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 4,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** the reply separates the two cases by what it says about its own reach. A bare \"no rows\" is not the signal. The `note` field carries the grading, and it is only allowed to claim certainty about the places the search actually covered.\n\n**What I observed.** I searched for a made-up token, `zzqx_nonexistent_symbol_probe`, against this repository. The reply came back with `count: 0` and a `note` that:\n\n- Calls the result a definitive empty result from the database, \"NOT an error and NOT a malformed call\", and tells the caller not to retry.\n- Lists what was searched: names, `@brief` text, macros, typedefs, enums, classes, config symbols, and file docs.\n- Lists what was not searched: markdown and Kconfig prose (point to `corpus='prose'`) and function bodies (point to `corpus='code'`).\n- Gives a `scope` block: `source: whole-repo`, 426 files, the top-level directories, the extensions that were read, and `not_indexed`, which names the file types the index never read (for example `.rs=2`, `.toml=2`, `.sql=1`, and files with no extension).\n- Gives the `target` path, so you can confirm the index is looking at the repository you meant.\n\n**How the code grades it** (`clew/mcp_server/emptiness.py`). The module's own comments describe three outcomes:\n\n| Outcome | When | Confidence it earns |\n|---|---|---|\n| Definitive | A single token, matched nowhere in the searched layers, and nothing in an unread corpus could hold it | High, but only about the index. It is a statement about the scoped files and layers. |\n| Not definitive | A multi-token conjunction, a corpus the index does not read, or an index with no layer that could hold the match | Low. The reply names the next step: another corpus, or `index(action='refresh')`. |\n| Error | Malformed call | None. Not a result. |\n\nThe wording is graded, not fixed. The module has a test that a note claiming certainty must have earned it. It also says that the definitive note is kept only when nothing unread could have matched.\n\n**How much each answer is entitled to:**\n\n- **\"Not in this repository\"** is only supported when the reply is definitive *and* the place the name would live is inside `scope`. \"Not in the symbol layer\" does not mean \"not in the repository\". A function body, a Markdown file, a `.rs` file, or a Kconfig file can hold the name without a symbol row.\n- **\"I did not look there\"** is what `not_searched` and `not_indexed` report. Those are the signals to act on: switch corpus, read the source directly, or check whether the file type is covered at all.\n- **Staleness** is the other blind spot. The reply carries a `staleness` key only when the index is stale. A file added after the last build is not in the index, and the reply will not say so unless the index reports it stale. Check `target` and `staleness` before trusting a miss.\n\n**Practical rule.** Treat a definitive empty as \"the indexed symbols, docs and config of this target do not contain it.\" Treat anything else as \"not looked, or not able to look.\" If the question is about a file type or corpus named in `not_indexed` or `not_searched`, read the source with Grep or Glob instead of trusting the index.",
+  "ttft_ms": 2608,
+  "type": "result",
+  "duration_ms": 14658,
+  "uuid": "5c1205ca-438f-413b-9df7-d5b1d7c5ce9b",
+  "ttft_stream_ms": 1131,
+  "time_to_request_ms": 92,
+  "first_content_frame_ms": 1131,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

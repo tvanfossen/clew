@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: callbacks are drained by `process_events()` on the engine thread, so user callbacks never run on the monitor thread\nVERDICT: HIT\nWHY: The health monitor row says events are queued (event_mutex_ for the queue) and callbacks are drained by process_events() on the engine thread rather than the monitor thread, which covers the item's mechanism."
+}

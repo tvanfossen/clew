@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer mentions a `scope` block with `extensions` and `not_indexed_count`, but never states the reply names file types that were in scope and produced no rows. It says the strong wording fails to distinguish a scope miss from absence."
+}

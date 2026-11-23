@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The post was already written to the local database as a pending post before the network call, so it stays visible in the channel. ... The record is rewritten with `props.failed = true`, and the UI shows the failed state.\nVERDICT: HIT\nWHY: The answer states the post is saved locally before sending and, on failure, is kept and marked `failed = true`."
+}

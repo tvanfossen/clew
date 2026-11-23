@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**One row per caller function, not per call site.** `_endpoint_identities` collapses duplicates. A function that calls `fn` five times appears once, with no line numbers.\"\nVERDICT: MISS\nWHY: The answer says one row per caller function, not per call site, but never says rows are collapsed across extraction layers or variants to the strongest evidence. That is a different collapse from the one the item names."
+}

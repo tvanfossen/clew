@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The interface contract at `include/entropic/inference/tokenizer.h` says \"empty on failure or empty input\", so a failure cannot be told apart from an empty prompt.\nVERDICT: HIT\nWHY: The answer states that failure is indistinguishable from an empty input, and shows that most callers don't check for it. Only the speculative and MTP paths guard, and they do so on `tokens.size() < 2`, not on failure."
+}

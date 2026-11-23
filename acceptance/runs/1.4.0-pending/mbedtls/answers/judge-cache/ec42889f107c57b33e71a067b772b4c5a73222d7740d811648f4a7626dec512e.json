@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Struct fields are declared as `MBEDTLS_PRIVATE(foo)`, so by default a field `foo` is actually named `private_foo`. Code outside the library that writes `ctx->foo` fails to compile... It is a compile-time guard, not an access-control mechanism.\nVERDICT: HIT\nWHY: The answer explains that opacity is enforced at compile time by renaming members to `private_foo`, not by hiding the struct. It does not say outright that the fields stay visible and sized, but it implies this: the same macro produces the mangled name and the code still compiles."
+}

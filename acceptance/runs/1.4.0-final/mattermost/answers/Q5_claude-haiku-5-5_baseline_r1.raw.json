@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 26670,
+  "stop_reason": "end_turn",
+  "session_id": "513c4a78-0572-41dc-b33e-0ffe83d28b5c",
+  "total_cost_usd": 0.01600272,
+  "usage": {
+    "input_tokens": 16,
+    "cache_creation_input_tokens": 49404,
+    "cache_read_input_tokens": 376682,
+    "output_tokens": 4707,
+    "output_tokens_details": {
+      "thinking_tokens": 1669
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 49404,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2103,
+        "cache_read_input_tokens": 61722,
+        "cache_creation_input_tokens": 614,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 614
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 16,
+      "outputTokens": 4707,
+      "cacheReadInputTokens": 376682,
+      "cacheCreationInputTokens": 49404,
+      "webSearchRequests": 0,
+      "costUSD": 0.01600272,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1669,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 49404,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 11,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**How the class is built**\n\n`ServerDataOperator` (`app/database/operator/server_data_operator/index.ts`) is a mixin composition, not a class with methods of its own. The base is `ServerDataOperatorBase` (`server_data_operator/handlers/index.ts`), which extends `BaseDataOperator`. The class then applies 13 handler mixins through `mix(...).with(...)` from `app/utils/mix.ts`. Each mixin is a function `(superclass) => class extends superclass {...}`, so the handlers are layered onto the base in order. A matching `interface ServerDataOperator extends ...Mix` gives TypeScript the method types. The constructor takes `(database, serverUrl)` and stores `serverUrl`. `DatabaseManager` creates it at `app/database/manager/index.ts:184`.\n\n**Handlers defined next to it** (`server_data_operator/handlers/`): category, channel, custom_profile, group, post, properties, team, team_threads_sync, thread, user. That is 10.\n\n**Handlers defined elsewhere** (3):\n\n| Mixin | File |\n|---|---|\n| `AgentsHandler` | `app/products/agents/database/operators/handlers/index.ts` |\n| `BoardsHandler` | `app/products/boards/database/operators/handlers/index.ts` |\n| `PlaybookHandler` | `app/products/playbooks/database/operators/handlers/index.ts` |\n\nThey are imported through the `@agents`, `@boards` and `@playbooks` path aliases. They are typed against `ServerDataOperatorBase`, so they can call `this.handleRecords` and `this.batchRecords` like the local handlers.\n\n**Where a handler's write actually happens**\n\nFor a typical handler such as `handleBoardViews`, the path is:\n\n```\nhandler (e.g. handleBoardViews)\n  \u2514\u2500 this.handleRecords({...}, description)        base_data_operator/index.ts\n       \u251c\u2500 processRecords()  query existing rows, split into create / update / delete\n       \u251c\u2500 prepareRecords()  transformer builds prepared models, or prepareDestroyPermanently()\n       \u2514\u2500 if !prepareRecordsOnly \u2192 batchRecords(models, description)\n            \u2514\u2500 database.write(writer => writer.batch(...models))   \u2190 the actual DB write\n```\n\n`BaseDataOperator.batchRecords` in `app/database/operator/base_data_operator/index.ts` is the single place a standard handler writes to the database. On failure it logs a warning and emits `DATABASE_CORRUPTION_DETECTED` for corruption errors. It rethrows only if `propagateError` is set.\n\nSome handlers skip this path:\n- `post.ts:516` and `thread.ts:74` call `database.write(...)` directly to run `destroyPermanently()` on deleted posts and threads.\n- `ServerDataOperatorBase.handleReactions` and the thread-participant handler build their own batch and then call `batchRecords` themselves.\n- `handleAIBots` in the agents mixin reads the collection directly to diff against existing records.\n\n**What else shares it**\n\n- **`batchRecords`, `handleRecords`, `processRecords`, `prepareRecords`, `execute`**: these come from `BaseDataOperator`, which `AppDataOperator` also extends (`app_data_operator/index.ts`). So the app-level database shares the same write pipeline, but none of the server handlers.\n- **`batchRecords` and `handleRecords` across mixins**: every local and product handler calls the same two methods. The only shared write path is `batchRecords`; the `database.write` calls above are the exceptions.\n- **Mock manager**: `app/database/manager/__mocks__/index.ts:139` constructs the same class for tests.",
+  "ttft_ms": 1576,
+  "type": "result",
+  "duration_ms": 27928,
+  "uuid": "452b833f-0276-461c-a476-8625e63a74ea",
+  "ttft_stream_ms": 1270,
+  "time_to_request_ms": 126,
+  "first_content_frame_ms": 1270,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

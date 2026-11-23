@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Keys use the same names as the declaration file.\nVERDICT: HIT\nWHY: The answer states that caller-stated option keys use the same names as the declaration file's sections. It does not say the diagnostics use those words too, but the item's core substance is covered, and \"Build logs name the source\" and the section-name refusals gesture at the rest."
+}

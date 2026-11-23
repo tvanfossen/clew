@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **`code`:** reads are unaffected, since they open the db per call. Writes are refused, and `force` does not override the refusal. The fix is to restart the MCP client, then run `index(action='refresh', force=True)`. A rebuild alone does not clear it.\nVERDICT: HIT\nWHY: The answer states reads are unaffected because they open the db per call, while writes (builds) are refused on the code axis. The item's substance is the same read/write asymmetry. The \"old pipeline logic\" rationale is not spelled out, but the mechanism is."
+}

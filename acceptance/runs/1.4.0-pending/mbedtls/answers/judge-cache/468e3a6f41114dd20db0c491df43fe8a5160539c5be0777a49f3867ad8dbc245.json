@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It requires `MBEDTLS_PLATFORM_MEMORY` and the runtime path, because it depends on the function pointers.\nVERDICT: HIT\nWHY: The answer states the buffer allocator requires MBEDTLS_PLATFORM_MEMORY (runtime function-pointer path) to route allocations through it, matching the item's substance."
+}

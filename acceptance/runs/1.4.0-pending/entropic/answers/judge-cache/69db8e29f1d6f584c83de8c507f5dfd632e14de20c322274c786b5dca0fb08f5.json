@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`entropic_interrupt` is documented thread-safe and works by setting an atomic flag. The C ABI carries only `int*`, so no atomic crosses the `.so` boundary. The poller threads bridge the int to the atomic.\"\nVERDICT: HIT\nWHY: The answer says the C ABI carries only `int*`, so no atomic can cross it, and the cancel poller threads bridge the int to the atomic."
+}

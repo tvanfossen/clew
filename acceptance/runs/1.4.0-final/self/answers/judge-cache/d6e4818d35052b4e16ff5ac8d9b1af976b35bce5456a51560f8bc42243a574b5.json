@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The edges are AST-resolved with `confidence: resolved` and `edge_class: call`.\nVERDICT: MISS\nWHY: The answer mentions `edge_class: call` only for these edges. It never says the list mixes direct calls with shared-key dataflow edges, and it never says the consumer must read `edge_class`. It states instead that the list is \"direct edges only\"."
+}

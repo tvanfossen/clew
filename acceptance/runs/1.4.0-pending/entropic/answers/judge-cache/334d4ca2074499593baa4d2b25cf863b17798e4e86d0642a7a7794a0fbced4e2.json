@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says a tool on neither list is denied at the approval step when no callback is registered. It never concludes that such a tool is not denied and runs. It does note the callback \"never denies\", but that is a different claim."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: That switch is generated at build time by `scripts/generate_errors.pl`, so a contributor adds a code by declaring it in a public header and rebuilding... `library/CMakeLists.txt:134` runs `generate_errors.pl` as a custom command. It takes `include/mbedtls` and `scripts/data_files` as inputs and writes `${CMAKE_CURRENT_BINARY_DIR}/error.c`... The rule's dependencies are `generate_errors.pl`, the `error_headers` list, and `scripts/data_files/error.fmt`.\nVERDICT: HIT\nWHY: The answer states error.c is generated from public headers by generate_errors.pl, with error.fmt as a dependency in the data_files directory. It says it could not confirm the template role in detail, but it does name error.fmt as part of the generation rule."
+}

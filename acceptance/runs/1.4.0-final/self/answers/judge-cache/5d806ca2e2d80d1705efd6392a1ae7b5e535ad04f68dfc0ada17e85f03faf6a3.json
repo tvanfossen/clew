@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Each section name is also the option name, so a section can be moved verbatim into an `options` mapping.\nVERDICT: HIT\nWHY: The answer states that the `.clew.yaml` section names are the same as the option names used in the embedding caller's `options` mapping, but it never says that the diagnostics use the same words. The item has two parts, and only the first is covered, so this is a borderline call. The \"section = option name\" substance is explicit, and I am grading it as the core of the item."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Exports are listed in `_bindings_manifest.py` and loaded lazily (PEP 562), so `import entropic` works before the `.so` exists.\nVERDICT: MISS\nWHY: The answer mentions a manifest and lazy loading, but never states the deliberate two-part split: that the manifest is names-only and imports no ctypes, while `_bindings.py` is the module that loads the library."
+}

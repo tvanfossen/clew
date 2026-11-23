@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer lists about 8-10 files in the adapter layer but frames the reach as a small adapter layer and never conveys a dozen-ish files of entropic source."
+}

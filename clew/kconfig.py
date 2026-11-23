@@ -324,7 +324,7 @@ def discover_kconfig(
 ## @param declared The repo-relative path the declaration names.
 ## @return The location; `path` is None when the declared file does not exist.
 ## @version 2
-## @dg_internal
+## @utility
 def _declared_kconfig(root: Path, declared: str) -> KconfigLocation:
     """A declared-but-missing path WARNS rather than failing the build, matching
     `declaration.declared_path` and `preprocessor._named_config_header` — and the
@@ -357,7 +357,7 @@ def _declared_kconfig(root: Path, declared: str) -> KconfigLocation:
 ## @param root Resolved repo root.
 ## @return The location; `path` is None when nothing was found or convention was ambiguous.
 ## @version 1
-## @dg_internal
+## @utility
 def _conventional_kconfig(root: Path) -> KconfigLocation:
     """Root first, because an unambiguous root `Kconfig` is the convention every
     Kconfig-based build system shares and needs no declaration to be believed. Then
@@ -510,7 +510,7 @@ def _sourced_outside(kconf: Any, root: Path) -> list[str]:
 ## @param location Where it was parsed from.
 ## @return The populated model.
 ## @version 1
-## @dg_internal
+## @utility
 def _model_from_kconf(
     kconf: Any, location: KconfigLocation, shell_refused: tuple[str, ...] = ()
 ) -> KconfigModel:
@@ -561,7 +561,7 @@ def _model_from_kconf(
 ## @param attribute The node attribute to read ('help' or 'prompt').
 ## @return The first non-empty value, or "".
 ## @version 1
-## @dg_internal
+## @utility
 def _first_text(nodes: Any, attribute: str) -> str:
     """A symbol may be declared in SEVERAL places, each with its own menu node, and
     only some of them carry the prose. Taking `nodes[0]` unconditionally therefore
@@ -588,7 +588,7 @@ def _first_text(nodes: Any, attribute: str) -> str:
 ## @param kconf The parsed Kconfig, whose `y` is the unconditional sentinel.
 ## @return One line per default, conditions included; "" when there are none.
 ## @version 2
-## @dg_internal
+## @utility
 def _defaults_text(defaults: Any, kconf: Any) -> str:
     """CONDITIONS ARE KEPT. `default FOO if BAR` and `default FOO` say different
     things about which variant is the unstated one, and dropping the `if` would turn
@@ -624,7 +624,7 @@ def _defaults_text(defaults: Any, kconf: Any) -> str:
 ## @param choice_keys id(choice) -> synthetic choice key.
 ## @return The stored row.
 ## @version 2
-## @dg_internal
+## @utility
 def _symbol_row(sym: Any, kconf: Any, choice_keys: dict[int, int]) -> KconfigSymbol:
     """`orig_type` rather than `type`, deliberately. kconfiglib's `type` reports a
     `bool` for a symbol whose declared type is `tristate` once modules are disabled —
@@ -663,7 +663,7 @@ def _symbol_row(sym: Any, kconf: Any, choice_keys: dict[int, int]) -> KconfigSym
 ## @param kconf The parsed Kconfig the choice belongs to.
 ## @return The stored row.
 ## @version 2
-## @dg_internal
+## @utility
 def _choice_row(choice: Any, key: int, kconf: Any) -> KconfigChoice:
     """@brief Convert one kconfiglib Choice to a stored row.
 

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: An empty result is also what valid empty input produces when `add_special=false`, so the two cases can't be told apart by the return value.\nVERDICT: MISS\nWHY: The answer states failure is indistinguishable from legitimately empty, but it never concludes that no caller checks for it. Its table says callers continue, report a misleading error, or return 0, and it does not say none of them check."
+}

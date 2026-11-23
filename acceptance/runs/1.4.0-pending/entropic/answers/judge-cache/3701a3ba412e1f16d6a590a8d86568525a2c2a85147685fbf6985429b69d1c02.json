@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"An allow hit skips the prompt. It does not bypass the deny check, which runs later.\"\nVERDICT: HIT\nWHY: The answer says the allow list only skips the prompt and doesn't bypass the later deny check, and ties it to `check_approval` (`tool_executor.cpp`) with `is_explicitly_allowed` from `ServerManager`, so the mechanism and the different file are both named."
+}

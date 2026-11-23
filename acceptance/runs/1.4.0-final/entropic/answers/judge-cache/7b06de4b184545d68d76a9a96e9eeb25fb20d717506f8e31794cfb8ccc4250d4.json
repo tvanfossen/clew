@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The value is `args_to_pattern()` (`server_manager.cpp:426`): the first argument in the JSON object whose value is a string, or `*` if there is none. nlohmann's default object type sorts keys, so \"first\" means alphabetically first, not first in the call. If that first key is not a string, the value is `*`.\nVERDICT: HIT\nWHY: The answer states that only one argument value (the first string one) is used for matching, and that a non-string first key or no string value yields `*`. It never says the remaining arguments are invisible, but that follows from the single-value selection. The unparseable-argument case is not stated, though the non-string wildcard collapse is."
+}

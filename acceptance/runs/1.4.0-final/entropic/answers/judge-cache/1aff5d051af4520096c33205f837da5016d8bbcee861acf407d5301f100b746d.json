@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer mentions HealthMonitor::monitor_loop and its mutexes but never says it queues events under a mutex for the caller to drain on its own thread instead of invoking a callback from the monitor thread."
+}

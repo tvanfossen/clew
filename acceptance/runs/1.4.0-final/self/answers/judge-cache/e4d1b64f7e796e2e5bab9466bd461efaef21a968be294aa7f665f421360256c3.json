@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says a single token matching nothing still earns \"definitive\" wording. It never says this was previously treated as proof of absence, and it makes no before/after contrast. The closest it gets is the scope-field remark about telling \"outside scope\" from \"not in the repo\"."
+}

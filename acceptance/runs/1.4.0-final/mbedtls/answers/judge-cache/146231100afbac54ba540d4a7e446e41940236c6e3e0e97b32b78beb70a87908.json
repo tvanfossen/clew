@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the mutex code is compiled out by default, but it describes the pthread example as a real multi-threaded server and never says it compiles to a stub main under default build."
+}

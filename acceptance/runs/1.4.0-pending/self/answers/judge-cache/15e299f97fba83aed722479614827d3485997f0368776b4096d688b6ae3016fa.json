@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`resolved = (tier1 or tier2 or tier5) \u222a tier3 \u222a tier4`\" and \"Tier 5 is the floor. Name-pattern guesses are the only layer a stated value replaces.\"\nVERDICT: HIT\nWHY: The answer describes five numbered precedence tiers (flags/`--declare`, `.clew.yaml`, target facts, ecosystem signatures, name-pattern floor) with a combined resolution formula, not a single override."
+}

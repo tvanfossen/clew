@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Option A: compile time (zero overhead).** In the user config, enable `MBEDTLS_PLATFORM_C`, `MBEDTLS_PLATFORM_MEMORY`, and define both `MBEDTLS_PLATFORM_CALLOC_MACRO=my_calloc` and `MBEDTLS_PLATFORM_FREE_MACRO=my_free`.\" and \"`platform.c:16-19` says the compile-time macros take precedence, and when both are defined the runtime setter is compiled out entirely.\"\nVERDICT: HIT\nWHY: The answer distinguishes the compile-time macro pair from the runtime function-pointer setter, and says that defining the macros compiles the runtime setter out, which makes the two mutually exclusive."
+}

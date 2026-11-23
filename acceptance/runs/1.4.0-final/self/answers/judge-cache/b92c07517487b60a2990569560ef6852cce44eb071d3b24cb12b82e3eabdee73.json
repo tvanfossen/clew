@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Doxyfile. Its `INPUT` is replaced by the derived roots. The repo's own Doxyfile is still used for ALIASES and PREDEFINED. The module docstring says the Doxyfile's INPUT is \"a documentation target, not a reasoning boundary\", and the Mbed-TLS example in that docstring shows why it was dropped.\nVERDICT: MISS\nWHY: The answer says the Doxyfile's INPUT was dropped and calls it \"a documentation target\", but it never explains the specific rationale: that a repo shipping a Doxyfile would get only its documented subset while a repo shipping none gets the whole tree."
+}

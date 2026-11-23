@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Python does not link against C++ or use pybind. It loads the C ABI with `ctypes`: ... `_loader.py: load()  ->  ctypes.CDLL(\"librentropic.so\")`\nVERDICT: HIT\nWHY: The answer names ctypes loading librentropic.so via CDLL and explicitly rules out pybind/linked extension modules."
+}

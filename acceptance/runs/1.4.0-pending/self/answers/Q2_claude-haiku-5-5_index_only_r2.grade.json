@@ -1,0 +1,93 @@
+{
+  "cell": "Q2_claude-haiku-5-5_index_only_r2",
+  "arm": "index_only",
+  "rubric_version": "5.0.0",
+  "rubric_digest": "d8447c7b18eafbf5",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.0,
+  "unmarked_pct": 0.0,
+  "split_decisions": 0,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "locates the grading in clew/mcp_server/emptiness.py",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never mentions clew/mcp_server/emptiness.py or any file location for the grading logic.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the strong wording is EARNED PER CALL by querying which corpora the search did not read, rather than being attached to a result shape",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: The `definitive` wording in the reply is accurate only for the layers it names. | WHY: The answer describes confidence by layers and says the \"definitive\" wording is scoped to the layers named, but it never states that the strong wording is earned per call by querying which corpora weren't read, as opposed to being tied to a result shape. || QUOTE: The `definitive` wording in the reply is accurate only for the layers it names. | WHY: The answer discusses which layers were and weren't searched, but never states that the strong wording is earned per call by querying the unread corpora rather than attached to a result shape. || QUOTE: NONE | WHY: The answer says that `definitive` wording is accurate only for the layers it names. It never says the wording is earned per call by querying which corpora were not read, as opposed to being tied to a result shape.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "explains that a single token matching nothing was previously treated as proof of absence, and that this confuses \"nothing exists\" with \"I did not look there\"",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: An empty list means the layer ran and found nothing. A missing key means the layer never ran, so clew drops `not_indexed` when it is empty instead of emitting `[]`. | WHY: The answer discusses absence vs. emptiness generally, but never says a single token matching nothing was previously treated as proof of absence. || QUOTE: An empty list means the layer ran and found nothing. A missing key means the layer never ran, so clew drops `not_indexed` when it is empty instead of emitting `[]`. | WHY: The answer cites the \"absence is not emptiness\" rule and scope reporting, but never says a single token matching nothing was previously treated as proof of absence. || QUOTE: An empty list means the layer ran and found nothing. A missing key means the layer never ran | WHY: The answer discusses absence versus emptiness generally and the scope/note fields. It never says a single-token no-match was previously treated as proof of absence.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the downgrades are ORDERED most-specific first, and explains why \u2014 a matching row in an unread corpus is a statement about THIS query and outranks statements about the index as a whole",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never says the downgrades are ordered most-specific first, nor that a matching row in an unread corpus outranks index-wide statements. || QUOTE: NONE | WHY: The answer never states that the downgrades are ordered most-specific first, nor that a matching row in an unread corpus outranks index-wide statements.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "conveys that there is exactly ONE absent-corpus downgrade and that keeping it to one is deliberate, because downgrading on every absent layer turns the grading into a blanket hedge",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never mentions a single absent-corpus downgrade or the deliberate choice to limit it to one to avoid blanket hedging. || QUOTE: NONE | WHY: The answer never mentions a single absent-corpus downgrade or that limiting it to one is deliberate to avoid blanket hedging. || QUOTE: NONE | WHY: The answer never mentions a single absent-corpus downgrade or the deliberate choice to limit downgrading to one to avoid blanket hedging.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "conveys the general rule the module leaves behind \u2014 fix the corpus, not the sentence about the corpus",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer cites the \"absence is not emptiness\" rule and the `not_indexed` behaviour. It never states the general rule of fixing the corpus rather than the wording of the claim about the corpus. || QUOTE: NONE | WHY: The answer explains how to tell \"not in the repo\" from \"not looked there\" and cites the \"absence is not emptiness\" rule. It never states the rule that the fix is to correct the corpus, not the sentence describing it. || QUOTE: NONE | WHY: The answer explains how to distinguish absence from unsearched layers, but never states the general rule \"fix the corpus, not the sentence about the corpus\" (i.e., repair the underlying data rather than the wording describing it).",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "distinguishes all three grades an empty reply can receive: definitive for the scope, definitive for a reason that is not absence, and not definitive",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: \"**\"No such defined symbol in the indexed files.\"** High. ... **\"The repo does not contain that.\"** Low to moderate. The lookup did not read function bodies, markdown or Kconfig prose, or any file whose extension is in `not_indexed`.\" | WHY: The answer gives two grades (definitive for the scope, and not definitive/low), but it never describes a third grade of \"definitive for a reason that is not absence\", for example a stale index or a wrong target. || QUOTE: NONE | WHY: The answer gives two confidence tiers: a definitive \"no such defined symbol in the indexed files\" and a low-confidence \"repo does not contain that\". It never describes a separate grade for a reply that is definitive for a reason other than absence. || QUOTE: NONE | WHY: The answer separates only two grades, \"no such defined symbol in the indexed files\" (high confidence) and \"the repo does not contain that\" (low confidence). It never names a third grade, \"definitive for a reason that is not absence\".",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the reply also names the file types that WERE in scope and produced no rows, so \"this repository does not contain that\" and \"that file type is not indexed here\" are distinguishable rather than the same empty answer",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer lists `not_indexed` extensions (types not indexed) and covered extensions, but never says the reply names in-scope file types that produced no rows. || QUOTE: NONE | WHY: The answer lists `not_indexed` extensions (file types not covered), but never says the reply names file types that were in scope and produced no rows. || QUOTE: NONE | WHY: The answer lists extensions in `not_indexed` (not looked at), but never says the reply names file types that were in scope and produced no rows; it conflates the covered/not-covered distinction with a different mechanism.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    }
+  ]
+}

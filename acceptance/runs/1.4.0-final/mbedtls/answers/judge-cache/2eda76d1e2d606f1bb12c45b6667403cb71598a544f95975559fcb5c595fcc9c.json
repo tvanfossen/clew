@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Otherwise it XORs with `mbedtls_ct_zero`, a `volatile` global (`library/constant_time.c:29`).\nVERDICT: HIT\nWHY: The answer says that without asm, the opaque barrier (`mbedtls_ct_compiler_opaque`) XORs with the volatile global `mbedtls_ct_zero`, so the same function falls back to it and the global is named."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The server refuses to auto-refresh when `matches_source` is false, because an old process rebuilding would re-stamp the index with stale pipeline logic.\nVERDICT: MISS\nWHY: The answer covers the write refusal for stale code, but it never says that reads stay current because query tools open the database per call, so the read/write asymmetry is absent."
+}

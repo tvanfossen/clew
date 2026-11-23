@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: | `data` | ... | Rebuild (`index(action='refresh')`) | ... | `code` | ... | Only restarting the client | and \"The schema and code notices say a rebuild cannot clear them, and tell the caller to restart the MCP client.\"\nVERDICT: MISS\nWHY: The answer states that data is cleared by rebuild and code by client restart, but never says this difference is why a single flag would not have been enough."
+}

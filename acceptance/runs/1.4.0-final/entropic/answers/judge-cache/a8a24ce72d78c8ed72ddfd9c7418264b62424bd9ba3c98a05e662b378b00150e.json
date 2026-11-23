@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes matching against the full `tool:args` string and the first word of bash commands, but never states that only one argument value reaches the pattern or that non-string or unparseable arguments collapse to a wildcard."
+}

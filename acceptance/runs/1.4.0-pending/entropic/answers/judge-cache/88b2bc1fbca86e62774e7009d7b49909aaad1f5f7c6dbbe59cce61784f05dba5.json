@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **ExternalBridge `accept_loop`** ... Accepts MCP socket clients ... before a thread is spawned. | **ExternalBridge per-client `serve_client`** (`:945`) | One thread per connected client, blocking on reads.\nVERDICT: HIT\nWHY: The answer describes an accept_loop thread and a per-client serve_client thread spawned for each connected client, which is the two-level structure."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The notices ride in every query reply through `_staleness` (`tools_query.py`). ... The list is empty when the index is current, and a current index carries no `staleness` key at all.\nVERDICT: HIT\nWHY: The answer states that notices ride on every query reply and that the list is empty (no staleness key) when the index is current."
+}

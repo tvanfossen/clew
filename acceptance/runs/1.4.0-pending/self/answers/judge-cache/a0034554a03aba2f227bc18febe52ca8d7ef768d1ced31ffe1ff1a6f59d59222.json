@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Declaration file: `<repo>/.clew.yaml`.** This is the repo's standing statement, found from the repo root. It is the route that works through the MCP server, which passes no CLI flags.\nVERDICT: MISS\nWHY: The answer says `.clew.yaml` is the repo's standing statement found from the repo root, and lists it as tier 2. It never says that both entry points discover it, or that this replaces plumbing it per section."
+}

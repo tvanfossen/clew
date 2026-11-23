@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: MBEDTLS_PLATFORM_MEMORY off (the default; the option is commented out in `mbedtls_config.h:208`)\nVERDICT: HIT\nWHY: The answer says that only when MBEDTLS_PLATFORM_MEMORY is enabled are allocations routed through the hook, and that the option is commented out in mbedtls_config.h."
+}

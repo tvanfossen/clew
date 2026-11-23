@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"installs its own `calloc`/`free` through `mbedtls_platform_set_calloc_free`. With `MBEDTLS_THREADING_C` it installs mutex-wrapped variants.\"\nVERDICT: HIT\nWHY: The answer says that `mbedtls_memory_buffer_alloc_init` installs mutex-wrapped variants when `MBEDTLS_THREADING_C` is on. It also says the function installs its own plain calloc/free pair, which covers the otherwise-plain case. It doesn't spell out \"chosen at compile time\", but the macro condition implies that."
+}

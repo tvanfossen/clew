@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: With asm it is an empty `asm volatile` barrier.\nVERDICT: MISS\nWHY: The answer says the asm form is an empty `asm volatile` barrier, but it never says the value is an input-output register operand or that no instruction is emitted. The item needs both of those."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: An unknown top-level section name is refused by name, so a misspelled section fails the build instead of quietly running on defaults.\nVERDICT: HIT\nWHY: The answer says unknown sections are refused by name rather than ignored, with the reason that a misspelling would otherwise quietly build on defaults. It does not mention the \"allowed set\" or the \"reports the declaration was honoured\" part, but it covers the mechanism and the reason."
+}

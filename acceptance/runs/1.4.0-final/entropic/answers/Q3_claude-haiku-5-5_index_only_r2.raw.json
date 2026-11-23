@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 29947,
+  "stop_reason": "end_turn",
+  "session_id": "af8c5d96-6188-43ec-88ef-2a2a878c05c4",
+  "total_cost_usd": 0.0120634,
+  "usage": {
+    "input_tokens": 14,
+    "cache_creation_input_tokens": 30251,
+    "cache_read_input_tokens": 324480,
+    "output_tokens": 5534,
+    "output_tokens_details": {
+      "thinking_tokens": 2258
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 30251,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2400,
+        "cache_read_input_tokens": 62193,
+        "cache_creation_input_tokens": 4221,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 4221
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 14,
+      "outputTokens": 5534,
+      "cacheReadInputTokens": 324480,
+      "cacheCreationInputTokens": 30251,
+      "webSearchRequests": 0,
+      "costUSD": 0.0120634,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2258,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 30251,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 23,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The index answers this from the code bodies. I did not run anything, so the behaviour below is what the source says, not something I observed at runtime.\n\n**What decides whether a call runs**\n\nThree checks run in sequence, and the deny list is the only one that can stop a call after the approval step.\n\n```\ntool call\n \u2502\n \u251c\u2500 1. PRE_TOOL_CALL hook               \u2192 may cancel (\"Cancelled by hook\")\n \u251c\u2500 2. preconditions (check_call_preconditions)\n \u2502     anti-spiral block \u2192 schema \u2192 MCP authorization \u2192 tier \u2192 duplicate\n \u2502     \u2514\u2500 3. check_approval (check_approval_pc)\n \u2502          approved = auto_approve_tools\n \u2502                     OR allow-list match on \"tool:first-arg\"\n \u2502          if not approved and on_tool_call callback set \u2192 approved = true\n \u2502          if not approved and no callback              \u2192 \"Permission denied\"\n \u2502          fires ON_PERMISSION_CHECK (informational)\n \u2514\u2500 4. ServerManager::execute\n       deny-list match on \"tool:first-arg\" \u2192 error JSON \"Permission denied for \u2026\"\n       else route_tool_call \u2192 server runs the tool\n```\n\n- **Step 3** is `ToolExecutor::check_approval` (`src/mcp/tool_executor.cpp`, lines 161\u2013188). It asks `ServerManager::is_explicitly_allowed`, which builds the pattern and calls `PermissionManager::is_allowed`.\n- **Step 4** is `ServerManager::execute` (`src/mcp/server_manager.cpp`, lines 153\u2013168). This is the only place the deny list is consulted.\n- **Config** comes from `PermissionsConfig` (`include/entropic/types/config.h:589`): `allow`, `deny`, and `auto_approve`, parsed by `parse_permissions_config` in `src/config/loader.cpp`.\n- **\"Always Allow/Deny\"** writes through `PermissionPersister::save_permission`, which inserts `- <pattern>` under `permissions.allow` or `permissions.deny` in the project YAML.\n\n**What a pattern in each list does**\n\n- Form is `tool` or `tool:args`. `pattern_matches` splits on the first colon.\n- The tool part is matched with `fnmatch` against the fully-qualified tool name. So `filesystem.*` covers every filesystem tool.\n- A pattern with no colon matches that tool with any arguments.\n- A pattern with a colon also has its full string matched against `tool:argvalue`, where `argvalue` is the first string-valued argument (`ServerManager::args_to_pattern`). Empty args, `{}`, or unparseable JSON become `*`.\n- Matching uses `fnmatch` with no flags, so `*` crosses spaces and colons, and `?` and `[...]` also work. `bash.execute:python*` matches a bash command starting with `python`.\n- **Bash specialisation.** `BashServer::get_permission_pattern` (`src/mcp/servers/bash.cpp:200`) generates the \"Always Allow\" pattern as `bash.execute:<base command> *`, where the base command is the text before the first space. Matching then compares that against the full command line, so `bash.execute:git *` matches `git status` but not a bare `git` with no arguments. I read that as an edge case, not a bug I confirmed.\n- **Deny wins over allow**, but only in step 4. A call on the allow list with a matching deny entry still reaches `execute`, is denied there, and returns an error.\n\n**Things that look off in the source**\n\n- The `PermissionManager` header says \"tools must be explicitly allowed or approved via callback\". In `check_approval`, though, the callback path sets `approved = true` unconditionally after calling `on_tool_call`. As the body reads, the callback is a notification and not a yes/no gate, so a call with no allow match and a callback set still gets through step 3. The deny check in step 4 is then the only real stop. This should be confirmed at runtime before relying on it.\n- Because `auto_approve` skips step 3 but not step 4, a deny entry still blocks a call even under `auto_approve`.",
+  "ttft_ms": 1500,
+  "type": "result",
+  "duration_ms": 32460,
+  "uuid": "e17798f9-18c8-4f10-891b-f62433fc0d5d",
+  "ttft_stream_ms": 1154,
+  "time_to_request_ms": 65,
+  "first_content_frame_ms": 1154,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

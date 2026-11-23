@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Producer side takes `event_mutex_` to append. `process_events()` swaps the queue out under that lock and then runs `status_callback_` after releasing it. Callbacks therefore run on the engine thread, not the monitor thread.\"\nVERDICT: HIT\nWHY: The answer states that events are queued under a mutex and the callback runs from `process_events()` on the engine (caller) thread, not the monitor thread."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"It is triggered only by the user, from the failed-post bottom sheet (`app/components/post_list/post/body/failed/index.tsx`, \"Try Again\", testID `post.failed.retry`).\" and \"**What \"Try Again\" does** (`retryFailedPost`, lines 228\u2013307)\"\nVERDICT: HIT\nWHY: The answer says no automatic retries occur, that retry is user-triggered via \"Try Again\" on the failed post, and names `retryFailedPost`."
+}

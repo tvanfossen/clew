@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 16070,
+  "stop_reason": "end_turn",
+  "session_id": "44205bce-152c-4316-ade5-db134aacaa6a",
+  "total_cost_usd": 0.006076100000000001,
+  "usage": {
+    "input_tokens": 6,
+    "cache_creation_input_tokens": 17050,
+    "cache_read_input_tokens": 117200,
+    "output_tokens": 2987,
+    "output_tokens_details": {
+      "thinking_tokens": 1208
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 17050,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2057,
+        "cache_read_input_tokens": 43442,
+        "cache_creation_input_tokens": 10487,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 10487
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 6,
+      "outputTokens": 2987,
+      "cacheReadInputTokens": 117200,
+      "cacheCreationInputTokens": 17050,
+      "webSearchRequests": 0,
+      "costUSD": 0.006076100000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1208,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 17050,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 9,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** for shell and CMake, the index holds definitions and their doc blocks. For YAML and JSON, it holds only the file's existence and name. On an install without the grammars, shell and CMake degrade to the same state as YAML and JSON, and an empty answer does not tell you why.\n\n**What the index holds**\n\n- **Shell (`.sh`, `.bash`):** one `memberdef` row per function, in both bash spellings, `name() { \u2026 }` and `function name { \u2026 }`. The docs come from the `#` block directly above. Arguments are empty by design, since shell functions take `$1`/`$@`. Shell functions are the only shell symbols; the harvest module (`clew/shast.py`) describes no other shell constructs. (`clew/shast.py`, `tests/test_shast.py`)\n- **CMake (`CMakeLists.txt`, `.cmake`):** one row per `function` or `macro`, with `kind` recorded so a macro is not mistaken for a function (macros leak variables into the caller). Parameters are the signature. A file that only calls commands defines nothing. (`clew/cmakeast.py`, `tests/test_cmakeast.py`)\n- **YAML and JSON:** a `path` row only. Their grammars offer `block_mapping_pair` and `pair`, and those were deliberately not written as symbols, so `steps:` keys in every workflow file don't flood the namespace behind `dossier(\"my_function\")`. They are findable by name and named by the not-indexed report. (`clew/synth.py`, `tests/test_script_front_end.py`)\n\n**What it does not hold**\n\n- No YAML or JSON keys, values, or structure.\n- For CMake, no targets, options, dependencies, or `add_executable`-style commands. \"How is this target built\" is answered only by the definitions in the file.\n- No symbols at all for any YAML or JSON file, so no call edges, no threads, and no requirements from them.\n- For shell, the module documents definitions only. I found no indexed call edges from shell scripts, so I would not claim a script-to-script call graph.\n- Files that do not reach a grammar are registered but not parsed, so their contents are not searched.\n\n**What happens when the parser lacks the grammars**\n\nThis is the part I'd treat as the actual answer. `synth.py` says the router is capability-gated. `parse_tree` raises `ValueError: unknown language key` for a grammar the installed wheel lacks, and the router catches that case. The route resolves to no grammar, so:\n\n1. The `.sh` or `CMakeLists.txt` file is registered and findable by name.\n2. It gets no `memberdef` rows, so no symbols and no docs.\n3. A query about a deploy script returns empty.\n4. The not-indexed report, which is stamped at build time, names the file types that were in scope but held no rows. Without it, an empty answer cannot be told apart from \"the symbol does not exist.\"\n\nThe docstring says the published substrate is one such install, which would mean shell and CMake are absent there too, not just YAML and JSON. I could not measure that from the index. It comes from docstrings and tests, so verify it by building on the target install.\n\nTwo caveats:\n- The not-indexed report is stamped only by builds made with this release. An index built earlier reports nothing, so its empty answers look like plain absence.\n- The index's `_ast_parse_one_file` entry is flagged `anchor_mismatch`, so its line numbers may be stale. I used its described behavior, not its exact lines.",
+  "ttft_ms": 1768,
+  "type": "result",
+  "duration_ms": 17470,
+  "uuid": "af0834bb-06b1-4a98-aa56-c6076a1404ba",
+  "ttft_stream_ms": 1106,
+  "time_to_request_ms": 93,
+  "first_content_frame_ms": 1106,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The build reports the reason in its log, and `propose_declaration` only proposes YAML; it never applies it.\nVERDICT: MISS\nWHY: The answer doesn't say the fallback scope carries a reason explaining which scope was used and why; the passing remark about a log reason is vague and doesn't tie it to the fallback or to avoiding silent guessing."
+}

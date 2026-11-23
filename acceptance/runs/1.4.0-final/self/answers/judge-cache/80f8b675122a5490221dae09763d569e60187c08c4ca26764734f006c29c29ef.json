@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"absent \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u25ba whole_repo_scope(root)\" and \"present but rejected \u2500\u2500\u25ba whole_repo_scope(rejected=<reason>) (internal callers)\" and \"`derive_scope` falls through to `whole_repo_scope`\"\nVERDICT: HIT\nWHY: The answer says a declared index_scope is tier 1 and that both an absent declaration and a rejected one fall back to whole_repo_scope. It notes the CLI `--scope from-guard` refuses instead, but the general fall-through is stated."
+}

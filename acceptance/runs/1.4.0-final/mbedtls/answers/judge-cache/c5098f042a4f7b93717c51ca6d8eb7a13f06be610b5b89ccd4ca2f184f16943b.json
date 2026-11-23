@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_THREADING_C` is commented out (`include/mbedtls/mbedtls_config.h:3787`).\nVERDICT: MISS\nWHY: The answer says only MBEDTLS_THREADING_C is off by default; it never states that MBEDTLS_THREADING_PTHREAD (the second macro) is also undefined in the shipped config, so a default build defines neither."
+}

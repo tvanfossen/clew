@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Other engine code, such as the orchestrator and agent loop, reaches llama.cpp only through `InferenceBackend`. One caveat: the orchestrator's `resolve_target_model` and `resolve_speculative_pair` return raw `llama_model*` pointers, so a few non-adapter symbols do see llama types.\nVERDICT: MISS\nWHY: The answer says the reach is essentially confined to src/inference, mentioning only a caveat about a few orchestrator symbols. It does not conclude that a minority of the reaching files sit outside src/inference."
+}

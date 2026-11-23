@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer lists eight NavigationHeader renderers but never says that renderers of the separate `Header` component from `navigation_header/header.tsx` are excluded. Its table includes `app/screens/channel/header/header.tsx` and `app/products/agents/screens/agent_chat/header.tsx`, which are different files."
+}

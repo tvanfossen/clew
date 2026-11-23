@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 23067,
+  "stop_reason": "end_turn",
+  "session_id": "60c0c36c-a64d-4dfa-b525-f4eb2c2df6cb",
+  "total_cost_usd": 0.01126005,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 35649,
+    "cache_read_input_tokens": 222105,
+    "output_tokens": 3816,
+    "output_tokens_details": {
+      "thinking_tokens": 1225
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 35649,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2231,
+        "cache_read_input_tokens": 49440,
+        "cache_creation_input_tokens": 1826,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1826
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 3816,
+      "cacheReadInputTokens": 222105,
+      "cacheCreationInputTokens": 35649,
+      "webSearchRequests": 0,
+      "costUSD": 0.01126005,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1225,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 35649,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 8,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**What the answer contains**\n\n`callers` returns a list of `CallEdge` neighbours, one per caller *identity*, not one per call site. `CallEdge` (`clew/query/models.py:145`) carries:\n\n- `name` and `rowid` of the caller.\n- `source`: which extraction layer found it (`call_source`, e.g. AST, AST-member, fnptr, binding). Edges are stored once per layer, and the query collapses them to the strongest evidence (`clew/query/symbols.py:_direct_call_edges`).\n- `confidence`: `exact`, `resolved` or `fuzzy`.\n- `edge_class`: always `'call'` for this list. Shared-key dataflow edges are a separate class.\n- `implementors`: for a virtual endpoint, the overrides doxygen's `reimplements` relation names. This is an annotation, not an extra edge.\n\n`dossier` adds `callers_unresolved`, a count of call sites that named this function but produced no edge (`models.py` around line 1068). `None` means the index predates that count, so it cannot say whether anything was refused.\n\n**What makes it wrong to read as a list of call sites**\n\n1. **Row count is not relationship count.** Each caller appears once per identity, and the same pair can exist in several layers. `UNIQUE(caller, callee, source)` means the raw table is inflated, and the query collapses it. Counting rows, or assuming one entry per invocation, is wrong.\n\n2. **Fuzzy edges are not filtered here.** `_direct_call_edges` deliberately keeps them. The repo's own notes say 21.3% of clew's own call edges and 79.8% of a C++ target's are fuzzy. For `obj.method()` the receiver's type is never checked, so the edge goes to every function with that name. `NameAmbiguity` (`models.py` around line 1442) gives the example that `Get` matches 33 functions and shows 162 callers, of which at most one per site is real. The entry for a function may be a namesake's caller.\n\n3. **Empty `callers` is not \"nothing calls this\".** A refused site emits no edge, even when the name matches exactly one function, because the receiver may be a class the index never saw. The refusal is recorded only in `callers_unresolved`. So `callers: []` beside `callers_unresolved: 3` means the function has refused callers. `callers: []` beside `0` is a measured negative. `None` means \"can't tell\". The test file `tests/test_unresolved_inbound.py` specifies these cases.\n\n4. **Calls to things outside the index leave no trace.** A call to `std::to_string` is not counted as unresolved, because there is no indexed callee to understate. The unresolved count covers only calls whose callee exists in the index.\n\n5. **Virtual dispatch.** A caller that invokes a base-class method appears against the base endpoint. The concrete overrides are listed in `implementors`, but the list does not say which one runs.\n\n6. **Duplicate definitions.** A decl/def pair, or same-named functions in different classes, can produce several candidates. The unresolved-count rule credits a refusal to a symbol only when it names one function, which was a fix for a measured over-attribution (87% of functions flagged).\n\n**Bottom line:** the answer is a set of plausible callers at identity granularity, each graded by how it was found. It does not enumerate every call site, and an empty or short list does not prove absence. The `confidence`, `NameAmbiguity` and `callers_unresolved` fields are the parts to read before trusting it.\n\nI worked from the source and the tests in this checkout (`clew/query/models.py`, `clew/query/symbols.py`, `clew/call_edges.py`, `tests/test_unresolved_inbound.py`). I did not run `clew` against an index, so the percentages come from the repo's own comments, not from a fresh measurement.",
+  "ttft_ms": 2092,
+  "type": "result",
+  "duration_ms": 23647,
+  "uuid": "23c3fbb9-f75e-4735-9d4f-10ce420346e1",
+  "ttft_stream_ms": 1595,
+  "time_to_request_ms": 128,
+  "first_content_frame_ms": 1595,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

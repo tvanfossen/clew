@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: (the Doxyfile INPUT tier was removed in gh#333)\nVERDICT: MISS\nWHY: The answer says a Doxyfile INPUT tier was removed, but this is not the \"containment call\" the item is about, and the answer never says that a call was removed rather than kept with its callers dropped."
+}

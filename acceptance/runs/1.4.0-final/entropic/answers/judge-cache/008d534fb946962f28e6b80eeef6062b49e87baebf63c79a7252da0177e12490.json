@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: External MCP accept loop | `src/facade/external_bridge.cpp:796` | Started in `start()`, joined in `stop()` ... Per-client serve threads | `external_bridge.cpp:945` | One per accepted socket\n\nVERDICT: HIT\nWHY: The answer describes an accept loop thread that spawns one serve thread per accepted client socket in the external bridge."
+}

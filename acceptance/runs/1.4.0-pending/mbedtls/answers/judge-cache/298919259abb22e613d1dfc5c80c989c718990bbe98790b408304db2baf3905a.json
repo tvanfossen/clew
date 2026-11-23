@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "Only the answer's \"Where the opt-out is turned on\" table names files that define the macro. It lists these three:\n\nITEMS:\nlibrary/common.h\nprograms/ssl/ssl_server2.c\nprograms/ssl/ssl_client2.c\nEND"
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Neighbour rows carry `edge_defaults` of `source: doxygen_sqlite`, `confidence: exact`, `edge_class: call`.\nVERDICT: MISS\nWHY: The answer mentions `edge_class: call` as a default but never states that callers/callees mix direct calls with shared-key dataflow edges that the consumer must distinguish via `edge_class`."
+}

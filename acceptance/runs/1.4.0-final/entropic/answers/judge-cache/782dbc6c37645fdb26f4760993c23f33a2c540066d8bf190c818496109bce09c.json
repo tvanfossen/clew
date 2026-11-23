@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"It is the main consumer of the C API and of `common_chat`, `common_speculative` and `mtmd` helpers.\" (actually: \"The backend is the main consumer of the C API and of `common_chat`, `common_speculative` and `mtmd` helpers.\")\nVERDICT: MISS\nWHY: The answer mentions the C API only in passing and never identifies the seam as free `llama_`-prefixed functions rather than C++ classes or inheritance."
+}

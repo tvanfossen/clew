@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `HandleLogScope` carries the log ID into the thread.\nVERDICT: MISS\nWHY: The answer mentions HandleLogScope only for the `run_async_ask` thread. It does not say that every thread body installs it as its first statement."
+}

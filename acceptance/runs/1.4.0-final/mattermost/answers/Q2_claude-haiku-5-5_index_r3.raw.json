@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 16893,
+  "stop_reason": "end_turn",
+  "session_id": "6ad4b0d9-ca56-44c4-bfe7-0dc0c652489b",
+  "total_cost_usd": 0.006925410000000001,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 17194,
+    "cache_read_input_tokens": 193781,
+    "output_tokens": 3096,
+    "output_tokens_details": {
+      "thinking_tokens": 1072
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 17194,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1947,
+        "cache_read_input_tokens": 55662,
+        "cache_creation_input_tokens": 6504,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 6504
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 8,
+      "outputTokens": 3096,
+      "cacheReadInputTokens": 193781,
+      "cacheCreationInputTokens": 17194,
+      "webSearchRequests": 0,
+      "costUSD": 0.006925410000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1072,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 17194,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 6,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "## Reaction added: websocket event to database row\n\n1. **Dispatch.** `handleWebSocketEvent` in `app/actions/websocket/event.ts:163-165` matches `WebsocketEvents.REACTION_ADDED` (`'reaction_added'`) and calls `handleReactionAddedToPostEvent(serverUrl, msg)`. It does not `await` the call, so the socket loop moves on immediately.\n\n2. **Handler.** `handleReactionAddedToPostEvent` (`app/actions/websocket/reactions.ts:21-37`):\n   - Gets the server operator for `serverUrl` from `DatabaseManager`.\n   - `JSON.parse`s `msg.data.reaction` into a `Reaction`.\n   - Calls `operator.handleReactions({ prepareRecordsOnly: false, skipSync: true, postsReactions: [{ post_id, reactions: [reaction] }] })`.\n   - Wraps everything in `try/catch {}` with no logging, so failures are silent.\n\n3. **Diff against the DB.** `handleReactions` (`app/database/operator/server_data_operator/handlers/index.ts:124-171`) calls `sanitizeReactions` (`app/database/operator/utils/reaction.ts:22-58`). That function:\n   - Loads every `Reaction` row for the `post_id`.\n   - Builds a map keyed by `userId-emojiName`.\n   - For the incoming reaction, pushes `{raw}` into `createReactions` if no matching row exists. If one exists, nothing is written; there is no update path.\n   - Because `skipSync` is true, it returns `deleteReactions: []` right after building the create list (line 52-54).\n\n4. **Record preparation.** `prepareRecords` (`base_data_operator/index.ts:134-183`) runs `transformReactionRecord` with `action: CREATE`. That transformer (`server_data_operator/transformers/reaction.ts:19-43`) sets `_raw.id` from the server's `raw.id`, plus `userId`, `postId`, `emojiName`, `createAt`. It hands off to `prepareBaseRecord`, which returns an unsaved model.\n\n5. **Write.** `batchRecords` (`base_data_operator/index.ts:191-211`) runs `database.write(writer => writer.batch(...))` on the server database. Its failures are logged with `logWarning`, and it emits `DATABASE_CORRUPTION_DETECTED` for corruption errors. It does not rethrow, because `propagateError` defaults to false.\n\n**Flags on this path**\n- `skipSync: true`: skips the delete computation entirely, so an add can never remove other reactions on the post. The `deleteReactions` branch is also guarded by `!skipSync` at line 157.\n- `prepareRecordsOnly: false`: the batch is written inside `handleReactions` instead of being returned to the caller.\n\n## Reaction removed: same path?\n\nNo. It does not go through `handleReactions`, `sanitizeReactions`, or `transformReactionRecord`.\n\n`handleReactionRemovedFromPostEvent` (`app/actions/websocket/reactions.ts:39-54`):\n- Gets the raw `database` (not the operator).\n- Parses `msg.data.reaction`.\n- Runs `queryReaction(database, emoji_name, post_id, user_id)`, which is a three-field `Q.where` (`app/queries/servers/reaction.ts:12-18`).\n- If a row matches, it calls `reaction[0].destroyPermanently()` inside `database.write`.\n- Errors are swallowed by the same empty `catch`.\n\nSo the removed path does a direct query and delete, with no diff, no transformer, and no `batchRecords` error handling. Two consequences:\n- A removal for a reaction that is not in the DB is a silent no-op.\n- Any exception from `database.write` is swallowed by the outer `catch {}` with no log. `batchRecords` would have logged it.\n\n## Caveats\n- I read the code and index metadata only. I did not run the tests or exercise the path on a device.\n- The index shows `handleReactions` has 8 unresolved callers, so the list of callers may be incomplete. This does not affect the add/remove path itself.",
+  "ttft_ms": 1517,
+  "type": "result",
+  "duration_ms": 18377,
+  "uuid": "0b1dce17-ec0d-46fd-b2bf-6ddc615b3209",
+  "ttft_stream_ms": 1269,
+  "time_to_request_ms": 65,
+  "first_content_frame_ms": 1269,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

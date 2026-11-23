@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never states the general rule that the fix belongs in the corpus (the index/data) rather than in the wording describing it. It only says to fall back to grep or a source read."
+}

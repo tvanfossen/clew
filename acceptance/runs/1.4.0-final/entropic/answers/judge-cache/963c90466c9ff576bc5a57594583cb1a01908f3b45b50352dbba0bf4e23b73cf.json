@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Atomics with release/acquire ordering; the `int*` is polled, so no atomic crosses the `.so` boundary\nVERDICT: HIT\nWHY: The CancelFlagBridge row says the poller bridges an atomic to a plain `int*` because no atomic crosses the `.so` (C ABI) boundary."
+}

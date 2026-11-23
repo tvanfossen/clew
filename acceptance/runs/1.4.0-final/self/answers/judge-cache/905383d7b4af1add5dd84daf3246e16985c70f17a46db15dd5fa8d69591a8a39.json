@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: | **data** | ... | rebuild |; | **code** | ... | restart the client only |; \"rebuild if the index is older; **restart the client** if the index is newer (a rebuild re-stamps the same newer version)\"\nVERDICT: MISS\nWHY: The answer states the differing remedies (rebuild for data, restart for code) in its table but never explains that this difference is why one flag would not have been enough."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The index was built with both macros forced on (`configured_macros_source: flag`), so the lock and thread data below describes the threaded build, not the default one.\"\nVERDICT: MISS\nWHY: The answer says the default library has no concurrency and the mutex code is compiled out. It never states that a default build creates no threads at all, and it never says the pthread example compiles to a stub main. Instead it lists the pthread server's thread as a spawn site in the threaded build."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer gives two grades of empty reply, definitive and not definitive, plus a separate \"Error\" row for malformed calls, which is not a result. It never describes a definitive empty whose reason is something other than absence."
+}

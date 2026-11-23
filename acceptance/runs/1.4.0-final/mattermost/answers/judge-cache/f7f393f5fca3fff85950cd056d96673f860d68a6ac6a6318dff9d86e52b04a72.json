@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`archivedChannelsViewable(undefined)` evaluates `undefined !== 'false'`, which is `true`. So an absent setting means: ... The absent case is therefore the \\\"viewable\\\" path\"\nVERDICT: HIT\nWHY: The answer states that only the literal 'false' turns the setting off and that an absent setting means archived channels are viewable."
+}

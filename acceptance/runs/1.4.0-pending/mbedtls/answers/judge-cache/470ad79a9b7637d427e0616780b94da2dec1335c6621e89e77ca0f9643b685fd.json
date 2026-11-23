@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `TimerProc` (Win32) and `sighandler` (signal) | `programs/test/benchmark.c:430,444` | Set `mbedtls_timing_alarmed = 1` after a delay\nVERDICT: MISS\nWHY: The answer mentions TimerProc as Win32 but does not state that it is Windows-only and gated on a platform condition rather than the threading config."
+}

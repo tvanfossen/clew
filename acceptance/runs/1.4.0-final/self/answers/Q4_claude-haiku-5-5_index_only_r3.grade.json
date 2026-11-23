@@ -1,0 +1,163 @@
+{
+  "cell": "Q4_claude-haiku-5-5_index_only_r3",
+  "arm": "index_only",
+  "rubric_version": "5.0.0",
+  "rubric_digest": "d8447c7b18eafbf5",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.0,
+  "unmarked_pct": 0.0,
+  "split_decisions": 0,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "states that call_edges stores one row per extraction LAYER, so the same logical edge found by two detectors is stored twice",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer discusses caller lists for git_argv and never mentions call_edges storing one row per extraction layer or duplicate edges from multiple detectors. || QUOTE: NONE | WHY: The answer discusses callers of git_argv and never mentions call_edges storing one row per extraction layer or duplicate edges from multiple detectors. || QUOTE: NONE | WHY: The answer never mentions call_edges storing one row per extraction layer or duplicate edges from multiple detectors.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that the query surface returns ONE row per neighbour rather than one per layer, collapsing the variants to the strongest evidence",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: Rows are callers, not sites. A function that calls `git_argv` three times appears once. | WHY: The answer says rows are per caller function rather than per call site. It never says that the per-layer variants of an edge are collapsed to the strongest evidence. || QUOTE: Rows are callers, not sites. A function that calls `git_argv` three times appears once. | WHY: The answer says rows are per caller function rather than per call site. It never says that variants from different evidence layers collapse to the strongest evidence, which is what the item requires. || QUOTE: \"Rows are callers, not sites. A function that calls `git_argv` three times appears once.\" | WHY: The answer says rows are one per caller function rather than per call site. It never says that variants from different layers (direct call, callback, spawn) are collapsed to the strongest evidence, and it lists threads as a separate neighbour kind.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies that which layer's provenance a collapsed row reports is decided by a RANKING held in the vocabulary module, not by SQL",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer is about git_argv callers and says nothing about provenance ranking in the vocabulary module versus SQL. || QUOTE: NONE | WHY: The answer is about `git_argv` callers and says nothing about a ranking in the vocabulary module deciding which layer's provenance a collapsed row reports. || QUOTE: NONE | WHY: The answer is about `git_argv` callers and never mentions provenance, collapsed rows, or a ranking in the vocabulary module.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the same collapse function serves BOTH the flat neighbour surface and the traversal surface, so a chain and a neighbour list cannot disagree about one edge's provenance",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer is about `git_argv` callers and says nothing about a collapse function shared by the neighbour and traversal surfaces. || QUOTE: NONE | WHY: The answer is about `git_argv` callers and says nothing about a collapse function shared by the flat neighbour surface and the traversal surface. || QUOTE: NONE | WHY: The answer is about git_argv callers and never mentions a shared collapse function serving both the neighbour and traversal surfaces.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies that the flat surface KEEPS fuzzy-confidence edges while the traversal surface excludes them, and gives the reason \u2014 a walk expands each hop, so one fuzzy edge multiplies into a wrong subtree",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never mentions fuzzy-confidence edges being kept on the flat surface while the traversal surface excludes them, nor the multiplying-wrong-subtree reasoning. || QUOTE: NONE | WHY: The answer never mentions fuzzy-confidence edges being kept on the flat surface and excluded from traversal, nor the multiplication-of-wrong-subtree reasoning. || QUOTE: NONE | WHY: The answer never mentions fuzzy-confidence edges being kept on the flat surface versus excluded from traversal, nor the reason that a walk multiplies a fuzzy edge into a wrong subtree.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that `callers`/`callees` return TWO KINDS of neighbour in one list \u2014 direct calls and shared-key dataflow \u2014 distinguished by an `edge_class` field the consumer must read",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never says callers/callees mix direct calls with shared-key dataflow edges or mention an `edge_class` field; it only discusses threads, tests, and caveats. || QUOTE: NONE | WHY: The answer never says callers/callees mix direct calls with shared-key dataflow neighbours or that an `edge_class` field distinguishes them; it only mentions threads, tests, and ambiguity. || QUOTE: NONE | WHY: The answer never says callers/callees mix direct calls with shared-key dataflow neighbours, nor mentions an `edge_class` field; it only discusses call-site grouping and counters.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "notes that the causal polarity is INVERTED between the two halves \u2014 the \"callers\" of a reader are the functions whose writes it observes",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer describes callers of `git_argv` and never mentions a reader/writer polarity inversion, where a reader's \"callers\" are the functions whose writes it observes. || QUOTE: NONE | WHY: The answer describes only callers of `git_argv` and never discusses inverted causal polarity between the callers and callees halves, or that a reader's \"callers\" are the functions whose writes it observes. || QUOTE: NONE | WHY: The answer describes callers of `git_argv` and notes threads reach it via a spawn, but never states that for a reader the \"callers\" are the functions whose writes it observes (inverted polarity).",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that dossier does NOT take the merged form \u2014 it asks for the call half only, because it already composes the dataflow separately and merging would report each dataflow edge twice in one payload",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never says dossier declines a merged form or that it asks for the call half only; it only describes the reply's contents. || QUOTE: NONE | WHY: The answer never says dossier declines a merged form or that it asks for the call half only to avoid reporting dataflow edges twice. || QUOTE: NONE | WHY: The answer never says dossier omits a merged form, asks for the call half only, or avoids reporting dataflow edges twice.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies that the two surfaces resolve the FOCAL side differently \u2014 the flat surface selects by resolved identity while the traversal surface still matches on the bare name",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer describes only the caller list and its caveats; it never contrasts how a flat surface and a traversal surface resolve the focal side (by identity versus bare name). || QUOTE: NONE | WHY: The answer describes caller lists for `git_argv` and never contrasts flat selection by resolved identity with traversal matching on the bare name. || QUOTE: NONE | WHY: The answer never discusses how a flat surface versus a traversal surface resolves the focal side, nor identity-based versus bare-name matching.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide what a neighbour list contains \u2014 clew/call_edges.py",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": false,
+      "detail": "not named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide what a neighbour list contains \u2014 clew/query/symbols.py",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": false,
+      "detail": "not named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide what a neighbour list contains \u2014 clew/query/traversal.py",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": false,
+      "detail": "not named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide what a neighbour list contains \u2014 clew/vocabulary.py",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": false,
+      "detail": "not named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide what a neighbour list contains \u2014 clew/query/dossier.py",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": false,
+      "detail": "not named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the modules that decide what a neighbour list contains \u2014 precision",
+      "kind": "set_precision",
+      "weight": 1,
+      "hit": false,
+      "detail": "named nothing \u2014 precision is not earned by silence",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    }
+  ]
+}

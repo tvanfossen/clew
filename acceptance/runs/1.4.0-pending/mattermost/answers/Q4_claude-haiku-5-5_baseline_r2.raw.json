@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 35308,
+  "stop_reason": "end_turn",
+  "session_id": "65039944-5d0f-4c03-9c1a-d7eb3ec00943",
+  "total_cost_usd": 0.013244160000000001,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 34092,
+    "cache_read_input_tokens": 283106,
+    "output_tokens": 7187,
+    "output_tokens_details": {
+      "thinking_tokens": 2966
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 34092,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3546,
+        "cache_read_input_tokens": 64173,
+        "cache_creation_input_tokens": 3146,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 3146
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 7187,
+      "cacheReadInputTokens": 283106,
+      "cacheCreationInputTokens": 34092,
+      "webSearchRequests": 0,
+      "costUSD": 0.013244160000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2966,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 34092,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 17,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The setting is a single boolean gate, `canViewArchivedChannels`. Only an explicit string `'false'` turns it off. Everything else, including absence, counts as on. Each place below reads that one helper; none of them reads the raw config value.\n\n**Core logic** (`app/queries/servers/system.ts:297-315`)\n\n```ts\nconst archivedChannelsViewable = (value?: string) => value !== 'false';\ncanViewArchivedChannels(db)           // async, reads config row\nobserveCanViewArchivedChannels(db)    // observable, distinctUntilChanged\n```\n\nThe comment says servers newer than v10.11 stopped sending the field because the feature is always on. Servers down to v5.26.2 still send it and may have set it to `false`. The TODO says to delete these helpers once those old servers are no longer supported.\n\n**Where the behaviour depends on it**\n\n| Area | Location | When on (true or absent) | When off (`'false'`) |\n|---|---|---|---|\n| Channel deleted websocket event | `app/actions/websocket/channel.ts:463-468` | Only stores `delete_at`; the user stays a member | If viewing that channel, kicks the user out with the `CHANNEL_ARCHIVED` event. Then removes the current user from the channel locally. |\n| Archive a channel | `app/actions/remote/channel.ts:1397-1401` | Sets `delete_at` locally to now | Removes the current user from the channel locally (not awaited) |\n| Post search | `app/actions/remote/search.ts:62,73` | Sends `include_deleted_channels: true` | Sends `false` |\n| Browse channels, data | `app/screens/browse_channels/index.ts:21,49` | Passes `canShowArchivedChannels` to the screen | Passes `false` |\n| Browse channels, UI | `browse_channels.tsx:190-197`, `dropdown_slideup.tsx:74-79` | Shows the channel-type dropdown with an \"Archived\" option | Dropdown only appears if shared channels are enabled, with no Archived option |\n| Browse channels, filter | `search_handler.tsx:39-40` | Archived filter is selectable | Archived filter unavailable |\n| Browse channels, select | `browse_channels.tsx:139-141` | Archived channel selected: `fetchMyChannel` then close | Same code path, but the option is hidden |\n| Sidebar category header | `categories/header/index.ts:15-22` \u2192 `app/database/models/server/category.ts:107-116` | Category counts archived channels as having channels | Only non-archived channels count |\n| Archive confirmation | `app/screens/channel_settings/archive/archive.tsx:109,121` | Uses the \"can view archived\" message and stays on the screen after archiving | Uses the \"cannot view\" message and pops to root after archiving |\n\nTwo things I noticed while reading:\n\n- The search screen hardcodes `include_deleted_channels: true` (`app/screens/home/search/search.tsx:77`). `searchPosts` spreads the params first and then sets `include_deleted_channels` from the gate (`remote/search.ts:72-73`), so the gate wins and the hardcoded value is ignored.\n- When the gate is off, `category.observeHasChannels` does not keep the current channel visible if it is archived. With the gate on, it does (`category.ts:111`). That looks inconsistent, but I did not run the app to confirm it.\n\n**When the server does not send the setting**\n\n`getConfigValue` returns `undefined` when there is no config row. `archivedChannelsViewable(undefined)` returns `true`. So the app behaves as if archived channels are viewable:\n\n- Archived channels stay in the user's membership and remain browsable.\n- Search includes deleted channels.\n- The Archived filter appears in Browse Channels.\n- The archive dialog uses the \"can view\" wording.\n\nThis is covered by unit tests in `app/queries/servers/system.test.ts:692-717`. The detox harness follows the same rule: `detox/e2e/support/server_api/system.ts:139-144` treats a missing value as enabled, and `detox/shared/server-baseline.ts:80` marks it `absentIsBaseline: true`.\n\nOne caveat: the code does not separate \"server omitted the key\" from \"config not stored yet\", so an empty database also reads as enabled. I inferred that from the code and did not test it.",
+  "ttft_ms": 1773,
+  "type": "result",
+  "duration_ms": 35873,
+  "uuid": "0552bac6-a7ac-4f12-8bee-f6c648369b0c",
+  "ttft_stream_ms": 1587,
+  "time_to_request_ms": 105,
+  "first_content_frame_ms": 1588,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

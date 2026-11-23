@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 62338,
+  "stop_reason": "end_turn",
+  "session_id": "5f1f5355-bf9d-4243-8143-822812c7d4f7",
+  "total_cost_usd": 0.02146629,
+  "usage": {
+    "input_tokens": 24,
+    "cache_creation_input_tokens": 41872,
+    "cache_read_input_tokens": 727899,
+    "output_tokens": 11621,
+    "output_tokens_details": {
+      "thinking_tokens": 5681
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 41872,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3880,
+        "cache_read_input_tokens": 78555,
+        "cache_creation_input_tokens": 1810,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1810
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 24,
+      "outputTokens": 11621,
+      "cacheReadInputTokens": 727899,
+      "cacheCreationInputTokens": 41872,
+      "webSearchRequests": 0,
+      "costUSD": 0.02146629,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 5681,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 41872,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 26,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "## Short answer\n\nFor shell and CMake, the index holds one row per function or macro, with the `#` comment block above it as documentation. For YAML and JSON it holds only a file-set entry: the file can be named, but nothing inside it is indexed. On an installation without the bash and cmake grammars, shell and CMake fall back to file-set entries with no symbols and nothing raises. My reading of the code says the not-indexed report then fails to name those files, which contradicts the docs. I did not execute that path, because this acceptance copy has no `.venv`.\n\n## What the index holds\n\n| File type | Row written | Source |\n|---|---|---|\n| `.sh` `.bash` | `path` row, plus `memberdef` per `name() {}` or `function name {}` | `clew/shast.py`, `clew/synth.py` |\n| `CMakeLists.txt` `.cmake` | `path` row, plus `memberdef` per `function()` (kind `function`) and `macro()` (kind `macro definition`) | `clew/cmakeast.py` |\n| `.yaml` `.yml` `.json` | `path` row only | `clew/synth.py:80`, `register_paths` |\n\n- **Documentation:** the `#` block directly above a definition, with no blank line between. A shebang is not documentation.\n- **Arguments:** shell functions have empty `argsstring`, because the language has no parameter list. CMake functions report named parameters.\n- **Provenance:** rows are stamped `dg_source='parse'`.\n- **YAML and JSON:** `dossier('requirements.yaml')` returns the file with `symbol_count: 0`. Keys are not symbols, by design (`clew/synth.py:71-80`).\n\n## What it does not hold\n\n- **YAML and JSON content.** Their keys and values are not indexed. `search(corpus='code')` covers function bodies and `corpus='prose'` covers markdown and rst, so YAML text is searchable nowhere.\n- **Shell or CMake statements outside definitions.** Top-level commands, variables and `add_executable` targets get no rows.\n- **Call edges from shell or CMake.** `shast.py` and `cmakeast.py` only harvest definitions; a grep for call-site extraction in `shast.py` found nothing.\n- **Dot-directories.** `.github/workflows/ci.yml` is pruned from scope and `dossier` reports it as not indexed (`docs/languages/SCRIPT_INTEGRATION.md`, the scope note).\n\n## Installation without the grammars\n\nThe gate is in `clew/harvest.py:137` (`_OPTIONAL_KEYS = {\"bash\", \"cmake\"}`) and `clew/substrate.py`. Shell and CMake are the only gated grammars, and it is a capability check against the installed wheel, not a version check. Without them:\n\n1. `_ts_language_for` returns `None` for `.sh` and `CMakeLists.txt`, so no tree is parsed and no `memberdef` rows are written. `tests/test_script_front_end.py:128` pins this, with no exception.\n2. YAML and JSON are unaffected. Registration needs no grammar, so they get the same `path` row on either install.\n3. The stamping step is where the design seems to break. `register_paths` claims `.sh` and `CMakeLists.txt` by extension and name with no grammar check, and `cli.py:1909` calls it unconditionally. `_not_indexed_scope` (`cli.py:2646-2684`) counts a scanned file as missing only if it has no `type = 1` `path` row. So on a no-grammar install, shell and CMake files have path rows and are never counted as missing. The report stays silent about them.\n4. The test that looks like it covers this, `tests/test_not_indexed_report.py`, builds its `path` rows by hand and never runs `register_paths`. Nothing exercises the real pipeline.\n5. The result is that `dossier` on a `.sh` file returns the same shape as a shell file with no functions: `found`, `harvested`, zero symbols. That is the absence-versus-emptiness problem `AGENTS.md` warns about.\n\n## Suggested fix\n\nWrite a RED test that builds an index with `compiled_languages` patched to exclude `bash` and `cmake`, then asserts the `.sh` and `CMakeLists.txt` files appear in `not_indexed`. The likely fix is to have `register_paths` skip shell and CMake when their grammars are absent, or to have `_not_indexed_scope` count claimed-but-unparsed files. I have not made the change; say the word and I will.",
+  "ttft_ms": 1822,
+  "type": "result",
+  "duration_ms": 63906,
+  "uuid": "9aaa8df8-b637-4033-a524-68ef8462603a",
+  "ttft_stream_ms": 1096,
+  "time_to_request_ms": 87,
+  "first_content_frame_ms": 1096,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

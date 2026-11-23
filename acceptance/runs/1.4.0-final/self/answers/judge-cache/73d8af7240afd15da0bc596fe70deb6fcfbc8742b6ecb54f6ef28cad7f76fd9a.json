@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Only if the index is older. If the index is newer, a rebuild re-stamps the same newer version and cannot clear it\"\nVERDICT: HIT\nWHY: The answer's schema-axis row states that when the index is newer than the server, a rebuild re-stamps the same newer version and cannot clear it."
+}

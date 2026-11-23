@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer mentions gen_bindings.py generating the bindings but never says drift is caught by a pre-commit check that re-runs the generator and diffs."
+}

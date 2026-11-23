@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `index.ts` also declares an `interface ServerDataOperator extends \u2026Mix` for each handler, so TypeScript sees the methods.\nVERDICT: HIT\nWHY: The answer states a same-named interface extends each handler's Mix type so the class is typed with the mixed-in methods."
+}

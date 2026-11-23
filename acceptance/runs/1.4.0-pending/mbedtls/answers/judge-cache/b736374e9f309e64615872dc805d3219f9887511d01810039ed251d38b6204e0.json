@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names no top-level directories as containing uses of `MBEDTLS_PRIVATE`. It names `library/` and `programs/` only as places where the opt-out is defined, plus file paths under `include/`, `docs/`, `library/` and `programs/`. It never says that any directory contains uses of the macro as a directory-level claim.\n\nIts closest claims are about specific files. `ssl_context_info.c` and `fuzz_dtlsserver.c` write `MBEDTLS_PRIVATE(...)` explicitly. It also says the library files `ecdh.c` and `md.c` use it. Reading those as directory claims gives `programs` (under `programs/ssl` and `programs/fuzz`) and `library`. The answer does not state this at directory level, so I have listed what it ties to the macro's use.\n\nITEMS:\nlibrary\nprograms\nEND"
+}

@@ -54,7 +54,7 @@ from ._common import logger
 ## cycle, and it is the one section owner whose section NAME lives here rather than
 ## with the owner (its vocabulary is a declaration format, not an internal constant).
 from .event_edges import CONSUMER, PRODUCER
-from .guard.config import CONFIG_FILE_NAME, CONFIG_SECTION, _warn_about_legacy_config
+from .guard.config import CONFIG_FILE_NAME, CONFIG_SECTION, LEGACY_CONFIG_NAME
 from .vocabulary import DeclarationError
 
 ## The conventional filename. clew's OWN interface — not an assumption about any target's
@@ -67,6 +67,12 @@ DECLARATION_NAME = CONFIG_FILE_NAME
 ## drops it, because nothing on the index side reads it as a declaration. The index reads the
 ## gate's values through `guardconfig.read_guard_config`, with the gate's schema.
 SECTION_GUARD = CONFIG_SECTION
+## `clew wiki`'s section (1.4.0). NOT a declaration section either, for the same reason as
+## `guard:` — the wiki generator reads it (`clew.wiki.config`), no build stage does — so the loader
+## accepts it and drops it.
+SECTION_WIKI = "wiki"
+## The top-level keys the loader accepts and drops: other tools' sections in the shared file.
+NON_DECLARATION_SECTIONS = frozenset({SECTION_GUARD, SECTION_WIKI})
 
 ## How `stated_document_meta` joins the section names. A COMMA-SPACE, matching `scope.py`'s
 ## separator rather than `tiers.py`'s newline, and safe here for the reason `tiers` is not:
@@ -102,6 +108,12 @@ SECTION_DATA_MODEL = "data_model"
 ## whole precedence order (stated > this section > the guard's own
 ## `impact.requirements.file` > convention > nothing), so declaring this displaces neither
 ## the gate's declaration nor the convention — it inserts one tier above them.
+##
+## 2.0.0 (R5-CFG F7): `requirements:` is the CATALOG SECTION the index, the gate and the wiki all
+## read — `{file, format, id_column, name_column, status_field, exempt_status, version_field,
+## external, needs}`, or one path as the short form of `{file: <path>}`. It still never inlines
+## the catalog itself, for the reason above. Its keys are validated by the gate's reader
+## (`guard.config.REQUIREMENTS_SCHEMA`), so the two cannot disagree about what is allowed.
 SECTION_REQUIREMENTS = "requirements"
 SECTION_ENRICH = "enrich"
 ## Lock primitives and repo-specific guard wrappers (R1 lock layer).
@@ -138,7 +150,56 @@ SECTION_ENTRY_PATTERNS = "entry_patterns"
 ## Declared rather than hardcoded because `tests/` is a convention: repos use `test/`,
 ## `spec/`, `t/` or colocate `foo_test.cpp` beside the code. A declaration DISPLACES the
 ## built-in guesses rather than extending them, per the layered rule.
+##
+## 2.0.0 (R5-CFG F20): WHERE TESTS LIVE AND WHAT THEIR RUNS LEAVE ARE ONE SECTION, `tests:`. The
+## paths were `test_paths:` (index) and again `wiki.tests.layers` (site), and the evidence a run
+## leaves — JUnit, coverage, per-test contexts — describes the repository's tests yet only the
+## wiki could read it. `tests.paths` is what `test_paths` was; `test_paths` is refused naming it.
+SECTION_TESTS = "tests"
+TESTS_PATHS = "paths"
+TESTS_MACROS = "macros"
+TESTS_FUNCTION_PREFIXES = "function_prefixes"
+## The macro shapes `tests.macros` may name, as `wiki.frameworks` reads them.
+TESTS_MACRO_SHAPES = frozenset({"named", "suite", "bare"})
+## Every key `tests:` may carry: `paths` for the index, and the evidence inputs the wiki reads.
+TESTS_KEYS = frozenset(
+    {
+        TESTS_PATHS,
+        "junit",
+        "coverage",
+        "target_only",
+        "mutations",
+        "results",
+        "gcov",
+        "mapping",
+        "features",
+        "layers",
+        "min_layers",
+        "evidence_fields",
+        "infer_depth",
+        "contexts",
+        "traces",
+        ## R5-CFG C9 (2.0.0): the size cap on one report, in MiB (per-test LCOV grows with tests).
+        "max_report_mb",
+        ## P4 (2.0.0; C6, W2): test shapes beyond the built-ins, ADDED to them —
+        ## `macros: {named|suite|bare: [MACRO, ...]}` and `function_prefixes: [prefix, ...]`.
+        TESTS_MACROS,
+        TESTS_FUNCTION_PREFIXES,
+    }
+)
+## The 1.x name, kept only so the refusal can name where it went.
 SECTION_TEST_PATHS = "test_paths"
+## WHO OWNS A FILE (S2/S3, 2.0.0): the repository's own CODEOWNERS and MAINTAINERS, found at their
+## conventional locations; this section only names them when they live elsewhere
+## (`{codeowners: path, maintainers: path}`). Read by `clew/owners.py` into the `owners` layer.
+SECTION_OWNERS = "owners"
+## THE BLOCKING VOCABULARY (R5-CORE C1, 2.0.0): a repository's own blocking primitives
+## (`{name, timeout_arg_index}`), ISR predicates and wait tokens (`{none, forever,
+## bounded_prefixes}`), ADDED to the built-in Zephyr / FreeRTOS / RIOT / POSIX facts. Every
+## sibling layer (locks, threads, shared keys) was declarable and this one was the exception.
+SECTION_BLOCKING = "blocking"
+## Sections that moved in 2.0.0, refused naming their new home (never as "unknown").
+MOVED_SECTIONS = {SECTION_TEST_PATHS: f"`{SECTION_TESTS}.{TESTS_PATHS}`"}
 ## VENDORED THIRD-PARTY PATHS — a plain list of repo-relative directories the repository did
 ## not write but DOES own, because it committed them.
 ##
@@ -245,7 +306,9 @@ KNOWN_SECTIONS = frozenset(
         SECTION_ENRICH,
         SECTION_LOCKS,
         SECTION_ENTRY_PATTERNS,
-        SECTION_TEST_PATHS,
+        SECTION_TESTS,
+        SECTION_OWNERS,
+        SECTION_BLOCKING,
         SECTION_VENDORED,
         SECTION_DISPATCH,
         SECTION_PREPROCESSOR,
@@ -258,7 +321,39 @@ KNOWN_SECTIONS = frozenset(
 )
 
 ## Every top-level key `.clew.yaml` may carry: the declaration sections plus the gate's.
-ACCEPTED_SECTIONS = KNOWN_SECTIONS | {SECTION_GUARD}
+ACCEPTED_SECTIONS = KNOWN_SECTIONS | NON_DECLARATION_SECTIONS
+
+## THE SHAPE OF EACH SECTION, ENFORCED BY THE LOADER (R5-CFG F1/F4/F5/F26, 2.0.0). Every section
+## is one of four shapes, and a value of the wrong shape is REFUSED here rather than handed to a
+## reader that would drop it (`section()` returns mapping-or-None, so a path string under
+## `thread_patterns:` was ignored), iterate it (`vendored: extern` became `e, x, t, e, r, n`), or
+## warn and ignore it — a warning is gone by the time anyone reads the index.
+##
+## A LIST section accepts one bare string as a one-item list, the precedent `wiki` already sets
+## for `gcov` and `theme.css`; anything else that is not a list is refused.
+LIST_SECTIONS = frozenset({SECTION_ENTRY_PATTERNS, SECTION_VENDORED})
+
+## A PATH section names one repo-relative file.
+PATH_SECTIONS = frozenset({SECTION_DATA_MODEL, SECTION_ENRICH, SECTION_DOXYFILE})
+
+## A MANIFEST section is its document inline; its entries are checked against
+## `buildoptions.MANIFEST_SCHEMAS`, the same schemas tier 1 is checked against.
+MANIFEST_SECTIONS = frozenset(
+    {SECTION_SHARED_KEY, SECTION_THREADS, SECTION_MQTT, SECTION_LOCKS, SECTION_DISPATCH}
+)
+
+## The keys a SECTION-DOCUMENT section may carry, where this loader is the only check. Restated
+## rather than imported so this module stays free of its readers' imports;
+## `tests/test_declaration_validated.py` pins each set to the reader's own constants.
+## `index_scope` and `sub_indexes` are absent on purpose: `scope.py` already refuses their
+## unknown keys by name (the model this follows).
+SECTION_KEYS: dict[str, frozenset[str]] = {
+    SECTION_PREPROCESSOR: frozenset({"predefined", "config_header"}),
+    SECTION_KCONFIG: frozenset({"root"}),
+    SECTION_TESTS: TESTS_KEYS,
+    SECTION_OWNERS: frozenset({"codeowners", "maintainers"}),
+    SECTION_BLOCKING: frozenset({"primitives", "isr_predicates", "wait_tokens"}),
+}
 
 ## THE ESCAPE HATCH AN OLDER CLEW NEEDS (B5, 1.1.0 merge review). `guard:` is new in 1.1.0,
 ## so a `.clew.yaml` written for it is REFUSED outright by clew <= 1.0.39, which cannot know
@@ -292,7 +387,12 @@ def load_declaration(repo_root: Path | str | None) -> dict[str, Any]:
 ## @param repo_root Repo root to look in.
 ## @return (declaration, source path) — the path is None when nothing was declared.
 ##         Raises DeclarationError when the document names an unknown section.
-## @version 4
+## v5 (1.4.0): the `wiki:` section is accepted and dropped, like `guard:`.
+## v6 (2.0.0): every section's shape is checked (`_checked_sections`); manifest sections share
+## tier 1's MANIFEST_SCHEMAS, so the in-tree file is no longer the least validated route.
+## v7: a moved section is refused naming its new home (2.0.0)
+## v8: hard cut of doxygen-guard priors (2.0.0, PG4)
+## @version 8
 ## @req REQ-DDB-CONFIG-001
 def load_declaration_located(
     repo_root: Path | str | None,
@@ -320,16 +420,13 @@ def load_declaration_located(
 
     @brief Read the target's declared conventions and their source file.
     @return (parsed mapping, source path) — ({}, None) when there is nothing usable.
-    @version 2
+    @version 3
     """
     if repo_root is None:
         return {}, None
     root = Path(repo_root).expanduser()
     path = root / DECLARATION_NAME
     data = _read_mapping(path) if path.is_file() else {}
-    ## Captured BEFORE the `guard:` key is stripped below, because the question the legacy
-    ## warning asks is whether the file configures the gate at all.
-    configures_gate = SECTION_GUARD in data
     if data:
         experimental = sorted(str(key) for key in data if str(key).startswith(EXPERIMENTAL_PREFIX))
         if experimental:
@@ -340,6 +437,12 @@ def load_declaration_located(
                 path,
                 ", ".join(experimental),
                 EXPERIMENTAL_PREFIX,
+            )
+        moved = sorted(str(key) for key in data if key in MOVED_SECTIONS)
+        if moved:
+            raise DeclarationError(
+                f"{path}: "
+                + "; ".join(f"`{k}` moved in 2.0.0 to {MOVED_SECTIONS[k]}" for k in moved)
             )
         unknown = sorted(
             str(key)
@@ -359,7 +462,7 @@ def load_declaration_located(
         data = {
             key: value
             for key, value in data.items()
-            if key != SECTION_GUARD and not str(key).startswith(EXPERIMENTAL_PREFIX)
+            if key not in NON_DECLARATION_SECTIONS and not str(key).startswith(EXPERIMENTAL_PREFIX)
         }
     ## BOTH SIDES OF THE DROPPED TOOL (group B, 1.1.0 merge review). The INDEX reads the
     ## gate's section too — the `@req` id pattern and the requirements catalog come from
@@ -369,18 +472,188 @@ def load_declaration_located(
     ##
     ## The GATE'S OWN helper, not a copy: this module already imports the gate's config for
     ## the section name, and two descriptions of one migration is how they drift.
-    if not configures_gate:
-        _warn_about_legacy_config(path)
+    ## 2.0.0 (PG4): the GATE refuses to run while a doxygen-guard leftover exists; the INDEX only
+    ## says so, because clew indexes repositories it must not change (third-party trees included).
+    if (path.parent / LEGACY_CONFIG_NAME).is_file():
+        logger.warning(
+            "%s is a doxygen-guard config: clew does not read it, and `clew guard` refuses to run "
+            "while it exists. Move its contents under `guard:` in %s and delete it.",
+            path.parent / LEGACY_CONFIG_NAME,
+            path.name,
+        )
     if data:
+        data = _checked_sections(data, path)
         logger.info("declaration: %s declares %s", path, ", ".join(sorted(data)))
     return data, (path if data else None)
+
+
+## @brief Check every declared section's shape, normalising a one-string list section.
+## @param data The declaration, unknown sections already refused.
+## @param path The file it was read from, for the message.
+## @return The declaration with list sections as lists; raises DeclarationError on a wrong shape.
+## @version 1
+## @utility
+def _checked_sections(data: dict[str, Any], path: Path) -> dict[str, Any]:
+    """ONE VALIDATOR FOR BOTH ROUTES (R5-CFG F1): manifest sections go through
+    `buildoptions.check_manifest_document`, the check tier 1 already had, so a key refused from
+    `--declare` is refused from the checked-in file too.
+
+    @brief Validate section shapes.
+    @return Normalised declaration.
+    @version 1
+    """
+    out = dict(data)
+    for name, value in data.items():
+        out[name] = _checked_section(name, value, path)
+    return out
+
+
+## @brief Check one section's shape.
+## @param name Section name.
+## @param value Its declared value.
+## @param path The file it was read from.
+## @return The (possibly normalised) value; raises DeclarationError on a wrong shape.
+## v2: requirements: is checked against the gate's schema (2.0.0, R5-CFG F7)
+## v3: tests.paths is a list section (2.0.0, R5-CFG F20)
+## v4: tests.macros and tests.function_prefixes are checked too (2.0.0, P4)
+## @version 4
+## @utility
+def _checked_section(name: str, value: Any, path: Path) -> Any:
+    """@brief Refuse a wrong-shaped section, naming it and the expected shape.
+    @return The checked value.
+    @version 1
+    """
+    from .buildoptions import BuildOptionError, check_manifest_document
+
+    if name in LIST_SECTIONS:
+        return _checked_list_section(name, value, path)
+    if name == SECTION_REQUIREMENTS:
+        return _checked_requirements(value, path)
+    if name == SECTION_TESTS and isinstance(value, dict):
+        value = _checked_tests(value, path)
+    if name in PATH_SECTIONS:
+        if not isinstance(value, str) or not value.strip():
+            raise DeclarationError(
+                f"{path}: {name} must be one repo-relative path, got {type(value).__name__}"
+            )
+        return value
+    if not isinstance(value, dict):
+        raise DeclarationError(
+            f"{path}: {name} must be a mapping (the document inline), got "
+            f"{type(value).__name__}. Nothing reads a {type(value).__name__} here, so the build "
+            f"would have used built-in defaults while reporting the section declared."
+        )
+    if name in MANIFEST_SECTIONS:
+        try:
+            return check_manifest_document(name, value)
+        except BuildOptionError as exc:
+            raise DeclarationError(f"{path}: {exc}") from exc
+    _check_section_keys(name, value, path)
+    return value
+
+
+## @brief Check the list-shaped keys of `tests:`.
+## @param value The section.
+## @param path Source file.
+## @return The section, checked.
+## @version 1
+## @utility
+def _checked_tests(value: dict[str, Any], path: Path) -> dict[str, Any]:
+    """`paths` and `function_prefixes` are lists; `macros` maps a SHAPE (`named` / `suite` /
+    `bare`) to a list. An unknown shape is refused by name: it would read as no macros at all.
+
+    @brief Check tests: lists and shapes.
+    @return The section.
+    """
+    out = dict(value)
+    for key in (TESTS_PATHS, TESTS_FUNCTION_PREFIXES):
+        if key in out:
+            out[key] = _checked_list_section(f"{SECTION_TESTS}.{key}", out[key], path)
+    macros = out.get(TESTS_MACROS)
+    if macros is not None:
+        if not isinstance(macros, dict) or set(macros) - TESTS_MACRO_SHAPES:
+            raise DeclarationError(
+                f"{path}: tests.macros must map a shape ({', '.join(sorted(TESTS_MACRO_SHAPES))}) to a "
+                f"list of macro names, got {macros!r}"
+            )
+        out[TESTS_MACROS] = {
+            shape: _checked_list_section(f"tests.macros.{shape}", names, path)
+            for shape, names in macros.items()
+        }
+    return out
+
+
+## @brief Check the catalog section against the gate's own schema.
+## @param value Declared value: a path, or the catalog mapping.
+## @param path Source file.
+## @return The section as a mapping; raises DeclarationError on an unknown key or wrong type.
+## @version 1
+## @utility
+def _checked_requirements(value: Any, path: Path) -> dict[str, Any]:
+    """@brief Validate `requirements:` with REQUIREMENTS_SCHEMA. @return Mapping."""
+    from .guard.config import REQUIREMENTS_SCHEMA, _validate_node
+
+    section = {"file": value} if isinstance(value, str) else value
+    if not isinstance(section, dict):
+        raise DeclarationError(
+            f"{path}: {SECTION_REQUIREMENTS} must be one path or the catalog mapping, got "
+            f"{type(value).__name__}"
+        )
+    errors = _validate_node(section, REQUIREMENTS_SCHEMA, SECTION_REQUIREMENTS)
+    if errors:
+        raise DeclarationError(f"{path}: {'; '.join(errors)}")
+    return dict(section)
+
+
+## @brief Read a list section, accepting one bare string as a one-item list.
+## @param name Section name.
+## @param value Declared value.
+## @param path Source file.
+## @return The list of strings; raises DeclarationError for any other type.
+## @version 1
+## @utility
+def _checked_list_section(name: str, value: Any, path: Path) -> list[str]:
+    """@brief Normalise a list section. @return Strings."""
+    if isinstance(value, str):
+        return [value]
+    if not isinstance(value, list) or not all(isinstance(v, (str, int, float)) for v in value):
+        raise DeclarationError(
+            f"{path}: {name} must be a list of strings (or one string), got {type(value).__name__}"
+        )
+    return [str(v) for v in value]
+
+
+## @brief Refuse a key a section-document section's reader never reads.
+## @param name Section name.
+## @param value Section mapping.
+## @param path Source file.
+## @return None; raises DeclarationError naming the unknown key(s).
+## @version 1
+## @utility
+def _check_section_keys(name: str, value: dict[str, Any], path: Path) -> None:
+    """R5-CFG F4: `preprocessor: {predefine: [FOO]}` recorded a DECLARED configuration with no
+    macros, and `kconfig: {path: ...}` (once the documented spelling) was ignored in favour of the
+    root Kconfig by convention.
+
+    @brief Allow-list a section document's keys.
+    """
+    allowed = SECTION_KEYS.get(name)
+    if allowed is None:
+        return
+    unknown = sorted(str(k) for k in value if k not in allowed)
+    if unknown:
+        raise DeclarationError(
+            f"{path}: {name} names unknown key(s) {', '.join(repr(k) for k in unknown)} — "
+            f"allowed: {', '.join(sorted(allowed))}. A misspelled key reads as an absent one, so "
+            f"it would silently take its default."
+        )
 
 
 ## @brief Parse a YAML file expected to hold a mapping.
 ## @param path File to read.
 ## @return The mapping, or {} when unreadable, malformed, empty, or not a mapping.
 ## @version 2
-## @dg_internal
+## @utility
 def _read_mapping(path: Path) -> dict[str, Any]:
     """AN EMPTY OR COMMENT-ONLY FILE IS NOT MALFORMED (gh#48). It is exactly what
     `propose_declaration` hands an owner — a draft written entirely as comments so that committing
@@ -406,7 +679,7 @@ def _read_mapping(path: Path) -> dict[str, Any]:
 ## @param path File to read.
 ## @return The mapping ({} when empty), and a phrase naming why it is unusable, or None.
 ## @version 1
-## @dg_internal
+## @utility
 def _parsed_declaration(path: Path) -> tuple[dict[str, Any], str | None]:
     """ONE PARSE FOR THE BUILD AND FOR THE MESSAGES that describe it, so a refusal saying
     "comments only" and a build honouring nothing cannot disagree about the same file.
@@ -431,7 +704,8 @@ def _parsed_declaration(path: Path) -> tuple[dict[str, Any], str | None]:
 ## @brief One sentence on a repository's `.clew.yaml` and whether a build honours it.
 ## @param repo_root The repository root.
 ## @return The sentence, or "" when the repository has no `.clew.yaml`.
-## @version 2
+## v3 (1.4.0): ignores the `wiki:` section as it does `guard:`.
+## @version 3
 ## @req REQ-DDB-CONFIG-001
 def describe_declaration(repo_root: Path) -> str:
     """gh#48 ASK 4. A reporter's split repository carried a `.clew.yaml` that was comments only, so
@@ -457,7 +731,7 @@ def describe_declaration(repo_root: Path) -> str:
             f"Its {DECLARATION_NAME} holds only comments, so it states nothing and built-in "
             f"defaults apply — uncomment a section to have builds honour it."
         )
-    sections = ", ".join(sorted(str(k) for k in data if k != SECTION_GUARD))
+    sections = ", ".join(sorted(str(k) for k in data if k not in NON_DECLARATION_SECTIONS))
     if not sections:
         return (
             f"Its {DECLARATION_NAME} configures only the gate (`{SECTION_GUARD}:`), so builds "

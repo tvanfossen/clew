@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The request goes through `client.createPost`, which calls `doFetch` with `noRetry: true`\" and \"Retry count: the automatic count is zero. There is one attempt, and the transport is told not to retry.\"\nVERDICT: HIT\nWHY: The answer explicitly states the create-post request is sent once with no automatic retries (noRetry: true, retryLimit 0)."
+}

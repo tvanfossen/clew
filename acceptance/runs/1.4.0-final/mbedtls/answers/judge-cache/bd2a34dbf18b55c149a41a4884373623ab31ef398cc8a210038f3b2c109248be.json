@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: If those are not defined, they fall back to `platform_calloc_uninit` (returns NULL) and `platform_free_uninit` (no-op).\nVERDICT: HIT\nWHY: The answer states that the uninitialised defaults fail: calloc returns NULL and free does nothing. It also says \"default to stubs that fail\"."
+}

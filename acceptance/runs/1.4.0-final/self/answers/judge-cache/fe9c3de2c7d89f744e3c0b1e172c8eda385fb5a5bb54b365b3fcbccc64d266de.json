@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Tiers 3 and 4 are not user-settable. Tier 3 is facts the target already wrote, such as a Doxyfile's `PREDEFINED`/`ALIASES` or a generator manifest. Tier 4 is known-ecosystem signatures. Tier 5 is name-pattern heuristics, the floor.\nVERDICT: HIT\nWHY: The answer names five tiers (1 explicit, 2 declared, 3 facts, 4 signatures, 5 heuristics) and gives the combination rule `(tier1 or tier2 or tier5) \u222a tier3 \u222a tier4`, so it shows resolution through five precedence tiers rather than one override."
+}

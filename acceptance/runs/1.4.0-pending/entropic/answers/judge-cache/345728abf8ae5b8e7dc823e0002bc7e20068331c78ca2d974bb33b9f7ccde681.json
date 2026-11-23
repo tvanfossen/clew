@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Allow matches return `true` from `is_allowed`, which skips the prompt.\nVERDICT: HIT\nWHY: The answer says the allow list only decides whether the user is prompted (skips the approval step), with `check_approval` in `tool_executor.cpp` consulting `is_explicitly_allowed`, and that deny is enforced separately in `server_manager.cpp`. It never says the list \"does not grant execution\", but that follows from the described mechanism and the file placement."
+}

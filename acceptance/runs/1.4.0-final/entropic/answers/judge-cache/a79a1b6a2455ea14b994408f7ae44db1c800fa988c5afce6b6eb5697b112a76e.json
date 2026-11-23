@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The same empty result comes back when `vocab_` is null, so the caller can't distinguish failure from empty input.\" and \"a tokenization failure is silent to every caller... downstream code does not check for either.\"\nVERDICT: HIT\nWHY: The answer states failure returns an empty vector indistinguishable from empty input and that no caller checks for it."
+}

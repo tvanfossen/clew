@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says no threads spawn in library/ but never says library/ supplies the mutex abstraction (threading.c layer) for threaded callers. It says the default build has no mutexes and mentions threading.c only as a lock identity."
+}

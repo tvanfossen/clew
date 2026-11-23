@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Short-lived 10 ms polls that mirror an interrupt flag into the C-ABI `int` cancel flag. ... Cross-thread flags are `std::atomic` with acquire/release ordering.\nVERDICT: MISS\nWHY: The answer says the pollers mirror an atomic interrupt flag into the C-ABI int flag, but it never states that the thread exists because the C ABI cannot carry an atomic."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"| `data` | ... | A rebuild |\" and \"| `code` | ... | Restarting the client only |\"\nVERDICT: MISS\nWHY: The answer lists different clearing actions per axis but never says that this difference is why a single flag would not have sufficed."
+}

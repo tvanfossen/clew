@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **`BaseDataOperator` is shared with `AppDataOperator`** (`app/database/operator/app_data_operator/index.ts`). Its `handleInfo` and `handleGlobal` use the same `handleRecords` \u2192 `batchRecords` pipeline against the app-level database.\nVERDICT: HIT\nWHY: The answer names AppDataOperator as sharing BaseDataOperator and the same handleRecords/batchRecords write path for the app-level database."
+}

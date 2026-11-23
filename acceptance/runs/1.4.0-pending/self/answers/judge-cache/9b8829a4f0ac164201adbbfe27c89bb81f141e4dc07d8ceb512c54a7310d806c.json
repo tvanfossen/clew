@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The docstring explains why this check outranks the others: the reply should not send the caller to fix the wrong thing.\"\nVERDICT: MISS\nWHY: The answer says the unread-corpus check outranks the others, but it never states a most-specific-first ordering. Its reason is \"don't send the caller to fix the wrong thing\", not that a matching row speaks to this query while the other checks speak to the index as a whole."
+}

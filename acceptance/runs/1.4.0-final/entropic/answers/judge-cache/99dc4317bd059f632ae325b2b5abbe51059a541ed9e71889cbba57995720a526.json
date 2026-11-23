@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"C API `entropic_inference_count_tokens` returns 0. Indistinguishable from an empty string, and a budget check would treat it as \"fits\".\" and \"On tokenize failure, the empty vector travels up with no error code... the count path reports 0. Both fail silently.\"\nVERDICT: HIT\nWHY: The answer states that a failed tokenization flows into the count path, which returns 0 instead of signalling an error."
+}

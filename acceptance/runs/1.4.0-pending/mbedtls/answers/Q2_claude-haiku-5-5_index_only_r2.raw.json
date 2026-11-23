@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 16030,
+  "stop_reason": "end_turn",
+  "session_id": "00dc1cca-42a0-4fb9-b7ba-f6b066758aa2",
+  "total_cost_usd": 0.0059857899999999995,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 14629,
+    "cache_read_input_tokens": 158769,
+    "output_tokens": 2943,
+    "output_tokens_details": {
+      "thinking_tokens": 1059
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 14629,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1945,
+        "cache_read_input_tokens": 44218,
+        "cache_creation_input_tokens": 7117,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 7117
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 8,
+      "outputTokens": 2943,
+      "cacheReadInputTokens": 158769,
+      "cacheCreationInputTokens": 14629,
+      "webSearchRequests": 0,
+      "costUSD": 0.0059857899999999995,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1059,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 14629,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 10,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**What it does.** `MBEDTLS_PRIVATE(member)` is a macro in `include/mbedtls/private_access.h:15`. Its default expansion is `private_##member`, so `ssl->MBEDTLS_PRIVATE(state)` becomes `ssl->private_state`. Public headers use it to rename struct members, so application code that writes `ctx->state` no longer compiles. The file's brief says it is a \"Macro wrapper for struct's members,\" and the `library/common.h` documentation says the library may access its structs' private members, although they are publicly visible in headers, and that users should not access them.\n\nThe public headers also use it in the inline accessors. Examples are `mbedtls_ssl_is_handshake_over` (`ssl.h:5148`), `mbedtls_ssl_session_get_id_len` (`ssl.h:2812`), `mbedtls_ssl_get_hostname` (`ssl.h:4144`), `mbedtls_ssl_cache_get_timeout` (`ssl_cache.h:163`), and the `psa_get_key_*` / `psa_set_key_*` helpers in `psa/crypto_struct.h`. So the supported getters and setters are the public API, and the raw fields are not.\n\n**The opt-out.** The macro has two definitions, selected by `#ifndef MBEDTLS_ALLOW_PRIVATE_ACCESS` (line 14 in `private_access.h`):\n\n- Without the define: `MBEDTLS_PRIVATE(m)` \u2192 `private_m`. Members are renamed and hidden.\n- With the define: `MBEDTLS_PRIVATE(m)` \u2192 `m`. Members keep their real names.\n\n`MBEDTLS_ALLOW_PRIVATE_ACCESS` is defined in exactly three places in this tree:\n\n| Where | Who it affects |\n|---|---|\n| `library/common.h:132` | The library's own sources. Any TU that includes `common.h` gets the real member names. |\n| `programs/ssl/ssl_client2.c:8` | The `ssl_client2` sample program. |\n| `programs/ssl/ssl_server2.c:8` | The `ssl_server2` sample program. |\n\n**What this means for those places.** Inside the library and the two SSL sample programs, code can read and write struct fields directly, because the macro resolves to the real names. Everywhere else, which includes external applications and the test programs not listed, the fields are renamed and direct access fails to compile. The library's internal code is therefore not bound by the public accessor layer. Changes to those fields can break the library's own code, but not external code that only uses the public API.\n\n**Caveats I could not settle from the index.**\n\n- The `#ifndef` is evaluated when `private_access.h` is first included. If `common.h` is included after a public header has already pulled in `private_access.h`, the choice made there is fixed by include order. I did not check include order in each `.c` file.\n- The index shows no enclosing condition around the `common.h` define, so it looks unconditional for any build that includes that header.\n- The `ssl_client2.c` and `ssl_server2.c` definitions appear at the top of those files, before their includes, which suggests they are meant to take effect. I did not verify this against the include chain.",
+  "ttft_ms": 1474,
+  "type": "result",
+  "duration_ms": 16760,
+  "uuid": "1278f809-c225-4af4-b0cb-28a25d08bca3",
+  "ttft_stream_ms": 1179,
+  "time_to_request_ms": 70,
+  "first_content_frame_ms": 1179,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer only says HealthMonitor::monitor_loop runs health checks and mentions event_mutex_ in a lock nesting. It never says the status callback is not invoked from the monitor thread, or that events are queued for the caller to drain."
+}

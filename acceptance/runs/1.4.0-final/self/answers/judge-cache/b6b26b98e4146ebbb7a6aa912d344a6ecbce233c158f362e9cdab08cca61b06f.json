@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Stated tiers versus facts (3 and 4): facts are never displaced. The documented resolution is `(t1 or t2 or t5) \u222a t3 \u222a t4`, so a Doxyfile alias or an ecosystem entry still adds to a declared value.\nVERDICT: HIT\nWHY: The answer says stated tiers replace one another (flag replaces declaration, stated replaces the guess), while discovered facts (tiers 3 and 4) are unioned in and never displaced by what is stated."
+}

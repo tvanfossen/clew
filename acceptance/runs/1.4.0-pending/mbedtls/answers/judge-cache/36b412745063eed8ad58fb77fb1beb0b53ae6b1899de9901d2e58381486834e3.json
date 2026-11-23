@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: With `MBEDTLS_THREADING_C` off, the guarded code is absent... in the default configuration, the library runs no concurrency of its own and takes no locks.\nVERDICT: MISS\nWHY: The answer says the default library has no locks or concurrency of its own, but it never says the default build creates no threads at all, and it never says the pthread example compiles to a stub main. It lists `ssl_pthread_server.c:277` as a thread spawn site."
+}

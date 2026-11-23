@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"the right part is matched against `tool:<arg>`, where `<arg>` is the first JSON value in the arguments (`args_to_pattern`, `server_manager.cpp:426`). Empty args become `*`.\"\n\nVERDICT: MISS\n\nWHY: The answer says only the first JSON value is used and empty args become `*`, but it never says that non-string or unparseable arguments collapse to a wildcard, and it does not say the other arguments are invisible to matching."
+}

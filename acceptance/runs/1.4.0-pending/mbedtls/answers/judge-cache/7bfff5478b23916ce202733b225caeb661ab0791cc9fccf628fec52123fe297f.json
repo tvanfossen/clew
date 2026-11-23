@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"a contributor adds a code by editing the module header and regenerating, not by hand-editing `error.c`.\" and \"Add `#define MBEDTLS_ERR_<MOD>_<NAME> -0x00XX` in that module's header, with exactly one Doxygen description\" and \"Do not edit the auto-generated section of `library/error.c` by hand.\"\nVERDICT: HIT\nWHY: The answer states that a new error string is added as a Doxygen-documented #define in the module header, followed by regeneration, and that error.c is not hand-edited."
+}

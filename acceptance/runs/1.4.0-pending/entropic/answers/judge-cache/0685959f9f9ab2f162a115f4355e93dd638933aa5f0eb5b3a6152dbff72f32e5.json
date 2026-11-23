@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"A missing vocab (`vocab_ == nullptr`) also returns `{}`, silently.\" and \"returns `{}`\" on failure; \"**`LlamaCppBackend::tokenize`** ... passes the empty vector through.\"\nVERDICT: MISS\nWHY: The answer says the tokenizer class returns `{}` for both a failed call and a missing vocab, but the item is about the backend's wrapper returning an empty container when no tokenizer is wired at all. The answer never states that case."
+}

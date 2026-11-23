@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer lists several areas and files using the primitives (RSA, TLS, cipher, bignum, cmac, nist_kw) but never says they are consumed broadly across roughly twenty modules, and it also says coverage is \"opt-in per function.\""
+}

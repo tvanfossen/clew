@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"An `index_scope:` section in `.clew.yaml` with at least one existing `roots:` entry replaces the whole-repo scope. `excludes` alone is rejected. Unknown keys are rejected too, and a rejected declaration falls back to the whole repo with a logged warning\"\nVERDICT: HIT\nWHY: The answer states that a declared index_scope is used when present and that otherwise, including when a declaration is rejected, the whole repo is indexed."
+}

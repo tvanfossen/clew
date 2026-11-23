@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes grading by checking unread corpora (`unsearched_corpora`), but never states that the strong wording is earned per call rather than attached to a result shape."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: With `MBEDTLS_PLATFORM_MEMORY` on, they dispatch through function pointers... The static pointer defaults to `MBEDTLS_PLATFORM_STD_CALLOC`. That macro is off in the shipped config (`mbedtls_config.h:4124`).\nVERDICT: MISS\nWHY: The answer treats MBEDTLS_PLATFORM_MEMORY as a switch, but says only that MBEDTLS_PLATFORM_STD_CALLOC (not MBEDTLS_PLATFORM_MEMORY) is off in the shipped config, so it never states that MBEDTLS_PLATFORM_MEMORY itself is commented out."
+}

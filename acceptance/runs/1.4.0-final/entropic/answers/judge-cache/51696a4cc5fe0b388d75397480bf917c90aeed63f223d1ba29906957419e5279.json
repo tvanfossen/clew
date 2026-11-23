@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The worker is detached (`external_bridge.cpp:1222`) and captures `this` and `handle_`. `stop()` (`:826`) does not wait for it. It joins the accept thread and the per-client threads only. So if the bridge is destroyed while an async ask is still running, the worker can use freed memory.\nVERDICT: HIT\nWHY: The answer identifies run_async_ask as the detached worker with no join in stop(), outliving the caller's scope; it is also the only one flagged as detached, since the others are joined."
+}

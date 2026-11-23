@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: YAML (`.yaml`, `.yml`) | A `path` row, so the file is in the file set and findable by name | Any symbols. ... JSON (`.json`) | Same as YAML: a `path` row, no symbols\n\nVERDICT: HIT\nWHY: The answer says YAML and JSON are registered as path rows in the file set with no symbols, in contrast to shell and CMake, which do get function and macro rows."
+}

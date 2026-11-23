@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **`mbedtls_ct_compiler_opaque()` blocks value tracking.** It is an empty `asm volatile` barrier, or `x ^ mbedtls_ct_zero` where a volatile global holds zero (`:85`). This stops the optimizer from proving a secret's value and folding the mask logic away.\nVERDICT: HIT\nWHY: The answer names mbedtls_ct_compiler_opaque as the primitive stopping the optimizer from knowing a value, and places it in constant_time_impl.h (the primitives section, line :85)."
+}

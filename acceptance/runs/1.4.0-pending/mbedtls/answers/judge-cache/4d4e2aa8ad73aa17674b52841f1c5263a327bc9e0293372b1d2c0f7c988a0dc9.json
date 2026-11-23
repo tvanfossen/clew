@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_ct_compiler_opaque(x)` is the anti-optimisation barrier. With `MBEDTLS_CT_ASM` it is an empty `asm volatile` taking `x` as an in/out register. Otherwise it is `x ^ mbedtls_ct_zero`, where `mbedtls_ct_zero` is a variable the compiler cannot see the value of.\nVERDICT: HIT\nWHY: The answer names mbedtls_ct_compiler_opaque as the barrier that stops the compiler from knowing a value, and it says the primitives live in library/constant_time_impl.h."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `ExternalBridge::accept_loop` ... `HealthMonitor::monitor_loop` ... `StdioTransport::stderr_reader_loop` ... `SSETransport::sse_reader_loop` ... Cancel pollers (3 sites) | `inference_c_api.cpp:385`, `interface_factory.cpp:246`, `response_generator.cpp:413`\nVERDICT: HIT\nWHY: The answer's table lists thread spawn sites across the external bridge, the MCP transports (stdio and SSE), the health monitor and the inference-path files, so thread creation is shown as spread out. It doesn't say outright that this is decentralised."
+}

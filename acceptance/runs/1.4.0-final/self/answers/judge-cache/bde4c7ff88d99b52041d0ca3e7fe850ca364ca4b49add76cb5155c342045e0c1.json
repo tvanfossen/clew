@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `options` is keyed by the `.clew.yaml` section names, and an unknown key is refused by name.\nVERDICT: MISS\nWHY: The answer only mentions refusal of an unknown section name, with no second-level refusal of an unknown key inside a valid section and no mention of a correctly-spelled derived key being refused with its reason."
+}

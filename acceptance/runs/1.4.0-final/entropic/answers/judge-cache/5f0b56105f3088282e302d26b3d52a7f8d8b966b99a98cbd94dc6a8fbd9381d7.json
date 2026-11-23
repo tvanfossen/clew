@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: External bridge accept loop | `src/facade/external_bridge.cpp:796` | Polls the Unix socket every 500 ms, checks `SO_PEERCRED` uid, spawns a client thread per connection | Joined in `stop()`; Per-client serve threads | `external_bridge.cpp:945` | Reads JSON-RPC from one client and dispatches it\nVERDICT: HIT\nWHY: The answer describes an accept loop thread that spawns a client thread per connection, plus per-client serve threads."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"My reading of the code says the not-indexed report then fails to name those files, which contradicts the docs.\"\nVERDICT: MISS\nWHY: The answer says nothing raises and mentions a capability gate. But it concludes that shell and CMake files are NOT reported as not indexed, which contradicts the item. It also never says the router consults the gate before routing."
+}

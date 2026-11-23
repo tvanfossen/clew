@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Routing is capability-gated. `_ts_language_for` (`clew/harvest.py:184`) returns `None` when `_grammar_available` is false... The build does not crash\"\nVERDICT: MISS\nWHY: The answer states the capability gate and the no-crash behaviour. It does not conclude that those file types are reported as not indexed. It says the docs claim this, then says it did not verify it and that `.sh` may not appear in that report at all."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names no file paths. It mentions functions, tools and modules (`db_status`, `code_identity()`, `staleness_notices()`, `_staleness()`, `freshness.notices()`, `_data_stale()`, `stale_code_refusal()`, `_refresh_stale()`, `_run_build`), but none of these is written as a file path.\n\nITEMS:\nNONE\nEND"
+}

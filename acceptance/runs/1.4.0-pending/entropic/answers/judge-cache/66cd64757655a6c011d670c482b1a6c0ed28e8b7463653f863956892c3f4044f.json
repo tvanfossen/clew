@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The empty vector is indistinguishable from a real empty result, so the failure is not visible to the caller except through the one error log.\nVERDICT: HIT\nWHY: The answer states that failure yields an empty vector indistinguishable from a legitimately empty result. It adds that no `tokens.empty()` guard was found before prefill or decode, and that only the speculative and MTP paths check the size, so callers do not check for failure."
+}

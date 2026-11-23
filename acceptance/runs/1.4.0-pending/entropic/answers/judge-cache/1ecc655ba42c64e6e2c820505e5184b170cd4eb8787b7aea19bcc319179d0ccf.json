@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Tool-only pattern (`filesystem.*`): matches on the tool name alone, for any arguments. / `tool:argpattern` (`execute:ls *`): the tool part must match, then the full `tool:arg` string must match. / matched by `PermissionManager::pattern_matches` ... with `fnmatch`, flags 0.\nVERDICT: HIT\nWHY: The answer states fnmatch matching, a tool part and an argument part split on the colon, and that a pattern with no colon matches on the tool name alone."
+}

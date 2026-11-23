@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: operator.handleReactions({ prepareRecordsOnly: false, skipSync: true, ... }) -> handleReactions ... prepareRecords(CREATE) ... prepareRecordsOnly is false -> batchRecords   base_data_operator/index.ts:191 -> database.write(writer => writer.batch(...))\nVERDICT: HIT\nWHY: The answer states the add path goes through the operator's handleReactions, which prepares Reaction records via prepareRecords/transformReactionRecord and then writes them with batchRecords."
+}

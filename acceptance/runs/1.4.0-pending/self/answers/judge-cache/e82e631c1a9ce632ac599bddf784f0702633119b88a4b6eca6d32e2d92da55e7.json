@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Facts already written in the repo, such as a Doxyfile, add to the result rather than replacing it. ... | 1 | CLI flags ... | Replaces the layer below it | ... Tier 3 or 4 vs anything stated: no conflict. Facts always survive, so a stated `--entry-patterns` cannot drop `main`\nVERDICT: HIT\nWHY: The answer says stated tiers (CLI, .clew.yaml) replace the layer below, while discovered facts accumulate and always survive anything stated."
+}

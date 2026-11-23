@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The library has no thread-spawning code of its own.\" and \"`mbedtls_threading_key_slot_mutex` ... `library/threading.c:182-190`... The default lock implementation is pthread: `mbedtls_mutex_lock` is a function pointer initialised to `threading_mutex_lock_pthread` (`threading.c:103`).\"\nVERDICT: HIT\nWHY: The answer says the library spawns no threads (all spawn sites are in programs/) and that library/threading.c supplies the mutex abstraction (mutex init, lock function pointers, pthread default) for threaded callers."
+}

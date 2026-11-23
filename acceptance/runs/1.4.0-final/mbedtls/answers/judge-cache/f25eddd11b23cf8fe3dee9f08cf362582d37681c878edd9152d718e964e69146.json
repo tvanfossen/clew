@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `#ifndef MBEDTLS_ALLOW_PRIVATE_ACCESS #define MBEDTLS_PRIVATE(member) private_##member #else #define MBEDTLS_PRIVATE(member) member` ... \"By default the member is renamed to `private_nr`... The opt-out is for the library's own sources and its sample programs.\" and \"Library `.c` files include `common.h` first..., so their struct accesses use the real member names.\"\nVERDICT: HIT\nWHY: The answer explains that code defining the opt-out (library sources and sample programs) sees plain member names, while ordinary consumers of the public headers get the `private_` renamed ones."
+}

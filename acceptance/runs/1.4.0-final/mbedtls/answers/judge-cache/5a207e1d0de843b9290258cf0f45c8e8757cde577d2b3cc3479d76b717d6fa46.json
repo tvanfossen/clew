@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It is an empty `asm volatile` barrier, or `x ^ mbedtls_ct_zero` where a volatile global holds zero (`:85`).\nVERDICT: HIT\nWHY: The answer states that the non-asm fallback XORs with a volatile global holding zero and names it as `mbedtls_ct_zero`. The \"same function\" detail is covered, since this is `mbedtls_ct_compiler_opaque()` choosing between asm barrier and XOR."
+}

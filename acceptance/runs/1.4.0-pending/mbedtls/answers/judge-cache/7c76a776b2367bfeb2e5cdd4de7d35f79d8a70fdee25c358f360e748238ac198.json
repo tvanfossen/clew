@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_CT_ASM` is defined only when `MBEDTLS_HAVE_ASM` is on and the compiler is GCC-style (`__GNUC__`) or ARMCC (`library/constant_time_impl.h:40-52`).\nVERDICT: HIT\nWHY: The answer says MBEDTLS_CT_ASM is defined from MBEDTLS_HAVE_ASM plus compiler predefined macros (`__GNUC__`/ARMCC) inside constant_time_impl.h. That means it is derived, not set in a config file."
+}

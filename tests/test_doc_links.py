@@ -12,8 +12,8 @@ checked: prose that mentions a filename is not a promise that the file exists, w
 `[text](path)` is. Anchors, URLs and `mailto:` are skipped — a link checker that needs the
 network is a flaky test, and this project would rather have a gate that always runs.
 
-@brief Relative documentation links resolve.
-@version 1
+@brief Relative documentation links and their anchors resolve.
+@version 2
 """
 
 from __future__ import annotations
@@ -31,7 +31,16 @@ _LINK = re.compile(r"\[[^\]]*\]\(([^)\s]+)")
 ## README is the only prose this repository asks a stranger to read and act on. Measured results
 ## live in `acceptance/` beside the transcripts that produced them, and the working-instructions
 ## file is untracked, because how someone instructs their own agent is theirs to maintain.
-_DOCS = ("README.md", "docs/OVERVIEW.md")
+## EVERY SHIPPED DOCUMENT (round 3, P6): the root's and docs/'s Markdown, not the two files this
+## started with — the docs pass found a README anchor pointing at a renamed heading.
+_DOCS = tuple(
+    sorted(
+        p.relative_to(REPO_ROOT).as_posix()
+        for p in (*REPO_ROOT.glob("*.md"), *(REPO_ROOT / "docs").glob("*.md"))
+    )
+)
+## A Markdown heading line.
+_HEADING = re.compile(r"^#{1,6}\s+(.+?)\s*#*\s*$", re.M)
 
 ## A GitHub blob/tree URL pointing back into this repository, whose `<path>` must therefore
 ## exist in this tree. Any ref is accepted: pinning `main` here would fail every link on a
@@ -45,7 +54,10 @@ _SELF_TREE = re.compile(r"https://github\.com/tvanfossen/clew/(?:tree|blob)/[^/]
 # @return list of (file, link) pairs that do not exist on disk
 # @version 1
 def _dead_links(path: Path) -> list[tuple[str, str]]:
-    """Checks two kinds, and the second exists because absolutising the first emptied this
+    """ANCHORS TOO (round 3, P6): a link to `FILE.md#heading` or `#heading` must name a heading
+    that file has — renaming a heading broke one and nothing noticed.
+
+    Checks two kinds, and the second exists because absolutising the first emptied this
     check. The README's links had to become absolute so PyPI renders them, which left no
     relative link to verify — a gate that passes by having nothing to look at.
 
@@ -56,7 +68,7 @@ def _dead_links(path: Path) -> list[tuple[str, str]]:
 
     @brief Unresolvable links in one file, relative or self-referential.
     @return Offending (file, link) pairs.
-    @version 2
+    @version 3
     """
     if not path.is_file():
         return []
@@ -68,11 +80,37 @@ def _dead_links(path: Path) -> list[tuple[str, str]]:
             if not (REPO_ROOT / own["path"]).exists():
                 dead.append((path.name, target))
             continue
-        if target.startswith(("http://", "https://", "mailto:", "#")):
+        if target.startswith(("http://", "https://", "mailto:")):
             continue
-        if not (path.parent / bare).resolve().exists():
+        linked = path if target.startswith("#") else (path.parent / bare).resolve()
+        if not linked.exists():
             dead.append((path.name, target))
+        elif "#" in target and linked.suffix == ".md":
+            if target.split("#", 1)[1] not in _anchors(linked):
+                dead.append((path.name, target))
     return dead
+
+
+# @brief The anchors GitHub gives a Markdown file's headings.
+# @param path The file.
+# @return Anchor slugs (a repeated heading gets `-1`, `-2`, … as GitHub numbers them).
+# @version 1
+def _anchors(path: Path) -> set[str]:
+    """GITHUB'S SLUG: lower-cased, punctuation dropped except `-` and `_`, spaces to `-`; inline
+    code and links keep their text.
+
+    @brief Heading anchors.
+    @return Slugs.
+    """
+    seen: dict[str, int] = {}
+    out = set()
+    for heading in _HEADING.findall(path.read_text(encoding="utf-8")):
+        text = re.sub(r"\[([^\]]*)\]\([^)]*\)", r"\1", heading).replace("`", "")
+        slug = re.sub(r"[^\w\- ]", "", text.lower()).replace(" ", "-")
+        n = seen.get(slug, 0)
+        out.add(slug if n == 0 else f"{slug}-{n}")
+        seen[slug] = n + 1
+    return out
 
 
 ## @brief Every relative link in the shipped docs resolves.
@@ -100,14 +138,19 @@ def test_the_link_checker_detects_a_dead_link(tmp_path: Path) -> None:
 
     @brief The link checker fails on a dead link and passes a live one.
     @return None.
-    @version 1
+    @version 2
     """
+    ## Round 3, P6: anchors are checked now — a live one passes, a dead one (here or in another
+    ## file) is caught; URLs are still skipped (no network in a test).
     doc = tmp_path / "doc.md"
-    (tmp_path / "here.md").write_text("x")
+    (tmp_path / "here.md").write_text("# Top\n\n## A `code` section\n")
     doc.write_text(
-        "see [live](here.md) and [dead](acceptance/targets/mbedtls/1.0.0/) and "
-        "[remote](https://example.invalid/x) and [anchor](#section)\n"
+        "# Section\n\nsee [live](here.md) and [dead](acceptance/targets/mbedtls/1.0.0/) and "
+        "[remote](https://example.invalid/x) and [anchor](#section) and "
+        "[there](here.md#a-code-section) and [gone](here.md#nope) and [lost](#missing)\n"
     )
-    assert _dead_links(doc) == [("doc.md", "acceptance/targets/mbedtls/1.0.0/")], (
-        "the checker must catch the dead path, accept the live one, and skip URLs and anchors"
-    )
+    assert _dead_links(doc) == [
+        ("doc.md", "acceptance/targets/mbedtls/1.0.0/"),
+        ("doc.md", "here.md#nope"),
+        ("doc.md", "#missing"),
+    ], "the checker must catch dead paths and anchors, accept live ones, and skip URLs"

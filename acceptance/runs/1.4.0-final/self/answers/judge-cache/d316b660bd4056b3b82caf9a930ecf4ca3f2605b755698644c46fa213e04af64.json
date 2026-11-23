@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Tier-1 values are stored in `build_meta` along with the tier that won. A later refresh that omits `--exclude` still honours it.\nVERDICT: MISS\nWHY: The answer says the winning tier is stored in build_meta, but it never says the record is derived from the stored rows rather than stamped as a separate summary."
+}

@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 23989,
+  "stop_reason": "end_turn",
+  "session_id": "ce904201-ba5a-4257-9878-8001d9c4f2cb",
+  "total_cost_usd": 0.010529750000000001,
+  "usage": {
+    "input_tokens": 14,
+    "cache_creation_input_tokens": 25419,
+    "cache_read_input_tokens": 337205,
+    "output_tokens": 4145,
+    "output_tokens_details": {
+      "thinking_tokens": 1434
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 25419,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1945,
+        "cache_read_input_tokens": 61080,
+        "cache_creation_input_tokens": 2614,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2614
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 14,
+      "outputTokens": 4145,
+      "cacheReadInputTokens": 337205,
+      "cacheCreationInputTokens": 25419,
+      "webSearchRequests": 0,
+      "costUSD": 0.010529750000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1434,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 25419,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 10,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "There are three ways to tell clew how to index a repository, and when they disagree the caller wins, then the in-tree file, then clew's defaults.\n\n**The three ways**\n\n1. **A caller-stated option** at call time. This is the `options` mapping on `build_index`, the MCP `index` tool's arguments, or the CLI flags. Keys use the same names as the declaration file. Two ways to state it are `--declare FILE` and the inline `options` mapping. Build mechanics such as `--scope`, `--index-cache` and `--rebuild` are per-run and have no declaration section.\n2. **`<repo>/.clew.yaml`**, the repo's standing declaration. Each section holds exactly what the matching standalone manifest would, so an existing file can be moved in verbatim. Sections include `index_scope`, `shared_key_patterns`, `thread_patterns`, `mqtt_dispatch`, `preprocessor`, `kconfig`, `doxyfile`, `requirements`, `locks`, `vendored`, `sub_indexes` and others. The `guard:` section is the gate's config and is dropped by the index loader.\n3. **The Doxyfile**, which is not a scope setting. Clew still uses it for `ALIASES` and `PREDEFINED`, but its `INPUT`, `EXCLUDE*` and `FILE_PATTERNS` are replaced. Scope is decided only by `index_scope` or by the whole repository, so a Doxyfile that documents a small subset no longer narrows the index.\n\n**When they disagree**\n\n- **Caller vs `.clew.yaml`:** the caller wins. The file is the standing statement and the argument is a one-off override. Build logs name the source, for example \"stated by the caller (tier 1)\".\n- **Requirements catalog:** the order is caller flag, then the declared `requirements:` path, then the gate's `impact.requirements.file`, then the conventional `requirements.yaml`, then nothing. The declared path inserts one tier above the gate's declaration and does not replace the resolver.\n- **Empty values:** `requirements: \"\"` or `[]` is a deliberate withdrawal and does not fall through to the file. An empty inline mapping does fall through to the declaration.\n- **`index_scope` vs a stated `--scope`:** a caller-supplied `index_scope` combined with any `--scope` other than `from-guard` is refused, because that path never reads it.\n- **A declared `index_scope` with no usable roots:** this falls back to the whole repository and logs a warning that names the rejection. It does not silently guess.\n- **Doxyfile vs anything:** the Doxyfile never decides scope, so no conflict arises. A stated `doxyfile` path must exist, or the build is refused rather than falling back silently.\n- **Refresh:** a plain refresh inherits options from the earlier build. Passing an option again replaces it.\n\n**Errors versus defaults**\n\n- An unknown top-level section name is refused by name, so a misspelled section fails the build instead of quietly running on defaults. The exception is a key prefixed `x-`, which is tolerated with a warning.\n- Malformed YAML, or a file that is not a mapping, is logged at WARNING and treated as absent, so the build falls back to defaults.\n- A file containing only comments states nothing and is logged at INFO. `propose_declaration` relies on this to draft a file that changes nothing until uncommented.\n\nSources: `clew/declaration.py`, `clew/buildoptions.py`, `clew/cli.py` (`_declared_or_flag`, `build_index`), `clew/scope.py` (`derive_scope`), and `docs/languages/C_INTEGRATION.md`. I did not run a build to confirm these paths at runtime; the answer is from the source and docstrings.",
+  "ttft_ms": 1831,
+  "type": "result",
+  "duration_ms": 24852,
+  "uuid": "5378b6d3-d2ff-4528-99a0-de50ea51067c",
+  "ttft_stream_ms": 1124,
+  "time_to_request_ms": 78,
+  "first_content_frame_ms": 1124,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

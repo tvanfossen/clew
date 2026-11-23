@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Without `MBEDTLS_PLATFORM_MEMORY`, `include/mbedtls/platform.h:163-167` makes them plain macros: `mbedtls_calloc` \u2192 `calloc`, `mbedtls_free` \u2192 `free`. There is no indirection.\nVERDICT: HIT\nWHY: The answer states that without MBEDTLS_PLATFORM_MEMORY (the default), the two names are plain macros expanding directly to calloc/free, with no indirection."
+}

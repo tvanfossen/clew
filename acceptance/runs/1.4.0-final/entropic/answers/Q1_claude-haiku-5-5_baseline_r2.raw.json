@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 40055,
+  "stop_reason": "end_turn",
+  "session_id": "6c540bb6-0820-4a11-bdc6-0f33b14e8e02",
+  "total_cost_usd": 0.01250538,
+  "usage": {
+    "input_tokens": 20,
+    "cache_creation_input_tokens": 23210,
+    "cache_read_input_tokens": 459938,
+    "output_tokens": 6524,
+    "output_tokens_details": {
+      "thinking_tokens": 3446
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 23210,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2723,
+        "cache_read_input_tokens": 56069,
+        "cache_creation_input_tokens": 889,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 889
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 20,
+      "outputTokens": 6524,
+      "cacheReadInputTokens": 459938,
+      "cacheCreationInputTokens": 23210,
+      "webSearchRequests": 0,
+      "costUSD": 0.01250538,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 3446,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 23210,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 11,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Why it calls twice:** The two `llama_tokenize` calls are a size-probe followed by a fill, not a retry. In `src/inference/llama_cpp_tokenizer.cpp`, the first call (line 55) passes a null buffer and zero length. llama.cpp answers with the negated token count it needs. The code allocates that many slots and makes the second call (line 61) to fill them. Both calls are unconditional, and the second one has no retry loop, backoff, or fallback. The header comment's \"sized retry\" wording (line 45) is misleading. Both calls are in the same function, and `src/` has no other `llama_tokenize` call sites. The backend's `LlamaCppBackend::tokenize` (`llama_cpp_backend.cpp:788`) is a one-line delegation to the seam, so it adds no second call.\n\n**Failure path:** If the second call returns negative, the tokenizer logs one `error` line (`llama_cpp_tokenizer.cpp:65`) and returns an empty `std::vector<int32_t>`. There is no status code, exception, or `optional`. The backend passes that empty vector through unchanged. An empty result is also what valid empty input produces when `add_special=false`, so the two cases can't be told apart by the return value.\n\n**What the callers do with the empty vector:**\n\n| Call site | Behavior on empty |\n|---|---|\n| `do_generate_text_only`, the cancellable generate path, and the stream path (~2561, 2643, 2728) | Log \"0 input tokens\" and continue. `run_prefill` with zero tokens clears the KV cache and returns `true`, because its loop never runs. Sampling then starts with no decode behind it. I did not trace what the sampler does in that state, so the outcome is unverified. |\n| Speculative (~3593) and MTP (~3921) | Hit the `tokens.size() < 2` guard and return `ENTROPIC_ERROR_GENERATE_FAILED` with \"must have at least 2 tokens\". The real cause, a tokenizer failure, appears only in the tokenizer's own log. |\n| `do_complete` (~3947) | Passes the empty vector to `decode_loop` with no check. Same path as the first row. |\n| `do_count_tokens` (~825) | Returns `0`. A caller doing context budgeting would treat that as \"fits\". |\n| Batch path (~1911) | The empty vector goes into `batch_shared_prefix_len`, which returns 0 when any sequence is empty. No error is raised. |\n| `detokenize` (`llama_cpp_tokenizer.cpp:86`) | Failure returns `\"\"`, so output tokens are dropped silently. |\n\nSo a tokenization failure becomes an empty vector, and most callers either continue into inference or report a misleading \"too few tokens\" error. Only the speculative and MTP paths produce an error code, and it is the wrong one.\n\n**Possible fix:** Change the seam's `tokenize` to return a status, or an `expected`/`optional`, and map it to an `ENTROPIC_ERROR_*` code at the backend boundary. `include/entropic/inference/tokenizer.h` is an interface header, and CLAUDE.md says those change only through a new proposal with user approval, so this needs your sign-off before I make it.",
+  "ttft_ms": 1609,
+  "type": "result",
+  "duration_ms": 41465,
+  "uuid": "af0af5df-c3fd-4d55-9490-43c414e1568d",
+  "ttft_stream_ms": 1362,
+  "time_to_request_ms": 156,
+  "first_content_frame_ms": 1362,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

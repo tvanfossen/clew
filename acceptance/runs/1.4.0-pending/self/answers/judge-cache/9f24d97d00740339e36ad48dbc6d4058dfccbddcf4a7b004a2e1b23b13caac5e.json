@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Every empty reply carries `scope` (file count, source tier, extensions, top levels, and `not_indexed` when recorded). That is the field that distinguishes \"outside what was indexed\" from \"not in the repo.\"\"\nVERDICT: MISS\nWHY: The answer says scope lists extensions and `not_indexed` (file types not indexed), but never states that the reply names the in-scope file types that produced no rows. It also admits the \"definitive\" verdict does not compare against `not_indexed`."
+}

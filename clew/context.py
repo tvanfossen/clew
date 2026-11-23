@@ -102,7 +102,7 @@ def ensure_context_table(conn: sqlite3.Connection) -> None:
 ## @param conn Open connection.
 ## @return name -> how many definitions, for names with more than one.
 ## @version 1
-## @dg_internal
+## @utility
 def _multiply_defined(conn: sqlite3.Connection) -> dict[str, int]:
     """MEASURED ON RIOT: `spi_acquire` has five definitions, one per CPU port, and doxygen
     emitted ONE edge for a driver's call to it — to whichever it resolved, labelled `exact`. An
@@ -134,7 +134,7 @@ def _multiply_defined(conn: sqlite3.Connection) -> dict[str, int]:
 ## @param entry_rowid The handler's memberdef rowid.
 ## @return {rowid: (depth, weakest source on the path)} including the entry itself.
 ## @version 1
-## @dg_internal
+## @utility
 def _isr_closure(
     conn: sqlite3.Connection, entry_rowid: int, ambiguous: dict[str, int] | None = None
 ) -> dict[int, tuple[int, str, str]]:
@@ -182,7 +182,7 @@ def _isr_closure(
 ## @param weakest The weakest edge source on the path.
 ## @return A context_conflicts.confidence value.
 ## @version 1
-## @dg_internal
+## @utility
 def _confidence(depth: int, weakest: str, ambiguous_via: str = "") -> str:
     """@brief Grade a witness path.
 
@@ -200,7 +200,7 @@ def _confidence(depth: int, weakest: str, ambiguous_via: str = "") -> str:
 ## @param thread_id The interrupt thread's id.
 ## @return Row tuples ready for insertion.
 ## @version 3
-## @dg_internal
+## @utility
 def _lock_rows(
     conn: sqlite3.Connection, closure: dict[int, tuple[int, str]], thread_id: int
 ) -> list[tuple]:
@@ -266,7 +266,7 @@ def _lock_rows(
 ## @param thread_id The interrupt thread's id.
 ## @return Row tuples ready for insertion.
 ## @version 3
-## @dg_internal
+## @utility
 def _call_rows(
     conn: sqlite3.Connection, closure: dict[int, tuple[int, str]], thread_id: int
 ) -> list[tuple]:

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Python callbacks must not let an exception escape into C. Trampolines catch, print, and return a neutral value.\nVERDICT: HIT\nWHY: The answer states that trampolines catch every exception rather than letting it escape into C, and return a neutral value, which matches the pass-through treatment of a failed hook."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It is the value of the first key of the arguments object, or `*` if the arguments are empty or unparseable.\nVERDICT: HIT\nWHY: The answer states that only one argument value (the first key's) reaches the pattern and that empty or unparseable arguments collapse to `*`. The non-string case and the \"other arguments are invisible\" point are not spelled out, but the single-value and wildcard-collapse mechanism is."
+}

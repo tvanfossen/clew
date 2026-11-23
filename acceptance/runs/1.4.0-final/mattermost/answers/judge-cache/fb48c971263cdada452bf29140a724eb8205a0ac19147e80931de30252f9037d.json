@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `createPost` in the client (`app/client/rest/posts.ts:43`) sends `noRetry: true`. `buildRequestOptions` (`app/client/rest/tracking.ts:378`) turns that into `retryPolicyConfiguration = {retryLimit: 0}`.\nVERDICT: MISS\nWHY: The answer says posting opts out of retries, but it never states that requests in general retry with exponential backoff, limit 3, set by the network manager."
+}

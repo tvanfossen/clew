@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The attachment is size-budgeted and never raises.\nVERDICT: HIT\nWHY: The answer says the staleness attachment never raises, which matches the item's claim that a failed staleness measurement doesn't turn a successful reply into an error. It doesn't state the degrade-to-no-annotation part explicitly, but \"never raises\" carries the core of it."
+}

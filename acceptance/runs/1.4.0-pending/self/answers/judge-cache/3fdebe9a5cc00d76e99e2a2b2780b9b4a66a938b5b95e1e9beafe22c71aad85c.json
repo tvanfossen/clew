@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `QueryTools._staleness` attaches the notices to the payload and shrinks them to fit the response budget (full prose, then compact, then minimal), so a large answer keeps its warning.\nVERDICT: HIT\nWHY: The answer states the notice is shrunk through progressively terser wording (full, compact, minimal) to fit the budget, so the warning is kept rather than dropped."
+}

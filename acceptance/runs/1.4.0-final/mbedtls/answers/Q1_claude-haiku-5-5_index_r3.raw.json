@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 23455,
+  "stop_reason": "end_turn",
+  "session_id": "ba3a0736-31be-4a04-aa9c-593e85a9c67d",
+  "total_cost_usd": 0.007270799999999999,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 15996,
+    "cache_read_input_tokens": 170930,
+    "output_tokens": 4723,
+    "output_tokens_details": {
+      "thinking_tokens": 2369
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 15996,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2870,
+        "cache_read_input_tokens": 50988,
+        "cache_creation_input_tokens": 3453,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 3453
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 8,
+      "outputTokens": 4723,
+      "cacheReadInputTokens": 170930,
+      "cacheCreationInputTokens": 15996,
+      "webSearchRequests": 0,
+      "costUSD": 0.007270799999999999,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2369,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 15996,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 9,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** with the default configuration, the library runs no concurrent code of its own and takes no locks. Concurrency comes only from the application's threads, and the library's shared state is unprotected, so the caller must serialize access.\n\n**Why:** the mutex layer is opt-in. In `include/mbedtls/mbedtls_config.h`, `MBEDTLS_THREADING_C` (line 3787), `MBEDTLS_THREADING_PTHREAD` (2196) and `MBEDTLS_THREADING_ALT` (2185) are all commented out. Every lock call in the library sits behind `#if defined(MBEDTLS_THREADING_C)`, so none is compiled in:\n\n- `library/threading.c:18` gates the whole layer, including the pthread backend at line 50.\n- `entropy.c`, `ctr_drbg.c`, `hmac_drbg.c`, `rsa.c`, `ssl_cache.c`, `ssl_ticket.c`, `ssl_cookie.c`, `x509_crt.c`, `memory_buffer_alloc.c`, `platform_util.c` (gmtime), and the PSA globals in `psa_crypto.c`, `psa_crypto_slot_management.c` and `psa_crypto_random.c` are all gated the same way.\n\nThe index's thread layer finds four spawn sites, all in `programs/` (`ssl_pthread_server.c:277`, `ssl_server2.c:1699`, `benchmark.c:430/444`). None is in `library/`. The lock layer reports one identity, `mutex->mutex` in `threading.c`. That undercounts, because it does not model member-expression locks like `ctx->mutex`; I confirmed those with a grep of `mbedtls_mutex_lock` call sites.\n\n**What the locks protect when you enable `MBEDTLS_THREADING_C` plus `_PTHREAD`:**\n\n| Lock | Protects |\n|---|---|\n| `ctx->mutex` in entropy, CTR_DRBG, HMAC_DRBG, RSA | One context's state during gather/random/public-op calls (`entropy.c:93,179,253`, `ctr_drbg.c:703`, `hmac_drbg.c:388`, `rsa.c:1239`) |\n| `cache->mutex` in ssl_cache | The session cache table on get/remove (`ssl_cache.c:84,331`) |\n| `heap.mutex` in memory_buffer_alloc | The heap free-list on calloc/free (`memory_buffer_alloc.c:544,558`) |\n| `mbedtls_threading_psa_rngdata_mutex` | Global PSA RNG state: reseed, deplete, generate, prediction-resistance (`psa_crypto.c:8030\u20138077`, `psa_crypto_random.c:147`) |\n| `mbedtls_threading_key_slot_mutex` | The PSA key slot table (`psa_crypto.c:2022`, `psa_crypto_slot_management.c:1034`) |\n| `mbedtls_threading_psa_globaldata_mutex` | PSA driver/key-slot initialization flags (`psa_crypto.c:159`, `psa_crypto_slot_management.c:200`) |\n| `mbedtls_threading_gmtime_mutex` | The `gmtime_r` fallback (`platform_util.c:189`) |\n\n**Caveats:**\n\n- Enabling the layer does not make the library thread-safe everywhere. Only the sites above lock. Any shared state outside them is still unprotected.\n- The lock function pointers in `threading.c:101\u2013104` are mutable. `mbedtls_threading_set_alt` (`threading.c:140`) reassigns them and must run before any thread starts.\n- `MBEDTLS_THREADING_ALT` is also off by default. The `*_mutexed` and PSA global locks depend on the same layer, so they are off too.\n\nI did not read every gated site in full (for example, the `x509_crt.c` locks), so the table lists the ones I checked.",
+  "ttft_ms": 1607,
+  "type": "result",
+  "duration_ms": 24416,
+  "uuid": "aaf743be-8529-4405-bce2-6516cd5a09c0",
+  "ttft_stream_ms": 1112,
+  "time_to_request_ms": 98,
+  "first_content_frame_ms": 1112,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer only describes callers as enclosing functions with resolved calls. It never says that polarity is inverted between a writer half and a reader half, or that a reader's \"callers\" are the functions whose writes it observes."
+}

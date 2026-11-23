@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer lists per-axis remedies (data refreshes automatically, code needs a client restart), but it never says each axis needs a different action or that this is why a single flag would not have been enough."
+}

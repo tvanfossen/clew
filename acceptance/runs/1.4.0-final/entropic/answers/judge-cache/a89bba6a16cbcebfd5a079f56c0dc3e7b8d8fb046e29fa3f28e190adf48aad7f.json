@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Copies the engine's `interrupt_flag_` into the C-ABI int cancel flag\"\nVERDICT: MISS\nWHY: The answer says the observer copies a flag into a C-ABI int. It never says the thread exists because the C ABI cannot carry an atomic. It also suggests passing an atomic through the boundary, which cuts against that rationale."
+}

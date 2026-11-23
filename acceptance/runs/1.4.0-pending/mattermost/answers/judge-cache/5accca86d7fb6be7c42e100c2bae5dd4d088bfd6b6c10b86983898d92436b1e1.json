@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The setting is a one-way kill switch. Only an explicit `\"false\"` hides archived channels. Anything else, including absence, leaves them on.\"\nVERDICT: HIT\nWHY: The answer states that absence leaves archived channels viewable and only an explicit \"false\" disables them, via `value !== 'false'`."
+}

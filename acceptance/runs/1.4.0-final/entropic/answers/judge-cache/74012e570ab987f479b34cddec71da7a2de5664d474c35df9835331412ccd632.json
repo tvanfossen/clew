@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Without a callback, unlisted tools are denied. With one, every call passes approval. Deny-list entries still block at `execute`, but only after the callback has already reported the call.\nVERDICT: MISS\nWHY: The answer says that with a callback every unlisted call passes, and that without one it is denied. It never concludes that the effective posture is default-allow at the blocking gate for tools matching neither list."
+}

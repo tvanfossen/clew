@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"if the server error is `DELETED_ROOT_POST_ERROR`, `TOWN_SQUARE_READ_ONLY_ERROR`, or `PLUGIN_DISMISSED_POST_ERROR`, the post is deleted locally instead\"\nVERDICT: HIT\nWHY: The answer names all three server errors (deleted root post, read-only town square, plugin-dismissed post) for which the failed post is removed rather than kept."
+}

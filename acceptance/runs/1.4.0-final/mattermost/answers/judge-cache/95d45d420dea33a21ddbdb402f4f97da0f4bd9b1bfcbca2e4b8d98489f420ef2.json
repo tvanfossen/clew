@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `createPost` (`app/actions/remote/post.ts:74`) first writes the post locally with a pending ID, then calls the server. If the call throws: ... the post is kept locally with `props.failed = true`\nVERDICT: HIT\nWHY: The answer states the post is written locally before the server call and, on failure, kept with `props.failed = true`."
+}

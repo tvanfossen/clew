@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Accept loop | `external_bridge.cpp:796` in `ExternalBridge::start` | Polls the listen socket every 500 ms ... Per-client serve thread | `external_bridge.cpp:945` in `accept_loop` | Serves one MCP client\n\nVERDICT: HIT\nWHY: The answer describes an accept loop thread in the external bridge that spawns a per-client serve thread for each accepted connection."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`do_count_tokens` (`:825`) | `0` | Returns 0\" and \"Count callers cannot tell failure from an empty input. A failed tokenization and an empty string both return `0`.\"\nVERDICT: HIT\nWHY: The answer explicitly states the count-tokens path returns 0 on tokenization failure instead of signalling an error."
+}

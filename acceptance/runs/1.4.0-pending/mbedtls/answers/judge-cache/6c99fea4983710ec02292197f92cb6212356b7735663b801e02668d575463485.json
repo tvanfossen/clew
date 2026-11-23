@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Default (`MBEDTLS_PLATFORM_MEMORY` not defined, which is the shipped default; see `include/mbedtls/mbedtls_config.h:208`)\"\nVERDICT: HIT\nWHY: The answer says MBEDTLS_PLATFORM_MEMORY is undefined by default in the shipped mbedtls_config.h (line 208). It also says defining it is what switches the allocator, so it acts as the gate."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `skipSync: true` (added path only): `sanitizeReactions` returns right after the create list is built, so it never computes `deleteReactions`. A single-reaction event therefore cannot delete other reactions on the post.\nVERDICT: HIT\nWHY: The answer says skipSync prevents delete computation so a single-reaction event cannot delete other reactions on the post, which matches the item's substance."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `createPost` in `app/actions/remote/post.ts:74` saves the post locally first with a pending ID, then calls `client.createPost`. If that call throws, the code builds an error copy of the post with `props.failed: true` and writes it to the database. The post stays visible in the channel in its failed state.\nVERDICT: HIT\nWHY: The answer states that the post is saved locally before sending, and that on failure it is kept and marked `props.failed: true`."
+}

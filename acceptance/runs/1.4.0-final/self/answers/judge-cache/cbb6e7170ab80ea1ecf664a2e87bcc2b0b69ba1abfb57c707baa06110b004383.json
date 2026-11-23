@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The messages are sized to the response budget in three tiers: full prose, compact, then minimal.\nVERDICT: HIT\nWHY: States that annotation messages degrade through wording tiers (full, compact, minimal) to fit the budget, and the notice is still present on every reply, so the warning isn't dropped."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The user retries by tapping \"Try Again\", which re-sends the same post once.\" and \"**2. Manual retry (`retryFailedPost`, `app/actions/remote/post.ts:228-307`)** ... The only caller is the \"Try Again\" item in the failed-post bottom sheet ... Nothing calls it automatically.\"\nVERDICT: HIT\nWHY: The answer says retry occurs only via the user's \"Try Again\" choice and names `retryFailedPost` as the function invoked."
+}

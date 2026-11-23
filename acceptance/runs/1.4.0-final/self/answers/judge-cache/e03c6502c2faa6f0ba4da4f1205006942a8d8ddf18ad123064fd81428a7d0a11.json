@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Explicit beats declared, wholesale. ... that value replaces the `.clew.yaml` value for that option. It does not merge with it.\" and \"Facts that someone already wrote down are never removed.\" / \"Tier-3 and tier-4 values survive every stated tier. A declaration cannot remove a macro that the Doxyfile defines.\"\nVERDICT: HIT\nWHY: The answer says stated tiers replace each other wholesale while discovered tier-3/4 facts accumulate and survive every stated value, which is the asymmetry the item describes."
+}

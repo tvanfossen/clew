@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The index describes a five-tier precedence model. Stated values override defaults... | 1 | Explicit: CLI flags ... | 2 | Declared: the repo's `.clew.yaml` | 3 | Target facts ... | 4 | Ecosystem signatures ... | 5 | Heuristic name-pattern guesses, the floor\nVERDICT: HIT\nWHY: The answer explicitly states a five-tier precedence model and names each tier (explicit, declared, target facts, ecosystem signatures, heuristic)."
+}

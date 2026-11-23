@@ -56,6 +56,8 @@ from .macro_refs import MacroRefHarvester
 from .py_entrypoints import main_guard_harvester
 from .pydocs import docstring_harvester
 from .shared_key_edges import shared_key_harvester, subscribe_harvester
+from .ast_includes import includes_harvester
+from .property_keys import property_key_harvester
 from .config_defaults import defaults_harvester
 from .synth import js_symbol_harvester, script_symbol_harvester
 from .threads import spawn_harvester
@@ -106,12 +108,20 @@ class HarvestPlan:
     ## configuration header leaves commented out, i.e. off as the repository ships. Warmed with
     ## the rest so `import_config_defaults` reads cached payloads instead of re-walking.
     config_defaults: Harvester
+    ## Every C/C++ `#include` (clew/ast_includes.py), 2.0.0 (T3): warmed so
+    ## `import_ast_includes` reads cached payloads.
+    includes: Harvester
+    ## Every JS/TS property key (clew/property_keys.py), 2.0.0 (F1-mm): warmed so
+    ## `import_property_keys` reads cached payloads.
+    property_keys: Harvester
     dispatch: Harvester | None = None
     subscribe: Harvester | None = None
 
     ## @brief The stages the shared parse pass should warm.
     ## @return Every non-None harvester in this plan.
-    ## @version 6
+    ## v7 (2.0.0, T3): the include harvester.
+    ## v8: the property-key harvester (2.0.0, F1-mm)
+    ## @version 8
     ## @req REQ-DDB-PIPE-003
     def active(self) -> list[Harvester]:
         """Order is irrelevant to the shared pass — it warms cache rows and emits
@@ -141,6 +151,8 @@ class HarvestPlan:
                 self.blocking,
                 self.script_symbols,
                 self.config_defaults,
+                self.includes,
+                self.property_keys,
                 self.js_symbols,
                 self.py_docstrings,
                 self.dispatch,
@@ -159,7 +171,10 @@ class HarvestPlan:
 ## @param dispatch_key Manifest-derived cache-key component for the dispatch harvest.
 ## @param mqtt_dispatch The --mqtt-dispatch manifest, or None.
 ## @return The assembled plan.
-## @version 6
+## v7: the blocking declaration (2.0.0, C1)
+## v8: the include harvester (2.0.0, T3)
+## v9: the property-key harvester (2.0.0, F1-mm)
+## @version 9
 ## @req REQ-DDB-PIPE-003
 def build_harvest_plan(
     lock_patterns: Path | dict | None = None,
@@ -169,6 +184,7 @@ def build_harvest_plan(
     dispatch: DispatchManifest | None = None,
     dispatch_key: str = "",
     mqtt_dispatch: Path | dict | None = None,
+    blocking: dict | None = None,
 ) -> HarvestPlan:
     """Every declaration is resolved HERE, once, and a `DeclarationError` in any of
     them now refuses the build before doxygen's output is augmented rather than
@@ -192,10 +208,12 @@ def build_harvest_plan(
         ## stage genuinely finds the warmed row. A harvester built differently here would warm a
         ## row the stage then misses, and the only symptom would be the cost coming back.
         macro_refs=MacroRefHarvester(),
-        blocking=blocking_harvester(),
+        blocking=blocking_harvester(blocking),
         js_symbols=js_symbol_harvester(),
         script_symbols=script_symbol_harvester(),
         config_defaults=defaults_harvester(),
+        includes=includes_harvester(),
+        property_keys=property_key_harvester(),
         py_docstrings=docstring_harvester(),
         dispatch=(dispatch_harvester(dispatch, dispatch_key) if dispatch is not None else None),
         subscribe=subscribe_harvester(mqtt_dispatch),

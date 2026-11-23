@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The reply also names the `target` it answered from.\nVERDICT: MISS\nWHY: The answer says replies name the target, but never states that a routed reply's staleness annotation is for the repository actually read rather than the server's default target."
+}

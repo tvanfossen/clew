@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The index's own rule is that an empty result must not be read as \"nothing was missed.\"\nVERDICT: MISS\nWHY: The answer describes how empty results are now graded and the \"did not look where it lives\" distinction, but never states that a single-token miss was previously treated as proof of absence."
+}

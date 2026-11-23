@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says unknown section names are refused and that misspelled keys are refused on the inline route. It never describes a second refusal for an unknown key inside a valid section. It also never says a correctly-spelled derived key is refused with its reason rather than as unknown."
+}

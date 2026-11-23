@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The allow list (or `auto_approve`) skips the prompt.\nVERDICT: MISS\nWHY: The answer says the allow list skips the prompt and the flow shows it consulted in the approval path. It never states that the allow list doesn't grant execution, and it doesn't say it is consulted only from check_approval in a different file. It also says the deny list is checked separately in a different file, which is a different point."
+}

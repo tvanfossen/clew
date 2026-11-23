@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: With assembly it is `asm volatile(\"\" : \"+r\"(x))`. Without it, it XORs with `mbedtls_ct_zero`\nVERDICT: MISS\nWHY: The answer quotes the empty asm volatile with a \"+r\" operand and calls it an optimizer barrier, but never says it emits no instruction. The item needs that explanation, so this is a gesture at it, not the full fact."
+}

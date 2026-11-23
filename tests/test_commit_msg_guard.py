@@ -37,7 +37,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 # @brief Load the guard script without making `scripts/` a package.
 # @return The loaded module.
 # @version 1
-# @dg_internal
+# @utility
 def _load() -> ModuleType:
     """@brief Load `scripts/commit_msg_guard.py`.
     @return The module.

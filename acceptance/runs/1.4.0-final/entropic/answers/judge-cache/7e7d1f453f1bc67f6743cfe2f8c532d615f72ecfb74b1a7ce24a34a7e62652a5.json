@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `ExternalBridge::start` (`:796`) | `accept_loop` | Polls the listen socket with a 500 ms timeout. | `accept_loop` (`:945`) | one per client (`ct->thread`) | Serves one MCP client connection.\nVERDICT: HIT\nWHY: The answer identifies the accept_loop thread started by ExternalBridge::start and a further per-client thread spawned from accept_loop, which is the two-level structure."
+}

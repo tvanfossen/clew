@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: llama.cpp headers are included by about 9 files under `src/inference/`\nVERDICT: MISS\nWHY: The answer says about 9 files, listing them in a table, rather than conveying roughly a dozen; it is close to but not stating the \"dozen\" reach, and it frames the facade as indirect."
+}

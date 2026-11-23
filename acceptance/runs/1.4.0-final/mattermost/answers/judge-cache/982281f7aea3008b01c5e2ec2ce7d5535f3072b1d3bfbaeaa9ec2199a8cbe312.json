@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The post is written to the database optimistically before the network call, keyed by `pending_post_id`. ... If `client.createPost` throws, the code builds an error copy of the post with `props.failed = true` and saves it\nVERDICT: HIT\nWHY: The answer states the post is saved locally before sending and, on failure, is kept with `failed = true`."
+}

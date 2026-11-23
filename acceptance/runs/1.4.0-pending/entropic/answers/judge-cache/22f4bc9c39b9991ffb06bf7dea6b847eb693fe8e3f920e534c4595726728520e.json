@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The only error check is on the second call.\nVERDICT: MISS\nWHY: The answer says the error check is on the second call and failure returns `{}`, but it never states that a non-positive result from the second call is terminal, i.e. that it returns empty instead of trying again. It only says nothing re-runs the operation on failure, which is not that claim."
+}

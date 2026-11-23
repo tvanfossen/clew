@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `--declare FILE` on the CLI | 1, explicit ... `options=` on `build_index` / `index(action='refresh')` | 1, explicit | The MCP and embedding route, validated by the same `apply_options` as `--declare`\nVERDICT: HIT\nWHY: The answer lists both the CLI flag (`--declare`) and the structured `options=` argument as tier 1, and calls the latter the MCP and embedding route."
+}

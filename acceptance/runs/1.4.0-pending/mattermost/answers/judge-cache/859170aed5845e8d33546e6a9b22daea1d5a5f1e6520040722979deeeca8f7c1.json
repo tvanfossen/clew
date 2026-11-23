@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"prepareRecords(transformReactionRecord, tableName REACTION) ... prepareRecordsOnly is false \u2192 batchRecords(...)\" and \"operator.handleReactions({ prepareRecordsOnly: false, skipSync: true, ...})\"\nVERDICT: HIT\nWHY: The answer states that handleReactions on the operator prepares Reaction records via prepareRecords/transformReactionRecord and then writes them with batchRecords."
+}

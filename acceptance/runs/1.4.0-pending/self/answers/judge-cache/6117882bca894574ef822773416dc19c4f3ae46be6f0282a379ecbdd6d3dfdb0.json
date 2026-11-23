@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"It is empty when the index is current, so a current index adds nothing to query replies.\" and \"Query replies carry these notices in a `staleness` field, sized to fit the payload.\"\nVERDICT: HIT\nWHY: The answer says query replies carry the staleness notices and that the list is empty (adds nothing) when the index is current."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer lists inference files (about 8 or so) plus facade, but never states that the dependency reaches roughly a dozen entropic source files. It also stresses that the reach is confined and narrow."
+}

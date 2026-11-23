@@ -1,0 +1,83 @@
+{
+  "cell": "Q1_claude-haiku-5-5_index_only_r3",
+  "arm": "index_only",
+  "rubric_version": "5.0.0",
+  "rubric_digest": "d8447c7b18eafbf5",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.75,
+  "unmarked_pct": 0.0,
+  "split_decisions": 0,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "names derive_scope in clew/scope.py as where the decision is resolved",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: Decision flow (from `clew/scope.py`, `derive_scope`): ... `derive_scope(repo_root, stated?)` | WHY: The answer explicitly names `derive_scope` in `clew/scope.py` as the function where the scope decision is resolved. || QUOTE: Decision flow** (from `clew/scope.py`, `derive_scope`): | WHY: The answer names `derive_scope` in `clew/scope.py` as where the scope decision is resolved, and it walks through the decision flow there. || QUOTE: Decision flow (from `clew/scope.py`, `derive_scope`): `derive_scope(repo_root, stated?)` | WHY: The answer explicitly names `derive_scope` in `clew/scope.py` as the function that resolves the file-scope decision.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that a repository's own declared index_scope is preferred, and that every failure to find one falls through to indexing the whole repository",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: the file set is decided by a single declaration, `index_scope:` in the repo's `.clew.yaml`. If none is usable, clew indexes the whole repository minus what git ignores. | WHY: The answer states the declared index_scope is preferred and that no section or an invalid one falls back to whole-repo scope, which covers every failure to find a usable declaration. || QUOTE: the file set is decided by a single declaration, `index_scope:` in the repo's `.clew.yaml`. If none is usable, clew indexes the whole repository minus what git ignores. | WHY: The answer says a declared index_scope is used, and that when none is usable (absent or invalid) it falls back to indexing the whole repository. || QUOTE: the file set is decided by a single declaration, `index_scope:` in the repo's `.clew.yaml`. If none is usable, clew indexes the whole repository minus what git ignores. | WHY: The answer states that a declared index_scope is used first and that no/invalid declaration (including present-but-unusable) falls back to whole-repo indexing.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "conveys that the fallback carries a REASON explaining which scope was used and why, so an unstated scope is never silently guessed",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: \"The fallback reason says the declaration was rejected, so the log does not claim there was none.\" and \"the whole-repo result records \"no `index_scope` is declared\", and advises `propose_declaration`.\" | WHY: The answer states the whole-repo fallback carries a reason string saying why (declaration rejected vs. none declared), so the scope used is explained rather than silently guessed. || QUOTE: The fallback reason says the declaration was rejected, so the log does not claim there was none. | WHY: The answer states the fallback carries a reason (\"no `index_scope` is declared\" or the rejection reason, logged as a WARNING), so the scope used and why are explicit rather than silently guessed. || QUOTE: \"The fallback reason says the declaration was rejected, so the log does not claim there was none.\" and \"Reason string: the whole-repo result records \"no `index_scope` is declared\", and advises `propose_declaration`.\" | WHY: The answer states the whole-repo fallback carries a reason string saying which case applied (undeclared vs rejected declaration), so the scope is not silently guessed.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that a Doxyfile's own INPUT is deliberately NOT used to decide the indexed tree, and explains why \u2014 a repository that ships one would get only its documented subset while a repository that ships none gets its whole tree",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"**Doxyfile:** if the repo ships one, it still supplies ALIASES and PREDEFINED, but its `INPUT` is ignored. The code treats `INPUT` as a documentation target, not a reasoning boundary. The Mbed-TLS example in the docstring shows the old behaviour indexing only headers and no `library/*.c` files.\" | WHY: The answer says Doxyfile INPUT is ignored because it is a documentation target and not a scope boundary, and it cites the Mbed-TLS case where only the documented subset (headers) got indexed. It does not spell out the contrast with repos that ship no Doxyfile, but the documented-subset rationale is stated. || QUOTE: \"**Doxyfile:** if the repo ships one, it still supplies ALIASES and PREDEFINED, but its `INPUT` is ignored. The code treats `INPUT` as a documentation target, not a reasoning boundary. The Mbed-TLS example in the docstring shows the old behaviour indexing only headers and no `library/*.c` files.\" | WHY: The answer says the Doxyfile's INPUT is ignored because it is a documentation target, and the Mbed-TLS example shows a repo with a Doxyfile getting only its documented subset (headers only, no library/*.c). It never states the contrast with repos that ship no Doxyfile, but it does give the substance of the reason. || QUOTE: Doxyfile: if the repo ships one, it still supplies ALIASES and PREDEFINED, but its `INPUT` is ignored. The code treats `INPUT` as a documentation target, not a reasoning boundary. The Mbed-TLS example in the docstring shows the old behaviour indexing only headers and no `library/*.c` files. | WHY: The answer says the Doxyfile's INPUT is ignored because it's a documentation target, not a scope boundary, and cites the example where it indexed only the documented subset (headers, no library/*.c). The contrast with a repo that ships no Doxyfile isn't spelled out, but the documented-subset rationale is stated.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that nested git trees are INDEXED and tagged rather than excluded from the scope",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"the whole repository, including nested git trees (submodules). Those are indexed and tagged by `external.py` so their rows can be told apart in answers. Before gh#333 they were cut out.\" | WHY: The answer explicitly says nested git trees are indexed and tagged, not excluded, in the whole-repo scope. || QUOTE: \"the whole repository, including nested git trees (submodules). Those are indexed and tagged by `external.py` so their rows can be told apart in answers. Before gh#333 they were cut out.\" | WHY: The answer explicitly says nested git trees are indexed and tagged rather than excluded.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "conveys that the containment call was REMOVED rather than left in place with its callers dropped",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never says a containment call was removed; it only mentions that nested trees were previously \"cut out\" before gh#333, which is not the removal-versus-dropped-callers distinction. || QUOTE: NONE | WHY: The answer never says a containment call was removed rather than left in place with callers dropped. The nearest it comes is \"Before gh#333 they were cut out,\" which is not the same claim. || QUOTE: NONE | WHY: The answer never mentions a containment call being removed; it only describes scope derivation and that nested trees are now indexed rather than cut out.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the resolved scope is not the whole answer \u2014 within it, a file reaches the index only if something can read it, and names at least one of the two filters: the parse-built front end claiming the file types doxygen cannot read, or binary classification dropping files whose extension lies about them",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: So \"whole repo\" means every file clew has a parser for, not every file on disk. | WHY: The answer says files are filtered by grammar extension, but it names neither the parse-built front end claiming types doxygen can't read nor binary classification of files whose extension lies. It also hedges the rule as unverified inventory text. || QUOTE: So \"whole repo\" means every file clew has a parser for, not every file on disk. | WHY: The answer says files are filtered by whether a grammar handles their extension, but it doesn't name either required filter. It never mentions the parse-built front end claiming the file types doxygen cannot read, and it never mentions binary classification dropping files whose extension lies about them. || QUOTE: So \"whole repo\" means every file clew has a parser for, not every file on disk. | WHY: The answer only notes that a file whose extension no grammar handles is dropped. It doesn't name the parse-built front end claiming the file types doxygen can't read, and it doesn't name binary classification dropping files whose extension lies about them.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    }
+  ]
+}

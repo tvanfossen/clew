@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The high-level part (module-level errors like `CIPHER`, `DHM`, `ECP`) is the bits under `0xFF80`. The low-level part (the specific failure within a module, like `ASN1 - Out of data\u2026`) is everything else.\" and \"high string written to buf; if low is non-zero, append \" : \" and the low string\"\nVERDICT: HIT\nWHY: The answer describes the two layers (high-level module part and low-level part) and states that `mbedtls_strerror` writes the high string and appends \" : \" plus the low string when the low part is non-zero."
+}

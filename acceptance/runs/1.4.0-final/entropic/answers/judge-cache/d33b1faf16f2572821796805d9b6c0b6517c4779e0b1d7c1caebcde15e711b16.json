@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Facade (`src/facade/entropic.cpp`) | Includes `llama_cpp_backend.h`, so `llama.h` reaches it transitively. | Indirect.\nVERDICT: MISS\nWHY: The answer lists inference-layer files and some outside (facade, core, config, tests) but hedges them as indirect or unchecked, and never concludes the dependency is concentrated yet not contained by src/inference."
+}

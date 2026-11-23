@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Edge metadata: `edge_class: call`, `source: ast`, `confidence: resolved`. Other symbols can carry `doxygen_sqlite` edges with `exact` confidence instead.\nVERDICT: MISS\nWHY: The answer mentions an `edge_class` field but never says the list mixes direct calls with shared-key dataflow neighbours or that consumers must read it to tell them apart."
+}

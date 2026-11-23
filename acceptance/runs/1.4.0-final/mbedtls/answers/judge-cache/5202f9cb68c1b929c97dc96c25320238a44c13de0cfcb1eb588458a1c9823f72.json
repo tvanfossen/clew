@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_memory_buffer_alloc_init(buf, len)` (`memory_buffer_alloc.c:566-600`) calls `mbedtls_platform_set_calloc_free()` with its own `buffer_alloc_calloc` / `buffer_alloc_free`, or the `_mutexed` variants when `MBEDTLS_THREADING_C` is on.\nVERDICT: HIT\nWHY: The answer states that the init function installs the mutexed pair under MBEDTLS_THREADING_C and the plain pair otherwise. \"Chosen at compile time\" is implied by the config macro."
+}

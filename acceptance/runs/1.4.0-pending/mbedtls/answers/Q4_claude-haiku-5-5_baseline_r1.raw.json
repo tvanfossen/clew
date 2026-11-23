@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 32292,
+  "stop_reason": "end_turn",
+  "session_id": "b78c19c9-2e5f-49be-9ea1-82a0af4df6d1",
+  "total_cost_usd": 0.01130298,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 31836,
+    "cache_read_input_tokens": 177728,
+    "output_tokens": 6315,
+    "output_tokens_details": {
+      "thinking_tokens": 3477
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 31836,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 4305,
+        "cache_read_input_tokens": 46029,
+        "cache_creation_input_tokens": 1428,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1428
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 6315,
+      "cacheReadInputTokens": 177728,
+      "cacheCreationInputTokens": 31836,
+      "webSearchRequests": 0,
+      "costUSD": 0.01130298,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 3477,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 31836,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 7,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "## How a negative code becomes a string\n\nThe path is `mbedtls_strerror()` in `library/error.c`, which is generated, not hand-written.\n\n```\ncaller: ret = mbedtls_xxx(...)  (ret < 0)\n   \u2502\n   \u25bc\nmbedtls_strerror(ret, buf, buflen)           library/error.c:792\n   \u251c\u2500 zero buf; ret = -ret\n   \u251c\u2500 if (ret & 0xFF80): high = mbedtls_high_level_strerr(ret)\n   \u2502      switch on (ret & 0xFF80)  \u2192 \"MODULE - description\" or NULL\n   \u2502      if NULL \u2192 \"UNKNOWN ERROR CODE (XXXX)\"\n   \u2502      if SSL FATAL_ALERT \u2192 return (skip low-level)\n   \u251c\u2500 low = ret & ~0xFF80; if 0 \u2192 return\n   \u251c\u2500 if high present \u2192 append \" : \"\n   \u2514\u2500 low = mbedtls_low_level_strerr(ret)\n          switch on (ret & ~0xFF80) \u2192 \"MODULE - description\" or NULL\n          if NULL \u2192 \"UNKNOWN ERROR CODE (XXXX)\"\n```\n\nThe mask `0xFF80` splits a code into a high-level part (the module bits) and a low-level part (the bits under 0x80). So `-0x40A0` decodes as RSA (`0x4080`) plus AES (`0x20`), and the output is `RSA - Bad input parameters to function : AES - Invalid key length`. That exact string is pinned in `tests/suites/test_suite_error.data`.\n\nWhere `error.c` comes from:\n\n- `include/mbedtls/*.h` contains `#define MBEDTLS_ERR_<MODULE>_<NAME> -0x00XX`, with a Doxygen description either before (`/** */`) or after (`/**< */`).\n- `scripts/generate_errors.pl` scans those headers and fills the `HEADER_INCLUDED`, `LOW_LEVEL_CODE_CHECKS` and `HIGH_LEVEL_CODE_CHECKS` placeholders in `scripts/data_files/error.fmt`.\n- It writes `library/error.c`. The Makefile rule is at `library/Makefile:355-360`, and the CMake custom command is at `library/CMakeLists.txt:136-144`.\n- `library/error.c` is tracked in git, so the regenerated file is committed too.\n\n## Adding a new code\n\n1. **Define it in the module's header** in `include/mbedtls/`, with one Doxygen description, before or after, not both. The script dies on a missing description, on both, and on a duplicate value.\n2. **Name the module so the script recognises it.** The token after `MBEDTLS_ERR_` must be in the `@low_level_modules` or `@high_level_modules` list in `generate_errors.pl`, or the script exits with \"Do not know how to handle\". A new module also needs its header name to match the lowercased module name (`NET` is the one special case), or the script reports \"has not been included\".\n3. **Pick an unused value.** I did not confirm that a checker enforces that low-level modules stay in the low bits and high-level modules in the high bits. The runtime does split on `0xFF80`, so a code placed in the wrong range would be looked up in the wrong table and come back as `UNKNOWN ERROR CODE`.\n4. **Add a test row first** in `tests/suites/test_suite_error.data`, using `depends_on:` for the module's `MBEDTLS_*_C` guard and the expected string. Run it red, then make it green. The generator wraps each module's entries in `#if defined(MBEDTLS_<MODULE>_C)`, so the `depends_on` must match that guard.\n5. **Regenerate and commit `library/error.c`** by building, so the Makefile or CMake rule runs. The repo's gate is `.venv/bin/pre-commit run --all-files`, which the project requires instead of running tools directly.\n\nI did not check whether the repo also expects a ChangeLog entry for new error codes.",
+  "ttft_ms": 1867,
+  "type": "result",
+  "duration_ms": 32776,
+  "uuid": "b5eaf5bf-c8c8-4b3b-a8c4-11a384596451",
+  "ttft_stream_ms": 1167,
+  "time_to_request_ms": 131,
+  "first_content_frame_ms": 1167,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

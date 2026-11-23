@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the static pointers are initialised to MBEDTLS_PLATFORM_STD_CALLOC and does not state that an uninitialised calloc returns NULL or that an uninitialised free does nothing."
+}

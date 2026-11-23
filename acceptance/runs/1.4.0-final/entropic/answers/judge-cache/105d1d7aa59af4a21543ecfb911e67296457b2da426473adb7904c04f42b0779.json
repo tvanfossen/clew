@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Any `char*` return transfers ownership to the caller. It must be released with `entropic_free()`, and never with the host `free()`. 2. Strings returned as `const char*` (e.g. `entropic_version`) are static or engine-owned. Do not free them.\"\nVERDICT: MISS\nWHY: The answer states the char* ownership and entropic_free rule, but says const char* is \"static or engine-owned\" without saying it stays handle-owned and is valid only until the next call on that handle."
+}

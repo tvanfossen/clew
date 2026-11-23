@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes scope resolution and notes that some in-scope files hold no rows (`not_indexed`), but it never names the parse-built front end or binary classification as filters. It also admits it did not establish which extensions the parser accepts."
+}

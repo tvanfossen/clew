@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Tier 3 and tier 4 disagreements are inert.** Both accumulate and survive every stated tier, so only the label changes.\nVERDICT: MISS\nWHY: The answer states that tiers 3 and 4 both accumulate and the distinction is inert, but it never says the load-bearing line is fact-versus-guess. It does say stated tiers never remove facts, but it doesn't present fact-versus-guess as the tier boundary that matters."
+}

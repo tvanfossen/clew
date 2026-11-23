@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Polls the listen socket, accepts clients ... Pushes into `client_threads_` under `client_threads_mutex_` and reaps finished threads. | Per-client `serve_client` thread | Inside `accept_loop` (`:945`) | Serves one MCP client\n\nVERDICT: HIT\nWHY: The answer names the ExternalBridge accept_loop thread and a per-client serve_client thread spawned inside accept_loop, which gives the two-level structure."
+}

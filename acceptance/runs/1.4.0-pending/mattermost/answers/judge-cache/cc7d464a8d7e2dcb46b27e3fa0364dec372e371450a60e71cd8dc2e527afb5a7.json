@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The `interface ServerDataOperator extends \u2026Mix` declaration merges those interfaces so TypeScript sees every handler method on the class.; also \"plus an exported `XHandlerMix` interface.\"\nVERDICT: HIT\nWHY: The answer states a same-named interface extends each handler's Mix type, giving the class every mixed-in method's typing."
+}

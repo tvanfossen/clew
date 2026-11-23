@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"It is a single attempt per tap, and the user can tap again.\" and \"On failure, marks the post failed again, or removes it for the same three server errors.\"\nVERDICT: HIT\nWHY: The answer states retryFailedPost makes a single attempt (noRetry, no auto resend) and on failure marks the post failed again or removes it for the same three errors."
+}

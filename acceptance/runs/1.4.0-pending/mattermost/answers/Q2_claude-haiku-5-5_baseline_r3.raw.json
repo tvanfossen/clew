@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 25776,
+  "stop_reason": "end_turn",
+  "session_id": "97ba896f-6455-4330-9f50-2f76c75853f3",
+  "total_cost_usd": 0.00967191,
+  "usage": {
+    "input_tokens": 14,
+    "cache_creation_input_tokens": 20659,
+    "cache_read_input_tokens": 323571,
+    "output_tokens": 4606,
+    "output_tokens_details": {
+      "thinking_tokens": 1821
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 20659,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2527,
+        "cache_read_input_tokens": 53570,
+        "cache_creation_input_tokens": 7997,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 7997
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 14,
+      "outputTokens": 4606,
+      "cacheReadInputTokens": 323571,
+      "cacheCreationInputTokens": 20659,
+      "webSearchRequests": 0,
+      "costUSD": 0.00967191,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1821,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 20659,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 11,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "## Reaction added: websocket event to database row\n\n```\nws \"reaction_added\"\n \u2514\u2500 handleWebSocketEvent            app/actions/websocket/event.ts:163\n     \u2514\u2500 handleReactionAddedToPostEvent   websocket/reactions.ts:21\n         \u251c\u2500 JSON.parse(msg.data.reaction)           (payload is a JSON string)\n         \u2514\u2500 operator.handleReactions({ prepareRecordsOnly: false,\n                                       skipSync: true,\n                                       postsReactions: [{post_id, reactions:[reaction]}] })\n             handlers/index.ts:124\n             \u251c\u2500 sanitizeReactions()              operator/utils/reaction.ts:22\n             \u2502   \u251c\u2500 load all Reaction rows for post_id\n             \u2502   \u251c\u2500 map keyed by `${userId}-${emojiName}`\n             \u2502   \u251c\u2500 incoming reaction already present \u2192 no-op\n             \u2502   \u251c\u2500 otherwise \u2192 createReactions.push({raw})\n             \u2502   \u2514\u2500 skipSync \u2192 return { createReactions, deleteReactions: [] }\n             \u251c\u2500 prepareRecords(transformReactionRecord)  transformers/reaction.ts:19\n             \u2502   \u2514\u2500 sets id, userId, postId, emojiName, createAt\n             \u2514\u2500 batchRecords()                   (write; body not opened)\n```\n\nNotes on the add path:\n\n- **`skipSync: true`** is the flag that matters most. Without it, `deleteReactions` would be every stored reaction on that post that is not in the payload. The payload only carries the one new reaction, so every other reaction on the post would be destroyed. The flag turns off the diff-and-delete step (`handlers/index.ts:156`) and makes this a create-only path.\n- **`prepareRecordsOnly: false`** means the records are written inside the handler. Callers that batch with other work pass `true` instead, for example `handlers/post.ts:564`.\n- **Duplicates are not rewritten.** If the same user and emoji already exist on the post, the existing row is kept as is, including its old `id`.\n- **Errors are swallowed.** The whole body is in a `try/catch` with an empty catch (`reactions.ts:34`), and the dispatcher does not await the promise (`event.ts:164`). A failure leaves no log.\n\n## Reaction removed: same path?\n\nNo. It shares the entry point and differs after that.\n\n```\nws \"reaction_removed\"\n \u2514\u2500 handleWebSocketEvent            event.ts:166\n     \u2514\u2500 handleReactionRemovedFromPostEvent   websocket/reactions.ts:39\n         \u251c\u2500 JSON.parse(msg.data.reaction)\n         \u251c\u2500 queryReaction(emoji_name, post_id, user_id).fetch()   queries/servers/reaction.ts:12\n         \u2514\u2500 if found \u2192 database.write \u2192 reaction[0].destroyPermanently()\n```\n\n- It does not go through the operator. There is no `sanitizeReactions`, no `handleReactions`, no transformer and no `batchRecords`. It talks to `database` directly.\n- It is a hard delete (`destroyPermanently`), not a soft delete.\n- It matches on the natural key (emoji, post, user) rather than the server `id`. If that key matches nothing, nothing happens.\n- It has no flags. `skipSync` is irrelevant here because the operator is not involved.\n- It also swallows errors silently.\n\nI did not trace the caller of `handleWebSocketEvent` in the socket layer, and I did not read the body of `batchRecords`. Both are outside what I checked.",
+  "ttft_ms": 1780,
+  "type": "result",
+  "duration_ms": 26407,
+  "uuid": "f02a3194-bab2-4937-8f51-364d78bf33aa",
+  "ttft_stream_ms": 1484,
+  "time_to_request_ms": 112,
+  "first_content_frame_ms": 1485,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

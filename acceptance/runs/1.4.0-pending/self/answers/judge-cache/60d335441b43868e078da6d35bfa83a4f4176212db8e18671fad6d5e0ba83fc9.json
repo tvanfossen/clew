@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Facts (3 and 4):** these accumulate and survive any stated tier. A declaration cannot remove a fact a Doxyfile already states.\" and \"Stated tiers (1 and 2)... Replaces the layer below it\" / \"The declared section is replaced, not merged.\"\nVERDICT: HIT\nWHY: The answer says stated tiers replace one another while discovered facts (tiers 3 and 4) accumulate and survive any stated tier, which is the asymmetry the item names."
+}

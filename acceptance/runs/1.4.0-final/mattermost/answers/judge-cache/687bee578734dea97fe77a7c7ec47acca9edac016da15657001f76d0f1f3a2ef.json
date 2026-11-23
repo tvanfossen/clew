@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A matching `interface ServerDataOperator extends ...Mix` block (lines 23\u201338) gives TypeScript the method signatures.\nVERDICT: HIT\nWHY: The answer states that a same-named interface extends the handler Mix types to give TypeScript the mixed-in method signatures."
+}

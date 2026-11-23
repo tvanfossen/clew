@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `.yaml`, `.yml`, `.json` | yes | none | none | Registered and never harvested (`clew/synth.py:71-80`); \"YAML and JSON are in the file set and findable by name. The index does not hold their keys or structure as symbols.\"\nVERDICT: HIT\nWHY: The answer states YAML/JSON are registered as file rows with zero symbols, while shell/CMake get function symbols, so the two groups are treated differently."
+}

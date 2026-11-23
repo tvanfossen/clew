@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the second call's negative result logs an error and returns `{}`, but it never says the failure is terminal, with no further attempt, as opposed to a retry. It explicitly frames the second call as a size-fill step, not a retry."
+}

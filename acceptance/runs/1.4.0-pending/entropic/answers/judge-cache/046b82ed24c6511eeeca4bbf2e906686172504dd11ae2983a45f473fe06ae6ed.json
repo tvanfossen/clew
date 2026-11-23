@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer lists a handful of inference files plus one facade file and says the llama.cpp types are confined to `src/inference` and one facade file. It never says the dependency reaches about a dozen files, and it implies a narrow footprint rather than a wide one."
+}

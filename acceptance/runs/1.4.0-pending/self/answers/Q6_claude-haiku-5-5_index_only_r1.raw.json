@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 22071,
+  "stop_reason": "end_turn",
+  "session_id": "ae353dd9-af7b-4e2a-a215-4c44c6558e32",
+  "total_cost_usd": 0.01304507,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 44843,
+    "cache_read_input_tokens": 213247,
+    "output_tokens": 3886,
+    "output_tokens_details": {
+      "thinking_tokens": 1601
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 44843,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1466,
+        "cache_read_input_tokens": 60759,
+        "cache_creation_input_tokens": 1399,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1399
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 3886,
+      "cacheReadInputTokens": 213247,
+      "cacheCreationInputTokens": 44843,
+      "webSearchRequests": 0,
+      "costUSD": 0.01304507,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1601,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 44843,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 11,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The index holds the four file types at different depths, and it degrades explicitly rather than silently when a grammar is missing. Everything below comes from the index's own documentation and symbol records for this repository; I did not read any source files directly.\n\n**What the index holds, by file type**\n\n| File type | Holds | Does not hold |\n|---|---|---|\n| Shell (`.sh`, `.bash`) | Function definitions as `memberdef` rows, with docs from the `#` block above each definition | Anything about the file when the bash grammar is absent |\n| CMake (`CMakeLists.txt`, `.cmake`) | Function and macro definitions as rows; macros are recorded as macros | Anything about the file when the cmake grammar is absent |\n| YAML (`.yaml`, `.yml`) | A `path` row, so the file is in the file set and findable by name | Any symbols. Its grammar offers `block_mapping_pair`, which is not a function concept, so writing those rows would flood the symbol namespace with every `steps:` key |\n| JSON (`.json`) | Same as YAML: a `path` row, no symbols | Same as YAML |\n\nFor this repository the index reports 16 indexed `.yaml` files, including `.clew.yaml`, `.pre-commit-config.yaml`, `requirements.yaml`, and the `acceptance/targets/*/questions.yaml` files. Each has zero symbols. I did not find any `.sh` files in the index; the not-indexed summary lists no `.sh` files for this scope, so none were in scope to be read.\n\n**How the routing works**\n\n- `clew/synth.py` (`claims`, `script_claims`, `emit_definitions`) is the parse-built front end. It is purely extension- and name-based, so it claims YAML and JSON files regardless of whether a grammar is present.\n- `clew/harvest.py` maps shell and CMake to `substrate:bash` and `substrate:cmake`. Only `bash` and `cmake` are in `_OPTIONAL_KEYS`, so only those two can be absent. A missing optional grammar makes the route resolve to nothing instead of raising. The C, C++, Python, Rust, and JS/TS grammars are treated as always present.\n- Behind the routing, `_grammar_available` checks `substrate.has_language`, which calls `compiled_languages()` in `clew/substrate.py`. That reads the keys the installed `lang_parsing_substrate` wheel was compiled with.\n\n**What happens on an installation whose parser lacks the grammars**\n\nThe index does not crash and does not silently go empty:\n\n1. The substrate is not a version check. The fork that adds these grammars reports the same version string as the published wheel, so the code asks what is compiled in, not what version is installed.\n2. With the published wheel, `compiled_languages()` lacks bash, cmake, yaml, and json. An unimportable substrate logs an error and yields no languages. The build does not fail.\n3. Shell and CMake routes resolve to no grammar. The files are still registered and findable by name, but carry no symbols.\n4. The build-time not-indexed report (`tests/test_not_indexed_report.py`) names the file types that were in scope but not read. For example: \"14 `.sh` files were in scope and none of them are in this index.\" The query layer serves that stamp when an answer comes back empty. An index built before this release reports nothing rather than a fabricated empty set.\n\nSo an empty answer about a deploy script means one of three things: the symbol does not exist, the file type is not read by this build, or the file is outside the declared scope. The report is what tells you which.\n\n**Caveats**\n\n- I could not verify from the index which substrate this specific build was linked against. The `.yaml` path rows and the absence of `.sh` in scope are consistent with a substrate that has the grammars, but that is an inference.\n- The index is not a census of the tree. A `.yaml` file that the index does not hold is absent by construction, not because it has no symbols.\n- Symbols for shell and CMake only come from doc-commented or `function`/`macro` definitions, as the walkers recognise them. Data files never produce symbols, by design, so for YAML and JSON content questions the answer is \"read the file directly.\"",
+  "ttft_ms": 1707,
+  "type": "result",
+  "duration_ms": 23391,
+  "uuid": "e6aef194-a5c7-47e0-adb5-31a4b34d7df7",
+  "ttft_stream_ms": 1208,
+  "time_to_request_ms": 80,
+  "first_content_frame_ms": 1209,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

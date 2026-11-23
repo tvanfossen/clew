@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never mentions MBEDTLS_ERROR_STRERROR_DUMMY or says mbedtls_strerror stays linkable with the table compiled out. It only says a dummy at error.c:144 writes an empty string when MBEDTLS_ERROR_C is off, and it doesn't say that switch is enabled by default."
+}

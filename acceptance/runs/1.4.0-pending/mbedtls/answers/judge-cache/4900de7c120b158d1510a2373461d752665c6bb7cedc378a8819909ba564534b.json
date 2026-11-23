@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The index was built with both macros forced on (`configured_macros_source: flag`), so the lock and thread data below describes the threaded build, not the default one.\"\nVERDICT: MISS\nWHY: The answer says the library is single-threaded by default, but it reports 4 spawn sites in programs/ and never says that the pthread example compiles to a stub main under the default build."
+}

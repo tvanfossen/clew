@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never states that the downgrades are ordered most-specific first, and it gives no reasoning that a matching row in an unread corpus outranks index-wide statements. It only mentions \"one 'absent corpus' downgrade\" and lists the downgrade signals separately."
+}

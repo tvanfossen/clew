@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says callers/callees mix direct calls with shared-key dataflow edges or mention an `edge_class` field; it only discusses provenance tags like exact/resolved."
+}

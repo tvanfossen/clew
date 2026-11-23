@@ -78,7 +78,8 @@ from importlib.metadata import version as metadata_version
 from pathlib import Path
 from typing import Any
 
-from ._common import active_console, console, logger
+from ._common import active_console, console, logger, within_repo
+from .buildlock import build_lock
 from .buildlog import build_log
 from .ast_symbols import recover_ast_symbols
 from .buildoptions import (
@@ -99,7 +100,12 @@ from .context import extract_context_conflicts
 from .coverage import report_index_coverage
 from .external import EXTERNAL_ROOTS_META_KEY, stamp_external_provenance
 from .declaration import (
-    SECTION_TEST_PATHS,
+    DECLARATION_NAME,
+    SECTION_DOXYFILE,
+    SECTION_BLOCKING,
+    SECTION_OWNERS,
+    SECTION_TESTS,
+    TESTS_PATHS,
     SECTION_DATA_MODEL,
     SECTION_DISPATCH,
     SECTION_ENRICH,
@@ -108,7 +114,6 @@ from .declaration import (
     SECTION_LOCKS,
     SECTION_MQTT,
     SECTION_PREPROCESSOR,
-    SECTION_REQUIREMENTS,
     SECTION_SHARED_KEY,
     SECTION_THREADS,
     SECTION_VENDORED,
@@ -143,9 +148,14 @@ from .enrichment import enrich_database
 from .errors import DoxygenFailedError, DoxygenUnavailableError, RustdocUnavailableError
 from .event_edges import import_event_edges
 from .filedocs import ingest_file_docs
+from .ast_includes import import_ast_includes
+from .property_keys import import_property_keys
+from .kerneldoc import ingest_kerneldoc
+from .licenses import ingest_file_licenses
 from .harvest_plan import build_harvest_plan, warm_harvest_plan
 from .doxygen_splice import include_expansion, splice_doxygen, xref_closure
 from .indexcache import IndexCache
+from .owners import record_owners
 from .testscope import TEST_PATH_FACTS, mark_test_scope
 from .datamodel import import_data_model_keys
 from .kconfig import import_kconfig
@@ -237,6 +247,18 @@ INIT_COMMAND = "init"
 ## and the gate never pays for the pipeline. `clew-guard` is the same entry point as a
 ## console script, which is what the pre-commit hook runs.
 GUARD_COMMAND = "guard"
+## `query` prints the export API's dossier/search payloads as JSON (1.3.2) — the process boundary
+## for a host that cannot import `clew.query`. Mirrors `query_command.QUERY_COMMAND`, lazily
+## imported like its siblings.
+QUERY_COMMAND = "query"
+## `refresh` brings an index current after an edit — the fast tier in place when it applies, a full
+## build otherwise (1.3.5). A verb rather than a seventh build flag, so the build's six arguments
+## stay the surface `tests/test_cli_surface.py` pins. Mirrors `refresh_command.REFRESH_COMMAND`.
+REFRESH_COMMAND = "refresh"
+## `wiki` derives documentation from the index (1.4.0, #67); `clew.wiki.command.WIKI_COMMAND`.
+WIKI_COMMAND = "wiki"
+## `cull` sweeps aged and version-stale databases (2.0.0: the retired `index(action='cull')`).
+CULL_COMMAND = "cull"
 
 ## The `build_meta` section carrying the scope decision, and the key inside it that
 ## records what the OPERATOR removed — kept apart from `scope.excludes`, which is
@@ -368,7 +390,6 @@ _FOLDED_BUILD_DEFAULTS: dict[str, Any] = {
     "vendored": None,
     ## Same requirement as `vendored`: a dest is REQUIRED, and a test asserts every
     ## accepted option can actually be applied.
-    "test_paths": None,
     "index_cache": None,
     "no_index_cache": False,
 }
@@ -379,7 +400,7 @@ _FOLDED_BUILD_DEFAULTS: dict[str, Any] = {
 # @param args Parsed arguments, mutated in place.
 # @return None.
 # @version 1
-# @dg_internal
+# @utility
 def _resolve_output(args: argparse.Namespace) -> None:
     """THE TWO SURFACES DISAGREED ON WHERE AN INDEX LIVES. The MCP tools name a REPOSITORY and
     derive the database path from it; the CLI demanded a FILE and knew nothing about that
@@ -418,7 +439,9 @@ def _resolve_output(args: argparse.Namespace) -> None:
 
 
 ## @brief Construct the argparse.ArgumentParser for the build script.
-## @version 19
+## v20 (2.0.0): the epilog lists `query`, `refresh`, `wiki` and `cull` too.
+## v21: hard cut of doxygen-guard priors (2.0.0, PG4)
+## @version 21
 ## @req REQ-DDB-CLI-001
 ## @return Configured ArgumentParser with all build-script CLI arguments registered.
 def _build_argparser() -> argparse.ArgumentParser:
@@ -462,7 +485,11 @@ def _build_argparser() -> argparse.ArgumentParser:
             f"  {INIT_COMMAND:<10}register the MCP server and check it can run\n"
             f"  {PROPOSE_COMMAND:<10}propose a .clew.yaml declaration for a repository\n"
             f"  {EXPORT_COMMAND:<10}export an index\n"
-            f"  {GUARD_COMMAND:<10}validate doxygen comments (the absorbed doxygen-guard)\n"
+            f"  {GUARD_COMMAND:<10}validate doxygen comments: the gate (`clew guard --help`)\n"
+            f"  {QUERY_COMMAND:<10}print a dossier, search or stats reply as JSON\n"
+            f"  {REFRESH_COMMAND:<10}bring an index current after an edit\n"
+            f"  {WIKI_COMMAND:<10}build or check the wiki\n"
+            f"  {CULL_COMMAND:<10}delete aged and version-stale index databases\n"
             f"\nRun `clew <command> --help` for a command's own options.\n"
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -480,7 +507,7 @@ def _build_argparser() -> argparse.ArgumentParser:
         "--repo-root",
         help=(
             "Repository to index (default: the current directory). It is the discovery root "
-            "for the repo's own `.clew.yaml` and doxygen-guard config, the source of "
+            "for the repo's own `.clew.yaml`, the source of "
             "supplementary docs (README, CHANGELOG, docs/*.md), and what --output defaults from."
         ),
     )
@@ -550,7 +577,7 @@ JOBS_ENV = "CLEW_JOBS"
 ## @param env Environment to read; injected for testing.
 ## @return A worker count of at least 1.
 ## @version 1
-## @dg_internal
+## @utility
 def _resolve_jobs(env: dict[str, str] | None = None) -> int:
     """CAPPED AT 8 RATHER THAN cpu_count(). Each worker holds its own grammars and parsed trees,
     and the corpora that make this worth doing are the large ones, so opening a 32-core machine's
@@ -586,7 +613,7 @@ def _resolve_jobs(env: dict[str, str] | None = None) -> int:
 ## @return The option names applied, sorted, for logging.
 ## @version 2
 ## @req REQ-DDB-CONFIG-008
-## @dg_internal
+## @utility
 def _apply_declared_document(args: argparse.Namespace) -> list[str]:
     """ONE ROUTE, NOT A SECOND ONE. This does not parse, resolve or interpret anything: it
     reads the YAML and hands the whole mapping to `apply_options`, the same function the
@@ -655,7 +682,7 @@ def _apply_declared_document(args: argparse.Namespace) -> list[str]:
 
 ## @brief Route logging through Rich so summary INFOs share progress styling.
 ## @version 1
-## @dg_internal
+## @utility
 def _configure_logging(verbose: bool) -> None:
     """Route logging through Rich so summary INFOs share progress styling."""
     from rich.logging import RichHandler
@@ -968,7 +995,7 @@ def _operator_excludes(args: argparse.Namespace, output: Path, repo_root: Path) 
 ## @param predefined Pre-rendered PREDEFINED Doxyfile text, empty when none is declared.
 ## @return Path to the generated doxygen SQLite database.
 ## @version 4
-## @dg_internal
+## @utility
 def _run_doxygen_from_args(doxyfile: Path, args: argparse.Namespace, predefined: str = "") -> Path:
     """@brief Run doxygen for the parsed CLI arguments."""
     return run_doxygen(
@@ -1032,7 +1059,8 @@ SPLICE_GENERATION_LIMIT = 20
 ## @param doxyfile The Doxyfile, read for the scope patterns.
 ## @param args Parsed CLI arguments, for the replace_input regime.
 ## @return (previous output, changed set, removed set, subset list), or None to run in full.
-## @version 2
+## v3: closure over a path-fixed copy (entropic, 2.0.0)
+## @version 3
 ## @req REQ-DDB-INDEX-002
 def _incremental_plan(
     cache: IndexCache,
@@ -1083,10 +1111,40 @@ def _incremental_plan(
     previous = cache.doxygen_any(config_sha) if (changed or removed) else None
     if previous is None:
         return None
-    subset = sorted(xref_closure(previous, changed, repo_root)) if changed else []
+    ## THE CLOSURE READS A PATH-FIXED COPY (entropic, 2.0.0). The cached master spells paths the
+    ## way the target's Doxyfile left them — `STRIP_FROM_PATH = include src` stores
+    ## `include/x/base.h` as `x/base.h` — so a closure over the RAW master matched no row and was
+    ## the changed set alone: every cross-file xref, base/derived and override edge into an
+    ## edited include/ or src/ file was dropped on refresh. Same defect as #492, in the one
+    ## reader that note did not reach.
+    subset = sorted(_fixed_closure(previous, changed, doxyfile, repo_root)) if changed else []
     total = len(summary.unchanged) + len(changed)
     viable = subset and len(subset) < total if changed else bool(removed)
     return (previous, changed, removed, subset) if viable else None
+
+
+## @brief The splice closure, computed over a path-fixed copy of the master.
+## @param previous The cached master doxygen database (left untouched).
+## @param changed Repo-relative changed paths.
+## @param doxyfile The Doxyfile, for its STRIP_FROM_PATH prefixes.
+## @param repo_root Absolute repository root.
+## @return Repo-relative paths to re-read.
+## @version 1
+## @req REQ-DDB-INDEX-002
+def _fixed_closure(previous: Path, changed: set[str], doxyfile: Path, repo_root: Path) -> set[str]:
+    """A SCRATCH COPY, fixed by the pipeline's own `fix_doxygen_paths`, so the closure spells
+    paths exactly as the splice does and the cached output is never rewritten.
+
+    @brief Closure over fixed paths.
+    @return Paths.
+    """
+    scratch = previous.with_name(previous.name + ".closure")
+    try:
+        shutil.copy2(previous, scratch)
+        fix_doxygen_paths(scratch, doxyfile, repo_root)
+        return xref_closure(scratch, changed, repo_root)
+    finally:
+        scratch.unlink(missing_ok=True)
 
 
 ## @brief Satisfy the doxygen stage by re-reading only the changed files and splicing.
@@ -1206,12 +1264,13 @@ def _incremental_doxygen(
 ## @param args Parsed CLI arguments (uses --test-paths / the stated option).
 ## @param decl The repo's parsed `.clew.yaml`.
 ## @return The resolution: the pattern set plus the stated tier that won.
-## @version 1
+## v2 (2.0.0): reads `tests.paths` (R5-CFG F20).
+## @version 2
 ## @req REQ-DDB-CONFIG-006
 ## @req REQ-DDB-QUERY-003
 def _test_paths(args: argparse.Namespace, decl: dict) -> LayeredResolution:
     """`TEST_PATH_FACTS` enters as HEURISTICS, not facts, and the distinction is the whole
-    point of the tier rule here. A repo that declares `test_paths:` is stating its layout, so
+    point of the tier rule here. A repo that declares `tests.paths` is stating its layout, so
     the guesses must be DISPLACED rather than accumulated — otherwise declaring `t/*` would
     still leave `tests/*` and `*_test.*` in force, and an operator could not narrow the rule at
     all, only widen it.
@@ -1220,14 +1279,17 @@ def _test_paths(args: argparse.Namespace, decl: dict) -> LayeredResolution:
     statement. Reachability wants every plausible seed; this wants exactly the caller's notion
     of "test".
 
+    2.0.0 (R5-CFG F20): read from `tests.paths`. A stated `tests` section (tier 1) arrives merged
+    over the declaration (`_with_stated_sections`), like every section-document option.
+
     @brief Resolve the test-path patterns and their provenance.
-    @return The LayeredResolution for `test_paths`.
-    @version 1
+    @return The LayeredResolution for the test paths.
+    @version 2
     """
     return resolve_layered(
         facts=(),
-        explicit=getattr(args, "test_paths", None),
-        declared=decl.get(SECTION_TEST_PATHS),
+        explicit=None,
+        declared=(decl.get(SECTION_TESTS) or {}).get(TESTS_PATHS),
         heuristics=TEST_PATH_FACTS,
     )
 
@@ -1358,7 +1420,10 @@ def _with_stated_sections(decl: dict, args: argparse.Namespace) -> dict:
 ## stages to read, while these two are consumed as `args.requirements` / `args.enrich` by
 ## code that has always read a path there. Merging them instead would leave both consumers
 ## reading None.
-_DECLARED_PATH_SECTIONS: tuple[str, ...] = (SECTION_REQUIREMENTS, SECTION_ENRICH)
+## 2.0.0: `requirements` left this tuple. It is now the catalog SECTION the gate's reader returns
+## inside `load_guard_config`, so `resolve_catalog_path` reads `requirements.file` from there and
+## the index, the gate and the wiki resolve one path.
+_DECLARED_PATH_SECTIONS: tuple[str, ...] = (SECTION_ENRICH,)
 
 
 ## @brief Let the target's own declaration supply the path options nothing stated.
@@ -1369,7 +1434,7 @@ _DECLARED_PATH_SECTIONS: tuple[str, ...] = (SECTION_REQUIREMENTS, SECTION_ENRICH
 ## @version 1
 ## @req REQ-DDB-CONFIG-001
 ## @req REQ-DDB-CONFIG-008
-## @dg_internal
+## @utility
 def _apply_declared_paths(args: argparse.Namespace, decl: dict, repo_root: Path) -> list[str]:
     """TIER 1 WINS BY BEING CHECKED FIRST, which is the whole of the precedence rule and the
     reason this is `is not None` rather than truthiness. `requirements: ""` states "no
@@ -1649,8 +1714,9 @@ def _declared_or_flag(flag: str | dict | None, decl: dict, name: str) -> Path | 
 ## @brief The scratch directory this build makes doxygen write into.
 ## @param args Parsed CLI arguments (uses --output).
 ## @return Absolute directory beside the output database.
-## @version 4
-## @dg_internal
+## v5: scratch dir via _scratch_dir: private when the build lock is not held (2.0.0)
+## @version 5
+## @utility
 def _doxygen_out_dir(args: argparse.Namespace) -> Path:
     """Keep doxygen's sqlite3/xml output beside the database clew is
     building, NEVER inside the target repo. A repo's Doxyfile legitimately
@@ -1673,14 +1739,31 @@ def _doxygen_out_dir(args: argparse.Namespace) -> Path:
     @version 4
     """
     base = Path(args.index_cache or args.output).resolve()
-    return base.parent / (base.stem + ".doxygen")
+    return _scratch_dir(base, args)
+
+
+## @brief The doxygen scratch directory beside `base`: shared, or this process's own.
+## @param base The index cache or output path the directory is named from.
+## @param args Parsed CLI arguments (`private_scratch`, set by `_run_pipeline`).
+## @return `<stem>.doxygen`, or `<stem>.<pid>.doxygen` for a build without the build lock.
+## @version 1
+## @req REQ-DDB-INDEX-002
+def _scratch_dir(base: Path, args: argparse.Namespace) -> Path:
+    """ONE NAMING RULE for both users of the directory (`_doxygen_out_dir` and the synthesized
+    Doxyfile), so a private build cannot put one of them in the shared directory.
+
+    @brief Resolve the shared or per-process doxygen scratch directory.
+    @return The directory path.
+    """
+    pid = f".{os.getpid()}" if getattr(args, "private_scratch", False) else ""
+    return base.parent / f"{base.stem}{pid}.doxygen"
 
 
 ## @brief Whether this build should use rustdoc instead of doxygen.
 ## @param repo_root Repository root.
 ## @return True when `repo_root` has a Cargo.toml and no discoverable Doxyfile.
 ## @version 2
-## @dg_internal
+## @utility
 def _is_rust_only_repo(repo_root: Path) -> bool:
     """Thin alias over `rustdoc.uses_rustdoc` — kept so callers in this module
     read as a build-routing decision rather than reaching into `rustdoc.py`
@@ -1703,7 +1786,7 @@ def _is_rust_only_repo(repo_root: Path) -> bool:
 ## "skipped, no C here" from "ran" and from "failed" — before, skipping was an INFO line only.
 ## v14: the empty stand-in database is written beside the index, not into a leaked `mkdtemp`.
 ## @version 14
-## @dg_internal
+## @utility
 def _doxygen_stage(
     doxyfile: Path,
     repo_root: Path,
@@ -1833,7 +1916,7 @@ DOXYGEN_FAILED = "failed"
 ## @return A doxygen-schema database: real, or empty when doxygen did not run or failed.
 ## Version 2: the empty stand-in database is written beside the index, not into a leaked `mkdtemp`.
 ## @version 2
-## @dg_internal
+## @utility
 def _doxygen_or_partial(doxyfile, repo_root, args, cache, preprocessor, timer) -> Path:
     """ONE DOXYGEN CRASH USED TO COST THE WHOLE INDEX. `run_doxygen` exited the process, so a
     mixed repository — a TypeScript app carrying a little native code — got nothing, though
@@ -1871,7 +1954,7 @@ def _doxygen_or_partial(doxyfile, repo_root, args, cache, preprocessor, timer) -
 ## @param args Parsed build arguments.
 ## @return build_meta diagnostics entries.
 ## @version 1
-## @dg_internal
+## @utility
 def _doxygen_meta(args) -> dict[str, str]:
     """ABSENT, NOT BLANK, WHEN THE STAGE NEVER RAN — a rustdoc build has no doxygen stage, and a
     `doxygen` key there would claim a fact about something that was not attempted.
@@ -1901,7 +1984,16 @@ def _doxygen_meta(args) -> dict[str, str]:
 ## file and not only JS/TS, since the front end returns early on a tree with no JS/TS.
 ## v64: records every indexed file line naming a known requirement (`req_mentions`).
 ## v65: the code corpus is built after AST recovery, so recovered C bodies are searchable.
-## @version 65
+## v66 (1.3.4): file docs, generated-file evidence, requirement mentions and code text read
+## an unchanged file's result from the index cache.
+## v67 (round 4, R9): covering tests are classified by the resolved test scope.
+## v68: the owners stage (2.0.0, S2/S3)
+## v69: file_licenses and kerneldoc stages (2.0.0, S5/S6)
+## v70: the blocking declaration reaches the plan (2.0.0, C1)
+## v71: the macro stage takes the build's test patterns (2.0.0)
+## v72: the AST include stage (2.0.0, T3)
+## v73: the property-key stage (2.0.0, F1-mm)
+## @version 73
 ## @req REQ-DDB-PIPE-001
 ## @req REQ-DDB-MCP-004
 ## @req REQ-DDB-CONFIG-007
@@ -1991,7 +2083,7 @@ def _build_stages(
     ## note at `src/notes.md` was invisible to `search_prose` while sitting in the
     ## repository the index claims to cover. The scanned set is the build's own answer to
     ## what is in scope, so prose and symbol coverage cannot disagree about this tree.
-    ingest_supplementary_docs(output, repo_root, files=scanned)
+    ingest_supplementary_docs(output, repo_root, files=scanned, cache=cache)
     timer.mark("supplementary_docs")
     ## THE PARSE-BUILT FRONT END (clew/synth.py), for the languages doxygen cannot read:
     ## JavaScript and TypeScript. Its files are registered in `path` HERE, before the shared
@@ -2053,6 +2145,7 @@ def _build_stages(
         dispatch=dispatch,
         dispatch_key=manifest_key(dispatch_source),
         mqtt_dispatch=mqtt_dispatch,
+        blocking=section(decl, SECTION_BLOCKING),
     )
     warm_harvest_plan(output, repo_root, plan, cache, _resolve_jobs())
     timer.mark("shared_parse")
@@ -2063,7 +2156,7 @@ def _build_stages(
     ## AFTER the parse front end, which clears `generated_files` before writing its CMake rows, and
     ## OUTSIDE it, because it returns early on a tree with no JS/TS or script file — and a C tree
     ## commits generated files too. Timed with it rather than as a stage of its own.
-    record_self_declared(output, repo_root)
+    record_self_declared(output, repo_root, cache=cache)
     timer.mark("synth_definitions")
     ## gh#18 part 3, and INDEPENDENT of the line above on purpose: a gate on a symbol no
     ## Kconfig declares is dead code behind a symbol nobody can set, which is a finding
@@ -2126,7 +2219,7 @@ def _build_stages(
     ## two codebases, which is not a noisy measurement but a false one.
     external_tagged, external = stamp_external_provenance(output, repo_root)
     timer.mark("external")
-    coverage = report_index_coverage(output, repo_root)
+    coverage = report_index_coverage(output, repo_root, cache=cache)
     timer.mark("coverage")
     ## gh#10. BELOW `report_index_coverage` and this ordering is load-bearing in a way
     ## that is easy to miss: coverage excludes files that yielded PROSE instead of
@@ -2135,8 +2228,14 @@ def _build_stages(
     ## whose entire job is to say how much of the index is empty — would improve without
     ## one extra symbol being indexed. Also below `ingest_supplementary_docs`, which
     ## DROPs that table; above it these rows would be inserted and then deleted.
-    ingest_file_docs(output, repo_root)
+    ingest_file_docs(output, repo_root, cache=cache)
     timer.mark("file_docs")
+    ## S5 / S6 (2.0.0): each file's SPDX licence header and its kernel-doc blocks, memoized on
+    ## content like file_docs, over the same indexed inventory.
+    ingest_file_licenses(output, repo_root, cache=cache)
+    timer.mark("file_licenses")
+    ingest_kerneldoc(output, repo_root, cache=cache)
+    timer.mark("kerneldoc")
     build_call_edges(output)
     timer.mark("call_edges")
     import_macro_hop_edges(output)
@@ -2145,8 +2244,14 @@ def _build_stages(
     timer.mark("ast_call_edges")
     ## AFTER the call-edge stages, because it joins recovered identifiers against `memberdef`
     ## and a macro recovered by `ast_symbols` must already have its row (gh#9).
-    import_ast_macro_refs(output, repo_root, cache)
+    import_ast_macro_refs(output, repo_root, cache, list(_test_paths(args, decl).values))
     timer.mark("macro_refs")
+    ## T3 (2.0.0): every `#include` from the parse, beside doxygen's `includes`.
+    import_ast_includes(output, repo_root, cache)
+    timer.mark("ast_includes")
+    ## F1-mm (2.0.0): every JS/TS property key, with its holder.
+    import_property_keys(output, repo_root, cache)
+    timer.mark("property_keys")
     ## `preprocessor` is passed for gh#35: Layer 4 needs it to choose which `#if` branch a
     ## conditional function-pointer binding belongs to. It was resolved 60-odd lines above
     ## and reached only the Doxyfile and `build_meta`, so branch selection was making its
@@ -2319,15 +2424,17 @@ def _build_stages(
     timer.mark("requirements")
     import_req_edges(output, req_id_pattern)
     timer.mark("req_edges")
-    import_req_test_edges(output)
+    ## Round 4, R9: the SAME resolved test scope the `test_scope` stage stamps below decides
+    ## which tagged functions are covering tests, so the two never disagree about a file.
+    import_req_test_edges(output, tuple(_test_paths(args, decl).values))
     timer.mark("req_test_edges")
     ## EVERY INDEXED LINE THAT NAMES A KNOWN REQUIREMENT: docs, diagrams, build files, comments.
-    record_req_mentions(output, repo_root, requirements_yaml)
+    record_req_mentions(output, repo_root, requirements_yaml, cache=cache)
     timer.mark("req_mentions")
     ## THE CODE-TEXT CORPUS, AFTER `recover_ast_symbols`: it was built beside the parse front end,
     ## before recovery wrote the C functions doxygen's preprocessor skipped — measured on mbedtls
     ## in the 1.3.0-final grid, 1,052 of 4,127 bodies were searchable and none of ssl_tls.c's 234.
-    record_code_text(output, repo_root)
+    record_code_text(output, repo_root, cache=cache)
     timer.mark("code_text")
 
     # Python entry points are STRUCTURAL, not name-shaped: a `__main__` guard's
@@ -2354,6 +2461,12 @@ def _build_stages(
     with sqlite3.connect(output) as _ts_conn:
         mark_test_scope(_ts_conn, list(test_scope.values))
     timer.mark("test_scope")
+
+    ## S2/S3 (2.0.0): who owns each indexed file, from the repository's own CODEOWNERS and
+    ## MAINTAINERS. After the path table, like test_scope; the table exists even when empty.
+    with sqlite3.connect(output) as _ow_conn:
+        record_owners(_ow_conn, repo_root, section(decl, SECTION_OWNERS))
+    timer.mark("owners")
 
     # Stamp the build-version signature last so a partial build never leaves a
     # DB looking current. Consumers' freshness checks treat a mismatch as stale.
@@ -2523,7 +2636,7 @@ def _doxygen_has_source(in_scope: dict[str, Path]) -> bool:
 ## @param args Parsed build arguments; they locate the build's doxygen scratch directory.
 ## @return Path to the database.
 ## @version 2
-## @dg_internal
+## @utility
 def _empty_doxygen_database(args: argparse.Namespace) -> Path:
     """IN THE BUILD'S OWN SCRATCH DIRECTORY, beside the index, and replaced each build. It was a
     `mkdtemp` nothing removed: one directory per TypeScript build and per test that ran one, and
@@ -2581,7 +2694,7 @@ def _cache_key_extra() -> list[str]:
 ## @brief The installed lang-parsing-substrate version, or a named unknown.
 ## @return A version string, never empty.
 ## @version 1
-## @dg_internal
+## @utility
 def _substrate_version() -> str:
     """@brief Resolve the substrate's distribution version. @return The version, or "unknown"."""
     try:
@@ -2746,7 +2859,7 @@ _SKIPPED_SAMPLE = 10
 ## @param args Parsed CLI arguments, carrying the count measured during enumeration.
 ## @return Mapping with `files_in_scope`, empty when nothing enumerated the tree.
 ## @version 1
-## @dg_internal
+## @utility
 def _in_scope_count(args: argparse.Namespace) -> dict[str, str]:
     """THE DENOMINATOR THE INDEX NEVER HAD. `coverage.indexed_files` answers "how many
     first-party files produced rows", which reads like the size of the job and is not: doxygen
@@ -2821,7 +2934,7 @@ def _not_indexed_scope(output: Path, args: argparse.Namespace) -> dict[str, str]
 ## @param rel Callable rendering a path repo-relative.
 ## @return Mapping of `depth_limited_*` keys, empty when the limit was never reached.
 ## @version 1
-## @dg_internal
+## @utility
 def _depth_limit_scope(rel: Any) -> dict[str, str]:
     """EMPTY WHEN IT NEVER FIRED, so the falsy-drop rule renders the ordinary case as absence
     rather than as a recorded zero. That distinction is this repo's most-repeated lesson in
@@ -2851,7 +2964,7 @@ def _depth_limit_scope(rel: Any) -> dict[str, str]:
 ## @param args Parsed CLI arguments, carrying the guard config and any stated sections.
 ## @return Mapping of `vendored_*` keys, empty when nothing was declared.
 ## @version 2
-## @dg_internal
+## @utility
 def _vendored_scope(root: Path, rel: Any, args: argparse.Namespace) -> dict[str, str]:
     """ONLY PATHS THAT EXIST ARE NAMED, and the rest are COUNTED. gh#335 nearly published a
     machine path this way: the nested-tree walk saw every directory on disk including ones
@@ -2906,13 +3019,43 @@ def _vendored_scope(root: Path, rel: Any, args: argparse.Namespace) -> dict[str,
     return out
 
 
+## @brief The declared test shapes, recorded for the wiki's test recognition.
+## @param root Repository root.
+## @return {"test_shapes": JSON} when `tests:` declares macros or function prefixes, else {}.
+## @version 1
+## @utility
+def _test_shapes(root: Path) -> dict[str, str]:
+    """P4 (2.0.0; C6, W2). The wiki reads an index, not the declaration, so the shapes a
+    repository adds (`tests.macros`, `tests.function_prefixes`) are recorded where
+    `wiki.frameworks.TestRecognizer` finds them. Absent when nothing is declared.
+
+    @brief Record declared test shapes.
+    @return Mapping.
+    """
+    import json
+
+    from .declaration import TESTS_FUNCTION_PREFIXES, TESTS_MACROS
+
+    try:
+        tests = load_declaration(root).get(SECTION_TESTS) or {}
+    except Exception as exc:  # pragma: no cover - metadata must not break a built index
+        logger.warning("test shapes not recorded (%s)", exc)
+        return {}
+    shapes = {
+        k: tests[k]
+        for k in (TESTS_MACROS, TESTS_FUNCTION_PREFIXES)
+        if isinstance(tests, dict) and tests.get(k)
+    }
+    return {"test_shapes": json.dumps(shapes, sort_keys=True)} if shapes else {}
+
+
 ## @brief Read the target's own declared documentation scope.
 ## @param root Repository root, already resolved.
 ## @param rel Callable rendering a path repo-relative.
 ## @param stated The Doxyfile the build resolved, when there is one.
 ## @return Mapping of `doxyfile_*` keys, empty when the repo declares no doc scope.
 ## @version 1
-## @dg_internal
+## @utility
 def _doxyfile_scope(root: Path, rel: Any, stated: str | None = None) -> dict[str, str]:
     """The scope the REPOSITORY declares for its own documentation, as opposed to the scope
     this index used. Three keys, all absent when the repo ships no Doxyfile.
@@ -2977,7 +3120,8 @@ def _doxyfile_scope(root: Path, rel: Any, stated: str | None = None) -> dict[str
 ## @param repo_root Repository root, or None when unknown.
 ## @param args Parsed CLI arguments, which carry the tier the build actually took.
 ## @return {source, reason, roots, excludes, operator_excludes, doxyfile_*} as strings; empty when nothing was resolved.
-## @version 13
+## v14: records the declared test shapes (2.0.0, P4)
+## @version 14
 ## @req REQ-DDB-CONFIG-001
 def _scope_provenance(repo_root: Path | None, args: argparse.Namespace) -> dict[str, str]:
     """A PURE FUNCTION OF THE REPO AGAIN (gh#333). It used to read the tier from
@@ -3081,6 +3225,8 @@ def _scope_provenance(repo_root: Path | None, args: argparse.Namespace) -> dict[
         ## would be a schema change plus a filter that no query may honour — the emptiness
         ## rule: an answer that is silently filtered is worse than one that is merely absent.
         **_vendored_scope(root, _rel, args),
+        ## P4 (2.0.0): the declared test shapes the wiki's test recognition adds to its built-ins.
+        **_test_shapes(root),
         ## WHERE THE WALK GAVE UP, and it is a fact about the corpus rather than a curiosity.
         ## Past the depth limit nothing is pruned and nothing is checked for nested trees, so
         ## everything below is admitted wholesale — which on a deeply nested vendored dependency
@@ -3151,7 +3297,11 @@ def _open_index_cache(
 
 
 ## @brief Execute the build pipeline, writing atomically to --output.
-## @version 19
+## v20 (2.0.0, owner 2026-11-20): THE BUILD LOCK OWNS THE SHARED STATE. Held: the shared index
+## cache and `<stem>.doxygen/`. Not held: no shared cache and a per-process scratch directory,
+## removed afterwards. Measured before: 4 of 4 overlapping builds crashed one on `database is
+## locked` (tests/test_build_shared_state.py has the account).
+## @version 20
 ## @req REQ-DDB-PIPE-001
 ## @req REQ-DDB-PIPE-002
 ## @req REQ-DDB-MCP-004
@@ -3168,12 +3318,46 @@ def _run_pipeline(args: argparse.Namespace) -> None:
     `output` is resolved twice, here and inside. It is idempotent and cheap, and the alternative
     is threading a resolved path through a signature that every caller would have to learn.
 
-    @brief Attach the build log, then run the pipeline.
-    @version 19
+    @brief Attach the build log, take the build lock, then run the pipeline.
+    @version 20
     """
     output = Path(args.output).resolve()
-    with build_log(output):
-        _run_pipeline_inner(args)
+    ## THE LOCK BEFORE THE LOG: `build_log` truncates `<output>.buildlog`, so a waiting build that
+    ## opened it first would erase the holder's log. A build without the lock logs to its own file.
+    with build_lock(output) as held:
+        args.private_scratch = held is False
+        logged_as = (
+            output.with_name(f"{output.name}.{os.getpid()}") if args.private_scratch else output
+        )
+        with build_log(logged_as):
+            ## SIBLINGS, NOT A WRAPPER: `_run_pipeline_inner` stays one call from here, so
+            ## `chain_trace('_run_pipeline')` still reaches `_build_stages` inside its default
+            ## neighbour cap (tests/integration/test_richness.py, Q1). A wrapper hop pushed it out.
+            _enter_private_build(args, output)
+            try:
+                _run_pipeline_inner(args)
+            finally:
+                if args.private_scratch:
+                    shutil.rmtree(_doxygen_out_dir(args), ignore_errors=True)
+
+
+## @brief Prepare a build that does not hold the build lock: no shared cache, said so.
+## @param args Parsed CLI arguments; `private_scratch` already set by `_run_pipeline`.
+## @param output The resolved output path.
+## @return None.
+## @version 1
+## @req REQ-DDB-INDEX-002
+def _enter_private_build(args: argparse.Namespace, output: Path) -> None:
+    """@brief Drop the shared index cache for a build without the lock, with a warning."""
+    if not args.private_scratch:
+        return
+    args.no_index_cache = True
+    logger.warning(
+        "build: another process holds the build lock for %s — building WITHOUT the shared "
+        "index cache, in the private scratch directory %s",
+        output.name,
+        _doxygen_out_dir(args),
+    )
 
 
 ## @brief Run every build stage and swap the result onto --output.
@@ -3554,12 +3738,48 @@ def build_index(
         _run_pipeline(args)
 
 
+## @brief The Doxyfile the repo's own `.clew.yaml` declares, refused when missing or escaping.
+## @param repo_root The repo root.
+## @return The declared Doxyfile, or None when none is declared.
+## @version 1
+## @req REQ-DDB-CONFIG-001
+## @utility
+def _declared_doxyfile(repo_root: Path) -> Path | None:
+    """REFUSED, NOT WARNED, when the declared file is missing or outside the repository: a
+    Doxyfile decides WHICH SOURCE is compiled into the index, so falling through to discovery or
+    synthesis builds a well-formed index of something else — the reason the tier-1 route already
+    refuses (`buildoptions.PATH_OPTIONS_MUST_EXIST`).
+
+    @brief Resolve the declared Doxyfile.
+    @return Path or None.
+    @version 1
+    """
+    declared = load_declaration(repo_root).get(SECTION_DOXYFILE)
+    if not declared:
+        return None
+    candidate = Path(declared).expanduser()
+    contained = within_repo(
+        candidate if candidate.is_absolute() else repo_root / candidate,
+        repo_root,
+        setting=SECTION_DOXYFILE,
+    )
+    if contained is None or not contained.is_file():
+        raise DeclarationError(
+            f"{DECLARATION_NAME}: {SECTION_DOXYFILE} names {declared}, which "
+            f"{'is outside the repository' if contained is None else 'does not exist'} — "
+            f"refusing rather than indexing a different file set through discovery or synthesis."
+        )
+    return contained
+
+
 ## @brief Resolve which Doxyfile to build with, and the repo root it belongs to.
 ## @param args Parsed CLI arguments.
 ## @param output Resolved --output path (its parent hosts a synthesized Doxyfile).
 ## @return (doxyfile, repo_root). Exits 1 when neither can be established.
-## @version 4
-## @dg_internal
+## v5 (2.0.0): an in-tree `doxyfile:` declaration is read before discovery.
+## v6: scratch dir via _scratch_dir: private when the build lock is not held (2.0.0)
+## @version 6
+## @utility
 def _resolve_doxyfile_and_root(args: argparse.Namespace, output: Path) -> tuple[Path, Path]:
     """EXTRACTED from `_run_pipeline`, which the gh#3/gh#4 messaging work took to
     cognitive complexity 16 against a ceiling of 15.
@@ -3572,9 +3792,14 @@ def _resolve_doxyfile_and_root(args: argparse.Namespace, output: Path) -> tuple[
 
     @brief Decide the Doxyfile and repo root for this build.
     @return The resolved (doxyfile, repo_root) pair.
-    @version 4
+    @version 5
     """
     doxyfile = Path(args.doxyfile).resolve() if args.doxyfile else None
+    if doxyfile is None and args.repo_root:
+        ## R5-CFG F3 (2.0.0): the repo's own DECLARED Doxyfile comes before discovery. It was a
+        ## known section that only the tier-1 route applied, so an Mbed-TLS-shaped repo writing
+        ## the documented line got discovery or synthesis — an index of a different file set.
+        doxyfile = _declared_doxyfile(Path(args.repo_root).resolve())
     if doxyfile is None and args.repo_root:
         # Discover the repo's OWN Doxyfile before considering synthesis. Without
         # this the CLI jumped straight to a 3-line synthesized Doxyfile even for
@@ -3595,7 +3820,7 @@ def _resolve_doxyfile_and_root(args: argparse.Namespace, output: Path) -> tuple[
         # hook that actually derives roots) — synthesize a minimal one rather
         # than refusing to index a repo whose build is fully derivable.
         repo_root = Path(args.repo_root).resolve()
-        doxyfile = synthesize_doxyfile(repo_root, output.parent / (output.stem + ".doxygen"))
+        doxyfile = synthesize_doxyfile(repo_root, _scratch_dir(output, args))
     elif args.repo_root:
         # NEITHER a usable Doxyfile NOR a declared scope — synthesize one.
         #
@@ -3640,7 +3865,7 @@ def _resolve_doxyfile_and_root(args: argparse.Namespace, output: Path) -> tuple[
                 "whole-repo synthesis above is what will be indexed instead",
                 Path(args.doxyfile).resolve(),
             )
-        doxyfile = synthesize_doxyfile(repo_root, output.parent / (output.stem + ".doxygen"))
+        doxyfile = synthesize_doxyfile(repo_root, _scratch_dir(output, args))
     else:
         # gh#4. The old sentence here served all four resolution situations at once,
         # described none of them, and in the only case a user could actually reach by
@@ -3720,7 +3945,11 @@ def _stamp_refresh_metrics(
 
 
 ## @brief Entry point — dispatch a subcommand, else parse args and build.
-## @version 17
+## v18 (1.3.2): dispatches `clew query`, the export API as JSON on stdout.
+## v19 (1.3.5): dispatches `clew refresh`, the two-tier refresh.
+## v20 (1.4.0): dispatches `clew wiki`.
+## v21 (2.0.0): dispatches `clew cull` (the retired `index(action='cull')`).
+## @version 21
 ## @req REQ-DDB-CLI-001
 def main() -> None:
     """Entry point — parse args, run doxygen, optionally enrich.
@@ -3751,7 +3980,7 @@ def main() -> None:
     have been worse.
 
     @brief Parse CLI arguments and run the build pipeline.
-    @version 15
+    @version 18
     """
     if sys.argv[1:2] == [PROPOSE_COMMAND]:
         from .propose.command import (
@@ -3775,6 +4004,22 @@ def main() -> None:
         from .guard.main import main as guard_main
 
         sys.exit(guard_main(sys.argv[2:]))
+    if sys.argv[1:2] == [QUERY_COMMAND]:
+        from .query_command import query_main
+
+        sys.exit(query_main(sys.argv[2:]))
+    if sys.argv[1:2] == [REFRESH_COMMAND]:
+        from .refresh_command import refresh_main
+
+        sys.exit(refresh_main(sys.argv[2:]))
+    if sys.argv[1:2] == [WIKI_COMMAND]:
+        from .wiki.command import wiki_main
+
+        sys.exit(wiki_main(sys.argv[2:]))
+    if sys.argv[1:2] == [CULL_COMMAND]:
+        from .cull_command import cull_main
+
+        sys.exit(cull_main(sys.argv[2:]))
     args = _build_argparser().parse_args()
     _configure_logging(args.verbose)
     _resolve_output(args)

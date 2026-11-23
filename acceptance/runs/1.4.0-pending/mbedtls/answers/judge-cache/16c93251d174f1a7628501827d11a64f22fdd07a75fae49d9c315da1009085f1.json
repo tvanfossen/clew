@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"An application that defines `MBEDTLS_ALLOW_PRIVATE_ACCESS` before including mbedtls headers gets direct access\" and \"by default the field is really called `private_name`. Code that writes `ssl->state` then fails to compile\"\nVERDICT: HIT\nWHY: The answer gives both branches of the macro and says that consumers who define the opt-out see plain names, while ordinary consumers of the public headers see the `private_` names."
+}

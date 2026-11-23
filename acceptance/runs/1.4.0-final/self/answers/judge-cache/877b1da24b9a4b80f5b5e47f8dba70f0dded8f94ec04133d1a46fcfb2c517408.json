@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Doc comment comes from the `#` block directly above. No args, since shell has no parameter list.\nVERDICT: HIT\nWHY: The answer states shell definitions are recorded with no args because shell has no parameter list, which carries the item's substance. The \"no return\" part is not stated, but the item reads as one fact and the quoted line gives the mechanism."
+}

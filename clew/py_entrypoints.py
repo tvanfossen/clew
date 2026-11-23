@@ -103,7 +103,7 @@ def harvest_main_guard_calls(tree: Any, src_bytes: bytes) -> list[str]:
 ## @param src_bytes The file's raw bytes.
 ## @return Whether the condition compares `__name__` to `"__main__"`.
 ## @version 1
-## @dg_internal
+## @utility
 def _is_main_guard(node: Any, src_bytes: bytes) -> bool:
     """@brief Detect the `__name__ == "__main__"` condition.
 
@@ -123,7 +123,7 @@ def _is_main_guard(node: Any, src_bytes: bytes) -> bool:
 ## @param src_bytes The file's raw bytes.
 ## @return Bare tail names of the calls found.
 ## @version 1
-## @dg_internal
+## @utility
 def _called_names(root: Any, src_bytes: bytes) -> list[str]:
     """@brief Collect the tail names of every call in a subtree.
 
@@ -190,7 +190,8 @@ def main_guard_harvester() -> Harvester:
 ## @brief Read `pyproject.toml` and return its declared console-script targets.
 ## @param repo_root Repo root to look in.
 ## @return Declared targets in `module.path:function` form.
-## @version 1
+## v2: delegates to console_scripts, shared with the wiki (2.0.0, D8)
+## @version 2
 ## @req REQ-DDB-PIPE-004
 def console_script_targets(repo_root: Path | str | None) -> list[str]:
     """Absent or unparseable `pyproject.toml` yields nothing, which is the norm
@@ -200,22 +201,37 @@ def console_script_targets(repo_root: Path | str | None) -> list[str]:
     @return List of `module:function` targets.
     @version 1
     """
+    return list(console_scripts(repo_root).values())
+
+
+## @brief Every declared console script, by name: PEP 621 and Poetry tables.
+## @param repo_root Repository root, or None.
+## @return {script name: `module:function`}; {} when there is no pyproject.toml.
+## @version 1
+## @req REQ-DDB-PIPE-004
+def console_scripts(repo_root: Path | str | None) -> dict[str, str]:
+    """ONE READER for the liveness seeds and the wiki's entry flows (2.0.0, D8): the wiki read
+    only PEP 621 `[project.scripts]`, missing every Poetry `[tool.poetry.scripts]` this reads.
+
+    @brief Read console scripts by name.
+    @return Mapping.
+    """
     if repo_root is None:
-        return []
-    path = Path(repo_root).expanduser() / "pyproject.toml"
-    doc = _read_toml(path)
-    targets: list[str] = []
+        return {}
+    doc = _read_toml(Path(repo_root).expanduser() / "pyproject.toml")
+    found: dict[str, str] = {}
     for table in _SCRIPT_TABLES:
-        scripts = _nested(doc, table)
-        targets.extend(str(v) for v in scripts.values() if isinstance(v, str))
-    return targets
+        for name, target in _nested(doc, table).items():
+            if isinstance(target, str):
+                found.setdefault(str(name), target)
+    return found
 
 
 ## @brief Parse a TOML file into a mapping, tolerating a bad file but not a missing parser.
 ## @param path File to read.
 ## @return The parsed document, or {} when the file is absent or malformed.
 ## @version 2
-## @dg_internal
+## @utility
 def _read_toml(path: Path) -> dict:
     """The tolerance here is deliberate and NARROW. A repo with no
     `pyproject.toml`, or one with a syntax error in it, must not fail a build —
@@ -249,7 +265,7 @@ def _read_toml(path: Path) -> dict:
 ## @param keys Table path to descend.
 ## @return The mapping at that path, or {} when any level is missing.
 ## @version 1
-## @dg_internal
+## @utility
 def _nested(doc: dict, keys: tuple[str, ...]) -> dict:
     """@brief Descend a nested TOML table path.
 
@@ -269,7 +285,7 @@ def _nested(doc: dict, keys: tuple[str, ...]) -> dict:
 ## @param targets Targets in `module.path:function` form.
 ## @return Rowids of the functions those targets name.
 ## @version 1
-## @dg_internal
+## @utility
 def _resolve_console_scripts(conn: sqlite3.Connection, targets: list[str]) -> set[int]:
     """`module.path:function` becomes the dotted `module.path.function`, which is
     exactly the shape doxygen stores in `definition` — so the resolution is exact
@@ -297,7 +313,7 @@ def _resolve_console_scripts(conn: sqlite3.Connection, targets: list[str]) -> se
 ## @param harvested (path_rowid, names) pairs from the guard harvest.
 ## @return Rowids of the guarded entry functions.
 ## @version 1
-## @dg_internal
+## @utility
 def _resolve_guard_names(
     conn: sqlite3.Connection,
     harvested: list[tuple[int, Any]],
@@ -327,7 +343,7 @@ def _resolve_guard_names(
 ## @param path_rowid The `path` rowid the body must live in.
 ## @return The rowid, or None when the file defines no such function.
 ## @version 1
-## @dg_internal
+## @utility
 def _resolve_in_file(conn: sqlite3.Connection, name: str, path_rowid: int) -> int | None:
     """@brief Resolve a name to a function defined in one specific file.
 
@@ -347,7 +363,7 @@ def _resolve_in_file(conn: sqlite3.Connection, name: str, path_rowid: int) -> in
 ## @param name Function name.
 ## @return The rowid, or None when the name is absent or ambiguous.
 ## @version 1
-## @dg_internal
+## @utility
 def _resolve_unique(conn: sqlite3.Connection, name: str) -> int | None:
     """Ambiguity yields None on purpose: seeding an arbitrary one of several
     same-named functions would mark a genuinely dead function live, which is the

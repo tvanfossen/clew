@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: If `MBEDTLS_PLATFORM_STD_CALLOC` is undefined, the default is a stub that returns NULL, so allocation fails until you set a function\nVERDICT: MISS\nWHY: The answer says the calloc default is a NULL-returning stub, but it never says the free default does nothing. The item needs both halves of the failure-not-fallback mechanism."
+}

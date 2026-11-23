@@ -185,7 +185,7 @@ def build_parser() -> argparse.ArgumentParser:
 ## @param scope Registration scope being used.
 ## @return The client-config check.
 ## @version 1
-## @dg_internal
+## @utility
 def _check_client_config(scope: str) -> Check:
     """Repo scope is unconditionally fine — the file lives in the repo the user
     named. Global scope must first EVIDENCE that Claude Code keeps its config
@@ -216,7 +216,7 @@ def _check_client_config(scope: str) -> Check:
 ## @param scope Registration scope being used.
 ## @return The server-command check.
 ## @version 1
-## @dg_internal
+## @utility
 def _check_server_command(repo_root: Path, scope: str) -> Check:
     """@brief Verify the server launch command resolves on this machine.
 
@@ -233,7 +233,7 @@ def _check_server_command(repo_root: Path, scope: str) -> Check:
 ## @brief Whether the SDK module the server imports can actually be imported.
 ## @return The mcp-sdk check.
 ## @version 4
-## @dg_internal
+## @utility
 def _check_mcp_sdk() -> Check:
     """The SDK is a REQUIRED dependency (it was an optional extra until
     2026-07-28), so a missing one now means a broken install rather than a missing
@@ -325,7 +325,7 @@ def _needs_doxygen(repo_root: Path) -> bool:
 ## @param repo_root Repo being registered.
 ## @return The doxygen check.
 ## @version 4
-## @dg_internal
+## @utility
 def _check_doxygen(repo_root: Path) -> Check:
     """doxygen is a SUBPROCESS dependency, invisible to pip, so nothing else in
     the install path notices it is missing — the first `build_or_refresh` does.
@@ -402,7 +402,7 @@ def _check_doxygen(repo_root: Path) -> Check:
 ## @param repo_root Repo being registered.
 ## @return The indexable check.
 ## @version 4
-## @dg_internal
+## @utility
 def _check_indexable(repo_root: Path) -> Check:
     """Two routes exist and the doctor reports WHICH: the repo ships a Doxyfile,
     or it declares a doxygen-guard scope a minimal Doxyfile can be synthesized
@@ -460,7 +460,7 @@ def _check_indexable(repo_root: Path) -> Check:
 ## @param repo_root Repo being registered.
 ## @return The declaration check.
 ## @version 2
-## @dg_internal
+## @utility
 def _check_declaration(repo_root: Path) -> Check:
     """Absent is the norm, not a defect — most repos run entirely on built-in
     defaults. It is still surfaced, because an empty causal layer on a repo whose
@@ -511,7 +511,7 @@ def diagnose(repo_root: Path, scope: str) -> list[Check]:
 ## @param check The check to render.
 ## @return The formatted line.
 ## @version 1
-## @dg_internal
+## @utility
 def _format_check(check: Check) -> str:
     """@brief Format a check for the report.
 
@@ -525,7 +525,7 @@ def _format_check(check: Check) -> str:
 ## @param checks Checks to filter.
 ## @return Blocking failures, in order.
 ## @version 1
-## @dg_internal
+## @utility
 def _blocking(checks: list[Check]) -> list[Check]:
     """@brief Select the failures that must stop the write.
 
@@ -538,7 +538,7 @@ def _blocking(checks: list[Check]) -> list[Check]:
 ## @brief Print the refusal for a conflicting existing entry.
 ## @param plan The plan whose entry differs from what is already recorded.
 ## @version 1
-## @dg_internal
+## @utility
 def _print_conflict(plan: MergePlan) -> None:
     """Shows the diff and stops. Silently overwriting an entry the user tuned by
     hand — a different command, extra args, a pinned repo — is the failure mode
@@ -558,7 +558,7 @@ def _print_conflict(plan: MergePlan) -> None:
 ## @brief Print what a dry run would change, scoped to this server's entry.
 ## @param plan The plan that would have been applied.
 ## @version 2
-## @dg_internal
+## @utility
 def _print_merge_preview(plan: MergePlan) -> None:
     """PRINTS THE ENTRY, NEVER `plan.text` — and that is a disclosure fix, not a
     formatting preference (gh#27). `plan.text` is the whole re-serialised document,
@@ -598,7 +598,7 @@ def _print_merge_preview(plan: MergePlan) -> None:
 ## @param plan The plan to emit.
 ## @param dry_run Whether to print instead of writing.
 ## @version 2
-## @dg_internal
+## @utility
 def _emit(plan: MergePlan, dry_run: bool) -> None:
     """The dry-run preview is delegated so this function stays a two-way branch, and
     so the entry-scoped rule lives in exactly one place.
@@ -623,7 +623,7 @@ def _emit(plan: MergePlan, dry_run: bool) -> None:
 ## @param checks The diagnostic checks, which decide the exit code.
 ## @return Process exit code.
 ## @version 3
-## @dg_internal
+## @utility
 def _execute(
     plan: MergePlan, repo_root: Path, args: argparse.Namespace, checks: list[Check]
 ) -> int:
@@ -646,7 +646,7 @@ def _execute(
 ## @param plan The plan that was emitted.
 ## @param dry_run Whether nothing was actually written.
 ## @version 1
-## @dg_internal
+## @utility
 def _print_next_steps(plan: MergePlan, dry_run: bool) -> None:
     """@brief Print the follow-on step after a successful registration.
 
@@ -666,7 +666,7 @@ def _print_next_steps(plan: MergePlan, dry_run: bool) -> None:
 ## @param args Parsed CLI arguments.
 ## @return Process exit code.
 ## @version 3
-## @dg_internal
+## @utility
 def _register(checks: list[Check], repo_root: Path, args: argparse.Namespace) -> int:
     """@brief Plan and apply the config write, refusing on a blocking failure.
 

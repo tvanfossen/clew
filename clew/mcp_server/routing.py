@@ -186,7 +186,7 @@ def repo_indexes(registry: TargetRegistry, repo_path: str) -> RepoIndexes:
 ## @param names The names to list.
 ## @return Quoted, comma-joined names with any overflow counted.
 ## @version 1
-## @dg_internal
+## @utility
 def listed_names(names: tuple[str, ...] | list[str]) -> str:
     """@brief Bounded name list. @return The rendered list. @version 1"""
     shown = ", ".join(repr(n) for n in names[:MAX_LISTED_SIBLINGS])

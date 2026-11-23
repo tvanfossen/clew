@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer names PermissionManager::pattern_matches and ServerManager's is_denied/is_explicitly_allowed, but never says the allow/deny lists come from a PermissionsConfig the ServerManager is constructed with."
+}

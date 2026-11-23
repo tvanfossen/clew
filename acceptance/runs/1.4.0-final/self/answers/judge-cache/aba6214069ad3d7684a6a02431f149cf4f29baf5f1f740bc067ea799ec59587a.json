@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Its vocabulary is the `.clew.yaml` section names, and the module says every declaration section is statable this way.\nVERDICT: HIT\nWHY: The answer states that the `options` argument's vocabulary is the same as the `.clew.yaml` section names. It says nothing about the diagnostics using the same words, but the item is mainly about the option names matching the section names."
+}

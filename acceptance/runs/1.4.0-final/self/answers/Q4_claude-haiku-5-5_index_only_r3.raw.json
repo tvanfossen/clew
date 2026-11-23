@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 14353,
+  "stop_reason": "end_turn",
+  "session_id": "1814b147-8529-4095-ab31-1114db2099f8",
+  "total_cost_usd": 0.0024896,
+  "usage": {
+    "input_tokens": 4,
+    "cache_creation_input_tokens": 2733,
+    "cache_read_input_tokens": 73660,
+    "output_tokens": 2412,
+    "output_tokens_details": {
+      "thinking_tokens": 1290
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 2733,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2143,
+        "cache_read_input_tokens": 36830,
+        "cache_creation_input_tokens": 2733,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2733
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 4,
+      "outputTokens": 2412,
+      "cacheReadInputTokens": 73660,
+      "cacheCreationInputTokens": 2733,
+      "webSearchRequests": 0,
+      "costUSD": 0.0024896,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1290,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 2733,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 3,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**What the answer contains.** For `git_argv` (clew/gitenv.py:89), the reply gives:\n\n- **`callers`, grouped by file.** Each row names the *enclosing function* that makes the call, not the call site. Here: `_detect_git_version` and `_git_ls_files` in the guard, `_gitignored_paths` and `_is_dependency_of_parent` in `scope.py`, `run_git`, `tracked_files`, and one test.\n- **Resolution counters:** `callers_unresolved: 0`, `context_undecidable: 0`, `gates_unplaceable: 0`. These are the only evidence of how complete the caller list is, and they are measurements, so a 0 means the index found nothing it failed to resolve.\n- **Neighbours that are not calls:** `threads` (the first-build worker reaches `git_argv` through a spawn, at medium confidence), `requirements` (REQ-DDB-CONFIG-001), `covering_tests`, `liveness`, `version`, and the verbatim body.\n- **`callees: []`.** The body calls only `list` and `append`, which are not indexed, so the empty list is the expected result rather than proof of no calls.\n\n**What would make a plain reading of it as a list of call sites wrong:**\n\n1. **Rows are callers, not sites.** A function that calls `git_argv` three times appears once. At depth 1 the reply gives no line numbers, so you cannot tell how many sites there are or where they are without reading the bodies.\n2. **Absence is not proof of no caller.** The list is static and name-resolved. A function reached through a callback, a stored function pointer, or a registration appears only if the callback-edge harvester recognised that shape. Its absence here says nothing about those paths.\n3. **Callers are not the same as reachability.** The `threads` entry shows the function is reachable from a spawned thread, which is a different relation from a call. Treating \"reachable\" as \"called by\" would be wrong.\n4. **Tests are mixed in.** `test_the_disarmed_key_list_reaches_the_argv` is a caller in the list. It asserts a property rather than being production code that depends on `git_argv`.\n5. **Ambiguous names.** A bare name can match several symbols. The `harvest` search returned at least ten different functions and test helpers. Without a `qualified` pick, a caller list can be shared across identities, and the reply flags this with an `ambiguous` block.\n6. **Staleness.** An `anchor_mismatch: true` means the lines changed since the build, so the body and caller rows may no longer match the file.\n\n**Bottom line:** the answer is a per-file list of enclosing caller functions, plus the counters that say how far to trust the list. It is a reliable starting set for \"who calls this\", and it is only evidence of absence when the counters are zero and the call is a direct one. I did not check a depth-2 or `back` chain for this function, so I cannot say how the transitive callers look.",
+  "ttft_ms": 1777,
+  "type": "result",
+  "duration_ms": 14774,
+  "uuid": "1836da54-a171-4f5c-89ee-d8af93a4867c",
+  "ttft_stream_ms": 1130,
+  "time_to_request_ms": 98,
+  "first_content_frame_ms": 1130,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

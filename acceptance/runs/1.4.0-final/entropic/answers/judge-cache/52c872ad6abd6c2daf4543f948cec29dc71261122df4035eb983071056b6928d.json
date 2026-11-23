@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Poll an `int*` cancel flag every 10 ms and raise a `std::atomic<bool>`\nVERDICT: MISS\nWHY: The answer says the cancel pollers bridge an `int*` flag to an atomic, but never says the reason is that the C ABI boundary can't carry an atomic."
+}

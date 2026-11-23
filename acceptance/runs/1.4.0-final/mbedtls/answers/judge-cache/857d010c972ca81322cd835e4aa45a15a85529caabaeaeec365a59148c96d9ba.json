@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It is off by default (`include/mbedtls/mbedtls_config.h:208`).\nVERDICT: MISS\nWHY: The answer says MBEDTLS_PLATFORM_MEMORY is off by default at a line in mbedtls_config.h, but it never says it is commented out in the shipped header. Its only \"commented out\" remark concerns the CALLOC/FREE macros, so the item's specific claim is not stated."
+}

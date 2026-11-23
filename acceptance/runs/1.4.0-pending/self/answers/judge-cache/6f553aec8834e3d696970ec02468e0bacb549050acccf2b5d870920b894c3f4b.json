@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**\"No such defined symbol in the indexed files.\"** High. ... **\"The repo does not contain that.\"** Low to moderate. The lookup did not read function bodies, markdown or Kconfig prose, or any file whose extension is in `not_indexed`.\"\nVERDICT: MISS\nWHY: The answer gives two grades (definitive for the scope, and not definitive/low), but it never describes a third grade of \"definitive for a reason that is not absence\", for example a stale index or a wrong target."
+}

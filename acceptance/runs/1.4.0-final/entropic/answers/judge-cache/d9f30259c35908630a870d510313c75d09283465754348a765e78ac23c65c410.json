@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Callbacks (`hooks.py`, `streams.py`): Python functions are wrapped in `CFUNCTYPE` trampolines. The trampoline decodes the C arguments, calls the user function, and catches every exception so none escape into C.\" and \"A failing hook returns rc 0 (pass-through).\"\nVERDICT: HIT\nWHY: The answer states that the hook trampoline catches every exception so none reach C, and that a failing hook returns rc 0 as pass-through."
+}

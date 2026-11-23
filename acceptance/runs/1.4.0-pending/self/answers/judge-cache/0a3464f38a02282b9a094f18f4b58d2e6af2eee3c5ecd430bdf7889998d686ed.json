@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Each notice names the action that clears it, because the three axes need different actions.\nVERDICT: HIT\nWHY: The answer says the axes need different actions and tabulates rebuild for data versus a client restart for code. It also says that a rebuild through a stale-code process is wrong, which is why a single flag would not be enough."
+}

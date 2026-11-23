@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 23699,
+  "stop_reason": "end_turn",
+  "session_id": "71ecfcb5-e57d-4bb6-84b2-3fb44320e648",
+  "total_cost_usd": 0.0083958,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 18351,
+    "cache_read_input_tokens": 266940,
+    "output_tokens": 4110,
+    "output_tokens_details": {
+      "thinking_tokens": 1622
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 18351,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1470,
+        "cache_read_input_tokens": 54288,
+        "cache_creation_input_tokens": 2352,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2352
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 4110,
+      "cacheReadInputTokens": 266940,
+      "cacheCreationInputTokens": 18351,
+      "webSearchRequests": 0,
+      "costUSD": 0.0083958,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1622,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 18351,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 9,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The string comes from `mbedtls_strerror()` in `library/error.c`. The lookup tables in that file are generated from the public headers, so a contributor adds a code by editing a header and regenerating, not by editing `error.c`.\n\n**Runtime path**\n\n```\ncaller: ret = mbedtls_xxx(...)   // ret < 0\n   \u2502\n   \u25bc\nmbedtls_strerror(ret, buf, buflen)           library/error.c:792\n   1. buflen == 0 \u2192 return; else memset(buf, 0)\n   2. ret = -ret                              // make it positive\n   3. high = ret & 0xFF80                     // module/category bits\n        \u2192 mbedtls_high_level_strerr(ret)      // switch over ~0x80 codes\n        \u2192 write \"CIPHER - Authentication failed \u2026\" (or \"UNKNOWN ERROR CODE (%04X)\")\n        \u2192 if high == SSL fatal alert: return  // skip low-level part\n   4. low = ret & ~0xFF80                     // specific reason bits\n        \u2192 if low == 0: return\n        \u2192 if buf already has text: append \" : \"\n        \u2192 mbedtls_low_level_strerr(ret)       // switch over low codes\n        \u2192 write \"AES - Invalid key length\" (or \"UNKNOWN ERROR CODE (%04X)\")\n```\n\nSo a code such as `-0x0020` (`MBEDTLS_ERR_AES_INVALID_KEY_LENGTH`, defined in `include/mbedtls/aes.h:44`) resolves through the low-level switch to `\"AES - Invalid key length\"`. A code that combines a high-level and a low-level part produces a concatenated string such as `\"X : Y\"`. The result is always NUL-terminated and truncated to `buflen`.\n\nIf `MBEDTLS_ERROR_C` is off, the `#else` branch at `error.c:867` compiles a stub that writes an empty string.\n\n**Where the tables come from**\n\n`library/error.c` is generated. Its header says so, and `scripts/generate_errors.pl` writes it from:\n\n- the template `scripts/data_files/error.fmt`\n- every `include/mbedtls/*.h` that contains `#define MBEDTLS_ERR_... -0x...`\n\nThe generator's regex accepts a doxygen comment either before the define (`/** ... */`) or after it (`/**< ... */`), but not both and not neither. It then:\n\n- dies on a duplicate numeric code\n- sorts each code into a low-level or high-level table using hard-coded module lists (`@low_level_modules` and `@high_level_modules` near the top of the script)\n- emits `#if defined(MBEDTLS_<MOD>_C)` guards and `case -(NAME): return \"MOD - description\";` lines\n\nRegeneration runs from `library/Makefile:355-360` and the CMake equivalent whenever a header changes. `tests/scripts/check-generated-files.sh:135` regenerates and diffs, so a hand-edited `error.c` fails CI.\n\n**To add a new error string**\n\n1. In the module's public header, add `#define MBEDTLS_ERR_<MOD>_<NAME> -0x<value>` with a single doxygen description on the line before or after. Pick an unused value in the module's range, and keep the code within the low-level (`< 0x80`) or high-level (`0xFF80` mask) range the module already uses.\n2. If the module is new to the error system, add its name to `@low_level_modules` or `@high_level_modules` in `scripts/generate_errors.pl`. Otherwise the script exits with `Do not know how to handle`.\n3. Regenerate with `make -C library error.c` or the CMake target, or run `scripts/generate_errors.pl` from the repo root. Commit the regenerated `library/error.c` along with the header change.\n4. Run the check through pre-commit or the repo's CI scripts, not by running the generator alone.\n\nI only read the code and did not run the generator or the check script, so the regeneration step and the exact make target are verified by reading, not by running them.",
+  "ttft_ms": 1430,
+  "type": "result",
+  "duration_ms": 24899,
+  "uuid": "364e40d4-3f3b-49aa-9efa-a2e68966749b",
+  "ttft_stream_ms": 1083,
+  "time_to_request_ms": 77,
+  "first_content_frame_ms": 1083,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

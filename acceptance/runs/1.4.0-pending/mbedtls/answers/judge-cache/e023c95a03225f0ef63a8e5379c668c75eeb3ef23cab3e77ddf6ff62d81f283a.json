@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The helpers are included by a large set of modules, and the index shows real call sites:\" followed by a table spanning bignum, RSA, cipher, MAC/AEAD, TLS, base64, ecp_curves, pk_wrap.\nVERDICT: HIT\nWHY: The answer says the helpers are used by \"a large set of modules\" and lists many modules across many areas, conveying broad consumption rather than confinement to one or two, though it gives no explicit count of about twenty."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer names `handleWebSocketEvent` and `handleReactionAddedToPostEvent`, but its trace shows `handleWebSocketEvent` only with a `switch(msg.event) \u2192 REACTION_ADDED` and never states that the dispatcher routes `reaction_added` to that handler. It also says the start of the chain was inferred from call sites, not read.\n\nBoth names appear and the trace implies the routing, but the answer does not say it, so this resolves to MISS."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says `mbedtls_memory_buffer_alloc_init` installs itself through `mbedtls_platform_set_calloc_free`. It never says the buffer allocator requires `MBEDTLS_PLATFORM_MEMORY`, or that enabling the buffer allocator alone is not enough to route the library's allocations through it."
+}

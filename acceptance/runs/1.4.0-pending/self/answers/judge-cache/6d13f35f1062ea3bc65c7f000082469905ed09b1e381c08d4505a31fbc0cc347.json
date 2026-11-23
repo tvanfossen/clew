@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The list rides on every query reply as `staleness` (tools_query.py:1841\u20131844). ... `freshness.notices()` (freshness.py:573) returns a list of `{axis, message}`, empty when current. ... Read `staleness` on every reply; treat its absence as the signal that the tool is current.\n\nVERDICT: HIT\nWHY: The answer says the staleness list rides on every query reply, and that it is empty (absent) when the tool is current."
+}

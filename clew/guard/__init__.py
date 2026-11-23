@@ -1,18 +1,17 @@
 # SPDX-License-Identifier: MIT
 """The doxygen gate: presence, revision staleness, tag syntax and requirement coverage.
 
-This package WAS doxygen-guard, a separate distribution clew depended on. It is absorbed
-here so the index and the gate parse a target's config with ONE schema, from ONE release,
-instead of two independently pinned ones. The config is the `guard:` section of the repo's
-`.clew.yaml` (it was a separate `.doxygen-guard.yaml`); its schema and the pre-commit hook id
-are doxygen-guard's.
+The gate is clew's own: the index and the gate parse a target's config with ONE schema, from
+ONE release. Its config is the `guard:` section of the repository's `.clew.yaml`. (It began as
+a separate project, doxygen-guard; 2.0.0 is the hard cut — a leftover `.doxygen-guard.yaml` or
+`doxygen-guard` hook id is refused, and `@dg_internal` is `@utility`.)
 
 It is OPTIONAL in use, not in install: nothing in the index pipeline runs the gate. A
-repo opts in by declaring the `doxygen-guard` hook from this repository, or by running
+repository opts in by declaring the `clew-guard` hook from this repository, or by running
 `clew guard ...` itself.
 
-@brief The absorbed doxygen-guard gate, reachable as `clew guard`.
-@version 1
+@brief clew's doxygen gate, reachable as `clew guard`.
+@version 2
 """
 
 from importlib.metadata import PackageNotFoundError, version

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A matching deny pattern blocks the call and returns a JSON error envelope. Deny is therefore absolute: an allow entry cannot override it\nVERDICT: MISS\nWHY: The answer says deny is checked in ServerManager::execute but also describes an approval gate that can block calls (\"Permission denied\" if false), so it does not conclude that deny is the only blocking list."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says that without the grammars the files get no symbols but still a `path` row, and it mentions a not-indexed report. It never says that routing consults a capability gate before routing, so the router-level gating mechanism is absent."
+}

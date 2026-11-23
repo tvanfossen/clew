@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes how single-token emptiness is now guarded (checks of unread corpora, scope block), but it never states that a single unmatched token was previously treated as proof of absence or that this conflated \"nothing exists\" with \"not looked there.\""
+}

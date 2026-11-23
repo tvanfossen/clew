@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 62895,
+  "stop_reason": "end_turn",
+  "session_id": "28335277-65a9-42f7-ba71-471e049b9fe1",
+  "total_cost_usd": 0.022065289999999998,
+  "usage": {
+    "input_tokens": 30,
+    "cache_creation_input_tokens": 43143,
+    "cache_read_input_tokens": 806469,
+    "output_tokens": 10738,
+    "output_tokens_details": {
+      "thinking_tokens": 5397
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 43143,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3068,
+        "cache_read_input_tokens": 74192,
+        "cache_creation_input_tokens": 2656,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2656
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 30,
+      "outputTokens": 10738,
+      "cacheReadInputTokens": 806469,
+      "cacheCreationInputTokens": 43143,
+      "webSearchRequests": 0,
+      "costUSD": 0.022065289999999998,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 5397,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 43143,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 15,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "## How Python reaches the engine\n\nThe Python package has no native code of its own. It is a ctypes layer over the C ABI in `librentropic.so`:\n\n```\nPython code\n  \u2514\u2500 entropic (__init__.py, PEP 562 lazy exports)\n       \u251c\u2500 _bindings.py      generated ctypes shim (restype/argtypes per symbol)\n       \u251c\u2500 hooks.py / streams.py / mcp.py / helpers.py   thin Pythonic facades\n       \u2514\u2500 _loader.py        finds librentropic.so, ctypes.CDLL(path)\n            \u2502  C ABI: extern \"C\", opaque void* handle, error codes\n            \u25bc\nlibrentropic.so  (src/facade/entropic.cpp, C++ inside; try/catch at each entry point)\n```\n\n- **Library resolution** (`_loader.py`): `$ENTROPIC_LIB`, then `$ENTROPIC_HOME` (nested and flat layouts), then `~/.entropic/...`, then `ctypes.util.find_library`.\n- **Bindings** are generated from `include/entropic/entropic.h` by `scripts/gen_bindings.py` (`inv gen-bindings`, drift-checked in pre-commit). Each symbol is pinned with `_bind(name, restype, *argtypes)`. Handles are `c_void_p`, strings are `c_char_p`, out-params are `POINTER(...)`, and callbacks are `CFUNCTYPE`.\n- **Calls** go through `CDLL`, so the GIL is released during engine calls. Engine threads call back into Python and acquire the GIL themselves.\n- **Exceptions never cross.** The C++ side catches at every entry point and returns `entropic_error_t`, and the Python trampolines wrap user code in `try/except` so nothing escapes into C.\n\n## Memory rules at the boundary\n\nThe header (`entropic.h:32-37`) defines three ownership classes:\n\n| Class | Rule | Python obligation |\n|---|---|---|\n| Returned `char*` (e.g. `entropic_run` out-param, `entropic_list_mcp_servers`, `entropic_grammar_get`, `entropic_validation_last_result`) | Caller owns; free with `entropic_free()` | Copy the string, then free the original pointer |\n| Returned `const char*` (e.g. `entropic_version`) | Static, or owned by the handle until the next call on that handle | Do not free; do not hold past the next call |\n| Callback arguments (`token`, `ctx_json`, `res->patch`, `tier_name`, \u2026) | Engine-owned, valid only for the callback | Copy immediately (`string_at` / `.decode`) |\n| Buffers the engine will free (hook `modified_json`) | Must come from `entropic_alloc()` | Allocate with `entropic_alloc`, never ctypes buffers |\n\n`entropic_alloc` and `entropic_free` are plain `malloc`/`free` (`src/facade/entropic.cpp:1944-1956`), so the pair matters for provenance, not for allocator mismatch. `entropic_free(NULL)` is a no-op.\n\nWhere the Python layer follows the rules:\n- **Hook output** (`hooks.py`, `_build_trampoline`): the modified JSON is written through `entropic_alloc`, so the engine's `free()` is valid.\n- **Callback inputs** (`hooks.py`, `streams.py`, `helpers.py:30`): payloads are copied with `string_at` or decoded inside the callback. None is kept beyond its return.\n- **Callback lifetime**: the `CFUNCTYPE` trampolines are held in `_bound` (hooks), `_observers` (streams), or the caller's variable (delegation), so GC cannot free them while C still points at them.\n- **Callback threading**: observers may fire on the engine thread or a delegation thread. The header requires them to be thread-safe and forbids calling back into the same handle (`entropic.h`, residency observer and token callback docs). The Python trampolines are fine on this point, but user callbacks must respect it.\n\n## Problems I found\n\n1. **Python never frees engine-owned strings (leak).** `_bindings.py` pins these returns as `c_char_p`. ctypes converts the return to `bytes` and discards the pointer, so `entropic_free` can never be called on it. The `entropic_run*`, `entropic_metrics_json`, `entropic_context_get`, and `entropic_compact` out-params (declared `POINTER(c_char_p)`) have the same problem. Nothing in `python/src` calls `entropic_free`. Each call leaks its result string. The generator (`scripts/gen_bindings.py`) maps `char*` to `c_char_p` and has no notion of ownership, so the generated surface has no path to free. Fix: a generated `char*`-returning set, or a Python helper that takes the raw pointer, copies it, and calls `entropic_free`.\n\n2. **`register_hooks` can silently skip binding on a reused handle address (plausible, not reproduced).** `_bound` and `_observers` are keyed by `ctypes.cast(handle, c_void_p).value`. Nothing clears them on `entropic_destroy`, which the Python layer doesn't wrap. If the allocator reuses the address for a new handle, `register_hooks` sees the old entries and skips them, so the new engine has no hooks. The stale trampolines also stay alive forever. Fix: pop the entry on destroy, or key by a per-handle token.\n\n3. **Token observer uses `c_char_p` with a length (minor, unverified).** `STREAM_OBSERVER_CB` declares the token as `c_char_p`, so ctypes hands the callback a NUL-truncated `bytes`. `streams.py` then calls `string_at(token_ptr, length)` on that bytes object. If a token ever contained an embedded NUL, that read could run past the object. The safe form is `c_void_p` for the token argument. I did not run this.\n\n4. **Doc drift.** `entropic_speculative_compat`'s header comment says \"free with `entropic_free_string`\", which doesn't exist. The real function is `entropic_free`.\n\nTwo tool results contained suggestions to use a `dossier` tool, which is not available in this session, so I ignored them. None of the findings above depend on them.",
+  "ttft_ms": 1614,
+  "type": "result",
+  "duration_ms": 64875,
+  "uuid": "373ed082-4743-4ada-b858-d080e66645d7",
+  "ttft_stream_ms": 1319,
+  "time_to_request_ms": 171,
+  "first_content_frame_ms": 1319,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

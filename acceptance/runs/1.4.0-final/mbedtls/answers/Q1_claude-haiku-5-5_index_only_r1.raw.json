@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 21601,
+  "stop_reason": "end_turn",
+  "session_id": "cbe614e0-895f-441e-9668-06c6d4c05ec5",
+  "total_cost_usd": 0.01208995,
+  "usage": {
+    "input_tokens": 6,
+    "cache_creation_input_tokens": 44170,
+    "cache_read_input_tokens": 95735,
+    "output_tokens": 4596,
+    "output_tokens_details": {
+      "thinking_tokens": 2255
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 44170,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3646,
+        "cache_read_input_tokens": 41483,
+        "cache_creation_input_tokens": 20108,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 20108
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 6,
+      "outputTokens": 4596,
+      "cacheReadInputTokens": 95735,
+      "cacheCreationInputTokens": 44170,
+      "webSearchRequests": 0,
+      "costUSD": 0.01208995,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2255,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 44170,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 7,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** in a default build, the library creates no threads and takes no locks. Concurrency comes entirely from the application. The mutex code only activates when `MBEDTLS_THREADING_C` is enabled, and even then the locks protect shared library state, not the caller's data.\n\n**Default configuration**\n\n- `MBEDTLS_THREADING_C` defaults to off (`include/mbedtls/mbedtls_config.h:3787`). `MBEDTLS_THREADING_PTHREAD` and `MBEDTLS_THREADING_ALT` also default to off.\n- `library/threading.c` is wrapped entirely in `#if MBEDTLS_THREADING_C` (line 18). Every mutex call site in the library is gated on it, so by default none of them compile in.\n- The index was built with `MBEDTLS_THREADING_C` and `MBEDTLS_THREADING_PTHREAD` set as flags, so the caller and lock facts below describe the threaded build. I could not confirm the shipped default from the index because no `config_header` is declared.\n\n**Where threads come from (4 spawn sites, all in `programs/`, none in `library/`)**\n\n| Thread / context | Where | What it does |\n|---|---|---|\n| `handle_ssl_connection` (pthread) | `programs/ssl/ssl_pthread_server.c:277` | One thread per client connection. Each owns its `mbedtls_ssl_context` and `client_fd`. It shares the `config` pointer from `thread_info`. |\n| `sighandler` (ISR) | `programs/test/benchmark.c:444` | Signal handler that sets `mbedtls_timing_alarmed = 1`. |\n| `TimerProc` (Win32) | `programs/test/benchmark.c:430` | Windows timer thread that sets the same flag. Gated on `_WIN32`. |\n| `term_handler` (ISR) | `programs/ssl/ssl_server2.c:1699` | Signal handler in the SSL test server. |\n\nThe two alarm handlers only set a flag, with no locking. Neither the library nor its own sample programs contain a spawn site inside `library/`, so the library never creates its own threads.\n\n**What the mutexes protect (threaded build)**\n\nThe lock type is `mbedtls_threading_mutex_t`, wrapping a `pthread_mutex_t`. Its lock path is `threading_mutex_lock_pthread` (`library/threading.c:75-86`).\n\n1. **Global library mutexes** (`library/threading.c:182-190`, declared in `include/mbedtls/threading.h`):\n   - `mbedtls_threading_key_slot_mutex`: PSA key slots. `psa_unregister_read_under_mutex` (`psa_crypto_slot_management.c:931-947`) wraps `psa_unregister_read` with it. Its callers include `psa_open_key`, `psa_close_key`, `psa_purge_key` and most `psa_*` operations that touch a slot.\n   - `mbedtls_threading_psa_globaldata_mutex` and `mbedtls_threading_psa_rngdata_mutex`: PSA global state and RNG state, initialised in `mbedtls_threading_set_alt`.\n   - `mbedtls_threading_readdir_mutex` (only with `MBEDTLS_FS_IO`) and `mbedtls_threading_gmtime_mutex` (only with `THREADING_USE_GMTIME`), which protect `readdir` and `gmtime` for non-reentrant platforms.\n2. **Memory buffer allocator:** `buffer_alloc_calloc_mutexed` and `buffer_alloc_free_mutexed` (`library/memory_buffer_alloc.c:541-552`) take `heap.mutex` around the allocator. These apply only when the buffer allocator is used.\n3. **Per-object locks in shared-context code:** the lock primitive has callers across the DRBG and entropy code (`mbedtls_ctr_drbg_random`, `mbedtls_hmac_drbg_random`, `mbedtls_entropy_gather`, `mbedtls_entropy_func`), the SSL session cache (`mbedtls_ssl_cache_get/set/remove`), the cookie and ticket code (`mbedtls_ssl_cookie_*`, `mbedtls_ssl_ticket_*`), `mbedtls_rsa_public/private`, `mbedtls_x509_crt_parse_path`, and the PSA key-creation and RNG functions. These protect the shared context each function is called on. The index does not name the object each lock guards (one lock identity, `mutex->mutex`, scope unknown, confidence low), so this mapping is inferred from the callers rather than verified.\n\n**Caveats**\n\n- Spawn detection is pattern-based. A platform primitive outside the configured set would not appear, so the count is exact only for the patterns this build searched.\n- `MBEDTLS_TEST_MUTEX_USAGE` (`programs/ssl/ssl_test_lib.c:448-470`) is a test-only switch, not a library setting.\n- The index does not show whether a `mbedtls_ssl_config` shared across connection threads is read-only after setup. That would need a source read to confirm.",
+  "ttft_ms": 1503,
+  "type": "result",
+  "duration_ms": 25472,
+  "uuid": "96262a93-0db1-4dfa-afef-d9223adb235a",
+  "ttft_stream_ms": 1211,
+  "time_to_request_ms": 152,
+  "first_content_frame_ms": 1212,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

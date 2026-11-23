@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `detokenize` (lines 86-105) makes a second `llama_token_to_piece` call only when the 256-byte stack buffer is too small. ... `tokenize` always makes two `llama_tokenize` calls.\nVERDICT: HIT\nWHY: The answer states that detokenize tries a 256-byte stack buffer first and only makes a second call when it is too small, while tokenize always does two calls. The heap allocation is not named, but the size-on-demand mechanism and the contrast with tokenize are there."
+}

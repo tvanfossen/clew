@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The assembly is selected by `constant_time_impl.h:40\u201352`. It needs `MBEDTLS_HAVE_ASM`, a GNU-compatible compiler (not MSVC, not ARMCC 5), and one of the four supported architectures.\nVERDICT: MISS\nWHY: The answer says assembly selection depends on MBEDTLS_HAVE_ASM plus compiler and architecture, but never names MBEDTLS_CT_ASM or says it is derived rather than set in mbedtls_config.h."
+}

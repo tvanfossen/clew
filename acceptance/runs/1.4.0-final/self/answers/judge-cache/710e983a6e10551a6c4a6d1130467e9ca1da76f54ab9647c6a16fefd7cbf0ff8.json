@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The index's own rule is that an empty result must not be read as \"nothing was missed.\" The fields that carry the coverage claim are the ones to check: `target`, `scope`, `not_searched`, and `token_hits`.\"\nVERDICT: MISS\nWHY: The answer describes how empty results are now qualified, but never says that a single token matching nothing was previously treated as proof of absence, which is the historical conflation the item requires."
+}

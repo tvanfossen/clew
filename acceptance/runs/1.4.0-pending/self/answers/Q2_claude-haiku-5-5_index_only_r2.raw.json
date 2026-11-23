@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 13022,
+  "stop_reason": "end_turn",
+  "session_id": "fd568fa7-8edb-4dd1-9e04-6ed33a96b1bc",
+  "total_cost_usd": 0.0024036,
+  "usage": {
+    "input_tokens": 4,
+    "cache_creation_input_tokens": 2760,
+    "cache_read_input_tokens": 73370,
+    "output_tokens": 2235,
+    "output_tokens_details": {
+      "thinking_tokens": 1209
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 2760,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1826,
+        "cache_read_input_tokens": 36685,
+        "cache_creation_input_tokens": 2760,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2760
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 4,
+      "outputTokens": 2235,
+      "cacheReadInputTokens": 73370,
+      "cacheCreationInputTokens": 2760,
+      "webSearchRequests": 0,
+      "costUSD": 0.0024036,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1209,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 2760,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 3,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The reply separates the two cases by saying what it searched, not by a bare \"not found.\" My test query, `zzqx_nonexistent_symbol`, returned `count: 0` with a `note` that lists the layers covered and the layers skipped. The `scope` block then gives the file count, the extensions covered, and a `not_indexed` list. The `target` field names the repository that answered.\n\n**What tells you \"not in the repo\" from \"not looked there\"**\n\n| Field | Says | Where the gap shows |\n|---|---|---|\n| `note` | Which layers were searched (names, `@brief`, macros, typedefs, enums, classes, config symbols, file docs) and which were not (markdown/Kconfig prose, function bodies) | Names the corpus to try next: `prose` or `code` |\n| `scope` | 426 indexed files, whole-repo, extensions `.c .cpp .h .json .md .py .yaml` | `not_indexed`: `.rs`, `.toml`, `.sql`, `.csv`, `.jsonl`, `.lock`, `.motor`, and extensionless files, 14 in total |\n| `target` | The repository that answered | Wrong target means you searched the wrong repo |\n| `not_searched` / `sub_index` | Parts of a split repo that were not read | Absent here, because this repo is not split |\n| `index(status)` | `stale`, build version, coverage counts | Stale data would make an empty result unreliable |\n\nThe AGENTS.md rule behind this is \"absence is not emptiness.\" An empty list means the layer ran and found nothing. A missing key means the layer never ran, so clew drops `not_indexed` when it is empty instead of emitting `[]`.\n\n**Confidence each answer deserves**\n\n- **\"No such defined symbol in the indexed files.\"** High. The lookup covered names, briefs, macros, types, config symbols and file docs across 426 files, and the reply says not to retry.\n- **\"The repo does not contain that.\"** Low to moderate. The lookup did not read function bodies, markdown or Kconfig prose, or any file whose extension is in `not_indexed`. A Rust, TOML or SQL identifier could be present and invisible to `corpus='symbols'`. The `definitive` wording in the reply is accurate only for the layers it names.\n\n**What I'd do next**\n\nRun the same term with `corpus='prose'` and `corpus='code'`. If the name looks like a file, check the `files` layer and the `scope.not_indexed` list before concluding anything.\n\nOne thing I did not resolve: `search` reports 426 indexed files, while `index(status)` reports 435 files in scope, 397 indexed, and 15 barren. These may be different measures, but the index does not say so, and I can't tell from here which figure governs the empty-result claim.",
+  "ttft_ms": 2566,
+  "type": "result",
+  "duration_ms": 13340,
+  "uuid": "1a1a21f3-e83d-46d9-a0cf-b6ad030cf990",
+  "ttft_stream_ms": 1126,
+  "time_to_request_ms": 70,
+  "first_content_frame_ms": 1127,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

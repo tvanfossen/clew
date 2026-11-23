@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The interface contract at `include/entropic/inference/tokenizer.h` says \"empty on failure or empty input\", so a failure cannot be told apart from an empty prompt.\" and \"which most generation entry points do not check\"\nVERDICT: HIT\nWHY: The answer states failure is indistinguishable from empty input and that callers (generation paths) don't check, with only speculative/count paths guarding."
+}

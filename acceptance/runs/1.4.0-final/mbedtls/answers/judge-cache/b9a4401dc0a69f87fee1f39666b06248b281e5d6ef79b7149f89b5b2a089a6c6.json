@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"MBEDTLS_PLATFORM_MEMORY plus both MBEDTLS_PLATFORM_CALLOC_MACRO and MBEDTLS_PLATFORM_FREE_MACRO | Macros pointing at your functions. The platform.c wrappers are compiled out\"\nVERDICT: MISS\nWHY: The answer describes both the compile-time macro pair and the runtime function-pointer setter. It never says they are mutually exclusive, and it doesn't say the runtime setter is unavailable once the macros are defined. Exclusivity is only implied by \"Define only MBEDTLS_PLATFORM_MEMORY\" and \"wrappers are compiled out\"."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`programs/ssl/ssl_client2.c:8`, `ssl_server2.c:8` | Defined directly before `ssl_test_lib.h` | These test programs get plain field access.\"\nVERDICT: HIT\nWHY: The answer states that example programs (ssl_client2/ssl_server2) define the opt-out themselves to get plain field access, going past the public API."
+}

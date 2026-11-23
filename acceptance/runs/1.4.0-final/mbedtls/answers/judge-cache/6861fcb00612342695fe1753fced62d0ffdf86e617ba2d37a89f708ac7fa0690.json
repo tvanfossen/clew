@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says that in a default build the macros expand directly to calloc/free with no indirection. It claims the opposite, that calls go through function pointers and the default calloc pointer returns NULL."
+}

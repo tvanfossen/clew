@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_THREADING_C` is commented out in the default config (`include/mbedtls/mbedtls_config.h:3787`, `//#define MBEDTLS_THREADING_C`).\nVERDICT: MISS\nWHY: The answer says only MBEDTLS_THREADING_C is undefined by default. It never says the second threading macro (PTHREAD or ALT) is also left undefined, so \"both\" is not stated."
+}

@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 30591,
+  "stop_reason": "end_turn",
+  "session_id": "00e7c098-85aa-4b6c-be79-05f3c1e331df",
+  "total_cost_usd": 0.013429200000000002,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 41277,
+    "cache_read_input_tokens": 230110,
+    "output_tokens": 5743,
+    "output_tokens_details": {
+      "thinking_tokens": 2335
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 41277,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2252,
+        "cache_read_input_tokens": 52677,
+        "cache_creation_input_tokens": 1532,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1532
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 5743,
+      "cacheReadInputTokens": 230110,
+      "cacheCreationInputTokens": 41277,
+      "webSearchRequests": 0,
+      "costUSD": 0.013429200000000002,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2335,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 41277,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 8,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "Several parts of entropic run off the caller's thread. Most are guarded by mutexes, atomics, and joins. The detached async-ask worker is the exception: nothing waits for it, so it can outlive the object it uses.\n\n**Background threads**\n\n| Where | Thread | Shared state and how it's guarded | Lifetime |\n|---|---|---|---|\n| `src/facade/external_bridge.cpp:796`, `include/entropic/mcp/external_bridge.h:387` | Accept loop | `running_` is atomic; the fd is closed in `stop()` | Joined in `stop()` |\n| `external_bridge.cpp:945` | One thread per MCP client | `client_threads_` under `client_threads_mutex_`; `finished` is atomic | `stop()` shuts down each fd, then joins |\n| `external_bridge.cpp:1158` | Async `entropic.ask` worker | `tasks_` under `tasks_mutex_`; subscribers under `subscribers_mutex_` | **Detached**; never joined |\n| `src/mcp/health_monitor.cpp:92` | Health monitor loop | `watched_` and `event_queue_` each have a mutex; `running_` is atomic; a condvar wakes it | Joined in `stop()` |\n| `src/mcp/transport_stdio.cpp:164` | Child-process stderr reader | `io_mutex_`; `connected_` is atomic | Owned by transport |\n| `src/mcp/transport_sse.cpp:107` | SSE reader | `pending_mutex_` plus condvar; `running_` and `connected_` are atomic | Owned by transport |\n| `src/core/response_generator.cpp:413` | Cancel observer per batch generate | Shares `cancel_int` and `observer_done` by reference | Joined before return |\n| `src/inference/inference_c_api.cpp:385` | `CancelFlagBridge` poller | Atomics only; RAII joins in the destructor | Joined in destructor |\n| `src/inference/interface_factory.cpp:246` | Cancel poller in the interface factory | Atomics plus by-reference locals | Joined before return |\n\n**What keeps it safe**\n\n- **Hand-off through the engine thread.** `HealthMonitor` worker threads only enqueue events. `process_events()` (called from `server_manager.cpp:710`) drains them and runs the callbacks on the engine thread.\n- **Cancel pollers.** Each poller watches a flag every 10 ms and sets an atomic. Joining happens before the locals they reference go out of scope.\n- **Per-handle logging.** Each spawned thread opens a `HandleLogScope` so its log lines reach the owning handle's session log (`include/entropic/types/logging.h:147`).\n- **Socket ownership.** `s_bound_sockets` stops two handles in one process from binding the same socket path.\n- **Teardown order.** `entropic_destroy` stops the external bridge before releasing the inference interface, since the interface context holds a raw orchestrator pointer (`src/facade/entropic.cpp:1883`).\n\n**Gaps I found**\n\n1. **Detached async worker outlives the bridge (most serious).** `run_async_ask` (`external_bridge.cpp:1158\u20131222`) captures `this` and `handle_`, then detaches. `stop()` joins only the accept and client threads (`external_bridge.cpp:826\u2013851`; I did not read past line 851). The destructor and `entropic_destroy` call `stop()` and do not wait for running async tasks. `cancel_inflight_async_tasks` polls for at most about 1 s, and only runs from `context_clear`. So destroying a handle while an async ask is running can let the worker call `entropic_run` on a freed handle and touch the freed bridge's mutexes and registry. The comment at line 323 admits detached workers \"may still be in flight\". I have not reproduced this.\n\n2. **Exceptions can terminate the process.** In `response_generator.cpp:413` and `interface_factory.cpp:246`, the thread is joined by hand after the generate call. Nothing wraps that call in a try, so if it throws, the joinable `std::thread` destructor calls `std::terminate`. `CancelFlagBridge` avoids this because RAII joins it.\n\n**Suggested fixes**\n\n- Track in-flight async workers with a counter or a set of futures, and have `stop()` cancel them and wait with a deadline. Better, use a `std::jthread` or join in `stop()`, instead of `detach()`.\n- Put the generate calls in the two manual-join sites behind an RAII guard like `CancelFlagBridge`.",
+  "ttft_ms": 1869,
+  "type": "result",
+  "duration_ms": 31347,
+  "uuid": "7b6b71e5-2432-4a04-ab3d-93da186c11eb",
+  "ttft_stream_ms": 1373,
+  "time_to_request_ms": 146,
+  "first_content_frame_ms": 1373,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

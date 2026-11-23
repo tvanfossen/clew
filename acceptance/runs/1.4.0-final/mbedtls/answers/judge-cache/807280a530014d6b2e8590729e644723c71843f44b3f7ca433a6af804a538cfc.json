@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Define the macro** in the module's public header, e.g. `include/mbedtls/<module>.h`: ... `/** Short description, ending without a period. */ #define MBEDTLS_ERR_FOO_BAR -0x0042` ... **Regenerate** through the build ... Commit the regenerated `library/error.c` together with the header change. ... Don't hand-edit `error.c`.\nVERDICT: HIT\nWHY: The answer says to add the /** */-documented #define to the module's public header, regenerate, and not hand-edit error.c."
+}

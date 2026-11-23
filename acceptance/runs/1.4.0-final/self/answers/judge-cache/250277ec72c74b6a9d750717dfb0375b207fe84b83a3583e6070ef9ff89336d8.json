@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The Doxyfile does not set the scope. Its INPUT is ignored. Its ALIASES and PREDEFINED still apply.\nVERDICT: MISS\nWHY: The answer says the Doxyfile's INPUT is ignored but never explains why (a repo with a Doxyfile would get only its documented subset while one without gets the whole tree)."
+}

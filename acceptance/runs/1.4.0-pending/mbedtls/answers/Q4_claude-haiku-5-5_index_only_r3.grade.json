@@ -1,0 +1,123 @@
+{
+  "cell": "Q4_claude-haiku-5-5_index_only_r3",
+  "arm": "index_only",
+  "rubric_version": "3.1.0",
+  "rubric_digest": "bbf6195f605be452",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.44,
+  "unmarked_pct": 0.0,
+  "split_decisions": 0,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "names mbedtls_strerror as the entry point and locates it in library/error.c",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: `mbedtls_strerror(ret, buf, buflen)                       error.c:792` under \"Runtime path (`library/error.c`)\" | WHY: The answer names mbedtls_strerror as the entry function and places it in library/error.c at line 792. || QUOTE: `mbedtls_strerror(ret, buf, buflen)                       error.c:792` under heading \"Runtime path (`library/error.c`)\" | WHY: The answer names mbedtls_strerror as the entry point and places it in library/error.c at line 792. || QUOTE: `mbedtls_strerror(ret, buf, buflen)                       error.c:792` and \"**Runtime path (`library/error.c`)**\" | WHY: The answer names mbedtls_strerror as the entry point and places it in library/error.c (line 792).",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "explains that a code carries TWO layers \u2014 a high-level module part and a low-level part \u2014 and that mbedtls_strerror renders both, joined, when both are present",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: `mbedtls_strerror()` splits the integer into a module part and a low-level part, looks each up in a generated `switch`, and joins the results. | WHY: The answer states that the code has a module (high-level) part and a low-level part, and that mbedtls_strerror renders both and joins them with \" : \" when both are present. || QUOTE: `mbedtls_strerror()` splits the integer into a module part and a low-level part, looks each up in a generated `switch`, and joins the results. | WHY: The answer states that the code has a high-level module part and a low-level part, and that both are rendered and joined (with \" : \") when both are present. || QUOTE: `mbedtls_strerror()` splits the integer into a module part and a low-level part, looks each up in a generated `switch`, and joins the results. | WHY: The answer states the code has a module (high-level) part and a low-level part, and that strerror joins both (with \" : \") when both are present.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that library/error.c is GENERATED from the public headers by scripts/generate_errors.pl using scripts/data_files/error.fmt as its template",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: Regenerate it with `scripts/generate_errors.pl`, whose usage is `include_dir data_dir error_file`. The script's header comment says it generates `error.c`. | WHY: The answer names the generator script but never says error.fmt is the template, and it explicitly says it could not confirm the generator's inputs. || QUOTE: Regenerate it with `scripts/generate_errors.pl`, whose usage is `include_dir data_dir error_file`. The script's header comment says it generates `error.c`. | WHY: The answer names the generator script but disclaims knowing its inputs, and it never mentions `error.fmt` as the template. It also says the data comes from the module headers only tentatively. || QUOTE: Regenerate it with `scripts/generate_errors.pl`, whose usage is `include_dir data_dir error_file`. The script's header comment says it generates `error.c`. | WHY: The answer names the script but explicitly says it couldn't confirm the inputs. It never mentions the error.fmt template or that the generator reads the public headers.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that adding a new error string means adding the /** */-documented #define to the module's public header and re-running the generator, NOT editing library/error.c",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"Define the new `MBEDTLS_ERR_<MODULE>_<NAME>` macro in the module's public header under `include/mbedtls/`... Do not edit the `Begin Auto-Generated Code` block in `library/error.c` by hand. Regenerate it with `scripts/generate_errors.pl`\" | WHY: The answer concludes that a new string means adding the macro to the public header and re-running the generator, not hand-editing error.c. It never mentions the `/** */` doc comment, and it admits it couldn't confirm where the description text comes from. I counted that as a gap in detail, not a missing conclusion. || QUOTE: \"Define the new `MBEDTLS_ERR_<MODULE>_<NAME>` macro in the module's public header under `include/mbedtls/`... Do not edit the `Begin Auto-Generated Code` block in `library/error.c` by hand. Regenerate it with `scripts/generate_errors.pl`\" | WHY: The answer concludes the macro goes in the public header and the generator is re-run, with no hand edit of error.c. It never mentions the `/** */` doc comment, but that is a detail of the same conclusion. || QUOTE: Define the new `MBEDTLS_ERR_<MODULE>_<NAME>` macro in the module's public header under `include/mbedtls/`... Do not edit the `Begin Auto-Generated Code` block in `library/error.c` by hand. Regenerate it with `scripts/generate_errors.pl` | WHY: The answer says to add the macro to the public header, regenerate with the script, and not hand-edit error.c. It never mentions the `/** */` doc comment form of the #define, which the item names, but the mechanism and location are clearly stated.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that MBEDTLS_ERROR_C is ENABLED in the shipped mbedtls_config.h, so the string table is present in a default build",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: The whole path is gated by `MBEDTLS_ERROR_C`. | WHY: The answer says the path is gated by MBEDTLS_ERROR_C but never states it is enabled in the shipped default config, so the string table being present in a default build is absent. || QUOTE: The whole path is gated by `MBEDTLS_ERROR_C`. `MBEDTLS_ERROR_STRERROR_DUMMY` is a config symbol that gates the same code. | WHY: The answer says the path is gated by MBEDTLS_ERROR_C but never says it is enabled in the shipped config or present in a default build.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies MBEDTLS_ERROR_STRERROR_DUMMY as a separate switch that keeps mbedtls_strerror LINKABLE while the string table is compiled out, and states that it too is enabled by default",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: `MBEDTLS_ERROR_STRERROR_DUMMY` is a config symbol that gates the same code. | WHY: The answer only says the symbol \"gates the same code\". It never says the symbol keeps mbedtls_strerror linkable while the table is compiled out, and it never says the symbol is enabled by default. || QUOTE: `MBEDTLS_ERROR_STRERROR_DUMMY` is a config symbol that gates the same code. | WHY: The answer only mentions the symbol as gating the same code; it doesn't say it keeps mbedtls_strerror linkable with the string table compiled out, and it doesn't say the symbol is enabled by default. || QUOTE: `MBEDTLS_ERROR_STRERROR_DUMMY` is a config symbol that gates the same code. | WHY: The answer only names the symbol as gating the same code; it doesn't say it keeps mbedtls_strerror linkable with the string table compiled out, nor that it is enabled by default.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies MBEDTLS_ERROR_ADD / mbedtls_error_add as the way a high-level and a low-level code are combined, and notes that it captures __FILE__ and __LINE__",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never mentions MBEDTLS_ERROR_ADD / mbedtls_error_add or that it captures __FILE__ and __LINE__.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "the inputs the generated error.c is built from \u2014 scripts/generate_errors.pl",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the inputs the generated error.c is built from \u2014 scripts/data_files/error.fmt",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": false,
+      "detail": "not named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the inputs the generated error.c is built from \u2014 include/mbedtls",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the inputs the generated error.c is built from \u2014 precision",
+      "kind": "set_precision",
+      "weight": 2,
+      "hit": false,
+      "detail": "named 3 not in the set: ['.data files', 'library/error.c', 'tests/']",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    }
+  ]
+}

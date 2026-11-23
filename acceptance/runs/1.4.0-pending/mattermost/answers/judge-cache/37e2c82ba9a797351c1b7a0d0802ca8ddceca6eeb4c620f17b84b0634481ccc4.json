@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Its other subclass, `AppDataOperator` (`app/database/operator/app_data_operator/index.ts`), uses the same `handleRecords` and `batchRecords` for `handleGlobal` and `handleInfo`. So the app database and each server database share one write path.\nVERDICT: HIT\nWHY: The answer names AppDataOperator as BaseDataOperator's other subclass, sharing the same write path for the app database."
+}

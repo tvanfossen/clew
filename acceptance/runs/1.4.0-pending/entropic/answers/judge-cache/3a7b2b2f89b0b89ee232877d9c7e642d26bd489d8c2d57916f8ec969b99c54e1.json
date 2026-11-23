@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The result is that failure, missing tokenizer, and empty input all look the same to the caller. Only the log line tells them apart\"\nVERDICT: MISS\nWHY: The answer states failure is indistinguishable from empty, but it says the speculative and MTP paths do check (`tokens.size() < 2`). That contradicts \"no caller checks for it,\" so the second half of the item is not stated."
+}

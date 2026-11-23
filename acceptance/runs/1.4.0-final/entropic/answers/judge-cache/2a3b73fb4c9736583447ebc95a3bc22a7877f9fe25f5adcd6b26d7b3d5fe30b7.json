@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: External MCP accept loop ... \"the accept loop checks `SO_PEERCRED` before spawning anything\" and \"Per-client serve threads | One per accepted socket\"\nVERDICT: HIT\nWHY: The answer describes an accept-loop thread that spawns one serve thread per accepted client socket, which is the two-level structure."
+}

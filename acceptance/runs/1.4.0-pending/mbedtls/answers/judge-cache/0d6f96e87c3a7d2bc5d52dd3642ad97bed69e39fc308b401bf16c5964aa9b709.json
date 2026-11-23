@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Opaque values.** `mbedtls_ct_compiler_opaque()` (`:85`) puts the value through `asm volatile(\"\" : \"+r\"(x))` when `MBEDTLS_CT_ASM` is defined. Otherwise it returns `x ^ mbedtls_ct_zero`... The point is that the compiler cannot prove the value is 0 or 1\n\nVERDICT: HIT\nWHY: The answer names mbedtls_ct_compiler_opaque as the primitive that keeps the compiler from knowing a value. It places it at line 85 of `library/constant_time_impl.h`, because the bullet sits in the section whose other entries cite that file."
+}

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """Incremental doxygen regeneration: re-read a SUBSET and splice it into the master.
 
 WHY THIS EXISTS (task #483). A warm refresh of this repository costs ~8.7 s, of which
@@ -95,7 +96,7 @@ class SpliceReport:
     # @brief One-line summary for the build log.
     # @return Human-readable description.
     # @version 2
-    # @dg_internal
+    # @utility
     def describe(self) -> str:
         """@brief Summarise the splice.
         @return Description string.
@@ -145,7 +146,7 @@ def normalize_path(name: str, repo_root: Path) -> str:
 # @param repo_root Absolute repository root.
 # @return Mapping of repo-relative path to path rowid.
 # @version 1
-# @dg_internal
+# @utility
 def _file_rowids(conn: sqlite3.Connection, repo_root: Path) -> dict[str, int]:
     """@brief Index a database's file rows by normalised path.
     @return Path-to-rowid mapping.
@@ -157,13 +158,32 @@ def _file_rowids(conn: sqlite3.Connection, repo_root: Path) -> dict[str, int]:
     }
 
 
+## Every two-ended relation a subset run must see BOTH files of to re-emit: references (xrefs),
+## inheritance (compoundref, keyed on the two compounds' files) and overrides (reimplements).
+## ENTROPIC'S AUDIT (2.0.0): xrefs alone lost `ChatAdapter`'s 8 derived classes after a doc-only
+## edit to its header — a derived class in another header holds no xref into its base's file.
+_CLOSURE_EDGES = (
+    "SELECT src.name, tgt.name FROM xrefs x "
+    "JOIN memberdef ms ON ms.rowid = x.src_rowid JOIN memberdef mt ON mt.rowid = x.dst_rowid "
+    "JOIN path src ON src.rowid = ms.file_id JOIN path tgt ON tgt.rowid = mt.file_id",
+    "SELECT src.name, tgt.name FROM compoundref r "
+    "JOIN compounddef cb ON cb.rowid = r.base_rowid JOIN compounddef cd ON cd.rowid = r.derived_rowid "
+    "JOIN path src ON src.rowid = cd.file_id JOIN path tgt ON tgt.rowid = cb.file_id",
+    "SELECT src.name, tgt.name FROM reimplements r "
+    "JOIN memberdef mo ON mo.rowid = r.memberdef_rowid "
+    "JOIN memberdef mb ON mb.rowid = r.reimplemented_rowid "
+    "JOIN path src ON src.rowid = mo.file_id JOIN path tgt ON tgt.rowid = mb.file_id",
+)
+
+
 ##
 # @brief The files a correct subset run must include alongside the changed set.
 # @param master_db Path to the previous whole-tree doxygen database.
 # @param changed Repo-relative paths whose content changed.
 # @param repo_root Absolute repository root.
 # @return Repo-relative paths to feed doxygen: the changed set plus both closure directions.
-# @version 1
+# v2: inheritance and overrides are closure edges too (entropic, 2.0.0)
+# @version 2
 # @req REQ-DDB-INDEX-002
 def xref_closure(master_db: Path, changed: set[str], repo_root: Path) -> set[str]:
     """BOTH DIRECTIONS, and the asymmetry is the whole point. A subset run can only emit an
@@ -186,16 +206,7 @@ def xref_closure(master_db: Path, changed: set[str], repo_root: Path) -> set[str
         return set()
     conn = sqlite3.connect(master_db)
     try:
-        pairs = conn.execute(
-            """
-            SELECT src.name, tgt.name
-            FROM xrefs x
-            JOIN memberdef ms ON ms.rowid = x.src_rowid
-            JOIN memberdef mt ON mt.rowid = x.dst_rowid
-            JOIN path src ON src.rowid = ms.file_id
-            JOIN path tgt ON tgt.rowid = mt.file_id
-            """
-        ).fetchall()
+        pairs = [row for sql in _CLOSURE_EDGES for row in conn.execute(sql).fetchall()]
     except sqlite3.OperationalError as exc:
         logger.warning(
             "doxygen splice: cannot read xrefs from %s (%s) — falling back to a full run",
@@ -341,7 +352,7 @@ def include_expansion(
 # @param refid The refid TEXT to resolve.
 # @return The rowid that refid occupies.
 # @version 1
-# @dg_internal
+# @utility
 def _refid_rowid(conn: sqlite3.Connection, refid: str) -> int:
     """`refid.refid` is UNIQUE, so INSERT OR IGNORE followed by SELECT is idempotent and
     yields a STABLE rowid across repeated splices. That stability is what lets a re-inserted
@@ -364,7 +375,7 @@ def _refid_rowid(conn: sqlite3.Connection, refid: str) -> int:
 # @param cache Mutable path-to-rowid map kept in step with the database.
 # @return The path rowid for `rel`.
 # @version 1
-# @dg_internal
+# @utility
 def _path_rowid(conn: sqlite3.Connection, rel: str, cache: dict[str, int]) -> int:
     """@brief Get or create a path row.
     @return Its rowid.
@@ -392,7 +403,7 @@ def _path_rowid(conn: sqlite3.Connection, rel: str, cache: dict[str, int]) -> in
 # @param report Accumulating counts.
 # @return None.
 # @version 1
-# @dg_internal
+# @utility
 def _delete_file_rows(conn: sqlite3.Connection, file_rowid: int, report: SpliceReport) -> None:
     """Order matters: dependents before their parents, or a foreign key is briefly dangling.
     `xrefs` is cleared for BOTH endpoint directions because an edge is stale as soon as
@@ -452,7 +463,7 @@ def _delete_file_rows(conn: sqlite3.Connection, file_rowid: int, report: SpliceR
 # @param table Table to describe.
 # @return Ordered column names.
 # @version 1
-# @dg_internal
+# @utility
 def _columns(conn: sqlite3.Connection, table: str) -> list[str]:
     """@brief List a table's columns.
     @return Column names in order.
@@ -470,7 +481,7 @@ def _columns(conn: sqlite3.Connection, table: str) -> list[str]:
 # @param report Accumulating counts.
 # @return Mapping of subset memberdef rowid to working-copy memberdef rowid.
 # @version 1
-# @dg_internal
+# @utility
 def _insert_members(
     work: sqlite3.Connection,
     sub: sqlite3.Connection,
@@ -525,7 +536,7 @@ def _insert_members(
 # @param report Accumulating counts.
 # @return None.
 # @version 1
-# @dg_internal
+# @utility
 def _insert_compounds(
     work: sqlite3.Connection,
     sub: sqlite3.Connection,
@@ -579,7 +590,7 @@ def _insert_compounds(
 # @param ctx Path caches for both databases plus the repo root.
 # @return Refid strings for the changed files' memberdefs and compounddefs.
 # @version 1
-# @dg_internal
+# @utility
 def _changed_refids(sub: sqlite3.Connection, changed: set[str], ctx: dict) -> set[str]:
     """THE FENCE FOR EVERY RE-INSERTION. A subset run resolves names against only the files
     it can see, so an edge or relation it emits between two CLOSURE files can disagree with
@@ -619,7 +630,7 @@ def _changed_refids(sub: sqlite3.Connection, changed: set[str], ctx: dict) -> se
 # @param report Accumulating counts.
 # @return None.
 # @version 2
-# @dg_internal
+# @utility
 def _insert_relations(
     work: sqlite3.Connection,
     sub: sqlite3.Connection,
@@ -683,7 +694,7 @@ def _insert_relations(
 # @param ctx Path caches plus the repo root.
 # @return A working-copy path rowid, or None.
 # @version 1
-# @dg_internal
+# @utility
 def _remap_optional_path(
     work: sqlite3.Connection,
     sub: sqlite3.Connection,
@@ -712,7 +723,7 @@ def _remap_optional_path(
 # @param report Accumulating counts.
 # @return None.
 # @version 1
-# @dg_internal
+# @utility
 def _insert_xrefs(
     work: sqlite3.Connection,
     sub: sqlite3.Connection,
@@ -783,7 +794,7 @@ def _insert_xrefs(
 # @param report Accumulating counts.
 # @return None.
 # @version 2
-# @dg_internal
+# @utility
 def _insert_params(
     work: sqlite3.Connection,
     sub: sqlite3.Connection,
@@ -894,7 +905,7 @@ def _insert_params(
 # @param report Accumulating counts.
 # @return None.
 # @version 1
-# @dg_internal
+# @utility
 def _insert_includes(
     work: sqlite3.Connection,
     sub: sqlite3.Connection,

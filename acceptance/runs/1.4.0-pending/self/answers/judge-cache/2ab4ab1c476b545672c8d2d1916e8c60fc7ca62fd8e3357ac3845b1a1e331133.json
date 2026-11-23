@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The build reports the reason in its log\nVERDICT: MISS\nWHY: The answer only says in passing that the build logs a reason; it never conveys that the fallback scope carries a reason explaining which scope was used and why, so an unstated scope is never silently guessed."
+}

@@ -27,7 +27,9 @@ bug worth reporting:
   path that would let `@verbinclude` and its fourteen siblings inline a file, and symlink
   traversal.
 - **No subprocess inherits a git or Kconfig override.** A repository's own `.git/config`
-  cannot name a command git will run, in the pipeline or in the gate; a `Kconfig` is parsed in
+  cannot name a command git will run, in the pipeline or in the gate (a diff-family command
+  also carries `--no-ext-diff`: the empty `diff.external=` alone made git try to run `""`, so
+  every diff failed and the gate's impact report was silently empty before 2.0.0); a `Kconfig` is parsed in
   a minimal environment where `$(shell,…)` is refused and recorded rather than executed.
 - **Every subprocess is bounded.** No call to git, cargo or doxygen can hang a build, a
   pre-commit run or a long-lived MCP server indefinitely.
@@ -110,9 +112,31 @@ by commit SHA and bounds its dependency versions, which narrows the window for a
 substitution. It does not eliminate the position: a compromised release of a dependency is a
 compromise of clew.
 
-### 9. Nothing here is a vulnerability report
+### 9. The wiki hub and issue fetching reach beyond the build
 
-The nine positions above are the design. Reporting one back as a finding is useful only if it
+Two wiki features, both off by default, widen what a running clew touches:
+
+- **The wiki hub** (`CLEW_WIKI=1`) listens inside the MCP server on 127.0.0.1, on a port the OS
+  picks. One page lists every repository indexed on the machine and serves each one's wiki,
+  including bundled function bodies. Every request needs the per-session token: the URL carries
+  it once, which sets an HttpOnly, SameSite=Strict cookie. The token is also written to
+  `wiki.json` under the state root, created with mode 0600. Anything that can read that file,
+  or the URL, can read every indexed repository's wiki for the life of the session. Building a
+  wiki runs `clew wiki build` in a subprocess, which is a build of that repository in the sense
+  of position 1.
+- **Traced test runs** (`clew wiki trace-run`, or the hub with `CLEW_WIKI_RUN=1` as well) run
+  one of the repository's tests under pytest in a subprocess, which executes that repository's
+  code, again position 1. The interpreter is the repository's own `.venv` or `venv` when it has
+  one, which is also code the repository supplies. The hub refuses the request (403) without the switch. Span attributes
+  carry argument and return values as their `repr`, up to 2,000 characters each, and the spans
+  are written wherever `--out` names.
+- **Issue fetching** (`wiki.issues.fetch: true`) makes the wiki build call GitHub's or Azure
+  DevOps' REST API, with a token from the environment. It reads the repository's open issues,
+  and only that tracker is contacted.
+
+### 10. Nothing here is a vulnerability report
+
+The ten positions above are the design. Reporting one back as a finding is useful only if it
 comes with a case that the promise in the first section was broken.
 
 ## Reporting

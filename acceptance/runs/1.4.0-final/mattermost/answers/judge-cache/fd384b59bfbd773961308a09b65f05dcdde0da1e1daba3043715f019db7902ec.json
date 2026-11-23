@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`AppDataOperator.handleGlobal` and `handleInfo`, which write to the app database\"\nVERDICT: HIT\nWHY: The answer names AppDataOperator as writing to the app database through the shared `handleRecords`/`batchRecords` path. It doesn't say outright that AppDataOperator is the other subclass of BaseDataOperator, but it does name the class, its app-database role and the shared write path."
+}

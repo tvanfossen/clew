@@ -275,3 +275,36 @@ def test_a_query_word_matches_as_a_prefix(tmp_path: Path) -> None:
     rows = QueryTools(lambda: out, lambda: repo).search("MBEDTLS_ERR_", corpus="code")["results"]
     assert rows and rows[0]["name"] == "check", rows
     assert "MBEDTLS_ERR_SSL_BAD_INPUT" in rows[0]["snippet"], rows[0]
+
+
+## @brief A macro used only in a file-scope preprocessor line is found, as a file hit.
+## @param tmp_path Pytest temporary directory.
+## @return None.
+## @version 1
+def test_a_preprocessor_line_outside_any_function_is_searchable(tmp_path: Path) -> None:
+    """1.3.10, FROM THE MBEDTLS RE-MEASURE: every code search that still came back empty named a
+    macro — `MBEDTLS_ALLOW_PRIVATE_ACCESS`, `MBEDTLS_CONSTANT_FLOW` — that appears only in
+    `#if`/`#define` lines at file scope, outside every function body the corpus held. The file's
+    uncovered text is now indexed too, and a match there is a `kind: "file"` hit naming the file
+    and the matching line — a subject `dossier` accepts.
+
+    @brief A file-scope `#if` is found by the macro it tests.
+    @return None.
+    @version 1
+    """
+    repo = tmp_path / "repo"
+    (repo / "src").mkdir(parents=True)
+    (repo / "src/gate.h").write_text(
+        "#ifndef GATE_H\n#define GATE_H\n"
+        "#if defined(FILE_SCOPE_ONLY_MARKER)\n#define GATE_ON 1\n#endif\n"
+        "int gate_open(void)\n{\n    return 1;\n}\n#endif\n",
+        encoding="utf-8",
+    )
+    out = tmp_path / "clew.db"
+    _run_pipeline(_build_argparser().parse_args(["--output", str(out), "--repo-root", str(repo)]))
+    rows = QueryTools(lambda: out, lambda: repo).search("FILE_SCOPE_ONLY_MARKER", corpus="code")[
+        "results"
+    ]
+    assert rows, "a macro tested at file scope must be findable by code search"
+    assert rows[0]["kind"] == "file" and rows[0]["file"] == "src/gate.h", rows
+    assert rows[0]["line"] == 3 and "FILE_SCOPE_ONLY_MARKER" in rows[0]["snippet"], rows

@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 18428,
+  "stop_reason": "end_turn",
+  "session_id": "338f028c-5e06-45f5-a118-004f65d9f17a",
+  "total_cost_usd": 0.00347468,
+  "usage": {
+    "input_tokens": 6,
+    "cache_creation_input_tokens": 4039,
+    "cache_read_input_tokens": 112828,
+    "output_tokens": 3076,
+    "output_tokens_details": {
+      "thinking_tokens": 1792
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 4039,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2602,
+        "cache_read_input_tokens": 39504,
+        "cache_creation_input_tokens": 1197,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1197
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 6,
+      "outputTokens": 3076,
+      "cacheReadInputTokens": 112828,
+      "cacheCreationInputTokens": 4039,
+      "webSearchRequests": 0,
+      "costUSD": 0.00347468,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1792,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 4039,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 4,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**What the answer contains.** For `_harvest_one_file` (clew/harvest.py:452), `dossier` returned the signature, the brief, the verbatim body, and two neighbour lists. The callers list is one row: `run_harvest` in the same file. The callees list is four functions in the same file: `_cached_payload`, `_parse_and_store`, `_parseable_file`, `_ts_language_for`. Each caller is a function name grouped by file, not a line number. Neighbour rows carry `edge_defaults` of `source: doxygen_sqlite`, `confidence: exact`, `edge_class: call`. The reply does not say on which line `run_harvest` calls this function, how many times, or under which branch.\n\n**Why it is not a list of call sites:**\n\n- **It names enclosing functions, not sites.** The call line and count are stored in the harvest layers (`ast_call_edges` has 688 rows in this build), but this reply does not surface them. Use it to answer \"who depends on this\", not \"where exactly\".\n- **It only covers direct, name-resolved calls.** Function pointers, callbacks passed as arguments (`callback_edges`, 89 rows), spawned threads (`threads`), and virtual overrides are separate layers or fields (`overrides`, `overridden_by`). A caller reached through one of those does not appear in `callers`.\n- **Dispatch-table and event layers are empty here.** `dispatch_edges`, `mqtt_dispatch` and `event_edges` are all 0 in this build. That is a measured zero for this repo. In a repo that uses dispatch tables or event buses, the callers those produce would be missing from this list.\n- **Absence is not proof of no callers.** A `callers_unresolved` count, when non-zero, means some call sites could not be tied to a symbol. This reply reports zero, so there is nothing hidden here, but a non-zero count would mean the list is incomplete.\n- **Scope limits what can appear.** 14 files are outside the index scope (`.rs=2`, `.sql=1`, extensionless files, and others). A call from one of those files cannot appear as a caller at all, even though clew indexes Rust elsewhere.\n- **Name-based resolution can merge or split identities.** Same-named functions in different files can be conflated or missed. The `ambiguous` block is the signal for this; it was absent here, but it must be checked before trusting a short caller list.\n- **The body may not match the source.** The reply carries `anchor_mismatch: true`, so the lines moved since the build. Caller and callee lists tied to those lines may be a build behind the current file. The index status reports zero changed source files, so the mismatch is per-symbol drift, and I would re-check the lines before citing them.\n- **\"Live\" is reachability, not a runtime fact.** `liveness: live` says the function is reachable in the static graph. It does not say any caller executes in production.\n\n**How to read it:** treat the callers list as a static, name-resolved set of enclosing functions that call this symbol directly. To audit a specific dependency, take the caller name and open it with `dossier` for its body, then look at the line in source. Check `callers_unresolved`, `ambiguous`, and the non-zero layers before concluding that nothing else depends on the function.",
+  "ttft_ms": 2105,
+  "type": "result",
+  "duration_ms": 18991,
+  "uuid": "1d2f1e99-3faa-4796-a35f-2d5fd291d5c7",
+  "ttft_stream_ms": 1084,
+  "time_to_request_ms": 71,
+  "first_content_frame_ms": 1084,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

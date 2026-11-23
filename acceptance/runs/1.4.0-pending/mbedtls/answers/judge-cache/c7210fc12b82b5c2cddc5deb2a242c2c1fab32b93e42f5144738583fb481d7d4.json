@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `MBEDTLS_THREADING_C` is commented out at `include/mbedtls/mbedtls_config.h:3787`. ... `check_config.h:995-1010` requires `MBEDTLS_THREADING_C` plus exactly one of `MBEDTLS_THREADING_PTHREAD` or `MBEDTLS_THREADING_ALT`\nVERDICT: HIT\nWHY: The answer names MBEDTLS_THREADING_C as the gate and MBEDTLS_THREADING_PTHREAD as the required companion macro, so both gating macros are stated."
+}

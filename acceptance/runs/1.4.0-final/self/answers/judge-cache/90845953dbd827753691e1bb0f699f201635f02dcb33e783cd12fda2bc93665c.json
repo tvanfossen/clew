@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A repo whose `.clew.yaml` uses a section unknown to the installed clew is refused outright.\nVERDICT: MISS\nWHY: The answer only covers refusal of an unknown section name; it never mentions a second refusal for an unknown key inside a valid section, nor a correctly-spelled derived key refused with its reason."
+}

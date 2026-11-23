@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: With assembly it is `asm volatile(\"\" : \"+r\"(x))`.\nVERDICT: HIT\nWHY: The answer gives the empty asm volatile with \"+r\"(x) input-output operand, and describes it as the optimizer barrier hiding the value from the compiler."
+}

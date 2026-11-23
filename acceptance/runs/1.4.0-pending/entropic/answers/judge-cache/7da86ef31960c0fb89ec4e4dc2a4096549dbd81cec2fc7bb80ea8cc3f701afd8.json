@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Mirrors the engine's `interrupt_flag_` into the C-ABI `int` cancel flag during a batch generate ... The `int*` never crosses the `.so` boundary as an atomic.\nVERDICT: HIT\nWHY: The answer says the observer thread mirrors the atomic interrupt flag into a plain int cancel flag for the C ABI, and that the int* never crosses the .so boundary as an atomic."
+}

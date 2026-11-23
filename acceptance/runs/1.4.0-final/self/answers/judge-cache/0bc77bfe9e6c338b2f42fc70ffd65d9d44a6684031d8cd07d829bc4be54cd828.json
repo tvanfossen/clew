@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: For YAML and JSON it holds only a `path` row, so the file is known to exist and nothing inside it is searchable.\nVERDICT: HIT\nWHY: The answer says YAML/JSON get only a path row with no searchable contents, while shell and CMake get per-definition symbol rows, so the two groups are treated differently."
+}

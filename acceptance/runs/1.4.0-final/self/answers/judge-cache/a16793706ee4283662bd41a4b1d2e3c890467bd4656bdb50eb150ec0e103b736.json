@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes call_edges rows with a `source` column and says \"When several layers found the same edge, the strongest one wins,\" which implies deduplication, not storing the same logical edge twice per layer."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the second call fills the buffer and that tokenize returns {} when the sized call returns negative, but it never says the second negative result is terminal with no further attempt, and it also says nothing is retried."
+}

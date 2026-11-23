@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `library/common.h:132` | Included by 129 of the library's `.c` files, plus `library/ssl_misc.h` ... | Every library translation unit sees real member names. `common.h` is internal and not installed under `include/`\nVERDICT: HIT\nWHY: The answer states that the opt-out is defined in the shared internal header `library/common.h`, included by library files, so every library translation unit sees real member names."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: With `MBEDTLS_CT_ASM` it is an empty `asm volatile(\"\" : [x] \"+r\" (x))`.\nVERDICT: HIT\nWHY: The answer states the asm path is an empty asm volatile with x as an in/out register operand (\"+r\"), under the heading \"Optimizer barriers\" that hides the value from the compiler."
+}

@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 20092,
+  "stop_reason": "end_turn",
+  "session_id": "7b0c8629-93cc-4d32-9734-0807cd5beb31",
+  "total_cost_usd": 0.01130194,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 37860,
+    "cache_read_input_tokens": 194394,
+    "output_tokens": 3570,
+    "output_tokens_details": {
+      "thinking_tokens": 1698
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 37860,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2045,
+        "cache_read_input_tokens": 49648,
+        "cache_creation_input_tokens": 2945,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2945
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 3570,
+      "cacheReadInputTokens": 194394,
+      "cacheCreationInputTokens": 37860,
+      "webSearchRequests": 0,
+      "costUSD": 0.01130194,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1698,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 37860,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 12,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**What it does:** Mbed TLS puts struct members in public headers, so any application could write `ssl->conf` or `cipher->iv_size`. `MBEDTLS_PRIVATE(member)` renames each member for outside code. In `include/mbedtls/private_access.h:15`, the default expansion is `private_##member`, so `ssl->MBEDTLS_PRIVATE(conf)` becomes `ssl->private_conf`. An application that touches `ssl->conf` directly therefore fails to compile instead of silently depending on the layout. The library can then rename or reorder fields without breaking callers who were only meant to use the accessors. The accessors are the supported path, for example `mbedtls_ssl_get_hostname()` and `mbedtls_ssl_session_get_id_len()` in `ssl.h`. The 3.0 migration guide describes direct member access as a last resort.\n\n**Who the opt-out is for:** The gate is `#ifndef MBEDTLS_ALLOW_PRIVATE_ACCESS` in `private_access.h:14`. Defining that macro before the Mbed TLS headers are included makes `MBEDTLS_PRIVATE(member)` expand to plain `member`, so the code gets raw field access. The definition's doc says it lets the library reach its own structs' private members. In this tree it is defined in three places:\n\n| Location | Who it covers | Effect |\n|---|---|---|\n| `library/common.h:132` | Library-internal code that includes this header | Raw member access in library sources |\n| `programs/ssl/ssl_client2.c:8` | The `ssl_client2` test/sample program | Raw member access in that program |\n| `programs/ssl/ssl_server2.c:8` | The `ssl_server2` test/sample program | Raw member access in that program |\n\nIn those places, `ssl->MBEDTLS_PRIVATE(conf)` and `ssl->conf` mean the same thing. The code is coupled to the struct layout, so a field rename breaks it at compile time, which is the intent for code shipped in the same tree. Applications outside the tree get the renamed members, and the inline getters in the public headers compile to the same field either way.\n\n**Caveats:**\n- I did not read the source around `common.h:132` or the `#define` lines in the two programs. I did not confirm whether the `#define` in each program comes before every mbedtls include, or whether `common.h` is included by every library `.c` file. The index reports the gate definitions, not their guards or include order.\n- The index also lists `MBEDTLS_PRIVATE` as a function or variable in `aes.h` and `ctr_drbg.h`. I read those as parser artifacts from the member-name macro, not real symbols, and did not check them further.",
+  "ttft_ms": 1568,
+  "type": "result",
+  "duration_ms": 22652,
+  "uuid": "d48f6387-5166-4cff-806c-7ce1c7978ac4",
+  "ttft_stream_ms": 1219,
+  "time_to_request_ms": 148,
+  "first_content_frame_ms": 1219,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

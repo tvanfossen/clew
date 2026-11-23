@@ -1,0 +1,83 @@
+{
+  "cell": "Q1_claude-haiku-5-5_index_r2",
+  "arm": "index",
+  "rubric_version": "5.0.0",
+  "rubric_digest": "d8447c7b18eafbf5",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.5625,
+  "unmarked_pct": 0.0,
+  "split_decisions": 1,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "names derive_scope in clew/scope.py as where the decision is resolved",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: \"It calls `derive_scope_logged`, which calls `derive_scope` (`clew/scope.py:639`). That returns a `DerivedScope` with `roots` (what doxygen gets as INPUT) and `excludes`.\" | WHY: The answer names `derive_scope` in `clew/scope.py` and describes it as the function that resolves the scope decision (declared scope, else whole repo). || QUOTE: It calls `derive_scope_logged`, which calls `derive_scope` (`clew/scope.py:639`). That returns a `DerivedScope` with `roots` (what doxygen gets as INPUT) and `excludes`. | WHY: The answer names `derive_scope` in `clew/scope.py` as the function where the scope decision is resolved, including the tiered logic of declared scope versus whole-repo fallback. || QUOTE: It calls `derive_scope_logged`, which calls `derive_scope` (`clew/scope.py:639`). That returns a `DerivedScope` with `roots` (what doxygen gets as INPUT) and `excludes`. | WHY: The answer names `derive_scope` in `clew/scope.py` as the function that resolves the scope decision.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that a repository's own declared index_scope is preferred, and that every failure to find one falls through to indexing the whole repository",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"No `.clew.yaml`, or no `index_scope:` section: `_declared_index_scope` returns `None` and `derive_scope` returns `whole_repo_scope`.\" and \"a declared `index_scope:` decides, and when nothing is declared the whole repository is indexed\" | WHY: The answer states that a declared index_scope takes precedence and that the absence of a declaration, whether no file, no section, or no Doxyfile, falls through to whole-repo indexing. || QUOTE: No `.clew.yaml`, or no `index_scope:` section: `_declared_index_scope` returns `None` and `derive_scope` returns `whole_repo_scope`. | WHY: States a declared index_scope takes precedence and that absence of a declaration (no file, no section, no Doxyfile) falls through to whole-repo indexing.",
+      "agreement": 0.6666666666666666,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "conveys that the fallback carries a REASON explaining which scope was used and why, so an unstated scope is never silently guessed",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: The reason string names the file it looked in and says the whole repository was used. | WHY: The answer states that the whole-repo fallback carries a reason string naming the file consulted and the scope used, so the scope isn't silently guessed. || QUOTE: The reason string names the file it looked in and says the whole repository was used. | WHY: The answer states that the whole-repo fallback carries a reason string naming which scope was used and why, which covers the item. || QUOTE: The reason string names the file it looked in and says the whole repository was used. | WHY: The answer states that the whole-repo fallback carries a reason string naming which scope was used and why (no declaration found).",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that a Doxyfile's own INPUT is deliberately NOT used to decide the indexed tree, and explains why \u2014 a repository that ships one would get only its documented subset while a repository that ships none gets its whole tree",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: the module docstring says the Doxyfile's INPUT is \"a documentation target, not a reasoning boundary\", and the Mbed-TLS example in that docstring shows why it was dropped. | WHY: The answer says the Doxyfile's INPUT was dropped, but it never gives the stated reason: that a repo shipping a Doxyfile would get only its documented subset while a repo with none gets the whole tree. || QUOTE: the Mbed-TLS example in that docstring shows why it was dropped. | WHY: The answer says the Doxyfile's INPUT was replaced and calls it \"a documentation target, not a reasoning boundary,\" but it never explains that a repo with a Doxyfile would get only its documented subset while a repo without one gets its whole tree. || QUOTE: Doxyfile. Its `INPUT` is replaced by the derived roots. The repo's own Doxyfile is still used for ALIASES and PREDEFINED. The module docstring says the Doxyfile's INPUT is \"a documentation target, not a reasoning boundary\", and the Mbed-TLS example in that docstring shows why it was dropped. | WHY: The answer says the Doxyfile's INPUT was dropped and calls it \"a documentation target\", but it never explains the specific rationale: that a repo shipping a Doxyfile would get only its documented subset while a repo shipping none gets the whole tree.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that nested git trees are INDEXED and tagged rather than excluded from the scope",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: Nested git trees are **indexed, not excluded** (gh#333). The walk does not descend into them, but they are tagged afterwards by `external.py`. | WHY: The answer explicitly states nested git trees are indexed rather than excluded and are tagged afterwards by external.py. || QUOTE: Nested git trees are **indexed, not excluded** (gh#333). The walk does not descend into them, but they are tagged afterwards by `external.py`. | WHY: The answer explicitly states nested git trees are indexed rather than excluded and are tagged afterward by external.py.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "conveys that the containment call was REMOVED rather than left in place with its callers dropped",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never says a containment call was removed; it only mentions a stale docstring and a fallthrough, nothing about removing a containment call versus dropping its callers. || QUOTE: NONE | WHY: The answer never says a containment call was removed; it only notes that Nested git trees are \"indexed, not excluded\" and a stale docstring, with no removal-versus-dropped-callers statement. || QUOTE: NONE | WHY: The answer never says a containment call was removed; it only mentions a stale docstring and a whole-repo fallback, with nothing about a removed containment call versus callers being dropped.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the resolved scope is not the whole answer \u2014 within it, a file reaches the index only if something can read it, and names at least one of the two filters: the parse-built front end claiming the file types doxygen cannot read, or binary classification dropping files whose extension lies about them",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer covers scope resolution (declared roots, gitignore, whole repo) but never says that files within scope still need a reader. It names neither the parse-built front end for types doxygen can't read nor binary classification of files whose extensions lie. It explicitly says the extension question is unverified. || QUOTE: NONE | WHY: The answer covers scope resolution only; it never mentions the parse-built front end for file types doxygen can't read or binary classification, and it admits it didn't verify which extensions reach doxygen. || QUOTE: NONE | WHY: The answer covers scope derivation (git-ignore, dot dirs) but never says a file must be readable to reach the index, nor names the parse-built front end or binary classification filters; it explicitly says it did not verify which extensions reach doxygen.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    }
+  ]
+}

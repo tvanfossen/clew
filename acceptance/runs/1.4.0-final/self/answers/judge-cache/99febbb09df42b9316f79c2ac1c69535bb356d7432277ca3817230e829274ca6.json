@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **1. Choosing the root scope (`clew/scope.py`, `derive_scope`)**\nVERDICT: HIT\nWHY: The answer names `derive_scope` in `clew/scope.py` as where the root scope is chosen, i.e. where the scope decision is resolved."
+}

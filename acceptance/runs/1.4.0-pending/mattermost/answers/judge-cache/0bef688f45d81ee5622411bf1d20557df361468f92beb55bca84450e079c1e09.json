@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Each handler is a function `(superclass) => class extends superclass { handleX = ... }`, typed as `Constructor<ServerDataOperatorBase>`. ... \"Most handlers do not write directly. They go through `handleRecords` in `BaseDataOperator`\"\nVERDICT: MISS\nWHY: The answer says most handlers write via `handleRecords` \u2192 `batchRecords` in BaseDataOperator and notes the mixin typing, but it never concludes that every handler's writes go through the inherited `batchRecords` because of that constraint. It instead lists exceptions, and it admits the other handlers were not read in full."
+}

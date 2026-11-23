@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The bit layout is in `include/mbedtls/error.h:18-40`: a 16-bit code is a sign bit, a 3-bit high-level module ID, a 5-bit module-specific code, and a 7-bit low-level code. A PK error like `-0x3E80` falls entirely in the high-level half, so it gets the high-level string only. A code like `-0x0002` is low-level only. A combined code gets both strings joined with `\" : \"`.\nVERDICT: HIT\nWHY: The answer describes the high-level module and low-level parts of a code and states that mbedtls_strerror joins both strings with \" : \" when both are present."
+}

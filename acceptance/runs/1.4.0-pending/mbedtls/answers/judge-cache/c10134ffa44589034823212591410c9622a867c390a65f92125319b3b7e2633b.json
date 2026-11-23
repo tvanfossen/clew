@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Each struct field in the public headers is declared as `MBEDTLS_PRIVATE(name)`, so by default the field is really called `private_name`. Code that writes `ssl->state` then fails to compile, and the only supported way in is the accessor functions\nVERDICT: HIT\nWHY: The answer says compile-time opacity comes from renaming the field to `private_name`, which breaks `ssl->state`. The fields are still declared, so the layout stays visible; it does not use the word \"sized\"."
+}

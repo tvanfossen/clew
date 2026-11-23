@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The deny check is the only one that can stop a call once the approval check has passed.\" The diagram shows `ServerManager::execute` doing `is_denied` and then `route_tool_call` with no other check.\nVERDICT: HIT\nWHY: The answer says `ServerManager::execute` consults only `is_denied` before routing, so a denied tool never reaches the server."
+}

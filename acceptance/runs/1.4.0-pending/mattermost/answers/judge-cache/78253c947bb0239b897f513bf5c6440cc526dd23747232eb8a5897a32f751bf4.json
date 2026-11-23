@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Its `ref` argument is not attached to its own view. It is forwarded to `<NavigationSearch \u2026 ref={ref} />`, but only inside the `hasSearch` branch. ... if a caller passes a ref to `NavigationHeader` without `hasSearch`, the ref is never attached to anything.\nVERDICT: HIT\nWHY: The answer states that NavigationHeader forwards its ref to NavigationSearch only inside the `hasSearch` branch, and that without `hasSearch` the ref attaches to nothing."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`scripts/generate_errors.pl` does the work. It scans every header for `#define MBEDTLS_ERR_\u2026 -0x\u2026` with a `/**` comment before it or `/**<` after it, groups the entries by module, and writes `library/error.c` from `scripts/data_files/error.fmt`.\"\nVERDICT: HIT\nWHY: The answer states library/error.c is generated from the headers by scripts/generate_errors.pl using scripts/data_files/error.fmt as the template."
+}

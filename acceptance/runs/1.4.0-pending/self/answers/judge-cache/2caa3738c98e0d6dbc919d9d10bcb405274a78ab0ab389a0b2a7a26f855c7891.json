@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Build metadata records which declaration was used.\nVERDICT: MISS\nWHY: The answer says build metadata records which declaration was used, but never says the winning tier is recorded or that the record is derived from stored rows rather than a separate stamped summary."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Inference implementation (`src/inference/`) | `llama_cpp_backend.{h,cpp}`, `llama_cpp_sampler.*`, `llama_cpp_tokenizer.*`, `orchestrator.cpp`, `adapter_manager.cpp`, `grammar_registry.cpp`, `speculative_compat.cpp`, `tool_call_markers.h`, `inference_c_api.cpp`, `secondary_model_loader.cpp`, `interface_factory.cpp` | Heavy.\nVERDICT: HIT\nWHY: The answer lists about a dozen of entropic's own source files across inference, facade, core and config that touch llama.cpp, showing the dependency reaches well beyond a single wrapper."
+}

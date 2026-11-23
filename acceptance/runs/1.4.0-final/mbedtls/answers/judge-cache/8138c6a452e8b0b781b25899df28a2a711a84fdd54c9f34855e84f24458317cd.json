@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: #define MBEDTLS_PRIVATE(member) private_##member ... #else #define MBEDTLS_PRIVATE(member) member; \"By default a struct field is renamed to `private_<name>`.\"\nVERDICT: HIT\nWHY: The answer shows both macro branches and states that by default the field is renamed to private_<name>, and that with MBEDTLS_ALLOW_PRIVATE_ACCESS defined it expands to the plain member name."
+}

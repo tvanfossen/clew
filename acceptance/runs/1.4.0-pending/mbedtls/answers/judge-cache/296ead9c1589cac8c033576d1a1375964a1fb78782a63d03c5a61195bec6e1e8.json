@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: MBEDTLS_PLATFORM_MEMORY off \u2192 macro \u2192 calloc / free (no indirection)\nVERDICT: HIT\nWHY: The answer states that with platform memory config off (the default), mbedtls_calloc/free are macros directly to calloc/free with no indirection (platform.h:166-167)."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `accept_loop` \u2192 per-client thread (`:945`) | One per connected client | Joined in `stop()`; and `ExternalBridge::start` \u2192 `accept_loop` | Accept thread\nVERDICT: HIT\nWHY: The answer states ExternalBridge has an accept thread (accept_loop) that spawns one thread per connected client."
+}

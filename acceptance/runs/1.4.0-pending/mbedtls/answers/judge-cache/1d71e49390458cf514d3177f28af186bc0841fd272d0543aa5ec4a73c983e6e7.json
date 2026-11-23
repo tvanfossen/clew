@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The index was built with `MBEDTLS_THREADING_C` and `MBEDTLS_THREADING_PTHREAD` passed as flags, so its own variant is threaded.\nVERDICT: HIT\nWHY: The answer names both MBEDTLS_THREADING_C and MBEDTLS_THREADING_PTHREAD in the threading context, and says mutexes exist only when MBEDTLS_THREADING_C is enabled. It does not say outright that PTHREAD is a gating macro."
+}

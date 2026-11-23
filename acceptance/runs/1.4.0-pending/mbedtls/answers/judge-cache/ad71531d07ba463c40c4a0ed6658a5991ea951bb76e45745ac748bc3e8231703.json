@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Define `MBEDTLS_PLATFORM_CALLOC_MACRO` and `FREE_MACRO` in your user config... Call `mbedtls_platform_set_calloc_free(calloc_fn, free_fn)`\nVERDICT: MISS\nWHY: The answer describes compile-time macros and runtime function pointers as two options, but never states they are mutually exclusive."
+}

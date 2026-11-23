@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**The verdict ladder** (most specific first)\"\nVERDICT: MISS\nWHY: The answer labels the ladder \"most specific first\" but never explains why a matching unread-corpus row, which is about this query, outranks index-wide statements."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The failure becomes an **empty `std::vector<int32_t>`**. The same empty vector also means \"empty input\" and \"vocab is null\"... returns **0**, same as a real zero-token string\"\nVERDICT: MISS\nWHY: The answer says failure is indistinguishable from empty, but it lists callers that do not check the result and never states that no caller checks for it. It only says it did not verify whether any caller checks for an empty prompt."
+}

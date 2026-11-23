@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The index finds four thread or signal-handler spawn sites, all in `programs/`, none in `library/`\"\nVERDICT: MISS\nWHY: The answer says no thread spawn sites exist in library/, but it never says library/ supplies the mutex abstraction for threaded callers. It describes mutexes as compiled out by default and only mentions the abstraction in passing for the example server."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `handleChannelDeletedEvent` ... \"Channel is archived in place; membership kept\" | \"If it is the current channel, kick the user out (`Events.CHANNEL_ARCHIVED`); always remove the current user from the channel\"\nVERDICT: HIT\nWHY: The table states that when archived channels are not viewable (`\"false\"`), the user is removed from the channel and kicked out if it is the current channel. When viewable, the channel is archived in place, which corresponds to \"marked deleted\". The `archiveChannel` row also says `delete_at` is set locally, which matches the deleted marking."
+}

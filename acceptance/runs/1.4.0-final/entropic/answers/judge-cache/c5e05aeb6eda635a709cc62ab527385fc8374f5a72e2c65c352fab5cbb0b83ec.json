@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Results go to `event_queue_` under `event_mutex_` and are drained on the engine thread by `process_events()` (`:118`).\nVERDICT: HIT\nWHY: The answer states that the health monitor queues events under a mutex and that the engine thread drains them via `process_events()`, instead of invoking a callback from the monitor thread."
+}

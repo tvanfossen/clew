@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It is triggered from the failed-post sheet (`app/components/post_list/post/body/failed/index.tsx:46-49`). ... only a manual \"Try Again\" sends it again.\nVERDICT: HIT\nWHY: The answer says retry occurs only via manual \"Try Again\" on the failed post and names `retryFailedPost` as the function that handles it."
+}

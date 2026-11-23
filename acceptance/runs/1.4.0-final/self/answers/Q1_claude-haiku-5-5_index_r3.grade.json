@@ -1,0 +1,83 @@
+{
+  "cell": "Q1_claude-haiku-5-5_index_r3",
+  "arm": "index",
+  "rubric_version": "5.0.0",
+  "rubric_digest": "d8447c7b18eafbf5",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.625,
+  "unmarked_pct": 0.0,
+  "split_decisions": 1,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "names derive_scope in clew/scope.py as where the decision is resolved",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: scope.derive_scope()                           clew/scope.py:639 | WHY: The answer names derive_scope in clew/scope.py as the function that resolves the scope decision, with the declaration-then-whole-repo fallback. || QUOTE: scope.derive_scope()                           clew/scope.py:639 | WHY: The answer names derive_scope in clew/scope.py (line 639) as the function that resolves the scope decision, including declared scope first and whole-repo fallback. || QUOTE: scope.derive_scope()                           clew/scope.py:639 | WHY: The answer names derive_scope in clew/scope.py (line 639) as the function that resolves the scope decision, including its fallback logic between declared scope and whole-repo scope.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that a repository's own declared index_scope is preferred, and that every failure to find one falls through to indexing the whole repository",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: derive_scope ... `_declared_index_scope` ... \"returns a DerivedScope, or None if no index_scope key\" / \"None \u2192 whole_repo_scope()\" and \"It absorbs a rejected declaration into the whole-repo tier.\" | WHY: The answer states that the declared index_scope is preferred (\"Declaration first\"), and that when none is found, or the declaration is rejected, derive_scope falls through to whole-repo indexing. || QUOTE: derive_scope ... `_declared_index_scope` ... \"returns a DerivedScope, or None if no index_scope key\" \u2192 \"None \u2192 whole_repo_scope()\"; \"Declaration first.\"; \"`derive_scope` itself never refuses. It absorbs a rejected declaration into the whole-repo tier.\" | WHY: The answer says the declared index_scope is preferred, that no declaration falls through to the whole repository, and that a rejected declaration is also absorbed into the whole-repo tier.",
+      "agreement": 0.6666666666666666,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "conveys that the fallback carries a REASON explaining which scope was used and why, so an unstated scope is never silently guessed",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never says the fallback carries a reason explaining which scope was used and why; it describes tiers and refusals but not a reason field. || QUOTE: NONE | WHY: The answer never says the fallback carries a reason explaining which scope was used and why; it only describes the fallback tiers and the refusal behavior. || QUOTE: NONE | WHY: The answer never says the fallback carries a reason explaining which scope was used and why; it only describes the whole-repo fallback and rejection behavior.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that a Doxyfile's own INPUT is deliberately NOT used to decide the indexed tree, and explains why \u2014 a repository that ships one would get only its documented subset while a repository that ships none gets its whole tree",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"The Doxyfile is not a tier.** Its `INPUT` used to be the fallback. That inverted the tool: a repo that shipped a Doxyfile got only its published-API headers, and a repo without one got everything.\" | WHY: The answer states that the Doxyfile's INPUT is no longer used to decide scope, and gives the reason: repos shipping a Doxyfile got only a documented subset while repos without one got the whole tree. || QUOTE: \"The Doxyfile is not a tier.** Its `INPUT` used to be the fallback. That inverted the tool: a repo that shipped a Doxyfile got only its published-API headers, and a repo without one got everything.\" | WHY: The answer states that the Doxyfile's INPUT is not used for scope and explains the inversion: repos with a Doxyfile got only their documented subset, while repos without one got everything. || QUOTE: \"The Doxyfile is not a tier.** Its `INPUT` used to be the fallback. That inverted the tool: a repo that shipped a Doxyfile got only its published-API headers, and a repo without one got everything.\" | WHY: The answer states that the Doxyfile's INPUT is not used for scope and explains the inversion: repos with a Doxyfile got only a documented subset, while repos without one got the whole tree.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that nested git trees are INDEXED and tagged rather than excluded from the scope",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"**Nested trees are indexed and tagged, not excluded.** `external.py` tags their rows after the build, so an answer can still say which codebase a symbol came from.\" | WHY: The answer explicitly states nested git trees are indexed and tagged rather than excluded. || QUOTE: \"**Nested trees are indexed and tagged, not excluded.** `external.py` tags their rows after the build, so an answer can still say which codebase a symbol came from.\" | WHY: The answer explicitly states that nested git trees are indexed and tagged rather than excluded.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "conveys that the containment call was REMOVED rather than left in place with its callers dropped",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never mentions a containment call being removed; it only describes scope derivation and says nothing about removing a call versus dropping its callers. || QUOTE: NONE | WHY: The answer never mentions a containment call being removed versus left in place with callers dropped. || QUOTE: NONE | WHY: The answer never discusses a containment call being removed versus left in place with callers dropped; it covers scope derivation only.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the resolved scope is not the whole answer \u2014 within it, a file reaches the index only if something can read it, and names at least one of the two filters: the parse-built front end claiming the file types doxygen cannot read, or binary classification dropping files whose extension lies about them",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer covers only scope resolution (index_scope, whole-repo, excludes) and never mentions the parse-built front end for file types doxygen can't read or binary classification dropping files with misleading extensions. || QUOTE: NONE | WHY: The answer covers scope resolution only; it never mentions the parse-built front end for files doxygen can't read, or binary classification dropping files with misleading extensions. || QUOTE: NONE | WHY: The answer covers only scope resolution (index_scope, whole-repo, excludes). It never says that files within scope must be readable, and it names neither the parse-built front end for file types doxygen can't read nor binary classification of files whose extensions lie.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    }
+  ]
+}

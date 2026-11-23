@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names `clew/gitenv.py` (where `git_argv` is defined) and `scope.py` (where two callers live). Neither is described as storing, collapsing or filtering call edges, or as deciding what a neighbour reply contains.\n\nITEMS:\nNONE\nEND"
+}

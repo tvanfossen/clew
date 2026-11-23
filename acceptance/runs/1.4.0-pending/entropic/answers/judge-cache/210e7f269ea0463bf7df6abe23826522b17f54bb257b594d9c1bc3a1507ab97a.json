@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer discusses PermissionManager::pattern_matches and config permissions.allow/deny, but never says the lists come from the PermissionsConfig that ServerManager is constructed with."
+}

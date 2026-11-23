@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**`schema`, index newer than server:** a rebuild re-stamps the same newer version, so the flag cannot be cleared from the consumer's side. The fix is to restart the MCP client.\"\nVERDICT: HIT\nWHY: The answer explicitly states that when the index is newer than the server, a rebuild re-stamps the same newer version and cannot clear the schema flag."
+}

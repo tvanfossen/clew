@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`client.createPost` is called once. If it throws, the code logs the error and builds an error post with `props.failed = true`.\" and \"**Automatic retries:** none. `createPost` makes one call and has no loop or backoff.\"\nVERDICT: HIT\nWHY: The answer states explicitly that createPost is sent once with no automatic retries, which matches the item."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer lists `scope.not_indexed` (extensions skipped) and the extensions that were indexed. It never says the reply names in-scope file types that produced no rows, so the specific fact is absent."
+}

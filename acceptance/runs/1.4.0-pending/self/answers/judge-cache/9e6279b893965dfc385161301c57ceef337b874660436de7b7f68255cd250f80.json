@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer mentions provenance tags (`doxygen_sqlite`/`exact`, `ast`/`resolved`) but never states that callers/callees mix direct calls with shared-key dataflow neighbours distinguished by an `edge_class` field."
+}

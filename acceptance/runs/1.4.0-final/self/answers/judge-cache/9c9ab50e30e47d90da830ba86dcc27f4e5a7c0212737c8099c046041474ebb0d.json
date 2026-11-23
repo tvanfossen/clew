@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "Paths named as taking part in file-type coverage, shell/CMake recognition, or grammar availability:\n\nITEMS:\nclew/shast.py\nclew/synth.py\nclew/cmakeast.py\nclew/substrate.py\nclew/harvest.py\nclew/cli.py\ndocs/languages/SCRIPT_INTEGRATION.md\ntests/test_script_front_end.py\nclew/prose.py\ntests/test_not_indexed_report.py\nEND"
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the concurrent code (thread spawns) is in `programs/` and lists library mutexes, but it never states that nothing in `library/` creates a thread. It frames the library as \"runs no concurrency of its own\" only in the default build, and it never ties the mutex abstraction to supporting threaded callers as the item contrasts them."
+}

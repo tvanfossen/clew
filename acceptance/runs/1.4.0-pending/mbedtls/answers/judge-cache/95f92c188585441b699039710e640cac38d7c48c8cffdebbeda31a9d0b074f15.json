@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"splits the 16-bit code into a high-level part (`0xFF80` mask) and a low-level part (the complement).\" and \"If both halves are present, the output is `\"High - desc : Low - desc\"`.\"\nVERDICT: HIT\nWHY: The answer states that a code has a high-level module part and a low-level part, and that mbedtls_strerror joins both descriptions when both are present."
+}

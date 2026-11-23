@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Binary files are dropped separately (REQ-DDB-PIPE-011, stamped via `_skipped_files_scope` in `clew/cli.py:2594`), and the walk stops descending at a fixed depth, with the stops recorded.\nVERDICT: MISS\nWHY: The answer mentions binary files being dropped, but not that the scope isn't the whole answer, nor that extensions lie or that a parse-built front end claims types doxygen can't read. It also says it did not open those filters."
+}

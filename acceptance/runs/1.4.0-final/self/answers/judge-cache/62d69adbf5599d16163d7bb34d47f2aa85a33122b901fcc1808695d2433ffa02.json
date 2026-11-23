@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `resolved = (tier1 or tier2 or tier5) \u222a tier3 \u222a tier4`... \"Tier-3 and tier-4 values survive every stated tier.\"\nVERDICT: MISS\nWHY: The answer gives the union formula but never says tiers 3 and 4 combine identically or that the distinction between them is inert, nor that the line is fact versus guess."
+}

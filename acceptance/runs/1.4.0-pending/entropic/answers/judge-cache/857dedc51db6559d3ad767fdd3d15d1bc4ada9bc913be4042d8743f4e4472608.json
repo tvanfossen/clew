@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"approved = loop auto-approve OR is_explicitly_allowed(allow list)\" and \"Allow matches return `true` from `is_allowed`, which skips the prompt.\"\nVERDICT: HIT\nWHY: The answer says the allow list skips the prompt rather than granting execution (the deny list still blocks later), and it places the allow-list check in `check_approval` (tool_executor.cpp:161), in a different file from `ServerManager::execute`, where the deny list is enforced."
+}

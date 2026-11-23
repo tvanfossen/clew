@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Every handler write goes through one method, `BaseDataOperator.batchRecords`.\nVERDICT: HIT\nWHY: The answer states all handler writes go through BaseDataOperator.batchRecords, and the class is built by mixing handlers onto ServerDataOperatorBase, which extends BaseDataOperator. It never names the mixin constraint explicitly, but the substance is there."
+}

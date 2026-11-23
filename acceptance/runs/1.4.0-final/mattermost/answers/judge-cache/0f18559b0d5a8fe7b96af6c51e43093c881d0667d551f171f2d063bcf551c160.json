@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `app/actions/websocket/channel.ts:463` (`handleChannelDeletedEvent`) | If not viewable, kicks the user out if they are on that channel (`handleKickFromChannel` with `CHANNEL_ARCHIVED`), then removes them from the channel. If viewable, only sets `delete_at`.\nVERDICT: HIT\nWHY: The answer states that when not viewable the user is removed (and kicked out if on that channel), and when viewable the channel is kept with `delete_at` set (i.e., marked deleted)."
+}

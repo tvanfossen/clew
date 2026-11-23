@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: a value stated at call time, such as a CLI flag or an option passed through the MCP `build_or_refresh` / `build_index` calls. `buildoptions.py` documents this as the top tier, and it is the only tier an MCP caller can reach.\nVERDICT: HIT\nWHY: The answer says tier 1 is reachable via both a CLI flag and options passed through MCP calls, and says it is the only tier an MCP caller can reach. That covers an embedding caller with no shell stating the top tier."
+}

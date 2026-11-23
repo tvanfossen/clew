@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: At depth 1 the `callers` field is call-only. At depth 2 and above, `chain` walks both call edges and shared-key (dataflow) edges. / the `callers` brief ... says the answer is \"callers plus the writers it reads from\"\n\nVERDICT: MISS\n\nWHY: The answer notes that dataflow is mixed in with callers, but it never says the causal polarity is inverted, i.e. that a reader's \"callers\" are the functions whose writes it observes."
+}

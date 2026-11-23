@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `function` and `macro` definitions as `memberdef` rows, with parameters taken from the argument list.\nVERDICT: MISS\nWHY: The answer never states that CMake's definition name is an argument of the command rather than a named field of the node. It mentions only parameters coming from the argument list."
+}

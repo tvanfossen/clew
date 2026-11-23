@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `args_to_pattern` (`server_manager.cpp:426`) uses only one argument. It takes the first key in nlohmann's object iteration order... Only a string value is used; anything else becomes `*`. So for `write_file` with `{\"content\":\u2026,\"path\":\u2026}`, a rule like `filesystem.write_file:/etc/*` tests `content`, not `path`.\nVERDICT: HIT\nWHY: The answer states that only one argument reaches the pattern, which makes the others invisible to matching, and that non-string values become `*`. It does not mention unparseable arguments, but that detail is minor."
+}

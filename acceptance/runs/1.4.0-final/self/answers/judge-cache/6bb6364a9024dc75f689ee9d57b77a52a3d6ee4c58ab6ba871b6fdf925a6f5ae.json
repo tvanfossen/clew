@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Explicit: CLI flags (`--shared-key-patterns`, `--thread-patterns`, `--mqtt-dispatch`, `--doxyfile`, `--scope`, `--entry-patterns`\u2026), or the single `options` argument for embedding callers (`clew/buildoptions.py`)\"\nVERDICT: HIT\nWHY: Tier 1 is stated as reachable via both CLI flags and a structured `options` argument for embedding callers."
+}

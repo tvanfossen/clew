@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 27917,
+  "stop_reason": "end_turn",
+  "session_id": "d28e1dc5-2b96-454b-a5cd-3ce56b51eaa4",
+  "total_cost_usd": 0.014701289999999999,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 47228,
+    "cache_read_input_tokens": 271749,
+    "output_tokens": 5074,
+    "output_tokens_details": {
+      "thinking_tokens": 2557
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 47228,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2593,
+        "cache_read_input_tokens": 64186,
+        "cache_creation_input_tokens": 459,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 459
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 5074,
+      "cacheReadInputTokens": 271749,
+      "cacheCreationInputTokens": 47228,
+      "webSearchRequests": 0,
+      "costUSD": 0.014701289999999999,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2557,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 47228,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 20,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** for YAML and JSON the index holds only the file's existence and name. For shell and CMake it holds function and macro definitions, but only when the installed parser has those grammars. This index shows no shell or CMake content at all, so it could be either a repo with none or a build without the grammars. The index alone can't tell which.\n\n**YAML and JSON**\n\n- Each file gets a `path` row and nothing else. It is in the file set and findable by name, and its `symbol_count` is 0. This repo has 16 YAML files (`.clew.yaml`, `.pre-commit-config.yaml`, `requirements.yaml`, the `questions.yaml` targets) and 16 JSON files, all with zero symbols.\n- Keys are deliberately not harvested. `steps:`-style mapping keys would flood the same namespace that answers `dossier(\"my_function\")`, so the grammars' `block_mapping_pair` and `pair` nodes are never turned into symbols.\n- So a question like \"what does `.clew.yaml` set\" gets no answer from the index. The file has to be read directly.\n\n**Shell**\n\n- `clew/shast.py` harvests function definitions only, in both bash forms (`name() {\u2026}` and `function name {\u2026}`). Each becomes a `memberdef` row, with the brief taken from the `#` block directly above it. `args` is always empty, since shell has no parameter list.\n- Shell variables, sourced files and `case` structure are not held. I have not checked whether call edges are derived from shell functions.\n- In this index, a search for `.sh` returns no files, and `shast.py` and `test_shast.py` are the only shell-related files. The index cannot show whether this repo has shell scripts that were left out.\n\n**CMake**\n\n- `clew/cmakeast.py` harvests `function` and `macro` definitions. A macro is recorded as a macro.\n- Variables, `target_*` calls, `option()` and `add_library` are not held.\n- No `CMakeLists.txt` is indexed. Only `clew/cmakeast.py` and its test match the name. The `CMakeLists` search comes back empty, so the index can't say whether the repo has one.\n\n**What happens without the grammars**\n\n- `clew/substrate.py` probes for each language key, not the wheel version. The published `lang-parsing-substrate` 0.11.2 reports the same version as the fork that carries these grammars, so a version check can't tell them apart.\n- With the grammars absent, `compiled_languages()` returns an empty set and logs an ERROR. A missing optional grammar makes `_ts_language_for` return None instead of raising. An unimportable substrate also yields no languages, but only as a logged error. That is deliberate, since a missing optional grammar should not break the pre-commit gate.\n- The result is the same for every affected type. A `.sh` or CMake file gets a `path` row and no symbols, like YAML and JSON.\n- The not-indexed report is meant to name the uncovered file types, so an empty answer doesn't read as \"nothing there\". It is stamped at build time and served on an empty answer. My dossier query for a made-up name returned a plain negative with no such report. Either every in-scope type was covered, or the report isn't surfaced through `dossier`. The index can't settle which, so I can't confirm the report's behaviour here.\n\n**What would settle it:** check whether the installed substrate has the `bash` and `cmake` keys. If it does, a repo with `.sh` or `CMakeLists.txt` files should have them indexed, so their absence would mean there are none in the tree. If it doesn't, rebuild against the fork and re-query.",
+  "ttft_ms": 1659,
+  "type": "result",
+  "duration_ms": 29911,
+  "uuid": "666c228a-8d9a-4587-a8f3-0c635914d4d4",
+  "ttft_stream_ms": 1114,
+  "time_to_request_ms": 83,
+  "first_content_frame_ms": 1114,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer lists several areas (RSA, cipher, TLS, bignum, base64, AEAD) but never states that the primitives are used across roughly twenty modules or that the use is broad rather than confined."
+}

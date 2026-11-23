@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Events are queued under `event_mutex_`. `process_events()` swaps the queue out and runs callbacks on the engine thread, so callbacks never run on the monitor thread.\nVERDICT: HIT\nWHY: The answer states that events are queued under a mutex and callbacks are run by process_events() on the engine (caller) thread, not the monitor thread."
+}

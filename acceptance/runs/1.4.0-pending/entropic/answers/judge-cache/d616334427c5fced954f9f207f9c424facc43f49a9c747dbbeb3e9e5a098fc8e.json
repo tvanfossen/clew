@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"In `check_approval`, if `on_tool_call` is set, `approved` is forced to `true`. The callback returns `void`, so a frontend cannot refuse through it.\"\nVERDICT: HIT\nWHY: The answer states that the callback returns void and that approved is forced true when it is set, so the callback cannot refuse."
+}

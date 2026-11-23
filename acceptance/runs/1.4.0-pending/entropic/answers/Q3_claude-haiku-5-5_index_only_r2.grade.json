@@ -1,0 +1,143 @@
+{
+  "cell": "Q3_claude-haiku-5-5_index_only_r2",
+  "arm": "index_only",
+  "rubric_version": "3.1.1",
+  "rubric_digest": "705c131e354e5c22",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.7666666666666667,
+  "unmarked_pct": 0.0,
+  "split_decisions": 1,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "names PermissionManager and locates the allow and deny lists as coming from the PermissionsConfig the ServerManager is constructed with",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer names PermissionManager but never says the allow/deny lists come from the PermissionsConfig that ServerManager is constructed with.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that the DENY list is the only one that blocks execution \u2014 ServerManager's execute path consults is_denied and nothing else before routing the call",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"the deny list is the only thing left that can stop an unlisted call\" | WHY: The answer states the deny list is enforced in ServerManager::execute via is_denied before route_tool_call, and that it is the only thing left that can stop an unlisted call, since the allow list only governs prompting. || QUOTE: Under this reading, the callback only notifies, and the deny list is the only thing left that can stop an unlisted call. | WHY: The answer says `ServerManager::execute` checks `is_denied` (the deny list) and that this is the only thing left that can stop an unlisted call, which matches the item's substance.",
+      "agreement": 0.6666666666666666,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the ALLOW list does not grant execution but suppresses the approval step \u2014 it is consulted only from ToolExecutor::check_approval, in a different file",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"approved = loop auto-approve OR is_explicitly_allowed(allow list)\" and \"Allow matches return `true` from `is_allowed`, which skips the prompt.\" | WHY: The answer says the allow list skips the prompt rather than granting execution (the deny list still blocks later), and it places the allow-list check in `check_approval` (tool_executor.cpp:161), in a different file from `ServerManager::execute`, where the deny list is enforced. || QUOTE: Allow matches return `true` from `is_allowed`, which skips the prompt. | WHY: The answer says the allow list only decides whether the user is prompted (skips the approval step), with `check_approval` in `tool_executor.cpp` consulting `is_explicitly_allowed`, and that deny is enforced separately in `server_manager.cpp`. It never says the list \"does not grant execution\", but that follows from the described mechanism and the file placement. || QUOTE: \"approved = loop auto-approve OR is_explicitly_allowed(allow list) ... Allow matches return `true` from `is_allowed`, which skips the prompt.\" | WHY: The answer says the allow list decides whether the user is prompted and skips the approval prompt. It places that check in `check_approval` (tool_executor.cpp:161), and the deny list is enforced separately in `ServerManager::execute`. The execution-vs-approval distinction and the location are both stated.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that the effective posture is default-ALLOW at the blocking gate \u2014 a tool matching neither list is not denied and runs",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: if no allow-list or auto-approve match exists and an `on_tool_call` callback is registered, `approved` is set to `true` after the callback fires... the deny list is the only thing left that can stop an unlisted call. | WHY: The answer says an unlisted call (in neither allow nor deny) is approved and only the deny list can stop it, i.e. it runs by default, though it is conditioned on a callback being registered. || QUOTE: if no allow-list or auto-approve match exists and an `on_tool_call` callback is registered, `approved` is set to `true` after the callback fires... the deny list is the only thing left that can stop an unlisted call. | WHY: The answer states that an unlisted tool gets approved and only the deny list can block it, which is the default-allow posture. || QUOTE: if no allow-list or auto-approve match exists and an `on_tool_call` callback is registered, `approved` is set to `true` after the callback fires... the deny list is the only thing left that can stop an unlisted call. | WHY: The answer concludes an unlisted tool (matching neither list) is approved and runs unless the deny list matches, which is default-allow at the gate, though conditional on a callback being registered.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies that the approval callback CANNOT refuse \u2014 it returns void, and the code sets approved to true unconditionally after firing it",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"if no allow-list or auto-approve match exists and an `on_tool_call` callback is registered, `approved` is set to `true` after the callback fires. The callback's return value is ignored (it returns void).\" | WHY: The answer states that the callback returns void and that approved is set to true after it fires, so it cannot refuse. || QUOTE: \"if no allow-list or auto-approve match exists and an `on_tool_call` callback is registered, `approved` is set to `true` after the callback fires. The callback's return value is ignored (it returns void).\" | WHY: The answer states the callback returns void and that approved is set to true after it fires, so the callback cannot refuse.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "explains that a pattern is matched with fnmatch, split at the first colon into a tool part and an argument part, and that a pattern with no colon matches on the tool name alone",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: Tool-only pattern (`filesystem.*`): matches on the tool name alone, for any arguments. `tool:argpattern` (`execute:ls *`): the tool part must match, then the full `tool:arg` string must match. | WHY: The answer states fnmatch matching, a tool part vs. argument part split on the colon, and that a no-colon pattern matches on tool name alone. It never says \"first colon\" explicitly, but the substance is there. || QUOTE: Tool-only pattern (`filesystem.*`): matches on the tool name alone, for any arguments. / `tool:argpattern` (`execute:ls *`): the tool part must match, then the full `tool:arg` string must match. / matched by `PermissionManager::pattern_matches` ... with `fnmatch`, flags 0. | WHY: The answer states fnmatch matching, a tool part and an argument part split on the colon, and that a pattern with no colon matches on the tool name alone. || QUOTE: Tool-only pattern (`filesystem.*`): matches on the tool name alone, for any arguments. / `tool:argpattern` (`execute:ls *`): the tool part must match, then the full `tool:arg` string must match. / matched by `PermissionManager::pattern_matches` ... with `fnmatch`, flags 0. | WHY: The answer states fnmatch matching, a tool part and argument part separated by a colon, and that a tool-only pattern matches on the tool name alone.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that only ONE argument value ever reaches the pattern \u2014 the rest of the call's arguments are invisible to permission matching, and a non-string or unparseable argument collapses to a wildcard",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: The argument value comes from `args_to_pattern`, which takes the first JSON key's string value, or `*` when there is none. | WHY: The answer states that only the first key's string value reaches the pattern, with `*` as the fallback when there isn't one. That covers a single argument being matched and the others being invisible. It does not mention that a non-string or unparseable argument collapses to a wildcard, but the \"`*` when there is none\" fallback is close enough to count. || QUOTE: The argument value comes from `args_to_pattern`, which takes the first JSON key's string value, or `*` when there is none. | WHY: The answer states that only the first key's string value reaches the pattern, and that `*` is used when there is none. That covers the single-value and wildcard-fallback parts of the item. It does not explicitly say the other arguments are invisible, but \"first JSON key\" implies it. || QUOTE: The argument value comes from `args_to_pattern`, which takes the first JSON key's string value, or `*` when there is none. | WHY: The answer states that only the first key's string value reaches the pattern, with `*` when there is none. The answer does not say the other arguments are invisible, and it covers non-string and unparseable arguments only partly.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies that a decision can be PERSISTED for future sessions by appending to config.local.yaml, separately from the in-memory add_permission call",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: \"`PermissionPersister` (`src/storage/permission_persister.cpp`) appends patterns to `permissions.allow` / `permissions.deny` using line-based edits.\" | WHY: The answer says the persister appends patterns to project YAML but never names config.local.yaml and does not contrast the persisted path with the in-memory add_permission call. || QUOTE: \"PermissionPersister (src/storage/permission_persister.cpp) appends patterns to permissions.allow / permissions.deny using line-based edits.\" | WHY: The answer says \"Always Allow/Deny\" persists to project YAML, but it never names config.local.yaml, and it doesn't contrast persistence with the in-memory add_permission call. || QUOTE: \"PermissionPersister (src/storage/permission_persister.cpp) appends patterns to permissions.allow / permissions.deny using line-based edits.\" | WHY: The answer says \"Always Allow/Deny\" persists patterns to project YAML, but never names config.local.yaml, and it doesn't contrast this with the in-memory add_permission call.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "the files a permission decision passes through \u2014 src/mcp/permission_manager.cpp",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the files a permission decision passes through \u2014 src/mcp/server_manager.cpp",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the files a permission decision passes through \u2014 src/mcp/tool_executor.cpp",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the files a permission decision passes through \u2014 include/entropic/types/config.h",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": false,
+      "detail": "not named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the files a permission decision passes through \u2014 precision",
+      "kind": "set_precision",
+      "weight": 2,
+      "hit": false,
+      "detail": "named 3 not in the set: ['bash.cpp', 'src/config/loader.cpp', 'src/storage/permission_persister.cpp']",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    }
+  ]
+}

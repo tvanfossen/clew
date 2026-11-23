@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes caller lists for `git_argv` and never contrasts flat selection by resolved identity with traversal matching on the bare name."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **No exceptions into C:** every trampoline wraps the user callable in `try/except`, prints the traceback, and returns a pass-through code.\nVERDICT: HIT\nWHY: The answer states that trampolines catch all Python exceptions and return a pass-through code instead of letting them reach C."
+}

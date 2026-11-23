@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `*.yaml`, `*.yml`, `*.json` | `path` row only, no symbols | `clew/synth.py:71-80`, `DATA_EXTS`; also \"YAML and JSON are deliberately not harvested... findable by name and appear in the file set.\"\nVERDICT: HIT\nWHY: The answer states YAML/JSON get only path rows (in the file set) with no symbols, contrasted with shell/CMake, which get symbol definitions."
+}

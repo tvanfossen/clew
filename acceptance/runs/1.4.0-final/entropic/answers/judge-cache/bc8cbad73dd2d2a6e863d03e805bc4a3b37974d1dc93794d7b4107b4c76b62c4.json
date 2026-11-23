@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: llama.cpp is a git submodule at `extern/llama.cpp` (`.gitmodules`, pointing at `ggml-org/llama.cpp`). It is not fetched with FetchContent like spdlog, ryml, Catch2, json and httplib in `extern/CMakeLists.txt`.\nVERDICT: HIT\nWHY: The answer states llama.cpp is a git submodule at extern/llama.cpp and contrasts it with build-time fetched dependencies."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: the arg part is matched against `tool:<first string argument>`. Calls with no args, or a non-string first arg, present `*`.\nVERDICT: HIT\nWHY: The answer states that only the first string argument is matched and that a no-arg or non-string first arg becomes `*`. The \"rest of the arguments are invisible\" point is implied by \"first string argument\", and the unparseable case is not mentioned."
+}

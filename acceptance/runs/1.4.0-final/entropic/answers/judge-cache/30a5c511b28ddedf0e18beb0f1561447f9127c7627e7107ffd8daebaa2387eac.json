@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `PermissionPersister::save_permission` (`permission_persister.cpp:227`) appends an entry under `permissions.allow` or `permissions.deny` in the project YAML. It is a no-op if the entry is already present.\nVERDICT: MISS\nWHY: The answer describes persisting to \"the project YAML\" but never names config.local.yaml or contrasts it with the in-memory add_permission call."
+}

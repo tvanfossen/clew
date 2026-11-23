@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: This matches the repo's own rule in AGENTS.md, \"Absence is not emptiness\": an empty result means \"we looked,\" while a missing key or layer means \"this never ran.\"\nVERDICT: MISS\nWHY: The item asks for the rule \"fix the corpus, not the sentence about the corpus\". The answer only describes reading the empty-result fields and never says to fix the corpus itself."
+}

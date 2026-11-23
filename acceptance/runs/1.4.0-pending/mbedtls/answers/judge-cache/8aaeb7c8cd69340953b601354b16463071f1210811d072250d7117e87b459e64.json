@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer only says the function is compiled under MBEDTLS_ERROR_C and a stub is used when off; it never states that MBEDTLS_ERROR_C is enabled by default in the shipped config."
+}

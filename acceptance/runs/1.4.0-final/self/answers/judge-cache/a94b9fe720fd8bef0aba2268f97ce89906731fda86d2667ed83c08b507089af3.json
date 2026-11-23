@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says an unknown key in `options` is refused by name, but never describes a second refusal inside a well-named section, and never says a correctly-spelled derived key is refused with its reason rather than as unknown."
+}

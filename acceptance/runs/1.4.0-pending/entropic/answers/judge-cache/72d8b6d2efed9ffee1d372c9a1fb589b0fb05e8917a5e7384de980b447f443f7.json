@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: llama.cpp returns the negated number of tokens it would need. The code flips the sign (`if (n < 0) n = -n;`), allocates a vector of that size, and moves on.\nVERDICT: HIT\nWHY: The answer states the first call returns a negated required token count and that the code negates it to size the buffer for the second call."
+}

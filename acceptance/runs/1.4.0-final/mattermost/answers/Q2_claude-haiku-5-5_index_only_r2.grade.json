@@ -1,0 +1,63 @@
+{
+  "cell": "Q2_claude-haiku-5-5_index_only_r2",
+  "arm": "index_only",
+  "rubric_version": "1.0.0",
+  "rubric_digest": "32294778c2753056",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 1.0,
+  "unmarked_pct": 0.0,
+  "split_decisions": 0,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "names the websocket event dispatcher that routes `reaction_added` to its handler (`handleWebSocketEvent` \u2192 `handleReactionAddedToPostEvent`)",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: `handleWebSocketEvent            app/actions/websocket/event.ts:44 | WHY: The answer names handleWebSocketEvent dispatching REACTION_ADDED to handleReactionAddedToPostEvent. || QUOTE: `handleWebSocketEvent            app/actions/websocket/event.ts:44 | WHY: The answer names handleWebSocketEvent as the dispatcher with a REACTION_ADDED case routing to handleReactionAddedToPostEvent. || QUOTE: handleWebSocketEvent            app/actions/websocket/event.ts:44 | WHY: The answer names handleWebSocketEvent dispatching REACTION_ADDED to handleReactionAddedToPostEvent.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the added reaction is stored through the database operator's `handleReactions`, which prepares Reaction records and writes them with `batchRecords`",
+      "kind": "retrieval",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: operator.handleReactions({ prepareRecordsOnly: false, skipSync: true, postsReactions: [...] }) ... ServerDataOperatorBase.handleReactions handlers/index.ts:124 ... prepareRecords({createRaws, transformer: transformReactionRecord, tableName: REACTION}) ... batchRecords(batchRecords) \u2192 one write to the server DB | WHY: The answer states that the add path goes through the operator's handleReactions, which prepares Reaction records via prepareRecords and writes them with batchRecords. || QUOTE: operator.handleReactions({ prepareRecordsOnly: false, skipSync: true, postsReactions: [...] }) ... 5. prepareRecords({createRaws, transformer: transformReactionRecord, tableName: REACTION}) ... 6. batchRecords(batchRecords) \u2192 one write to the server DB | WHY: The answer says the added reaction goes through the operator's `handleReactions`, which prepares Reaction records via `prepareRecords` and then writes them with `batchRecords`. || QUOTE: operator.handleReactions({ prepareRecordsOnly: false, skipSync: true, postsReactions: [...] }) ... 5. prepareRecords({createRaws, transformer: transformReactionRecord, tableName: REACTION}) ... 6. batchRecords(batchRecords) \u2192 one write to the server DB | WHY: The answer states the added reaction goes through operator.handleReactions, which prepares Reaction records (prepareRecords with the reaction transformer) and writes them with batchRecords.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that a removed reaction does NOT go through the operator: its handler queries the reaction and destroys it with a direct `database.write`",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"4. if found: database.write(() => reaction[0].destroyPermanently())\" and \"It does not use `handleReactions`, `sanitizeReactions`, or any transformer.\" | WHY: The answer says removal bypasses the operator (uses only `database`), queries the reaction, and destroys it via a direct `database.write`. || QUOTE: \"4. if found: database.write(() => reaction[0].destroyPermanently())\" and \"It does not use `handleReactions`, `sanitizeReactions`, or any transformer. The row is matched by the composite key (emoji, post, user) and hard-deleted.\" | WHY: The answer says removal bypasses the operator, queries the reaction with `queryReaction`, and destroys it with a direct `database.write` calling `destroyPermanently`. || QUOTE: \"4. if found: database.write(() => reaction[0].destroyPermanently())\" and \"It does not use `handleReactions`, `sanitizeReactions`, or any transformer. The row is matched by the composite key (emoji, post, user) and hard-deleted.\" | WHY: The answer says removal bypasses the operator, queries the reaction via queryReaction, and destroys it with a direct database.write.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "explains that `skipSync: true` stops the single incoming reaction being treated as the post's complete set \u2014 without it every other reaction on the post would be deleted",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"The event therefore only creates. It never prunes reactions that the server no longer reports for that post. A full sync would prune, but a single-event update must not, because the event carries only one reaction.\" | WHY: The answer explains that skipSync prevents deletion of other reactions since the event carries only one reaction, which matches the item's substance. || QUOTE: \"A full sync would prune, but a single-event update must not, because the event carries only one reaction.\" | WHY: The answer says skipSync returns no deletions so the single-reaction event doesn't prune other reactions, since the event carries only one reaction, which matches the item's mechanism. || QUOTE: \"**`skipSync: true` (add path).** Inside `sanitizeReactions`, `skipSync` returns early with `deleteReactions: []`. Inside `handleReactions`, the delete branch is also guarded by `!skipSync`. The event therefore only creates. It never prunes reactions that the server no longer reports for that post. A full sync would prune, but a single-event update must not, because the event carries only one reaction.\" | WHY: The answer states that skipSync prevents deletion/pruning of other reactions because the event carries only one reaction, not the post's full set.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "notes that both handlers swallow any error silently (empty catch), so a failed write leaves no trace",
+      "kind": "conclusion",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: Errors in the add handler are swallowed by an empty `catch {}`. A malformed payload or a DB failure therefore leaves no trace in the logs at this layer. ... (catch {} again swallows errors) | WHY: The answer states both handlers use an empty catch that swallows errors, leaving no trace. || QUOTE: \"Errors in the add handler are swallowed by an empty `catch {}`. A malformed payload or a DB failure therefore leaves no trace in the logs at this layer.\" and \"(catch {} again swallows errors)\" | WHY: The answer states both handlers use an empty catch that swallows errors, so a DB failure leaves no trace. || QUOTE: \"Errors in the add handler are swallowed by an empty `catch {}`. A malformed payload or a DB failure therefore leaves no trace in the logs at this layer.\" and \"(catch {} again swallows errors)\" | WHY: The answer states both handlers use an empty catch that swallows errors, leaving no log trace for failed writes.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    }
+  ]
+}

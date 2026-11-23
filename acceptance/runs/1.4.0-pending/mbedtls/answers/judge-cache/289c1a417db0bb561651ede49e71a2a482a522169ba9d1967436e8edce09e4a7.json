@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: If it **is** defined, `MBEDTLS_PRIVATE(m)` \u2192 `m` (plain access). ... **Everyone else** (external applications) gets the mangled name and a compile error if they reach into a field.\nVERDICT: HIT\nWHY: The answer states that code defining MBEDTLS_ALLOW_PRIVATE_ACCESS sees plain member names, while ordinary external consumers see the mangled private_ names."
+}

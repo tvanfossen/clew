@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Allow patterns only skip the approval prompt. Schema, MCP-key and tier checks still run first and can still reject the call.\nVERDICT: HIT\n\nWHY: The answer says allow patterns only skip approval, not grant execution, and that approval (check_approval in tool_executor.cpp) is the only step that reads the permission lists, with deny enforced in a different file (server_manager.cpp)."
+}

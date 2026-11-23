@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 31861,
+  "stop_reason": "end_turn",
+  "session_id": "6808e373-9fab-4494-818d-f51e8e0a85c5",
+  "total_cost_usd": 0.009843399999999999,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 19015,
+    "cache_read_input_tokens": 281920,
+    "output_tokens": 6440,
+    "output_tokens_details": {
+      "thinking_tokens": 2967
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 19015,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3018,
+        "cache_read_input_tokens": 56649,
+        "cache_creation_input_tokens": 818,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 818
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 6440,
+      "cacheReadInputTokens": 281920,
+      "cacheCreationInputTokens": 19015,
+      "webSearchRequests": 0,
+      "costUSD": 0.009843399999999999,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2967,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 19015,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 13,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** every allocation in the library goes through `mbedtls_calloc()` and `mbedtls_free()`, never directly through libc. By default those two names are compile-time aliases for `calloc` and `free`. A project can replace them at compile time with macros, or at runtime with a function-pointer hook. The library's own memory-buffer allocator uses that same runtime hook.\n\n**What gets called**\n\n```\nlibrary code (~147 call sites via mbedtls_calloc)\n        \u2502\n        \u25bc\nmbedtls_calloc()  \u2500\u2500 library/platform.c:47 \u2500\u2500\u25ba (*mbedtls_calloc_func)  \u2500\u2500\u25ba calloc / your fn\n```\n\n- **Default build (`MBEDTLS_PLATFORM_MEMORY` off, the shipped default):** `include/mbedtls/platform.h:166-167` defines `mbedtls_calloc` as `calloc` and `mbedtls_free` as `free`. The call is libc `calloc`, resolved at compile time. The `platform.c` hook code is compiled out.\n- **Compile-time substitution:** define both `MBEDTLS_PLATFORM_CALLOC_MACRO` and `MBEDTLS_PLATFORM_FREE_MACRO`. `platform.h:139-144` then maps `mbedtls_calloc`/`mbedtls_free` to your macros, and `platform.c:20-22` omits its runtime code. You must define both or neither (`mbedtls_config.h:4149-4151`).\n- **Runtime substitution:** define `MBEDTLS_PLATFORM_MEMORY` without the two macros. `platform.h:148-161` declares the functions. `platform.c:44-45` holds two function pointers, initialised to `MBEDTLS_PLATFORM_STD_CALLOC`/`_FREE`. Then call the setter before any allocation:\n\n  ```c\n  mbedtls_platform_set_calloc_free(my_calloc, my_free);\n  ```\n\n  The setter (`platform.c:57-63`) just assigns the two pointers and returns 0. It does no locking and does not check for prior use. If `MBEDTLS_PLATFORM_STD_CALLOC` is undefined, the default is a stub that returns NULL, so allocation fails until you set a function (`mbedtls_config.h:4113-4134`).\n\n- **Contract your allocator must meet** (`mbedtls_config.h:4113-4134`): `calloc` must zero the memory; a zero-size request may return NULL or a valid pointer; `free(NULL)` must be a no-op; and `free` must only receive pointers from your `calloc`.\n\n**What the library does with the facility**\n\n1. **Routes every allocation through the hook.** A grep of `library/` finds no direct `calloc(` or `free(` calls, apart from the backtrace case below. Callers include the cipher context constructors in `cipher_wrap.c`, `asn1parse.c`, the ECP comb code, the PK-to-PSA import paths, and `dhm.c`'s file loader.\n2. **Ships its own allocator on top of the hook.** `mbedtls_memory_buffer_alloc_init(buf, len)` (`library/memory_buffer_alloc.c:566-600`) manages a caller-supplied static buffer and installs its own `calloc`/`free` through `mbedtls_platform_set_calloc_free`. With `MBEDTLS_THREADING_C` it installs mutex-wrapped variants. The programs `ssl_server2`, `ssl_client2`, `ssl_pthread_server` and `benchmark` use it this way.\n3. **Its one direct libc `free`** (`memory_buffer_alloc.c:404`) is under `MBEDTLS_MEMORY_BACKTRACE` and frees the result of `backtrace_symbols()` (lines 282, 348). That pairing is correct, so it is not a bypass.\n\n**Caveats for a substituting project**\n\n- The hook is process-global, not per-context. Setting it replaces the allocator for every mbedtls user in the process, and `memory_buffer_alloc_init` silently overwrites any earlier setting.\n- Call the setter before any library use. Allocations made earlier stay with the old allocator, so freeing them with the new `free` is undefined behaviour.\n- The default `MBEDTLS_PLATFORM_STD_*` values are only meaningful when the platform hook is compiled in. A build with `MBEDTLS_PLATFORM_NO_STD_FUNCTIONS` and no replacement fails every allocation at runtime.\n- The repo's `component_test_psa_crypto_without_heap` (`tests/scripts/components-configuration-crypto.sh`) builds a configuration where the core library cannot call calloc/free while test code can. I read only its description, not the script body.\n\nI did not build or run anything; the answers above come from the index and from reading the cited source lines.",
+  "ttft_ms": 1962,
+  "type": "result",
+  "duration_ms": 34479,
+  "uuid": "d2daaf1b-00f3-42eb-8eb3-671e4c2452ad",
+  "ttft_stream_ms": 1310,
+  "time_to_request_ms": 158,
+  "first_content_frame_ms": 1310,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

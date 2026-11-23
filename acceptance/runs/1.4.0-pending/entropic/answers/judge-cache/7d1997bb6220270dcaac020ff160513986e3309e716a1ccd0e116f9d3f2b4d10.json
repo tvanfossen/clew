@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The text before the first `:` is an fnmatch glob on the fully-qualified tool name, e.g. `filesystem.*`. - With no `:`, the tool-name match is enough. A bare `bash.execute` allows every call to that tool. - With a `:`, the part after it is an fnmatch glob on the argument pattern\"\nVERDICT: HIT\nWHY: The answer states fnmatch matching, a split at the first colon into tool and argument parts, and that a pattern with no colon matches on tool name alone."
+}

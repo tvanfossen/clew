@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Compile time:** define both `MBEDTLS_PLATFORM_CALLOC_MACRO` and `MBEDTLS_PLATFORM_FREE_MACRO`... **Run time:** leave the macros undefined... `mbedtls_platform_set_calloc_free(calloc_fn, free_fn)`... If both macros are defined, `platform.c:20-22` compiles out the whole runtime mechanism, so `mbedtls_platform_set_calloc_free` is not declared or available.\"\nVERDICT: HIT\nWHY: The answer separates the compile-time macro pair from the runtime function-pointer pair, and it says that defining the macros removes the runtime mechanism, so the two are mutually exclusive."
+}

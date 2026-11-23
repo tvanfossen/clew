@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says undeclared scope falls to whole repo and that a rejected declaration stops the build with an error rather than being widened. It never says every failure to find a declared scope falls through to whole-repo indexing, and it contradicts that for rejected declarations."
+}

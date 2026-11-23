@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: YAML and JSON get a file-set entry and nothing else. ... `.yaml` `.yml` `.json` | `path` row only | Findable by name in `search(corpus='files')`. Zero symbols, by design.\nVERDICT: HIT\nWHY: The answer says YAML/JSON are registered as path rows with zero symbols, while shell/CMake get definition rows, so the groups are treated differently."
+}

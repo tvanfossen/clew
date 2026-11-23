@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"returns `{}`. There is no error code, exception, or status. A missing vocab (`vocab_ == nullptr`) also returns `{}`, silently.\"\nVERDICT: HIT\nWHY: The answer states that a failed tokenization returns an empty `{}` and that a missing vocab also returns `{}`, so the two cases share a value. The item says \"no tokenizer wired\", which the answer renders as a null vocab, and I read that as the same condition. The item also says \"the backend's wrapper\", and the answer places the `{}` returns in `LlamaCppTokenizer::tokenize` and says `LlamaCppBackend::tokenize` passes the empty vector through."
+}

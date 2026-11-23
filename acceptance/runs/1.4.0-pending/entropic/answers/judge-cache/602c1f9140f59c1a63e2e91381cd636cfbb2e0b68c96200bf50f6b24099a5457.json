@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: entropic/_bindings.py      AUTO-GENERATED from entropic.h by scripts/gen_bindings.py\nVERDICT: HIT\nWHY: The answer explicitly states _bindings.py is auto-generated from entropic.h by scripts/gen_bindings.py, and also notes regeneration via `inv gen-bindings`."
+}

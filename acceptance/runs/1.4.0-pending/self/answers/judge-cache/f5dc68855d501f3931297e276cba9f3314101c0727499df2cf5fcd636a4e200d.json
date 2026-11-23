@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `edge_class`: always `'call'` for this list. Shared-key dataflow edges are a separate class.\nVERDICT: MISS\nWHY: The answer says the callers list is always `edge_class` 'call' and that dataflow edges are separate, which contradicts the item's claim that both kinds share one list and the consumer must read `edge_class`."
+}

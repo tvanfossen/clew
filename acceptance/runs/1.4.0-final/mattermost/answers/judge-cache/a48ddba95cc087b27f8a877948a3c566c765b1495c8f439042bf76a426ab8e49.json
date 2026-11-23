@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`client.createPost` is called once. `ClientPosts.createPost` passes `noRetry: true` (`app/client/rest/posts.ts:46`), and `tracking.ts:383-384` turns that into `retryPolicyConfiguration = {retryLimit: 0}`. So the request is not retried at the HTTP layer either.\"\nVERDICT: HIT\nWHY: The answer says createPost is called once with noRetry/retryLimit 0 and that the app makes zero automatic retries."
+}

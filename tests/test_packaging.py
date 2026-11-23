@@ -65,6 +65,24 @@ _JUSTIFIED_UNDECLARED = {
     # by our own floor". gh#23 moved the floor, so that claim expired and the
     # exemption would have hidden a genuinely missing dependency on 3.10.
     "tomllib",
+    # THE TARGET REPOSITORY'S DEPENDENCY, NOT CLEW'S (round 3, P4b). `clew/wiki/_traceplugin.py`
+    # is never imported by clew: `tracerun.trace_test` copies it as a file into a scratch
+    # directory and the TARGET repository's own interpreter loads it with `pytest -p`, so pytest
+    # must exist in that environment, where the repository's tests already need it. Declaring it
+    # for clew would install a test runner into every clew user's environment for nothing.
+    "pytest",
+    # DECLARED, BUT AS THE `wiki` EXTRA (1.4.0, owner 2026-11-13), not as a runtime dependency:
+    # `clew wiki build` renders through Sphinx and nothing else does. Its single import sits
+    # inside `clew.wiki.build._render`, guarded, and refuses with "pip install 'clew-trace[wiki]'"
+    # when the extra is absent — so an install without it loses exactly one verb, loudly. The
+    # index, the MCP server and `clew wiki check` never import it (the last is pinned by
+    # tests/test_wiki_build.py).
+    "sphinx",
+    # DECLARED IN THE `wiki` EXTRA (round 4): the wiki reads per-test coverage contexts from
+    # coverage.py's own `.coverage` data file through its API. The import sits inside
+    # `clew.wiki.imports._contexts_from_data_file`, reached only when `wiki.tests.contexts` names
+    # a data file; a JSON report needs no import at all.
+    "coverage",
 }
 
 

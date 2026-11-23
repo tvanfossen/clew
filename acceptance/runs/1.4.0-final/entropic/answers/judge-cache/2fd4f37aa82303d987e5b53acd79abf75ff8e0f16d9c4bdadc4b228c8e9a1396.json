@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Logs are scoped to the owning handle via `HandleLogScope`.\nVERDICT: MISS\nWHY: The answer mentions HandleLogScope only for the per-client serve_client thread. It never says every thread body installs one as its first statement, so the general fact is absent."
+}

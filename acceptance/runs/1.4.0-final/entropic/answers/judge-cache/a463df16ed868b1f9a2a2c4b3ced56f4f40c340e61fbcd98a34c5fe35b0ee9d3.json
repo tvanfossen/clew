@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: ExternalBridge::accept_loop spawned in ExternalBridge::start; HealthMonitor::monitor_loop in HealthMonitor::start; SSETransport::sse_reader_loop and StdioTransport::stderr_reader_loop (MCP transports); cancel poller threads in iface_generate_with_cancel (src/inference/interface_factory.cpp) and dispatch_batch_generate\nVERDICT: HIT\nWHY: The answer's table lists thread spawn sites across the external bridge, MCP transports, health monitor and inference path, which shows creation is spread across subsystems; it never says \"not centralised\" in so many words."
+}

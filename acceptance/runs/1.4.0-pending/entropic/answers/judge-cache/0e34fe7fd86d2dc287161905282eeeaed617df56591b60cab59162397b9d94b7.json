@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Split on the first `:`. The left side is `fnmatch`ed against the tool name. Without a colon, that match is enough, so the rule applies to any arguments.\nVERDICT: HIT\nWHY: The answer states fnmatch matching, a split at the first colon into tool and argument parts, and that a no-colon pattern matches on the tool name alone."
+}

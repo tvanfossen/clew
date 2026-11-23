@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The string comes from a generated lookup table in `library/error.c`... it has to pass the code to `mbedtls_strerror()`.\" and \"mbedtls_strerror(ret, buf, buflen)            library/error.c:792\"\nVERDICT: HIT\nWHY: The answer names mbedtls_strerror as the entry point callers use and places it in library/error.c at line 792."
+}

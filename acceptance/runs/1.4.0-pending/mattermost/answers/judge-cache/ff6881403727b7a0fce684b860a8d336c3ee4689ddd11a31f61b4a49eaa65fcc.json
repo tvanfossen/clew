@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The `NetworkManager` default config sets `retryPolicyConfiguration` to `EXPONENTIAL_RETRY`, `retryLimit: 3`, base 2, scale 0.5 (`app/managers/network_manager.ts:68-73`). ... Tracking requests override this to `retryLimit: 0` ... Nothing in the post send path does.\nVERDICT: MISS\nWHY: The answer states the general exponential/limit-3 retry from the network manager, but says posting does not opt out (\"Nothing in the post send path does\") and is unsure whether POSTs are retried, so the opt-out is absent."
+}

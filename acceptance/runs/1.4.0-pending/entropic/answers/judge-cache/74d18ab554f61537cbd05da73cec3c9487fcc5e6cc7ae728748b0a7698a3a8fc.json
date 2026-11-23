@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never discusses the split between lazy import and engine loading, nor that `import entropic` works before the engine is installed or that this enables an install-engine subcommand. It only mentions PEP 562 lazy `__getattr__` loading of `_bindings`, without that conclusion."
+}

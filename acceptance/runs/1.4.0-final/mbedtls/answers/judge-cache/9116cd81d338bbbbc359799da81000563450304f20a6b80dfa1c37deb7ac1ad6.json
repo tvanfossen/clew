@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The index's thread layer finds four spawn sites, all in `programs/` ... None is in `library/`. ... **What the locks protect when you enable `MBEDTLS_THREADING_C` plus `_PTHREAD`:** ... `library/threading.c:18` gates the whole layer, including the pthread backend at line 50.\nVERDICT: HIT\nWHY: The answer states that no thread spawns are in `library/`. It also says `library/threading.c` provides the opt-in mutex layer (pthread backend) used by `library/` locks such as `entropy` and `ctr_drbg`."
+}

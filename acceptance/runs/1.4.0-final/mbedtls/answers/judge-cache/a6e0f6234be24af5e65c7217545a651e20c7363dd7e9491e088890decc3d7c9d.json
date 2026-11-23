@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Neither the library nor its own sample programs contain a spawn site inside `library/`, so the library never creates its own threads.\nVERDICT: MISS\nWHY: The answer states library/ creates no threads, but it frames the mutex code as only activating under a config flag, and it never presents library/ as supplying the mutex abstraction that threaded callers use. The contrast is not stated as the item requires."
+}

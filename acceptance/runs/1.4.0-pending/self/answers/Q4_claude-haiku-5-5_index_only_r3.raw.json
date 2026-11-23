@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 13393,
+  "stop_reason": "end_turn",
+  "session_id": "e07df9e4-3fe1-4281-8bb3-681204ab56b0",
+  "total_cost_usd": 0.00214834,
+  "usage": {
+    "input_tokens": 4,
+    "cache_creation_input_tokens": 1516,
+    "cache_read_input_tokens": 73324,
+    "output_tokens": 2223,
+    "output_tokens_details": {
+      "thinking_tokens": 1166
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 1516,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2000,
+        "cache_read_input_tokens": 36662,
+        "cache_creation_input_tokens": 1516,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1516
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 4,
+      "outputTokens": 2223,
+      "cacheReadInputTokens": 73324,
+      "cacheCreationInputTokens": 1516,
+      "webSearchRequests": 0,
+      "costUSD": 0.00214834,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1166,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 1516,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 2,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The answer I got was for `git_argv` in `clew/gitenv.py:89`. It is a list of **callers**, not call sites.\n\n**What is in it**\n\n- Caller rows grouped by file, each giving the enclosing function's name: `_detect_git_version` (guard/main.py), `_git_ls_files` (guard/tags.py), `_gitignored_paths` and `_is_dependency_of_parent` (scope.py), `run_git` (guard/git.py), `tracked_files` (propose/notindexed.py), and a test in test_security_surface.py.\n- No line numbers, no count of how many times each caller invokes it, and no conditions. A function that calls it three times appears once.\n- Edge metadata says `source: ast`, `confidence: resolved`, `edge_class: call`, and `callers_unresolved: 0`. So these edges were parsed from the code and matched by name, not guessed from text.\n- `callees` is empty. That means no call from `git_argv` resolved to an indexed function. Its body does call `list`, `extend`, `append` and f-strings, but those are not indexed, so an empty callees list does not mean it calls nothing.\n- Attached context is about the function, not the edge: a requirement (REQ-DDB-CONFIG-001), a thread (`clew-first-build-`, spawned from `_await_first_build`, confidence medium), and a \"covering test.\"\n\n**What would make it wrong to read as a list of call sites**\n\n1. **Rows are enclosing functions, not locations.** You know which function calls it, not which line or branch.\n2. **Only direct, name-resolved calls appear.** A function passed as a value, called through a wrapper, or reached via `subprocess` with a constructed argv would not show up as a caller. Here the code deliberately routes every git call through this function, so a missed direct call site would be a reachability gap, not a safety gap.\n3. **Reachability is not a call.** The thread row says `git_argv` is reachable from the first-build worker, which is a much weaker claim. Read it as \"the function is in a thread's member set,\" not \"the worker calls it.\"\n4. **The test caller is not production usage.** `test_the_disarmed_key_list_reaches_the_argv` asserts the function's behaviour; it is in the list because it calls it.\n5. **Coverage attribution looks wrong.** `covering_tests` names `test_mqtt_dispatch_accepts_an_inline_document_not_only_a_path`, which has nothing to do with git argv by name. I would not trust that as evidence of coverage without reading the test. I did not verify it, since I can only query the index.\n6. **Same-name collisions.** If two functions shared the name, the reply would carry an `ambiguous` block. This reply has none, so I'd take the single match at face value.\n\nIn short, the caller list is a reliable set of \"which functions contain a direct resolved call to this name.\" It is not a set of call sites, not evidence of execution frequency or conditions, and not proof of test coverage.",
+  "ttft_ms": 2260,
+  "type": "result",
+  "duration_ms": 13687,
+  "uuid": "f8d6fe8c-ae02-4762-90e5-48fc46fa360b",
+  "ttft_stream_ms": 1240,
+  "time_to_request_ms": 70,
+  "first_content_frame_ms": 1240,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

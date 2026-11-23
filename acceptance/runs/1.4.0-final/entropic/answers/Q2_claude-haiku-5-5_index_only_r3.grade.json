@@ -1,0 +1,103 @@
+{
+  "cell": "Q2_claude-haiku-5-5_index_only_r3",
+  "arm": "index_only",
+  "rubric_version": "3.1.1",
+  "rubric_digest": "705c131e354e5c22",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.23076923076923078,
+  "unmarked_pct": 0.0,
+  "split_decisions": 0,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "states that llama.cpp is brought in as a git SUBMODULE at extern/llama.cpp, rather than vendored, copied or fetched by the build",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: llama.cpp is a git submodule at `extern/llama.cpp`, pinned to commit b8420 | WHY: The answer explicitly states llama.cpp is a git submodule at extern/llama.cpp, contrasting with header-only libs fetched via FetchContent. || QUOTE: llama.cpp is a git submodule at `extern/llama.cpp`, pinned to commit b8420 | WHY: The answer explicitly states llama.cpp is a git submodule at extern/llama.cpp, contrasting it with header-only libs fetched via FetchContent. || QUOTE: llama.cpp is a git submodule at `extern/llama.cpp`, pinned to commit b8420 | WHY: The answer explicitly states llama.cpp is a git submodule at extern/llama.cpp, contrasting it with header-only libraries fetched via FetchContent.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "conveys that the dependency reaches roughly a dozen files of entropic's own source, not one wrapper",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer says llama.cpp usage is confined to three class pairs in `src/inference/` plus a couple of other touchpoints, framed as limited and wrapped behind abstractions. It never says the dependency reaches roughly a dozen of entropic's own source files. || QUOTE: NONE | WHY: The answer says llama.cpp is confined to a few files in src/inference/ (three class pairs plus a C-API file and adapter_manager.cpp), which is the opposite of a dependency reaching about a dozen files of entropic's own source. || QUOTE: NONE | WHY: The answer says the dependency is confined to three file pairs in `src/inference/` plus a couple of touchpoints, which is the opposite of reaching roughly a dozen files of entropic's own source.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that the dependency is CONCENTRATED in the inference layer but NOT contained by it \u2014 a minority of the reaching files sit outside src/inference",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer claims the dependency is confined to src/inference/ and doesn't leak elsewhere, which contradicts the item's conclusion that a minority of reaching files sit outside src/inference. || QUOTE: Confined to `src/inference/`: `llama_cpp_backend.{h,cpp}`, `llama_cpp_sampler.{h,cpp}`, and `llama_cpp_tokenizer.{h,cpp}` are the only first-party files that call llama.cpp types and functions | WHY: The answer says the dependency is fully confined to src/inference, which contradicts the item's conclusion that a minority of reaching files sit outside it. || QUOTE: Confined to `src/inference/`: `llama_cpp_backend.{h,cpp}`, `llama_cpp_sampler.{h,cpp}`, and `llama_cpp_tokenizer.{h,cpp}` are the only first-party files that call llama.cpp types and functions | WHY: The answer claims the dependency is fully confined to src/inference, which is the opposite of the item's \"concentrated but not contained\" conclusion. It does note a few outliers (e.g. adapter_manager.cpp) but never states that a minority of the reaching files sit outside src/inference.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies the seam as llama.cpp's C API \u2014 free functions with an llama_ prefix \u2014 rather than C++ classes or inheritance",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer describes concrete C++ classes wrapping llama.cpp and says \"direct C-API linkage\", but never identifies the seam as free functions with a llama_ prefix. It names `llama_decode` and several llama_ types only in passing, as things the inference layer calls. || QUOTE: NONE | WHY: The answer describes C++ concrete classes deriving from abstract bases and mentions \"direct C-API linkage\", but never identifies the seam as llama.cpp's C API of llama_-prefixed free functions. || QUOTE: NONE | WHY: The answer never says the seam is llama.cpp's C API of llama_-prefixed free functions. It mentions \"direct C-API linkage\" and names llama_* types and `llama_decode`, but it frames the integration mainly through C++ classes deriving from abstract bases.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "the top-level source directories that reach into llama.cpp \u2014 inference",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the top-level source directories that reach into llama.cpp \u2014 config",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": false,
+      "detail": "not named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the top-level source directories that reach into llama.cpp \u2014 core",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": false,
+      "detail": "not named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the top-level source directories that reach into llama.cpp \u2014 facade",
+      "kind": "set_member",
+      "weight": 1,
+      "hit": false,
+      "detail": "not named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the top-level source directories that reach into llama.cpp \u2014 precision",
+      "kind": "set_precision",
+      "weight": 1,
+      "hit": true,
+      "detail": "clean",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    }
+  ]
+}

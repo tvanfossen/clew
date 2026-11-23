@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The network manager's default policy would otherwise retry 3 times with exponential backoff (`app/managers/network_manager.ts:68-71`). The post send opts out of that.\nVERDICT: HIT\nWHY: The answer states the default retry policy (3 retries, exponential backoff, set in the network manager) and that createPost opts out via noRetry."
+}

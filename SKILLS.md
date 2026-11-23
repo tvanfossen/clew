@@ -1,8 +1,8 @@
 <!-- SPDX-License-Identifier: MIT -->
 # Using clew well
 
-clew answers questions about a repository from a prebuilt index, through three MCP tools:
-`dossier`, `search` and `index`. This document is how to use them so they cost less than reading
+clew answers questions about a repository from a prebuilt index, through
+<!-- clew:tools -->three tools — `dossier`, `search` and `index` — plus the `propose_declaration` prompt and the wiki as MCP resources (`clew://wiki/{slug}/llms.txt`, `clew://wiki/{slug}/flow/{name}`)<!-- /clew:tools -->. This document is how to use them so they cost less than reading
 the source — which is the only reason to use them at all.
 
 Every rule here came from watching real runs get it wrong, and where clew loses, that is stated
@@ -84,7 +84,7 @@ present.
 Reading the source after the index names the file is **the intended path, not a failure**. These
 are the cases where it is the only path. All four were measured as losses on the grid.
 
-**Files outside the indexed set.** The index covers 21 languages. A Perl generator, a Makefile, a
+**Files outside the indexed set.** What the index reads — <!-- clew:langs -->Harvests symbols from C, C++, Rust, Python, JavaScript, TypeScript, shell and CMake; registers YAML, JSON, Perl and Make files by name without parsing them<!-- /clew:langs --> — and nothing else. A Perl generator, a Makefile, a
 CI config, a `.fmt` data file — none are in it. On Mbed-TLS, `scripts/generate_errors.pl` has
 **zero** index rows, so *"what is `library/error.c` generated from"* is unanswerable from the
 index. Build tooling is invisible; go read it.

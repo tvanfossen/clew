@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Without it, the single-reaction payload would be treated as the full set of reactions for that post, and every other local reaction on the post would be marked for deletion. The early return prevents that.\nVERDICT: HIT\nWHY: The answer explicitly states that skipSync stops the single incoming reaction being treated as the full set, which prevents deletion of the post's other reactions."
+}

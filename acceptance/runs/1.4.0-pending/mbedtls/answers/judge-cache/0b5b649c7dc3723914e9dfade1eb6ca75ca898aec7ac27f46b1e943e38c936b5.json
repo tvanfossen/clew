@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "The answer names uses under two top-level directories: `library` (`library/common.h`) and `programs` (`programs/ssl/ssl_client2.c`, `programs/ssl/ssl_server2.c`). It also mentions `include/mbedtls/private_access.h`, but only as the header that defines the macro, not as a place that uses it.\n\nITEMS:\nlibrary\nprograms\nEND"
+}

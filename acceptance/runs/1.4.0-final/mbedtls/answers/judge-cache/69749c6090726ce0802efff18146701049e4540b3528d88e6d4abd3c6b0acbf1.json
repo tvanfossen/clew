@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The two options are mutually exclusive: when both macros are defined, the runtime setter is compiled out.\"\nVERDICT: HIT\nWHY: The answer separates the compile-time macro pair from the runtime function-pointer setter and states that the two are mutually exclusive."
+}

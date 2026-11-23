@@ -66,7 +66,7 @@ from .vocabulary import (
 ## @param name Table name.
 ## @return True when the table is present.
 ## @version 1
-## @dg_internal
+## @utility
 def _table_exists(conn: sqlite3.Connection, name: str) -> bool:
     """@brief Check for a table without importing the query layer.
 
@@ -86,7 +86,7 @@ def _table_exists(conn: sqlite3.Connection, name: str) -> bool:
 ## @param declared Class name as declared (bare or fully qualified).
 ## @return Matching compound names, exact match preferred over qualified-tail.
 ## @version 2
-## @dg_internal
+## @utility
 def _matching_compounds(conn: sqlite3.Connection, declared: str) -> list[str]:
     """Matches EXACTLY or on a `::`-qualified tail — never a substring. There is
     deliberately no `kind` filter: doxygen registers a compound per FILE too
@@ -117,7 +117,7 @@ def _matching_compounds(conn: sqlite3.Connection, declared: str) -> list[str]:
 ## @param compound Fully-qualified compound name.
 ## @return Mapping of member name to the memberdef rowids that define it here.
 ## @version 1
-## @dg_internal
+## @utility
 def _class_functions(conn: sqlite3.Connection, compound: str) -> dict[str, list[int]]:
     """Membership alone is not ownership: doxygen lists a base class's inherited
     members under the derived compound as well, with the BASE's rowids. Pairing
@@ -152,7 +152,7 @@ def _class_functions(conn: sqlite3.Connection, compound: str) -> dict[str, list[
 ## @param concrete Implementor members, name → rowids.
 ## @return Mapping of interface rowid to override rowids (self-pairs removed).
 ## @version 1
-## @dg_internal
+## @utility
 def _override_targets(
     conn: sqlite3.Connection,
     iface: dict[str, list[int]],
@@ -190,7 +190,7 @@ def _override_targets(
 ## @param rowids Callee rowids to look up.
 ## @return Mapping of callee rowid to (caller rowid, strongest incoming confidence) pairs.
 ## @version 5
-## @dg_internal
+## @utility
 def _callers_of(conn: sqlite3.Connection, rowids: list[int]) -> dict[int, list[tuple[int, str]]]:
     """Reads the call edges the STATIC layers already produced: a virtual call
     does land on the interface method, it just stops there. This stage continues
@@ -235,7 +235,7 @@ def _callers_of(conn: sqlite3.Connection, rowids: list[int]) -> dict[int, list[t
 ## @param binding The declared interface binding.
 ## @return (resolved edges, fuzzy edges, terminus rows) for this binding.
 ## @version 1
-## @dg_internal
+## @utility
 def _interface_edges(
     conn: sqlite3.Connection, binding: InterfaceBinding
 ) -> tuple[list[tuple[int, int, str]], list[tuple[int, int, str]], list[tuple[int, str]]]:
@@ -269,7 +269,7 @@ def _interface_edges(
 ## @param methods Method names to keep, or () for all.
 ## @return Mapping of member name to rowids; empty when the class is unresolvable.
 ## @version 1
-## @dg_internal
+## @utility
 def _binding_members(
     conn: sqlite3.Connection, class_name: str, methods: tuple[str, ...]
 ) -> dict[str, list[int]]:
@@ -301,7 +301,7 @@ def _binding_members(
 ## @param callers Interface rowid → (caller rowid, incoming confidence) pairs.
 ## @return (resolved edges, fuzzy edges) as (caller, callee, source) triples.
 ## @version 2
-## @dg_internal
+## @utility
 def _crossed_edges(
     targets: dict[int, list[int]], callers: dict[int, list[tuple[int, str]]]
 ) -> tuple[list[tuple[int, int, str]], list[tuple[int, int, str]]]:
@@ -350,7 +350,7 @@ def _crossed_edges(
 ## @param callers Interface rowid → (caller rowid, incoming confidence) pairs.
 ## @return (caller rowid, qualified interface method) pairs.
 ## @version 3
-## @dg_internal
+## @utility
 def _boundary_rows(
     binding: InterfaceBinding,
     iface: dict[str, list[int]],
@@ -388,7 +388,7 @@ def _boundary_rows(
 ## @param src_bytes The file's raw source bytes.
 ## @return The handler's (possibly qualified) name, or None when it is not a name.
 ## @version 1
-## @dg_internal
+## @utility
 def _handler_text(node: Any, src_bytes: bytes) -> str | None:
     """Accepts the four shapes a registered handler is actually written as:
     `fn`, `&fn`, `Ns::fn` and `&Class::fn`. Anything else — a lambda, a
@@ -414,7 +414,7 @@ def _handler_text(node: Any, src_bytes: bytes) -> str | None:
 ## @param arg_index_by_name Registrar trailing name → handler argument index.
 ## @return List of [registrar name, handler name] pairs, rowid-free.
 ## @version 1
-## @dg_internal
+## @utility
 def _walk_registration_sites(
     tree: Any, src_bytes: bytes, arg_index_by_name: dict[str, int]
 ) -> list[list[str]]:
@@ -467,7 +467,7 @@ class _DispatchHarvester(Harvester):
     ## @param arg_index_by_name Registrar trailing name → handler argument index.
     ## @param extra_key Manifest-derived cache-key component.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def __init__(self, arg_index_by_name: dict[str, int], extra_key: str) -> None:
         super().__init__(extra_key)
         self.arg_index_by_name = arg_index_by_name
@@ -510,7 +510,7 @@ def dispatch_harvester(manifest: DispatchManifest, extra_key: str = "") -> Harve
 ## @param name_index Definition-preferring name → rowids index.
 ## @return The rowid, or None when the name is absent or ambiguous.
 ## @version 1
-## @dg_internal
+## @utility
 def _resolve_declared_function(
     conn: sqlite3.Connection, name: str, name_index: dict[str, list[int]]
 ) -> int | None:
@@ -534,7 +534,7 @@ def _resolve_declared_function(
 ## @param sites Harvested [registrar, handler] pairs across the whole index.
 ## @return (resolved edges, fuzzy edges) as (caller, callee, source) triples.
 ## @version 1
-## @dg_internal
+## @utility
 def _table_edges(
     conn: sqlite3.Connection, manifest: DispatchManifest, sites: list[list[str]]
 ) -> tuple[list[tuple[int, int, str]], list[tuple[int, int, str]]]:
@@ -574,7 +574,7 @@ def _table_edges(
 ## @param buckets (resolved accumulator, fuzzy accumulator).
 ## @return None.
 ## @version 1
-## @dg_internal
+## @utility
 def _record_handlers(
     conn: sqlite3.Connection,
     dispatcher: int,
@@ -611,7 +611,7 @@ def _record_handlers(
 ## @param fuzzy Multi-candidate edges.
 ## @return (resolved inserted, fuzzy inserted).
 ## @version 1
-## @dg_internal
+## @utility
 def _insert_edges(
     conn: sqlite3.Connection,
     resolved: list[tuple[int, int, str]],
@@ -641,7 +641,7 @@ def _insert_edges(
 ## @param boundaries (caller rowid, qualified interface method) pairs.
 ## @return Number of rows inserted.
 ## @version 1
-## @dg_internal
+## @utility
 def _insert_boundaries(conn: sqlite3.Connection, boundaries: list[tuple[int, str]]) -> int:
     """Every enumerated value is BOUND, not spelled into the SQL text: the kind,
     the provenance and the strength each have exactly one registered spelling, and
@@ -677,7 +677,7 @@ def _insert_boundaries(conn: sqlite3.Connection, boundaries: list[tuple[int, str
 ## @param harvester Pre-built harvester from the shared parse pass; built here when omitted.
 ## @return Flat list of [registrar, handler] pairs, or [] when nothing to do.
 ## @version 3
-## @dg_internal
+## @utility
 def _harvest_sites(
     conn: sqlite3.Connection,
     repo_root: Path,

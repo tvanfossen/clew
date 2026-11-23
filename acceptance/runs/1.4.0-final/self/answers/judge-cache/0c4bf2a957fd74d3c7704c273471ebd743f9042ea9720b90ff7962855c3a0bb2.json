@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \".yaml, .yml, .json | yes | none, by design\" and \"YAML and JSON: they are in the file set so they can be found by name and named in the miss report. Their keys are never symbols\"\nVERDICT: HIT\nWHY: The answer states that YAML and JSON are registered as file-level path rows but carry no definitions/symbols, contrasted with shell and CMake which do have definitions."
+}

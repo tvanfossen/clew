@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `app/client/rest/posts.ts:46` sends `createPost` with `noRetry: true`. ... `retryPolicyConfiguration: {retryLimit: 0}`, so the HTTP layer does not retry. ... Nothing in `app/` schedules a retry for a failed post.\nVERDICT: HIT\nWHY: The answer states that create-post is sent with noRetry/retryLimit 0 and is never automatically retried, and that each manual retry is a single send."
+}

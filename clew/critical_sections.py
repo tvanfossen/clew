@@ -160,7 +160,7 @@ class Section:
     ## @param calls `[callee_name, line]` pairs running inside the hold.
     ## @param confidence An `ACQ_STRENGTH` member describing the extent.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def __init__(self, end_line: int | None, calls: list[list[Any]], confidence: str) -> None:
         self.end_line = end_line
         self.calls = calls
@@ -211,7 +211,7 @@ def ensure_section_table(conn: sqlite3.Connection) -> None:
 ## @param floor Minimum start byte; earlier nodes are skipped.
 ## @return Matching nodes sorted by start byte.
 ## @version 1
-## @dg_internal
+## @utility
 def _nodes_of_type(root: Any, wanted: str, floor: int) -> list[Any]:
     """@brief Collect same-typed nodes at or after a byte floor, in source order."""
     found = []
@@ -232,7 +232,7 @@ def _nodes_of_type(root: Any, wanted: str, floor: int) -> list[Any]:
 ## @param floor Minimum start byte (the acquisition's end).
 ## @return Release call nodes in source order; empty for an RAII hold.
 ## @version 2
-## @dg_internal
+## @utility
 def _releases(
     root: Any,
     src: bytes,
@@ -280,7 +280,7 @@ def _releases(
 ## @param src Source bytes.
 ## @return Argument texts with address-of/dereference sigils stripped.
 ## @version 1
-## @dg_internal
+## @utility
 def _operand_texts(args: Any, src: bytes) -> list[str]:
     """@brief Argument names with `&`/`*` stripped, for operand matching."""
     return [node_text(child, src).strip().lstrip("&*").strip() for child in args.named_children]
@@ -290,7 +290,7 @@ def _operand_texts(args: Any, src: bytes) -> list[str]:
 ## @param releases Release call nodes.
 ## @return Mapping of block node id to the releases at that block's own level.
 ## @version 1
-## @dg_internal
+## @utility
 def _by_block(releases: list[Any]) -> dict[int, list[Any]]:
     """Keyed by `node.id`, never by object identity: the tree-sitter bindings
     return a FRESH wrapper on every `.parent` access, so `is` between two reads
@@ -314,7 +314,7 @@ def _by_block(releases: list[Any]) -> dict[int, list[Any]]:
 ## @param by_block Releases indexed by their enclosing block.
 ## @return True when the lock is no longer held at this node.
 ## @version 1
-## @dg_internal
+## @utility
 def _shadowed(node: Any, acquire_block: Any, by_block: dict[int, list[Any]]) -> bool:
     """The membership rule. Walks the block chain from the node up to the
     acquisition's block; at each level, a release of the same operand appearing
@@ -342,7 +342,7 @@ def _shadowed(node: Any, acquire_block: Any, by_block: dict[int, list[Any]]) -> 
 ## @param block Block node to inspect.
 ## @return True when the block ends in return/break/continue/goto.
 ## @version 1
-## @dg_internal
+## @utility
 def _jump_terminated(block: Any) -> bool:
     """@brief Whether control cannot fall out of the bottom of this block."""
     named = list(block.named_children)
@@ -354,7 +354,7 @@ def _jump_terminated(block: Any) -> bool:
 ## @param acquire_block Block the acquisition sits in.
 ## @return True when some block between the release and the acquisition jumps away.
 ## @version 1
-## @dg_internal
+## @utility
 def _sealed_in_branch(release: Any, acquire_block: Any) -> bool:
     """`if (bad) { unlock; return; }` releases the lock on ONE path and then
     leaves the block, so the code after the `if` still runs under the hold. Such
@@ -379,7 +379,7 @@ def _sealed_in_branch(release: Any, acquire_block: Any) -> bool:
 ## @param by_block Releases indexed by their enclosing block.
 ## @return The closing release node, or None when the extent is unresolved.
 ## @version 2
-## @dg_internal
+## @utility
 def _closing_release(
     releases: list[Any], acquire_block: Any, by_block: dict[int, list[Any]]
 ) -> Any:
@@ -474,7 +474,7 @@ def resolve_section(
 ## @param releases Every candidate release found after the acquisition.
 ## @return An `ACQ_STRENGTH` member.
 ## @version 1
-## @dg_internal
+## @utility
 def _extent_confidence(releaser: str | None, releases: list[Any]) -> str:
     """'medium' exactly when more than one release was in play, i.e. when the
     jump-termination inference decided which one closes the hold. A single
@@ -496,7 +496,7 @@ def _extent_confidence(releaser: str | None, releases: list[Any]) -> str:
 ## @param primitives Lock primitive names to exclude.
 ## @return `[callee_name, line]` pairs, in source order.
 ## @version 4
-## @dg_internal
+## @utility
 def _member_calls(
     block: Any,
     src: bytes,
@@ -590,7 +590,7 @@ def insert_section_calls(
 ## @param bare True when the call site wrote a BARE identifier, not `x.f()` / `A::f()`.
 ## @return (rowid or None, a `SECTION_MATCH` member).
 ## @version 2
-## @dg_internal
+## @utility
 def _resolve_callee(candidates: list[int], *, bare: bool = False) -> tuple[int | None, str]:
     """Three genuinely different outcomes, and the third is the majority: a
     critical section is full of stdlib, vendor and macro calls that have no

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_ct_compiler_opaque(x)` is `asm volatile(\"\" : \"+r\"(x))` when asm is available. ... The compiler therefore cannot prove a secret's value, so it cannot fold a mask into a branch.\nVERDICT: HIT\nWHY: The answer names the empty asm volatile with \"+r\" input-output operand and says it serves as an opaque barrier against compiler optimisation. It never says outright that no instruction is emitted, but an empty asm string implies that."
+}

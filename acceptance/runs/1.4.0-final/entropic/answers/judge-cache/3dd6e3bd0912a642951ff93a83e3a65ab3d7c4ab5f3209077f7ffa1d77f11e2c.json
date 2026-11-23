@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: External bridge accept thread | `src/facade/external_bridge.cpp:796` | Accepts unix-socket clients, checks peer uid (`:929`) ... Per-client serve threads | `external_bridge.cpp:945` | One thread per connected client\nVERDICT: HIT\nWHY: The answer describes an accept thread that accepts clients and a separate per-client serve thread for each connected client, which is the two-level structure."
+}

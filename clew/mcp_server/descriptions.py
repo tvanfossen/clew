@@ -83,7 +83,7 @@ DEFAULT_TIER = 1
 ## @param path File to read.
 ## @return The parsed document.
 ## @version 1
-## @dg_internal
+## @utility
 def _read(path: Path) -> dict:
     """`json.JSONDecodeError` alone names a line and column but not a FILE, and these
     are edited by hand.
@@ -103,7 +103,7 @@ def _read(path: Path) -> dict:
 ## @param where File name, for the error message.
 ## @return The joined text.
 ## @version 1
-## @dg_internal
+## @utility
 def _joined(value: object, where: str) -> str:
     """A bare string is accepted so a one-sentence description need not be a
     one-element list, but a list is the norm.
@@ -125,7 +125,7 @@ def _joined(value: object, where: str) -> str:
 ## @param where Owning file name, for the error message.
 ## @return The filled text.
 ## @version 1
-## @dg_internal
+## @utility
 def _from_template(name: str, variables: dict, where: str) -> str:
     """A missing var raises `KeyError` from `format`, which is re-raised naming both
     files. An UNUSED var is also an error: it is how a renamed placeholder goes
@@ -153,7 +153,7 @@ def _from_template(name: str, variables: dict, where: str) -> str:
 ## @param path The tool's description file.
 ## @return Tuple of tier, priority, tool name and description text.
 ## @version 3
-## @dg_internal
+## @utility
 def _entry(path: Path) -> tuple[int, int, str, str]:
     """@brief Parse one tool description file.
     @return (tier, priority, tool name, description).
@@ -185,7 +185,7 @@ def _entry(path: Path) -> tuple[int, int, str, str]:
 ## @param where Owning file name, for the error message.
 ## @return The snippet text.
 ## @version 1
-## @dg_internal
+## @utility
 def _snippet(name: str, where: str) -> str:
     """A snippet takes no vars — if it needed them it would be a template. Kept
     separate from `_from_template` for exactly that reason: a snippet silently

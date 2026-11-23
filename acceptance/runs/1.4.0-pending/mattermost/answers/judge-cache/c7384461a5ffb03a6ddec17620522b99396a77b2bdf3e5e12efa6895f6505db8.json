@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Only an explicit `'false'` turns it off. If the server omits the setting, the app behaves as if it is `true`, so archived channels are on.\"\nVERDICT: HIT\nWHY: The answer states directly that a missing setting means archived channels are viewable and only an explicit 'false' disables them."
+}

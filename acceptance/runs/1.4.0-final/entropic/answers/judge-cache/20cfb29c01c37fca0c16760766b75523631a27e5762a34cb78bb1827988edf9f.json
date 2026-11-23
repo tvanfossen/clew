@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `_loader.find()` checks `$ENTROPIC_LIB`, then `$ENTROPIC_HOME`, then `~/.entropic/entropic/lib/` and `~/.entropic/lib/`, and finally falls back to `ctypes.util.find_library`.\nVERDICT: HIT\nWHY: The answer gives the order of env overrides, then the default user directory, then the system library lookup. It also names two layouts for the user directory (`entropic/lib/` and `lib/`)."
+}

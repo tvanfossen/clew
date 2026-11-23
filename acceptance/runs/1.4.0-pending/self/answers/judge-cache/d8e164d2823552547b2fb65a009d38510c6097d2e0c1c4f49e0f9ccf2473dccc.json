@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Args are always empty, since shell passes arguments as `$1`/`$@`.\nVERDICT: HIT\nWHY: The answer states shell functions are recorded with empty args because the language passes arguments positionally. That covers the no-argument-list half. It never mentions the missing return, so this is borderline, but the core fact, that args are empty because the language has no formal parameter list, is stated."
+}

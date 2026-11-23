@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `allow` and `deny` go into `PermissionManager` via the `ServerManager` constructor (`server_manager.cpp:35`)\nVERDICT: HIT\nWHY: The answer names PermissionManager and states that allow/deny come from PermissionsConfig, parsed from config and passed in through the ServerManager constructor."
+}

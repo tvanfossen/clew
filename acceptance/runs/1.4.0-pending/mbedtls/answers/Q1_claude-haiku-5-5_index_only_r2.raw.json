@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 23593,
+  "stop_reason": "end_turn",
+  "session_id": "594e6e5a-6daa-410a-89ae-4d47054b2569",
+  "total_cost_usd": 0.007281040000000001,
+  "usage": {
+    "input_tokens": 6,
+    "cache_creation_input_tokens": 18885,
+    "cache_read_input_tokens": 113944,
+    "output_tokens": 4728,
+    "output_tokens_details": {
+      "thinking_tokens": 2711
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 18885,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3674,
+        "cache_read_input_tokens": 40618,
+        "cache_creation_input_tokens": 14930,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 14930
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 6,
+      "outputTokens": 4728,
+      "cacheReadInputTokens": 113944,
+      "cacheCreationInputTokens": 18885,
+      "webSearchRequests": 0,
+      "costUSD": 0.007281040000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2711,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 18885,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 8,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** in the default configuration, the library runs no concurrency of its own and takes no locks. Every mutex in `library/` is compiled out, so any thread safety is the integrator's job. The concurrent code the index finds is in `programs/`, not in the library.\n\n**Default build (what the index can establish)**\n\n- `MBEDTLS_THREADING_C` is off by default (`include/mbedtls/mbedtls_config.h:3787`), and so is its backend, `MBEDTLS_THREADING_PTHREAD` (`:2196`). `MBEDTLS_THREADING_ALT` is also off (`:2185`).\n- With `MBEDTLS_THREADING_C` off, the guarded code is absent. That includes `threading.c` (the pthread lock/unlock wrappers), the `heap.mutex` wrappers in `memory_buffer_alloc.c`, and `psa_unregister_read_under_mutex`.\n- `MBEDTLS_PSA_CRYPTO_C` is on by default (`mbedtls_config.h:3334`). So PSA runs without its key-slot and global-data locks. The index shows no lock protecting PSA by default, and I read that as \"the library does not protect it.\" I have not confirmed this against the shipped header itself.\n\n**Thread creation found in the repo (4 spawn sites, all in `programs/`)**\n\n| Spawn site | Kind | What it means |\n|---|---|---|\n| `programs/ssl/ssl_pthread_server.c:277` | pthread, `handle_ssl_connection` | The only real multi-threaded consumer of the library. Its reachable set is about 1,094 members, so it calls into the library heavily. |\n| `programs/test/benchmark.c:430` | win32 `TimerProc` | Timer for `mbedtls_set_alarm`. |\n| `programs/test/benchmark.c:444` | ISR `sighandler` | Signal handler for the same alarm. |\n| `programs/ssl/ssl_server2.c:1699` | ISR `term_handler` | Signal handler for termination. |\n\n**What the library's locks would protect when enabled**\n\nThe index was built with `MBEDTLS_THREADING_C` and `MBEDTLS_THREADING_PTHREAD` set as flags, so the lock data below describes that variant, not the default. The lock layer collapses everything into one identity, `mutex->mutex` (low confidence), so per-object locks are not separately resolved. The protection assignments below come from the global mutex declarations and their call sites:\n\n| Lock | Protects (from call sites) |\n|---|---|\n| `mbedtls_threading_key_slot_mutex` | PSA key slot table: `psa_unregister_read_under_mutex`, used by `psa_open_key` and most `psa_*` entry points |\n| `mbedtls_threading_psa_globaldata_mutex` | PSA global state (declared; no dossier call site listed) |\n| `mbedtls_threading_psa_rngdata_mutex` | PSA RNG state (declared; `psa_random_internal_generate` takes the mutex in `psa_crypto_random.c`) |\n| `mbedtls_threading_readdir_mutex` | `readdir` (declared; not individually checked) |\n| `mbedtls_threading_gmtime_mutex` | `gmtime` (declared; `mbedtls_platform_gmtime_r` takes the lock) |\n| `heap.mutex` in `memory_buffer_alloc.c` | The static buffer allocator's `calloc`/`free` |\n| Per-context mutexes | Entropy (`entropy.c`), CTR-DRBG, HMAC-DRBG, SSL session cache, SSL cookie, SSL ticket, and RSA. These are taken on their own context's mutex, not a global. |\n\n**Other facts**\n\n- The index finds no nested two-lock holdings. The tool itself says this is not proof of deadlock freedom.\n- The thread/lock layers only reflect the configured variant, so the statements about the default come from the `default_state` gate data, not from a build with the default header. Confirming against `mbedtls_config.h` would take one read of that header.",
+  "ttft_ms": 1456,
+  "type": "result",
+  "duration_ms": 24301,
+  "uuid": "f8151411-0458-4cec-81a6-da831670c5cc",
+  "ttft_stream_ms": 1058,
+  "time_to_request_ms": 72,
+  "first_content_frame_ms": 1059,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

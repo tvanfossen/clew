@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Under this reading, the callback only notifies, and the deny list is the only thing left that can stop an unlisted call.\nVERDICT: HIT\nWHY: The answer says `ServerManager::execute` checks `is_denied` (the deny list) and that this is the only thing left that can stop an unlisted call, which matches the item's substance."
+}

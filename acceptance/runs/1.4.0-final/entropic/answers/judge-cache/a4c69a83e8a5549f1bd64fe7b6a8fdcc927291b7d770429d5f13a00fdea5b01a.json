@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"With that callback wired, the only calls refused at approval are the ones that hit the deny list later. This contradicts the header's \"default-deny\" wording (`permission_manager.h`).\"\nVERDICT: HIT\nWHY: The answer concludes that an unmatched tool is approved by the callback and only the deny list blocks, so the effective posture is not default-deny, and unlisted tools run."
+}

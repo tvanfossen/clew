@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"installs its own `calloc`/`free` through `mbedtls_platform_set_calloc_free`. With `MBEDTLS_THREADING_C` it installs mutex-wrapped variants.\"\nVERDICT: HIT\nWHY: The answer says the buffer allocator's init installs mutex-wrapped variants under MBEDTLS_THREADING_C and its own plain pair otherwise. It doesn't use the words \"compile time\", but the macro condition implies it."
+}

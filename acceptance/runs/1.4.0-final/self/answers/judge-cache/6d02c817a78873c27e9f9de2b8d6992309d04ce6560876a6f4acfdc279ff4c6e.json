@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"unusable    \u2192 _Rejected (warning logged) \u2192 whole-repo tier, reason names the rejection\" and \"Nothing is declared means the whole-repo tier applies, and the reason string records it. The `_declaration_note` text says why nothing was found.\"\nVERDICT: HIT\nWHY: The answer states that the fallback to the whole-repo tier carries a reason string recording which scope was used and why, including the note on why nothing was found."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says dataflow (shared_key_edges) is separate and not in `callers`, and never mentions an `edge_class` field or two neighbour kinds in one list."
+}

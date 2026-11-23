@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Sends `include_deleted_channels: true` to the server, so results from archived channels come back.\nVERDICT: HIT\nWHY: The answer states that searchPosts sends `include_deleted_channels` to the server (true/false depending on the setting)."
+}

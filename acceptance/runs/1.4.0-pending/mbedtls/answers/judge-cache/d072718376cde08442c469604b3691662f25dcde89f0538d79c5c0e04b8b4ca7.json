@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `components-sanitizers.sh` has `component_release_test_valgrind_constant_flow`\nVERDICT: MISS\nWHY: The answer mentions Valgrind-based tests and the sanitizer component, but it never says the facility is off-by-default, a separate testing facility built on MemorySanitizer or valgrind, or that it is explicitly not part of the library API."
+}

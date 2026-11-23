@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"they fall back to `platform_calloc_uninit` (returns NULL) and `platform_free_uninit` (no-op)\"\nVERDICT: HIT\nWHY: The answer states that the uninitialised defaults are a calloc stub that always returns NULL and a free stub that does nothing, and that allocations silently return NULL if the pointers aren't set."
+}

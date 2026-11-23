@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The wording is graded, not fixed. The module has a test that a note claiming certainty must have earned it. It also says that the definitive note is kept only when nothing unread could have matched.\nVERDICT: MISS\nWHY: The answer says the wording is graded and must be earned, but it doesn't say this is done per call by querying which corpora weren't read, and it never contrasts that with attaching the wording to a result shape. It describes a fixed outcome table by input type instead."
+}

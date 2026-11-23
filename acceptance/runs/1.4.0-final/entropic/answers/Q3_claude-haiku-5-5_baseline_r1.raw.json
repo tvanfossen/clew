@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 51562,
+  "stop_reason": "end_turn",
+  "session_id": "1a1c70ca-2c02-4a68-ac84-3d8928c7020e",
+  "total_cost_usd": 0.02224547,
+  "usage": {
+    "input_tokens": 24,
+    "cache_creation_input_tokens": 58589,
+    "cache_read_input_tokens": 601927,
+    "output_tokens": 9012,
+    "output_tokens_details": {
+      "thinking_tokens": 3975
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 58589,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2843,
+        "cache_read_input_tokens": 72196,
+        "cache_creation_input_tokens": 2011,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2011
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 24,
+      "outputTokens": 9012,
+      "cacheReadInputTokens": 601927,
+      "cacheCreationInputTokens": 58589,
+      "webSearchRequests": 0,
+      "costUSD": 0.02224547,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 3975,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 58589,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 23,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**What decides whether a call runs:** the permission lists alone don't. The path is `ToolExecutor` (`src/mcp/tool_executor.cpp`), then `ServerManager` (`src/mcp/server_manager.cpp`), then `PermissionManager` (`src/mcp/permission_manager.cpp`).\n\n```\nmodel emits tool call\n \u2514\u2500 check_call_preconditions            tool_executor.cpp:667\n     1. anti-spiral hard block\n     2. schema validation               (check_schema)\n     3. MCP key authorization           (check_mcp_authorization, identity keys, not the lists)\n     4. tier allowed_tools              (gh#83)\n     5. duplicate-call detection\n     6. check_approval_pc \u2192 check_approval   tool_executor.cpp:161\n          auto_ok = permissions.auto_approve\n                    OR is_allowed(name, \"name:\" + args_to_pattern(args))\n          if !auto_ok and on_tool_call set \u2192 approved = true   (line 172, unconditional)\n          if !auto_ok and no callback      \u2192 denied \"Permission denied\"\n \u2514\u2500 dispatch: ServerManager::execute     server_manager.cpp:153\n     pattern = name + \":\" + args_to_pattern(args)\n     is_denied(name, pattern) \u2192 \"Error: Permission denied for <tool>\"\n     else route_tool_call \u2192 in-process server or external MCP client\n```\n\n**What a pattern means** (`pattern_matches`, `permission_manager.cpp:101`):\n\n- The text before the first `:` is an fnmatch glob matched against the fully-qualified tool name, e.g. `filesystem.*` or `git.commit`. No colon means a tool-only match.\n- If there is a colon, the whole `tool:arg` pattern is fnmatch'd against `tool:<argvalue>`, e.g. `bash.execute:python*`.\n- Flags are 0, so `*` also crosses `/`.\n- Lists are OR'd and first match wins; order does not matter.\n- `deny` is checked only in `execute`. `allow` is checked only in `check_approval`. Neither list is checked in the other place.\n\n**Things that will surprise you:**\n\n1. **`args_to_pattern` (`server_manager.cpp:426`) uses only one argument.** It takes the first key in nlohmann's object iteration order. That is alphabetical, because the default object type is `std::map`, not call order. Only a string value is used; anything else becomes `*`. So for `write_file` with `{\"content\":\u2026,\"path\":\u2026}`, a rule like `filesystem.write_file:/etc/*` tests `content`, not `path`. I did not run this, so treat it as a code-reading conclusion.\n2. **The bash pattern builder is not on the checked path.** `BashServer::get_permission_pattern` (`bash.cpp:200`) produces `bash.execute:<base> *`, but nothing in `src/` calls it on the approval or deny path. Bash rules are therefore matched against the raw command string. `bash.execute:pytest *` matches `pytest -q && rm -rf x`, because `*` spans shell metacharacters. It does not match bare `pytest`.\n3. **The callback is not a gate.** The header says tools are \"explicitly allowed or approved via callback\" and default-deny. The code notifies the callback and then sets `approved = true` without reading any return value. Without a callback, unlisted tools are denied. With one, every call passes approval. Deny-list entries still block at `execute`, but only after the callback has already reported the call.\n4. **`auto_approve: true` does not skip deny.** `execute` still checks `is_denied`, so deny always wins over allow and over auto-approve.\n\nConfig comes from the `permissions:` section (`config/loader.cpp:365`), which feeds `ServerManager`'s constructor. `PermissionPersister` writes `allow:`/`deny:` entries to `config.local.yaml`; I did not trace which UI path calls it.\n\nI read the code and did not run the tests or a live call, so the behaviour above is from reading.",
+  "ttft_ms": 1749,
+  "type": "result",
+  "duration_ms": 52772,
+  "uuid": "85653367-7449-4381-8c87-77eaeda8efd8",
+  "ttft_stream_ms": 1353,
+  "time_to_request_ms": 147,
+  "first_content_frame_ms": 1353,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

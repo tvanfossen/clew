@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The whole path is gated by `MBEDTLS_ERROR_C`. `MBEDTLS_ERROR_STRERROR_DUMMY` is a config symbol that gates the same code.\nVERDICT: MISS\nWHY: The answer says the path is gated by MBEDTLS_ERROR_C but never says it is enabled in the shipped config or present in a default build."
+}

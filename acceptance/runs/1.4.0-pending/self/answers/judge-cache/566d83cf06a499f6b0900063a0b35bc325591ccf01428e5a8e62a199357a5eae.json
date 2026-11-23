@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Query replies carry the same notices under `staleness` (`tools_query.py:1841`). ... The list is empty when the tool is current.\n\nVERDICT: HIT\n\nWHY: The answer says query replies carry the staleness notices, and that the notices list is empty when the tool is current. Together these state the item's substance, though \"rides on every reply, unasked\" is only implied."
+}

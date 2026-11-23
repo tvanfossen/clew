@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 46659,
+  "stop_reason": "end_turn",
+  "session_id": "e0e6606c-df17-4a67-bfc2-2dc2d701aea5",
+  "total_cost_usd": 0.014669439999999999,
+  "usage": {
+    "input_tokens": 14,
+    "cache_creation_input_tokens": 36549,
+    "cache_read_input_tokens": 266774,
+    "output_tokens": 9381,
+    "output_tokens_details": {
+      "thinking_tokens": 4935
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 36549,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3415,
+        "cache_read_input_tokens": 48512,
+        "cache_creation_input_tokens": 969,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 969
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 14,
+      "outputTokens": 9381,
+      "cacheReadInputTokens": 266774,
+      "cacheCreationInputTokens": 36549,
+      "webSearchRequests": 0,
+      "costUSD": 0.014669439999999999,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 4935,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 36549,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 11,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** `MBEDTLS_PRIVATE` is a compile-time guard for application developers. It doesn't enforce access control. The guard is off inside the library and in a few in-tree programs, and those are the places where the opt-out is turned on.\n\n## What the macro does\n\n`include/mbedtls/private_access.h:14-18`:\n\n```c\n#ifndef MBEDTLS_ALLOW_PRIVATE_ACCESS\n#define MBEDTLS_PRIVATE(member) private_##member\n#else\n#define MBEDTLS_PRIVATE(member) member\n#endif\n```\n\nPublic headers declare private fields as `MBEDTLS_PRIVATE(foo)`. Without the define, the field is really named `private_foo`, so `ctx->foo` in application code fails to compile. With the define, the field is named `foo`.\n\nThis accomplishes three things:\n\n- **Accidental access becomes a compile error.** Application code can't reach internals by mistake and then break on the next minor release.\n- **Maintainers can rename or reshape private fields** without it counting as a source-level break.\n- **The escape hatch is visible.** `bar.MBEDTLS_PRIVATE(foo)` expands to `bar.private_foo`, so it compiles from outside. `docs/3.0-migration-guide.md:74` calls this \"at your own risk,\" and `include/mbedtls/ssl.h:5159-5169` calls direct access deprecated.\n\nIt is not a security boundary. The struct layout, `sizeof`, and field offsets stay public in the header, and anyone can spell the explicit form.\n\n## Who the opt-out is for\n\nThe protected party is the external user. The opt-out goes to code that ships in the same tree as the library.\n\n| Location | How it is turned on | What it means |\n|---|---|---|\n| `library/common.h:132` | Unconditional `#define MBEDTLS_ALLOW_PRIVATE_ACCESS` | Every library `.c` that includes `common.h` (all but `ecp_curves_new.c` and `ssl_debug_helpers_generated.c`) sees the real field names. Library code is never guarded. |\n| `programs/ssl/ssl_server2.c:8` | Blanket define before any include | The whole translation unit can touch private fields. `ssl_server2.c:4239` reads `ssl.session->id`, which is `MBEDTLS_PRIVATE(session)` in `ssl.h:1800`, and it only compiles because of this define. |\n| `programs/ssl/ssl_client2.c:8` | Same blanket define | `ssl_client2.c:3214` reads `ssl.conf->early_data_enabled`, which is `ssl.h:1668`. Same effect. |\n\nTwo more points about these:\n\n- **The `common.h` opt-out depends on include order.** The macro is expanded when the public header is parsed. Each library `.c` that uses it includes `common.h` first (checked in `ecdh.c`, `md.c` and `x509_crt.c`). If a `.c` included a public struct header before `common.h`, its field names would not match and the build would fail. That fails loudly, but it is a rule a new file can break.\n- **The `ssl_server2`/`ssl_client2` define hides the accesses from audit.** A `grep MBEDTLS_PRIVATE` finds nothing in those two files, so new private accesses there are invisible. In that file, the rule is \"compiles,\" not \"is marked as deliberate.\"\n\nFor contrast, `programs/ssl/ssl_context_info.c:553-568`, `programs/fuzz/fuzz_dtlsserver.c:138`, and the `tests/suites/*.function` files do not define the opt-out. They use the explicit `MBEDTLS_PRIVATE(...)` spelling at each access. That is the form the migration guide describes, and it stays visible in grep. I did not trace whether the generated test `.c` files pull in `common.h`.\n\n## What this means for the code\n\n- **Library `.c` files** can use real field names. The header rename applies to them only through the same macro, so refactors of private fields stay consistent.\n- **`ssl_server2.c` and `ssl_client2.c`** are coupled to `mbedtls_ssl_context` internals. Changing those fields breaks these programs at compile time, and they will not be flagged as deliberate in review. If you change `session`, `conf`, or `early_data_enabled`, check these two files.\n- **External applications** that copied the `ssl_server2` pattern (define `MBEDTLS_ALLOW_PRIVATE_ACCESS` and read `ssl.session`) get no compatibility promise. The header comment says direct access may break in any future release. In the 3.6 LTS line, the migration guide expects more stability, but not a guarantee.",
+  "ttft_ms": 1567,
+  "type": "result",
+  "duration_ms": 47251,
+  "uuid": "8537222a-58e9-4627-9ca1-b32dabacee7b",
+  "ttft_stream_ms": 1281,
+  "time_to_request_ms": 127,
+  "first_content_frame_ms": 1282,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

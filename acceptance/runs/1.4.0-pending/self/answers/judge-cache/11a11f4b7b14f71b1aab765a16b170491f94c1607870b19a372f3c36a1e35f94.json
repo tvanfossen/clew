@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Which files then produce rows depends on each harvester's extension list. Files in scope that no harvester claims are reported as \"not indexed,\" not dropped silently.\nVERDICT: MISS\nWHY: The answer says that per-harvester extension tables decide which files get rows. It names neither the parse-built front end claiming file types doxygen cannot read nor binary classification dropping files with misleading extensions."
+}

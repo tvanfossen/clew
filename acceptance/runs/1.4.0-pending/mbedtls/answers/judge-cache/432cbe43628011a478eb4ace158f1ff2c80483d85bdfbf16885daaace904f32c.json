@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says mbedtls_calloc/free forward through static function pointers in platform.c; it never concludes that a default build has no indirection with macros expanding directly to calloc/free."
+}

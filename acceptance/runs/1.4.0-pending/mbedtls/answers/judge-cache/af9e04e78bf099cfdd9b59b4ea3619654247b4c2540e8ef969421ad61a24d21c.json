@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Per the index, the `MBEDTLS_PLATFORM_MEMORY` default is off in `mbedtls_config.h:208`, and the calloc/free macro switches are gated on it.\"\nVERDICT: HIT\nWHY: The answer says MBEDTLS_PLATFORM_MEMORY gates the calloc/free switches and is off by default in mbedtls_config.h:208, which conveys the commented-out shipped default."
+}

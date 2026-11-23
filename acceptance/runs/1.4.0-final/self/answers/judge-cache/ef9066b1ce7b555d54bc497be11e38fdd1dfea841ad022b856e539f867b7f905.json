@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The wording is graded, not fixed. The module has a test that a note claiming certainty must have earned it. It also says that the definitive note is kept only when nothing unread could have matched.\nVERDICT: MISS\nWHY: The answer says wording is graded and must be earned, but it never says this is determined per call by querying which corpora the search did not read, as opposed to being tied to a result shape. Its table keys the outcome to the query shape (single token, multi-token conjunction), which is the opposite framing."
+}

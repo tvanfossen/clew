@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: I checked this by reading the source (`clew/mcp_server/emptiness.py`, `routing.py`, `query/subject.py`).\nVERDICT: HIT\nWHY: The answer names clew/mcp_server/emptiness.py as the source it read, and its content describes the emptiness grading (definitive vs NOT DEFINITIVE wording), so it locates the grading there."
+}

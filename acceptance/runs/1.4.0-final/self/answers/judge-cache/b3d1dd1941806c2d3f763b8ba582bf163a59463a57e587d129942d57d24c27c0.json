@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer covers scope derivation and explicitly says FILE_PATTERNS are replaced by clew's own list, but never states that files reach the index only if readable, and names neither the parse-built front end nor binary classification."
+}

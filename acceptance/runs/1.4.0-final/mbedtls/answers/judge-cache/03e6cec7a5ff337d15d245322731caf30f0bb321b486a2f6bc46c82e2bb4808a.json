@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It is an empty `asm volatile` barrier, or `x ^ mbedtls_ct_zero` where a volatile global holds zero (`:85`).\nVERDICT: MISS\nWHY: The answer places the volatile-zero XOR in `mbedtls_ct_compiler_opaque()`, not in the function that falls back when assembly is unavailable. It names `mbedtls_ct_zero` only in passing and never ties it to an asm-unavailable fallback of the same function."
+}

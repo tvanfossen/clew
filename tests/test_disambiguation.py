@@ -359,24 +359,9 @@ def test_two_identities_in_one_file_are_still_distinguishable(tmp_path: Path) ->
     assert first.file == second.file == "pkg/both.py", "same file — only the identity differs"
 
 
-## @brief `chain_trace` refuses the selector rather than half-honouring it.
-## @return None.
-## @version 1
-def test_chain_trace_does_not_accept_the_selector() -> None:
-    """AN HONEST BOUNDARY, PINNED. `chain_trace` returns `candidates` but its walk resolves
-    every hop by bare name (`_call_hops`/`_key_hops` filter `memberdef.name=?`), so accepting
-    a selector would give an identity-correct root over a name-scoped traversal — a second
-    instance of exactly the unkept promise gh#37 is about.
-
-    Pinned as a test because a later reader WILL notice the asymmetry and "fix" it for
-    consistency. This says the omission is a decision. Delete it only together with making the
-    traversal identity-scoped."""
-    import inspect
-
-    assert "qualified" not in inspect.signature(q.chain_trace).parameters, (
-        "chain_trace must not accept `qualified` until its traversal resolves hops by "
-        "identity rather than by bare name -- see its docstring"
-    )
+## `test_chain_trace_does_not_accept_the_selector` LIVED HERE and said: "Delete it only together
+## with making the traversal identity-scoped." 1.4.0 (W1) made it so — `chain_trace(qualified=)`
+## walks call hops by identity rowid — and `tests/test_identity_walk.py` now pins that contract.
 
 
 ## @brief One physical declaration must appear once in `candidates`.

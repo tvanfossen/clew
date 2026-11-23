@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: So a failed post send is attempted exactly once.\nVERDICT: HIT\nWHY: The answer states createPost passes `noRetry: true`, so the request is sent once with no automatic retry."
+}

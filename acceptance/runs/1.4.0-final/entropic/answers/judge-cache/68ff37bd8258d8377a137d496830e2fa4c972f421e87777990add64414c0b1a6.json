@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the dependency \"stays inside `src/inference/`\" and treats the facade as only an indirect touchpoint. It never says that a minority of the reaching files sit outside `src/inference`, so it does not conclude the dependency is concentrated but not contained."
+}

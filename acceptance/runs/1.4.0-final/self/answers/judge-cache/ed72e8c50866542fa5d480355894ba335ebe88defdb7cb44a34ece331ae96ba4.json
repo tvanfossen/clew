@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The Doxyfile `INPUT` is not used for scope since gh#333. The rationale is that it is a documentation target, not a reasoning boundary. A repo that ships a Doxyfile still has its `ALIASES` and `PREDEFINED` read, but its `INPUT` is replaced. The docstring cites Mbed-TLS, whose Doxyfile indexes 1,571 header declarations and none of the 108 `library/*.c` implementations.\nVERDICT: HIT\nWHY: The answer states the Doxyfile INPUT is deliberately not used for scope and explains why: it covers only a documented subset, with the Mbed-TLS example showing headers indexed and no implementation files."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The threaded variant wraps them in a mutex.\nVERDICT: MISS\nWHY: The answer only says \"the threaded variant wraps them in a mutex\". It never says the choice depends on MBEDTLS_THREADING_C or that it's made at compile time inside the init function."
+}

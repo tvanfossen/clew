@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer discusses caller lists and edge metadata but never mentions that the flat surface keeps fuzzy-confidence edges while traversal excludes them, nor the multiplication-of-wrong-subtree reason."
+}

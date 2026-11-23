@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 24001,
+  "stop_reason": "end_turn",
+  "session_id": "114d18bd-b126-4514-9589-5ad913228bc5",
+  "total_cost_usd": 0.00903661,
+  "usage": {
+    "input_tokens": 14,
+    "cache_creation_input_tokens": 17024,
+    "cache_read_input_tokens": 348541,
+    "output_tokens": 4290,
+    "output_tokens_details": {
+      "thinking_tokens": 1500
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 17024,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1951,
+        "cache_read_input_tokens": 57431,
+        "cache_creation_input_tokens": 463,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 463
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 14,
+      "outputTokens": 4290,
+      "cacheReadInputTokens": 348541,
+      "cacheCreationInputTokens": 17024,
+      "webSearchRequests": 0,
+      "costUSD": 0.00903661,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1500,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 17024,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 12,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** the post is kept locally and marked failed, the send is attempted once with no automatic retries, and the user retries by hand with \"Try Again.\"\n\n**1. What happens to the post.** `createPost` in `app/actions/remote/post.ts` (lines 154\u2013199) writes the post to WatermelonDB before the network call, keyed by a pending ID (`${userId}:${timestamp}`). If `client.createPost` throws, it rewrites that record with `props.failed = true` and a fresh `update_at`, and the UI shows the failure indicator. There are three exceptions. For `DELETED_ROOT_POST_ERROR`, `TOWN_SQUARE_READ_ONLY_ERROR`, or `PLUGIN_DISMISSED_POST_ERROR`, the post is removed instead of kept (`removePost`). For `BOR_DENIED_BY_POLICY_ERROR`, the cached render-permission entry for the channel is also expired.\n\n**2. How many automatic retries: zero.**\n- The app's network client defaults to `retryLimit: 3` with exponential backoff (`app/managers/network_manager.ts:68-73`).\n- But `createPost` in `app/client/rest/posts.ts:43-47` passes `noRetry: true`.\n- `buildRequestOptions` in `app/client/rest/tracking.ts:383-385` turns that into `retryPolicyConfiguration: {retryLimit: 0}`, which overrides the default.\n- Nothing else in `app/` re-invokes `createPost` on failure.\n\n**3. What retrying does.** Retry is manual, via the \"Try Again\" item in the failed-post bottom sheet (`app/components/post_list/post/body/failed/index.tsx:46-49`), which calls `retryFailedPost` (`post.ts:228-307`):\n- It rebuilds the API payload from the stored post and sets `props.failed = false` plus a new `update_at`, so the UI goes back to pending before the network call.\n- It calls `client.createPost` again, still with no retry.\n- On success, it writes the server's returned post into the DB and updates the channel's last-post time.\n- On failure, it applies the same split: the three server errors above remove the post, anything else sets `failed = true` again.\n- \"Delete Message\" in the same sheet calls `removePost` directly.\n\n**Caveat.** `isPostFailed` (`app/utils/post/index.ts:97-98`) also treats a pending post as failed once it is older than `POST_TIME_TO_FAIL` (10 s, `app/constants/post.ts:57`). That is a UI-side timeout and does not cancel the request. A post can therefore show as failed while its original send is still in flight and may yet succeed. I did not trace what happens to the original request's result in that case.",
+  "ttft_ms": 1891,
+  "type": "result",
+  "duration_ms": 25171,
+  "uuid": "9b4d197f-5d88-42df-b3c3-d10385fdc846",
+  "ttft_stream_ms": 1256,
+  "time_to_request_ms": 182,
+  "first_content_frame_ms": 1257,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`do_count_tokens` returns 0 (`:825`), which `InferenceBackend::count_tokens` passes on (`backend.cpp:496`), and `entropic_inference_count_tokens` returns to plugins (`inference_c_api.cpp:548`). A failed count looks like \\\"zero tokens,\\\"\"\nVERDICT: HIT\nWHY: The answer states that the token-counting path returns 0 on tokenization failure instead of signalling an error."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `ExternalBridge::start` (`:796`) | `accept_loop` | Polls the listen socket with a 500 ms timeout. ... `accept_loop` (`:945`) | one per client (`ct->thread`) | Serves one MCP client connection.\nVERDICT: HIT\nWHY: The answer states that ExternalBridge::start spawns an accept_loop thread, which in turn spawns one thread per client connection."
+}

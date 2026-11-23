@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `tests/suites/test_suite_constant_time*.function` wraps secret inputs in `TEST_CF_SECRET` so MSan or Valgrind flags any secret-dependent branch or address.\nVERDICT: MISS\nWHY: The answer mentions MSan/Valgrind-based tests, but never says the facility is off-by-default or explicitly not part of the library API."
+}

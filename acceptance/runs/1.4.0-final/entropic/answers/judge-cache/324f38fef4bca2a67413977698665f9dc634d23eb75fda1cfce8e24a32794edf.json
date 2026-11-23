@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"So \"no vocab\", \"no tokenizer\", \"llama failed\", and \"empty input\" all look the same to callers.\" and \"so the API cannot distinguish failure from empty text\"\nVERDICT: MISS\nWHY: The answer says failure is indistinguishable from empty, but it also states that the speculative and MTP paths do check for empty tokens (`tokens.size() < 2`). That contradicts \"no caller checks for it.\""
+}

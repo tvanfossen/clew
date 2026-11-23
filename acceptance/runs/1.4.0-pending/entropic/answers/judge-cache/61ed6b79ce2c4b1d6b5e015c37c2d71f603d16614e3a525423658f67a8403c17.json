@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the second call runs unconditionally and that failure yields an empty vector. It never says a negative or non-positive result from the second call is terminal and returns empty rather than being retried."
+}

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """Doxygen block parsing and the parse entry point.
 
 @brief Parse doxygen tag blocks and dispatch function detection to the AST parser.
@@ -20,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 ## @brief Represents a doxygen comment with its location and parsed tags.
 #  @version 1.0
-#  @dg_internal
+#  @utility
 @dataclass
 class DoxygenBlock:
     start_line: int  # 0-indexed
@@ -31,7 +32,7 @@ class DoxygenBlock:
 
 ## @brief Represents a function with its location and optional doxygen block.
 #  @version 1.3
-#  @dg_internal
+#  @utility
 @dataclass
 class Function:
     name: str
@@ -45,17 +46,31 @@ class Function:
     # Whether the function returns no value, when the parser knows (JS/TS, from the
     # annotation). None leaves the decision to checks._is_void_function's text heuristics.
     returns_void: bool | None = None
+    # A bodiless declaration (a C/C++ prototype) with its own doc block (2.0.0, PG2). Its block is
+    # checked like a definition's; the @req-or-exemption obligation stays with the definition.
+    is_declaration: bool = False
+
+    ## @brief The function's identity: enclosing class, name and parameter list.
+    #  Added 2.0.0 (S1): a machine-format fingerprint is built from it, so it must not move
+    #  with a line and must tell overloads apart.
+    #  @version 1.0
+    #  @utility
+    #  @return `Class::name(params)`, or `name(params)` at file scope
+    @property
+    def qualified(self) -> str:
+        owner = f"{self.enclosing_class}::" if self.enclosing_class else ""
+        return f"{owner}{self.name}{self.signature}"
 
     ## @brief Check if this function is a constructor of its enclosing class.
     #  @version 1.0
-    #  @dg_internal
+    #  @utility
     #  @return True if name matches enclosing class name
     def is_constructor(self) -> bool:
         return self.enclosing_class is not None and self.name == self.enclosing_class
 
     ## @brief Check if this function is a destructor of its enclosing class.
     #  @version 1.0
-    #  @dg_internal
+    #  @utility
     #  @return True if name starts with ~ and matches enclosing class
     def is_destructor(self) -> bool:
         return (
@@ -84,7 +99,7 @@ _ESCAPED_AT_RE = re.compile(r"\\@|@@")
 
 ## @brief Mask escaped at-signs so they are not detected as tags.
 #  @version 1.0
-#  @dg_internal
+#  @utility
 #  @return The line with every escaped at-sign replaced by a sentinel
 def _mask_escaped_at(line: str) -> str:
     return _ESCAPED_AT_RE.sub(_ESCAPED_AT_SENTINEL, line)
@@ -92,7 +107,7 @@ def _mask_escaped_at(line: str) -> str:
 
 ## @brief Restore masked at-signs to a single literal at-sign.
 #  @version 1.0
-#  @dg_internal
+#  @utility
 #  @return The text with sentinels replaced by "@"
 def _unmask_escaped_at(text: str) -> str:
     return text.replace(_ESCAPED_AT_SENTINEL, "@")
@@ -100,7 +115,7 @@ def _unmask_escaped_at(text: str) -> str:
 
 ## @brief Store the current tag's value and reset state.
 #  @version 1.2
-#  @dg_internal
+#  @utility
 def _finalize_tag(
     tags: dict[str, list[str]],
     tag: str | None,
@@ -185,7 +200,7 @@ _INLINE_SPLIT_RE = re.compile(r"(?=\s@\w+(?:\s|$))")
 
 ## @brief Split a line into segments at inline tag boundaries.
 #  @version 1.0
-#  @dg_internal
+#  @utility
 def _split_inline_tags(line: str) -> list[str]:
     parts = _INLINE_SPLIT_RE.split(line)
     return [p.strip() for p in parts if p.strip()] if len(parts) > 1 else [line]

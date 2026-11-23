@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Log routing survives the thread hop. Each thread body installs a `HandleLogScope`, so its logs reach the owning handle's session log.\nVERDICT: HIT\nWHY: The answer states that each thread body installs a HandleLogScope so logs route to the owning handle's session log, which covers the item's substance (the \"first statement\" detail is minor)."
+}

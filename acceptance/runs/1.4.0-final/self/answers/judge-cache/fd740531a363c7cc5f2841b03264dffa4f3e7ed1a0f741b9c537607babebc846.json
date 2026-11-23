@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `_auto_refresh` resolves the same database the query will read, including `sub_index`.\nVERDICT: MISS\nWHY: The answer says the auto-refresh resolves the same database the query reads, but never states that a routed reply's staleness annotation is for the repository actually read rather than the server's default target."
+}

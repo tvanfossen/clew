@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: One entry per calling function. Five calls from one function is one caller. ... `confidence`: `exact`, `resolved` or `fuzzy`. When several layers found the same edge, the strongest one wins.\nVERDICT: HIT\nWHY: The answer states that callers are one entry per neighbour (not per call) and that when several layers found the same edge, the strongest wins. That is the collapse the item describes."
+}

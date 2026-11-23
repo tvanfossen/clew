@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """Validation checks for doxygen comments.
 
 @brief Presence, version staleness, and tag validation checks.
@@ -13,7 +14,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from .config import get_impact, get_validate
+from .doxygen_commands import DOXYGEN_COMMANDS
+from .config import DEFAULT_EVENT_TAG_NAMES, get_requirements, get_validate
 
 if TYPE_CHECKING:
     from collections.abc import Set as AbstractSet
@@ -28,7 +30,7 @@ _JS_SUFFIXES = (".js", ".mjs", ".cjs", ".jsx", ".ts", ".tsx")
 
 ## @brief Build a language-appropriate doxygen skeleton suggestion.
 #  @version 1.2
-#  @dg_internal
+#  @utility
 #  @return Single-line skeleton string in the file's native comment style
 def _suggest_skeleton(file_path: str, *, with_return: bool = False) -> str:
     return_tag = " @return <description>" if with_return else ""
@@ -43,7 +45,7 @@ def _suggest_skeleton(file_path: str, *, with_return: bool = False) -> str:
 
 ## @brief Build a language-appropriate file-level doxygen skeleton suggestion.
 #  @version 1.2
-#  @dg_internal
+#  @utility
 def _suggest_file_skeleton(file_path: str) -> str:
     if Path(file_path).suffix.lower() in _JS_SUFFIXES:
         return (
@@ -62,7 +64,7 @@ def _suggest_file_skeleton(file_path: str) -> str:
 
 ## @brief How to supply a missing brief, in the file's own convention.
 #  @version 1.1
-#  @dg_internal
+#  @utility
 #  @return The remedy text for a missing-@brief violation
 def _brief_hint(file_path: str) -> str:
     if Path(file_path).suffix.lower() in (".rs", ".py", *_JS_SUFFIXES):
@@ -71,24 +73,28 @@ def _brief_hint(file_path: str) -> str:
 
 
 ## @brief Represents a check failure with location and description.
-#  @version 1.0
-#  @dg_internal
+#  v1.1: `qualified` names the function (class, name, parameters) so a machine format's
+#  fingerprint survives a line move (2.0.0, S1). Empty for a file- or catalog-level violation.
+#  @version 1.1
+#  @utility
 @dataclass
 class Violation:
     file: str
     line: int  # 1-indexed for display
-    check: str  # "presence" | "version" | "tag"
+    check: str  # "presence" | "version" | "tag" | "coverage" | "bus"
     message: str
+    qualified: str = ""
 
     ## @brief Human-readable violation string.
     #  @version 1.0
-    #  @dg_internal
+    #  @utility
     def __str__(self) -> str:
         return f"{self.file}:{self.line}: [{self.check}] {self.message}"
 
 
 ## @brief Verify every function has a doxygen comment with \@brief and the revision tag.
-#  @version 1.5
+#  v1.6: Violation names the function (qualified) for machine-format fingerprints (2.0.0, S1)
+#  @version 1.6
 #  @req REQ-DDB-GUARD-001
 def check_presence(
     functions: list[Function],
@@ -119,6 +125,7 @@ def check_presence(
                     file=file_path,
                     line=func.def_line + 1,
                     check="presence",
+                    qualified=func.qualified,
                     message=(
                         f"Function '{func.name}' has no doxygen comment"
                         f" — add {_suggest_skeleton(file_path, with_return=needs_return)}"
@@ -133,6 +140,7 @@ def check_presence(
                     file=file_path,
                     line=func.doxygen.start_line + 1,
                     check="presence",
+                    qualified=func.qualified,
                     message=(
                         f"Function '{func.name}' doxygen missing @brief tag"
                         f" — {_brief_hint(file_path)}"
@@ -150,6 +158,7 @@ def check_presence(
                     file=file_path,
                     line=func.doxygen.start_line + 1,
                     check="presence",
+                    qualified=func.qualified,
                     message=(
                         f"Function '{func.name}' doxygen missing @{version_key} tag"
                         f" — add '@{version_key} 1.0' to the doxygen comment"
@@ -165,7 +174,8 @@ _PYTHON_NONE_RETURN = re.compile(r"->\s*None\b")
 
 
 ## @brief Verify non-void functions have \@return or \@returns tag.
-#  @version 1.3
+#  v1.4: Violation names the function (qualified) for machine-format fingerprints (2.0.0, S1)
+#  @version 1.4
 #  @req REQ-DDB-GUARD-005
 #  @return List of violations for missing \@return tags
 def check_return_presence(
@@ -197,6 +207,7 @@ def check_return_presence(
                 file=file_path,
                 line=func.doxygen.start_line + 1,
                 check="presence",
+                qualified=func.qualified,
                 message=(
                     f"Function '{func.name}' doxygen missing @return tag"
                     " — add '@return <description>' to the doxygen comment"
@@ -244,7 +255,10 @@ def _is_rust_unit_fn(func: Function, lines: list[str]) -> bool:
 
 ## @brief Check if a function returns void based on its definition lines.
 #  @details A parser that knows (JS/TS) sets Function.returns_void, which wins.
-#  @version 1.4
+#  v1.5 (2.0.0, found by entropic): the C prefix is everything from the function's first line up
+#  to its name, so a return type on its own line (`EXPORT void` / `name(...)`, GNU style) is read.
+#  A name in column 0 used to be skipped, so that `void` was never seen.
+#  @version 1.5
 #  @req REQ-DDB-GUARD-005
 #  @return True if the function returns void/None
 def _is_void_function(func: Function, lines: list[str]) -> bool:
@@ -258,9 +272,9 @@ def _is_void_function(func: Function, lines: list[str]) -> bool:
             break
         line = lines[idx]
         name_pos = line.find(func.name)
-        if name_pos <= 0:
+        if name_pos < 0 or (name_pos == 0 and offset == 0):
             continue
-        prefix = line[:name_pos]
+        prefix = " ".join([*lines[func.def_line : idx], line[:name_pos]])
         is_c_void = bool(_VOID_PATTERNS.search(prefix))
         is_python_none = bool(_PYTHON_NONE_RETURN.search(line))
         is_python_untyped = line.strip().startswith("def ") and "->" not in line
@@ -277,7 +291,15 @@ def _is_void_function(func: Function, lines: list[str]) -> bool:
 # in generated documentation. Exemption now uses a tool-owned tag that doxygen has no
 # meaning for; \internal remains recognised (see _KNOWN_TAGS) so a project using it for
 # its real purpose is not flagged, it simply no longer grants an exemption.
-EXEMPTION_TAGS: frozenset[str] = frozenset({"utility", "dg_internal", "callback"})
+#
+# 2.0.0 (PG1, OWNER: "a hard cut of doxygen-guard priors — clew only"): the doxygen-guard-era
+# `dg_internal` FOLDS INTO `utility`. Never back into `internal`, for the reason above.
+EXEMPTION_TAGS: frozenset[str] = frozenset({"utility", "callback"})
+
+# Tags removed in 2.0.0, each refused with its replacement. A REFUSAL, not an unknown-tag
+# warning: `known_tags_warn: false` silences those, and a hard cut a key can soften is not one —
+# a silenced `@utility` would also stop exempting, failing `@req` coverage with no reason given.
+REMOVED_TAGS: dict[str, str] = {"dg_internal": "utility"}
 
 # Tags this tool invents. Doxygen does not define them, so it emits unknown-command
 # warnings unless they are declared as ALIASES — which is what `doxygen-guard doxyfile`
@@ -287,23 +309,26 @@ TOOL_OWNED_TAGS: frozenset[str] = EXEMPTION_TAGS | frozenset({"req"})
 
 ## @brief Render the exemption tags for an error message, derived from the set.
 #  @version 1.0
-#  @dg_internal
+#  @utility
 #  @return Comma-separated @-prefixed tag names in a stable order
 def _exemption_hint() -> str:
     return ", ".join(f"@{t}" for t in sorted(EXEMPTION_TAGS))
 
 
 ## @brief Check if version gate is configured.
-#  @version 1.2
-#  @dg_internal
+#  v1.3: reads the top-level requirements: section (2.0.0, R5-CFG F7)
+#  @version 1.3
+#  @utility
 def _has_version_gate(config: dict[str, Any]) -> bool:
-    gate = get_validate(config).get("version_gate", {})
-    return bool(gate.get("current_version") and gate.get("version_field"))
+    return bool(
+        get_validate(config).get("current_version")
+        and get_requirements(config).get("version_field")
+    )
 
 
 ## @brief Check if any requirements pass the version gate filter.
 #  @version 1.1
-#  @dg_internal
+#  @utility
 def _has_active_requirements(config: dict[str, Any]) -> bool:
     from .impact import filter_requirements_by_version, load_requirements_full
 
@@ -313,14 +338,17 @@ def _has_active_requirements(config: dict[str, Any]) -> bool:
 
 
 ## @brief Verify functions have requirement or exemption tags when requirements are configured.
-#  @version 1.6
+#  v1.7: reads the top-level requirements: section (2.0.0, R5-CFG F7)
+#  v1.8: Violation names the function (qualified) for machine-format fingerprints (2.0.0, S1)
+#  v1.9: a declaration's requirement obligation is its definition's (2.0.0, PG2)
+#  @version 1.9
 #  @req REQ-DDB-GUARD-004
 def check_req_coverage(
     functions: list[Function],
     file_path: str,
     config: dict[str, Any],
 ) -> list[Violation]:
-    req_config = get_impact(config).get("requirements")
+    req_config = get_requirements(config)
     if not req_config or not req_config.get("file"):
         return []
 
@@ -333,7 +361,9 @@ def check_req_coverage(
     for func in functions:
         if func.doxygen is None:
             continue
-        if func.is_constructor() or func.is_destructor():
+        ## A DECLARATION'S OBLIGATION IS ITS DEFINITION'S (2.0.0, PG2): one function, so a header
+        ## does not need its @req written twice; its block's own tags are still checked.
+        if func.is_constructor() or func.is_destructor() or func.is_declaration:
             continue
 
         tags = func.doxygen.tags
@@ -346,6 +376,7 @@ def check_req_coverage(
                     file=file_path,
                     line=func.def_line + 1,
                     check="coverage",
+                    qualified=func.qualified,
                     message=(
                         f"Function '{func.name}' has no @req tag "
                         f"(see {req_file}) and no exemption "
@@ -362,16 +393,16 @@ def check_req_coverage(
 #  sharing a class — without it, every "react(Event)" overload in a tinyfsm-style
 #  dispatch class collided on the same key, so all but the last-parsed overload matched
 #  the wrong sibling's HEAD body and was flagged stale on an untouched tree (#11). A
-#  function whose signature itself changed since HEAD is treated as new (no match found)
-#  rather than matched to a differently-shaped prior version — the same "skip if absent"
-#  behaviour as a genuinely new function.
+#  function whose signature itself changed finds no match HERE; since 2.0.0 `_pair_by_name`
+#  then pairs it by name when it is not overloaded, so a changed parameter list needs a bump.
+#  Version 3.1: that comment; the old one said such a function was simply treated as new.
 #
 #  Version 3.0 (gh#63): a LIST per key, in file order. One file can define the same function
 #  twice under exclusive `#ifdef`/`#else` branches; a dict kept only the last copy, so every
 #  earlier copy was compared with it — a false "body changed" on a byte-identical file, and a
 #  missed unbumped edit when the copies carried different versions.
-#  @version 3.0
-#  @dg_internal
+#  @version 3.1
+#  @utility
 #  @return Mapping from (enclosing_class, name, signature) to that identity's Functions, in order
 def _index_by_identity(
     functions: list[Function],
@@ -382,12 +413,40 @@ def _index_by_identity(
     return index
 
 
+## @brief Pair a function left unmatched by identity with its HEAD self, by name, if unambiguous.
+#  @details A CHANGED SIGNATURE IS A CHANGE (2.0.0, owner Q/A 2026-11-20). Matching by (class,
+#  name, signature) alone made a function whose parameters changed look new, so it needed no bump:
+#  `def f(x)` → `def f(x, y=0)` with a changed body passed. The fallback pairs it only when exactly
+#  ONE copy of (class, name) exists on each side and the HEAD copy is not already paired — an
+#  overload set keeps the exact match, so #11 (a sibling paired with the wrong HEAD body) cannot
+#  return.
+#  @version 1.0
+#  @req REQ-DDB-GUARD-002
+#  @return Mapping from id(current Function) to its HEAD Function, for the pairs this adds
+def _pair_by_name(
+    functions: list[Function], head_functions: list[Function], paired: dict[int, Function]
+) -> dict[int, Function]:
+    taken = {id(h) for h in paired.values()}
+    head_by_name: dict[tuple[str | None, str], list[Function]] = {}
+    for h in head_functions:
+        head_by_name.setdefault((h.enclosing_class, h.name), []).append(h)
+    current_by_name: dict[tuple[str | None, str], list[Function]] = {}
+    for f in functions:
+        current_by_name.setdefault((f.enclosing_class, f.name), []).append(f)
+    added: dict[int, Function] = {}
+    for key, (func,) in ((k, v) for k, v in current_by_name.items() if len(v) == 1):
+        head = head_by_name.get(key, [])
+        if id(func) not in paired and len(head) == 1 and id(head[0]) not in taken:
+            added[id(func)] = head[0]
+    return added
+
+
 ## @brief Pair one identity's current copies with its HEAD copies.
 #  @details Copies are paired BY OCCURRENCE when both sides hold the same number — `#ifdef`
 #  branches are rarely reordered. When a copy was added or removed, identical bodies pair first,
 #  then the remaining copies by body similarity; a current copy left with no HEAD copy is new.
 #  @version 1.0
-#  @dg_internal
+#  @utility
 #  @return Mapping from id(current Function) to its HEAD Function, absent when it is new
 def _pair_copies(
     current: list[Function], head: list[Function], ctx: VersionCheckContext
@@ -413,7 +472,7 @@ def _pair_copies(
 
 ## @brief Body-text similarity of a current copy to a HEAD copy.
 #  @version 1.0
-#  @dg_internal
+#  @utility
 #  @return Ratio in [0, 1]
 def _similarity(func: Function, head: Function, ctx: VersionCheckContext) -> float:
     return difflib.SequenceMatcher(
@@ -423,7 +482,7 @@ def _similarity(func: Function, head: Function, ctx: VersionCheckContext) -> flo
 
 ## @brief Extract a function's definition-through-body source text.
 #  @version 1.0
-#  @dg_internal
+#  @utility
 #  @return Joined source lines from def_line through body_end, or "" if out of range
 def _body_text(func: Function, lines: list[str]) -> str:
     return "\n".join(lines[func.def_line : func.body_end + 1])
@@ -431,7 +490,7 @@ def _body_text(func: Function, lines: list[str]) -> str:
 
 ## @brief Fixed inputs for comparing one file's functions against its HEAD revision.
 #  @version 1.0
-#  @dg_internal
+#  @utility
 @dataclass
 class VersionCheckContext:
     file_path: str
@@ -444,8 +503,9 @@ class VersionCheckContext:
 ## @brief Check one function's \@version against its HEAD counterpart.
 #  @details Returns None when the function has no version tag, is new (absent from
 #  HEAD), its body is unchanged since HEAD, or its version was validly bumped.
-#  @version 1.0
-#  @dg_internal
+#  v1.1: Violation names the function (qualified) for machine-format fingerprints (2.0.0, S1)
+#  @version 1.1
+#  @utility
 #  @return A single Violation, or None if this function is not stale
 def _check_one_version(
     func: Function,
@@ -471,6 +531,7 @@ def _check_one_version(
             file=ctx.file_path,
             line=func.def_line + 1,
             check="version",
+            qualified=func.qualified,
             message=f"Function '{func.name}' body changed but {ctx.version_tag} was not updated",
         )
 
@@ -482,6 +543,7 @@ def _check_one_version(
             file=ctx.file_path,
             line=func.def_line + 1,
             check="version",
+            qualified=func.qualified,
             message=(
                 f"Function '{func.name}' has unrecognized version marker "
                 f"'[{marker_match.group(1)}]' (use [reviewed])"
@@ -502,7 +564,9 @@ def _check_one_version(
 #
 #  Version 2.2 (gh#63): a same-identity duplicate (`#ifdef`/`#else` copies) is paired with its
 #  own HEAD copy via `_pair_copies`, not with whichever copy was parsed last.
-#  @version 2.2
+#  Version 2.3 (2.0.0, owner 2026-11-20): a function whose SIGNATURE changed is paired by name
+#  (`_pair_by_name`) when it is not overloaded, so a changed parameter list needs a bump.
+#  @version 2.3
 #  @req REQ-DDB-GUARD-002
 #  @return Violations for functions whose body changed since HEAD without a version bump
 def check_version_staleness(
@@ -537,6 +601,7 @@ def check_version_staleness(
     paired: dict[int, Function] = {}
     for key, copies in current_index.items():
         paired.update(_pair_copies(copies, head_index.get(key, []), ctx))
+    paired.update(_pair_by_name(functions, head_functions, paired))
 
     violations: list[Violation] = []
     for func in functions:
@@ -577,8 +642,9 @@ def check_tags(
 
 
 ## @brief Check one tag value against pattern, prefix, and contains rules.
-#  @version 1.1
-#  @dg_internal
+#  v1.2: Violation names the function (qualified) for machine-format fingerprints (2.0.0, S1)
+#  @version 1.2
+#  @utility
 def _validate_tag_value(
     file_path: str,
     func: Function,
@@ -597,6 +663,7 @@ def _validate_tag_value(
                 file=file_path,
                 line=line,
                 check="tag",
+                qualified=func.qualified,
                 message=(
                     f"Function '{func.name}' @{tag_name} value '{value}' "
                     f"does not match pattern '{pattern}'"
@@ -612,6 +679,7 @@ def _validate_tag_value(
                 file=file_path,
                 line=line,
                 check="tag",
+                qualified=func.qualified,
                 message=(
                     f"Function '{func.name}' @{tag_name} value '{value}' "
                     f"does not start with any required prefix: {require_prefix}"
@@ -627,6 +695,7 @@ def _validate_tag_value(
                 file=file_path,
                 line=line,
                 check="tag",
+                qualified=func.qualified,
                 message=(
                     f"Function '{func.name}' @{tag_name} value '{value}' "
                     f"does not contain '{require_contains}'"
@@ -676,7 +745,13 @@ _KNOWN_TAGS: frozenset[str] = EXEMPTION_TAGS | frozenset(
 
 
 ## @brief Check for unknown tags with Levenshtein-based suggestions.
-#  @version 1.0
+#  @details v1.1: a configured bus tag (`validate.bus.tags`) is a known tag.
+#  v1.2 (2.0.0, R5-CFG F10/F11): the declaration's event vocabulary (or the index's built-in one)
+#  is known, and `@node` is known when `wiki.sources` is declared.
+#  v1.3: Violation names the function (qualified) for machine-format fingerprints (2.0.0, S1)
+#  v1.4: a removed tag (REMOVED_TAGS) is left to check_removed_tags (2.0.0, PG1)
+#  v1.5: doxygen's built-in commands are known (2.0.0, PG7, a consumer finding)
+#  @version 1.5
 #  @req REQ-DDB-GUARD-001
 def check_unknown_tags(
     func: Function,
@@ -691,11 +766,23 @@ def check_unknown_tags(
         return []
 
     extra = set(validate_config.get("extra_tags", []))
-    known = _KNOWN_TAGS | extra | set(validate_config.get("tags", {}).keys())
+    known = (
+        _KNOWN_TAGS
+        | extra
+        | set(validate_config.get("tags", {}).keys())
+        | _event_tags(config)
+        | ({"node"} if config.get("wiki_sources") else set())
+    )
 
     violations: list[Violation] = []
     for tag_name in func.doxygen.tags:
-        if tag_name not in known:
+        ## A removed tag is `check_removed_tags`' to refuse, once, with its replacement. A doxygen
+        ## command is known (PG7) but never a SUGGESTION: "did you mean @tparam?" helps nobody.
+        if (
+            tag_name not in known
+            and tag_name not in REMOVED_TAGS
+            and tag_name not in DOXYGEN_COMMANDS
+        ):
             suggestion = _suggest_tag(tag_name, known)
             hint = f" — did you mean @{suggestion}?" if suggestion else ""
             violations.append(
@@ -703,10 +790,63 @@ def check_unknown_tags(
                     file=file_path,
                     line=func.doxygen.start_line + 1,
                     check="tag",
+                    qualified=func.qualified,
                     message=f"Unknown tag @{tag_name} in {func.name}(){hint}",
                 )
             )
     return violations
+
+
+## @brief Refuse a tag removed in 2.0.0, naming its replacement.
+#  @details Always on: see REMOVED_TAGS for why no key turns it off.
+#  @version 1.0
+#  @req REQ-DDB-GUARD-001
+#  @return One violation per removed tag in the block
+def check_removed_tags(func: Function, file_path: str, config: dict[str, Any]) -> list[Violation]:
+    if func.doxygen is None:
+        return []
+    return [
+        Violation(
+            file=file_path,
+            line=func.doxygen.start_line + 1,
+            check="tag",
+            qualified=func.qualified,
+            message=(
+                f"@{tag} in {func.name}() was removed in clew 2.0.0 — use @{REMOVED_TAGS[tag]} "
+                "(the doxygen-guard tag is not read)"
+            ),
+        )
+        for tag in func.doxygen.tags
+        if tag in REMOVED_TAGS
+    ]
+
+
+## @brief When `validate.exemption_reason` is `required`, refuse an exemption tag with no reason.
+#  @details The standards' form (DO-178C, ISO 26262, IEC 62304): code that does not trace to a
+#  requirement is acceptable when the exception is justified, so `@utility parses X for Y`, not a
+#  bare `@utility`. Off by default; see EXEMPTION_REASON_SETTINGS. 2.0.0, PG3b.
+#  @version 1.0
+#  @req REQ-DDB-GUARD-001
+#  @return One violation per bare exemption tag
+def check_exemption_reasons(
+    func: Function, file_path: str, config: dict[str, Any]
+) -> list[Violation]:
+    if func.doxygen is None or get_validate(config).get("exemption_reason") != "required":
+        return []
+    return [
+        Violation(
+            file=file_path,
+            line=func.doxygen.start_line + 1,
+            check="tag",
+            qualified=func.qualified,
+            message=(
+                f"@{tag} in {func.name}() needs a one-line reason "
+                f"(validate.exemption_reason is required): `@{tag} <why this has no requirement>`"
+            ),
+        )
+        for tag in sorted(EXEMPTION_TAGS & set(func.doxygen.tags))
+        if not any(v.strip() for v in func.doxygen.tags[tag])
+    ]
 
 
 # Tags that describe the function as a whole. A second occurrence is not additive:
@@ -720,7 +860,8 @@ _SINGLE_VALUED_TAGS: frozenset[str] = frozenset({"brief", "return", "returns", "
 
 
 ## @brief Flag single-valued doxygen tags that appear more than once in one block.
-#  @version 1.0
+#  v1.1: Violation names the function (qualified) for machine-format fingerprints (2.0.0, S1)
+#  @version 1.1
 #  @req REQ-DDB-GUARD-007
 #  @return Violations for each duplicated single-valued tag
 def check_duplicate_tags(
@@ -749,6 +890,7 @@ def check_duplicate_tags(
                     file=file_path,
                     line=func.doxygen.start_line + 1,
                     check="tag",
+                    qualified=func.qualified,
                     message=(
                         f"@{tag_name} appears {len(values)} times in {func.name}() — "
                         f"only the first is used; remove the extras"
@@ -760,7 +902,7 @@ def check_duplicate_tags(
 
 ## @brief Find the closest known tag name using edit distance.
 #  @version 1.1
-#  @dg_internal
+#  @utility
 def _suggest_tag(unknown: str, known: AbstractSet[str]) -> str | None:
     best_tag = None
     best_dist = 3
@@ -774,7 +916,7 @@ def _suggest_tag(unknown: str, known: AbstractSet[str]) -> str | None:
 
 ## @brief Compute Levenshtein edit distance between two strings.
 #  @version 1.0
-#  @dg_internal
+#  @utility
 def _edit_distance(a: str, b: str) -> int:
     if len(a) < len(b):
         return _edit_distance(b, a)
@@ -788,8 +930,60 @@ def _edit_distance(a: str, b: str) -> int:
     return prev[len(b)]
 
 
-## @brief Cross-validate requirement tag references against the requirements file.
+## @brief A tag that cannot be checked because no catalogue is declared (GH #68).
+#  v1.1: Violation names the function (qualified) for machine-format fingerprints (2.0.0, S1)
+#  @version 1.1
+#  @req REQ-DDB-GUARD-027
+#  @return The violation
+def _uncheckable(func: Function, file_path: str, req_id: str) -> Violation:
+    return Violation(
+        file=file_path,
+        line=func.doxygen.start_line + 1,
+        check="tag",
+        qualified=func.qualified,
+        message=(
+            f"@req {req_id} in {func.name}() cannot be checked: no requirements catalog is "
+            "declared; name one under impact.requirements (file or external), or set "
+            "validate.tags.req.cross_reference: false"
+        ),
+    )
+
+
+## @brief A catalogue entry's `satisfies` ids that no catalogue holds (GH #68).
 #  @version 1.0
+#  @req REQ-DDB-SCHEMA-015
+#  @return One violation per unresolvable link, against the catalogue file
+def check_satisfies(
+    rows: dict[str, dict[str, str]], known: set[str], catalog_file: str
+) -> list[Violation]:
+    """A link names an id in the local or an external catalogue; `<catalog>:<id>` resolves by
+    its id. Anything else is a broken edge in the requirement tree."""
+    from ..requirements import satisfies_ids
+
+    out: list[Violation] = []
+    for req_id, row in rows.items():
+        for target in satisfies_ids(row.get("satisfies")):
+            if target in known or target.split(":", 1)[-1] in known:
+                continue
+            out.append(
+                Violation(
+                    file=catalog_file,
+                    line=1,
+                    check="tag",
+                    message=(
+                        f"{req_id} satisfies {target}, which no requirements catalogue holds "
+                        "(local or impact.requirements.external)"
+                    ),
+                )
+            )
+    return out
+
+
+## @brief Cross-validate requirement tag references against the requirements file.
+#  @details v1.1: an EMPTY id set (looked, no catalogue) reports each tag as uncheckable;
+#  None still means no catalogue information was supplied (GH #68).
+#  v1.2: Violation names the function (qualified) for machine-format fingerprints (2.0.0, S1)
+#  @version 1.2
 #  @req REQ-DDB-GUARD-001
 def check_req_exists(
     func: Function,
@@ -797,6 +991,8 @@ def check_req_exists(
     config: dict[str, Any],
     req_ids: set[str] | None = None,
 ) -> list[Violation]:
+    # ABSENCE IS NOT EMPTINESS: None means the caller supplied no catalogue information (skip);
+    # an EMPTY set means the catalogues were looked for and none exists (GH #68).
     if func.doxygen is None or req_ids is None:
         return []
 
@@ -807,12 +1003,17 @@ def check_req_exists(
 
     violations: list[Violation] = []
     for req_id in func.doxygen.tags.get("req", []):
-        if req_id not in req_ids:
+        if not req_ids:
+            # GH #68: NO CATALOGUE AT ALL used to pass every tag unchecked. A tag that cannot be
+            # checked is now said to be one.
+            violations.append(_uncheckable(func, file_path, req_id))
+        elif req_id not in req_ids:
             violations.append(
                 Violation(
                     file=file_path,
                     line=func.doxygen.start_line + 1,
                     check="tag",
+                    qualified=func.qualified,
                     message=(
                         f"@req {req_id} in {func.name}() not found in requirements file"
                         f" — verify the ID or add it to the requirements"
@@ -897,7 +1098,7 @@ def _check_file_block_tags(file_path: str, lines: list[str], block_start: int) -
 
 ## @brief Extract file-level doxygen block text from lines.
 #  @version 1.1
-#  @dg_internal
+#  @utility
 #  @return The raw text of the doxygen block
 def _extract_file_block_text(lines: list[str], start: int) -> str:
     block_lines: list[str] = []
@@ -954,10 +1155,130 @@ def _find_file_doxygen_start(
 
 ## @brief Find the first non-blank, non-preprocessor line number.
 #  @version 1.1
-#  @dg_internal
+#  @utility
 #  @return 1-indexed line number for violation reporting
 def _first_code_line(lines: list[str]) -> int:
     for i, line in enumerate(lines):
         if line.strip():
             return i + 1
     return 1
+
+
+## @brief The event vocabulary: the declaration's `event_tags:`, else the index's built-in one.
+#  @details ONE VOCABULARY (R5-CFG F10, 2.0.0): the gate used its own `validate.bus.tags`, so a word
+#  the index read as an event (`publishes`, or a declared `broadcasts`) was an unknown tag here.
+#  @version 1.0
+#  @utility
+#  @return Tag names
+def _event_tags(config: dict[str, Any]) -> set[str]:
+    declared = config.get("event_tags")
+    return {str(t).lower() for t in declared} if declared else set(DEFAULT_EVENT_TAG_NAMES)
+
+
+## @brief The bus tags a configuration enforces; empty when no `validate.bus` section exists.
+#  @details v1.1 (2.0.0): the tags are the event vocabulary (`_event_tags`); `validate.bus` only
+#  switches the rule on and scopes it.
+#  @version 1.1
+#  @utility
+#  @return Tag names
+def _bus_tags(config: dict[str, Any]) -> set[str]:
+    if not get_validate(config).get("bus"):
+        return set()
+    return _event_tags(config)
+
+
+## @brief Verify that functions crossing a bus carry a bus tag naming a known bus.
+#  @details 1.4.0 W10 (#67's fifth consumer). SCOPED, NEVER BLANKET: a function is in scope
+#  when its name matches a `validate.bus.handlers` glob or its body calls a
+#  `validate.bus.senders` name — the caller that chooses the topic is the crossing, not only a
+#  named handler. A sender itself is the transport and is out of scope. The existing exemptions
+#  (@callback, @utility, @utility) are honoured: a blanket rule pushes repositories to add
+#  exemptions, which hides the very gap the rule exists to expose. Every bus tag's first word
+#  must be in `validate.bus.vocabulary` when one is given. With no `validate.bus` section the
+#  rule checks nothing.
+#  v1.1: Violation names the function (qualified) for machine-format fingerprints (2.0.0, S1)
+#  @version 1.1
+#  @req REQ-DDB-GUARD-026
+#  @return Violations
+def check_bus_tags(
+    functions: list[Function],
+    file_path: str,
+    config: dict[str, Any],
+    lines: list[str],
+) -> list[Violation]:
+    bus = get_validate(config).get("bus")
+    if not bus:
+        return []
+    tags = _bus_tags(config)
+    vocabulary = set(bus.get("vocabulary") or ())
+    handlers = tuple(bus.get("handlers") or ())
+    senders = tuple(bus.get("senders") or ())
+    call = re.compile(r"\b(?:%s)\s*\(" % "|".join(map(re.escape, senders))) if senders else None
+    violations: list[Violation] = []
+    for func in functions:
+        if func.doxygen is None or func.name in senders:
+            continue
+        present = {t: v for t, v in func.doxygen.tags.items() if t in tags}
+        violations.extend(_bus_vocabulary(func, file_path, present, vocabulary))
+        if present or EXEMPTION_TAGS & set(func.doxygen.tags):
+            continue
+        if _crosses_bus(func, lines, handlers, call):
+            violations.append(
+                Violation(
+                    file=file_path,
+                    line=func.def_line + 1,
+                    check="bus",
+                    qualified=func.qualified,
+                    message=(
+                        f"Function '{func.name}' crosses a bus but carries no bus tag "
+                        f"({', '.join(f'@{t}' for t in sorted(tags))}) and no exemption "
+                        f"({_exemption_hint()})"
+                    ),
+                )
+            )
+    return violations
+
+
+## @brief Whether a function is in the bus rule's scope.
+#  @version 1.0
+#  @utility
+#  @return True for a handler-glob name or a body calling a sender
+def _crosses_bus(
+    func: Function, lines: list[str], handlers: tuple[str, ...], call: re.Pattern[str] | None
+) -> bool:
+    from fnmatch import fnmatchcase
+
+    if any(fnmatchcase(func.name, g) for g in handlers):
+        return True
+    if call is None:
+        return False
+    body = "\n".join(lines[func.def_line + 1 : func.body_end + 1])
+    return call.search(body) is not None
+
+
+## @brief Violations for bus tags naming a bus outside the vocabulary.
+#  v1.1: Violation names the function (qualified) for machine-format fingerprints (2.0.0, S1)
+#  @version 1.1
+#  @utility
+#  @return Violations
+def _bus_vocabulary(
+    func: Function, file_path: str, present: dict[str, list[str]], vocabulary: set[str]
+) -> list[Violation]:
+    if not vocabulary:
+        return []
+    line = func.doxygen.start_line + 1 if func.doxygen else func.def_line + 1
+    return [
+        Violation(
+            file=file_path,
+            line=line,
+            check="bus",
+            qualified=func.qualified,
+            message=(
+                f"@{tag} {value!r} in {func.name}() names bus {value.split()[0] if value.split() else ''!r}, "
+                f"not in validate.bus.vocabulary ({', '.join(sorted(vocabulary))})"
+            ),
+        )
+        for tag, values in present.items()
+        for value in values
+        if not value.split() or value.split()[0] not in vocabulary
+    ]

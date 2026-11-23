@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes concrete C++ classes wrapping llama.cpp and says \"direct C-API linkage\", but never identifies the seam as free functions with a llama_ prefix. It names `llama_decode` and several llama_ types only in passing, as things the inference layer calls."
+}

@@ -1,0 +1,143 @@
+{
+  "cell": "Q3_claude-haiku-5-5_baseline_r1",
+  "arm": "baseline",
+  "rubric_version": "3.1.1",
+  "rubric_digest": "705c131e354e5c22",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.5666666666666667,
+  "unmarked_pct": 0.0,
+  "split_decisions": 1,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "names PermissionManager and locates the allow and deny lists as coming from the PermissionsConfig the ServerManager is constructed with",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer names PermissionManager but never says the allow/deny lists come from the PermissionsConfig that ServerManager is constructed with; it only cites YAML loader lines. || QUOTE: NONE | WHY: The answer names PermissionManager but never says the allow/deny lists come from the PermissionsConfig that ServerManager is constructed with; it only cites YAML `permissions.allow`/`permissions.deny` in the loader. || QUOTE: NONE | WHY: The answer names PermissionManager but never says the allow/deny lists come from the PermissionsConfig that ServerManager is constructed with; it only cites YAML `permissions.allow`/`permissions.deny` in loader.cpp.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that the DENY list is the only one that blocks execution \u2014 ServerManager's execute path consults is_denied and nothing else before routing the call",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: \"Then `process_single_call` calls `ServerManager::execute` (`tool_executor.cpp:398`). That method (`server_manager.cpp:153-168`) runs `is_denied` against the deny list and returns \"Error: Permission denied\" without routing.\" | WHY: The answer says ServerManager::execute runs is_denied, but it frames deny as one of many gates and says allow, MCP key, and tier checks also block earlier. It never concludes that deny is the only blocking list consulted at execution. || QUOTE: \"Then `process_single_call` calls `ServerManager::execute` (`tool_executor.cpp:398`). That method (`server_manager.cpp:153-168`) runs `is_denied` against the deny list and returns \"Error: Permission denied\" without routing.\" | WHY: The answer says ServerManager::execute runs the deny list, but it does not conclude that deny is the only list that blocks execution. It describes the allow list as gating approval and a callback that approves everything, and it describes MCP key and tier gates before execution, which contradicts \"nothing else before routing.\" || QUOTE: \"Deny: blocks the call at execution, even if `auto_approve` is on or the allow list matches.\" and \"Then `process_single_call` calls `ServerManager::execute` ... runs `is_denied` against the deny list and returns \"Error: Permission denied\" without routing.\" | WHY: The answer says deny is enforced in `ServerManager::execute`. It also says the allow list gates approval, and that six other gates run before execution. That contradicts the item's claim that the deny list is the only thing blocking execution.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the ALLOW list does not grant execution but suppresses the approval step \u2014 it is consulted only from ToolExecutor::check_approval, in a different file",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: The allow list is consulted only at the approval gate. | WHY: The answer says the allow list is consulted only at the approval gate (`check_approval`, tool_executor.cpp) and that allow \"lets the call pass approval. It does not bypass the MCP keys or tier checks.\" Deny is a separate check in `server_manager.cpp`, so the allow list is in a different file and does not grant execution. || QUOTE: Allow: lets the call pass approval. It does not bypass the MCP keys or tier checks that run earlier. / The allow list is consulted only at the approval gate. | WHY: The answer says the allow list is consulted only at the approval gate (`check_approval`) and only lets the call pass approval, not bypassing other checks. It also says deny is enforced separately in `ServerManager::execute` (`server_manager.cpp`), a different file. That covers the point that allow suppresses approval rather than granting execution.",
+      "agreement": 0.6666666666666666,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that the effective posture is default-ALLOW at the blocking gate \u2014 a tool matching neither list is not denied and runs",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never states that a tool matching neither the allow nor deny list is not denied and runs. It says approval needs auto_approve or an allow match, and that the callback approves everything, but it does not conclude default-allow overall. || QUOTE: NONE | WHY: The answer never states that a tool matching neither list is allowed to run. It says the callback \"approves everything\" and describes the approval gate, but it does not draw the default-allow conclusion for unlisted tools. || QUOTE: NONE | WHY: The answer never states that a tool matching neither the allow nor deny list is not denied and runs; it only says allow gates approval and deny blocks at execution, and it notes the callback approves everything. It does not conclude a default-allow posture for tools on neither list.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies that the approval callback CANNOT refuse \u2014 it returns void, and the code sets approved to true unconditionally after firing it",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"the code calls the callback and then sets `approved = true`. So a host that registers the callback to \"ask the user\" gets a notification, not a gate.\" | WHY: The answer states that the callback is called and approved is then set to true unconditionally, so the callback cannot refuse. It doesn't mention the void return type, but the core mechanism is there. || QUOTE: \"the code calls the callback and then sets `approved = true`. So a host that registers the callback to \"ask the user\" gets a notification, not a gate.\" | WHY: The answer states the callback fires and approved is then set to true unconditionally, so the callback cannot refuse. It doesn't mention the void return type, but the mechanism is clear. || QUOTE: \"the code calls the callback and then sets `approved = true`. So a host that registers the callback to \"ask the user\" gets a notification, not a gate.\" | WHY: The answer states the callback is called and then approved is set to true unconditionally, so it can't gate; it doesn't mention the void return explicitly, but the substance (callback cannot refuse) is stated.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "explains that a pattern is matched with fnmatch, split at the first colon into a tool part and an argument part, and that a pattern with no colon matches on the tool name alone",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: \"**Tool part:** `fnmatch` against the fully qualified tool name, such as `filesystem.read`. `*` and `?` work as shell globs. - **No colon:** the tool match alone is sufficient, so `bash.execute` matches every call to that tool. - **With colon:** the full string `tool:arg` is also fnmatch'd.\" | WHY: The answer says that patterns have the form `tool[:args]`, are matched with fnmatch, have a tool part and an argument part, and that a pattern with no colon matches on the tool name alone. It never says the split happens at the first colon, but the rest of the substance is there. || QUOTE: \"**Tool part:** `fnmatch` against the fully qualified tool name, such as `filesystem.read`. `*` and `?` work as shell globs. - **No colon:** the tool match alone is sufficient, so `bash.execute` matches every call to that tool. - **With colon:** the full string `tool:arg` is also fnmatch'd.\" | WHY: The answer states that patterns are `tool[:args]` and matched with fnmatch, that a pattern with no colon matches on the tool name alone, and that a pattern with a colon has the tool part and the argument part matched. || QUOTE: \"**Tool part:** `fnmatch` against the fully qualified tool name, such as `filesystem.read`. `*` and `?` work as shell globs. - **No colon:** the tool match alone is sufficient, so `bash.execute` matches every call to that tool. - **With colon:** the full string `tool:arg` is also fnmatch'd.\" | WHY: The answer states that patterns are in the form `tool[:args]`, matched with fnmatch, with a tool part and an argument part, and that a pattern with no colon matches on the tool name alone. It never says explicitly that the split happens at the first colon, but the tool/argument split on a colon is clearly described.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that only ONE argument value ever reaches the pattern \u2014 the rest of the call's arguments are invisible to permission matching, and a non-string or unparseable argument collapses to a wildcard",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: The argument side is built by `args_to_pattern` (`server_manager.cpp:426`), which takes the value of the first string argument, or `*` if there is none. | WHY: The answer states that only the first string argument's value reaches the pattern, with a `*` fallback when there is none. That covers the single-value and wildcard parts of the item. It does not say outright that the other arguments are invisible, or that an unparseable argument also collapses to `*`, but both follow from the description. || QUOTE: The argument side is built by `args_to_pattern` (`server_manager.cpp:426`), which takes the value of the first string argument, or `*` if there is none. | WHY: The answer says only the first string argument's value reaches the pattern, with `*` when there is no string argument. That covers the single-value mechanism and the wildcard fallback. It does not say the other arguments are invisible, but that follows from \"first\". It also does not mention unparseable arguments. || QUOTE: \"The argument side is built by `args_to_pattern` (`server_manager.cpp:426`), which takes the value of the first string argument, or `*` if there is none.\" | WHY: The answer states only one argument value (the first string argument) is used in the pattern and that a call with no string argument falls back to `*`, which covers the wildcard-collapse part. Ignoring the other arguments is implied by \"first string argument\".",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "identifies that a decision can be PERSISTED for future sessions by appending to config.local.yaml, separately from the in-memory add_permission call",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never mentions persisting a permission decision to config.local.yaml, nor distinguishes it from an in-memory add_permission call. || QUOTE: NONE | WHY: The answer never mentions persisting a permission decision by appending to config.local.yaml, nor the add_permission call. || QUOTE: NONE | WHY: The answer never mentions persisting a decision to config.local.yaml or any persistence separate from the in-memory add_permission call.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "the files a permission decision passes through \u2014 src/mcp/permission_manager.cpp",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the files a permission decision passes through \u2014 src/mcp/server_manager.cpp",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the files a permission decision passes through \u2014 src/mcp/tool_executor.cpp",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": true,
+      "detail": "named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the files a permission decision passes through \u2014 include/entropic/types/config.h",
+      "kind": "set_member",
+      "weight": 2,
+      "hit": false,
+      "detail": "not named",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    },
+    {
+      "mark": "the files a permission decision passes through \u2014 precision",
+      "kind": "set_precision",
+      "weight": 2,
+      "hit": false,
+      "detail": "named 5 not in the set: ['include/entropic/mcp/mcp_authorization.h', 'src/config/loader.cpp', 'src/facade/entropic.cpp', 'src/mcp/mcp_key_set.cpp', 'src/mcp/servers/bash.cpp']",
+      "agreement": 0.0,
+      "samples": 0,
+      "errors": 0
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"defined at `library/error.c:792`\" and \"The caller invokes `mbedtls_strerror(ret, buf, buflen)`. It is declared in `include/mbedtls/error.h:165`\"\nVERDICT: HIT\nWHY: The answer names mbedtls_strerror as the caller-facing entry point and locates its definition in library/error.c."
+}

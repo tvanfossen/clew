@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Callbacks | Pointers are valid only during the call. Do not re-enter the API from a callback. Exceptions must not escape. Python must hold a reference to the `CFUNCTYPE` object. | `streams.py` keeps `_observers`, `hooks.py` keeps `_HookEntry.trampoline`, `hooks.py` catches all exceptions.\nVERDICT: MISS\nWHY: The answer says hooks.py catches all exceptions, but never states that a failed hook is treated as a pass-through, which this item requires."
+}

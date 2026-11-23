@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The first call is a size query, not an attempt that failed. Nothing is retried.\" and \"So I would not call it retry logic. It is size negotiation. There is no loop, no attempt limit beyond two, and no backoff.\"\nVERDICT: HIT\nWHY: The answer concludes size negotiation rather than retry, and states there is no backoff and no loop and only two calls."
+}

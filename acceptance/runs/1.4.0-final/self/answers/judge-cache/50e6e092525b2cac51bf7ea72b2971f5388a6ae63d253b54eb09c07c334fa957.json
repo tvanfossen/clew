@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The build records the reason, so a log line says \"no index_scope is declared for this repo\" along with the advice to declare one.\nVERDICT: HIT\nWHY: The answer states the fallback records a reason explaining which scope was used (no index_scope declared), and that a declared-but-empty section is rejected with a reason rather than silently treated as absent."
+}

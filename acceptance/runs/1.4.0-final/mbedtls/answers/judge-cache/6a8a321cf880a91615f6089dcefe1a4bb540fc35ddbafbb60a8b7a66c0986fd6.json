@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: There is no thread creation in the library.\nVERDICT: MISS\nWHY: The answer says the library creates no threads, but it never states that library/ supplies the mutex abstraction (the threading layer) for threaded callers. It says the mutex calls are compiled out by default and describes per-module locks, not a shared mutex abstraction."
+}

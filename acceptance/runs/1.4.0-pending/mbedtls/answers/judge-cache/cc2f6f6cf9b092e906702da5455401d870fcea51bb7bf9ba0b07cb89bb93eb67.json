@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_strerror` is the public entry point, declared in `include/mbedtls/error.h`. ... Those switches live in `library/error.c`, which is generated.\nVERDICT: HIT\nWHY: The answer names mbedtls_strerror as the entry point and places it in library/error.c (diagram labels it `library/error.c`)."
+}

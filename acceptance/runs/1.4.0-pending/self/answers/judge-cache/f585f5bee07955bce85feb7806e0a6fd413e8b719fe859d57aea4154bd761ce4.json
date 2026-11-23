@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `'key'` for a function that writes a shared key which `fn` reads, with no call between them. A `'key'` row is not a caller.\nVERDICT: HIT\nWHY: The answer says that a reader's \"callers\" list includes functions that write a key the reader reads. That is the inverted causal polarity, where the callers are the writers whose writes the reader observes."
+}

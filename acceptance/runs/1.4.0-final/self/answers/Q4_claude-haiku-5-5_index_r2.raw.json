@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 13308,
+  "stop_reason": "end_turn",
+  "session_id": "5b9a4019-f976-4a22-a560-7a296a202811",
+  "total_cost_usd": 0.0027059300000000005,
+  "usage": {
+    "input_tokens": 6,
+    "cache_creation_input_tokens": 2606,
+    "cache_read_input_tokens": 116413,
+    "output_tokens": 2040,
+    "output_tokens_details": {
+      "thinking_tokens": 851
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 2606,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1701,
+        "cache_read_input_tokens": 39525,
+        "cache_creation_input_tokens": 1525,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1525
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 6,
+      "outputTokens": 2040,
+      "cacheReadInputTokens": 116413,
+      "cacheCreationInputTokens": 2606,
+      "webSearchRequests": 0,
+      "costUSD": 0.0027059300000000005,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 851,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 2606,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 3,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The answer is a set of static caller edges, not a proof that every relevant call goes through the function. I checked this on `git_argv` (`clew/gitenv.py:89`), which the index reports with:\n\n- **Callers, grouped by file, one hop up:** `_detect_git_version` (guard/main.py), `_git_ls_files` (guard/tags.py), `_gitignored_paths` and `_is_dependency_of_parent` (scope.py), `run_git` (guard/git.py), `tracked_files` (propose/notindexed.py), and a test, `test_the_disarmed_key_list_reaches_the_argv`.\n- **Callees:** empty. This function calls nothing indexed, so the empty list is a real answer about its body, not a gap.\n- **Requirement and tests:** it carries `REQ-DDB-CONFIG-001` and a `covering_tests` entry.\n- **Threads:** it is reachable from the `clew-first-build` thread through `_first_build_worker`, with `confidence: medium` and `source: ast_spawn`.\n- **Liveness, body, and `@version`:** the verbatim body and docstring come back with it.\n\n**What the answer means:**\n\n- **It is a graph of resolved edges.** Each caller is a name the parser resolved to this symbol. The `ambiguous` and `candidates` fields are how the index says a name matched several things. Here `candidates` is empty, so the resolution was unambiguous. If that field were non-empty, the caller rows would be shared with other symbols and should not be attributed to this one.\n- **It is one hop by default.** The list is direct callers only. The transitive picture needs `depth` with `direction: back`, which walks further up the graph.\n- **Absence is not proof.** A git call made through `subprocess` with a literal `\"git\"` argv, through `getattr`, a string-built command, or dynamic dispatch would not appear as a caller. The security claim rests on `tests/test_security_surface.py` asserting that no site builds its own argv, and that test is a second, independent check. The caller list alone cannot establish it.\n- **Coverage edges are weaker than call edges.** `covering_tests` lists `test_mqtt_dispatch_accepts_an_inline_document_not_only_a_path`, a test whose name has nothing to do with git argv. Treat that as a suspicious association to verify, not as evidence the defence is tested.\n- **Thread reachability is a claim about spawning, not about runtime.** The `clew-first-build` link says the function is reachable from that thread's code path. It does not say the call executes on every build, and its confidence is medium.\n- **The name is the key.** Callers are matched by symbol identity, so a function with the same short name in another module would need `qualified` to tell apart. This is why the index asks you to pass `qualified` back when a name is ambiguous.\n\n**Reading it correctly:** the list tells you where the index can see a resolved call. It is an answer to \"who statically calls this,\" and it is strong for that. It is weak for \"is every path through this rule covered,\" and for that you need the test that asserts the absence, or a search of the code corpus for raw `git` invocations (`search(corpus='code')`), which would catch what the call graph cannot.",
+  "ttft_ms": 2093,
+  "type": "result",
+  "duration_ms": 13989,
+  "uuid": "a1e924b0-53a3-4518-a4ef-e0e6caf294dd",
+  "ttft_stream_ms": 1070,
+  "time_to_request_ms": 101,
+  "first_content_frame_ms": 1071,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

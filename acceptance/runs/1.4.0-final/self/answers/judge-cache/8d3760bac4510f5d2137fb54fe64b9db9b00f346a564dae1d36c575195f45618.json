@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Whether the miss report flags that is an inference I could not confirm from the index\nVERDICT: MISS\nWHY: The answer says a grammar-less install yields no symbols without raising, but it explicitly leaves unresolved whether those files are reported as not indexed, and it never names a router capability gate. It reads the report as probably empty."
+}

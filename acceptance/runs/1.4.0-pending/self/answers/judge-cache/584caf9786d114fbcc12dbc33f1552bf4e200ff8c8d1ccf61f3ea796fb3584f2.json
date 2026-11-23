@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A caller that invokes `git_argv` twice appears once.\nVERDICT: MISS\nWHY: The answer says one row per caller function, collapsing multiple call sites. It never says that one row per neighbour collapses evidence from several layers or variants to the strongest."
+}

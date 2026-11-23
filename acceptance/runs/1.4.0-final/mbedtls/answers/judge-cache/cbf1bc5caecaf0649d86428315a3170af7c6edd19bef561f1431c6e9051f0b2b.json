@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`mbedtls_memory_buffer_alloc_init(buf, len)` (`library/memory_buffer_alloc.c:566-600`) manages a caller-supplied static buffer and installs its own `calloc`/`free` through `mbedtls_platform_set_calloc_free`.\"\nVERDICT: HIT\nWHY: The answer names the buffer allocator's init function installing itself via the runtime setter. It doesn't say \"only in-tree user\" explicitly, but it presents this as the library's own use of the hook, and that is enough to count."
+}

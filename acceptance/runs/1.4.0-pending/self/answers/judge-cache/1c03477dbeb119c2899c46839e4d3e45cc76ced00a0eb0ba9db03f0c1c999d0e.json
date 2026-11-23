@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Declared scope.** `_declared_index_scope` reads an `index_scope:` block from `.clew.yaml`... **Whole repository.** `whole_repo_scope` (line 683) is the fallback.\"\nVERDICT: MISS\nWHY: The answer gives declared-then-whole-repo tiers, but only the \"no index_scope declared\" case is said to fall through. It also says an unusable block is rejected with a reason, not that it falls through, so \"every failure to find one\" is not stated."
+}

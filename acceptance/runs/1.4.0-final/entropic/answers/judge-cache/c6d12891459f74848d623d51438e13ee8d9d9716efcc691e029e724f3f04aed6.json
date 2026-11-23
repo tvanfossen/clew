@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer covers HealthMonitor only as a spawn site and never describes its shutdown (atomic flag exchange, condition variable wake, or stop() joining the thread)."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **Exceptions must not cross into C.** The stream observer's trampoline wraps the Python callable in try/except and prints the traceback to stderr. The hook path follows the same principle.\nVERDICT: MISS\nWHY: The answer covers the stream observer's try/except and only vaguely says the hook path \"follows the same principle\". It never states that the hook trampoline swallows exceptions or that a failed hook is treated as a pass-through."
+}

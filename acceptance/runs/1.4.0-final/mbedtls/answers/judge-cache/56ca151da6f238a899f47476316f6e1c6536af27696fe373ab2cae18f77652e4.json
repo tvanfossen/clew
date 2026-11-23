@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_ct_compiler_opaque(x)` is an empty asm with a `+r` constraint (`constant_time_impl.h`). It stops the optimiser from proving that a mask is 0 or all-ones and turning it back into a branch.\nVERDICT: HIT\nWHY: The answer states the asm is empty with a `+r` (input-output register) operand and that it acts only to stop the optimiser, which is the optimisation-barrier role. It does not explicitly say \"no instruction emitted\" or \"volatile\", but \"empty asm\" conveys the substance."
+}

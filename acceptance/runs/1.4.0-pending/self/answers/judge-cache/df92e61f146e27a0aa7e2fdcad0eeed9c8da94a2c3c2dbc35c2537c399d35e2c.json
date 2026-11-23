@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The Doxyfile no longer chooses the input set. Since gh#333 it supplies aliases and predefined macros only. An older Doxyfile-as-scope fallback was removed.\nVERDICT: MISS\nWHY: The answer says the Doxyfile no longer decides the input set, but it never explains why: that a repository shipping a Doxyfile would get only its documented subset while one with none gets its whole tree."
+}

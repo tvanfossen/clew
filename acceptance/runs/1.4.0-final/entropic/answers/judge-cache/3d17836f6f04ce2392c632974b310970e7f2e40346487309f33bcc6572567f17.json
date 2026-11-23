@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Cancel pollers (3 sites) ... 10 ms polls that mirror an interrupt flag into the C-ABI `int*` for one call.\nVERDICT: HIT\nWHY: The answer says the cancel pollers mirror an interrupt flag (atomic) into the C-ABI `int*`, and that they use atomics, which conveys the bridge from an atomic to a plain int across the C ABI."
+}

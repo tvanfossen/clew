@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The opt-out is for the library's own sources and its sample programs. ... `programs/ssl/ssl_server2.c:8` | Defined before `ssl_test_lib.h`, so this sample server reaches into SSL internals. ... `programs/ssl/ssl_client2.c:8` | Same as the server.\nVERDICT: HIT\nWHY: The answer says that sample programs (ssl_server2.c and ssl_client2.c) define MBEDTLS_ALLOW_PRIVATE_ACCESS themselves to reach into SSL internals."
+}

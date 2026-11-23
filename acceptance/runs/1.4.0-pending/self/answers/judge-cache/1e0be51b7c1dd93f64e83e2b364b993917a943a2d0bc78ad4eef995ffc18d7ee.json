@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `.yaml` `.yml` `.json` | One `path` row. The file is findable by name and has no symbols. ... YAML and JSON are never named on any install, because they are always registered.\nVERDICT: HIT\nWHY: The answer says YAML/JSON are registered as path rows with no symbols, while shell/CMake get function/macro symbol rows, so the groups are treated differently."
+}

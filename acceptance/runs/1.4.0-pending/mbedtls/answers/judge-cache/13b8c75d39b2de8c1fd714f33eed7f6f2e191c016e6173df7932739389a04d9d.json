@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `library/common.h:132` \u2014 `#define MBEDTLS_ALLOW_PRIVATE_ACCESS` | Unconditional for all library translation units. `common.h` is included by `ssl_misc.h`, `ssl_ciphersuites.c`, `md.c`, ... so inside the library `MBEDTLS_PRIVATE(x)` expands to plain `x`.\nVERDICT: HIT\nWHY: The answer states that library/common.h, a shared header, defines the opt-out, so every library translation unit sees plain member names."
+}

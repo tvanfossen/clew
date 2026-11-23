@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `scripts/gen_bindings.py` parses the public headers with a hand-rolled parser (not pycparser) and emits `_bindings.py` and `_bindings_manifest.py`.\nVERDICT: MISS\nWHY: The answer names both generated files but never explains the split: a names-only manifest that imports no ctypes versus the bindings module that loads the library."
+}

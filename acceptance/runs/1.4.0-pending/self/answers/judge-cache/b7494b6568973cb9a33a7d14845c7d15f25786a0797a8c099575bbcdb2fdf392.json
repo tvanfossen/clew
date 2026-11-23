@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never mentions that \"callers\" of a reader are functions whose writes it observes, or any inverted causal polarity between call-edge and shared-key dataflow halves; it only says dataflow edges are a separate class."
+}

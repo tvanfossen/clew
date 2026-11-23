@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**`.clew.yaml`** is the repo's standing statement. Each section name is also the option name, so a section can be moved verbatim into an `options` mapping.\"\nVERDICT: MISS\nWHY: The answer identifies `.clew.yaml` as the tier-2 standing declaration, but never says it is discovered from the repo root by both entry points (CLI and MCP/embedding) rather than plumbed per section."
+}

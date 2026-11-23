@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The second call is not a retry of a failed call. It is the call that does the work, made with the size the first call reported.\nVERDICT: HIT\nWHY: The answer concludes this is size negotiation (\"ask for the size, then fill the buffer\"), not retry, with exactly one second call (\"retries once with an exact-size heap buffer\")."
+}

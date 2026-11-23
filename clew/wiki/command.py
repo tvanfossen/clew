@@ -1,0 +1,407 @@
+# SPDX-License-Identifier: MIT
+"""`clew wiki` — the documentation subcommand.
+
+    clew wiki flow ENTRY [--qualified Q] [--depth N] [--lanes files|packages|threads]
+                         [--stop-at NAME ...] [--index DB | --repo-root DIR]
+
+    clew wiki trace [--junit X.xml ...] [--coverage cov.xml] [--target-only GLOB ...]
+    clew wiki trace ... [--mutations M.yaml]
+    clew wiki check [--config FILE]      # validate the `wiki:` section; no Sphinx import
+    clew wiki build --out DIR [--audience NAME] [--version KEY] [--config FILE]
+    clew wiki diff --out DIR FROM TO     # compare two version-keyed builds
+
+`--config FILE` reads that file's `wiki:` section instead of `<repo>/.clew.yaml`, so a repository
+can be documented without writing into it. `--version KEY` writes `<out>/<KEY>/` and lists it in
+`<out>/index.html`; `diff` prints the changes between two keys as JSON and writes
+`<out>/diff-FROM-TO.html`.
+
+`flow` prints the derived sequence flow (clew.wiki.flow) as JSON on stdout, stamped with
+`flow_version`; `trace` prints every requirement's evidence tier (clew.wiki.evidence), stamped
+`trace_version`. Exit codes follow `clew query`: 0 printed, 1 no index (stdout empty), 2 refused
+(unknown entry or lane strategy; the reason on stderr).
+
+@brief The `clew wiki` subcommand.
+@version 4
+"""
+
+from __future__ import annotations
+
+import argparse
+import dataclasses
+import json
+import subprocess
+import sys
+from pathlib import Path
+from typing import Any
+
+## The command word `cli.main()` dispatches on.
+WIKI_COMMAND = "wiki"
+
+
+## @brief The argument parser for `clew wiki`.
+## @return The parser.
+## v2: the `trace` verb.
+## v3: `check` and `build`.
+## v4: `diff`, `--version`, `--config`, `--mutations`, `flow --svg --animate`.
+## v5: `trace --config` (W15/W16 imports).
+## v6: `check --refresh` / `build --refresh` (the pre-commit hook has no index yet).
+## v7: `trace-run` (round 3, P4b).
+## v8: `build --format markdown --flavor` (round 3, P5b).
+## v9: `check --before-tests` (round 3, P6c).
+## v10: help text names the top-level tests: section (2.0.0)
+## @version 10
+## @utility
+def _parser() -> argparse.ArgumentParser:
+    """@brief Build the parser. @return Parser."""
+    from .flow import LANES
+
+    parser = argparse.ArgumentParser(prog=f"clew {WIKI_COMMAND}")
+    sub = parser.add_subparsers(dest="verb", required=True)
+    flow = sub.add_parser("flow", help="a sequence flow derived from the index, as JSON")
+    flow.add_argument("entry")
+    flow.add_argument("--qualified")
+    flow.add_argument("--depth", type=int, default=3)
+    flow.add_argument("--lanes", default="files", help=", ".join(LANES))
+    flow.add_argument("--stop-at", nargs="*", default=[])
+    flow.add_argument("--index")
+    flow.add_argument("--repo-root")
+    flow.add_argument("--indent", type=int, default=None)
+    flow.add_argument("--svg", action="store_true", help="print the SVG diagram, not JSON")
+    flow.add_argument("--animate", action="store_true", help="with --svg: play the steps in order")
+    trace = sub.add_parser("trace", help="requirement evidence from JUnit and Cobertura, as JSON")
+    trace.add_argument("--junit", nargs="*", default=[], help="JUnit XML report(s)")
+    trace.add_argument("--coverage", help="a Cobertura XML report")
+    trace.add_argument(
+        "--target-only", nargs="*", default=[], help="test-name globs needing hardware"
+    )
+    trace.add_argument("--mutations", help="a mutation record: [{mechanism, test, killed}]")
+    trace.add_argument("--config", help="a file whose tests: imports (W15/W16) apply")
+    trace.add_argument("--index")
+    trace.add_argument("--repo-root")
+    trace.add_argument("--indent", type=int, default=None)
+    check = sub.add_parser("check", help="validate the wiki: section against the index (no Sphinx)")
+    check.add_argument("--index")
+    check.add_argument("--repo-root")
+    check.add_argument("--config", help="a file whose wiki: section applies")
+    check.add_argument("--refresh", action="store_true", help="bring the index current first")
+    check.add_argument(
+        "--before-tests",
+        action="store_true",
+        help="the test reports are written later (a pre-commit hook): do not require them yet",
+    )
+    build = sub.add_parser("build", help="render the site (needs clew-trace[wiki])")
+    build.add_argument("--out", required=True, help="output directory; the site is <out>/html")
+    build.add_argument(
+        "--format", default="html", choices=("html", "markdown"), help="markdown: wiki pages"
+    )
+    build.add_argument("--flavor", default="github", help="markdown for: github, ado")
+    build.add_argument("--audience", help="an audience from wiki.audiences")
+    build.add_argument("--version", help="a version key: the site goes to <out>/<key>/")
+    build.add_argument("--config", help="a file whose wiki: section applies")
+    build.add_argument("--refresh", action="store_true", help="bring the index current first")
+    build.add_argument("--index")
+    build.add_argument("--repo-root")
+    run = sub.add_parser(
+        "trace-run", help="run one test traced; spans as OTLP JSON (runs its code)"
+    )
+    run.add_argument("--test", required=True, help="pytest node id, e.g. tests/test_m.py::test_x")
+    run.add_argument("--out", required=True, help="where the spans go (OTLP JSON)")
+    run.add_argument("--index")
+    run.add_argument("--repo-root")
+    run.add_argument("--indent", type=int, default=None)
+    diff = sub.add_parser("diff", help="compare two version-keyed builds")
+    diff.add_argument("--out", required=True, help="the versioned output root")
+    diff.add_argument("old")
+    diff.add_argument("new")
+    diff.add_argument("--indent", type=int, default=None)
+    return parser
+
+
+## @brief Entry point for `clew wiki`.
+## @param argv Arguments after `clew wiki`.
+## @return Exit status.
+## v2: dispatches `trace` too.
+## v3: and `check` / `build`.
+## v4: and `diff`, which needs no index.
+## v5: `trace` gets the repository (for `--config` imports).
+## v6: `--refresh` refreshes the index before `check` / `build`.
+## v7: `trace-run`, which needs no index (it overlays the expected flow when one exists).
+## v8: `open` (round 3, P5a), dispatched before the parser: it owns its own arguments.
+## @version 8
+## @req REQ-DDB-WIKI-001
+def wiki_main(argv: list[str]) -> int:
+    """@brief Dispatch a wiki verb. @return Exit status."""
+    from ..query_command import _locate
+
+    if argv[:1] == ["open"]:
+        from .open_command import open_main
+
+        return open_main(argv[1:])
+    args = _parser().parse_args(argv)
+    if args.verb == "diff":
+        return _diff(args)
+    if args.verb == "trace-run":
+        return _trace_run(args)
+    db, repo = _locate(args)
+    if getattr(args, "refresh", False):
+        from ..refresh_command import refresh_main
+
+        refresh_main(["--repo-root", str(repo or Path.cwd()), "--output", str(db)])
+    if not db.is_file():
+        sys.stderr.write(f"clew wiki: no index at {db} — build one with `clew --repo-root`\n")
+        return 1
+    if args.verb in ("check", "build"):
+        return _site(args, db, repo or Path.cwd())
+    try:
+        text = _flow(args, db, repo) if args.verb == "flow" else _json(_trace(args, db, repo), args)
+    except (ValueError, OSError) as exc:
+        sys.stderr.write(f"clew wiki: refused — {exc}\n")
+        return 2
+    sys.stdout.write(text + "\n")
+    return 0
+
+
+## @brief Write the wiki as Markdown pages for a GitHub or Azure DevOps wiki.
+## @param args Parsed arguments.
+## @param db The index.
+## @param repo The repository.
+## @param config A config file, or None.
+## @return Exit status: 0 written, 2 refused.
+## @version 1
+## @req REQ-DDB-WIKI-038
+def _markdown(args: argparse.Namespace, db: Path, repo: Path, config: Path | None) -> int:
+    """@brief Markdown build. @return Exit status."""
+    from .markdown import build_markdown
+
+    try:
+        out = build_markdown(
+            repo, db, Path(args.out), args.flavor, audience=args.audience, config_path=config
+        )
+    except ValueError as exc:
+        sys.stderr.write(f"clew wiki: refused — {exc}\n")
+        return 2
+    sys.stdout.write(f"{out}\n")
+    return 0
+
+
+## @brief Run one test traced, write its spans, print the run and its overlay.
+## @param args Parsed arguments.
+## @return Exit status: 0 ran (whatever the test's outcome), 2 the run could not happen.
+## @version 1
+## @req REQ-DDB-WIKI-035
+def _trace_run(args: argparse.Namespace) -> int:
+    """THE OVERLAY NEEDS AN INDEX, the run does not: without one the spans and checkpoints are
+    still written and printed, and `overlay` is absent — never an empty comparison.
+
+    @brief Trace-run verb.
+    @return Exit status.
+    """
+    from ..query_command import _locate
+    from .tracerun import overlay, trace_test
+
+    repo = Path(args.repo_root or Path.cwd()).resolve()
+    try:
+        run = trace_test(repo, args.test)
+    except (RuntimeError, OSError, subprocess.SubprocessError) as exc:
+        sys.stderr.write(f"clew wiki: trace-run refused — {exc}\n")
+        return 2
+    Path(args.out).write_text(json.dumps(run["otlp"], indent=args.indent), encoding="utf-8")
+    report = {k: run[k] for k in ("passed", "checkpoints", "failure", "dropped")}
+    db, _repo = _locate(args)
+    if db.is_file():
+        report["overlay"] = overlay(expected_steps(db, repo, args.test), run["otlp"])
+    sys.stdout.write(json.dumps(report, indent=args.indent) + "\n")
+    return 0
+
+
+## @brief The index's expected flow for a test, as (caller, callee) pairs.
+## @param db The index.
+## @param repo The repository.
+## @param nodeid The test's node id.
+## @return Pairs in flow order ([] when the index has no such test function).
+## @version 1
+## @req REQ-DDB-WIKI-035
+def expected_steps(db: Path, repo: Path, nodeid: str) -> list[tuple[str, str]]:
+    """@brief Expected steps. @return Pairs."""
+    from .flow import derive_flow
+
+    file, _, name = nodeid.partition("::")
+    name = name.split("::")[-1].split("[")[0]
+    try:
+        flow = derive_flow(db, repo, name, file=file, depth=2)
+    except ValueError:
+        return []
+    return [(s.caller, s.callee) for s in flow.steps]
+
+
+## @brief A payload as JSON text.
+## @param payload Plain data.
+## @param args Parsed arguments (for `--indent`).
+## @return JSON text.
+## @version 1
+## @utility
+def _json(payload: dict[str, Any], args: argparse.Namespace) -> str:
+    """@brief Serialise. @return Text."""
+    return json.dumps(payload, indent=args.indent)
+
+
+## @brief The `flow` verb's output: JSON, or the SVG diagram with `--svg`.
+## @param args Parsed arguments.
+## @param db The index.
+## @param repo The working tree, or None.
+## @return The text to print.
+## v2: `--svg` / `--animate` (W12).
+## @version 2
+## @utility
+def _flow(args: argparse.Namespace, db: Path, repo: Path | None) -> str:
+    """@brief Derive and render the flow. @return Text."""
+    flow = _flow_object(args, db, repo)
+    if args.svg:
+        from .svg import flow_svg
+
+        return flow_svg(flow, animate=args.animate)
+    return _json(dataclasses.asdict(flow), args)
+
+
+## @brief Derive the flow the arguments name.
+## @param args Parsed arguments.
+## @param db The index.
+## @param repo The working tree, or None.
+## @return The Flow.
+## @version 1
+## @utility
+def _flow_object(args: argparse.Namespace, db: Path, repo: Path | None) -> Any:
+    """@brief Derive the flow. @return Flow."""
+    from .flow import derive_flow
+
+    return derive_flow(
+        db,
+        repo or db.parent,
+        args.entry,
+        qualified=args.qualified,
+        depth=args.depth,
+        lanes=args.lanes,
+        stop_at=tuple(args.stop_at),
+    )
+
+
+## @brief The `trace` verb's payload.
+## @param args Parsed arguments.
+## @param db The index.
+## @param repo The repository (the imports' paths are relative to it).
+## @return Evidence rows as plain data, stamped `trace_version`.
+## v2: `--mutations` (rows gain `mutations`, additive: trace_version stays 1).
+## v3: `--config` applies the section's W15/W16 imports (rows gain `layers`, additive).
+## @version 3
+## @utility
+def _trace(args: argparse.Namespace, db: Path, repo: Path | None) -> dict[str, Any]:
+    """THE IMPORTS COME FROM A `wiki:` SECTION, never from a flag per format, so the trace a CLI
+    prints and the one a site shows read the same declaration.
+
+    @brief Grade the requirements.
+    @return Plain data.
+    """
+    from .config import EvidenceInputs, load_wiki_config
+    from .evidence import requirement_evidence
+
+    root = repo or Path.cwd()
+    inputs = EvidenceInputs()
+    if args.config:
+        config, problems = load_wiki_config(root, Path(args.config))
+        if problems:
+            raise ValueError("wiki configuration problems: " + "; ".join(problems))
+        inputs = config.inputs
+    rows = requirement_evidence(
+        db,
+        junit=[Path(p) for p in args.junit],
+        coverage=Path(args.coverage) if args.coverage else None,
+        target_only=tuple(args.target_only),
+        mutations=Path(args.mutations) if args.mutations else None,
+        inputs=inputs,
+        repo_root=root,
+    )
+    return {"trace_version": 1, "requirements": [dataclasses.asdict(r) for r in rows]}
+
+
+## @brief The EARS notes for `check`, when the repository turned EARS on.
+## @param repo The repository.
+## @param db The index.
+## @param config_path An out-of-tree config, or None.
+## @return Notes.
+## @version 1
+## @req REQ-DDB-WIKI-042
+def _ears_notes(repo: Path, db: Path, config_path: Path | None) -> list[str]:
+    """@brief Read `wiki.check.ears`, then the index. @return Notes."""
+    from .config import load_wiki_config
+    from .ears import ears_notes
+
+    config, _problems = load_wiki_config(repo, config_path)
+    return ears_notes(db, config.ears)
+
+
+## @brief The `check` and `build` verbs.
+## @param args Parsed arguments.
+## @param db The index.
+## @param repo The repository.
+## @return Exit status: 0 clean / built, 1 problems found, 2 refused.
+## v2: `--config` and `--version`.
+## v3: `--format markdown` writes wiki pages instead.
+## v4: `check --before-tests`.
+## v5 (2.0.0, S9): `check` prints EARS notes on stderr when `wiki.check.ears` is on.
+## @version 5
+## @utility
+def _site(args: argparse.Namespace, db: Path, repo: Path) -> int:
+    """`check` PRINTS EVERY PROBLEM, one per line on stdout, and exits 1 when there is any — the
+    shape a pre-commit hook wants. `build` prints the site's path.
+
+    @brief Check or build the site.
+    @return Exit status.
+    @version 3
+    """
+    config = Path(args.config) if args.config else None
+    if args.verb == "check":
+        from .check import check_wiki
+
+        problems = check_wiki(repo, db, config, before_tests=args.before_tests)
+        for problem in problems:
+            sys.stdout.write(f"{problem}\n")
+        ## S9: NOTES ON STDERR, AND THE EXIT CODE IS THE PROBLEMS' ALONE (never a gate).
+        for note in _ears_notes(repo, db, config):
+            sys.stderr.write(f"{note}\n")
+        return 1 if problems else 0
+    from .build import build_wiki
+
+    if getattr(args, "format", "html") == "markdown":
+        return _markdown(args, db, repo, config)
+    try:
+        site = build_wiki(
+            repo,
+            db,
+            Path(args.out),
+            audience=args.audience,
+            version=args.version,
+            config_path=config,
+        )
+    except ValueError as exc:
+        sys.stderr.write(f"clew wiki: refused — {exc}\n")
+        return 2
+    sys.stdout.write(f"{site}\n")
+    return 0
+
+
+## @brief The `diff` verb: compare two version-keyed builds.
+## @param args Parsed arguments.
+## @return Exit status: 0 printed, 2 refused (a key never recorded).
+## @version 1
+## @utility
+def _diff(args: argparse.Namespace) -> int:
+    """@brief Diff two versions. @return Exit status."""
+    from .versions import diff_versions
+
+    try:
+        diff = diff_versions(Path(args.out), args.old, args.new)
+    except (ValueError, OSError) as exc:
+        sys.stderr.write(f"clew wiki: refused — {exc}\n")
+        return 2
+    sys.stdout.write(json.dumps(diff, indent=args.indent) + "\n")
+    return 0

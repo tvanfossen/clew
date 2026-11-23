@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Deny is the only check that can't be bypassed.\" and \"ServerManager::execute ... is_denied(tool, pattern)? \u2500\u2500yes\u2500\u2500\u25ba \"Error: Permission denied for <tool>\" route_tool_call \u2192 server\"\nVERDICT: MISS\nWHY: The answer says deny is the hard gate in execute, but also describes an approval gate that can reject calls (\"Permission denied\" at approval, anti-spiral, schema, etc.), so it doesn't conclude that deny is the only blocker and that execute consults nothing else."
+}

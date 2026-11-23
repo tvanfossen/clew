@@ -1,0 +1,6 @@
+/* clew wiki theme fonts (1.4.0 W13). The three faces of the sassafras-class design, served
+ * same-origin from the site's _static/fonts — no font CDN. Each is under the SIL Open Font
+ * License 1.1; the licence texts ship beside them (OFL-*.txt). */
+@font-face{font-family:'Manrope';src:url('manrope.ttf') format('truetype-variations');font-weight:200 800;font-display:swap}
+@font-face{font-family:'Newsreader';src:url('newsreader.ttf') format('truetype-variations');font-weight:200 800;font-display:swap}
+@font-face{font-family:'JetBrains Mono';src:url('jetbrains-mono.ttf') format('truetype');font-weight:400;font-display:swap}

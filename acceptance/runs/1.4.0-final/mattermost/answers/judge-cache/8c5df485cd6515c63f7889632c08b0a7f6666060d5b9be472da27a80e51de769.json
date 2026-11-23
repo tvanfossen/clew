@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `skipSync: true` | add path, `reactions.ts:28` | `sanitizeReactions` returns `deleteReactions: []` before the diff (`utils/reaction.ts:49`). The one-reaction payload is not treated as the full reaction set, so the handler does not delete every other reaction on the post.\nVERDICT: HIT\nWHY: The answer explicitly states that skipSync prevents the single-reaction payload being treated as the full set, which would otherwise delete all other reactions on the post."
+}

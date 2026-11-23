@@ -1,0 +1,63 @@
+{
+  "cell": "Q2_claude-haiku-5-5_index_only_r1",
+  "arm": "index_only",
+  "rubric_version": "1.0.0",
+  "rubric_digest": "32294778c2753056",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 1.0,
+  "unmarked_pct": 0.0,
+  "split_decisions": 0,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "names the websocket event dispatcher that routes `reaction_added` to its handler (`handleWebSocketEvent` \u2192 `handleReactionAddedToPostEvent`)",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: `handleWebSocketEvent` maps `WebsocketEvents.REACTION_ADDED` (`'reaction_added'`, `constants/websocket.ts:47`) to `handleReactionAddedToPostEvent`. | WHY: The answer names handleWebSocketEvent as the dispatcher routing reaction_added to handleReactionAddedToPostEvent. || QUOTE: `handleWebSocketEvent` maps `WebsocketEvents.REACTION_ADDED` (`'reaction_added'`, `constants/websocket.ts:47`) to `handleReactionAddedToPostEvent`. | WHY: The answer names `handleWebSocketEvent` as the dispatcher routing `reaction_added` to `handleReactionAddedToPostEvent`. || QUOTE: `handleWebSocketEvent` maps `WebsocketEvents.REACTION_ADDED` (`'reaction_added'`, `constants/websocket.ts:47`) to `handleReactionAddedToPostEvent`. | WHY: The answer explicitly names handleWebSocketEvent as the dispatcher routing reaction_added to handleReactionAddedToPostEvent.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the added reaction is stored through the database operator's `handleReactions`, which prepares Reaction records and writes them with `batchRecords`",
+      "kind": "retrieval",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: handleReactions builds `ReactionModel` records with `transformReactionRecord`... `batchRecords` runs the writes inside `database.write`. Also the diagram: \"\u2514\u2500 handleReactions [handlers/index.ts:124] ... prepareRecords(... transformer: transformReactionRecord ...) \u2514\u2500 batchRecords(batchRecords, 'handleReactions')\" | WHY: The answer states the add path calls the operator's `handleReactions`, which prepares Reaction records via prepareRecords/transformer and writes them with `batchRecords`. || QUOTE: handleReactions builds `ReactionModel` records with `transformReactionRecord`... `batchRecords` runs the writes inside `database.write`. Also the diagram: \"operator.handleReactions({...})\" ... \"prepareRecords({createRaws, transformer: transformReactionRecord, tableName: REACTION})\" ... \"batchRecords(batchRecords, 'handleReactions')\" | WHY: The answer states the added reaction goes through the operator's handleReactions, which prepares Reaction records via prepareRecords/transformer and writes them with batchRecords. || QUOTE: `handleReactions` builds `ReactionModel` records with `transformReactionRecord`. ... `batchRecords` runs the writes inside `database.write`. Also the diagram: `operator.handleReactions({...})` \u2192 `prepareRecords({createRaws, transformer: transformReactionRecord, tableName: REACTION})` \u2192 `batchRecords(batchRecords, 'handleReactions')` | WHY: The answer states that the websocket handler calls the server operator's `handleReactions`, which prepares Reaction records via `prepareRecords` and writes them with `batchRecords`.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that a removed reaction does NOT go through the operator: its handler queries the reaction and destroys it with a direct `database.write`",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"`handleReactionRemovedFromPostEvent` (`websocket/reactions.ts:39`) does not call `handleReactions`, `sanitizeReactions`, or any transformer: ... `queryReaction(database, emoji_name, post_id, user_id).fetch()` finds the row ... If a row is found, `database.write` calls `reaction[0].destroyPermanently()`.\" | WHY: The answer states that remove bypasses the operator and its handler queries the reaction and destroys it directly inside `database.write`. || QUOTE: \"`handleReactionRemovedFromPostEvent` (`websocket/reactions.ts:39`) does not call `handleReactions`, `sanitizeReactions`, or any transformer: ... `queryReaction(database, emoji_name, post_id, user_id).fetch()` finds the row ... If a row is found, `database.write` calls `reaction[0].destroyPermanently()`.\" | WHY: The answer states that removal bypasses the operator and queries the reaction, then destroys it via a direct `database.write`. || QUOTE: \"`handleReactionRemovedFromPostEvent` (`websocket/reactions.ts:39`) does not call `handleReactions`, `sanitizeReactions`, or any transformer: ... `queryReaction(database, emoji_name, post_id, user_id).fetch()` finds the row ... If a row is found, `database.write` calls `reaction[0].destroyPermanently()`.\" | WHY: The answer states that removal bypasses the operator, queries the reaction, and destroys it via a direct `database.write`.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "explains that `skipSync: true` stops the single incoming reaction being treated as the post's complete set \u2014 without it every other reaction on the post would be deleted",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"In `sanitizeReactions`, this returns early with `deleteReactions: []`, so a single add event never deletes other reactions on the post. Without it, the function would diff the full DB set against the incoming list and mark anything missing for deletion.\" | WHY: The answer explains that skipSync stops the single incoming reaction from being treated as the full set, which would otherwise delete all other reactions on the post. || QUOTE: \"In `sanitizeReactions`, this returns early with `deleteReactions: []`, so a single add event never deletes other reactions on the post. Without it, the function would diff the full DB set against the incoming list and mark anything missing for deletion.\" | WHY: The answer explains that skipSync prevents the single incoming reaction being treated as the full set, so other reactions would otherwise be marked for deletion. || QUOTE: \"In `sanitizeReactions`, this returns early with `deleteReactions: []`, so a single add event never deletes other reactions on the post. Without it, the function would diff the full DB set against the incoming list and mark anything missing for deletion.\" | WHY: The answer states that skipSync prevents the single incoming reaction from being treated as the full set, which would otherwise delete every other reaction on the post.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "notes that both handlers swallow any error silently (empty catch), so a failed write leaves no trace",
+      "kind": "conclusion",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: Both websocket handlers swallow all errors with empty `catch` blocks, so a failed add or remove is silent in the logs. | WHY: The answer explicitly states both handlers have empty catch blocks swallowing errors, so a failed write is silent. || QUOTE: Both websocket handlers swallow all errors with empty `catch` blocks, so a failed add or remove is silent in the logs. | WHY: The answer explicitly states both handlers have empty catch blocks swallowing errors, so a failed add or remove leaves no trace. || QUOTE: Both websocket handlers swallow all errors with empty `catch` blocks, so a failed add or remove is silent in the logs. | WHY: The answer explicitly states both handlers have empty catch blocks swallowing errors, making failed writes silent.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    }
+  ]
+}

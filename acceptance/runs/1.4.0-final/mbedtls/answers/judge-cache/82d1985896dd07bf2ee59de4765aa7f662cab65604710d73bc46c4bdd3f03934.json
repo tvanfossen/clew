@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Bignum. `library/bignum_core.c` uses it for conditional select and compare. `library/bignum.c` references it 26 times and `library/rsa.c` 37 times. ... Symmetric and AEAD. `ccm.c`, `gcm.c`, `chachapoly.c`, `cmac.c`, `cipher.c`, `nist_kw.c`, `base64.c`. ... TLS and PSA. `ssl_msg.c`, `ssl_tls.c`, `ssl_tls12_*.c`, `ssl_tls13_*.c`, `ssl_cookie.c`, `psa_crypto*.c`.\nVERDICT: HIT\nWHY: The \"How far it reaches\" section lists many modules across bignum, RSA, AEAD, TLS and PSA, which conveys broad consumption of roughly twenty-odd files."
+}

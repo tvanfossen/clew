@@ -62,7 +62,7 @@ _HOME = ("acceptance", "tests")
 # @brief Every markdown document outside acceptance/ that a reader could quote from.
 # @return Repo-relative paths.
 # @version 1
-# @dg_internal
+# @utility
 def _documents() -> list[Path]:
     """Repo root and `docs/` only. A document under `acceptance/` is the source of truth and a
     document under `tests/` is a fixture; everything else is a place a figure can be copied to and

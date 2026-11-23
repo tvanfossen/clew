@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer's table says that when the gate is off a channel-deleted event kicks the user out of the current channel and removes them. It also says archiving removes the user locally, and when the gate is on it only stores `delete_at`. It never says the channel is marked deleted in the viewable case, and the removal is described as a gated behaviour rather than as the specific rule in the item."
+}

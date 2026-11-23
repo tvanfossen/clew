@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `on_tool_call(json)  // void return, cannot veto` and \"Once it is wired, every call that misses the allow list is approved. The frontend cannot veto\" with `approved = true \u2190 notify = approve`\nVERDICT: HIT\nWHY: The answer states the callback returns void and cannot veto, and that approved is set to true unconditionally after it fires."
+}

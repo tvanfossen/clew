@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"It is triggered from the failed-post indicator (`app/components/post_list/post/body/failed/index.tsx`, `Failed.onPress`).\" and \"a failed send is never retried automatically. The post is kept locally, marked failed, and the user retries it by hand.\" and \"(`retryFailedPost`, `app/actions/remote/post.ts:228`)\"\nVERDICT: HIT\nWHY: The answer says retry happens only manually, triggered from the failed-post indicator's onPress, and names retryFailedPost. It doesn't quote the \"Try Again\" label, but the user-initiated retry on the failed post is the substance."
+}

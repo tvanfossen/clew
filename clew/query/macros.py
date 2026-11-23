@@ -56,7 +56,7 @@ MAX_MACRO_REFERENCES = 20
 ## @param rowid The macro definition's memberdef rowid.
 ## @return Up to MAX_MACRO_REFERENCES referencing symbol names, alphabetical.
 ## @version 1
-## @dg_internal
+## @utility
 def _referenced_by(conn: sqlite3.Connection, rowid: int) -> tuple[str, ...]:
     """EMPTY IS THE COMMON CASE AND IT IS NOT "UNUSED". doxygen writes an `xrefs`
     row when it sees a reference from inside a documented BODY, so a macro used in
@@ -87,7 +87,7 @@ def _referenced_by(conn: sqlite3.Connection, rowid: int) -> tuple[str, ...]:
 ## @param rowid The macro definition's memberdef rowid.
 ## @return `(a, b)` for a function-like macro; '' when doxygen recorded no parameters.
 ## @version 1
-## @dg_internal
+## @utility
 def _macro_params(conn: sqlite3.Connection, rowid: int) -> str:
     """NOT `memberdef.argsstring`, which is NULL on every macro row — that column
     holds a FUNCTION's argument text and a `#define`'s parameters go to the `param`
@@ -176,7 +176,7 @@ def macro_definitions_conn(conn: sqlite3.Connection, name: str) -> list[MacroDef
 ## @param row (rowid, name, file, line, expansion, briefdescription) as selected above.
 ## @return The populated MacroDef.
 ## @version 1
-## @dg_internal
+## @utility
 def _macro_def(conn: sqlite3.Connection, row: tuple) -> MacroDef:
     """Split out of `macro_definitions_conn` so the per-site enrichment — parameters,
     cross-references, provenance and gates, four queries against three tables — is not a

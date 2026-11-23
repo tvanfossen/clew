@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The exceptions are three server errors (deleted root post, Town Square read-only, plugin-dismissed post), where the post is removed from the database instead.\nVERDICT: HIT\nWHY: The answer names all three server errors (deleted root post, read-only Town Square, plugin-dismissed post) for which the failed post is removed rather than kept."
+}

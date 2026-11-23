@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The first call passes a null buffer and size 0. llama.cpp returns the negative of the token count it would need, and the code flips the sign to size the vector.\nVERDICT: HIT\nWHY: The answer states the first call returns a negative of the needed count (tokens) and that the code flips the sign to size the vector for the second call."
+}

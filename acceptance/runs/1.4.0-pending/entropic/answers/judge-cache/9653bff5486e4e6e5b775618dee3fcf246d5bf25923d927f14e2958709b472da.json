@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: With a callback registered, every call not on the allow list runs unless the deny list stops it. ... Without a callback, unlisted calls are denied.\nVERDICT: HIT\nWHY: The answer states that a tool matching neither list (not allowed, not denied) still runs when the approval callback is wired, which is default-allow at the gate. It also notes the callback never denies, so the allow-only gap is closed only by the deny list."
+}

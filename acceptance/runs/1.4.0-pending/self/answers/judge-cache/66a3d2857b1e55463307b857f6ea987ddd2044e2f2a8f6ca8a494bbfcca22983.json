@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A declared `index_scope:` in `.clew.yaml` wins. If nothing usable is declared, the whole repository is the scope... A section that is present but unusable is rejected with a reason... and the build falls back to the whole repo with the rejection named as the reason.\nVERDICT: HIT\nWHY: The answer states that a declared index_scope is preferred and that absent or unusable declarations all fall through to whole-repo indexing."
+}

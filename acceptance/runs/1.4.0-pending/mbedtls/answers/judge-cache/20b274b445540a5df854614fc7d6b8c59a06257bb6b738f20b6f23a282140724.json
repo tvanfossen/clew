@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Every public struct declares its fields through this macro (about 890 occurrences across 74 headers, e.g. `ssl.h`, `x509_crt.h`, `psa/crypto_struct.h`).\nVERDICT: HIT\nWHY: States ~890 occurrences (many hundreds) across 74 public headers, which conveys scale and header concentration. It does not say implementation files use it little, but the headers-centric framing carries the substance."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says it didn't trace the refusal path and never states that the write path refuses ahead of the build decision so a force flag cannot override it. It only says the automatic path never rebuilds when matches_source is false."
+}

@@ -27,16 +27,26 @@ corpus" stay distinguishable.
 
 from __future__ import annotations
 
+import hashlib
+import json
 import re
 import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 from .jsast import MODULE_CALLER
+from .indexcache import IndexCache, memoized
 from .synth import DECL_EXTENT
 
 ## The FTS5 table, and its tokenizer: identifiers keep `_` and `$`.
 TABLE = "code_text"
+## 1.3.10: the text of each C/C++/Python file OUTSIDE every function body (preprocessor lines,
+## file-scope declarations), keyed by the path rowid. A separate table because its rows are files,
+## not memberdef rows, and a hit there is a `kind: "file"` hit.
+FILE_TABLE = "code_text_files"
+## The languages whose file-scope text is indexed. JS/TS already index theirs as `__module__` rows.
+_FILE_SCOPE_SUFFIXES = (".c", ".h", ".cc", ".cpp", ".cxx", ".hh", ".hpp", ".hxx", ".py")
 ## PORTER STEMMING over it, so the word a reader types finds the inflection the code uses: one
 ## 1.3.0 agent searched `retries` where every identifier says `retry`.
 _TOKENIZE = "porter unicode61 tokenchars '_$'"
@@ -44,6 +54,11 @@ _TOKENIZE = "porter unicode61 tokenchars '_$'"
 ## A body longer than this is indexed only up to it: a generated table or a minified file would
 ## otherwise dominate the corpus without being anything a reader asks about.
 MAX_BODY_LINES = 2_000
+## The memoized payload's version: bump when a body's indexed text changes shape
+## (`_file_texts`, `_identifier_parts`), or unchanged files keep serving the old text.
+## 2 (1.3.5): each file's rows are ordered by rowid before their spans are keyed, so the fast
+## tier can rebuild the same key for one file.
+CODE_TEXT_STAGE_VERSION = 2
 
 
 ## @brief One function whose body matched.
@@ -62,16 +77,20 @@ class CodeHit:
     snippet: str
 
 
+## Version 6 (1.3.10): also builds `code_text_files`, each C/C++/Python file's file-scope text.
+## Version 5 (1.3.5): rows come from `code_text_rows`, each file's in rowid order.
+## Version 4 (1.3.4): each file's indexed texts are memoized on its content and spans.
 ## Version 3: indexes parse-built constants and typedefs by their recorded extent.
 ## Version 2: indexes each compound identifier's parts too.
 ##
 ## @brief Rebuild the code-text corpus from the index's function rows and the source files.
 ## @param db_path The database under construction.
 ## @param repo_root Repository root the indexed paths are relative to.
+## @param cache The run's index cache, or None for an uncached build.
 ## @return Number of function bodies indexed.
-## @version 3
+## @version 6
 ## @utility
-def record_code_text(db_path: Path, repo_root: Path) -> int:
+def record_code_text(db_path: Path, repo_root: Path, cache: IndexCache | None = None) -> int:
     """READS EACH FILE ONCE, however many functions it holds, and indexes each function's own
     lines. A file that cannot be read is skipped: its functions are simply absent from this
     corpus, which the symbol corpus still covers.
@@ -87,48 +106,214 @@ def record_code_text(db_path: Path, repo_root: Path) -> int:
             f'CREATE VIRTUAL TABLE {TABLE} USING fts5(body, tokenize = "{_TOKENIZE}", '
             "content = '', detail = none)"
         )
-        rows = conn.execute(
-            "SELECT m.rowid, p.name, m.bodystart, m.bodyend, m.name FROM memberdef m "
-            "JOIN path p ON p.rowid = COALESCE(NULLIF(m.bodyfile_id, 0), m.file_id) "
-            "WHERE m.kind = 'function' AND m.bodystart > 0 AND m.bodyend >= m.bodystart "
-            "ORDER BY p.name"
-        ).fetchall() + _binding_rows(conn)
-        lines_of: dict[str, list[str] | None] = {}
-        covered: dict[str, set[int]] = {}
-        for _rowid, rel, start, end, name in rows:
-            if name != MODULE_CALLER:
-                covered.setdefault(str(rel), set()).update(range(int(start), int(end) + 1))
+        by_file: dict[str, list[tuple[Any, ...]]] = {}
+        for row in code_text_rows(conn):
+            by_file.setdefault(str(row[1]), []).append(row)
         batch = []
-        for rowid, rel, start, end, name in rows:
-            if rel not in lines_of:
-                lines_of[rel] = _lines(repo_root / str(rel))
-            lines = lines_of[rel]
-            if not lines:
-                continue
-            if name == MODULE_CALLER:
-                ## ONLY WHAT NO FUNCTION HOLDS: a module's own text — constants, wiring — and not
-                ## a second copy of every function in the file, which doubled the corpus.
-                skip = covered.get(str(rel), set())
-                body = [ln if i + 1 not in skip else "" for i, ln in enumerate(lines)]
-            else:
-                body = lines[int(start) - 1 : min(int(end), int(start) - 1 + MAX_BODY_LINES)]
-            text = "\n".join(body)
-            ## AND EACH COMPOUND IDENTIFIER'S PARTS: `retryLimit` also indexes `retry limit`, so
-            ## the word a reader types finds the identifier that holds it. The table is
-            ## contentless, so the parts cost index entries and nothing is ever shown.
-            batch.append((int(rowid), text + "\n" + " ".join(_identifier_parts(text))))
+        for rel, file_rows in by_file.items():
+            texts = file_code_texts(cache, repo_root, rel, file_rows)
+            if texts:
+                batch.extend((int(r[0]), t) for r, t in zip(file_rows, texts, strict=True))
         conn.executemany(f"INSERT INTO {TABLE} (rowid, body) VALUES (?, ?)", batch)
+        _record_file_scope(conn, repo_root, cache, by_file)
         conn.commit()
         return len(batch)
     finally:
         conn.close()
 
 
+## @brief Rebuild the file-scope corpus: each C/C++/Python file's text outside its functions.
+## @param conn Open index connection.
+## @param repo_root The working tree.
+## @param cache The index cache, or None.
+## @param by_file The function-corpus rows grouped by file, as `record_code_text` built them.
+## @return None.
+## @version 1
+## @utility
+def _record_file_scope(
+    conn: sqlite3.Connection,
+    repo_root: Path,
+    cache: IndexCache | None,
+    by_file: dict[str, list[tuple[Any, ...]]],
+) -> None:
+    """CREATED EVEN WHEN EMPTY: an absent table means this index predates the layer, an empty one
+    that no file had file-scope text.
+
+    @brief Fill code_text_files.
+    @return None.
+    """
+    conn.execute(f"DROP TABLE IF EXISTS {FILE_TABLE}")
+    conn.execute(
+        f'CREATE VIRTUAL TABLE {FILE_TABLE} USING fts5(body, tokenize = "{_TOKENIZE}", '
+        "content = '', detail = none)"
+    )
+    rows = []
+    for rowid, name in conn.execute("SELECT rowid, name FROM path WHERE type = 1").fetchall():
+        rel = str(name)
+        if not rel.lower().endswith(_FILE_SCOPE_SUFFIXES):
+            continue
+        text = file_scope_text(cache, repo_root, rel, by_file.get(rel, []))
+        if text:
+            rows.append((int(rowid), text))
+    conn.executemany(f"INSERT INTO {FILE_TABLE} (rowid, body) VALUES (?, ?)", rows)
+
+
+## @brief One file's text outside its function bodies, with identifier parts, cache-first.
+## @param cache The index cache, or None.
+## @param repo_root The working tree.
+## @param rel The file.
+## @param file_rows Its function-corpus rows (their spans are what is excluded).
+## @return The indexed text, or "" when the file is unreadable or has none.
+## @version 1
+## @req REQ-DDB-INDEX-006
+def file_scope_text(
+    cache: IndexCache | None, repo_root: Path, rel: str, file_rows: list[tuple[Any, ...]]
+) -> str:
+    """KEYED BY THE FILE'S CONTENT AND ITS FUNCTION SPANS, like `file_code_texts`: what is "outside
+    every function" depends on where the index says the functions are.
+
+    @brief File-scope text for one file.
+    @return Text.
+    @version 1
+    """
+    spans = [(int(r[2]), int(r[3])) for r in file_rows if r[4] != MODULE_CALLER]
+    return memoized(
+        cache,
+        rel,
+        repo_root / rel,
+        "code_text_files",
+        CODE_TEXT_STAGE_VERSION,
+        spans_key(file_rows),
+        lambda: _outside(repo_root / rel, spans),
+    )
+
+
+## @brief The lines of a file no span covers, joined, with their identifier parts.
+## @param path The file.
+## @param spans (start, end) line spans to exclude.
+## @return The text, or "".
+## @version 1
+## @utility
+def _outside(path: Path, spans: list[tuple[int, int]]) -> str:
+    """@brief Uncovered text. @return Text."""
+    lines = _lines(path)
+    if not lines:
+        return ""
+    covered = {n for start, end in spans for n in range(start, end + 1)}
+    text = "\n".join(ln for i, ln in enumerate(lines) if i + 1 not in covered and ln.strip())
+    return (text + "\n" + " ".join(_identifier_parts(text))) if text.strip() else ""
+
+
+## @brief Every row the code corpus indexes, or one file's, each file's in rowid order.
+## @param conn Open index connection.
+## @param rel Restrict to one repo-relative file, or None for all.
+## @return (rowid, file, start, end, name) rows.
+## @version 1
+## @req REQ-DDB-INDEX-006
+def code_text_rows(conn: sqlite3.Connection, rel: str | None = None) -> list[tuple[Any, ...]]:
+    """ONE DEFINITION OF THE ROW SET, read by the full stage and by the fast tier, and ORDERED BY
+    ROWID within a file so both build the same spans key for it (1.3.5). The previous order was
+    whatever the query plan produced, which a per-file query would not have reproduced.
+
+    @brief The corpus rows.
+    @return Rows.
+    @version 1
+    """
+    rows = conn.execute(
+        "SELECT m.rowid, p.name, m.bodystart, m.bodyend, m.name FROM memberdef m "
+        "JOIN path p ON p.rowid = COALESCE(NULLIF(m.bodyfile_id, 0), m.file_id) "
+        "WHERE m.kind = 'function' AND m.bodystart > 0 AND m.bodyend >= m.bodystart"
+    ).fetchall() + _binding_rows(conn)
+    if rel is not None:
+        rows = [r for r in rows if str(r[1]) == rel]
+    return sorted(rows, key=lambda r: (str(r[1]), int(r[0])))
+
+
+## @brief The memo key for one file's rows: a digest of their spans.
+## @param file_rows One file's rows, as `code_text_rows` orders them.
+## @return The key.
+## @version 1
+## @utility
+def spans_key(file_rows: list[tuple[Any, ...]]) -> str:
+    """THE SPANS ARE IN THE KEY because they come from the index, not the file — a body whose
+    extent moved is re-cut.
+
+    @brief Key a file's spans.
+    @return Hex digest prefix.
+    """
+    spans = [(int(r[2]), int(r[3]), r[4] == MODULE_CALLER) for r in file_rows]
+    return hashlib.sha256(json.dumps(spans).encode()).hexdigest()[:16]
+
+
+## @brief One file's indexed texts, memoized on its content and spans.
+## @param cache The index cache, or None.
+## @param repo_root The working tree.
+## @param rel The file.
+## @param file_rows Its rows, as `code_text_rows` orders them.
+## @return One text per row, or None when the file cannot be read.
+## @version 1
+## @req REQ-DDB-INDEX-006
+def file_code_texts(
+    cache: IndexCache | None, repo_root: Path, rel: str, file_rows: list[tuple[Any, ...]]
+) -> list[str] | None:
+    """MEMOIZED ON THE FILE'S CONTENT AND ITS SPANS (1.3.4): splitting every identifier of every
+    body into parts was the stage's cost.
+
+    @brief Cut and annotate one file, cache-first.
+    @return Texts or None.
+    @version 1
+    """
+    spans = [(int(r[2]), int(r[3]), r[4] == MODULE_CALLER) for r in file_rows]
+    return memoized(
+        cache,
+        rel,
+        repo_root / rel,
+        "code_text",
+        CODE_TEXT_STAGE_VERSION,
+        spans_key(file_rows),
+        lambda: _file_texts(repo_root / rel, spans),
+    )
+
+
+## @brief The indexed text of every span in one file: its lines plus their identifier parts.
+## @param path The file.
+## @param spans (start, end, is_module) per row, in row order.
+## @return One text per span, or None when the file cannot be read.
+## @version 1
+## @utility
+def _file_texts(path: Path, spans: list[tuple[int, int, bool]]) -> list[str] | None:
+    """A MODULE ROW IS ONLY WHAT NO FUNCTION HOLDS: a module's own text — constants, wiring — and
+    not a second copy of every function in the file, which doubled the corpus. Each text also
+    carries its compound identifiers' parts, so `retryLimit` is found by `retry limit`; the table
+    is contentless, so the parts cost index entries and are never shown. Moved out of
+    `record_code_text` unchanged so it can be memoized per file.
+
+    @brief Cut and annotate one file's bodies.
+    @return Texts or None.
+    """
+    lines = _lines(path)
+    if not lines:
+        return None
+    covered: set[int] = set()
+    for start, end, is_module in spans:
+        if not is_module:
+            covered.update(range(start, end + 1))
+    texts = []
+    for start, end, is_module in spans:
+        if is_module:
+            body = [ln if i + 1 not in covered else "" for i, ln in enumerate(lines)]
+        else:
+            body = lines[start - 1 : min(end, start - 1 + MAX_BODY_LINES)]
+        text = "\n".join(body)
+        texts.append(text + "\n" + " ".join(_identifier_parts(text)))
+    return texts
+
+
 ## @brief Parse-built constants and typedefs with a recorded extent, as corpus rows.
 ## @param conn Open connection.
 ## @return (rowid, path, first line, last line, name) rows; empty without `decl_extent`.
 ## @version 1
-## @dg_internal
+## @utility
 def _binding_rows(conn: sqlite3.Connection) -> list[tuple]:
     """A HIT INSIDE A CONSTANT NAMES THE CONSTANT: mattermost's retry policy sits in the class
     field `DEFAULT_CONFIG`, and the corpus answered with the whole file's `__module__`.
@@ -147,7 +332,7 @@ def _binding_rows(conn: sqlite3.Connection) -> list[tuple]:
 
 ## @brief Whether a table exists.
 ## @version 1
-## @dg_internal
+## @utility
 def _has_table(conn: sqlite3.Connection, name: str) -> bool:
     """@brief Table presence. @return True when present."""
     return bool(conn.execute("SELECT 1 FROM sqlite_master WHERE name = ?", (name,)).fetchone())
@@ -172,7 +357,7 @@ _QUERY_WORD = re.compile(r"[\w$]+")
 ## @param text A function body.
 ## @return Lower-cased parts, e.g. `retry`, `limit` for `retryLimit`.
 ## @version 1
-## @dg_internal
+## @utility
 def _identifier_parts(text: str) -> list[str]:
     """@brief Split compound identifiers. @return Parts."""
     parts: set[str] = set()
@@ -184,7 +369,7 @@ def _identifier_parts(text: str) -> list[str]:
 
 ## @brief A file's lines, or None when it cannot be read as text.
 ## @version 1
-## @dg_internal
+## @utility
 def _lines(path: Path) -> list[str] | None:
     """@brief Read lines. @return Lines or None."""
     try:
@@ -206,7 +391,9 @@ def _lines(path: Path) -> list[str] | None:
 ## @param limit Maximum hits.
 ## @param repo_root Where to read snippet lines from; None leaves snippets empty.
 ## @return Hits, or None when this index has no code corpus.
-## @version 5
+## Version 6 (1.3.10): file-scope matches follow function matches, as `kind: "file"` hits.
+## v7: the MATCH expression is built by _match_query, shared with count_code (2.0.0, T1)
+## @version 7
 ## @utility
 def search_code(
     conn: sqlite3.Connection, text: str, limit: int, repo_root: Path | None = None
@@ -234,7 +421,7 @@ def search_code(
     ## EACH WORD MATCHES WHOLE (through the stemmer, so `retries` finds `retry`) OR AS A PREFIX,
     ## so a family named by its prefix — `MBEDTLS_ERR_`, `mbedtls_ct_` — finds its members. A
     ## prefix term is not stemmed, which is why both forms are asked.
-    query = " AND ".join(f'("{t}" OR "{t}"*)' for t in tokens)
+    query = _match_query(tokens)
     ## A BINDING'S SPAN is its declaration line through its recorded end; a function's is its body.
     start, end, extent = "m.bodystart", "m.bodyend", ""
     if _has_table(conn, DECL_EXTENT):
@@ -264,6 +451,96 @@ def search_code(
                 snippet=snippet,
             )
         )
+    ## FILE-SCOPE MATCHES AFTER FUNCTION MATCHES (1.3.10): a function is the more specific
+    ## answer; a file hit is for text no function holds — a preprocessor line, a file-scope
+    ## declaration. Absent table (an index from before the layer): function hits only.
+    if len(hits) < limit and _has_table(conn, FILE_TABLE):
+        hits.extend(_file_hits(conn, query, tokens, limit - len(hits), repo_root))
+    return hits
+
+
+## @brief The FTS expression for a word list: each word whole (stemmed) or as a prefix.
+## @param tokens The query words.
+## @return The MATCH expression.
+## @version 1
+## @utility
+def _match_query(tokens: list[str]) -> str:
+    """ONE SPELLING for the search and its count, so the total counts what the search matches.
+
+    @brief Build the MATCH expression.
+    @return Text.
+    """
+    return " AND ".join(f'("{t}" OR "{t}"*)' for t in tokens)
+
+
+## @brief How many units `search_code` would return with no limit.
+## @param conn Open index connection.
+## @param text Words to match.
+## @return Function plus file-scope matches; 0 when the index has no code corpus.
+## @version 1
+## @req REQ-DDB-QUERY-014
+def count_code(conn: sqlite3.Connection, text: str) -> int:
+    """T1 (2.0.0): the same MATCH and the same joins as `search_code`, counted, so a cut reply can
+    state its total. Called only when a reply filled its limit; the common path pays nothing.
+
+    @brief Count code-corpus matches.
+    @return Count.
+    """
+    tokens = _QUERY_WORD.findall(text)
+    if not tokens or not _has_table(conn, TABLE):
+        return 0
+    query = _match_query(tokens)
+    total = conn.execute(
+        f"SELECT COUNT(*) FROM {TABLE} JOIN memberdef m ON m.rowid = {TABLE}.rowid "
+        "JOIN path p ON p.rowid = COALESCE(NULLIF(m.bodyfile_id, 0), m.file_id) "
+        f"WHERE {TABLE} MATCH ?",
+        (query,),
+    ).fetchone()[0]
+    if _has_table(conn, FILE_TABLE):
+        total += conn.execute(
+            f"SELECT COUNT(*) FROM {FILE_TABLE} JOIN path p ON p.rowid = {FILE_TABLE}.rowid "
+            f"WHERE {FILE_TABLE} MATCH ?",
+            (query,),
+        ).fetchone()[0]
+    return int(total)
+
+
+## @brief Files whose file-scope text holds every word, as `kind: "file"` hits.
+## @param conn Open index connection.
+## @param query The FTS query already built from the words.
+## @param tokens The words.
+## @param limit Maximum hits.
+## @param repo_root Where snippets are read from.
+## @return The hits.
+## @version 1
+## @utility
+def _file_hits(
+    conn: sqlite3.Connection, query: str, tokens: list[str], limit: int, repo_root: Path | None
+) -> list[CodeHit]:
+    """A FILE HIT IS A DOSSIER SUBJECT: `name` and `file` are the repo-relative path, which
+    `dossier` accepts, and `line`/`snippet` point at the first matching line.
+
+    @brief Search the file-scope corpus.
+    @return Hits.
+    """
+    rows = conn.execute(
+        f"SELECT p.name FROM {FILE_TABLE} JOIN path p ON p.rowid = {FILE_TABLE}.rowid "
+        f"WHERE {FILE_TABLE} MATCH ? LIMIT ?",
+        (query, max(1, limit)),
+    ).fetchall()
+    hits = []
+    for (name,) in rows:
+        line, snippet = _first_match(repo_root, str(name), 1, 10**9, tokens)
+        hits.append(
+            CodeHit(
+                name=str(name),
+                definition="",
+                kind="file",
+                file=str(name),
+                line=line,
+                snippet=snippet,
+            )
+        )
     return hits
 
 
@@ -271,7 +548,7 @@ def search_code(
 ##
 ## @brief The first line in a span containing a token, read from the file.
 ## @version 2
-## @dg_internal
+## @utility
 def _first_match(
     repo_root: Path | None, rel: str, start: int, end: int, tokens: list[str]
 ) -> tuple[int, str]:

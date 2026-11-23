@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Tiers 1, 2 and 5 are mutually \"replace\" in the sense that the highest stated one supplies the value.\" and \"Tiers 3 and 4 accumulate. They are unioned in and survive any stated tier.\" and \"you can correct our guesses; you cannot un-discover a fact.\"\nVERDICT: HIT\nWHY: The answer states that the stated tiers replace one another while the discovered tiers 3 and 4 are unioned in and survive any stated tier, which is the asymmetry the item requires."
+}

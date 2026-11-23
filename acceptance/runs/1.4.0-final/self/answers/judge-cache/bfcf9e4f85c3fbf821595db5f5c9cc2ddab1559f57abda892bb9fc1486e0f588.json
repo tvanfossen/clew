@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**\"No symbol by that name\" (high confidence).** ... This is a real negative within that scope.\" and \"**\"Not in the repo\" (low confidence).** Several places are outside the search\"\nVERDICT: MISS\nWHY: The answer gives two grades (definitive for scope vs. not definitive for the whole repo), but never names a third grade: definitive for a reason that is not absence (for example, an empty reply because the thing is excluded or was never indexed)."
+}

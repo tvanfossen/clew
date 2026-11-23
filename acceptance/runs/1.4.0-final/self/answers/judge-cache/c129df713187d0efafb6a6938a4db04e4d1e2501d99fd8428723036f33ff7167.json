@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Definitive | A single token, matched nowhere in the searched layers... Not definitive | A multi-token conjunction, a corpus the index does not read... Error | Malformed call\"\nVERDICT: MISS\nWHY: The answer separates definitive-for-scope from not definitive, but its third class is an error (a malformed call, \"not a result\"). It never describes a definitive empty whose reason is something other than absence."
+}

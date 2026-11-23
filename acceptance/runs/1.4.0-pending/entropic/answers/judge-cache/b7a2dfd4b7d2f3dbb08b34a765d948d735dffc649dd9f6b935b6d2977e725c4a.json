@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: the part before `:` is matched against the fully qualified tool name. With no colon, every call to that tool matches, whatever its arguments.\nVERDICT: HIT\nWHY: The answer names fnmatch, says the pattern splits at `:` into tool and argument parts, and says no colon means the pattern matches on tool name alone."
+}

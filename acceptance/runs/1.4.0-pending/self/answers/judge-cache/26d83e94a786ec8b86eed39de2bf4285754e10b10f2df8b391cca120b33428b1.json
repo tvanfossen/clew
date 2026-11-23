@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never mentions two kinds of neighbours (direct calls vs shared-key dataflow) or an `edge_class` field; it only discusses AST-resolved caller edges."
+}

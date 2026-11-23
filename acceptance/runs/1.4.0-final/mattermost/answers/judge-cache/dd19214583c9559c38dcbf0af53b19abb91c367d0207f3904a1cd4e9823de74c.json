@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The user taps the failed post, which opens a bottom sheet (`app/components/post_list/post/body/failed/index.tsx`). \"Try Again\" calls `retryFailedPost(serverUrl, post)`. \"Delete Message\" removes the post.\nVERDICT: HIT\nWHY: The answer states that retry happens via the user choosing \"Try Again\" on the failed post, which calls `retryFailedPost`, and that nothing retries automatically."
+}

@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 27869,
+  "stop_reason": "end_turn",
+  "session_id": "54b550f6-82e0-4c8b-af16-41ee3a233165",
+  "total_cost_usd": 0.014645720000000001,
+  "usage": {
+    "input_tokens": 16,
+    "cache_creation_input_tokens": 44265,
+    "cache_read_input_tokens": 340662,
+    "output_tokens": 4769,
+    "output_tokens_details": {
+      "thinking_tokens": 1891
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 44265,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2781,
+        "cache_read_input_tokens": 57906,
+        "cache_creation_input_tokens": 1975,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1975
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 16,
+      "outputTokens": 4769,
+      "cacheReadInputTokens": 340662,
+      "cacheCreationInputTokens": 44265,
+      "webSearchRequests": 0,
+      "costUSD": 0.014645720000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1891,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 44265,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 9,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The short answer: clew has three ways to state a repository's configuration, plus environment and flags for things that are not properties of the repo. When two statements disagree, the more explicit one replaces the less explicit one for that option. Facts that someone already wrote down are never removed.\n\n## Ways to say so\n\n| Route | Tier | What it is for | Persistence |\n|---|---|---|---|\n| Target's own `.clew.yaml` | 2, declared | Standing conventions: `index_scope`, `preprocessor`, `entry_patterns`, `locks`, `thread_patterns`, `shared_key_patterns`, `data_model`, `dispatch`, `requirements`, `enrich`, and so on | Lives in the repo |\n| `--declare FILE` on the CLI | 1, explicit | Same YAML shape, for one build. Meant for a repo you don't own and must leave byte-identical | Recorded in the index and replayed by later builds |\n| `options=` on `build_index` / `index(action='refresh')` | 1, explicit | The MCP and embedding route, validated by the same `apply_options` as `--declare` | Same as above |\n| `--exclude PATH\u2026` | 1, index-shape | What the operator wants left out of the index | Recorded as `scope.operator_excludes` and replayed |\n| `--scope`, `--doxyfile`, `--output`, `--repo-root`, `--rebuild`, `--verbose` | Build mechanics | Build endpoints and run properties, not declarations | Not recorded, except `--exclude` |\n| `guard:` section of `.clew.yaml` | Gate config | What `clew guard` enforces. The index reads it too (`guardconfig.py`) | Lives in the repo. No flag exists |\n| `CLEW_JOBS` env var | Machine-scoped | Shared-parse worker count, capped at 8 by default | Not recorded. Deliberately not a declaration, because a worker count belongs to the machine |\n\nTiers 3 and 4 are not user-settable. Tier 3 is facts the target already wrote, such as a Doxyfile's `PREDEFINED`/`ALIASES` or a generator manifest. Tier 4 is known-ecosystem signatures. Tier 5 is name-pattern heuristics, the floor.\n\n## When they disagree\n\nThe combination rule is in `clew/tiers.py`: `resolved = (tier1 or tier2 or tier5) \u222a tier3 \u222a tier4`.\n\n- **Explicit beats declared, wholesale.** If `--declare` or `options` states a value for an option, that value replaces the `.clew.yaml` value for that option. It does not merge with it. The `.clew.yaml` section is ignored for that option. Manifest options follow the same rule in `cli._declared_or_flag`: a flag wins over the declaration.\n- **Facts accumulate.** Tier-3 and tier-4 values survive every stated tier. A declaration cannot remove a macro that the Doxyfile defines. Heuristics (tier 5) are the only layer a stated value displaces.\n- **Empty is a withdrawal, not a statement.** `[]` or `{}` falls through to the declaration, then to the heuristics. Passing `--exclude` with no values clears a recorded exclude. An absent key inherits.\n- **Recorded statements replay.** Tier-1 values are stored in `build_meta` along with the tier that won. A later refresh that omits `--exclude` still honours it. Declared values are not replayed, because the file may have changed since.\n- **Scope conflicts are refused, not resolved.** A stated `index_scope` combined with a non-`from-guard` `--scope` exits 1 (gh#382). A declaration that fails validation (for example, no `roots:`) also exits 1. It does not silently fall back to the whole repo.\n- **Invalid input is all-or-nothing.** `apply_options` validates the whole mapping before assigning anything. One bad or unknown key refuses the entire document.\n- **Preprocessor:** the `predefined` list wins over `config_header`, according to the `preprocessor` docstring in `clew/preprocessor.py`.\n- **Bad `CLEW_JOBS`** logs a warning and falls back to the automatic count rather than failing the build.\n\nThis is from reading the source of the repo at `acceptance/runs/1.4.0-final/self/repo`, which is clew itself. I did not run a build to confirm the precedence behaviour.",
+  "ttft_ms": 1585,
+  "type": "result",
+  "duration_ms": 28671,
+  "uuid": "a48c2d72-5db6-4daa-a0d2-adb12a159b39",
+  "ttft_stream_ms": 1139,
+  "time_to_request_ms": 144,
+  "first_content_frame_ms": 1139,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

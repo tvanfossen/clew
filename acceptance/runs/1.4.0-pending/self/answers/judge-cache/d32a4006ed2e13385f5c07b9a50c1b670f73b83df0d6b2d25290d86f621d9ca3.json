@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Doxygen then applies the forced `FILE_PATTERNS` list (C/C++, Java, Python, Markdown, Fortran, and so on). The tree-sitter layers route by extension. A file that matches no pattern is walked and hashed but produces no rows.\nVERDICT: HIT\nWHY: The answer says the resolved scope isn't the whole answer. Within it, a file produces rows only if doxygen's patterns or the tree-sitter front end (routed by extension) can read it, which names the parse-built front end as one of the two filters."
+}

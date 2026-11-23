@@ -67,7 +67,7 @@ _UNKNOWN_MEANS_ABSENT = frozenset({"dispatch_mode", "edge_kind"})
 ## @param value Any already-serialized value.
 ## @return True for None, an empty tuple/list/str, and a no-information 'unknown'.
 ## @version 2
-## @dg_internal
+## @utility
 def _absent(name: str, value: Any) -> bool:
     """`False` and `0` are NOT absent — `crosses_thread: false` is a measurement.
 
@@ -84,7 +84,7 @@ def _absent(name: str, value: Any) -> bool:
 ## @param pairs (field name, already-recursed value) pairs for one dataclass.
 ## @return Plain dict with every tuple value converted to a list.
 ## @version 1
-## @dg_internal
+## @utility
 def _listed(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     """@brief Convert tuple fields to lists while serializing a dataclass.
     @return JSON-safe dict for one dataclass.
@@ -97,7 +97,7 @@ def _listed(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
 ## @param row A dict that appeared as an element of a list.
 ## @return The row without None/empty-sequence fields.
 ## @version 3
-## @dg_internal
+## @utility
 def _pruned_row(row: dict[str, Any]) -> dict[str, Any]:
     """Split out from `_prune_rows` to name the rule: this is what "a row" means on
     the wire.
@@ -135,7 +135,7 @@ _INTERNAL_ONLY = frozenset({"rowid"})
 ## @param obj Any already-serialized wire structure.
 ## @return The same structure with each list-of-dicts row pruned.
 ## @version 2
-## @dg_internal
+## @utility
 def _prune_rows(obj: Any) -> Any:
     """Row elision throughout, plus internal-only keys dropped at EVERY level — a `rowid` is
     equally misleading on an envelope and inside a row, so unlike elision it is not row-scoped.

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **The callback approves unconditionally.** `check_approval` sets `approved = true` whenever `on_tool_call` is non-null. It does not read a return value.\nVERDICT: HIT\nWHY: The answer states that the callback's return value is never read and that approved is set to true unconditionally, so the callback cannot refuse. It never says the callback returns void, but the mechanism is stated."
+}

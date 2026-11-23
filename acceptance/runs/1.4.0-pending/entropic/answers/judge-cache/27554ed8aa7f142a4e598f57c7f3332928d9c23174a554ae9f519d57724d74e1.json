@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`HealthMonitor` worker threads only enqueue events. `process_events()` (called from `server_manager.cpp:710`) drains them and runs the callbacks on the engine thread.\" Also the table: \"`watched_` and `event_queue_` each have a mutex\".\nVERDICT: HIT\nWHY: The answer states the monitor thread only enqueues events (with a mutex-guarded event_queue_) and that process_events() drains them and runs callbacks on the engine (caller) thread."
+}

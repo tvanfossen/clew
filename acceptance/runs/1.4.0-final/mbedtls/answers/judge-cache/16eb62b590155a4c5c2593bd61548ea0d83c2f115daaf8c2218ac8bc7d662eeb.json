@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `#ifndef MBEDTLS_ALLOW_PRIVATE_ACCESS #define MBEDTLS_PRIVATE(member) private_##member #else #define MBEDTLS_PRIVATE(member) member` ... \"By default the member is renamed to `private_nr`.\" ... \"The default is for application developers who link against mbedTLS... The opt-out is for the library's own sources and its sample programs.\" ... \"Inside the library, ... their accesses use the real member names.\"\nVERDICT: HIT\nWHY: The answer shows both macro branches and says code that defines the opt-out (library sources, sample programs) sees real member names, while ordinary consumers of the public headers see the `private_` names."
+}

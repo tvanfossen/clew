@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: 1. **Compile time (no runtime indirection).** In the project's user config, define `MBEDTLS_PLATFORM_MEMORY`, `MBEDTLS_PLATFORM_CALLOC_MACRO=my_calloc` and `MBEDTLS_PLATFORM_FREE_MACRO=my_free`... When both macros are set, the runtime setter is compiled out. / 2. **Runtime.** Define only `MBEDTLS_PLATFORM_MEMORY`, then call `mbedtls_platform_set_calloc_free(my_calloc, my_free)`... The setter is declared only in the `MBEDTLS_PLATFORM_MEMORY` branch\nVERDICT: HIT\nWHY: The answer distinguishes the compile-time macro pair from the runtime function-pointer pair and says the runtime setter is compiled out when the macros are set. That states mutual exclusivity in substance."
+}

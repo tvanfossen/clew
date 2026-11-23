@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Two ways to state it are `--declare FILE` and the inline `options` mapping.\nVERDICT: HIT\nWHY: The answer names both a CLI flag (`--declare`) and an inline options mapping as ways to state the caller-supplied (tier 1) option, and elsewhere says \"stated by the caller (tier 1)\", though it doesn't spell out the embedding-caller rationale."
+}

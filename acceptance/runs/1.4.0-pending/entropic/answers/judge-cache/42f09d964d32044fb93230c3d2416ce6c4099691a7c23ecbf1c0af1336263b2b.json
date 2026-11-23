@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"uses the first key of the args object, and only if its value is a string. Otherwise it uses `*`.\"\nVERDICT: HIT\nWHY: The answer states that only one argument (the first key) is used for matching, and that a non-string value collapses to the `*` wildcard. It also shows that other arguments (such as `path` when `content` is first) are not tested. It doesn't mention unparseable arguments, but the single-value and wildcard-collapse substance is there."
+}

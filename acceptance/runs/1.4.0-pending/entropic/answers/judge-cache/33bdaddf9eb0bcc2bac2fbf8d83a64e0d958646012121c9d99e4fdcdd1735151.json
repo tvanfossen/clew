@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"the reach is deep, but it is mostly confined to one layer.\" and \"Facade: `src/facade/entropic.cpp` includes `llama_cpp_backend.h`... Tests under `tests/unit` and `tests/model` include `llama.h`\"\nVERDICT: HIT\nWHY: The answer says reach is mostly confined to src/inference but names facade and other files outside it that also reach llama.cpp, so it is concentrated but not contained."
+}

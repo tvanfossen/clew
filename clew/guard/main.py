@@ -1,4 +1,5 @@
-"""CLI entry point for doxygen-guard.
+# SPDX-License-Identifier: MIT
+"""CLI entry point for clew guard.
 
 @brief Argument parsing, file iteration, and subcommand dispatch.
 @version 1.1
@@ -21,15 +22,23 @@ from .checks import (
     check_duplicate_tags,
     check_file_presence,
     check_presence,
+    check_bus_tags,
+    check_exemption_reasons,
+    check_removed_tags,
     check_req_coverage,
     check_req_exists,
+    check_satisfies,
     check_return_presence,
     check_tags,
     check_unknown_tags,
     check_version_staleness,
 )
 from .config import (
-    get_impact,
+    REPORT_JSON,
+    REPORT_MARKDOWN,
+    get_requirements,
+    impact_base,
+    report_dir,
     get_validate,
     load_config,
     parse_content_for_file,
@@ -38,14 +47,16 @@ from .config import (
     validate_output_path,
 )
 from .errors import ConfigError, GuardError
-from .filters import gate_exclusion
+from .filters import excluded_by, gate_exclusion
 from .git import get_branch_diff_range, get_file_at_revision, git_add
+from .report_formats import FORMATS, render
 from .impact import (
     build_impact_report,
     collect_changed_functions,
     format_json,
     format_markdown,
-    run_impact,
+    impact_entries,
+    format_report,
 )
 
 logger = logging.getLogger(__name__)
@@ -62,7 +73,7 @@ _RETIRED_SUBCOMMANDS = {
 
 ## @brief Create argparse parser with validate/impact/coverage subcommands.
 #  @version 1.5
-#  @dg_internal
+#  @utility
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="clew guard",
@@ -88,29 +99,46 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 ## @brief Add the validate subcommand to the parser.
-#  @version 1.1
-#  @dg_internal
+#  v1.2: --format text|sarif|gitlab|github (2.0.0, S1)
+#  @version 1.2
+#  @utility
 def _add_validate_parser(subparsers: argparse._SubParsersAction) -> None:
     p = subparsers.add_parser("validate", help="Validate doxygen comments (pre-commit gate)")
     p.add_argument("files", nargs="*", help="Files to validate (passed by pre-commit)")
     p.add_argument("--no-git", action="store_true", help="Skip git-based staleness checks")
     p.add_argument("--exclude", action="append", default=[], help="Exclude patterns (repeatable)")
+    p.add_argument(
+        "--format",
+        dest="output_format",
+        default="text",
+        choices=list(FORMATS),
+        help="text (stderr, the default) or a machine format on stdout: sarif, gitlab, github",
+    )
 
 
 ## @brief Add the impact subcommand to the parser.
-#  @version 1.1
-#  @dg_internal
+#  v1.2: --write and --format (2.0.0, R5-CFG F9)
+#  @version 1.2
+#  @utility
 def _add_impact_parser(subparsers: argparse._SubParsersAction) -> None:
     p = subparsers.add_parser("impact", help="Change-impact analysis from git diff")
     group = p.add_mutually_exclusive_group()
     group.add_argument("--staged", action="store_true", help="Analyze staged changes")
     group.add_argument("--range", dest="diff_range", help="Git revision range (e.g., HEAD~3..HEAD)")
     p.add_argument("files", nargs="*", help="Files to analyze")
+    p.add_argument(
+        "--write",
+        action="store_true",
+        help="Write impact.md and impact.json into guard.impact.report_dir instead of printing",
+    )
+    p.add_argument(
+        "--format", dest="output_format", default="markdown", choices=["markdown", "json", "text"]
+    )
 
 
 ## @brief Add the coverage subcommand to the parser.
 #  @version 1.0
-#  @dg_internal
+#  @utility
 def _add_coverage_parser(subparsers: argparse._SubParsersAction) -> None:
     p = subparsers.add_parser("coverage", help="Report requirement coverage gaps")
     p.add_argument("source_dirs", nargs="*", default=["."], help="Source directories to scan")
@@ -121,7 +149,7 @@ def _add_coverage_parser(subparsers: argparse._SubParsersAction) -> None:
 
 ## @brief Add the config subcommand exposing the machine-readable consumer contract.
 #  @version 1.0
-#  @dg_internal
+#  @utility
 def _add_config_parser(subparsers: argparse._SubParsersAction) -> None:
     p = subparsers.add_parser("config", help="Emit the consumer contract as JSON")
     group = p.add_mutually_exclusive_group()
@@ -139,7 +167,7 @@ def _add_config_parser(subparsers: argparse._SubParsersAction) -> None:
 
 ## @brief Add the doxyfile subcommand emitting a Doxyfile fragment.
 #  @version 1.0
-#  @dg_internal
+#  @utility
 def _add_doxyfile_parser(subparsers: argparse._SubParsersAction) -> None:
     subparsers.add_parser(
         "doxyfile",
@@ -149,7 +177,7 @@ def _add_doxyfile_parser(subparsers: argparse._SubParsersAction) -> None:
 
 ## @brief Add the files subcommand exposing the exact post-exclude file set.
 #  @version 1.0
-#  @dg_internal
+#  @utility
 def _add_files_parser(subparsers: argparse._SubParsersAction) -> None:
     p = subparsers.add_parser("files", help="Emit the file set the gate walks, as JSON")
     p.add_argument("source_dirs", nargs="*", default=["."], help="Source directories to scan")
@@ -161,7 +189,12 @@ def _add_files_parser(subparsers: argparse._SubParsersAction) -> None:
 #  caller can report what it did not check. A `validate.exclude` match is NOT recorded:
 #  that pattern is stated in the gate's own config, in front of the owner reading it,
 #  where `toolchain.toml` is a statement made for every tool in the repo.
-#  @version 1.14
+#  @details v1.15: runs the bus-tag rule (W10).
+#  v1.16: excludes are globs, re: for a regex (2.0.0, R5-CFG F18)
+#  v1.17: check_removed_tags (2.0.0, PG1)
+#  v1.18: a validate.exclude match is counted as not checked (2.0.0, PG6)
+#  v1.19: check_exemption_reasons (2.0.0, PG3b)
+#  @version 1.19
 #  @req REQ-DDB-GUARD-001
 def validate_file(
     file_path: str,
@@ -171,10 +204,14 @@ def validate_file(
     skipped: list[str] | None = None,
 ) -> list[Violation]:
     validate = get_validate(config)
-    for pattern in validate.get("exclude", []):
-        if re.search(pattern, file_path):
-            logger.debug("Skipping %s — matches exclude pattern '%s'", file_path, pattern)
-            return []
+    pattern = excluded_by(file_path, validate.get("exclude", []))
+    if pattern is not None:
+        ## COUNTED (2.0.0, PG6): a declared exclusion is a file the gate did not check, and the
+        ## report says so every run. It returned silently, so an excluded file vanished.
+        logger.info("Skipping %s — matches exclude pattern '%s'", file_path, pattern)
+        if skipped is not None:
+            skipped.append("excluded by validate.exclude")
+        return []
     skip = gate_exclusion(file_path)
     if skip is not None:
         logger.info("Skipping %s — %s", file_path, skip)
@@ -207,8 +244,12 @@ def validate_file(
         violations.extend(check_return_presence(functions, file_path, config, content))
     violations.extend(check_tags(functions, file_path, config))
     violations.extend(check_req_coverage(functions, file_path, config))
+    if content is not None:
+        violations.extend(check_bus_tags(functions, file_path, config, content.splitlines()))
     for func in functions:
         violations.extend(check_unknown_tags(func, file_path, config))
+        violations.extend(check_removed_tags(func, file_path, config))
+        violations.extend(check_exemption_reasons(func, file_path, config))
         violations.extend(check_duplicate_tags(func, file_path, config))
         violations.extend(check_req_exists(func, file_path, config, req_ids))
 
@@ -235,7 +276,7 @@ def validate_file(
 #  Phrased after the index's `_apply_toolchain_exclusions` line, which reports the same
 #  decision for the same reason on the build side.
 #  @version 1.0
-#  @dg_internal
+#  @utility
 def _report_skips(skipped: list[str]) -> None:
     if not skipped:
         return
@@ -247,17 +288,26 @@ def _report_skips(skipped: list[str]) -> None:
 ## @brief Validate a list of files and report violations.
 #  @details The choke point both entry paths use (`validate` and pre-commit mode), which is
 #  why the skip report lives here rather than in either caller.
-#  @version 1.3
-#  @dg_internal
+#  v1.4: external catalogues' ids join the local catalogue's (GH #68).
+#  v1.5: the local catalogue's `satisfies` links are checked (GH #68).
+#  v1.6: reads the top-level requirements: section (2.0.0, R5-CFG F7)
+#  @version 1.6
+#  @utility
 def _validate_files(
     file_paths: list[str],
     config: dict[str, Any],
     no_git: bool = False,
 ) -> list[Violation]:
-    from .impact import load_requirements_full
+    from .impact import load_external_requirements, load_requirements_full
 
-    req_ids = set(load_requirements_full(config).keys()) or None
-    violations: list[Violation] = []
+    # THE LOCAL CATALOGUE AND EVERY EXTERNAL ONE (GH #68). The set is passed even when EMPTY —
+    # catalogues were looked for and none exists — so the check reports each tag as uncheckable
+    # rather than passing it; None is reserved for "no catalogue information supplied".
+    local = load_requirements_full(config)
+    req_ids = set(local) | set(load_external_requirements(config))
+    # GH #68: every `satisfies` link of the local catalogue must land in some catalogue.
+    catalog_file = get_requirements(config).get("file", "")
+    violations: list[Violation] = check_satisfies(local, req_ids, catalog_file)
     skipped: list[str] = []
     for file_path in file_paths:
         if not Path(file_path).exists():
@@ -270,27 +320,33 @@ def _validate_files(
     return violations
 
 
-## @brief Print violations to stderr and return exit code.
-#  @version 1.0
-#  @dg_internal
-def _report_violations(violations: list[Violation]) -> int:
-    for v in violations:
-        print(v, file=sys.stderr)
+## @brief Print violations and return exit code.
+#  v1.1: a machine format (sarif, gitlab, github) goes to stdout, whole, even when empty; the
+#  human lines and the count stay on stderr. The exit code is the same either way (2.0.0, S1).
+#  @version 1.1
+#  @utility
+def _report_violations(violations: list[Violation], output_format: str = "text") -> int:
+    if output_format != "text":
+        sys.stdout.write(render(violations, output_format))
+    else:
+        for v in violations:
+            print(v, file=sys.stderr)
     if violations:
         print(f"\nclew guard: {len(violations)} violation(s) found", file=sys.stderr)
-        return 1
-    return 0
+    return 1 if violations else 0
 
 
 ## @brief Run validation checks on all specified files and report violations.
-#  @version 1.4
+#  v1.5: routes --format; no files still emits an empty document (2.0.0, S1)
+#  @version 1.5
 #  @req REQ-DDB-GUARD-001
 #  @return Exit code: 0 if no violations, 1 if violations found
 def run_validate(args: argparse.Namespace, config: dict[str, Any]) -> int:
     files = args.files or []
     if not files:
         logger.warning("No files specified for validation")
-        return 0
+        # Still a document in a machine format: an empty log, not a missing one.
+        return _report_violations([], getattr(args, "output_format", "text"))
     # Resolve here too: this path previously skipped resolution entirely, so the
     # documented `doxygen-guard validate` invocation ran with no @req coverage gate.
     resolve_version_gate(config)
@@ -299,12 +355,15 @@ def run_validate(args: argparse.Namespace, config: dict[str, Any]) -> int:
         validate = config.setdefault("validate", {})
         existing = validate.get("exclude", [])
         validate["exclude"] = existing + cli_excludes
-    return _report_violations(_validate_files(files, config, no_git=args.no_git))
+    return _report_violations(
+        _validate_files(files, config, no_git=args.no_git),
+        getattr(args, "output_format", "text"),
+    )
 
 
 ## @brief Detect version from git describe --tags.
 #  @version 2.2
-#  @dg_internal
+#  @utility
 def _detect_git_version() -> str | None:
     try:
         result = subprocess.run(
@@ -326,7 +385,7 @@ def _detect_git_version() -> str | None:
 
 ## @brief Detect version from CMakeLists.txt project() directive.
 #  @version 2.1
-#  @dg_internal
+#  @utility
 def _detect_cmake_version() -> str | None:
     try:
         cmake = Path("CMakeLists.txt").read_text()
@@ -338,11 +397,11 @@ def _detect_cmake_version() -> str | None:
 
 
 ## @brief Resolve the current project version from config, git tag, or CMake.
-#  @version 1.3
-#  @dg_internal
+#  v1.4: reads validate.current_version (2.0.0, R5-CFG F14)
+#  @version 1.4
+#  @utility
 def _detect_current_version(config: dict[str, Any]) -> str | None:
-    gate = get_validate(config).get("version_gate", {})
-    version_str = gate.get("current_version")
+    version_str = get_validate(config).get("current_version")
     if not version_str:
         return None
     detectors = {"auto:git": _detect_git_version, "auto:cmake": _detect_cmake_version}
@@ -351,11 +410,11 @@ def _detect_current_version(config: dict[str, Any]) -> str | None:
 
 
 ## @brief Resolve the version gate in place, failing if it is declared but unresolvable.
-#  @version 1.0
+#  v1.1: reads validate.current_version (2.0.0, R5-CFG F14)
+#  @version 1.1
 #  @req REQ-DDB-GUARD-014
 def resolve_version_gate(config: dict[str, Any]) -> None:
-    gate = get_validate(config).get("version_gate", {})
-    declared = gate.get("current_version")
+    declared = get_validate(config).get("current_version")
     if not declared:
         logger.info("No version gate declared; all catalogued requirements are active")
         return
@@ -368,33 +427,35 @@ def resolve_version_gate(config: dict[str, Any]) -> None:
         # reporting success — worst on shallow CI clones with no tags.
         logger.error("Version gate %r declared but could not be resolved", declared)
         raise ConfigError(
-            f"validate.version_gate.current_version is {declared!r} but no version "
+            f"validate.current_version is {declared!r} but no version "
             f"could be resolved. On a shallow or tagless clone, fetch tags "
             f"(git fetch --tags) or set a literal version."
         )
 
     logger.info("Version gate resolved: %s -> %s", declared, resolved)
-    config.setdefault("validate", {}).setdefault("version_gate", {})["_resolved"] = resolved
+    config.setdefault("validate", {})["_current_version_resolved"] = resolved
 
 
 ## @brief Run all configured checks in pre-commit mode (no subcommand).
-#  @version 2.6
+#  v2.7: one report directory, guard.impact.report_dir; the writer is shared (2.0.0, R5-CFG F9)
+#  v2.8: diffs against guard.impact.base (2.0.0, R5-CFG W8)
+#  v2.9: runs the coverage gate (2.0.0, PG3)
+#  @version 2.9
 #  @req REQ-DDB-GUARD-001
 #  @return Exit code: 0 if no violations, 1 if violations found
 def run_precommit(file_paths: list[str], config: dict[str, Any]) -> int:
     logger.info("Pre-commit mode: %d file(s)", len(file_paths))
-    logger.info("Config: output_dir=%s", config.get("output_dir", "docs/generated/"))
+    logger.info("Config: impact.report_dir=%s", report_dir(config))
 
     resolve_version_gate(config)
 
     rc = _report_violations(_validate_files(file_paths, config))
 
-    base_dir = config.get("output_dir", "docs/generated/")
+    base_dir = report_dir(config)
     validate_output_path(base_dir)
 
-    impact_config = get_impact(config)
-    if impact_config.get("requirements"):
-        diff_range = get_branch_diff_range()
+    if get_requirements(config):
+        diff_range = get_branch_diff_range(impact_base(config))
         if diff_range:
             changed = collect_changed_functions(file_paths, config, diff_range=diff_range)
         else:
@@ -406,18 +467,35 @@ def run_precommit(file_paths: list[str], config: dict[str, Any]) -> int:
         ## symlink, and the gate wrote the report outside the repository and `git add`ed it —
         ## as the committing user, configured by the branch under review. Same validation the
         ## sibling in `_run_impact_command` already applies to its `output.file`.
-        impact_dir = Path(base_dir) / "impact"
-        md_path = impact_dir / "impact.md"
-        json_path = impact_dir / "impact.json"
-        validate_output_path(str(md_path))
-        validate_output_path(str(json_path))
-        impact_dir.mkdir(parents=True, exist_ok=True)
-        md_path.write_text(format_markdown(entries))
-        json_path.write_text(format_json(entries))
-        git_add([str(md_path), str(json_path)])
+        git_add([str(p) for p in _write_report(entries, base_dir)])
         print(format_markdown(entries), file=sys.stderr)
 
-    return rc
+    ## COVERAGE IS PART OF THE HOOK (2.0.0, PG3, owner): uncovered catalog entries, `req` tag naming
+    ## no entry, and a ratio below the declared floor fail the commit, so coverage is never a
+    ## separate manual step. Run over the repository (pre-commit's working directory).
+    return max(rc, _coverage_gate(config))
+
+
+## @brief Run the coverage gate for the pre-commit hook.
+#  @details Only when the repository declares a catalog or a ratio floor: without either there is
+#  nothing to cover. The traceability line is printed every run, pass or fail; the full report
+#  only when the gate fails.
+#  @version 1.0
+#  @req REQ-DDB-GUARD-022
+#  @return 1 when the gate fails, else 0
+def _coverage_gate(config: dict[str, Any]) -> int:
+    from .coverage import analyze_coverage, coverage_gaps, format_coverage_text, traceability_line
+
+    floor = (config.get("coverage") or {}).get("min_req_ratio")
+    if not get_requirements(config) and floor is None:
+        return 0
+    report = analyze_coverage(["."], config)
+    failed = coverage_gaps(report)
+    print(
+        format_coverage_text(report) if failed else traceability_line(report["traceability"]),
+        file=sys.stderr,
+    )
+    return 1 if failed else 0
 
 
 _HELP_FLAGS = frozenset(("-h", "--help"))
@@ -425,14 +503,14 @@ _HELP_FLAGS = frozenset(("-h", "--help"))
 
 ## @brief Detect whether the first positional arg is a known subcommand.
 #  @version 1.1
-#  @dg_internal
+#  @utility
 def _has_subcommand(raw_argv: list[str]) -> bool:
     return _first_positional(raw_argv) in _SUBCOMMANDS
 
 
 ## @brief Return the first positional arg, ignoring flags and their values.
 #  @version 1.0
-#  @dg_internal
+#  @utility
 #  @return The first positional argument, or None if the argv is all flags
 def _first_positional(raw_argv: list[str]) -> str | None:
     skip_next = False
@@ -465,7 +543,7 @@ def _check_retired_subcommand(raw_argv: list[str]) -> int | None:
 
 ## @brief Parse pre-commit mode args (no subcommand) into components.
 #  @version 1.0
-#  @dg_internal
+#  @utility
 def _parse_precommit_args(
     raw_argv: list[str],
 ) -> tuple[Path | None, list[str], bool]:
@@ -489,32 +567,48 @@ def _parse_precommit_args(
 
 
 ## @brief Execute the impact subcommand.
-#  @version 1.4
+#  v1.5: prints by default, --write writes into report_dir (2.0.0, R5-CFG F9)
+#  @version 1.5
 #  @req REQ-DDB-GUARD-010
 #  @return Exit code: 0 on success, 1 if output path is invalid
 def _run_impact_command(args: argparse.Namespace, config: dict[str, Any]) -> int:
     file_paths = args.files or []
-    report = run_impact(
+    entries = impact_entries(
         file_paths=file_paths,
         config=config,
         staged=args.staged,
         diff_range=args.diff_range,
     )
-    output_file = get_impact(config).get("output", {}).get("file")
-    if output_file:
-        validate_output_path(output_file)
-        out_path = Path(output_file).resolve()
-        out_path.parent.mkdir(parents=True, exist_ok=True)
-        out_path.write_text(report)
-        print(f"Wrote report: {out_path}")
+    if args.write:
+        for written in _write_report(entries, report_dir(config)):
+            print(f"Wrote report: {written.resolve()}")
     else:
-        print(report)
+        print(format_report(entries, args.output_format))
     return 0
+
+
+## @brief Write the impact report's markdown and JSON into the report directory.
+#  @details THE FULL WRITE PATH IS VALIDATED, not just the directory (1.1.0 audit, M5): a
+#  committed `out/impact -> ../../elsewhere` passed a directory-only check, `mkdir` followed the
+#  symlink, and the gate wrote outside the repository as the committing user. One writer now
+#  serves the hook and `clew guard impact --write`, so the two cannot drift (R5-CFG F9).
+#  @version 1.0
+#  @utility
+#  @return The two paths written
+def _write_report(entries: list[Any], base_dir: str) -> list[Path]:
+    out = Path(base_dir)
+    md_path, json_path = out / REPORT_MARKDOWN, out / REPORT_JSON
+    validate_output_path(str(md_path))
+    validate_output_path(str(json_path))
+    out.mkdir(parents=True, exist_ok=True)
+    md_path.write_text(format_markdown(entries))
+    json_path.write_text(format_json(entries))
+    return [md_path, json_path]
 
 
 ## @brief Configure logging based on verbosity flag.
 #  @version 1.0
-#  @dg_internal
+#  @utility
 def _setup_logging(verbose: bool) -> None:
     level = logging.DEBUG if verbose else logging.WARNING
     logging.basicConfig(level=level, format="%(levelname)s: %(message)s")
@@ -522,7 +616,7 @@ def _setup_logging(verbose: bool) -> None:
 
 ## @brief Run the coverage subcommand.
 #  @version 1.1
-#  @dg_internal
+#  @utility
 def _run_coverage_command(args: argparse.Namespace, config: dict[str, Any]) -> int:
     from .coverage import run_coverage
 
@@ -569,7 +663,7 @@ def _run_doxyfile_command(_args: argparse.Namespace, config: dict[str, Any]) -> 
 
 ## @brief Dispatch an explicit subcommand to its handler.
 #  @version 1.3
-#  @dg_internal
+#  @utility
 def _dispatch_subcommand(args: argparse.Namespace, config: dict[str, Any]) -> int:
     handlers = {
         "validate": lambda: run_validate(args, config),
@@ -587,7 +681,7 @@ def _dispatch_subcommand(args: argparse.Namespace, config: dict[str, Any]) -> in
 
 ## @brief Parse arguments and dispatch to the appropriate subcommand.
 #  @version 2.0
-#  @dg_internal
+#  @utility
 def main(argv: list[str] | None = None) -> int:
     raw_argv = list(argv if argv is not None else sys.argv[1:])
 
@@ -606,7 +700,7 @@ def main(argv: list[str] | None = None) -> int:
 #  @details `--help` without a subcommand used to fall into pre-commit mode, which skips
 #  unknown flags: asking for help ran the gate over nothing and wrote an impact report.
 #  @version 1.1
-#  @dg_internal
+#  @utility
 def _run(raw_argv: list[str]) -> int:
     if not _has_subcommand(raw_argv) and _HELP_FLAGS.intersection(raw_argv):
         build_parser().print_help()
@@ -624,7 +718,7 @@ def _run(raw_argv: list[str]) -> int:
 
 ## @brief Wrapper for setuptools console_scripts entry point.
 #  @version 1.0
-#  @dg_internal
+#  @utility
 def cli_main() -> None:
     sys.exit(main())
 

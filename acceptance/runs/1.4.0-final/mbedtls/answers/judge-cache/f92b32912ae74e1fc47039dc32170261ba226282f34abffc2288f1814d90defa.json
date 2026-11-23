@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Nothing inside mbedtls. There is no thread creation in the library.\" and \"The one shipped threaded example, `programs/ssl/ssl_pthread_server.c`, needs the threading layer enabled to be safe.\"\nVERDICT: MISS\nWHY: The answer says the library creates no threads by default, but it never says the pthread example compiles to a stub main when threading is disabled. It only says the example needs threading enabled to be safe."
+}

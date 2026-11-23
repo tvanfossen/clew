@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"On failure it sets `failed: true` again, or removes the post for the same three error IDs as above. It makes one attempt per tap, with no loop.\"\nVERDICT: HIT\nWHY: The answer states that `retryFailedPost` makes a single attempt with no loop and, on failure, marks the post failed again or removes it for the same three errors. It does not mention backoff for the retry call itself, but the \"zero automatic retries\" section covers the no-retry/no-backoff policy for the post send."
+}

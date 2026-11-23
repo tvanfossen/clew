@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Each row is a deduplicated caller-callee pair. `call_edges` holds one row per extraction layer, so one caller can appear several times. The index keeps the strongest confidence.\"\nVERDICT: HIT\nWHY: The answer states that multiple per-layer rows are collapsed into one row per caller-callee pair, keeping the strongest confidence."
+}

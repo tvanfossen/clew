@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"every handler's write goes through a single `batchRecords` method that calls `database.write`\"\nVERDICT: MISS\nWHY: The answer says writes go through `batchRecords` and that `ServerDataOperatorBase` extends `BaseDataOperator`. It never says each mixin is constrained to extend `ServerDataOperatorBase`, which is the reason the item requires. It also lists handlers that bypass `batchRecords`, which undercuts the \"every handler\" conclusion."
+}

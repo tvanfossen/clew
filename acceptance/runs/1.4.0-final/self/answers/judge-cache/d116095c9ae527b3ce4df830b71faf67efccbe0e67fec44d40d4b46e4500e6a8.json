@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The \"not indexed by extension\" count (`not_indexed` / `not_indexed_count`) exists in the index metadata, but `search` does not currently print it in the reply.\"\nVERDICT: MISS\nWHY: The answer says the reply does not list the not-indexed file types. It gives scope fields (extensions indexed) instead, which is not the same as naming in-scope file types that produced no rows."
+}

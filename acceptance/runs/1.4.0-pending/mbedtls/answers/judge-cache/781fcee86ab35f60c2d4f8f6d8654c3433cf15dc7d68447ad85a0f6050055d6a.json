@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`programs/ssl/ssl_server2.c:8` and `programs/ssl/ssl_client2.c:8` | Defined before the first include, so these sample/test programs read `ssl->state`-style fields directly.\" and \"The two `ssl_*2.c` programs bypass the boundary on purpose\"\nVERDICT: HIT\nWHY: The answer states that example/test programs define MBEDTLS_ALLOW_PRIVATE_ACCESS themselves, deliberately bypassing the public API boundary."
+}

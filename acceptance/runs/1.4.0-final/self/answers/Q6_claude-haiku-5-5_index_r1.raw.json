@@ -1,0 +1,111 @@
+{
+  "duration_api_ms": 50756,
+  "stop_reason": "end_turn",
+  "session_id": "62cfb5fa-c0c9-4447-b6d1-54c08831474e",
+  "total_cost_usd": 0.023822609999999998,
+  "usage": {
+    "input_tokens": 22,
+    "cache_creation_input_tokens": 62473,
+    "cache_read_input_tokens": 658331,
+    "output_tokens": 9485,
+    "output_tokens_details": {
+      "thinking_tokens": 3688
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 62473,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1662,
+        "cache_read_input_tokens": 79846,
+        "cache_creation_input_tokens": 1606,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1606
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 22,
+      "outputTokens": 9485,
+      "cacheReadInputTokens": 658331,
+      "cacheCreationInputTokens": 62473,
+      "webSearchRequests": 0,
+      "costUSD": 0.023822609999999998,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 3688,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 62473,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [
+    {
+      "tool_name": "Bash",
+      "tool_use_id": "toolu_01Dmp1XoXzzHqUZCXwvRKbJy",
+      "tool_input": {
+        "command": "rm -f .claude/tmp/no_grammar_probe.py && git status --short | head",
+        "description": "Remove probe script and check tree is clean"
+      }
+    }
+  ],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 26,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** For the four file types, the index holds different things. Shell and CMake get real definition rows, when the grammar is present. YAML and JSON get a file-set entry and nothing else. On an install without the grammars, the docs say the shell/CMake files are \"named by the not-indexed report.\" My probe found that the report does not name them, which contradicts the docs.\n\n**What the index holds (grammar present)**\n\n| File | Rows | Detail |\n|---|---|---|\n| `.sh` `.bash` | `memberdef` for `name() {}` and `function name {}` | Doc comes from the `#` block directly above. No args, since shell has no parameter list. |\n| `CMakeLists.txt` `.cmake` | `memberdef` for `function()` and `macro()` | A macro is stored as `macro definition`, not as a function. Named args are reported. |\n| `.yaml` `.yml` `.json` | `path` row only | Findable by name in `search(corpus='files')`. Zero symbols, by design. |\n\nEvidence: `clew/synth.py` (`SCRIPT_EXTS`, `DATA_EXTS`, `emit_definitions`), `clew/shast.py`, `docs/languages/SCRIPT_INTEGRATION.md`. The live index lists 16 YAML files and 16 JSON files as file rows with `symbol_count: 0`.\n\n**What it does not hold**\n\n- YAML and JSON keys. Writing them as symbols would put every `steps:` key of every workflow into `dossier` lookups.\n- Anything in `.github/workflows/`. The scope walk prunes dot directories, so CI workflows are out of scope on every tier.\n- Shell variables, `source`d files, or call sites. Only definitions are harvested. I did not find a shell call-edge harvest, so I'm treating that as absent.\n- CMake targets, `add_executable`, `target_link_libraries` or variables. The walkers recognise only function and macro definitions.\n- Markdown is prose, handled by a separate path.\n\n**An installation whose parser lacks the grammars**\n\nThe docs say the answer is \"registered in the file set, no symbols, no error, and the not-indexed report names the types.\" The code agrees with the first two parts:\n\n- `claims()` in `clew/synth.py` does not check the grammar, so `register_paths` writes `path` rows for `.sh`, `CMakeLists.txt`, `.yaml` and `.json` regardless.\n- `_ts_language_for` returns `None` for a missing optional grammar (`_OPTIONAL_KEYS = {\"bash\", \"cmake\"}` in `clew/harvest.py`), so no definitions are harvested. Nothing raises.\n\nThe third part fails. `_not_indexed_scope` in `clew/cli.py` lists as missing only the scanned files with no `path` row. Because `register_paths` already gave the shell and YAML files rows, they are never counted as missing.\n\nI ran this against the repo's own code, with `bash` and `cmake` masked and no doxygen rows:\n\n```\nregistered: 4\npath rows: ['CMakeLists.txt', 'config.yaml', 'data.json', 'scripts/deploy.sh']\nnot_indexed: {'not_indexed': '.c=1', 'not_indexed_count': '1'}\n```\n\nThe `.c=1` only appears because my probe had no doxygen rows for C. The shell, CMake and YAML files are not reported. An empty answer about a deploy script would therefore give no hint that the file was unread. The test in `tests/test_not_indexed_report.py` misses this because it hand-builds a `path` table without the shell or YAML rows. Also, `test_shell_and_cmake_definitions_become_rows` and the doc-block test skip rather than fail when the grammar is absent, so a no-grammar install passes green.\n\n**Fix options (your call):** make `claims()` or `register_paths` skip shell and CMake rows when `has_language` is false, so the report names them. Or have the report compare against harvested rows, not `path` rows. I'd take the first, since the docs already describe that behaviour. I have not changed anything.\n\n**Not verified:** how the live emptiness reply (`clew/mcp_server/emptiness.py`) builds its \"covered shape\" for these types. I only checked the report-stamping path.\n\n**Housekeeping:** I created `.claude/tmp/no_grammar_probe.py` for the probe. Deleting it was denied, so it is still there and can be removed with `rm`.",
+  "ttft_ms": 1806,
+  "type": "result",
+  "duration_ms": 52569,
+  "uuid": "24265022-417a-4042-9753-5ce103402f93",
+  "ttft_stream_ms": 1300,
+  "time_to_request_ms": 117,
+  "first_content_frame_ms": 1301,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

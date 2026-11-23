@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`BaseDataOperator.batchRecords` (`app/database/operator/base_data_operator/index.ts:191`) performs the write... That `batchRecords` body is the only place the write happens.\"\nVERDICT: MISS\nWHY: The answer says writes funnel through BaseDataOperator.batchRecords, but it never says this holds because every mixin is constrained to extend ServerDataOperatorBase. It also says the product handlers call it directly, which is a different mechanism."
+}

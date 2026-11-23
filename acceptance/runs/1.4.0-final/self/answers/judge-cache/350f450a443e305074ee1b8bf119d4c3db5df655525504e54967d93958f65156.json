@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"It downgrades the verdict on any hit and publishes the hits as `unsearched_corpus_hits`, so the claim can be checked.\" and \"`q.unsearched_corpora` ... derives the unread kinds by subtraction from the kinds the database actually holds.\"\nVERDICT: HIT\nWHY: The answer says the grade is chosen by querying which corpora search did not read, with the wording downgraded per call, rather than being tied to a fixed result shape."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"**Pervasive inside the inference library**, where `#include <llama.h>` appears in about ten `src/inference` files.\"\nVERDICT: HIT\nWHY: The answer says llama.cpp reaches about ten inference files, plus facade, public headers and tests, which conveys a dozen-file reach rather than a single wrapper."
+}

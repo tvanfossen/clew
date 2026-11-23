@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"They are a size query followed by a fill.\" and \"The double call is llama.cpp's size-then-fill protocol, not retry.\"\nVERDICT: HIT\nWHY: The answer concludes size negotiation rather than retry, noting the second call isn't conditional on failure; it doesn't explicitly list no backoff or counter, but the core conclusion is stated."
+}

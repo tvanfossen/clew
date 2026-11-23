@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `LlamaCppTokenizer::tokenize` (`src/inference/llama_cpp_tokenizer.cpp:49-71`) calls `llama_tokenize` at line 55 and again at line 61\nVERDICT: HIT\nWHY: The answer locates the two `llama_tokenize` calls (size probe then fill) in src/inference/llama_cpp_tokenizer.cpp with line numbers."
+}

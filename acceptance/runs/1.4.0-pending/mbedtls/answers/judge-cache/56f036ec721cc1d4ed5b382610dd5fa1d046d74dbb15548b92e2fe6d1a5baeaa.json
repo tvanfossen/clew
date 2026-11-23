@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`mbedtls_ct_compiler_opaque(x)` is `asm volatile(\"\" : \"+r\"(x))` when assembly is enabled. Otherwise it is `x ^ mbedtls_ct_zero`\" and \"A small module, `library/constant_time_impl.h`\"\nVERDICT: MISS\nWHY: The answer names the primitive and its role, but it never says the primitive is defined in `library/constant_time_impl.h`. That file is only named as the module's header."
+}

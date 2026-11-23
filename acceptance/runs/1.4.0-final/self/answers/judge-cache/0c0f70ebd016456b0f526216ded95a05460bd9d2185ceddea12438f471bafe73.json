@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer covers the build half (\"a build from a stale process would drop layers\" and the `REFUSED` write), but it never says reads stay current because query tools open the database per call."
+}

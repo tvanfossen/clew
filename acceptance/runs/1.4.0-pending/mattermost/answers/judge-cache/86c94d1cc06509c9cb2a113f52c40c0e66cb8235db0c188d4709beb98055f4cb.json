@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `skipSync: true` does two things. In `sanitizeReactions` it returns before computing deletions, so it never removes other reactions on the post. ... This is the reason the WebSocket path can carry only one reaction and not wipe the rest.\nVERDICT: HIT\nWHY: The answer states that skipSync skips deletions so a single incoming reaction doesn't wipe the post's other reactions."
+}

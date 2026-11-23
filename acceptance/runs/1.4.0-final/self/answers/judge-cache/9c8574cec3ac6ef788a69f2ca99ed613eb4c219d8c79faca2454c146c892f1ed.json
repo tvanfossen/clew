@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The code notice says the query data is current even though the logic is old. ... `stale_code_refusal` blocks writes from a stale process and ignores `force`. ... `_data_stale` returns false if the process predates its source, so an auto-refresh never writes an index with old logic.\nVERDICT: HIT\nWHY: The answer states that query data stays current while the process's logic is old, and that builds/writes from a stale-code process are refused because they would write an index with old logic."
+}

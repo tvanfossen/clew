@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Fuzzy edges are not filtered here. `_direct_call_edges` deliberately keeps them.\nVERDICT: MISS\nWHY: The answer says the flat callers list keeps fuzzy edges, but it never contrasts this with a traversal surface that excludes them. It also never gives the reason that a walk multiplies one fuzzy edge into a wrong subtree."
+}

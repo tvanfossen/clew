@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Two things make this not retry: - The second call is not conditional on the first failing. It is the expected step. - Nothing is repeated on failure: no loop, no backoff, no second attempt with the same arguments.\nVERDICT: HIT\nWHY: The answer calls it a size-then-fill pattern rather than retry, noting no loop or backoff and that the second call is the expected step, which covers the substance of the item."
+}

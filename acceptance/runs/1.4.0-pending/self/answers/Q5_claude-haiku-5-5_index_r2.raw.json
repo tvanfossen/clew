@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 33228,
+  "stop_reason": "end_turn",
+  "session_id": "24b0569f-b2bb-4b1e-9f9c-70e3cadb5325",
+  "total_cost_usd": 0.01464845,
+  "usage": {
+    "input_tokens": 16,
+    "cache_creation_input_tokens": 37424,
+    "cache_read_input_tokens": 405955,
+    "output_tokens": 6205,
+    "output_tokens_details": {
+      "thinking_tokens": 2934
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 37424,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2828,
+        "cache_read_input_tokens": 68799,
+        "cache_creation_input_tokens": 6900,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 6900
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 16,
+      "outputTokens": 6205,
+      "cacheReadInputTokens": 405955,
+      "cacheCreationInputTokens": 37424,
+      "webSearchRequests": 0,
+      "costUSD": 0.01464845,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 2934,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 37424,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 22,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "There are three layers to configure with, and they resolve differently. Explicit statements override the repo's standing declaration. Facts already written in the repo, such as a Doxyfile, add to the result rather than replacing it. Heuristics are only a floor.\n\n**Ways to say so**\n\n| Tier | Source | How it combines |\n|---|---|---|\n| 1 | CLI flags (`--doxyfile`, `--exclude`, `--entry-patterns`, `--scope`, `--declare <file>`), or the `options` argument for embedding callers | Replaces the layer below it |\n| 2 | `.clew.yaml` at the repo root | Replaces the layer below it |\n| 3 | Facts someone else wrote: a Doxyfile's `ALIASES`/`PREDEFINED`, generator manifests, language entry points | Accumulates |\n| 4 | Known-ecosystem signatures | Accumulates |\n| 5 | Name-pattern heuristics | Replaced by any stated tier |\n\nSources:\n- **Tier 1** goes through one validator, `apply_options` in `clew/buildoptions.py`. It checks every entry before assigning any, so one bad entry leaves the build untouched. `--declare` and the `options` argument share this route.\n- **Tier 2** is `.clew.yaml`, read by `load_declaration_located` in `clew/declaration.py`. Its `guard:` section belongs to the gate and is dropped before the index reads the file.\n- **Scope** is `index_scope:` in `.clew.yaml`, with `roots` (required) and `excludes`. Without it, the whole repository is indexed. Under `--scope from-guard` (the default), a Doxyfile's `INPUT` is replaced, so the Doxyfile supplies `ALIASES`/`PREDEFINED` and not the file list. `--scope doxyfile` is the explicit opt-out that uses the Doxyfile's `INPUT`.\n- **Doxyfile discovery** only checks `Doxyfile` at the root, `docs/` and `doc/`. It refuses to guess among stray Doxyfiles, because one once selected a test fixture.\n\n**When two disagree**\n\n- **CLI flag vs `.clew.yaml` (same option):** the flag wins outright. The declaration is not merged in. The declaration stays on disk, and the build records that tier 1 won. Passing an empty list is a withdrawal, not a statement: it falls through to the declaration, then to the heuristics.\n- **`.clew.yaml` vs a Doxyfile:** for scope, the declared `index_scope` wins over the Doxyfile's `INPUT`. For `ALIASES`/`PREDEFINED`, both apply, because facts accumulate.\n- **Tier 3 or 4 vs anything stated:** no conflict. Facts always survive, so a stated `--entry-patterns` cannot drop `main`, which was the bug that motivated this design.\n- **Errors in the declaration itself:**\n  - An unknown top-level section refuses the whole build, naming the section, so a misspelling cannot silently fall back to defaults.\n  - An unknown key inside `index_scope` is rejected with a warning, and the build falls back to the whole repository. That is a quieter failure than a refusal.\n  - A declared path that does not exist is refused when stated through `options` or `--declare`.\n\n**Inconsistency I found:** `_resolve_doxyfile_and_root` in `clew/cli.py` handles a bare `--doxyfile` that does not exist by logging a warning and ignoring it, then synthesizing a Doxyfile. The `options` route refuses the same input. The code comment calls the warn-and-ignore path a fix, so this may be intentional, but the two entry points disagree.\n\nI cited files and functions rather than line numbers. Several index entries reported line drift, so I did not check exact lines in the working tree.",
+  "ttft_ms": 1613,
+  "type": "result",
+  "duration_ms": 34968,
+  "uuid": "e0d51e05-d0be-473f-8838-a74917088d1f",
+  "ttft_stream_ms": 1120,
+  "time_to_request_ms": 72,
+  "first_content_frame_ms": 1120,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

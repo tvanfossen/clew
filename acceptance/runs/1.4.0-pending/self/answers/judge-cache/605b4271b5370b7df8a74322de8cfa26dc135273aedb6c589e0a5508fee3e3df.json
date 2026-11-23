@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: An empty list means the layer ran and found nothing. A missing key means the layer never ran\nVERDICT: MISS\nWHY: The answer discusses absence versus emptiness generally and the scope/note fields. It never says a single-token no-match was previously treated as proof of absence."
+}

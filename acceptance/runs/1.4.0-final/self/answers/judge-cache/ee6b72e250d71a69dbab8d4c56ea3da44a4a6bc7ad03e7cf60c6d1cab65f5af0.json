@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: | **data** | ... | **schema** | ... | **code** | ... (table with three axes) and \"Each signal is turned into a notice with a named remedy ... ordered data \u2192 schema \u2192 code\"\nVERDICT: HIT\nWHY: The answer explicitly presents staleness as three independent axes (data, schema, code), each with its own measurement and remedy."
+}

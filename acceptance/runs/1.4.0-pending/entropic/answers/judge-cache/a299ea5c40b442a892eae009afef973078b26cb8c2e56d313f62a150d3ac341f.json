@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: llama.cpp types are confined to `src/inference` and one facade file, and the public surface only exposes opaque pointers.\nVERDICT: MISS\nWHY: The answer says the dependency is concentrated in src/inference and calls the boundary \"mostly clean\". It never concludes that a minority of reaching files sit outside src/inference. It treats the facade and public headers as narrow, not as evidence that the dependency escapes the inference layer."
+}

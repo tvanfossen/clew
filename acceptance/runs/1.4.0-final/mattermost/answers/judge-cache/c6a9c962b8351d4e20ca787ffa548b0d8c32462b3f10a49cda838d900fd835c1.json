@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"It then calls `client.createPost` again with the same content. On success it writes the server's post to the database and updates the channel's last-post time, unless the post is a CRT reply. - On failure it sets `failed: true` again, or deletes the post if the error is one of the three removal errors above. It does not retry on its own.\"\nVERDICT: HIT\nWHY: The answer states that retryFailedPost makes a single new createPost call with no retry of its own (and noRetry/retryLimit 0), and on failure re-marks the post failed or deletes it for the three errors."
+}

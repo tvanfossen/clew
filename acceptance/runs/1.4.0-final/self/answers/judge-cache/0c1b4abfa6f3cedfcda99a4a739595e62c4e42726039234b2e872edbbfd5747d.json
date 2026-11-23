@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes grading empty results and scope reporting, but never states the general rule \"fix the corpus, not the sentence about the corpus\" (i.e., fix what the index covers rather than patch the wording)."
+}

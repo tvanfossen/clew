@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"it is the value of the first key that holds a string, or `*` if the args are empty or unparseable\"\nVERDICT: MISS\nWHY: The answer says a single value is picked and that unparseable args give `*`. It never says the other arguments are invisible to matching. It also describes non-string values as skipped, not as collapsing to a wildcard."
+}

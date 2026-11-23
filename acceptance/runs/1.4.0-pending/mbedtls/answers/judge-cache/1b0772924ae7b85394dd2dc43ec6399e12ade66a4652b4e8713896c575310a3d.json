@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: In a default build, a field `flags` is really named `private_flags`. ... Defining `MBEDTLS_ALLOW_PRIVATE_ACCESS` makes the macro the identity, so bare `ctx->flags` compiles.\nVERDICT: HIT\nWHY: The answer shows the macro renaming to private_##member by default and expanding to the unchanged member when MBEDTLS_ALLOW_PRIVATE_ACCESS is defined."
+}

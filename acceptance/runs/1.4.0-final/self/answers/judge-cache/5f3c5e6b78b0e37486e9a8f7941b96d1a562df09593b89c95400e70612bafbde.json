@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never mentions any containment call being removed versus left in place with callers dropped; it is entirely about scope resolution."
+}

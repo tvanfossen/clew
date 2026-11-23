@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Otherwise it is `x ^ mbedtls_ct_zero`, where `mbedtls_ct_zero` is a `volatile` zero, so the optimiser cannot prove the value.\nVERDICT: HIT\nWHY: The answer says that without assembly the opaque barrier function XORs with `mbedtls_ct_zero`, a volatile zero, which names the global and the fallback mechanism."
+}

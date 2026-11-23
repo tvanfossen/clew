@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Its `_mutexed` variants take the library mutex when `MBEDTLS_THREADING_C` is on.\nVERDICT: MISS\nWHY: The answer mentions mutexed variants and MBEDTLS_THREADING_C but doesn't say the init function installs a mutexed pair versus a plain pair, chosen at compile time inside it."
+}

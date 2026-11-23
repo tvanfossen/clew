@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"It's a two-phase buffer sizing pattern, not retry logic\" and \"Nothing is re-attempted after a failure.\"\nVERDICT: HIT\nWHY: The answer concludes this is size negotiation (null buffer, negative return gives the count, then a second call fills it) and not retry. It does not mention backoff or an attempt counter, but the core conclusion and the single second call are both stated."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `freshness.py` splits it into three named axes, each with its own remedy. | `data` | Sources changed since build | ... | `schema` | Index stamped by a newer build... | `code` | The server process loaded older code...\nVERDICT: HIT\nWHY: The answer explicitly says staleness is split into three named axes (data, schema, code) rather than a single flag, and names and describes each."
+}

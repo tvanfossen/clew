@@ -1,0 +1,110 @@
+{
+  "duration_api_ms": 20171,
+  "stop_reason": "end_turn",
+  "session_id": "96371658-be1d-4033-ba6d-b16d2e9fd847",
+  "total_cost_usd": 0.01230176,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 39356,
+    "cache_read_input_tokens": 253156,
+    "output_tokens": 3796,
+    "output_tokens_details": {
+      "thinking_tokens": 1189
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 39356,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2197,
+        "cache_read_input_tokens": 71947,
+        "cache_creation_input_tokens": 4243,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 4243
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 3796,
+      "cacheReadInputTokens": 253156,
+      "cacheCreationInputTokens": 39356,
+      "webSearchRequests": 0,
+      "costUSD": 0.01230176,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1189,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 39356,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [
+    {
+      "tool_name": "mcp__clew__propose_declaration",
+      "tool_use_id": "toolu_01QYTUHTB3B79Q4RmVmK2Hcp",
+      "tool_input": {
+        "ignore_declaration": true
+      }
+    }
+  ],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 11,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The short answer: a declaration decides the **roots** (directories the index walks), and doxygen's fixed file-pattern set decides which files inside them get parsed. With no declaration, clew indexes the whole git repository, minus git-ignored paths and dot/cache directories. Nothing in the index is extension-filtered by a user setting. I answered from the index alone. Its `propose_declaration` tool needed permission I didn't have, so I could not check its proposed draft.\n\n**The decision chain**\n\n```\n.clew.yaml (index_scope:)          derive_scope()  clew/scope.py:639\n        \u2502                                 \u2502\n        \u251c\u2500 usable roots? \u2500\u2500 yes \u2500\u2500\u25ba DerivedScope(roots = declared, excludes = declared)\n        \u2502                                 \u2502\n        \u251c\u2500 present but rejected \u2500\u2500\u25ba whole_repo_scope(rejected=<reason>)   (internal callers)\n        \u2502      \u2514\u2500 CLI --scope from-guard: refuses (sys.exit 1) instead      cli.py:758\n        \u2502\n        \u2514\u2500 absent \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u25ba whole_repo_scope(root)              scope.py:683\n                                              \u2502\n                                              \u25bc\n                       doxygen INPUT = roots; EXCLUDE = excludes\n                                              \u2502\n                                              \u25bc\n                 FILE_PATTERNS = DOXYGEN_DEFAULT_FILE_PATTERNS (forced)  doxygen.py:279\n                                              \u2502\n                                              \u25bc\n                 enumerate_tree() walks roots, prunes excluded subtrees  treescan.py:203\n```\n\n**1. Declared scope.** `_declared_index_scope` (`scope.py:991`) reads the `index_scope:` section from `.clew.yaml` (`declaration.py:299`). The section takes `roots:` and `excludes:`, and `roots` is required. A root that does not exist on disk is dropped with a warning. The section is rejected, not silently used, when:\n- it is not a mapping;\n- it has a key other than the accepted ones (a typo like `exclude:` for `excludes:` is refused by name);\n- no root survives, so `excludes` alone does nothing.\n\nAn unknown top-level section in `.clew.yaml` also refuses the load, rather than degrading to defaults.\n\n**2. Nothing declared.** `derive_scope` falls through to `whole_repo_scope` (`scope.py:683`). That function is explicitly \"the default tier since gh#333, not the last resort\":\n- Its single root is the repository itself, nested git trees included.\n- It subtracts what `git ls-files --others --ignored --exclude-standard --directory` reports, per tree, so a submodule's own `.gitignore` also counts. The git call runs through `gitenv.git_argv`, so a target's `.git/config` cannot execute code.\n- It subtracts dot-directories and known cache/vendor names via `_skip_dir` (`scope.py:490`), pruned by `_pruned_dirs` (`scope.py:908`). Those become doxygen `EXCLUDE` entries because the root is handed to doxygen unwalked. Its reason string says no `index_scope` was declared and names where `.clew.yaml` was looked for.\n- A repo's own Doxyfile no longer supplies INPUT. It still supplies aliases and predefined macros.\n- The warning \"indexing the WHOLE repository\" is logged at WARNING level (`derive_scope_logged`, `scope.py:1313`).\n\n**3. Which files doxygen parses.** The `FILE_PATTERNS` list is not declarable. `effective_file_patterns` (`doxygen.py:279`) returns the forced `DOXYGEN_DEFAULT_FILE_PATTERNS` for every build, so a target's declared patterns are only reported, not applied. `enumerate_tree` (`treescan.py:203`) is deliberately not extension-filtered. It hashes every file under the roots so that any change forces a re-run.\n\n**4. Stated scope.** A caller's own `index_scope` (for example a vendored sub-index override) is treated as tier 1 and takes the same construction path as a written one, so it can't behave differently from a file-declared one.\n\n**Caveats**\n- I verified the scope logic from function bodies and tests, not the contents of `_SKIP_DIR_NAMES` or `DOXYGEN_DEFAULT_FILE_PATTERNS`. Those lists are the answer to \"which dot/cache dirs and which extensions\", and I did not read them.\n- The `load_declaration_located` dossier reported an anchor mismatch, so its line numbers may be stale.\n- Nested git trees are indexed by design, and `external.py` tags their rows so they can be told apart from the first-party code.",
+  "ttft_ms": 1622,
+  "type": "result",
+  "duration_ms": 21785,
+  "uuid": "8a9f8200-651a-42e8-9dc1-ad3f85d937cb",
+  "ttft_stream_ms": 1101,
+  "time_to_request_ms": 80,
+  "first_content_frame_ms": 1101,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Count callers cannot tell failure from an empty input. A failed tokenization and an empty string both return `0`.\nVERDICT: HIT\nWHY: The answer states that failure is indistinguishable from empty input in count callers, and that generation callers lack empty checks, so almost none check for failure. Only the speculative and MTP paths check, via `tokens.size() < 2`. That matches the item's substance."
+}

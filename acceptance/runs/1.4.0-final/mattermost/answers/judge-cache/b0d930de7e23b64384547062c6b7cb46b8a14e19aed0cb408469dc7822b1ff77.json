@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`NavigationHeader` is a `forwardRef<SearchRef, Props>`. It forwards the ref to `<NavigationSearch ref={ref}>` (L134), but only when `hasSearch` is true. Without a search field the ref is never attached.\"\nVERDICT: HIT\nWHY: The answer states that NavigationHeader forwards its ref to NavigationSearch only when `hasSearch` is true, and that otherwise the ref is never attached."
+}

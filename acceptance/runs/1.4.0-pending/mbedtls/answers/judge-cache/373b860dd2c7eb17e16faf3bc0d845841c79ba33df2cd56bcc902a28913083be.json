@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Without `MBEDTLS_ALLOW_PRIVATE_ACCESS`, `MBEDTLS_PRIVATE(foo)` expands to `private_foo`. The struct declares the field as `private_foo`, so application code that writes `ctx->foo` fails to compile... With the define, it expands to `foo` and the name is visible again.\nVERDICT: HIT\nWHY: The answer states that code defining the macro sees plain names while ordinary application consumers see the renamed `private_` members."
+}

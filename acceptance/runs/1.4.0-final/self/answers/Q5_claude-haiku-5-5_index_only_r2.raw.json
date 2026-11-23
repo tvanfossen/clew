@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 15282,
+  "stop_reason": "end_turn",
+  "session_id": "447dfd47-b8fb-43ef-ad94-db86766423a5",
+  "total_cost_usd": 0.0063176199999999995,
+  "usage": {
+    "input_tokens": 6,
+    "cache_creation_input_tokens": 17928,
+    "cache_read_input_tokens": 119592,
+    "output_tokens": 3071,
+    "output_tokens_details": {
+      "thinking_tokens": 1513
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 17928,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2362,
+        "cache_read_input_tokens": 45934,
+        "cache_creation_input_tokens": 8823,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 8823
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 6,
+      "outputTokens": 3071,
+      "cacheReadInputTokens": 119592,
+      "cacheCreationInputTokens": 17928,
+      "webSearchRequests": 0,
+      "costUSD": 0.0063176199999999995,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1513,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 17928,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 7,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The index gives five ways to say how this repository should be indexed. When they disagree, the tier rules decide, and only some tiers can override others. I answered from docstrings, test names and symbol metadata, not from the bodies of the resolution functions, so treat the merge details as the documented behaviour.\n\n**The ways to say so, highest precedence first** (`clew/tiers.py`):\n\n1. **Explicit call-time options.** `index(action='refresh', ...)` takes `scope`, `exclude`, `doxyfile`, `force` and an `options` mapping. `options` is keyed by the `.clew.yaml` section names, and an unknown key is refused by name. `exclude` is recorded and replayed by later builds.\n2. **Declared, in `<repo>/.clew.yaml`.** Each section holds the same contents as the standalone manifest it replaces. Sections include `shared_key_patterns`, `thread_patterns`, `mqtt_dispatch`, `data_model`, `index_scope`, `doxyfile`, `kconfig`, `preprocessor`, `requirements`, `enrich` and `sub_indexes`. The `guard:` section belongs to the doxygen gate, not the index. If you don't have a file yet, `propose_declaration` drafts one as comments, and `clew export` emits only what was stated.\n3. **Target facts someone else wrote.** These are a Doxyfile's ALIASES and PREDEFINED, generator manifests, and language or platform entry points. A Doxyfile's INPUT is not used for scope; it is a documentation target, not a reasoning boundary.\n4. **Ecosystem signatures**, such as UDM or ingot.\n5. **Heuristics**, which are name-pattern guesses and the explicitly provisional floor.\n\n**When two disagree:**\n\n- **Same setting, flag versus `.clew.yaml`:** the flag replaces the declaration outright. Tests `test_explicit_flag_wins_over_the_declaration` and `test_an_explicit_flag_replaces_the_declaration` confirm this.\n- **Stated tiers (1 and 2) versus heuristics (5):** the stated value replaces the guess.\n- **Stated tiers versus facts (3 and 4):** facts are never displaced. The documented resolution is `(t1 or t2 or t5) \u222a t3 \u222a t4`, so a Doxyfile alias or an ecosystem entry still adds to a declared value. Tiers 3 and 4 combine identically, so an argument about which of them a fact belongs to changes only the label.\n- **Scope:** the declaration's `index_scope` is the only tier that yields index roots. With no declaration the whole repository is indexed, less what git ignores. A rejected declaration refuses the build rather than silently widening it (`test_cli_apply_scope_refuses_a_rejected_declaration`).\n- **Doxyfile path:** a stated `doxyfile` must exist. Otherwise resolution would fall back to whole-repo synthesis and report success on the wrong thing.\n- **Replay:** the winning tier is stored in `build_meta`. A declaration is re-read on a later build, not replayed from a frozen copy.\n- **Ambiguous `scope` name:** the default is documented as `from-declaration`, spelled `from-guard` in recorded builds. The two names refer to the same default.",
+  "ttft_ms": 1871,
+  "type": "result",
+  "duration_ms": 16079,
+  "uuid": "79f83771-a21f-49a2-b8fc-c2fd77961ead",
+  "ttft_stream_ms": 1147,
+  "time_to_request_ms": 79,
+  "first_content_frame_ms": 1148,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

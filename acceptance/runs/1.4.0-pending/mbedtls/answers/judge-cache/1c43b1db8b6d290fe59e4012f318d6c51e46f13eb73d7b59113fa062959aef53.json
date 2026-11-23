@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"By default each field is really named `private_state`, `private_flags`, and so on. Code that writes `ssl->state` against the public header fails to compile, so the field is effectively private.\"\nVERDICT: HIT\nWHY: The answer explains that opacity is enforced at compile time by renaming members via `private_##member`, so the fields stay in the struct and only their names are broken. Hiding the layout is never mentioned."
+}

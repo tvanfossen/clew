@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer concludes llama usage is confined to src/inference/ plus tests and the public surface is clean. It never says a minority of reaching files sit outside src/inference."
+}

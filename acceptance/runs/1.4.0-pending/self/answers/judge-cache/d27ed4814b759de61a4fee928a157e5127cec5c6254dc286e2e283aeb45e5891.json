@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A section that is present but unusable is rejected with a reason. Examples: it is not a mapping, it has an unknown key such as `exclude:` for `excludes:`, or it has no `roots:` that exist on disk. The rejection is logged as a warning, and the build falls back to the whole repo with the rejection named as the reason. It does not silently widen.\nVERDICT: HIT\nWHY: The answer says the fallback to the whole repo carries a named reason (the rejection) and that it does not silently widen. It also notes that a caller-supplied scope uses \"a different reason string\", which covers the point that the scope used and why are stated."
+}

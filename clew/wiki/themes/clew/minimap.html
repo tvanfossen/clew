@@ -1,0 +1,12 @@
+{#- The system's blocks, labelled, in the sidebar of pages ABOUT the system (round 3 P1c-2; round 4 R2;
+    UX review E-12, owner Q/A 2026-11-22: not on Docs or the index pages, and after the page's own
+    contents). The drawing is one string for the whole site (`clew_minimap`); a page lights its own
+    components with one CSS rule from `clew_minimap_lit`, so the markup never varies. -#}
+{%- set lit = clew_minimap_lit.get(pagename, []) if clew_minimap_lit else [] %}
+{%- if clew_minimap and (lit or pagename in ['flows', 'architecture', 'impact']) %}
+<div class="minimap-block">
+  <h3>System</h3>
+  {%- if lit %}<style>{% for c in lit %}.minimap [data-comp="{{ c|e }}"]{% if not loop.last %},{% endif %}{% endfor %}{background:var(--accbg);border-color:var(--acc);color:var(--accink)}</style>{% endif %}
+  {{ clew_minimap.replace('@MAP@', pathto('map')) }}
+</div>
+{%- endif %}

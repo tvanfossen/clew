@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It refuses outright when the process predates its source, through `stale_code_refusal` (`freshness.py:531`), and `force` cannot override that refusal.\nVERDICT: HIT\nWHY: The answer states the write path refuses (not warns) and that force cannot override it, with the refusal listed alongside the skip-when-current check that force governs."
+}

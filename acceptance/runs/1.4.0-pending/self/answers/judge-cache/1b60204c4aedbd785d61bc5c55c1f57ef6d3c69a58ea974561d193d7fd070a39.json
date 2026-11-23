@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`q.unsearched_corpora` must find no matching rows in corpora that `search` does not read. And `q.has_file_docs` must confirm the file-docs corpus exists.\" and \"the strong wording (\"definitive\u2026 do not retry or fall back to guessing\") is used, but only after two checks.\"\nVERDICT: HIT\nWHY: The answer says the definitive wording is gated on a per-query check of which corpora `search` does not read (`unsearched_corpora`), not on a result shape alone. It also contrasts this with a blanket hedge."
+}

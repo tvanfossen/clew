@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `AppDataOperator` (`app/database/operator/app_data_operator/index.ts:15`) extends the same `BaseDataOperator`, so the global app database uses the same `batchRecords` and `prepareRecords`.\nVERDICT: HIT\nWHY: The answer names AppDataOperator as extending BaseDataOperator and sharing the batchRecords/prepareRecords write path for the global app database."
+}

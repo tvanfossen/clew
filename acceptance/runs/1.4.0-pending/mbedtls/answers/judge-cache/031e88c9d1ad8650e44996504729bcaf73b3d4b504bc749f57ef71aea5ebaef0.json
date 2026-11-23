@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: splits the 16-bit code into a high-level part (`0xFF80` mask) and a low-level part (the complement). ... If both halves are present, the output is `\"High - desc : Low - desc\"`.\nVERDICT: HIT\nWHY: The answer explains that a code has high-level module bits and low-level bits, and that strerror joins both descriptions when both are present."
+}

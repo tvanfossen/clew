@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The fallback reason says the declaration was rejected, so the log does not claim there was none.\nVERDICT: HIT\nWHY: The answer states the fallback carries a reason (\"no `index_scope` is declared\" or the rejection reason, logged as a WARNING), so the scope used and why are explicit rather than silently guessed."
+}

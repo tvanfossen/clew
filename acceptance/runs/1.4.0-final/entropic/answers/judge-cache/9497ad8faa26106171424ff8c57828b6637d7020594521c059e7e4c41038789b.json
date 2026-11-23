@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `do_count_tokens` (`llama_cpp_backend.cpp:825`) | Returns `0`. The C entry point `entropic_inference_count_tokens` passes that `0` straight through; its `len/4` estimate only applies when an exception is thrown, which a tokenization failure does not cause.\nVERDICT: HIT\nWHY: The answer states that the token-counting path (do_count_tokens) returns 0 on tokenization failure with no error signalled."
+}

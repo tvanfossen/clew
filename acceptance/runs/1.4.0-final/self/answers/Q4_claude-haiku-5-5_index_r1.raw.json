@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 17123,
+  "stop_reason": "end_turn",
+  "session_id": "8d2721af-5ec7-4067-89d0-5b783c685b23",
+  "total_cost_usd": 0.0063909299999999995,
+  "usage": {
+    "input_tokens": 4,
+    "cache_creation_input_tokens": 21709,
+    "cache_read_input_tokens": 57423,
+    "output_tokens": 2949,
+    "output_tokens_details": {
+      "thinking_tokens": 1714
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 21709,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2664,
+        "cache_read_input_tokens": 38444,
+        "cache_creation_input_tokens": 2244,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2244
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 4,
+      "outputTokens": 2949,
+      "cacheReadInputTokens": 57423,
+      "cacheCreationInputTokens": 21709,
+      "webSearchRequests": 0,
+      "costUSD": 0.0063909299999999995,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1714,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 21709,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 3,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The answer for `git_argv` (`clew/gitenv.py:89`) is a list of **enclosing functions that call it**, grouped by file, not a list of call sites. It has six callers:\n\n| File | Caller(s) |\n|---|---|\n| `clew/guard/main.py` | `_detect_git_version` |\n| `clew/guard/tags.py` | `_git_ls_files` |\n| `clew/scope.py` | `_gitignored_paths`, `_is_dependency_of_parent` |\n| `clew/guard/git.py` | `run_git` |\n| `clew/propose/notindexed.py` | `tracked_files` |\n| `tests/test_security_surface.py` | `test_the_disarmed_key_list_reaches_the_argv` |\n\nEach caller row carries a name, not a line number, so a function that calls `git_argv` twice appears once. The edges are AST-resolved with `confidence: resolved` and `edge_class: call`. The reply also reports `callers_unresolved: 0`, `context_undecidable: 0` and no `ambiguous` block, which means the index claims it resolved every caller it saw. Those zeros are measurements, so they are present rather than omitted.\n\nWhat makes it wrong to read as a list of call sites:\n\n1. **It is a set of enclosing functions.** To find the lines, you still open each caller. The index tells you who, not where within them.\n\n2. **It is direct edges only.** `run_git` is itself a wrapper, so `git_argv` is reached transitively through `run_git`, `tracked_files` and so on. The \"every git call goes through here\" property is not something this one-hop list shows; it needs the `depth` walk (`direction: 'back'`) or the test. Here the source-level test `test_every_git_invocation_disarms_the_inspected_trees_config` is what enforces that no call site builds a bare argv, and it works over source text, not the call graph.\n\n3. **Callers include tests.** The test row sits in the same list as production callers. Filter by file before counting \"how many production paths run git.\"\n\n4. **The `threads` field is not a caller list.** `git_argv` is listed as a member of the `clew-first-build-` thread (`_first_build_worker`, `spawn_confidence: medium`, 72 members). That means the function is reachable from that thread's spawn chain, not that the thread calls it directly. The medium confidence matters.\n\n5. **Callees `[]` means no indexed callees, not \"calls nothing.\"** The body calls `list.extend` and `list` construction, which are not indexed symbols, so they do not appear. Don't read the empty list as a claim that the function has no effects.\n\n6. **Dynamic dispatch and function values are invisible.** A function passed as a value, a call through a dict, or a string-named dispatch will not appear as a caller unless the resolver saw a call edge. The `candidates` and `callers_unresolved` fields are how the index says when it could not decide. Here both are empty or zero, but a nonzero count would make the list incomplete.\n\n7. **The answer is a snapshot.** It reflects the index as built. `anchor_mismatch: false` says the lines still match; a stale index would be reported under `staleness`.\n\nIn short, `callers` answers \"which indexed functions contain a resolved direct call to this name,\" and the `0` and empty fields are the index's own confidence signals. To answer \"does anything run `git` without the disarm,\" you combine that with the transitive walk and the source test.",
+  "ttft_ms": 2081,
+  "type": "result",
+  "duration_ms": 17719,
+  "uuid": "863ddfb1-044e-40cf-93cb-0e90d6535044",
+  "ttft_stream_ms": 1154,
+  "time_to_request_ms": 97,
+  "first_content_frame_ms": 1154,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

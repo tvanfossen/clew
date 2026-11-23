@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer describes the reply fields (scope, not_indexed, staleness) but never states that the strong wording is earned per call by querying which corpora were not read, as opposed to being tied to a result shape. It even notes the note calls unindexed misses \"definitive\" without the per-call check."
+}

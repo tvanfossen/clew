@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never mentions that an unknown section in `.clew.yaml` or `options` is refused by name against the allowed set, or why ignoring it would be misleading."
+}

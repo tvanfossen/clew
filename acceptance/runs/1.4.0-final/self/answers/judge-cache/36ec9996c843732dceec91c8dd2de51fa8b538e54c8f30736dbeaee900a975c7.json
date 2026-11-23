@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `.yaml`, `.yml`, `.json` | Yes | None, by design | `DATA_EXTS` is \"registered, never harvested\"; also \"No symbols for YAML or JSON content\" versus shell/CMake which have function/macro symbols.\nVERDICT: HIT\nWHY: The answer states YAML/JSON are registered as files with no symbols, explicitly contrasting them with shell/CMake which do get symbols."
+}

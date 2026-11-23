@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"When `MBEDTLS_HAVE_ASM` is set and the compiler is GCC-compatible (`constant_time_impl.h:40`), the code selects one of four blocks\" and \"MSVC or any non-GNU compiler | C fallback (`MBEDTLS_CT_ASM` needs `__GNUC__`)\"\nVERDICT: MISS\nWHY: The answer mentions MBEDTLS_CT_ASM depending on HAVE_ASM and `__GNUC__`, but never states that it is derived rather than configured in mbedtls_config.h."
+}

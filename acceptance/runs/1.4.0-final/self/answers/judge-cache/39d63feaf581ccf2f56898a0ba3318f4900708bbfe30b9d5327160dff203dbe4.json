@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Explicit call-time options. `index(action='refresh', ...)` takes `scope`, `exclude`, `doxyfile`, `force` and an `options` mapping.\" and \"Same setting, flag versus `.clew.yaml`: the flag replaces the declaration outright.\"\nVERDICT: MISS\nWHY: The answer mentions a structured options argument and a CLI \"flag\" separately, but never states that the top tier is reachable from both entry points so that a shell-less embedding caller can still state it."
+}

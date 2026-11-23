@@ -22,7 +22,7 @@ facade-to-core call edge could not land on the real method at all.
 BUILT-IN DEFAULT PLUS A DECLARED OVERRIDE, WHICH IS THE ONLY SANCTIONED SHAPE. A
 hardcoded-only notion of "test path" is exactly what this project forbids: `tests/` is a
 convention, and repos legitimately use `test/`, `spec/`, `t/` or something else entirely. So
-the defaults below are HEURISTICS in the layered sense — a repo that declares `test_paths:`
+the defaults below are HEURISTICS in the layered sense — a repo that declares `tests.paths`
 displaces them rather than adding to them, because a repo naming its own layout is stating that
 layout rather than annotating ours.
 
@@ -40,6 +40,8 @@ published, and a `path.name` once carried the builder's home directory in every 
 from __future__ import annotations
 
 import fnmatch
+import functools
+import re
 import sqlite3
 from pathlib import PurePosixPath
 
@@ -91,12 +93,31 @@ CREATE TABLE IF NOT EXISTS test_scope (
 
 
 ##
+# @brief One compiled regex equivalent to "any of these globs matches".
+# @param patterns The globs.
+# @return The compiled alternation.
+# @version 1
+# @utility
+@functools.lru_cache(maxsize=32)
+def _matcher(patterns: tuple[str, ...]) -> re.Pattern[str]:
+    """`fnmatch.fnmatch` IS `normcase` + the translated regex; on POSIX `normcase` is the identity,
+    so an alternation of the translated patterns is the same predicate, compiled once.
+
+    @brief Compile the globs.
+    @return The regex.
+    """
+    return re.compile("|".join(f"(?:{fnmatch.translate(p)})" for p in patterns) or "(?!)")
+
+
+##
 # @brief Whether one repo-relative path is test code under the given patterns.
 # @param rel Repo-relative path.
 # @param patterns Glob patterns, matched against the whole path and against the basename.
 # @return True when any pattern matches.
-# @version 1
-# @dg_internal
+# v2 (1.3.4): one compiled alternation instead of two `fnmatch` calls per pattern per path —
+# measured 1.27 s of a one-file refresh on this repository, for a pure function of path names.
+# @version 2
+# @utility
 def is_test_path(rel: str, patterns: tuple[str, ...] | list[str]) -> bool:
     """Matched against BOTH the full relative path and the basename, because the two pattern
     families in `TEST_PATH_FACTS` mean different things: `tests/*` is about location and
@@ -111,7 +132,8 @@ def is_test_path(rel: str, patterns: tuple[str, ...] | list[str]) -> bool:
     """
     candidate = rel.lstrip("./")
     name = PurePosixPath(candidate).name
-    return any(fnmatch.fnmatch(candidate, pat) or fnmatch.fnmatch(name, pat) for pat in patterns)
+    matcher = _matcher(tuple(patterns))
+    return bool(matcher.match(candidate) or matcher.match(name))
 
 
 ##

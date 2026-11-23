@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says `_direct_call_edges` collapses duplicates for callers, but never states that the same collapse function serves both the flat neighbour surface and the traversal surface."
+}

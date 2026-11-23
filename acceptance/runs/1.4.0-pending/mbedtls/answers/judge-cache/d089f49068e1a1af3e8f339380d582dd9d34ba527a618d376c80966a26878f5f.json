@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: In a default build, a field `flags` is really named `private_flags`. Code that writes `ctx->flags` fails to compile. The layout is unchanged; only the name moves.\nVERDICT: HIT\nWHY: The answer says opacity is enforced at compile time by renaming the member, with the layout unchanged and still visible."
+}

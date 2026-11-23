@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Every handler's write goes through one method, `BaseDataOperator.batchRecords`, which wraps `database.write`... Each product handler is a `Constructor<ServerDataOperatorBase>` mixin... Some handlers skip this and call `database.write` themselves. Examples are `post.ts:516` and `thread.ts:74`. Those are exceptions to the single-path rule.\n\nVERDICT: MISS\nWHY: The answer names `batchRecords` and the `Constructor<ServerDataOperatorBase>` mixin constraint, but it does not conclude that every handler's writes go through `batchRecords` because of that constraint. It says some handlers bypass `batchRecords` and call `database.write` directly."
+}

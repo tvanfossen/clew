@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never states that the setter is neither declared nor compiled on the macro path; it only says the macro pair avoids runtime indirection."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The reply separates the two cases through its `note` and `scope` fields, not through a single flag.\" and \"A real 'not here' needs the other corpora or the `scope` check, not a repeat.\"\nVERDICT: HIT\nWHY: The answer says the strength of an empty result depends on what each reply reports as not searched (the note's unsearched corpora, `scope`, `not_searched`), not on the empty result's shape alone. It grades confidence per reply on that basis."
+}

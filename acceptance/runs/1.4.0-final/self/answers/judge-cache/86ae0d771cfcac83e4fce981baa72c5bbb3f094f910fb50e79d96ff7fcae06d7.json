@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **The five tiers** (from `clew/tiers.py`, the module docstring and `resolve_layered`): table listing 1 explicit, 2 declared, 3 target-fact, 4 ecosystem, 5 heuristic\nVERDICT: HIT\nWHY: The answer explicitly names five precedence tiers (explicit, declared, target-fact, ecosystem, heuristic) and explains they resolve in a fixed order rather than via a single override."
+}

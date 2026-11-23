@@ -73,6 +73,7 @@ import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
 
+from .indexcache import IndexCache, memoized
 from .vocabulary import EXTERNAL_ROOT_COLUMN, SYMBOL_SOURCE_AST, SYMBOL_SOURCE_COLUMN
 
 logger = logging.getLogger(__name__)
@@ -333,7 +334,7 @@ class IndexCoverage:
 ## @param path Absolute path to read.
 ## @return Line count, or -1 when the file cannot be read.
 ## @version 1
-## @dg_internal
+## @utility
 def _line_count(path: Path) -> int:
     """Returns -1 rather than 0 for an unreadable file so it is excluded from the
     substantive set instead of counted as a tiny file — a file we cannot measure
@@ -355,7 +356,7 @@ def _line_count(path: Path) -> int:
 ## @param documented_only Restrict the count to doxygen-sourced rows.
 ## @return Mapping of path rowid → number of memberdef rows attributed.
 ## @version 4
-## @dg_internal
+## @utility
 def _symbols_by_file(conn: sqlite3.Connection, *, documented_only: bool = False) -> dict[int, int]:
     """The UNION is the decl/def duality, and it is load-bearing — see the module
     docstring. A memberdef is attributed to its declaring file (`file_id`) AND to
@@ -393,7 +394,7 @@ def _symbols_by_file(conn: sqlite3.Connection, *, documented_only: bool = False)
 ## @param conn Open connection to the built index.
 ## @return True when `memberdef` has the provenance column.
 ## @version 1
-## @dg_internal
+## @utility
 def _has_provenance(conn: sqlite3.Connection) -> bool:
     """@brief Report whether `memberdef` carries the provenance column.
 
@@ -409,7 +410,7 @@ def _has_provenance(conn: sqlite3.Connection) -> bool:
 ## @param conn Open connection to the built index.
 ## @return Set of file paths present in supplementary_docs.
 ## @version 1
-## @dg_internal
+## @utility
 def _prose_files(conn: sqlite3.Connection) -> set[str]:
     """A markdown file is not barren; it is not code. Tolerates the table being
     absent so the measurement still works on an index built before prose
@@ -429,9 +430,12 @@ def _prose_files(conn: sqlite3.Connection) -> set[str]:
 ## @param conn Open connection to the built index.
 ## @param repo_root Working tree the indexed paths are relative to.
 ## @return Tuple of FileYield, one per indexed non-prose source file.
-## @version 4
-## @dg_internal
-def _file_yields(conn: sqlite3.Connection, repo_root: Path) -> tuple[FileYield, ...]:
+## v5 (1.3.4): takes the index cache; line counts are memoized per file content.
+## @version 5
+## @utility
+def _file_yields(
+    conn: sqlite3.Connection, repo_root: Path, cache: IndexCache | None = None
+) -> tuple[FileYield, ...]:
     """The external tag is SELECTED, not joined from a second source. gh#335 stamps
     it onto `path`, which is the row this query already reads, so there is no way for
     the coverage view of "which files are foreign" to drift from the index's.
@@ -456,7 +460,16 @@ def _file_yields(conn: sqlite3.Connection, repo_root: Path) -> tuple[FileYield, 
     return tuple(
         FileYield(
             path=name,
-            lines=_line_count(repo_root / name),
+            ## MEMOIZED ON CONTENT (1.3.4): a line count is a pure function of the bytes.
+            lines=memoized(
+                cache,
+                name,
+                repo_root / name,
+                "line_count",
+                1,
+                "",
+                lambda name=name: _line_count(repo_root / name),
+            ),
             symbols=symbols.get(fid, 0),
             documented_symbols=documented.get(fid, 0),
             external_root=owner or "",
@@ -471,7 +484,7 @@ def _file_yields(conn: sqlite3.Connection, repo_root: Path) -> tuple[FileYield, 
 ## @param conn Open connection to the built index.
 ## @return True when `path` has the external-root column.
 ## @version 1
-## @dg_internal
+## @utility
 def _has_external_tag(conn: sqlite3.Connection) -> bool:
     """@brief Report whether `path` carries the external-root column.
 
@@ -485,7 +498,7 @@ def _has_external_tag(conn: sqlite3.Connection) -> bool:
 ## @param name Repo-relative indexed path.
 ## @return True when the file's extension is a documentation extension.
 ## @version 1
-## @dg_internal
+## @utility
 def _is_documentation(name: str) -> bool:
     """BY EXTENSION, not by ingestion. `supplementary_docs` membership answers "was
     this file ingested as prose", which is a narrower question than "is this file
@@ -507,9 +520,12 @@ def _is_documentation(name: str) -> bool:
 ## @param db_path Built index to measure.
 ## @param repo_root Working tree the indexed paths are relative to.
 ## @return IndexCoverage; an all-zero measurement when the index cannot be read.
-## @version 3
+## v4 (1.3.4): takes the index cache; line counts are memoized per file content.
+## @version 4
 ## @req REQ-DDB-INDEX-003
-def measure_index_coverage(db_path: Path, repo_root: Path) -> IndexCoverage:
+def measure_index_coverage(
+    db_path: Path, repo_root: Path, cache: IndexCache | None = None
+) -> IndexCoverage:
     """FAILS SOFT to an all-zero measurement. This describes a build that has
     already succeeded; a measurement that raises must not destroy the index it is
     describing. An all-zero coverage is also what `alarming` correctly reads as
@@ -531,7 +547,7 @@ def measure_index_coverage(db_path: Path, repo_root: Path) -> IndexCoverage:
     except sqlite3.Error:
         return IndexCoverage(0, 0, 0, ())
     try:
-        yields = _file_yields(conn, Path(repo_root))
+        yields = _file_yields(conn, Path(repo_root), cache)
     except sqlite3.Error:
         yields = ()
     finally:
@@ -559,7 +575,7 @@ def measure_index_coverage(db_path: Path, repo_root: Path) -> IndexCoverage:
 ## @brief Warn when the graph was recovered but the documentation was not.
 ## @param coverage Measurement to report.
 ## @version 1
-## @dg_internal
+## @utility
 def _log_documentation_gap(coverage: IndexCoverage) -> None:
     """gh#11's own honesty check. Recovering parser-visible symbols makes
     `barren_ratio` fall — which is the point, and is the acceptance criterion for
@@ -598,7 +614,7 @@ def _log_documentation_gap(coverage: IndexCoverage) -> None:
 ## @brief Log the coverage measurement, loudly when the barren share is high.
 ## @param coverage Measurement to report.
 ## @version 2
-## @dg_internal
+## @utility
 def _log_coverage(coverage: IndexCoverage) -> None:
     """Proportionate by design. The headline is the RATIO, because a raw count is
     unreadable without its denominator — "190 files yielded nothing" is alarming
@@ -638,9 +654,12 @@ def _log_coverage(coverage: IndexCoverage) -> None:
 ## @param db_path Built index to measure.
 ## @param repo_root Working tree the indexed paths are relative to.
 ## @return The IndexCoverage measurement.
-## @version 2
+## v3 (1.3.4): takes the index cache; line counts are memoized per file content.
+## @version 3
 ## @req REQ-DDB-INDEX-003
-def report_index_coverage(db_path: Path, repo_root: Path) -> IndexCoverage:
+def report_index_coverage(
+    db_path: Path, repo_root: Path, cache: IndexCache | None = None
+) -> IndexCoverage:
     """The single pipeline entry point, composing the TOTAL-absence term with the
     PARTIAL-absence one rather than competing with it.
 
@@ -659,7 +678,7 @@ def report_index_coverage(db_path: Path, repo_root: Path) -> IndexCoverage:
         warn_if_no_function_bodies,
     )
 
-    coverage = measure_index_coverage(Path(db_path), Path(repo_root))
+    coverage = measure_index_coverage(Path(db_path), Path(repo_root), cache)
     if not warn_if_no_function_bodies(Path(db_path)):
         _log_coverage(coverage)
     return coverage

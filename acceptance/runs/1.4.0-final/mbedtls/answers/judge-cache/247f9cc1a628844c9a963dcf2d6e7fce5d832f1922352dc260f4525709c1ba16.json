@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_ct_compiler_opaque(x)` is `asm volatile(\"\" : \"+r\"(x))` when asm is available.\nVERDICT: HIT\nWHY: The answer names the empty asm volatile with a \"+r\" input-output operand and describes it as a barrier that stops the compiler from proving the secret's value and folding the mask into a branch."
+}

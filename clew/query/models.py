@@ -17,6 +17,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from dataclasses import dataclass, field, fields
+from typing import Any
 
 from ..vocabulary import (
     GATE_ORIGIN_UNDECLARED,
@@ -778,8 +779,8 @@ class ReqTrace:
     implement it (with liveness), the covering test functions, and every
     indexed file line that names it.
 
-    @brief Requirement trace (metadata + implementers + tests + mentions).
-    @version 2
+    @brief Requirement trace (metadata + implementers + tests + mentions + links).
+    @version 4
     """
 
     req_id: str
@@ -792,6 +793,17 @@ class ReqTrace:
     ## EVERY INDEXED FILE LINE NAMING THE ID outside a `@req` tag and the catalog: design docs,
     ## diagrams, CMake, notes. None when the index predates the mentions pass — absent, not empty.
     mentioned_in: list[ReqMention] | None = None
+    ## GH #68: the requirements this one serves (`satisfies:` in its catalogue entry) and the ones
+    ## that serve it. None when the index predates `requirement_links` — absent, not empty.
+    satisfies: list[str] | None = None
+    satisfied_by: list[str] | None = None
+    ## 2.0.0 (S4 served): the IEEE 29148 attributes, '' where the catalog does not state them.
+    status: str = ""
+    rationale: str = ""
+    verification: str = ""
+    parent: str = ""
+    ## Every catalog key the reader does not map, verbatim. None when the entry had none.
+    extra: dict[str, Any] | None = None
 
 
 ## @brief One indexed file line that names a requirement.
@@ -1044,7 +1056,7 @@ class Dossier:
     common case and not worth a key.
 
     @brief Composite per-function dossier.
-    @version 6
+    @version 10
     """
 
     name: str
@@ -1070,6 +1082,18 @@ class Dossier:
     ## for, and a truncated reply that does not say so reads as a complete one.
     detail: str = ""
     provenance: str | None = None
+    ## T2 (2.0.0): where this function is DECLARED, when that is not the file `file` names (the
+    ## body's). A header prototype or an in-class declaration; empty, and elided, otherwise.
+    declared_at: list[DeclarationSite] = field(default_factory=list)
+    ## T4 (2.0.0): the build rule that generates the file `file` names, the same record the file's
+    ## dossier carries. ABSENT (None) when that file is hand-written.
+    generated_by: GenerationRule | None = None
+    ## 2.0.0 (S2/S3/S5 served): the owners and licence of the file `file` names.
+    owners: list[OwnerRef] = field(default_factory=list)
+    license: LicenseRef | None = None
+    ## F1-mm (2.0.0): for each JS/TS property key this function writes, the few other non-test
+    ## symbols carrying the same key (rarity-gated; see `query.keysites`).
+    same_key_sites: list[KeySite] = field(default_factory=list)
     candidates: list[Candidate] = field(default_factory=list)
     threads: list[Thread] = field(default_factory=list)
     is_terminus: bool = False
@@ -1274,7 +1298,7 @@ class FileEntry:
 class IndexScope:
     """The compact answer to "what did you actually look at", which gh#21 needed
     an EMPTY result to carry. `source` and `reason` are the build-time derivation
-    (`declared` / `doxygen-guard` / `doxyfile`); `top_levels` and `extensions` are
+    (`clew-declaration` / `doxyfile` / `whole-repo`); `top_levels` and `extensions` are
     capped summaries of the covered file set, not the full inventory.
 
     `source` and `reason` are `""` — not absent — on an index built before the
@@ -1434,6 +1458,37 @@ class MergedDeclaration:
     declaration: BodyExcerpt | None = None
 
 
+## @brief Another symbol carrying a property key this function writes.
+## @version 1
+@dataclass(frozen=True)
+class KeySite:
+    """F1-mm (2.0.0). `holder` is the nearest named construct around the key: a function, method,
+    variable or class field (`DEFAULT_CONFIG`). `line` is the key's own line.
+
+    @brief One same-key site.
+    @version 1
+    """
+
+    key: str
+    holder: str
+    file: str
+    line: int
+
+
+## @brief Where a function is declared, apart from where it is defined.
+## @version 1
+@dataclass(frozen=True)
+class DeclarationSite:
+    """T2 (2.0.0): a prototype in a header, or an in-class declaration of an out-of-line member.
+
+    @brief One declaration site.
+    @version 1
+    """
+
+    file: str
+    line: int | None
+
+
 ## Version 3: carries `merged`, the same-named compounds of other kinds.
 ##
 ## @brief A class/struct with its members and inheritance neighbours.
@@ -1508,6 +1563,10 @@ class Hop:
     edge_triggered: bool | None = None
     crosses_thread: bool | None = None
     to_thread: str | None = None
+    ## 1.4.0 (W1): the endpoints' IDENTITIES on an identity-scoped walk (`chain_trace(...,
+    ## qualified=...)`); "" on a name-scoped one, where a name may stand for several namesakes.
+    from_qualified: str = ""
+    to_qualified: str = ""
 
 
 ## @brief One node reached during a causal-chain traversal.
@@ -1540,6 +1599,8 @@ class ChainNode:
     ## 0 means the taper dropped nothing at this node — a MEASUREMENT, not a placeholder,
     ## and the reason it is not elided on the wire.
     omitted: int = 0
+    ## 1.4.0 (W1): this node's full qualified identity on an identity-scoped walk; "" otherwise.
+    qualified: str = ""
 
 
 ## @brief A complete causal-chain traversal result.
@@ -1690,6 +1751,12 @@ class KconfigGate:
     ## without its site is the kind of bare assertion this project keeps finding in its own
     ## detectors.
     default_site: str = ""
+
+    ## T5 SERVED (2.0.0; mbedtls F1): whether the code this row guards is compiled in a default
+    ## build, which is `form` and `default_state` combined: `ifdef` + on, or `ifndef` + off, is in.
+    ## The 1.4.0 grid showed readers combining the two wrongly. None (ABSENT) whenever either half
+    ## does not decide it: an `if_expr` has no polarity, and an undecided default is not off.
+    in_default_build: bool | None = None
 
 
 ## @brief A repo's configuration space, with the provenance of the answer.
@@ -1959,7 +2026,7 @@ class VariableSite:
 
 
 ## @brief A variable subject: identity, every declaration site, no call graph.
-## @version 1
+## @version 2
 @dataclass(frozen=True)
 class VariableSubject:
     """WHAT A VARIABLE HAS, AND WHAT IT DOES NOT. It has a type, a set of declaration
@@ -1979,7 +2046,7 @@ class VariableSubject:
     this surface, so the first entry is the one that carries the binding.
 
     @brief A variable's identity and its declaration sites.
-    @version 1
+    @version 2
     """
 
     name: str
@@ -1989,6 +2056,9 @@ class VariableSubject:
     version: str
     provenance: str | None = None
     sites: tuple[VariableSite, ...] = ()
+    ## 1.4.0: present only when a `qualified` selector was given and named no declaration — the
+    ## sites are then ALL of them, and this says why. Absent when the selector applied or none was given.
+    selector_note: str | None = None
 
 
 ## @brief One value of an enum, as the index holds it.
@@ -2140,6 +2210,69 @@ class FileMember:
     line: int = 0
 
 
+## @brief One owner a CODEOWNERS or MAINTAINERS rule assigns to a file.
+## @version 1
+@dataclass(frozen=True)
+class OwnerRef:
+    """2.0.0 (S2/S3 served). `source` is the format (`codeowners`, `maintainers`) and `rule_line`
+    the matching rule's line, so a reader can check the match; `stanza` names a MAINTAINERS entry.
+
+    @brief One owner.
+    @version 1
+    """
+
+    owner: str
+    role: str
+    source: str
+    rule_line: int
+    stanza: str = ""
+
+
+## @brief The SPDX licence expression a file's header declares.
+## @version 1
+@dataclass(frozen=True)
+class LicenseRef:
+    """2.0.0 (S5 served).
+
+    @brief One licence declaration.
+    @version 1
+    """
+
+    expression: str
+    line: int
+
+
+## @brief One `#include` directive a file contains, and the file it resolved to.
+## @version 1
+@dataclass(frozen=True)
+class IncludeRef:
+    """T3 served (2.0.0). `file` is None when no indexed file matches the spec: seen, not resolved.
+
+    @brief One include directive.
+    @version 1
+    """
+
+    spec: str
+    file: str | None
+    line: int
+    ## True for `"..."`, False for `<...>`.
+    local: bool
+
+
+## @brief One file that includes another, with the directive's line.
+## @version 1
+@dataclass(frozen=True)
+class Includer:
+    """T3 served (2.0.0).
+
+    @brief One includer.
+    @version 1
+    """
+
+    file: str
+    line: int
+
+
 ## @brief What the index holds about ONE file, as a dossier subject.
 ## @version 1
 @dataclass(frozen=True)
@@ -2168,7 +2301,7 @@ class FileSubject:
     reports once for the whole index rather than per file.
 
     @brief One file: its documentation, its symbols, whether anything was harvested, and the build rule that produces it.
-    @version 2
+    @version 4
     """
 
     path: str
@@ -2194,6 +2327,16 @@ class FileSubject:
     ## which is how they check they edited the right input. An empty tuple is a measurement — this
     ## index was read and this file generates nothing.
     generates: tuple[str, ...] = ()
+    ## T3 served (2.0.0; entropic F2, mbedtls F6): the include graph, both directions, from the AST
+    ## layer `ast_includes`. None (ABSENT) on an index built before the layer existed; an empty
+    ## tuple when the layer ran and this file includes nothing, or nothing includes it.
+    includes: tuple[IncludeRef, ...] | None = None
+    included_by: tuple[Includer, ...] | None = None
+    ## 2.0.0 (S2/S3/S5 served): who owns this file and the licence it declares. `owners` is None
+    ## when the ownership layer is absent, () when the rules ran and none matched; `license` is
+    ## None when the file declares none.
+    owners: tuple[OwnerRef, ...] | None = None
+    license: LicenseRef | None = None
 
 
 ## The subject kinds `resolve_subject` can classify a name as, in PROBE ORDER. The order

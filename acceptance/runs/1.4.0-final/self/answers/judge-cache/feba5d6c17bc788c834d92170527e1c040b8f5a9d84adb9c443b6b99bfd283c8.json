@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A repo whose `.clew.yaml` uses a section unknown to the installed clew is refused outright. The refusal names the allowed set but not the likely cause\n\nVERDICT: MISS\n\nWHY: The answer says an unknown section is refused with the allowed set named, but it never gives the reason (ignoring it would build with defaults while reporting the declaration was honoured). It gives that reasoning only for the `--scope` conflict."
+}

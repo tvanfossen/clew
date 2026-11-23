@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Verification is runtime testing under MemorySanitizer or Valgrind\nVERDICT: MISS\nWHY: The answer says verification is by MSan/Valgrind-based tests, but it never says the facility is off-by-default or that it is explicitly not part of the library API."
+}

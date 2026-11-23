@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Archive removes the current user from the channel locally.\" and \"If the current channel is archived, the app kicks the user out (`Events.CHANNEL_ARCHIVED`) and removes the membership.\" and \"Archive sets `delete_at` locally and keeps the channel in the DB as archived.\"\nVERDICT: HIT\nWHY: The answer says that when viewing archived channels is off, archive removes the user and the websocket handler kicks them out of the current channel. When viewing is on, the channel is kept and marked with `delete_at`."
+}

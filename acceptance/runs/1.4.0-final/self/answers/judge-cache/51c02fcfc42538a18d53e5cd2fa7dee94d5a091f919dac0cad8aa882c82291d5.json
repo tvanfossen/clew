@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: derive_scope(root)                      clew/scope.py:639\nVERDICT: HIT\nWHY: The answer names derive_scope in clew/scope.py as the entry point that decides scope (declared roots vs. whole-repo fallback)."
+}

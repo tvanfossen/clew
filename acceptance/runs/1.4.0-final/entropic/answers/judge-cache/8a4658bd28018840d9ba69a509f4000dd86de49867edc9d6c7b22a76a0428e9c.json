@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"the second call happens only when the 256-byte stack buffer is too small\"\nVERDICT: HIT\nWHY: The answer says detokenize uses a 256-byte stack buffer first and makes a second call only when it's too small, and contrasts tokenize, which always sizes first with a `nullptr, 0` call."
+}

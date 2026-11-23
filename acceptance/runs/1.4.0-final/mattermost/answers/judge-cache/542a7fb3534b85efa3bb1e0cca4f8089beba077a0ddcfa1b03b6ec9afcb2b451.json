@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The handler's `catch {}` swallows every error, so a failed add leaves no trace in the logs.\nVERDICT: HIT\nWHY: The answer says the add handler's empty catch swallows errors, leaving no trace in the logs, and its table says \"Silently swallowed\" for both the add and remove handlers."
+}

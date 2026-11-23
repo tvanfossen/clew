@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `ExternalBridge::run_async_ask` (`:1158`) | async `entropic.ask` worker | Task lifetime | **Detached** (`:1222`), never joined\nVERDICT: HIT\nWHY: The answer identifies the async-ask worker as the detached thread that is never joined, and its \"gap\" section says it outlives the handle and bridge. It does not say the thread is the only detached one, but the table shows every other spawn site as joined."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It uses the mutex-wrapped variants when `MBEDTLS_THREADING_C` is enabled (`:541-563`) and uses libc nowhere.\nVERDICT: HIT\nWHY: The answer says the buffer allocator's init installs mutex-wrapped calloc/free when MBEDTLS_THREADING_C is on, which is the compile-time-chosen mutexed pair. It does not spell out the plain-pair alternative, but that is implied."
+}

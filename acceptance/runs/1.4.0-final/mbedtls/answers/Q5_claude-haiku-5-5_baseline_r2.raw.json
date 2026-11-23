@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 45483,
+  "stop_reason": "end_turn",
+  "session_id": "06f88ba6-5b3f-493c-b705-8d0c464a0504",
+  "total_cost_usd": 0.01749204,
+  "usage": {
+    "input_tokens": 18,
+    "cache_creation_input_tokens": 40525,
+    "cache_read_input_tokens": 510224,
+    "output_tokens": 8566,
+    "output_tokens_details": {
+      "thinking_tokens": 3820
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 40525,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 3894,
+        "cache_read_input_tokens": 74244,
+        "cache_creation_input_tokens": 683,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 683
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 18,
+      "outputTokens": 8566,
+      "cacheReadInputTokens": 510224,
+      "cacheCreationInputTokens": 40525,
+      "webSearchRequests": 0,
+      "costUSD": 0.01749204,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 3820,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 40525,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 10,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "The short answer: constant-time behaviour is a convention the library builds by hand, not something the compiler is required to preserve. Hand-written assembly covers a few primitives on four architectures, and a C fallback covers everything else. Nothing at build time checks that the output is actually constant-time. The protection is partial, and the library says so in `SECURITY.md`.\n\n**How it is enforced at the instruction level**\n\nThe facility is `library/constant_time_impl.h`, with declarations in `library/constant_time_internal.h` and one public function, `mbedtls_ct_memcmp`, in `include/mbedtls/constant_time.h`. The design has three parts:\n\n- **No comparison operators on secrets.** `mbedtls_ct_bool(x)` turns any value into an all-ones or all-zeros mask using `neg`/`or`/`sar` (or the C equivalent, `(-x | -(x>>1))`, then take the sign bit). Comparisons like `mbedtls_ct_uint_lt` are built from subtraction and masks, and selection is `(cond & a) | (~cond & b)`. The code never branches on a secret.\n- **Opacity barrier.** `mbedtls_ct_compiler_opaque(x)` is `asm volatile(\"\" : \"+r\"(x))` where assembly is available. Otherwise it is `x ^ mbedtls_ct_zero`, where `mbedtls_ct_zero` is a `volatile` zero, so the optimiser cannot prove the value. This stops the compiler from folding a secret into a branch when it happens to know the value.\n- **Full-length, volatile memory access.** `mbedtls_ct_memcmp` reads both buffers through `volatile` pointers, always runs to `n`, and ORs the XOR differences together. It has no early exit. `mbedtls_ct_memcpy_if` always reads both sources and blends with masks. `mbedtls_ct_memcpy_offset` loops over every candidate offset, so the access pattern depends on `offset_min`/`offset_max`, not on the secret offset.\n\nThe hand-written assembly exists only for the primitives: `mbedtls_ct_bool`, `mbedtls_ct_if`, `mbedtls_ct_uint_lt`, and the opaque barrier. It is provided for 32-bit ARM/Thumb, AArch64, x86, and x86-64. `mbedtls_ct_memcmp` itself is plain C, even on x86.\n\n**What happens on a compiler or target that cannot support it**\n\nThe selection is a preprocessor decision in `constant_time_impl.h`:\n\n```\nMBEDTLS_CT_ASM  <=  MBEDTLS_HAVE_ASM && __GNUC__ && (not armcc5)\n   + one of: ARM / AArch64 / x86-64 / x86 (by __arm__, __aarch64__, __x86_64__, __i386__)\n```\n\nAnything else takes the C fallback silently:\n\n| Situation | Result |\n|---|---|\n| MSVC, IAR, other non-GNU compilers | C fallback, no warning |\n| armcc5 | C fallback |\n| `MBEDTLS_HAVE_ASM` disabled in config | C fallback |\n| Other architectures (RISC-V, MIPS, Xtensa, \u2026) | C fallback |\n| MemSan build | `check_config.h` makes `MBEDTLS_HAS_MEMSAN` plus `MBEDTLS_HAVE_ASM` a hard `#error`, so sanitizer builds are forced onto C |\n\nThe only `#error`s in the module guard the unaligned-volatile helper and the requirement for at least 32-bit `int`. Neither concerns the constant-time property. The C fallback's comment says it has been \"observed to be constant-time on latest gcc, clang and MSVC as of May 2023\". That is an empirical observation about specific compiler versions, not a guarantee, and the same comment says it is \"fairly inefficient\".\n\n**How far it reaches**\n\n- **Public API:** only `mbedtls_ct_memcmp`.\n- **Internal users (grep counts of `mbedtls_ct_`):** `rsa.c` (about 37 sites, including PKCS#1 v1.5 unpadding and signature comparison), `cipher.c` (about 30, CBC padding removal), `ssl_msg.c` (about 33, record MAC and padding check, `mbedtls_ct_hmac`), `bignum_core.c` (about 39), `base64.c` (about 21), `psa_crypto*.c`, `ssl_tls12_server.c`, `nist_kw.c`, and `ccm.c`, `gcm.c`, `chachapoly.c` for tag comparison.\n- **Elliptic curves:** `ecp.c` does not call `mbedtls_ct_*` directly. It uses `mbedtls_mpi_safe_cond_assign`/`swap` in the bignum layer, which is a separate mechanism.\n- **Not everywhere:** I did not audit every secret-dependent comparison in the library. Many plain `memcmp` or branch sites outside these modules were not checked. `3rdparty/p256-m` has its own constant-flow design and does not use this module.\n- **Testing:** `tests/suites/test_suite_constant_time.function` is instrumented with `TEST_CF_SECRET`/`TEST_CF_PUBLIC`, which come from the `framework` submodule. In this checkout `framework/` is an empty gitlink, so that suite cannot build here, and I did not build or run anything. The intended checks are Valgrind memcheck (`components-configuration-crypto.sh`, with `MBEDTLS_TEST_CONSTANT_FLOW_VALGRIND`) and MemSan (`components-sanitizers.sh`, C path only). Both are taint-style checks for secret-dependent branches and addresses on the tested paths. They do not measure hardware timing, such as cache or branch-predictor effects. `SECURITY.md` says the protection is \"limited\" and aims only at \"publicly documented attack techniques\".",
+  "ttft_ms": 2954,
+  "type": "result",
+  "duration_ms": 47004,
+  "uuid": "1f140fcc-9676-4b30-a093-f3ddc38aac74",
+  "ttft_stream_ms": 1251,
+  "time_to_request_ms": 176,
+  "first_content_frame_ms": 1252,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

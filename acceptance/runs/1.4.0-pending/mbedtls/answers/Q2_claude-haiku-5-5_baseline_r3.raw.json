@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 45022,
+  "stop_reason": "end_turn",
+  "session_id": "8800c45c-888d-48e7-aef6-b5eac98f2a1d",
+  "total_cost_usd": 0.01190198,
+  "usage": {
+    "input_tokens": 18,
+    "cache_creation_input_tokens": 17970,
+    "cache_read_input_tokens": 391568,
+    "output_tokens": 8781,
+    "output_tokens_details": {
+      "thinking_tokens": 5018
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 17970,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 1942,
+        "cache_read_input_tokens": 51244,
+        "cache_creation_input_tokens": 1149,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1149
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 18,
+      "outputTokens": 8781,
+      "cacheReadInputTokens": 391568,
+      "cacheCreationInputTokens": 17970,
+      "webSearchRequests": 0,
+      "costUSD": 0.01190198,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 5018,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 17970,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 11,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**What it does.** `include/mbedtls/private_access.h` defines the macro:\n\n```c\n#ifndef MBEDTLS_ALLOW_PRIVATE_ACCESS\n#define MBEDTLS_PRIVATE(member) private_##member\n#else\n#define MBEDTLS_PRIVATE(member) member\n#endif\n```\n\nPublic structs (for example `mbedtls_ssl_context` in `include/mbedtls/ssl.h`) wrap their fields in `MBEDTLS_PRIVATE(...)`. By default each field is really named `private_state`, `private_flags`, and so on. Code that writes `ssl->state` against the public header fails to compile, so the field is effectively private. Mbed TLS can rename or reorder these fields without it counting as an API break. The `ssl.h:5163` doc comment says direct access is deprecated and \"could be broken in any future release.\"\n\n**For whom.** The mangling is aimed at external consumers. The library itself is the one party that is exempt.\n\n**Where the opt-out is turned on in this tree:**\n\n| Location | Scope | Effect |\n|---|---|---|\n| `library/common.h:132` | Every library TU that includes `common.h` (nearly all of `library/*.c`) | Members use their real names. Library code writes `ctx->state` directly. |\n| `programs/ssl/ssl_server2.c:8` | That one test driver | Defined before `ssl_test_lib.h` includes `ssl.h`, so the whole TU sees real names. |\n| `programs/ssl/ssl_client2.c:8` | That one test driver | Same as above. |\n\nNothing in `tests/suites/` or the fuzz/context-info programs defines the macro. They use `MBEDTLS_PRIVATE(x)` explicitly on the few fields they need, e.g. `programs/ssl/ssl_context_info.c:553` and `programs/fuzz/fuzz_dtlsserver.c:138`. That spelling works without a global opt-out because the header uses the same mangling, so both sides agree.\n\n**What the opt-out means for the code in those places.** Library and driver code couples directly to the struct layout and field names. A rename inside the library is a compile-time change for those files, but it is internal and invisible to users. Consumers who define `MBEDTLS_ALLOW_PRIVATE_ACCESS` themselves get the same access with no compatibility promise.\n\n**Ordering is load-bearing.** The `#ifndef` is evaluated the first time `private_access.h` is included, not at each use. `mbedtls/platform.h:28` includes it, and most public headers include `platform.h`. So `common.h` has to define the macro before any public header is reached. I checked this:\n- `common.h` pulls in only `build_info.h` and `alignment.h`, and the config chain does not reach `platform.h`. That ordering holds.\n- `library/x509_internal.h:12` includes `private_access.h` directly. Every file that includes it (`x509*.c`, `pkcs7.c`) includes `common.h` first.\n- `ssl_misc.h` includes `common.h` before `mbedtls/ssl.h`.\n- `pk_internal.h` and `ssl_ciphersuites_internal.h` include public headers without `common.h`. They are safe only because their includers (`pk*.c`, `x509_crt.c`) include `common.h` first. I did not check the `ssl_ciphersuites_internal.h` includers.\n\nIf a library file pulled a public header in before `common.h`, its member accesses would silently expand to `private_*` names and fail to compile. The tree relies on include order for this, not on any enforced check.\n\nI did not use the `dossier` tool mentioned in a hook message; it is not among my available tools, and the grep and read results above were enough to answer.",
+  "ttft_ms": 1483,
+  "type": "result",
+  "duration_ms": 46006,
+  "uuid": "73f6a975-21ad-4d9a-b797-5b41f213e76f",
+  "ttft_stream_ms": 1184,
+  "time_to_request_ms": 132,
+  "first_content_frame_ms": 1184,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Deny list: consulted only in `ServerManager::execute`. A match blocks the call even under `auto_approve` or an allow match.\" and \"The deny list is the only permission-list entry that can actually stop a call\"\nVERDICT: HIT\nWHY: The answer says the deny list is the only permission-list entry that can stop a call, and that it is checked in ServerManager::execute before routing, while the allow list only skips the prompt."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The two calls in `LlamaCppTokenizer::tokenize` (`src/inference/llama_cpp_tokenizer.cpp:55` and `:61`) are a size query followed by the real call.\nVERDICT: HIT\nWHY: The answer names the file, the function, and the size-query-then-fill two-call pattern of `llama_tokenize`."
+}

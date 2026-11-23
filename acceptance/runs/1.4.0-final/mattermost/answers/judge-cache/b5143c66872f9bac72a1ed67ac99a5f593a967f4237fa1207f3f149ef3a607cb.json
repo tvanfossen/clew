@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Every product mixin calls `this.batchRecords`, not its own write.\nVERDICT: MISS\nWHY: The answer never says the mixins are constrained to extend ServerDataOperatorBase, and it lists handlers that bypass `batchRecords` by calling `database.write` directly. That contradicts the item's conclusion that every handler's writes go through the inherited `batchRecords`."
+}

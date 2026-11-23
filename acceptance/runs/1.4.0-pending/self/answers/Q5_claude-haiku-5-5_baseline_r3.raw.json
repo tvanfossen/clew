@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 45919,
+  "stop_reason": "end_turn",
+  "session_id": "5214f772-1340-40e5-85da-db36288a9d9a",
+  "total_cost_usd": 0.019900179999999996,
+  "usage": {
+    "input_tokens": 30,
+    "cache_creation_input_tokens": 40802,
+    "cache_read_input_tokens": 815478,
+    "output_tokens": 7164,
+    "output_tokens_details": {
+      "thinking_tokens": 3048
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 40802,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2553,
+        "cache_read_input_tokens": 73551,
+        "cache_creation_input_tokens": 1629,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1629
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 30,
+      "outputTokens": 7164,
+      "cacheReadInputTokens": 815478,
+      "cacheCreationInputTokens": 40802,
+      "webSearchRequests": 0,
+      "costUSD": 0.019900179999999996,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 3048,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 40802,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 15,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "Clew has five ways to state a build option, ranked by tier. A higher tier replaces a lower one for the same option, with two exceptions noted below. Each one is documented in `clew/tiers.py`, `clew/cli.py`, `clew/buildoptions.py` and `clew/scope.py`. I read the code but did not run a build, so the behaviour below is what the source says it does.\n\n## The ways to say so\n\n| Tier | Source | Notes |\n|---|---|---|\n| 1, explicit | CLI flags (`--scope`, `--exclude`, `--entry-patterns`, `--predefined`, `--doxyfile`, `--requirements`, `--enrich`, `--extra-input`) | Per build. `--exclude` is recorded and replayed by later builds of the same database. |\n| 1, explicit | `--declare FILE`, a YAML file of declaration sections | Meant for a repo you must leave byte-identical. Applied at tier 1 and recorded. |\n| 1, explicit | The `options` argument of `build_index` or `index(action='refresh')` | For MCP and embedding callers, which have no shell. Same vocabulary as `.clew.yaml`. |\n| 2, declared | The target's own `.clew.yaml`, sections such as `index_scope`, `preprocessor`, `kconfig`, `entry_patterns`, `locks`, `event_tags`, `dispatch`, `requirements` | The `guard:` section belongs to the gate, and the index reads only its catalog and tag fields. |\n| 3, target-fact | A Doxyfile's ALIASES and PREDEFINED, plus manifests | Accumulates. Its INPUT is never used as scope (gh#333). |\n| 4, ecosystem | Known-ecosystem signatures | Accumulates, like tier 3. |\n| 5, heuristic | Name patterns such as `main` and `app_main` | The floor. Any stated tier can displace it. |\n\nThe Doxyfile is found only at `Doxyfile`, `docs/Doxyfile` or `doc/Doxyfile`. `discover_doxyfile` refuses to guess deeper, because it once picked a test fixture's Doxyfile.\n\n## When two disagree\n\n- **Same section, two tiers.** The stated section replaces the declared one as a whole. There is no deep merge (`_with_stated_sections`). Stating `{}` withdraws the statement, and the target's own declaration answers again.\n- **Accumulating facts survive everything.** Tiers 3 and 4 are never removed by a stated tier. Tiers 1 and 2 displace only the tier-5 guesses. So stating `entry_patterns` cannot drop `main`.\n- **Path options.** The check is `is not None`, so `requirements: \"\"` means \"no catalog\" and does not fall through to the declaration.\n- **`--scope` other than `from-guard` with a stated `index_scope`.** The CLI exits with status 1 and says why. Building anyway would silently use a different boundary.\n- **A rejected `index_scope` on the default path.** The CLI refuses rather than falling back to whole-repo scope, because that fallback is the widest scope in place of the narrowest one the caller asked for.\n- **`--declare` or `options` with a bad entry.** Validation is all-or-nothing, so a half-applied policy is never written. Unknown section names are refused. A misspelled key on the inline route is refused, while the file route is laxer.\n- **The two spellings of `predefined`.** `predefined` is an alias for `preprocessor.predefined`. A bug once left the section form unread, which dropped the macros while the build reported success. Both spellings are now wired.\n- **Tier recording.** Each resolved option stamps the tier that won into `build_meta`. Only tier 1 is replayed on a later refresh. A tier-2 value is re-read from the file, so a stale copy is never frozen.\n\nSeparately, a PostToolUse hook note appeared in my tool output, suggesting a `dossier` index call. No such tool is available in this session, so I ignored it. It did not affect the answer.",
+  "ttft_ms": 1790,
+  "type": "result",
+  "duration_ms": 47419,
+  "uuid": "0a3dc406-c0ab-41e1-a8e1-416fce73d639",
+  "ttft_stream_ms": 1188,
+  "time_to_request_ms": 126,
+  "first_content_frame_ms": 1188,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

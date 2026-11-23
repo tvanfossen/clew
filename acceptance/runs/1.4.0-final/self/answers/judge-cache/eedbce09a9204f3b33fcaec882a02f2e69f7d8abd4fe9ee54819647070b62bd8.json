@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Rows are callers, not sites. A function that calls `git_argv` three times appears once.\"\nVERDICT: MISS\nWHY: The answer says rows are one per caller function rather than per call site. It never says that variants from different layers (direct call, callback, spawn) are collapsed to the strongest evidence, and it lists threads as a separate neighbour kind."
+}

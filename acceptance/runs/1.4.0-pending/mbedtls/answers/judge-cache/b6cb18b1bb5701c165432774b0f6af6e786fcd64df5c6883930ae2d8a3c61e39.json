@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The guard is for application developers and their code... `#ifndef MBEDTLS_ALLOW_PRIVATE_ACCESS #define MBEDTLS_PRIVATE(member) private_##member #else #define MBEDTLS_PRIVATE(member) member`; \"by default a field `foo` is actually named `private_foo`\"; \"The library and the two sample programs are the only code that gets to write `ctx->foo` directly.\"\nVERDICT: HIT\nWHY: The answer shows both branches of the macro and says that code defining the opt-out sees plain names, while ordinary consumers of the headers see the `private_` names and must go through `MBEDTLS_PRIVATE` or accessors."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Default (`MBEDTLS_PLATFORM_MEMORY` off) | Macros to libc `calloc` / `free`... The static pointer defaults to `MBEDTLS_PLATFORM_STD_CALLOC`. That macro is off in the shipped config (`mbedtls_config.h:4124`).\nVERDICT: MISS\nWHY: The answer says MBEDTLS_PLATFORM_MEMORY gates the hooks, but it never says that this macro is commented out in the shipped mbedtls_config.h. The shipped-config claim is made about MBEDTLS_PLATFORM_STD_CALLOC instead."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`programs/ssl/ssl_server2.c:8` | That one program only, defined before any include.\" and \"`programs/ssl/ssl_client2.c:8` | That one program only, defined before any include.\"\nVERDICT: HIT\nWHY: The answer states that ssl_server2.c and ssl_client2.c, which are example programs, define MBEDTLS_ALLOW_PRIVATE_ACCESS themselves, so they use the opt-out and reach past the public API."
+}

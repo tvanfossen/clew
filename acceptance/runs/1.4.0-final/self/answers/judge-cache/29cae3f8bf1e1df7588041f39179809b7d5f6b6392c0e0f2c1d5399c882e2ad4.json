@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Tiers 3 and 4 survive every stated tier, so a `--entry-patterns` flag cannot drop `main`.\nVERDICT: HIT\nWHY: The answer's table and text say stated tiers (1, 2, 5) replace the stated layer, while tiers 3 and 4 accumulate and survive every stated tier. That is the asymmetry the item describes."
+}

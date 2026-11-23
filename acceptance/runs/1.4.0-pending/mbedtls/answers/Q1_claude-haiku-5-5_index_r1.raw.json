@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 21600,
+  "stop_reason": "end_turn",
+  "session_id": "81316987-756b-4732-a099-f6caa53ac33a",
+  "total_cost_usd": 0.00953232,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 29650,
+    "cache_read_input_tokens": 145502,
+    "output_tokens": 4293,
+    "output_tokens_details": {
+      "thinking_tokens": 1931
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 29650,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2641,
+        "cache_read_input_tokens": 46856,
+        "cache_creation_input_tokens": 1675,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1675
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 8,
+      "outputTokens": 4293,
+      "cacheReadInputTokens": 145502,
+      "cacheCreationInputTokens": 29650,
+      "webSearchRequests": 0,
+      "costUSD": 0.00953232,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1931,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 29650,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 8,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** with the shipped defaults, mbedtls creates no threads and takes no mutexes. The library runs with whatever concurrency its caller gives it, and the mutex layer is compiled out.\n\n**Why the layer is off by default**\n\n- `MBEDTLS_THREADING_C` is commented out in `include/mbedtls/mbedtls_config.h:3787`. `MBEDTLS_THREADING_PTHREAD` (line 2196) and `MBEDTLS_THREADING_ALT` (line 2185) are also off.\n- Every mutex use in the library sits behind `#if defined(MBEDTLS_THREADING_C)`. That includes `ctr_drbg.c`, `hmac_drbg.c`, `entropy.c`, `debug.c`, `error.c`, `platform_util.c` and `psa_crypto.c`. The index confirms this for `buffer_alloc_calloc_mutexed` in `memory_buffer_alloc.c:540`, whose gate is `default_state: off`.\n- `library/` has no `pthread_create` anywhere. The only pthread hits are the mutex wrapper in `threading.c` and a version string in `version_features.c`.\n\n**What runs concurrently by default**\n\n| Who | Concurrency |\n|---|---|\n| Library (`library/`) | None of its own. Each call runs on the caller's thread. |\n| Caller's threads | Whatever the application creates. Mbed TLS does not synchronise them. |\n| `programs/` | Only when those programs are built. See below. |\n\nThe index found four spawn sites, all in `programs/`:\n\n- `programs/ssl/ssl_pthread_server.c:277`: one `handle_ssl_connection` thread per client. This program needs `MBEDTLS_THREADING_C` and `MBEDTLS_THREADING_PTHREAD` (guard at line 24).\n- `programs/test/benchmark.c:430,444`: a timer thread (`TimerProc`) and a signal handler (`sighandler`), both from `mbedtls_set_alarm`.\n- `programs/ssl/ssl_server2.c:1699`: a `term_handler` signal handler.\n\n**What protects what, when the mutex layer is on**\n\nThe mutex layer is defined in `library/threading.c:188-199`. The shared state it protects is:\n\n- `mbedtls_threading_key_slot_mutex`: the PSA key-slot table.\n- `mbedtls_threading_psa_globaldata_mutex` and `mbedtls_threading_psa_rngdata_mutex`: PSA global state and the RNG state. `psa_crypto.c:130` takes the RNG mutex in `psa_get_initialized`.\n- `mbedtls_threading_gmtime_mutex`: serialises `gmtime` when it is not reentrant.\n- `mbedtls_threading_readdir_mutex`: serialises `readdir`, compiled only with `MBEDTLS_FS_IO`.\n- `heap.mutex` in `memory_buffer_alloc.c`: the optional buffer allocator, which wraps `calloc`/`free` in `buffer_alloc_*_mutexed`.\n- Per-context locks in the DRBG and entropy code.\n\n**What is unprotected by default**\n\nBecause `MBEDTLS_THREADING_C` is off while `MBEDTLS_PSA_CRYPTO_C` (line 3334) is on, the PSA global state, the key-slot table and the RNG state are guarded by nothing by default. This is my inference from the `#if` gates, not something I traced through `psa_crypto_init`. The consequence is that concurrent PSA initialisation or key use from two threads has no library-side protection in the default build.\n\nThe same applies to the DRBG and entropy contexts: concurrent use of one context from two threads is unsafe with the defaults. That is the usual Mbed TLS contract: a context is not thread-safe, and distinct contexts are fine.\n\n**Limits of this answer**\n\nThe index's lock layer returned one lock identity (`mutex->mutex` in `threading.c`) and no nested holdings. It does not model the global mutex objects individually, so I relied on grepping the `#if` gates for the protection map. I did not read the bodies of the PSA or DRBG paths to confirm each unguarded access, so treat the \"unprotected by default\" list as the gate-level picture.",
+  "ttft_ms": 1517,
+  "type": "result",
+  "duration_ms": 22411,
+  "uuid": "34f18f92-c040-4d0c-997b-5331f4b7d661",
+  "ttft_stream_ms": 1173,
+  "time_to_request_ms": 72,
+  "first_content_frame_ms": 1173,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

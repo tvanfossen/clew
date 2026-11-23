@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"That one is closer to a retry, because the second call happens only when the 256-byte stack buffer is too small.\"\nVERDICT: HIT\nWHY: The answer states detokenize uses a 256-byte stack buffer with a second call only when it's too small, and that tokenize always does a size query first, which together carry the item's contrast."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Patterns are strings matched with `fnmatch` (flags 0, so `*` also crosses `/`). Each has the form `tool` or `tool:argpattern`. ... **`tool` with no colon** (`filesystem.read_file`): matches the tool name only, for any arguments. ... **`tool:argpattern`** (`filesystem.read_file:/etc/*`): the tool part must match, then the full `tool:argvalue` string must match.\nVERDICT: HIT\nWHY: The answer states fnmatch matching, the tool:argpattern form with a tool part and argument part, and that a colon-less pattern matches on the tool name alone. It never says explicitly that the split happens at the first colon, but the tool/argument split is clearly described."
+}

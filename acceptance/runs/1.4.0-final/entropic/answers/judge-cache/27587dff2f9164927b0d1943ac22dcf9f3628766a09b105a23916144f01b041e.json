@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"So a tokenization failure is silent everywhere except for the one log line in the tokenizer, and the MTP path.\" and \"The `Tokenizer::tokenize` doc says \"empty on failure or empty input\", so an empty vector cannot be told apart from an empty prompt.\"\nVERDICT: HIT\nWHY: The answer states a failed tokenization is indistinguishable from an empty prompt and that callers don't check it (only the MTP path, which checks size, not failure)."
+}

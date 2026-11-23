@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `ExternalBridge::accept_loop` (`:796`) | accept loop | `poll` with a 500 ms timeout so it can see shutdown; checks `SO_PEERCRED` on each fd | ... Cross-uid connections are closed before a serve thread exists. | `ct->thread` per client (`:945`) | `serve_client` | Serves one MCP client | `ClientThread` is owned by `client_threads_`...\nVERDICT: HIT\nWHY: The answer lists an accept loop thread in ExternalBridge and a separate per-client thread (`ct->thread`) running `serve_client`, with the serve thread created after accepting a connection, which conveys the two-level structure."
+}

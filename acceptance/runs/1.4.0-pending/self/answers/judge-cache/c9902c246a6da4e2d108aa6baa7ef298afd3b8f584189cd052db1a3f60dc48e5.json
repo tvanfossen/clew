@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The fallback reason says the declaration was rejected, so the log does not claim there was none.\" and \"Reason string: the whole-repo result records \"no `index_scope` is declared\", and advises `propose_declaration`.\"\nVERDICT: HIT\nWHY: The answer states the whole-repo fallback carries a reason string saying which case applied (undeclared vs rejected declaration), so the scope is not silently guessed."
+}

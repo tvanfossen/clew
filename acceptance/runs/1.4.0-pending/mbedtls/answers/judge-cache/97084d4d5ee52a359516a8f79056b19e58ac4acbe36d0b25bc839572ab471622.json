@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Those start at `MBEDTLS_PLATFORM_STD_CALLOC`/`_FREE`, which default to `calloc`/`free` if libc is present, otherwise to stubs (`platform.c:24-42`). Stubs return NULL and do nothing.\"\nVERDICT: HIT\nWHY: The answer states that the default stubs, used when no libc/uninitialised, return NULL for calloc and do nothing for free, which matches the item's substance."
+}

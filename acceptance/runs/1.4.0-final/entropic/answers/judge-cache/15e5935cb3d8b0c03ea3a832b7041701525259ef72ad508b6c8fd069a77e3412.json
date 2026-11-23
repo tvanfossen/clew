@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `ctypes.CDLL(librentropic.so), first hit wins: $ENTROPIC_LIB \u2192 $ENTROPIC_HOME \u2192 ~/.entropic \u2192 ldconfig` and \"`find()` checks several install layouts, then falls back to `ctypes.util.find_library`\"\nVERDICT: MISS\nWHY: The answer gives the resolution order (env overrides, default user dir, system library cache), but it never states that two directory layouts are tried per root. It only says \"several install layouts\", which is not that specific."
+}

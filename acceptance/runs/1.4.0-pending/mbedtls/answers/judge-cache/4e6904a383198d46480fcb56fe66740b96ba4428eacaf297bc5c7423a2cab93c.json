@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_ct_compiler_opaque` (`:85`) is an empty `asm volatile` that forces the value through a register.\nVERDICT: HIT\nWHY: The answer states the opaque helper is an empty `asm volatile` that forces the value through a register, which matches the item's mechanism and its barrier role."
+}

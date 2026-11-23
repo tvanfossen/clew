@@ -91,7 +91,7 @@ _TAG_RE = re.compile(r"<[^>]+>")
 ## @param raw Inner text of an <xrefdescription> block.
 ## @return Whitespace-normalised topic text ("" when the block is empty).
 ## @version 1
-## @dg_internal
+## @utility
 def _topic(raw: str) -> str:
     """@brief Strip markup and collapse whitespace to yield the topic token."""
     return " ".join(_TAG_RE.sub(" ", raw).split())
@@ -101,7 +101,7 @@ def _topic(raw: str) -> str:
 ## @param tags Tag names found in ALIASES that resolved to no event role.
 ## @return None.
 ## @version 1
-## @dg_internal
+## @utility
 def _report_unrecognised_aliases(tags: list[str]) -> None:
     """The #29 undeclared-accessor diagnostic, applied to the event layer: a repo
     whose bus is documented `@broadcasts`/`@reacts` produced zero rows and said
@@ -180,7 +180,7 @@ def classify_aliases(
 ## @param event_tags Declared tag-name → role vocabulary REPLACING the defaults, or None.
 ## @return Mapping of xrefitem key → PRODUCER/CONSUMER; empty when none is declared.
 ## @version 3
-## @dg_internal
+## @utility
 def _declared_event_keys(doxyfile: Path, event_tags: dict[str, str] | None) -> dict[str, str]:
     """Read the target's own ALIASES and keep only the aliases whose TAG NAME
     is a recognised event verb. The key (`evt_emits`) is whatever the repo
@@ -206,7 +206,7 @@ def _declared_event_keys(doxyfile: Path, event_tags: dict[str, str] | None) -> d
 ## @param keys Declared xrefitem key → role mapping.
 ## @return One tuple per declared event tag found on a memberdef.
 ## @version 4
-## @dg_internal
+## @utility
 def _harvest_tagged(
     conn: sqlite3.Connection, keys: dict[str, str]
 ) -> list[tuple[str, str, str, int, bool]]:
@@ -287,7 +287,7 @@ def _edges_for(topics: dict[str, dict[str, set[int]]]) -> list[tuple[int, int, s
 ## @param topics Topic → role → rowids.
 ## @return None.
 ## @version 2
-## @dg_internal
+## @utility
 def _report_one_sided(topics: dict[str, dict[str, set[int]]]) -> None:
     """An emitted-but-unhandled topic (or a handler nobody emits) is a free
     owner diagnostic that falls straight out of the catalog — surfaced at

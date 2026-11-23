@@ -1,0 +1,93 @@
+{
+  "cell": "Q2_claude-haiku-5-5_index_r1",
+  "arm": "index",
+  "rubric_version": "5.0.0",
+  "rubric_digest": "d8447c7b18eafbf5",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 0.14285714285714285,
+  "unmarked_pct": 0.0,
+  "split_decisions": 0,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "locates the grading in clew/mcp_server/emptiness.py",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never names clew/mcp_server/emptiness.py or any file location for the grading logic; it only describes reply behavior and mentions AGENTS.md. || QUOTE: NONE | WHY: The answer never names clew/mcp_server/emptiness.py or any file where the grading is located; it only mentions AGENTS.md and the search note. || QUOTE: NONE | WHY: The answer never names clew/mcp_server/emptiness.py or any file where the emptiness grading is implemented; it only mentions AGENTS.md and generic \"index's own code\".",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the strong wording is EARNED PER CALL by querying which corpora the search did not read, rather than being attached to a result shape",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"a `search` reply separates the two cases by naming the boundary it searched, not by the row count. An empty result is a definitive answer only inside that boundary.\" | WHY: The answer says the \"definitive\" wording depends on which corpora the reply says it searched and did not search, not on the empty result shape (count 0). || QUOTE: \"a `search` reply separates the two cases by naming the boundary it searched, not by the row count. An empty result is a definitive answer only inside that boundary.\" | WHY: The answer says the definitive wording depends on which corpora the reply says it searched and did not search, not on the empty result shape (`count: 0`). That is the substance of the item, though it never says outright that the check is run per call. || QUOTE: \"a `search` reply separates the two cases by naming the boundary it searched, not by the row count. An empty result is a definitive answer only inside that boundary.\" | WHY: The answer says the definitive wording comes from what each reply reports as searched and not searched (per call), not from the empty-result shape (count 0).",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "explains that a single token matching nothing was previously treated as proof of absence, and that this confuses \"nothing exists\" with \"I did not look there\"",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never says that a single-token no-match was previously treated as proof of absence; it describes the current scoping of empty results but not that prior flaw or the \"nothing exists\" vs \"didn't look there\" confusion about single tokens. || QUOTE: NONE | WHY: The answer describes how an empty result names its searched boundary, but never says that a single non-matching token was previously treated as proof of absence, or that the old behavior conflated \"nothing exists\" with \"I did not look there.\" || QUOTE: NONE | WHY: The answer explains how an empty result is bounded by what was searched, but never says that a single token matching nothing was previously treated as proof of absence (a prior behavior that conflated \"nothing exists\" with \"not looked\").",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the downgrades are ORDERED most-specific first, and explains why \u2014 a matching row in an unread corpus is a statement about THIS query and outranks statements about the index as a whole",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never states that the downgrades are ordered most-specific first, nor that a matching row in an unread corpus outranks index-wide statements. || QUOTE: NONE | WHY: The answer never states that downgrades are ordered most-specific first, nor that a matching row in an unread corpus outranks index-wide statements.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "conveys that there is exactly ONE absent-corpus downgrade and that keeping it to one is deliberate, because downgrading on every absent layer turns the grading into a blanket hedge",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer never states that there is exactly one absent-corpus downgrade, nor that limiting it to one is deliberate to avoid a blanket hedge. || QUOTE: NONE | WHY: The answer never says there is exactly one absent-corpus downgrade, or that keeping it to one is deliberate to avoid blanket hedging. || QUOTE: NONE | WHY: The answer never says there is exactly one absent-corpus downgrade or that keeping it to one is deliberate to avoid a blanket hedge.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "conveys the general rule the module leaves behind \u2014 fix the corpus, not the sentence about the corpus",
+      "kind": "conclusion",
+      "weight": 2,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer explains how to read a search reply's boundaries and when to fall back to Grep. It never states the rule to fix the corpus rather than the sentence describing it. || QUOTE: NONE | WHY: The answer explains how to read an empty `search` result and which boundaries it names. It never states the rule to fix the corpus rather than the sentence describing it. || QUOTE: NONE | WHY: The answer explains how a `search` reply scopes an empty result, but it never states the rule \"fix the corpus, not the sentence about the corpus\". Its closing line about empty tables versus missing keys is a different rule.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "distinguishes all three grades an empty reply can receive: definitive for the scope, definitive for a reason that is not absence, and not definitive",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer separates only \"definitive within the searched scope\" from \"not established outside it\". It never names a third grade, which would be an empty reply that is definitive for a reason other than absence. || QUOTE: NONE | WHY: The answer separates a definitive empty result within the searched scope from a non-definitive one outside it. It never describes a third grade, an empty reply that is definitive for a reason other than absence. || QUOTE: NONE | WHY: The answer separates only two grades, definitive within the searched scope and not definitive outside it. It never names a third grade, an empty reply that is definitive for a reason other than absence.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the reply also names the file types that WERE in scope and produced no rows, so \"this repository does not contain that\" and \"that file type is not indexed here\" are distinguishable rather than the same empty answer",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": false,
+      "detail": "QUOTE: NONE | WHY: The answer separates not-indexed file types (`.rs`, `.toml`, and so on) from the searched scope. It does not say the reply names in-scope file types that produced no rows. The \"15 barren files\" come from `index(status)`, not the `search` reply, and they are individual files rather than file types. || QUOTE: NONE | WHY: The answer says the reply lists file types that were not indexed (`.rs`, `.toml` and so on). It never says the reply names in-scope file types that produced no rows. The \"barren\" files it mentions come from `index(status)`, not from the search reply. || QUOTE: NONE | WHY: The answer says the reply lists scope extensions and a `not_indexed` list, and that `index(status)` reports \"barren\" files. It never says the empty reply names in-scope file types that produced no rows.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    }
+  ]
+}

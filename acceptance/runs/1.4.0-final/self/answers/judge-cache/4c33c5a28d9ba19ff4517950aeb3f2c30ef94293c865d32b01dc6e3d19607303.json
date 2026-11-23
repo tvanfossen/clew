@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The repo's Doxyfile no longer sets the INPUT; it supplies only aliases and predefined macros.\nVERDICT: MISS\nWHY: The answer says the Doxyfile doesn't set INPUT but never gives the reason: a repo shipping a Doxyfile would otherwise get only its documented subset, while one shipping none gets its whole tree."
+}

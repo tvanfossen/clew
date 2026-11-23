@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `code` | process predates the source tree | restart the MCP client; rebuilding will not help ... The code notice says the query data is current even though the logic is old. ... `stale_code_refusal` blocks writes from a stale process and ignores `force`.\nVERDICT: HIT\nWHY: The answer says reads/query data stay current despite old logic, and that writes from a stale-code process are refused (an auto-refresh never writes an index with old logic), which covers the read/write asymmetry."
+}

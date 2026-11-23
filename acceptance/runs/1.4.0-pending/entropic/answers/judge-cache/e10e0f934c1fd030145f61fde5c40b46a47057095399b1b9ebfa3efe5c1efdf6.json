@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Only `ServerManager::execute` calls `is_denied` (`server_manager.cpp:159`). Deny therefore beats allow, and it beats `auto_approve`... The deny list is checked later, inside `ServerManager::execute`, and it overrides everything that came before it.\nVERDICT: MISS\nWHY: The answer says the deny list is checked in ServerManager::execute and wins over allow, but it also lists tier, MCP-key, duplicate and schema checks as precondition blocks. It doesn't conclude that deny is the only list that blocks, or that execute consults nothing else before routing."
+}

@@ -1,0 +1,63 @@
+{
+  "cell": "Q2_claude-haiku-5-5_index_r1",
+  "arm": "index",
+  "rubric_version": "1.0.0",
+  "rubric_digest": "32294778c2753056",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 1.0,
+  "unmarked_pct": 0.0,
+  "split_decisions": 0,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "names the websocket event dispatcher that routes `reaction_added` to its handler (`handleWebSocketEvent` \u2192 `handleReactionAddedToPostEvent`)",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: handleWebSocketEvent(serverUrl, msg)              app/actions/websocket/event.ts:44 | WHY: The answer names handleWebSocketEvent as the dispatcher routing REACTION_ADDED to handleReactionAddedToPostEvent.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the added reaction is stored through the database operator's `handleReactions`, which prepares Reaction records and writes them with `batchRecords`",
+      "kind": "retrieval",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: operator.handleReactions({ prepareRecordsOnly: false, skipSync: true, postsReactions: [...] }) ... b. createReactions \u2192 prepareRecords({createRaws, transformer: transformReactionRecord}) ... prepareRecordsOnly is false \u2192 this.batchRecords(batchRecords, 'handleReactions') | WHY: The answer states the added reaction goes through operator.handleReactions, which prepares Reaction records via prepareRecords and writes them with batchRecords. || QUOTE: operator.handleReactions({ prepareRecordsOnly: false, skipSync: true, postsReactions: [...] }) ... b. createReactions \u2192 prepareRecords({createRaws, transformer: transformReactionRecord}) ... prepareRecordsOnly is false \u2192 this.batchRecords(batchRecords, 'handleReactions') | WHY: The answer states the added reaction goes through operator.handleReactions, which prepares Reaction records via prepareRecords/transformReactionRecord and writes them with batchRecords. || QUOTE: operator.handleReactions({ prepareRecordsOnly: false, skipSync: true, postsReactions: [...] }) ... prepareRecords({createRaws, transformer: transformReactionRecord}) ... prepareRecordsOnly is false \u2192 this.batchRecords(batchRecords, 'handleReactions') | WHY: The answer states the added reaction goes through the operator's handleReactions, which prepares Reaction records and writes them via batchRecords.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that a removed reaction does NOT go through the operator: its handler queries the reaction and destroys it with a direct `database.write`",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"4. if found: database.write(() => reaction[0].destroyPermanently())\" and \"It does not go through `handleReactions`, `sanitizeReactions`, a transformer, or `batchRecords`.\" | WHY: The answer states the removed handler bypasses the operator, queries the reaction, and destroys it via a direct `database.write`. || QUOTE: 4. if found: database.write(() => reaction[0].destroyPermanently()) | WHY: The answer states the removed handler skips the operator, queries the reaction, and destroys it via a direct database.write. || QUOTE: \"database = getServerDatabaseAndOperator(serverUrl).database   (operator not used)\" and \"reaction = queryReaction(database, emoji_name, post_id, user_id).fetch()\" and \"if found: database.write(() => reaction[0].destroyPermanently())\" | WHY: The answer states that removal bypasses the operator, queries the reaction, and destroys it via a direct database.write.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "explains that `skipSync: true` stops the single incoming reaction being treated as the post's complete set \u2014 without it every other reaction on the post would be deleted",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: Without it, the single reaction in the payload would be treated as the complete reaction set for the post, and every other user's reaction on that post would be marked for deletion. | WHY: The answer states that skipSync stops the single incoming reaction being treated as the post's full set, which would otherwise delete all other reactions. || QUOTE: Without it, the single reaction in the payload would be treated as the complete reaction set for the post, and every other user's reaction on that post would be marked for deletion. | WHY: The answer explicitly states that skipSync prevents the lone incoming reaction from being treated as the post's full set, which would otherwise delete all other reactions. || QUOTE: Without it, the single reaction in the payload would be treated as the complete reaction set for the post, and every other user's reaction on that post would be marked for deletion. | WHY: The answer explicitly states that skipSync prevents the single incoming reaction from being treated as the post's full set, which would otherwise delete all other reactions.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "notes that both handlers swallow any error silently (empty catch), so a failed write leaves no trace",
+      "kind": "conclusion",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: Both handlers wrap everything in `try { \u2026 } catch { // Do nothing }`. A malformed payload or a DB error leaves no log. | WHY: The answer states both handlers swallow errors via an empty catch, leaving no log or trace of failures. || QUOTE: Both handlers wrap everything in `try { \u2026 } catch { // Do nothing }`. A malformed payload or a DB error leaves no log. | WHY: The answer states both handlers swallow errors in an empty catch, leaving no log or trace of failures. || QUOTE: Both handlers wrap everything in `try { \u2026 } catch { // Do nothing }`. A malformed payload or a DB error leaves no log. | WHY: The answer states both handlers swallow errors in an empty catch and that failures leave no log.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Python never links against the C++ code. It loads `librentropic.so` with `ctypes` and calls the pure-C `entropic.h` facade.\"\nVERDICT: HIT\nWHY: The answer states ctypes loading of librentropic.so and that Python never links against the C++ code, with no compiled extension module involved."
+}

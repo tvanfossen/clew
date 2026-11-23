@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 18084,
+  "stop_reason": "end_turn",
+  "session_id": "e3f253f7-4f39-45dd-a27c-5d1f25429af4",
+  "total_cost_usd": 0.012236740000000001,
+  "usage": {
+    "input_tokens": 16,
+    "cache_creation_input_tokens": 32596,
+    "cache_read_input_tokens": 444944,
+    "output_tokens": 2533,
+    "output_tokens_details": {
+      "thinking_tokens": 704
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 32596,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 984,
+        "cache_read_input_tokens": 72900,
+        "cache_creation_input_tokens": 2853,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 2853
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 16,
+      "outputTokens": 2533,
+      "cacheReadInputTokens": 444944,
+      "cacheCreationInputTokens": 32596,
+      "webSearchRequests": 0,
+      "costUSD": 0.012236740000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 704,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 32596,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 13,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** the post is kept locally and marked failed. It is not retried automatically at all: the send is attempted once. Retrying happens only when the user chooses \"Try Again.\"\n\n**What happens on failure**\n\n1. `createPost` (`app/actions/remote/post.ts:74`) first writes an optimistic local post with a `pending_post_id` and `id: ''`, so it shows in the UI before the server responds.\n2. It makes one `client.createPost(...)` call. If that throws, it logs the error and builds an error copy of the post with `props.failed: true`.\n3. Two server errors are exceptions: `DELETED_ROOT_POST_ERROR`, `TOWN_SQUARE_READ_ONLY_ERROR` and `PLUGIN_DISMISSED_POST_ERROR` cause `removePost`, which deletes the post. `BOR_DENIED_BY_POLICY_ERROR` also expires the cached render-permission entry for the channel.\n4. Every other failure saves the post with `failed: true`. If CRT is enabled, the thread is created as well.\n\n**Automatic retries: zero**\n\n- `ClientPosts.createPost` (`app/client/rest/posts.ts:43`) passes `noRetry: true`.\n- `doFetchWithTracking` (`app/client/rest/tracking.ts:395`) makes a single request. Its only `try` wraps that one call, and it rethrows as a `ClientError`. I found no retry loop in it. I did not open `buildRequestOptions` to see how it uses `noRetry`, but the function body has no loop.\n\n**Manual retry (`retryFailedPost`, `app/actions/remote/post.ts:228`)**\n\nThe failed post's \"Try Again\" action (`app/components/post_list/post/body/failed/index.tsx:37`, testID `post.failed.retry`) calls this function. It:\n\n1. Clears `failed` on the post's props, resets `create_at`/`update_at` to now, and saves that state so the UI shows it as pending again.\n2. Captures the redaction epoch and calls `client.createPost` again with `id: ''`.\n3. On success, writes the server's post, updates the channel's last-post time (unless it is a CRT reply), and saves the result.\n4. On failure, applies the same logic as the first attempt: the three special server errors remove the post, and anything else sets `failed: true` again.\n\nThe \"Delete Message\" option calls `removePost` directly.",
+  "ttft_ms": 1571,
+  "type": "result",
+  "duration_ms": 21990,
+  "uuid": "14e8f096-9e77-40b2-8ca3-956522dbdbd2",
+  "ttft_stream_ms": 1175,
+  "time_to_request_ms": 67,
+  "first_content_frame_ms": 1176,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

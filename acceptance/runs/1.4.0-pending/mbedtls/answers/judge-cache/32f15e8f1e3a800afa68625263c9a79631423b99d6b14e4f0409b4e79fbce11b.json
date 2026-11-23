@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: #define MBEDTLS_PRIVATE(member) private_##member ... #else #define MBEDTLS_PRIVATE(member) member ... By default each field is really named `private_state`, `private_flags`\nVERDICT: HIT\nWHY: The answer shows the macro renaming members to private_<member> by default and expanding to the bare member name when MBEDTLS_ALLOW_PRIVATE_ACCESS is defined."
+}

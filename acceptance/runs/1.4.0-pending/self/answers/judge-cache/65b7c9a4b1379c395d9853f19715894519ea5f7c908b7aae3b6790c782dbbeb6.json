@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: schema: `build_version` versus `expected_build_version`. An index stamped by a newer build than this process expects cannot be cleared by any rebuild through this process.\nVERDICT: HIT\nWHY: The answer says a schema-stale index (newer than the server) cannot be cleared by any rebuild, and its table repeats that no rebuild clears it. It does not spell out the re-stamping reason, but the unresolvable-by-rebuild substance is stated."
+}

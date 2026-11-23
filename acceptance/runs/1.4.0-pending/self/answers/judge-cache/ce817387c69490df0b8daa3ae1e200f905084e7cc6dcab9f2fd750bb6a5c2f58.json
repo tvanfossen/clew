@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"| `.yaml`, `.yml`, `.json` | `path` row only | None, by design | None | `DATA_EXTS` in `clew/synth.py` |\" and \"So YAML and JSON are \"registered and never harvested\": they are findable by name and counted in the not-indexed report, and they contribute nothing to function queries.\"\nVERDICT: HIT\nWHY: The answer says YAML/JSON get path rows but no symbols, while shell/CMake get symbols, which distinguishes the two groups."
+}

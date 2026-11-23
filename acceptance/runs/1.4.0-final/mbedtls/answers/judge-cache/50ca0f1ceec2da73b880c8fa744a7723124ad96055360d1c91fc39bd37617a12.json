@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"If the integrator never sets `MBEDTLS_PLATFORM_STD_CALLOC`, the default is `platform_calloc_uninit`, which returns NULL. `MBEDTLS_PLATFORM_STD_FREE` defaults to a no-op. So an unconfigured build fails allocations rather than silently calling libc.\"\nVERDICT: HIT\nWHY: The answer states that the uninitialized default calloc returns NULL and the default free is a no-op, so allocations fail instead of falling back to libc."
+}

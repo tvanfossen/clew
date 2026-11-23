@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: llama.cpp's `llama_tokenize` returns the negative of the required token count when the buffer is too small... So the first call passes `nullptr, 0` to learn `n`, the code sizes a `std::vector`, and the second call fills it.\n\nVERDICT: MISS\n\nWHY: The answer says the first call returns a negative required token count and that the code sizes a vector from it. It never says the code negates that value, so that detail of the item is absent."
+}

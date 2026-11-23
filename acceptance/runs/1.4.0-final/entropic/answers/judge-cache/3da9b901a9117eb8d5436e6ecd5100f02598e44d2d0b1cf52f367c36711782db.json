@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Engine \u2192 caller, `char*` return or `char**` out-param | Caller owns it and must call `entropic_free()`. ... Engine \u2192 caller, `const char*` / static | Do not free. | `entropic_version` returns a static string.\nVERDICT: MISS\nWHY: The answer states the char* ownership/entropic_free rule but not that a const char* is handle-owned and valid only until the next call on that handle. It only says const char*/static is not freed, citing a static version string."
+}

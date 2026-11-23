@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"When `MBEDTLS_PLATFORM_MEMORY` is on, `mbedtls_calloc` and `mbedtls_free` become macros... When `MBEDTLS_PLATFORM_MEMORY` is off, the library uses the function-pointer dispatch above.\"\nVERDICT: MISS\nWHY: The answer names both a compile-time macro route and a runtime setter route. It ties the choice to a different switch (`MBEDTLS_PLATFORM_MEMORY`) and never says the two substitution mechanisms are mutually exclusive."
+}

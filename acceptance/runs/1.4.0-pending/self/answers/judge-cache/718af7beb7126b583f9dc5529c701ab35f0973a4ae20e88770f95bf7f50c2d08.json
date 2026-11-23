@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Shell (`.sh`, `.bash`) ... CMake (`CMakeLists.txt`, `.cmake`)\nVERDICT: HIT\nWHY: The answer's table names shell extensions `.sh`/`.bash` and CMake as `CMakeLists.txt` (by file name) plus `.cmake`."
+}

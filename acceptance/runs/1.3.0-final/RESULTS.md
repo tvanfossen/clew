@@ -9,6 +9,9 @@ Tool at `7037358` (clean), version 1.3.0, build 9. Answering model `claude-haiku
 Criteria and every tool change since the first pre-registration: `../1.3.0-pending/PRE-REGISTRATION.md`
 (addendum 2 lists what can move the held 16).
 
+> **Correction (2026-11-17).** The judge named above is wrong. Every grade of this run records `judge_model: claude-sonnet-5-5` (189/189) — the provider-canonical id adopted in 844fee55 and disclosed in the 1.2.0 pre-registration. `claude-sonnet-4-5-20250929` was text carried over from an earlier record. The figures are unaffected: they were measured with what the grades record. Found by the 2.0.0 rubric cross-check; `tests/test_run_records.py` now checks every run's record against its grades. The line above is left as published.
+
+
 ## Judge health — publication gate passed
 
 | | |

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says the pointers default to `MBEDTLS_PLATFORM_STD_CALLOC` and free. It never says that an uninitialised calloc pointer returns NULL or that an uninitialised free does nothing."
+}

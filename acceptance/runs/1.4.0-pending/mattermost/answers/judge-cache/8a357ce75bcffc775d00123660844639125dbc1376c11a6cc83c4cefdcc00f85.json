@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"If the server doesn't send the key, the app treats archived channels as viewable, i.e. the feature is on.\" and \"`archivedChannelsViewable(value)` is `value !== 'false'`\"\nVERDICT: HIT\nWHY: The answer states that an absent setting means archived channels are viewable and that only an explicit 'false' turns the feature off."
+}

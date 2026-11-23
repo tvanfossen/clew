@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `code` | The server process loaded older code than is now on disk | Restart the MCP client, then `index(action='refresh', force=True)`; `data` ... `index(action='refresh')`; \"The flag alone doesn't say what to do, so `freshness.py` splits it into three named axes, each with its own remedy.\"\nVERDICT: HIT\nWHY: The answer says the single stale flag was split into axes because each has its own remedy, with data cleared by refresh/rebuild and code by a client restart."
+}

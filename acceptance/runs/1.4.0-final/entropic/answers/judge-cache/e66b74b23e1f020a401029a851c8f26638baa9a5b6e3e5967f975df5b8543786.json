@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The file is marked auto-generated and a pre-commit `--check` fails on drift from the header.\nVERDICT: HIT\nWHY: The answer says a pre-commit `--check` fails on drift between the generated bindings and the header, and it names scripts/gen_bindings.py as the generator. It never says the check re-runs the generator and diffs, but a `--check` on a generator that fails on drift implies that mechanism."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: MBEDTLS_PLATFORM_MEMORY off (default) ... \"Define `MBEDTLS_PLATFORM_MEMORY`\" ... \"The setter is declared only in the `MBEDTLS_PLATFORM_MEMORY` branch\"\nVERDICT: MISS\nWHY: The answer treats MBEDTLS_PLATFORM_MEMORY as the gate and says it is off by default. It never says the option is commented out in the shipped mbedtls_config.h."
+}

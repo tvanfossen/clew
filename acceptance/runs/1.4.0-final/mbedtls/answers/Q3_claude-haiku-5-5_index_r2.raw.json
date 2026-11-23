@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 20133,
+  "stop_reason": "end_turn",
+  "session_id": "9d38a60f-86ab-48ae-9d3e-d899dfd908cb",
+  "total_cost_usd": 0.006589040000000001,
+  "usage": {
+    "input_tokens": 8,
+    "cache_creation_input_tokens": 14410,
+    "cache_read_input_tokens": 173424,
+    "output_tokens": 3944,
+    "output_tokens_details": {
+      "thinking_tokens": 1047
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 14410,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2362,
+        "cache_read_input_tokens": 52059,
+        "cache_creation_input_tokens": 803,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 803
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 8,
+      "outputTokens": 3944,
+      "cacheReadInputTokens": 173424,
+      "cacheCreationInputTokens": 14410,
+      "webSearchRequests": 0,
+      "costUSD": 0.006589040000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1047,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 14410,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 9,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "When mbedtls allocates memory, it calls its own `mbedtls_calloc()` and `mbedtls_free()`. Those are thin wrappers around two function pointers that default to \"uninitialized\" stubs, and the platform layer can be pointed at whatever allocator the project wants. The default build does not use `malloc` at all unless the integrator opts in.\n\n**The call chain (runtime substitution, the default when `MBEDTLS_PLATFORM_MEMORY` is on)**\n\n```\nlibrary code (e.g. ecp.c, cipher_wrap.c, asn1parse.c)\n  \u2514\u2500 mbedtls_calloc(n, size)           library/platform.c:47\n       \u2514\u2500 (*mbedtls_calloc_func)(n, size)   function pointer\n            \u2514\u2500 whatever was registered via mbedtls_platform_set_calloc_free()\n```\n\nThe pointers are declared at `library/platform.c:44-45`:\n\n```c\nstatic void * (*mbedtls_calloc_func)(size_t, size_t) = MBEDTLS_PLATFORM_STD_CALLOC;\nstatic void (*mbedtls_free_func)(void *) = MBEDTLS_PLATFORM_STD_FREE;\n```\n\nIf the integrator never sets `MBEDTLS_PLATFORM_STD_CALLOC`, the default is `platform_calloc_uninit`, which returns NULL. `MBEDTLS_PLATFORM_STD_FREE` defaults to a no-op. So an unconfigured build fails allocations rather than silently calling libc.\n\n**How a project substitutes its allocator**\n\n1. **Enable the layer.** Define `MBEDTLS_PLATFORM_MEMORY` in the user config. It is off by default (`include/mbedtls/mbedtls_config.h:208`). `MBEDTLS_PLATFORM_C` must also be on, which is the default.\n2. **Pick a binding style:**\n   - **Runtime (function pointers).** Leave `MBEDTLS_PLATFORM_CALLOC_MACRO` and `MBEDTLS_PLATFORM_FREE_MACRO` undefined. Call `mbedtls_platform_set_calloc_free(my_calloc, my_free)` once before any other mbedtls call. The header declares it at `include/mbedtls/platform.h:160`.\n   - **Compile time (macros).** Define both `MBEDTLS_PLATFORM_CALLOC_MACRO` and `MBEDTLS_PLATFORM_FREE_MACRO` (they must be set together). `platform.h:139-144` then `#define`s `mbedtls_calloc`/`mbedtls_free` directly to your functions. There is no indirection, and the runtime setter is compiled out (`platform.c:20-22`). The macros take precedence if both styles are configured.\n3. **Or provide the standard names.** If you keep the runtime path but want a different default, define `MBEDTLS_PLATFORM_STD_CALLOC` and `MBEDTLS_PLATFORM_STD_FREE` to your functions. With `MBEDTLS_PLATFORM_NO_STD_FUNCTIONS` you must supply them, because the library otherwise won't reference libc `calloc`/`free`.\n4. **Contract the allocator must meet** (from the config comments at `mbedtls_config.h:4113-4132`): calloc must zero the buffer; a NULL return is a legal failure; free must accept NULL; and free is only ever passed pointers that calloc returned.\n\nIf you use the macro path, `mbedtls_calloc` is an ordinary function name at the call site, so your replacement needs to be a drop-in for `calloc`'s signature.\n\n**What the library does with the facility**\n\n- **Every dynamic allocation goes through the wrapper.** The index shows about 147 call sites of `mbedtls_calloc`, including context constructors in `cipher_wrap.c` (AES, GCM, CCM, ChaCha20, and others), `pk_wrap.c` key allocation, `ecp.c` point multiplication, `asn1parse.c`, `lms.c`, and `dhm.c`. The library never calls libc `malloc`/`calloc` directly on these paths.\n- **It does not call `mbedtls_platform_set_calloc_free` on its own.** The only in-library caller is `mbedtls_memory_buffer_alloc_init` (`library/memory_buffer_alloc.c:566-600`). That is the library's bundled allocator. It runs over a caller-supplied buffer, so the integrator gets a heap with no `malloc` dependency. It sets the allocator pointers to its own `buffer_alloc_calloc`/`buffer_alloc_free`. With `MBEDTLS_THREADING_C` it uses mutex-wrapped variants. Its header comment says this is the only way the library swaps the allocator itself.\n- **The uninitialized-stub default is deliberate.** `platform.c:25-42` exists so that a build with `MBEDTLS_PLATFORM_MEMORY` but no allocator fails at runtime, not at link time. The `component_test_psa_crypto_without_heap` test script exercises the \"core cannot allocate\" configuration.\n\n**Caveats**\n\n- I did not read `buffer_alloc_calloc` or `mbedtls_memory_buffer_alloc_free` bodies, so I haven't verified how the bundled heap handles fragmentation or free-list reclamation.\n- The index has no definition site for `MBEDTLS_PLATFORM_CALLOC_MACRO`/`FREE_MACRO` because they are commented out in the shipped config. That is expected. Their only definition is by the user.\n- The 147 call-site count is from the index's caller tally, which I capped at 25 in the query. I didn't enumerate all of them.",
+  "ttft_ms": 1778,
+  "type": "result",
+  "duration_ms": 22110,
+  "uuid": "ae9f0efe-1d49-4dd4-863e-663cffd8ed70",
+  "ttft_stream_ms": 1237,
+  "time_to_request_ms": 123,
+  "first_content_frame_ms": 1237,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

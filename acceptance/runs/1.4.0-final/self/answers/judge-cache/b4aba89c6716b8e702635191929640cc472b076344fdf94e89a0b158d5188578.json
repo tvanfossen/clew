@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: **The verdict ladder** (most specific first)\nVERDICT: HIT\nWHY: The answer labels its downgrade ladder \"most specific first\" (token-level, then unread-corpus, then index-level) but never explains why a matching row in an unread corpus outranks index-wide statements, so it does not meet the item's explanation requirement.\n\nWait \u2014 that reasoning contradicts the verdict. Correcting:\n\nQUOTE: **The verdict ladder** (most specific first)\nVERDICT: MISS\nWHY: The answer says the ladder is ordered most-specific first but gives no reason why a matching row in an unread corpus outranks index-wide statements, and the item requires both."
+}

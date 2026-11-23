@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: | `data` | ... | Rebuild (`index(action='refresh')`) | ... | `code` | ... | Only restarting the client |\nVERDICT: HIT\nWHY: The answer's table assigns a rebuild to the data axis and a client restart to the code axis, and says the schema and code notices state that a rebuild cannot clear them. It never says that this is why one flag would not have been enough, but the substance of the item is stated."
+}

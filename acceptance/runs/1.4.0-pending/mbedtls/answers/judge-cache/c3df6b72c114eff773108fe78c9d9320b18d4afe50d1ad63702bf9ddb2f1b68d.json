@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `tests/scripts/components-sanitizers.sh` (`component_release_test_valgrind_constant_flow`) runs the same constant-time tests under Valgrind in a release build.\nVERDICT: MISS\nWHY: The answer mentions Valgrind-based CI tests, but it never says the facility is a separate, off-by-default testing module outside the library API. It also never mentions MemorySanitizer."
+}

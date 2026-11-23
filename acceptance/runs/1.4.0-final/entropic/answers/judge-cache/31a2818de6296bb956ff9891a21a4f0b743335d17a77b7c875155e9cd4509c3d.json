@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The code notifies the callback and then sets `approved = true` without reading any return value. Without a callback, unlisted tools are denied. With one, every call passes approval.\"\nVERDICT: HIT\nWHY: The answer states the callback is not a gate and that approved is set to true unconditionally after firing it, with no return value read. It never says the callback returns void, but the unconditional approval is the substance of the item."
+}

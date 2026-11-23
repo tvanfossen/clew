@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The first call is a query, not an attempt that failed. I would not call it retry logic.\nVERDICT: HIT\nWHY: The answer concludes the tokenize double-call is size negotiation (null buffer, size 0, flip negative sign, second call fills), not retry, and it is a single pair of calls rather than a loop."
+}

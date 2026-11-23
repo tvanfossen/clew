@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says a call runs only if it clears both gates, and that \"if nothing approved the call, it is denied\", so a tool on neither list is not described as running by default."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer mentions \"Always Allow\" persistence only in passing via get_permission_pattern. It never mentions config.local.yaml or persisting a decision separately from the in-memory add_permission call."
+}

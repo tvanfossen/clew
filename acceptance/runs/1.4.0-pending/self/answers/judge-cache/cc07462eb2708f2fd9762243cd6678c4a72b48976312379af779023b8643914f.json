@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Names, not lines. Each row is a function, not a call location. If `_gitignored_paths` calls `git_argv` three times, the answer shows one row.\nVERDICT: HIT\nWHY: The answer states that the query surface returns one row per neighbour (function), not per call site, so multiple calls collapse into a single row. It does not mention \"layers\" or \"strongest evidence\", but it states the substance of the one-row-per-neighbour collapse."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"When a channel is archived over the websocket and the setting is off, the app kicks the user out if that channel is current (`handleKickFromChannel` with `CHANNEL_ARCHIVED`) and removes the user's membership. When on, the membership is kept.\"\nVERDICT: MISS\nWHY: The answer covers the removal and kick when off, but when on it says only \"membership is kept\" for websocket and \"sets delete_at locally\" for the remote action. It never says the channel is marked deleted in the websocket path, so the item's \"kept and marked deleted\" half is incomplete."
+}

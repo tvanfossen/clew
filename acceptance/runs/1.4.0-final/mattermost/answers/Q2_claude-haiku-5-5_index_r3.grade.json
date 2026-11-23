@@ -1,0 +1,63 @@
+{
+  "cell": "Q2_claude-haiku-5-5_index_r3",
+  "arm": "index",
+  "rubric_version": "1.0.0",
+  "rubric_digest": "32294778c2753056",
+  "judge_model": "claude-sonnet-5-5",
+  "score": 1.0,
+  "unmarked_pct": 0.0,
+  "split_decisions": 0,
+  "grader_fingerprint": "72a6c7bd363d",
+  "decisions": [
+    {
+      "mark": "names the websocket event dispatcher that routes `reaction_added` to its handler (`handleWebSocketEvent` \u2192 `handleReactionAddedToPostEvent`)",
+      "kind": "retrieval",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: `handleWebSocketEvent` in `app/actions/websocket/event.ts:163-165` matches `WebsocketEvents.REACTION_ADDED` (`'reaction_added'`) and calls `handleReactionAddedToPostEvent(serverUrl, msg)`. | WHY: The answer names `handleWebSocketEvent` as the dispatcher that routes `reaction_added` to `handleReactionAddedToPostEvent`. || QUOTE: `handleWebSocketEvent` in `app/actions/websocket/event.ts:163-165` matches `WebsocketEvents.REACTION_ADDED` (`'reaction_added'`) and calls `handleReactionAddedToPostEvent(serverUrl, msg)`. | WHY: The answer names `handleWebSocketEvent` as the dispatcher routing `reaction_added` to `handleReactionAddedToPostEvent`. || QUOTE: `handleWebSocketEvent` in `app/actions/websocket/event.ts:163-165` matches `WebsocketEvents.REACTION_ADDED` (`'reaction_added'`) and calls `handleReactionAddedToPostEvent(serverUrl, msg)`. | WHY: The answer names handleWebSocketEvent as the dispatcher routing reaction_added to handleReactionAddedToPostEvent.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "states that the added reaction is stored through the database operator's `handleReactions`, which prepares Reaction records and writes them with `batchRecords`",
+      "kind": "retrieval",
+      "weight": 2,
+      "hit": true,
+      "detail": "QUOTE: Calls `operator.handleReactions({ prepareRecordsOnly: false, skipSync: true, postsReactions: [...] })`... `prepareRecords` (`base_data_operator/index.ts:134-183`) runs `transformReactionRecord` with `action: CREATE`... `batchRecords` (`base_data_operator/index.ts:191-211`) runs `database.write(writer => writer.batch(...))` | WHY: The answer says the add is stored via the operator's `handleReactions`, which prepares Reaction records (`prepareRecords` with the reaction transformer) and writes them with `batchRecords`. || QUOTE: Calls `operator.handleReactions({ prepareRecordsOnly: false, skipSync: true, postsReactions: [...] })` ... `prepareRecords` (`base_data_operator/index.ts:134-183`) runs `transformReactionRecord` with `action: CREATE` ... `batchRecords` (`base_data_operator/index.ts:191-211`) runs `database.write(writer => writer.batch(...))` | WHY: The answer states the reaction is stored via the operator's `handleReactions`, which prepares Reaction records and writes them with `batchRecords`. || QUOTE: Calls `operator.handleReactions({ prepareRecordsOnly: false, skipSync: true, postsReactions: [...] })` ... `prepareRecords` (`base_data_operator/index.ts:134-183`) runs `transformReactionRecord` ... `batchRecords` (`base_data_operator/index.ts:191-211`) runs `database.write(writer => writer.batch(...))` | WHY: The answer says the reaction is stored via the operator's `handleReactions`, which prepares records (`prepareRecords` with `transformReactionRecord`) and writes them with `batchRecords`.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "concludes that a removed reaction does NOT go through the operator: its handler queries the reaction and destroys it with a direct `database.write`",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: Gets the raw `database` (not the operator). ... If a row matches, it calls `reaction[0].destroyPermanently()` inside `database.write`. | WHY: The answer states that the removal handler skips the operator, queries the reaction, and destroys it directly within `database.write`. || QUOTE: \"Gets the raw `database` (not the operator)... If a row matches, it calls `reaction[0].destroyPermanently()` inside `database.write`.\" | WHY: The answer says the removal handler skips the operator, queries the reaction, and destroys it via a direct `database.write`. || QUOTE: Gets the raw `database` (not the operator). ... If a row matches, it calls `reaction[0].destroyPermanently()` inside `database.write`. | WHY: The answer states the removal path bypasses the operator, queries the reaction, and destroys it via a direct `database.write`.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "explains that `skipSync: true` stops the single incoming reaction being treated as the post's complete set \u2014 without it every other reaction on the post would be deleted",
+      "kind": "conclusion",
+      "weight": 3,
+      "hit": true,
+      "detail": "QUOTE: \"`skipSync: true`: skips the delete computation entirely, so an add can never remove other reactions on the post.\" | WHY: The answer states that skipSync skips delete computation so adding one reaction never removes the post's other reactions, which is the item's substance. || QUOTE: \"`skipSync: true`: skips the delete computation entirely, so an add can never remove other reactions on the post.\" | WHY: The answer says skipSync skips the delete computation so adding one reaction can't remove the post's other reactions, which is the item's mechanism. || QUOTE: `skipSync: true`: skips the delete computation entirely, so an add can never remove other reactions on the post. | WHY: The answer states that skipSync prevents the delete computation, so adding one reaction can't remove the post's other reactions. That matches the item's mechanism.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    },
+    {
+      "mark": "notes that both handlers swallow any error silently (empty catch), so a failed write leaves no trace",
+      "kind": "conclusion",
+      "weight": 1,
+      "hit": true,
+      "detail": "QUOTE: \"Wraps everything in `try/catch {}` with no logging, so failures are silent.\" and \"Errors are swallowed by the same empty `catch`.\" | WHY: The answer states that both the added and removed handlers use an empty catch that swallows errors with no logging, so failures leave no trace. || QUOTE: \"Wraps everything in `try/catch {}` with no logging, so failures are silent.\" and \"Errors are swallowed by the same empty `catch`.\" | WHY: The answer states both handlers use an empty catch with no logging, so failed writes (e.g. from `database.write`) are swallowed silently. || QUOTE: \"Wraps everything in `try/catch {}` with no logging, so failures are silent.\" and \"Errors are swallowed by the same empty `catch`.\" | WHY: The answer states both the add and remove handlers use an empty catch with no logging, so failures leave no trace.",
+      "agreement": 1.0,
+      "samples": 3,
+      "errors": 0
+    }
+  ]
+}

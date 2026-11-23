@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It is not retried automatically: `createPost` makes exactly one server request with retries disabled.\nVERDICT: HIT\nWHY: The answer explicitly states createPost is sent once with no automatic retry (noRetry: true, retryLimit 0)."
+}

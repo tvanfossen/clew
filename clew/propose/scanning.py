@@ -175,7 +175,7 @@ def ast_readable_in_scope(files: tuple[Path, ...], in_scope: Any) -> int:
 ## @param directory Directory to list.
 ## @return The scandir entries, sorted by name.
 ## @version 1
-## @dg_internal
+## @utility
 def _scandir(directory: Path) -> list[os.DirEntry]:
     """@brief List one directory, tolerating permission errors."""
     try:
@@ -255,7 +255,7 @@ def scan_repo(
 ## @param scoped Whether the file is inside the derived index scope.
 ## @param accessor_split Accessor-shape predicate.
 ## @version 1
-## @dg_internal
+## @utility
 def _absorb_file(
     corpus: Corpus,
     parsed: tuple[Any, bytes],
@@ -284,7 +284,7 @@ def _absorb_file(
 ## @param accessor_split Accessor-shape predicate.
 ## @return An AccessorSite, or None.
 ## @version 1
-## @dg_internal
+## @utility
 def _accessor_site(
     node: Any, src: bytes, rel: str, scoped: bool, accessor_split: Any
 ) -> AccessorSite | None:
@@ -339,7 +339,7 @@ def census_call_sites(
 ## @param path File to read.
 ## @return The raw bytes, or None.
 ## @version 1
-## @dg_internal
+## @utility
 def _read_bytes(path: Path) -> bytes | None:
     """@brief Read a file for the census prefilter, tolerating I/O errors."""
     try:
@@ -355,7 +355,7 @@ def _read_bytes(path: Path) -> bytes | None:
 ## @param scoped Whether the file is inside the index scope.
 ## @param watch Callee names of interest.
 ## @version 1
-## @dg_internal
+## @utility
 def _collect_watched(
     sites: list[CallSite], parsed: tuple[Any, bytes], rel: str, scoped: bool, watch: frozenset[str]
 ) -> None:
@@ -378,7 +378,7 @@ def _collect_watched(
 ## @param name The matched callee name.
 ## @return The assembled CallSite.
 ## @version 1
-## @dg_internal
+## @utility
 def _call_site(node: Any, src: bytes, rel: str, scoped: bool, name: str) -> CallSite:
     """@brief Assemble one watched call site with its enclosing definition."""
     args = node.child_by_field_name("arguments")

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `library/common.h:132` | `#define MBEDTLS_ALLOW_PRIVATE_ACCESS` | Every library `.c` includes `common.h` first (checked `md.c:12`, `ssl_tls.c:12`, `ecdh.c:15`, `x509_crt.c:20`). Inside the library, `MBEDTLS_PRIVATE(x)` is just `x`.\nVERDICT: HIT\nWHY: The answer states that library/common.h defines the opt-out and that every library .c includes it first, so library code sees plain member names."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"No exceptions cross the boundary. Python callbacks catch all exceptions, print a traceback, and return a neutral value. In the hook trampoline, a raised exception becomes \"pass through\" (`rc = 0`).\"\nVERDICT: HIT\nWHY: The answer states that the hook trampoline catches all Python exceptions and treats a failure as pass-through (rc = 0) instead of letting it cross into C."
+}

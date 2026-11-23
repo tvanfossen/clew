@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer says library/ has no pthread_create, but frames the mutex layer as compiled out by default rather than as the abstraction library/ supplies for threaded callers; the contrast is not stated as such."
+}

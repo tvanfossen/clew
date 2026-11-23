@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"1. Split the entry at the first `:`. 2. The left side is an `fnmatch` glob matched against the fully-qualified tool name. With no `:`, the tool-name match is enough. 3. The right side is an `fnmatch` glob matched against `tool_name:<value>`\"\nVERDICT: HIT\nWHY: The answer states fnmatch matching, a split at the first colon into a tool part and an argument part, and that a pattern with no colon matches on the tool name alone."
+}

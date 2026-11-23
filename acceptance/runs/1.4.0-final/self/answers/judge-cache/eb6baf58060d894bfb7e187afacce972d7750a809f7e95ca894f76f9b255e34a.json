@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"This is a silent, no-exception degrade\" and \"a `.sh` file is never reported as not indexed.\"\nVERDICT: MISS\nWHY: The answer says missing grammars degrade without an error, but it says the miss report does not name those file types as not indexed. That contradicts the item's second half, so the item is not stated."
+}

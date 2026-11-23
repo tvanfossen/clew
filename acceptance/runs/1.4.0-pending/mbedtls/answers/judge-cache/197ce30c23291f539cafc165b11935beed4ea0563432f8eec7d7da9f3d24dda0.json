@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `#define MBEDTLS_PRIVATE(member) private_##member` ... \"Default (opt-out not set): `ctx.MBEDTLS_PRIVATE(nr)` becomes `ctx.private_nr`\" ... \"With the opt-out: the same token becomes `ctx.nr`, the real field name.\"\nVERDICT: HIT\nWHY: The answer states both the default rename to private_<member> and that defining MBEDTLS_ALLOW_PRIVATE_ACCESS yields the unchanged member name."
+}

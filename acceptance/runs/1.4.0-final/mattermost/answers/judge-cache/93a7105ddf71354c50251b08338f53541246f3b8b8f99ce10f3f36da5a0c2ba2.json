@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Tapping a failed post opens a bottom sheet (`app/components/post_list/post/body/failed/index.tsx:37-68`) with two actions: - **Try Again** (`post.failed.retry`) calls `retryFailedPost`.\nVERDICT: HIT\nWHY: The answer says the app makes zero automatic retries, that the user retries by hand, and that choosing Try Again on the failed post calls `retryFailedPost`."
+}

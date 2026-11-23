@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"CLI flags (`--declare FILE`, `--exclude`, `--output`, `--rebuild`, `--verbose`), or the `options` mapping on `build_index()` / MCP `index(action=\"refresh\")` | Any caller, including one with no shell\"\nVERDICT: HIT\nWHY: The answer says tier 1 is reachable via CLI flags and via the `options` mapping on `build_index()`/MCP, and that this lets a caller with no shell use it."
+}

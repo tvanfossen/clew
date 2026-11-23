@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 18639,
+  "stop_reason": "end_turn",
+  "session_id": "6b7bd398-83b3-43c0-bdbc-9921bc7e4487",
+  "total_cost_usd": 0.00759243,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 19031,
+    "cache_read_input_tokens": 219423,
+    "output_tokens": 3182,
+    "output_tokens_details": {
+      "thinking_tokens": 1469
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 19031,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2036,
+        "cache_read_input_tokens": 53442,
+        "cache_creation_input_tokens": 3869,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 3869
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 3182,
+      "cacheReadInputTokens": 219423,
+      "cacheCreationInputTokens": 19031,
+      "webSearchRequests": 0,
+      "costUSD": 0.00759243,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1469,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 19031,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 8,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** the index scope is decided by `derive_scope` in `clew/scope.py`. A declared `index_scope:` in `.clew.yaml` wins. If nothing usable is declared, the whole repository is the scope, minus what git ignores and the dot and cache directories. A Doxyfile never decides the file set.\n\n**The decision, in order**\n\n1. `derive_scope(repo_root, stated)` (`clew/scope.py:639`) is the single entry point. It clears the depth-limit record, then asks `_declared_index_scope` for a declaration.\n2. `_declared_index_scope` (`clew/scope.py:991`) reads `index_scope:` from `.clew.yaml`. A caller can also pass a scope directly, which is the same construction with a different reason string.\n   - No `index_scope:` section returns `None`, and the code falls through to the whole-repo tier.\n   - A section that is present but unusable is rejected with a reason. Examples: it is not a mapping, it has an unknown key such as `exclude:` for `excludes:`, or it has no `roots:` that exist on disk. The rejection is logged as a warning, and the build falls back to the whole repo with the rejection named as the reason. It does not silently widen.\n   - A declared `roots:` list is taken at its word and never walked. `excludes:` only subtracts from it, and `excludes` alone does nothing.\n3. If nothing usable is declared, `whole_repo_scope` (`clew/scope.py:683`) returns one root, the repository itself. Its `excludes` are:\n   - the paths git ignores, from `git ls-files --others --ignored --exclude-standard --directory` (`_gitignored_paths`, `clew/scope.py:845`), run through `git_argv` and `git_env` so a target's own `.git/config` cannot run code;\n   - the same ignore list for each nested git tree, since the parent's `ls-files` cannot see inside a submodule;\n   - dot-directories plus `__pycache__` and `node_modules` (`_skip_dir`, `_SKIP_DIR_NAMES`).\n\n**What the defaults do not consult**\n\n- **Doxyfile `INPUT`.** A Doxyfile still supplies ALIASES and PREDEFINED, but its INPUT is replaced. Honouring it would index only headers for a repo like mbedtls.\n- **The doxygen-guard `files:` pattern.** That pattern answers what must be documented, not what should be indexed. A test asserts a gate pattern alone derives no index roots.\n- **Nested git trees.** These are indexed, not excluded. `external.py` tags their rows so two codebases in one index can still be told apart.\n\n**What this repo shows now**\n\n`index(action=status)` reports the decision for this repo: `.clew.yaml` exists but carries no `index_scope`, so `source: whole-repo`, roots `.`, excludes `.git, .claude-plugin, .github`. That gives 435 files in scope and 397 indexed. The other 14 are listed by extension or reason, for example `.csv=3`, `.rs=2`, `.toml=2`. I did not trace each of those 14 to its reason. Binary files are dropped separately (REQ-DDB-PIPE-011, stamped via `_skipped_files_scope` in `clew/cli.py:2594`), and the walk stops descending at a fixed depth, with the stops recorded.\n\n**Caveat:** I used the index for the scope logic and read the status payload. I did not open `_drop_binary_files` or the extension-level filter to confirm their exact rules.",
+  "ttft_ms": 1689,
+  "type": "result",
+  "duration_ms": 20089,
+  "uuid": "943df434-8739-40da-866e-30f261020699",
+  "ttft_stream_ms": 1087,
+  "time_to_request_ms": 72,
+  "first_content_frame_ms": 1088,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

@@ -17,6 +17,29 @@
 # times: Q3 converges on one decision from two gates that never reference each other, Q4 is an
 # inventory spread over seven files with no file that lists them, and Q5 is a language-boundary
 # question whose six files each hold one constraint that solves a problem stated elsewhere.
+#
+# 4.0.0 (2026-11-17, the 2.0.0 rubric cross-check; every change re-read at the pin):
+#   WRONG AT THE PIN, rewritten:
+#   Q3.3  "default-ALLOW, an unlisted tool runs" was inverted. auto_approve defaults false
+#         (config.h:592) and nothing first-party sets on_tool_call (engine_types.h:370 is its
+#         only declaration; tool_executor.cpp:168-170 its only reader), so an unlisted tool is
+#         DENIED at the approval gate (tool_executor.cpp:184-187). All 9 cells stated the
+#         correct conditional and scored 0.
+#   Q2    `config` and `core` were grep artifacts: loader.cpp:657 is a config key named
+#         llama_log_path, response_generator.cpp:205/:354 are comments. 11 .cpp TUs compile
+#         against llama.cpp headers, 10 in src/inference plus src/facade/entropic.cpp.
+#   Q2.3  the seam is NOT C-API-only: llama_cpp_backend.cpp:27-32 uses llama.cpp's C++ common
+#         and mtmd libraries.
+#   Q3.7  persistence is unwired: PermissionPersister is never constructed in src/, and
+#         set_permission_persist has no caller.
+#   Q4.6  only the external bridge's three thread bodies install HandleLogScope
+#         (external_bridge.cpp:797, :946, :1159); "every thread body" was false.
+#   Q1.6  two callers DO check (llama_cpp_backend.cpp:3594, :3922, `size() < 2`).
+#   Q5.9 / Q3.8 sets were missing files the rubric's own marks cite (hooks.py,
+#         scripts/gen_bindings.py; loader.cpp:365-372, facade/entropic.cpp:792/:1489).
+#   JUDGING SPLITS, reworded: Q1.1, Q1.3, Q3.0, Q3.1, Q3.2 (split into behaviour + location),
+#   Q4.5 (either bridge direction). Weights: Q4.1 3->2, Q5.3 3->2 (one finding carried 10 of
+#   Q5's points). Minor refs: Q1.3 :101-104, Q3.4 :185, Q4.3 drain site, Q5.1/5.6/5.7/5.8.
 
 
 
@@ -24,7 +47,7 @@ schema: 1
 
 target: tvanfossen/entropic
 commit: 6dcb4c814639fd58ead85aea06809637010f34f1
-version: 3.1.1
+version: 4.0.0
 
 ground_truth: |
   entropic's own source at the commit above, read directly. Counts were taken from the working
@@ -73,8 +96,8 @@ questions:
         refs: [["src/inference/llama_cpp_tokenizer.cpp", 49], ["src/inference/llama_cpp_tokenizer.cpp", 86]]
 
       - text: >-
-          states that the first call returns the REQUIRED BUFFER SIZE as a negative number, and
-          that the code negates it to size the buffer for the second call
+          states that the first call's negative return carries the required size (a token count
+          for tokenize, a byte count for detokenize), which sizes the buffer for the second call
         type: conclusion
         weight: 3
         evidence: |
@@ -93,12 +116,14 @@ questions:
         evidence: |
           Nothing loops. The second call cannot fail for the same reason as the first, because
           the buffer is now exactly the size the API asked for. Calling it a retry imports an
-          error-recovery model the code does not have.
+          error-recovery model the code does not have. The source's own comments use the word
+          "retry" (:45, :81, :97); the mark is about behaviour (one fixed second call, no loop),
+          not vocabulary.
         refs: [["src/inference/llama_cpp_tokenizer.cpp", 49, 71]]
 
       - text: >-
-          states that a negative or non-positive result from the SECOND call is terminal — it
-          returns empty rather than attempting again
+          states that a failure on the second call returns empty (tokenize logs then returns {},
+          detokenize returns an empty string) with no further attempt
         type: conclusion
         weight: 3
         evidence: |
@@ -106,7 +131,7 @@ questions:
           from its ternary when n is not positive.
         refs:
           - ["src/inference/llama_cpp_tokenizer.cpp", 64, 68]
-          - ["src/inference/llama_cpp_tokenizer.cpp", 101, 103]
+          - ["src/inference/llama_cpp_tokenizer.cpp", 101, 104]
 
       - text: >-
           notes that detokenize tries a fixed 256-byte STACK buffer first and only heap-allocates
@@ -134,13 +159,22 @@ questions:
 
       - text: >-
           concludes that a failed tokenization is therefore indistinguishable from a legitimately
-          empty result, and that no caller checks for it
+          empty result, and that most callers use it unchecked — the only guards (the speculative
+          and MTP paths) are length checks that report a short prompt rather than a tokenization
+          failure
         type: conclusion
         weight: 3
         evidence: |
-          Nothing at the call sites tests the returned container for emptiness before using it.
-          The failure is silent by construction rather than by oversight at any one site.
-        refs: [["src/inference/llama_cpp_backend.cpp", 824, 845]]
+          llama_cpp_backend.cpp:3594 (speculative) and :3922 (MTP) reject `tokens.size() < 2` with
+          ENTROPIC_ERROR_GENERATE_FAILED, which catches an empty tokenization and mislabels it.
+          The other callers (:826 count, :1911 batch, :2066 sys-prefix count, :2561/:2643/:2728
+          generate/cancellable/stream, :3947 complete) do not test for emptiness. The failure is
+          silent by construction rather than by oversight at any one site.
+        refs:
+          - ["src/inference/llama_cpp_backend.cpp", 824, 845]
+          - ["src/inference/llama_cpp_backend.cpp", 2561]
+          - ["src/inference/llama_cpp_backend.cpp", 3594]
+          - ["src/inference/llama_cpp_backend.cpp", 3922]
 
       - text: >-
           identifies that the token-counting path reports ZERO for a failed tokenization rather
@@ -157,9 +191,11 @@ questions:
     intent: |
       Probes whether the agent establishes the SHAPE of a dependency boundary or only its
       existence. That llama.cpp is a submodule is one lookup. Where the seam actually falls is
-      not: it is concentrated in one directory and NOT contained by it, and the three files
-      outside are the interesting part — an answer claiming the dependency is confined to the
-      inference layer is wrong in a way that matters to anyone planning to replace it.
+      not: it is concentrated in one directory and NOT contained by it, and the facade that sits
+      outside is the interesting part — it includes the backend header (which pulls in llama.h)
+      and passes raw llama_model / llama_context pointers, and its CMake target links llama — so
+      an answer claiming the dependency is confined to the inference layer is wrong in a way
+      that matters to anyone planning to replace it.
 
     prompt: |
       entropic depends on llama.cpp. How is that dependency brought in, and how far into
@@ -176,43 +212,54 @@ questions:
         refs: [[".gitmodules"]]
 
       - text: >-
-          conveys that the dependency reaches roughly a dozen files of entropic's own source,
-          not one wrapper
+          conveys that the dependency reaches many files (on the order of ten) of entropic's own
+          source, across the inference layer, not one wrapper class
         type: conclusion
         weight: 2
         evidence: |
-          13 `.cpp` files under src/ name llama_ symbols at the pinned commit — 19 counting the
-          headers and src/inference/CMakeLists.txt as well. Counted as
-          `git grep -l 'llama_' <pin> -- 'src/*.cpp' 'src/**/*.cpp' | wc -l`; the method is recorded
-          because the figure does not reproduce without it. An answer conveying the
-          right order of magnitude earns this; an exact count must not be required, since it is
-          an artifact of how one counts.
+          11 `.cpp` translation units compile against llama.cpp headers (directly, or through
+          llama_cpp_backend.h): 10 in src/inference plus src/facade/entropic.cpp. Counted as
+          `git grep -lE '#include *[<"](llama|common|chat|sampling|speculative|mtmd|mtmd-helper|llama_cpp_backend)\.h' -- 'src/*.cpp' 'src/**/*.cpp'`.
+          9 include a llama.cpp header directly. A plain `git grep -l llama_` gives 13, two of
+          them false (a config key and two comments). Any figure from about 8 to about 20 with a
+          stated method earns this; an exact count must not be required.
         refs: [["src/inference/llama_cpp_backend.cpp"], ["src/inference/orchestrator.cpp"]]
 
       - text: >-
           concludes that the dependency is CONCENTRATED in the inference layer but NOT contained
-          by it — a minority of the reaching files sit outside src/inference
+          by it — the facade (src/facade/entropic.cpp) reaches it from outside; an answer that
+          names only the facade (or the facade plus the public headers' forward declarations) as
+          the exception earns this
         type: conclusion
         weight: 3
         evidence: |
-          10 of the 13 `.cpp` files are under src/inference/ (16 of 19 on the wider count). The other three are src/config/loader.cpp,
-          src/core/response_generator.cpp and src/facade/entropic.cpp. An answer that says the
-          dependency is confined to the inference layer is wrong, and wrong in the direction
-          that matters to anyone planning to replace the backend.
+          10 of the 11 reaching TUs are under src/inference/. The exception is
+          src/facade/entropic.cpp: `#include "llama_cpp_backend.h"` at :20 (which includes
+          <llama.h>, llama_cpp_backend.h:33), raw llama_model* / llama_context* at :2923-3001,
+          and src/facade/CMakeLists.txt:40-48 links llama / mtmd / llama-common into the facade.
+          config/loader.cpp (the `llama_log_path` config key, :657) and core/response_generator.cpp
+          (comments, :205, :354) are NOT reaches. An answer that says the dependency is confined
+          to the inference layer is wrong, in the direction that matters to anyone planning to
+          replace the backend.
         refs:
-          - ["src/config/loader.cpp"]
-          - ["src/core/response_generator.cpp"]
-          - ["src/facade/entropic.cpp"]
+          - ["src/facade/entropic.cpp", 20]
+          - ["src/facade/CMakeLists.txt", 40, 48]
 
       - text: >-
-          identifies the seam as llama.cpp's C API — free functions with an llama_ prefix — rather
-          than C++ classes or inheritance
+          identifies the seam as llama.cpp's C API (llama_ free functions on opaque handles such
+          as llama_model / llama_context / llama_vocab), plus its common / mtmd helper libraries
+          used from llama_cpp_backend.cpp, rather than subclassing any llama.cpp type
         type: conclusion
         weight: 2
         evidence: |
-          Every reaching site calls llama_-prefixed free functions (llama_tokenize,
-          llama_token_to_piece and so on) against opaque handles such as llama_vocab.
-        refs: [["src/inference/llama_cpp_tokenizer.cpp", 55, 57]]
+          The tokenizer calls llama_tokenize / llama_token_to_piece against llama_vocab
+          (llama_cpp_tokenizer.cpp:55-57). llama_cpp_backend.cpp:27-32 also includes llama.cpp's
+          C++ `common` library (common.h, chat.h, sampling.h, speculative.h) and libmtmd, and uses
+          std::vector<common_chat_msg> (:999-1004), common_sampler_*, common_speculative_* and
+          mtmd_*. Nothing derives from a llama.cpp class.
+        refs:
+          - ["src/inference/llama_cpp_tokenizer.cpp", 55, 57]
+          - ["src/inference/llama_cpp_backend.cpp", 27, 32]
 
       - text: the top-level source directories that reach into llama.cpp
         type: set
@@ -223,26 +270,23 @@ questions:
         ## `scripts/rubric_audit.py` is what flags this shape.
         weight: 1
         extract: |
-          List every directory under src/ that the answer says contains code calling into
-          llama.cpp. One per line, as the answer writes them. If the answer names none, reply
-          NONE.
+          List every directory under src/ that the answer says contains code calling into or
+          compiling against llama.cpp. Exclude directories the answer says only mention the name.
+          One per line, as the answer writes them. If the answer names none, reply NONE.
         members:
           - value: inference
-            evidence: "10 files"
-          - value: config
-            evidence: "loader.cpp"
-          - value: core
-            evidence: "response_generator.cpp"
+            evidence: "10 TUs"
           - value: facade
-            evidence: "entropic.cpp"
+            evidence: "entropic.cpp, via llama_cpp_backend.h (:20)"
 
   - id: Q3
     intent: |
-      TWO GATES IN TWO CLASSES THAT CONSULT DIFFERENT LISTS. The subsystem reads like a
-      conventional allow/deny model and its own header comment calls it "Default-deny model" —
-      but the deny list is the only thing that blocks anything, and the same header's next
-      sentence says so ("Unknown tools are not denied"). An answer that reads the class in
-      isolation reports the doc; an answer that follows both call sites reports the code.
+      TWO GATES IN TWO CLASSES THAT CONSULT DIFFERENT LISTS. The deny gate in ServerManager
+      consults only the deny list; the approval gate in ToolExecutor consults the allow list,
+      auto_approve and a callback. An unlisted tool passes the deny gate and is decided at the
+      approval gate — where, with the shipped defaults (auto_approve false, no callback
+      registered), it is denied. An answer that reads one class in isolation reports half the
+      decision; an answer that follows both call sites reports the code.
 
       The shape is deliberately the opposite of Q1's. Q1 follows one value outward to its
       receivers; this one converges on a single decision from two directions that never
@@ -252,7 +296,9 @@ questions:
       The sharpest component is the approval callback. It is a void function pointer, so it
       cannot refuse; the code sets approved = true immediately after firing it. Registering a
       callback therefore approves everything, and the only path to a denial at that gate is
-      having no callback at all — the inverse of what "ask the user" suggests.
+      having no callback at all — the inverse of what "ask the user" suggests. At this pin no
+      first-party code or public C API sets on_tool_call, so the branch is reachable only from a
+      C++ embedder.
 
     prompt: |
       A tool call arrives in entropic and the user has configured permissions. Trace what
@@ -260,8 +306,9 @@ questions:
 
     marks:
       - text: >-
-          names PermissionManager and locates the allow and deny lists as coming from the
-          PermissionsConfig the ServerManager is constructed with
+          names PermissionManager and locates the allow/deny lists as coming from the
+          permissions config section, passed into ServerManager at construction
+          (server_manager.cpp:35); naming the config type is not required
         type: retrieval
         weight: 1
         evidence: |
@@ -273,8 +320,9 @@ questions:
           - ["src/mcp/server_manager.cpp", 30, 36]
 
       - text: >-
-          concludes that the DENY list is the only one that blocks execution — ServerManager's
-          execute path consults is_denied and nothing else before routing the call
+          concludes that once approval has passed, the DENY list is the only thing that blocks:
+          ServerManager::execute consults is_denied and nothing else before routing the call, and
+          is_allowed is never called on that path
         type: conclusion
         weight: 3
         evidence: |
@@ -285,8 +333,8 @@ questions:
           - ["src/mcp/server_manager.cpp", 155, 167]
 
       - text: >-
-          states that the ALLOW list does not grant execution but suppresses the approval step —
-          it is consulted only from ToolExecutor::check_approval, in a different file
+          states that the ALLOW list does not grant execution; it only lets a call skip the
+          approval step
         type: conclusion
         weight: 3
         evidence: |
@@ -302,22 +350,36 @@ questions:
           - ["src/mcp/server_manager.cpp", 284, 291]
 
       - text: >-
-          concludes that the effective posture is default-ALLOW at the blocking gate — a tool
-          matching neither list is not denied and runs
+          locates the allow check in ToolExecutor::check_approval (src/mcp/tool_executor.cpp),
+          the only caller of is_explicitly_allowed
+        type: retrieval
+        weight: 1
+        evidence: |
+          tool_executor.cpp:164 is the only call of ServerManager::is_explicitly_allowed
+          (server_manager.cpp:286-291).
+        refs:
+          - ["src/mcp/tool_executor.cpp", 164]
+
+      - text: >-
+          concludes that an unlisted tool is not stopped by the deny gate; whether it runs is
+          decided at the approval gate (auto_approve, an allow match, or a registered callback),
+          and with the shipped defaults (auto_approve false, no on_tool_call setter in entropic.h)
+          it is denied
         type: conclusion
         weight: 3
         evidence: |
-          Direct consequence of execute() consulting only is_denied. The class's own header
-          comment at include/entropic/mcp/permission_manager.h:27-30 opens "Default-deny model"
-          and then states "Unknown tools are not denied", so the doc contradicts its own first
-          sentence.
-
-          A mark is earned by describing what the code does. Noticing the doc's contradiction is
-          not required, but an answer that repeats "default-deny" as the behaviour has reported
-          the comment rather than the code.
+          execute() consults only is_denied (server_manager.cpp:155-167), so an unlisted tool
+          passes it. check_approval (tool_executor.cpp:161-188) approves only on auto_approve, an
+          allow match, or a non-null on_tool_call; otherwise it logs "No approval callback —
+          denying" (:185) and check_approval_pc returns "Permission denied" (:705-713).
+          PermissionsConfig::auto_approve defaults false (include/entropic/types/config.h:592)
+          and on_tool_call is set nowhere in first-party code (declared at engine_types.h:370,
+          read only at tool_executor.cpp:168-170; engine.cpp:3046 resets callbacks to `{}`).
         refs:
-          - ["include/entropic/mcp/permission_manager.h", 24, 32]
           - ["src/mcp/server_manager.cpp", 155, 167]
+          - ["src/mcp/tool_executor.cpp", 161, 188]
+          - ["src/mcp/tool_executor.cpp", 705, 713]
+          - ["include/entropic/types/config.h", 592]
 
       - text: >-
           identifies that the approval callback CANNOT refuse — it returns void, and the code
@@ -331,7 +393,9 @@ questions:
 
           The consequence inverts the intuition: registering a callback approves everything, and
           a call is refused at this gate only when NO callback is registered — which is exactly
-          what the log line at :183 says ("No approval callback — denying").
+          what the log line at :185 says ("No approval callback — denying"). No first-party code
+          or public C API sets on_tool_call at this pin, so the branch is reachable only from a
+          C++ embedder calling AgentEngine::set_callbacks.
         refs:
           - ["include/entropic/core/engine_types.h", 370]
           - ["src/mcp/tool_executor.cpp", 167, 186]
@@ -369,19 +433,21 @@ questions:
           - ["src/mcp/server_manager.cpp", 419, 444]
 
       - text: >-
-          identifies that a decision can be PERSISTED for future sessions by appending to
-          config.local.yaml, separately from the in-memory add_permission call
+          notes that a persistence path exists (PermissionPersister writing config.local.yaml;
+          ToolExecutor::set_permission_persist) but is not wired: nothing constructs the persister
+          or calls set_permission_persist, so no decision is persisted at this pin
         type: conclusion
         weight: 2
         evidence: |
-          include/entropic/storage/permission_persister.h:36-58: PermissionPersister is
-          constructed from a config directory, targets `config.local.yaml`, exposes
-          `save_permission(pattern, allow)` and serialises writes with an internal mutex.
-          src/storage/permission_persister.cpp:1-10 records that it edits the YAML by line rather
-          than through a parser. ServerManager::add_permission
-          (src/mcp/server_manager.cpp:359-362) is the in-memory counterpart and writes nothing.
+          include/entropic/storage/permission_persister.h:36-58 declares PermissionPersister
+          (targets `config.local.yaml`, `save_permission(pattern, allow)`). `git grep -ln
+          PermissionPersister` finds only its own header/cpp, engine_types.h (doc), its unit test
+          and docs — no construction in src/. ToolExecutor::set_permission_persist
+          (tool_executor.cpp:49) has no caller. ServerManager::add_permission
+          (server_manager.cpp:359-362) is in-memory only.
         refs:
           - ["include/entropic/storage/permission_persister.h", 20, 58]
+          - ["src/mcp/tool_executor.cpp", 49]
           - ["src/mcp/server_manager.cpp", 355, 362]
 
       - text: the files a permission decision passes through
@@ -399,7 +465,13 @@ questions:
           - value: src/mcp/tool_executor.cpp
             evidence: ":161-186 the approval gate, the only caller of is_explicitly_allowed"
           - value: include/entropic/types/config.h
-            evidence: ":589-593 where allow and deny come from"
+            evidence: ":589-593 where allow and deny come from; :592 auto_approve default"
+          - value: src/config/loader.cpp
+            evidence: ":365-372 parses allow, deny and auto_approve"
+          - value: src/facade/entropic.cpp
+            evidence: ":792 constructs ServerManager with config.permissions; :1489 sets auto_approve_tools"
+          - value: include/entropic/core/engine_types.h
+            evidence: ":370 the on_tool_call approval callback"
 
   - id: Q4
     intent: |
@@ -412,8 +484,8 @@ questions:
       "check whether the feature is compiled in" finds nothing to check.
 
       The conclusions worth having are about POLICY rather than inventory: callbacks are queued
-      and drained on the caller's thread rather than fired from the background one; every thread
-      body installs the same logging scope as its first statement; exactly one thread is
+      and drained on the caller's thread rather than fired from the background one; the external
+      bridge's thread bodies install a per-handle logging scope as their first statement; exactly one thread is
       detached; and one thread exists solely to translate an atomic into a plain int because the
       C ABI cannot carry an atomic across the boundary.
 
@@ -438,7 +510,7 @@ questions:
           describes the external bridge's two-level thread structure: one accept thread that
           spawns a further thread per connected client
         type: conclusion
-        weight: 3
+        weight: 2
         evidence: |
           src/facade/external_bridge.cpp:796-799 starts accept_thread_ running accept_loop;
           :945-951 spawns one thread per accepted client running serve_client. The per-client
@@ -455,8 +527,9 @@ questions:
         weight: 3
         evidence: |
           src/facade/external_bridge.cpp:1158 constructs it and :1222 is the only `.detach()` in
-          first-party source at the pinned commit — every other thread is stored in a member and
-          joined. The body runs entropic_run, updates the task registry under tasks_mutex_,
+          first-party source at the pinned commit — every other thread is joined (most are
+          members; the cancellation observer, response_generator.cpp:410, and the poller,
+          interface_factory.cpp:244, are function locals). The body runs entropic_run, updates the task registry under tasks_mutex_,
           broadcasts a progress notification and expires old tasks.
 
           An answer that says "threads are detached" or names detachment as the general pattern
@@ -480,6 +553,7 @@ questions:
         refs:
           - ["src/mcp/health_monitor.cpp", 112, 131]
           - ["include/entropic/mcp/health_monitor.h", 130, 140]
+          - ["src/mcp/server_manager.cpp", 708, 712]
 
       - text: >-
           identifies that the monitor's shutdown is an atomic flag exchange plus a condition
@@ -496,8 +570,10 @@ questions:
           - ["include/entropic/mcp/health_monitor.h", 130, 141]
 
       - text: >-
-          identifies the cancellation observer thread as existing to bridge an atomic into a plain
-          int, because the C ABI boundary cannot carry an atomic
+          identifies the cancellation bridge threads as existing because the C ABI carries
+          cancellation only as a plain int* (no atomic across the .so boundary) — the engine-side
+          observer copies the atomic interrupt flag into the int, the backend-side pollers copy the
+          int back into an atomic; either direction with the ABI reason earns this
         type: conclusion
         weight: 3
         evidence: |
@@ -506,16 +582,18 @@ questions:
           thread polls the atomic every 10ms, writing 1 into a plain int the generate call
           watches. It is joined immediately after the call returns.
 
-          A near-identical poller appears at src/inference/inference_c_api.cpp:385 and
-          src/inference/interface_factory.cpp:246, so this is a repeated idiom rather than a
-          one-off, which is itself only visible across files.
+          The reverse-direction pollers at src/inference/inference_c_api.cpp:385-392 and
+          src/inference/interface_factory.cpp:246-255 copy the int* back into an atomic<bool>, so
+          this is a repeated idiom rather than a one-off, which is itself only visible across
+          files.
         refs:
           - ["src/core/response_generator.cpp", 404, 429]
           - ["src/inference/inference_c_api.cpp", 385]
 
       - text: >-
-          notes that every thread body installs a per-handle logging scope as its first
-          statement, so background work logs against the handle that owns it
+          notes that the external bridge's three thread bodies (accept, per-client, async worker)
+          each install a HandleLogScope as their first statement, with log_id captured by value
+          before the thread starts, so their logs route to the owning handle
         type: conclusion
         weight: 2
         evidence: |
@@ -524,8 +602,9 @@ questions:
           The log_id is captured by value from handle_ before the thread starts, because the
           handle cannot be dereferenced safely from the new thread.
 
-          This is a cross-cutting convention: it is not stated anywhere as a rule, and it shows
-          only by seeing the same first line in several thread bodies.
+          `git grep HandleLogScope -- src` finds only those three; the monitor, transport reader,
+          observer and poller bodies do not install it. An answer claiming every thread body does
+          states something false.
         refs:
           - ["src/facade/external_bridge.cpp", 790, 800]
           - ["src/facade/external_bridge.cpp", 942, 948]
@@ -608,8 +687,9 @@ questions:
         weight: 2
         evidence: |
           Both python/src/entropic/_bindings.py:2-5 and _bindings_manifest.py:2 carry an
-          "AUTO-GENERATED by scripts/gen_bindings.py — do not edit" banner naming
-          include/entropic/entropic.h plus types/*.h as the source.
+          "AUTO-GENERATED by scripts/gen_bindings.py — do not edit" banner; _bindings.py:2-5 also
+          names include/entropic/entropic.h plus types/*.h as the source (the manifest's banner
+          names only the generator).
         refs:
           - ["python/src/entropic/_bindings.py", 1, 15]
           - ["python/src/entropic/_bindings_manifest.py", 1, 8]
@@ -634,7 +714,7 @@ questions:
           explains that the generated surface is SPLIT IN TWO on purpose — a names-only manifest
           that imports no ctypes, and the real bindings module that loads the library
         type: conclusion
-        weight: 3
+        weight: 2
         evidence: |
           _bindings_manifest.py holds only a frozenset of names and its docstring says it is
           "imported eagerly by entropic.__init__ ... without loading librentropic.so".
@@ -683,9 +763,11 @@ questions:
         weight: 3
         evidence: |
           include/entropic/entropic.h:31-37, the "Memory ownership" block. The two halves have
-          different lifetimes and the distinction is carried entirely by the return type's
-          constness — a detail an answer that says "free what you get back" gets wrong for the
-          const case.
+          different lifetimes, carried by the return type's constness — a detail an answer that
+          says "free what you get back" gets wrong for the const case. One const char* is static
+          rather than handle-owned: entropic_version (entropic.h:178; facade/entropic.cpp:1913
+          returns a string literal); saying "static or handle-owned, do not free" is accurate,
+          but the lifetime clause for handle-scoped strings is still required.
         refs:
           - ["include/entropic/entropic.h", 31, 38]
           - ["include/entropic/entropic.h", 249]
@@ -697,9 +779,9 @@ questions:
         weight: 3
         evidence: |
           include/entropic/entropic.h:34-36 requires it for buffers the engine frees, naming hook
-          modified_json. python/src/entropic/hooks.py:123-135 implements it — _alloc_c_string
-          calls entropic_alloc and memmoves a NUL-terminated UTF-8 copy in — and the hook
-          trampoline at :155-160 does the same for a returned dict.
+          modified_json. The live allocation is the hook trampoline, python/src/entropic/hooks.py
+          :157-162, which entropic_allocs and memmoves a NUL-terminated UTF-8 copy of a returned
+          dict; the helper _alloc_c_string (:123-135) does the same but is never called.
 
           Two directions, two functions, and the Python side is the only place the second one is
           exercised. An answer covering only the first direction has half the contract.
@@ -714,9 +796,9 @@ questions:
         weight: 2
         evidence: |
           python/src/entropic/hooks.py:164-170: a bare `except Exception` prints a traceback to
-          stderr and sets rc = 0, which is the pass verdict. Unwinding a Python exception through
-          a ctypes callback into C is undefined, so the catch is deliberate — the comment says so
-          — but the consequence is that a broken hook is silent apart from stderr.
+          stderr and sets rc = 0, which is the pass verdict. The comment states the intent: "Never
+          let a Python exception escape into the C engine" (:165-166). The consequence is that a
+          broken hook is silent apart from stderr.
         refs:
           - ["python/src/entropic/hooks.py", 160, 171]
 
@@ -725,9 +807,10 @@ questions:
         weight: 2
         extract: |
           List every file path the answer names as part of how the Python package reaches the C
-          engine — locating the library, declaring the bindings, deferring the load, or handling
-          memory that crosses. Paths only, one per line, as the answer writes them. If the answer
-          names none, reply NONE.
+          engine — locating the library, declaring or generating the bindings, deferring the
+          load, or handling memory that crosses. Do not include engine-side C/C++ implementation
+          files. Paths only, one per line, as the answer writes them. If the answer names none,
+          reply NONE.
         members:
           - value: python/src/entropic/_loader.py
             evidence: "finds and dlopens librentropic.so"
@@ -739,3 +822,11 @@ questions:
             evidence: ":45-56 and :85-93, the PEP 562 deferral"
           - value: include/entropic/entropic.h
             evidence: "the C contract both generated files are derived from"
+          - value: python/src/entropic/hooks.py
+            evidence: ":157-162 entropic_allocs engine-freed buffers; :164-170 the trampoline's catch"
+          - value: scripts/gen_bindings.py
+            evidence: "the generator both banners name"
+          - value: python/src/entropic/streams.py
+            evidence: ":71 ctypes.string_at copies the engine's token buffer"
+          - value: python/src/entropic/helpers.py
+            evidence: ":30 ctypes.string_at copies an engine-owned patch buffer"

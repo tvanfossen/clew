@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: By default a member such as `ssl->state` is declared as `private_state`. Application code that writes `ssl->state` fails to compile... The layout is unchanged, so this is not an ABI change.\nVERDICT: HIT\nWHY: The answer says the compile-time guard works by renaming the member to `private_<member>` and that the layout is unchanged, so the fields stay visible and sized."
+}

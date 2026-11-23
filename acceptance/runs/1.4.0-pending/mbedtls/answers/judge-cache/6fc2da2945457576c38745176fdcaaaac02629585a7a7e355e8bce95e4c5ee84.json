@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `test_with_valgrind_constant_time` in `tests/scripts/components-configuration-crypto.sh` runs `tests/suites/*constant_time*.data` under Valgrind in a `valgrind_cf` configuration. `components-sanitizers.sh` has a `component_release_test_valgrind_constant_flow` that runs only the constant_time suites under Valgrind or MemSan.\nVERDICT: MISS\nWHY: The answer describes Valgrind/MemSan test components that check constant-time behaviour. It never says the facility is a separate off-by-default testing facility, and it never says the facility is explicitly not part of the library API."
+}

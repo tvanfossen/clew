@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The 16-bit code is split into a high-level module ID (bits `0xFF80`) and a low-level code (`~0xFF80`). Each has its own generated switch ... and a code can carry both parts.\" and \"else append \\\" : \\\" and mbedtls_low_level_strerr(ret)\"\nVERDICT: HIT\nWHY: The answer states a code has high-level and low-level parts, and that strerror appends the low-level text after the high-level text with \" : \" when both are present."
+}

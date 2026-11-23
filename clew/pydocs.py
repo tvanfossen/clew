@@ -160,7 +160,7 @@ def enrich_python_docstrings(db_path: Path, repo_root: Path, cache: Any = None) 
 ## @brief Whether memberdef carries the dg_source column.
 ## @return True when the column exists.
 ## @version 1
-## @dg_internal
+## @utility
 def _has_provenance(conn: sqlite3.Connection) -> bool:
     return any(r[1] == SYMBOL_SOURCE_COLUMN for r in conn.execute("PRAGMA table_info(memberdef)"))
 
@@ -168,7 +168,7 @@ def _has_provenance(conn: sqlite3.Connection) -> bool:
 ## @brief The table a harvested definition's doxygen row lives in.
 ## @return `compounddef` for a class, `memberdef` otherwise.
 ## @version 1
-## @dg_internal
+## @utility
 def _table_for(kind: str) -> str:
     return "compounddef" if kind == "class" else "memberdef"
 
@@ -176,7 +176,7 @@ def _table_for(kind: str) -> str:
 ## @brief Every row a docstring could land on, keyed by (table, file, line).
 ## @return The rowids under each key.
 ## @version 1
-## @dg_internal
+## @utility
 def _locate_rows(conn: sqlite3.Connection) -> dict[tuple[str, int, int], list[int]]:
     """Doxygen's tables carry no index, so `_enrich_one`'s lookup used to scan all of
     `memberdef` once per docstring: 15 s of a 42 s mbedtls build, for no row changed. One
@@ -201,7 +201,7 @@ def _locate_rows(conn: sqlite3.Connection) -> dict[tuple[str, int, int], list[in
 ## @brief Enrich the rows matching one docstring, when doxygen left them bare.
 ## @return How many rows changed.
 ## @version 2
-## @dg_internal
+## @utility
 def _enrich_one(
     conn: sqlite3.Connection,
     kind: str,

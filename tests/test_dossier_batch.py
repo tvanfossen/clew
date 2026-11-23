@@ -133,19 +133,25 @@ def test_a_qualified_argument_beside_a_list_is_refused_not_ignored(rich_db: Path
         _tools(rich_db).dossier(list(INDEXED), qualified="some::identity")
 
 
-def test_the_batch_cap_refuses_rather_than_answering_for_the_first_n(rich_db: Path) -> None:
-    """A truncated request answered as if complete is the failure the `_limited`
-    disclosure exists to prevent, one level up. At the cap the call must still work —
-    an off-by-one that refused the documented maximum would make the constant a lie.
+def test_over_the_batch_cap_answers_the_first_n_and_names_the_rest(rich_db: Path) -> None:
+    """THE RULE CHANGED BY OWNER RULING (2026-11-13, 1.3.10): an over-cap batch used to be
+    REFUSED, which cost the agent a second call every time (2 of 188 mbedtls calls in the 1.3.0
+    grid). It now answers the first `MAX_BATCH_SYMBOLS` and names every subject it did not answer
+    in `not_answered` — the disclosure that kept the old rule's purpose: a truncated request must
+    never read as a complete one. At the cap nothing is named.
 
-    @brief Over the cap raises; at the cap answers.
-    @version 1
+    @brief Over the cap answers the first N and names the rest; at the cap names nothing.
+    @version 2
     """
     tools = _tools(rich_db)
-    over = [f"{INDEXED[0]}_{i}" for i in range(q.MAX_BATCH_SYMBOLS + 1)]
-    with pytest.raises(ValueError, match="at most"):
-        tools.dossier(over)
-    assert tools.dossier(over[: q.MAX_BATCH_SYMBOLS])["count"] == q.MAX_BATCH_SYMBOLS
+    over = [f"{INDEXED[0]}_{i}" for i in range(q.MAX_BATCH_SYMBOLS + 2)]
+    reply = tools.dossier(over)
+    assert reply["count"] == q.MAX_BATCH_SYMBOLS
+    assert reply["subject"] == over[: q.MAX_BATCH_SYMBOLS]
+    assert reply["not_answered"] == over[q.MAX_BATCH_SYMBOLS :]
+    assert "re-ask" in reply["not_answered_means"]
+    at_cap = tools.dossier(over[: q.MAX_BATCH_SYMBOLS])
+    assert at_cap["count"] == q.MAX_BATCH_SYMBOLS and "not_answered" not in at_cap
 
 
 def test_an_empty_list_is_refused_rather_than_answered_with_zero_results(
@@ -417,3 +423,23 @@ def test_every_top_level_dossier_list_is_budgeted_or_named_untrimmable() -> None
                 f"no budget can trim; add it to _DOSSIER_LISTS or to _UNTRIMMABLE with the "
                 f"reason trimming it would be wrong"
             )
+
+
+## The client persists a tool result larger than about 49 KB to a file and hands the model a
+## ~2 KB stub instead. Measured in the 1.4.0 grid (mattermost transcripts): a 48,502-char reply
+## arrived inline, 48.9 KB replies arrived as stubs. An index_only agent has no Read tool, so a
+## stub is a reply it cannot see — it re-asks, and the 1.4.0 `enhanced` cell did so three times.
+_CLIENT_PERSIST_THRESHOLD = 48_000
+
+
+def test_the_reply_cap_sits_below_the_clients_persist_threshold() -> None:
+    """1.4.0 GRID: with the cap at 65,536 bytes a reply could be 48–65 KB — over the client's
+    persist threshold, so never seen by an index_only agent — or just under it and carried inline
+    for every later turn (mattermost Q3 r1: one 48.5 KB batch, ~100k tokens over 5 turns). Owner
+    ruling 2026-11-14: 40 KB. The `_limited` disclosure then names what the cap dropped.
+
+    @brief The response cap is below what the client persists.
+    @return None.
+    @version 1
+    """
+    assert RESPONSE_BUDGET_BYTES <= 40 * 1024 < _CLIENT_PERSIST_THRESHOLD

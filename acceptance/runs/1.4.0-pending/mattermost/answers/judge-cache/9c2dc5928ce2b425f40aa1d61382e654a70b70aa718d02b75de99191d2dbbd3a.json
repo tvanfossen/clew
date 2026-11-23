@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"The removed path does **not** go through `handleReactions`, `sanitizeReactions`, or the transformers.\" and \"queryReaction(database, emoji_name, post_id, user_id).fetch() ... if found: database.write(() => reaction[0].destroyPermanently())\"\nVERDICT: HIT\nWHY: The answer states that removal bypasses the operator and queries the reaction, then destroys it via a direct `database.write`."
+}

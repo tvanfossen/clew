@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 24103,
+  "stop_reason": "end_turn",
+  "session_id": "37e45dfc-4faf-41db-95a6-15e7e6526e49",
+  "total_cost_usd": 0.01132734,
+  "usage": {
+    "input_tokens": 10,
+    "cache_creation_input_tokens": 34505,
+    "cache_read_input_tokens": 234034,
+    "output_tokens": 4170,
+    "output_tokens_details": {
+      "thinking_tokens": 1741
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 34505,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2796,
+        "cache_read_input_tokens": 65161,
+        "cache_creation_input_tokens": 3743,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 3743
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 10,
+      "outputTokens": 4170,
+      "cacheReadInputTokens": 234034,
+      "cacheCreationInputTokens": 34505,
+      "webSearchRequests": 0,
+      "costUSD": 0.01132734,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1741,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 34505,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 9,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "**Short answer:** the reply separates the two cases by grading the empty result against what the index actually holds, not by a fixed sentence. A \"definitive\" answer covers only what was searched, and the reply attaches the scope so the caller can tell a scope miss from a true absence. I read the code but did not run a query against a built index, so the behaviour below is from source.\n\n**How the grade is chosen** (`clew/mcp_server/emptiness.py`, `search_emptiness` at line 298)\n\n| Situation | Wording | Confidence it earns |\n|---|---|---|\n| One token, no matching rows in any unread corpus, file docs present | `_DEFINITIVE` (line 150): \"definitive\u2026 Do not retry\" | Strong, but only about the indexed corpora (see below) |\n| One token, but the index holds matching rows in a corpus `search` doesn't read (classes, variables, macros, typedefs, enums, \u2026) | `_UNREAD_CORPUS` (line 161): \"NOT DEFINITIVE\", names the counts, points to `dossier` | None for \"does not exist\"; the name does exist |\n| Multi-token conjunction empty | `_conjunction_note` (line 259): \"NOT definitive\", names the tokens with zero hits and says retry without them | Low; the miss comes from the query shape |\n| No file-docs table in the build | `_NO_FILE_DOCS` (line 139): \"NOT definitive\", rebuild | None for conceptual queries |\n| `corpus='prose'`, no markdown table | `_NO_PROSE_CORPUS` (line 428): \"NOT definitive\" | None |\n| `corpus='prose'`, token present in symbol corpora | `_PROSE_ELSEWHERE` (line 420) | The repo uses the term; it is written elsewhere |\n\nThe unread-corpus check is the important one. `q.unsearched_corpora` (`clew/query/symbols.py:1806`) derives the unread kinds by subtraction from the kinds the database actually holds. It downgrades the verdict on any hit and publishes the hits as `unsearched_corpus_hits`, so the claim can be checked. The module's own docstring records that the strong wording was wrong four times before this was added.\n\n**Where the place-it-lives answer comes from**\n\nEvery empty reply carries a `scope` block (`_scope_payload`, line 212) built from `q.index_scope` (`clew/query/corpus.py:288`): source tier (for example whole-repo or declared), `file_count`, `top_levels`, `extensions`, and `not_indexed_count`. The summary sentence says \"see the `scope` key\". The `reason` paragraph is stripped here to save bytes but is still in `status`. The caller is the one who has to compare the path they expected against those fields.\n\n**What each answer is entitled to**\n\n- **\"Not in the index\" (definitive):** high confidence that no indexed name, `@brief`, macro, class/struct/union, gated config symbol, or file doc matches that single token, at build time. It does not cover body text, comments outside those corpora, or anything else the searcher never reads.\n- **\"Not in the repository\":** only if the scope covers the path. The strong sentence does not say that a scope miss is possible. Only the `scope` key and `not_indexed_count` do. A file outside the derived scope gets the same \"definitive\" wording as a file that does not exist. That is a real gap, and I did not find a code path that closes it inside the empty-search note.\n- **Staleness:** the freshness module (`clew/mcp_server/freshness.py`, `notices`, line 573) says a source change since build (\"answers may describe code that no longer exists\") rides on query replies. A file added after the build is therefore a miss the index cannot see, and a `data` notice is the only signal for it.\n- **Conjunction or prose miss:** low confidence by design. The reply names what to change, so it is a retry, not an answer.\n\n**Net:** a single-token empty result is a strong claim about the index's named corpora at build time, and it is only a claim about the repository when the `scope` block shows the path was covered. The reply's wording does not enforce that second check, so the caller has to do it.",
+  "ttft_ms": 1903,
+  "type": "result",
+  "duration_ms": 24762,
+  "uuid": "c3936da4-fb5e-4f36-9933-dff78c9e83d6",
+  "ttft_stream_ms": 1240,
+  "time_to_request_ms": 185,
+  "first_content_frame_ms": 1240,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

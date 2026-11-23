@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_ct_compiler_opaque(x)` (`constant_time_impl.h:85`) hides a value from the compiler so it cannot prove the mask is constant.\nVERDICT: HIT\nWHY: The answer names mbedtls_ct_compiler_opaque as the primitive hiding values from the compiler and places it in constant_time_impl.h."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: A section that is present but unusable is rejected with a reason. ... The rejection is logged as a warning, and the build falls back to the whole repo with the rejection named as the reason. It does not silently widen.\nVERDICT: HIT\nWHY: The answer states the fallback carries a named reason (the rejection) and that it doesn't silently widen. A caller-passed scope is also described as having \"a different reason string\", so the scope used is explained rather than guessed."
+}

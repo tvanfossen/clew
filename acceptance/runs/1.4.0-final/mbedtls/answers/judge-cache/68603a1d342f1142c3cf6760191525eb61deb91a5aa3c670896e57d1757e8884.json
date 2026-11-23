@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never mentions MBEDTLS_ERROR_STRERROR_DUMMY. It only notes a stub when MBEDTLS_ERROR_C is off, and says nothing about a separate switch or its default."
+}

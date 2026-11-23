@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says the function is absent (undeclared/uncompiled) on the macro path; it only describes the runtime path and says the declaration couldn't be confirmed."
+}

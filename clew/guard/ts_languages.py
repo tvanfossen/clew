@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """Tree-sitter grammar loading and language-specific node type maps.
 
 @brief Initialize tree-sitter parsers and provide node type mappings per language.
@@ -18,7 +19,7 @@ logger = logging.getLogger(__name__)
 #  single `/** */` comment, "python" is a run of `##` lines (or a docstring), "rust" is a
 #  run of `///` lines or one `/** */` block, reached across any `#[...]` attributes.
 #  @version 1.2
-#  @dg_internal
+#  @utility
 @dataclass(frozen=True)
 class LanguageSpec:
     grammar_module: str
@@ -170,7 +171,7 @@ def language_for_file(file_path: str, config: dict[str, Any]) -> str | None:
 
 ## @brief Look up language name from user config extensions.
 #  @version 1.0
-#  @dg_internal
+#  @utility
 def _language_from_config(ext: str, config: dict[str, Any]) -> str | None:
     languages = config.get("validate", {}).get("languages", {})
     for lang_name, lang_config in languages.items():
@@ -182,7 +183,7 @@ def _language_from_config(ext: str, config: dict[str, Any]) -> str | None:
 ## @brief Detect C++ constructs in a .h file to route to cpp grammar.
 #  @details Looks for namespace, class, template<, or access specifiers at file scope.
 #  @version 1.0
-#  @dg_internal
+#  @utility
 #  @return True if the header contains C++ constructs
 def _looks_like_cpp_header(file_path: str) -> bool:
     try:

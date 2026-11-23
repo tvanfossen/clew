@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `ServerDataOperator` (`app/database/operator/server_data_operator/index.ts:40`) is `class ServerDataOperator extends mix(ServerDataOperatorBase).with(AgentsHandler, BoardsHandler, CategoryHandler, ChannelHandler, CustomProfileHandler, GroupHandler, PlaybookHandler, \u2026)`\nVERDICT: HIT\nWHY: The answer states that ServerDataOperator extends `mix(ServerDataOperatorBase).with(...)` handler mixins, with the handlers defined in separate files."
+}

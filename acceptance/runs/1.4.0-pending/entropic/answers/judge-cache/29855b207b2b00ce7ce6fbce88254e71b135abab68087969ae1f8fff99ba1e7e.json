@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The persister writes it into the project YAML under `permissions.allow` or `permissions.deny`, and the loader reads those lists plus `auto_approve`.\nVERDICT: MISS\nWHY: The answer says a persister writes to project YAML, but never names config.local.yaml or clearly frames persistence as a separate step from the in-memory add_permission call for future sessions."
+}

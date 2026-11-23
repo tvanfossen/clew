@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer never says the integration seam is llama.cpp's C API (llama_-prefixed free functions); it only describes `LlamaCppBackend` as an `InferenceBackend` subclass that owns `llama_model*` and `llama_context*` pointers, and it never describes the API style."
+}

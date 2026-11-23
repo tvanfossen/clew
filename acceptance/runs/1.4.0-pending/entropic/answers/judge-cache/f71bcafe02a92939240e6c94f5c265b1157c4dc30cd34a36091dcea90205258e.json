@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `running_` is atomic; a condvar wakes it | Joined in `stop()`\nVERDICT: HIT\nWHY: The health monitor row states an atomic running_ flag, a condvar wake, and a join in stop(), which covers the item's mechanism."
+}

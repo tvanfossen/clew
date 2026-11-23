@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: NONE\nVERDICT: MISS\nWHY: The answer labels `run_async_ask` a \"detached lambda\" in the table. It then says it did not confirm the thread is detached, and it never says that the thread outlives its caller with no join, nor that it is the only detached thread."
+}

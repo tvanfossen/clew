@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `.yaml` `.yml` `.json` | `path` row only (`type=1`, `local=1`, `found=1`) ... No YAML or JSON keys, values, or comments as symbols.\nVERDICT: HIT\nWHY: The answer states that YAML/JSON are registered as path rows with no symbols, and contrasts this with shell/CMake, which get symbol rows."
+}

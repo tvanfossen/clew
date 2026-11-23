@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Direct `#include <llama.h>` appears in about 15 `.cpp`/`.h` files, almost all under `src/`: ... `orchestrator.cpp`, `adapter_manager.cpp`, ... `src/facade/entropic.cpp`\nVERDICT: MISS\nWHY: The answer says the reach is \"deep\" and lists some files, including `src/facade/entropic.cpp`, but it never concludes that the dependency is concentrated in `src/inference` yet not contained by it. It also never says that a minority of the files sit outside that directory."
+}

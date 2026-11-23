@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `library/error.c` is generated. Its header says so, and `scripts/generate_errors.pl` writes it from: - the template `scripts/data_files/error.fmt` - every `include/mbedtls/*.h` that contains `#define MBEDTLS_ERR_... -0x...`\nVERDICT: HIT\nWHY: The answer states that error.c is generated from the public headers by generate_errors.pl using error.fmt as the template."
+}

@@ -38,7 +38,17 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent
 
 ## THE ARGUMENTS, ONCE. `--integration` is not optional: see the module docstring.
-PYTEST_ARGS = ["-m", "pytest", "tests/", "-q", "--integration"]
+## JUNIT ON EVERY RUN (round 3, P6c): clew's own wiki reads `build/junit.xml` for its requirement
+## tiers, so the gate's run IS the evidence; writing it costs nothing measurable.
+PYTEST_ARGS = ["-m", "pytest", "tests/", "-q", "--integration", "--junitxml=build/junit.xml"]
+
+## COVERAGE IS OPT-IN (`--coverage`): CI's wiki job asks for it. Not in the gate, where tracing
+## every line would slow every commit for a figure only the published wiki reads.
+## PER-TEST CONTEXTS (round 4): `--cov-context=test` records which test ran each line in
+## coverage's own data file (`.coverage`), which the wiki reads, so a test is linked to a
+## requirement by what it EXECUTED — no tag, no call-depth guess. Not the JSON report: with
+## contexts it measured 3.9 GB on this suite.
+COVERAGE_ARGS = ["--cov=clew", "--cov-context=test", "--cov-report=xml:build/coverage.xml"]
 
 ## The interpreter the gate uses. Kept as the default so `run_tests.py` with no arguments is
 ## exactly what the pre-commit hook runs, rather than approximately it.
@@ -114,6 +124,11 @@ def main() -> int:
         ),
     )
     parser.add_argument(
+        "--coverage",
+        action="store_true",
+        help="also write build/coverage.xml (Cobertura) for the wiki; CI's wiki job uses it",
+    )
+    parser.add_argument(
         "extra",
         nargs=argparse.REMAINDER,
         help="further pytest arguments, appended after the mandatory ones",
@@ -121,7 +136,7 @@ def main() -> int:
     args = parser.parse_args()
 
     python = _interpreter(args.python)
-    cmd = [str(python), *PYTEST_ARGS, *args.extra]
+    cmd = [str(python), *PYTEST_ARGS, *(COVERAGE_ARGS if args.coverage else []), *args.extra]
     ## PRINTED, so the command in the scrollback is the command that ran. A wrapper that hides
     ## its invocation makes "what did you actually run?" unanswerable after the fact.
     print(f"$ {' '.join(cmd)}", flush=True)

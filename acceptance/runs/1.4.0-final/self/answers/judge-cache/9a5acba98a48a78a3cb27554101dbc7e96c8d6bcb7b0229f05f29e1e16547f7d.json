@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Stated value vs tier 3 or 4 fact:** both apply. The fact is never discarded. Tiers 3 and 4 combine the same way\" and \"Any stated value replaces them\" / \"Accumulate. Nothing stated can remove them.\"\nVERDICT: HIT\nWHY: The answer says stated channels replace/displace values (flags replace as a whole, stated value replaces tier-5 guesses) while tier 3/4 discovered facts accumulate and cannot be removed by anything stated."
+}

@@ -226,6 +226,45 @@ def _key(value: str) -> str:
     return _LINE_SUFFIX.sub("", bare).rsplit("/", 1)[-1].lower()
 
 
+## @brief A set value normalised to its path segments, for segment-suffix matching.
+## @param value An extracted item or a member value.
+## @return Lower-case segments joined by `/`: no quotes, `./`, `:LINE` or trailing glob segments.
+## @version 1
+def _norm(value: str) -> str:
+    """`include/mbedtls/*.h` and `include/mbedtls/` both name the directory `include/mbedtls`;
+    a trailing glob segment says which files in it, not a different place.
+
+    @brief Normalise a set value.
+    @return The normalised path.
+    """
+    bare = _LINE_SUFFIX.sub("", value.strip().strip("`'\"")).strip().lower()
+    segments = [s for s in bare.split("/") if s and s != "."]
+    while segments and any(ch in segments[-1] for ch in "*?"):
+        segments.pop()
+    return "/".join(segments)
+
+
+## @brief Whether an answer's item names a member: one path a suffix of the other, by segment.
+## @param item An extracted item.
+## @param member A member value.
+## @return True when the shorter path is the longer one's trailing segments.
+## @version 1
+def _matches(item: str, member: str) -> bool:
+    """REPLACES THE BASENAME KEY FOR MATCHING (2.0.0 rubric cross-check, mbedtls Q4): the key
+    folded `include/mbedtls/*.h` to `*.h`, which no member could equal. A bare basename still names
+    its file (`ssl_pthread_server.c` ~ `programs/ssl/ssl_pthread_server.c`), and two DIFFERENT files
+    sharing a basename (`lib/a.c`, `src/a.c`) no longer collide.
+
+    @brief Segment-suffix match.
+    @return Bool.
+    """
+    a, b = _norm(item).split("/"), _norm(member).split("/")
+    if not a[0] or not b[0]:
+        return False
+    n = min(len(a), len(b))
+    return a[-n:] == b[-n:]
+
+
 ## Version 2 passes each sample's index, so the cache no longer collapses extraction to one call.
 ##
 ## @brief Score one set mark: a decision per member, plus one for precision.
@@ -234,7 +273,8 @@ def _key(value: str) -> str:
 ## @param model Dated judge model id.
 ## @param samples Independent extraction calls to vote over.
 ## @return List of decisions.
-## @version 2
+## Version 3 (2.0.0): members match on path segments (`_matches`), not the last segment.
+## @version 3
 def score_set(mark: Mark, answer: str, model: str, samples: int = 3) -> list[Decision]:
     """PRECISION IS A DECISION, NOT A MODIFIER. Once grading is known to be mechanical the
     optimal strategy for recall alone is to name everything, so an answer that pads its list
@@ -268,7 +308,7 @@ def score_set(mark: Mark, answer: str, model: str, samples: int = 3) -> list[Dec
         if items is None:
             continue
         ok += 1
-        for item in {_key(i): i for i in items}.items():
+        for item in {_norm(i): i for i in items if _norm(i)}.items():
             tally[item[0]] += 1
             written.setdefault(item[0], item[1])
     if not ok:
@@ -294,8 +334,8 @@ def score_set(mark: Mark, answer: str, model: str, samples: int = 3) -> list[Dec
     ## UNRULED, NOT ZERO. The weight still sits in the denominator so the arm does not profit, but
     ## it is disclosed as unmeasured instead of counted as a confident miss — absence is not
     ## emptiness, applied to the grader's own uncertainty.
-    member_keys = {_key(str(m["value"])) for m in mark.members}
-    if got and not (member_keys & set(got)):
+    member_keys = {_norm(str(m["value"])) for m in mark.members}
+    if got and not any(_matches(g, m) for g in got for m in member_keys):
         detail = (
             f"extraction matched no member — likely a key mismatch, not a wrong answer. "
             f"extracted {sorted(got.values())}; members {sorted(member_keys)}"
@@ -308,9 +348,10 @@ def score_set(mark: Mark, answer: str, model: str, samples: int = 3) -> list[Dec
     out: list[Decision] = []
     correct = set()
     for member in mark.members:
-        key = _key(str(member["value"]))
-        correct.add(key)
-        found = key in got
+        key = _norm(str(member["value"]))
+        hits = {g for g in got if _matches(g, key)}
+        correct |= hits
+        found = bool(hits)
         out.append(
             Decision(
                 f"{mark.text} — {member['value']}",

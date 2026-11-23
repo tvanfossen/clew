@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: It calls the C ABI in `librentropic.so` directly through `ctypes`.\nVERDICT: HIT\nWHY: The answer states ctypes over librentropic.so and that Python never links against C++ or uses a wrapper, implying no compiled extension module."
+}

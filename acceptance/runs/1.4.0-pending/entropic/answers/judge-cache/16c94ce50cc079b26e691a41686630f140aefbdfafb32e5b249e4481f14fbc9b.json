@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: The argument value comes from `args_to_pattern`, which takes the first JSON key's string value, or `*` when there is none.\nVERDICT: HIT\nWHY: The answer states that only the first key's string value reaches the pattern, with `*` when there is none. The answer does not say the other arguments are invisible, and it covers non-string and unparseable arguments only partly."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: `mbedtls_memory_buffer_alloc_init()` (line 566) installs its own `buffer_alloc_calloc` / `buffer_alloc_free` (or mutex-wrapped variants when `MBEDTLS_THREADING_C` is on) through `mbedtls_platform_set_calloc_free`.\nVERDICT: HIT\nWHY: The answer says the buffer allocator's init installs plain or mutex-wrapped calloc/free pairs depending on MBEDTLS_THREADING_C. It does not say the choice is made at compile time, but the config macro implies it."
+}

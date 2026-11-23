@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"`mbedtls_ct_` is used 286 times across 29 files. About 100 of those are in the three `constant_time*` files; the rest are call sites.\"\nVERDICT: HIT\nWHY: The answer states usage spans 29 files (roughly twenty-plus modules) and lists many modules across crypto, bignum, and TLS, so it is clearly broad rather than confined."
+}

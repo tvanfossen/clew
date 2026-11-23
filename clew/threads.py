@@ -153,7 +153,7 @@ class SpawnPattern:
     ## @param entry_kwarg Keyword that carries the entry function, when the convention has one.
     ## @param name_kwarg Keyword that carries the thread name, when the convention has one.
     ## @version 2
-    ## @dg_internal
+    ## @utility
     def __init__(
         self,
         name: str,
@@ -615,7 +615,7 @@ class _SpawnSite:
     ## @param path_rowid The spawning file's `path` rowid, filled in by the harvest flattener.
     ## @param spawn_function The name of the function the spawn call sits in, "" at file scope.
     ## @version 5
-    ## @dg_internal
+    ## @utility
     def __init__(
         self,
         name: str,
@@ -673,7 +673,7 @@ class _SpawnSite:
 ## @brief Text of a node's trailing simple name (identifier / qualified / field tail).
 ## @return The bare trailing name for an identifier, qualified_identifier (`a::b::c`->`c`) or field_expression (`this->m`->`m`), else None.
 ## @version 4
-## @dg_internal
+## @utility
 def _tail_identifier(node: Any, src_bytes: bytes) -> str | None:
     """Reduce a callee/entry node to its bare trailing name by first resolving
     WHICH node actually holds that name, then decoding once. Splitting the
@@ -692,7 +692,7 @@ def _tail_identifier(node: Any, src_bytes: bytes) -> str | None:
 ## @param node Candidate identifier / field_expression / qualified_identifier.
 ## @return The node whose text is the bare name, or None when there is none.
 ## @version 2
-## @dg_internal
+## @utility
 def _tail_identifier_node(node: Any) -> Any:
     """`this->run_loop` puts the name in the `field` child; `a::b::c` nests
     qualified_identifier until the final segment. Anything else has no simple
@@ -722,7 +722,7 @@ def _tail_identifier_node(node: Any) -> Any:
 ## @param node A `qualified_identifier` (`a::b::c`) or Rust `scoped_identifier` node.
 ## @return The trailing identifier node, or None when it is not a simple name.
 ## @version 2
-## @dg_internal
+## @utility
 def _qualified_tail(node: Any) -> Any:
     """@brief Descend `a::b::c` to `c`, refusing anything not a simple name."""
     cur = node
@@ -739,7 +739,7 @@ def _qualified_tail(node: Any) -> Any:
 ## @param src_bytes The file's raw source bytes.
 ## @return The trailing name of the single call's callee, or None when the body has zero or several calls (ambiguous ⇒ fail-closed).
 ## @version 2
-## @dg_internal
+## @utility
 def _lambda_single_call_entry(lambda_node: Any, src_bytes: bytes) -> str | None:
     """Capture the ubiquitous `std::thread([this]{ method(); })` idiom: a lambda
     whose body contains EXACTLY ONE call is that thread's entry. More than one
@@ -760,7 +760,7 @@ def _lambda_single_call_entry(lambda_node: Any, src_bytes: bytes) -> str | None:
 ## @param lambda_node A `lambda_expression` AST node.
 ## @return The body's call nodes; at most two, since two already means ambiguous.
 ## @version 1
-## @dg_internal
+## @utility
 def _lambda_body_calls(lambda_node: Any) -> list[Any]:
     """Collecting at most two is deliberate: the caller only needs to know
     "exactly one" versus "not exactly one", so the walk stops as soon as a
@@ -784,7 +784,7 @@ def _lambda_body_calls(lambda_node: Any) -> list[Any]:
 ## @brief Resolve an entry argument to (qualified, bare-tail) function names.
 ## @return (qualified_text, tail_name) for identifier / qualified_identifier / &-member-pointer / single-call lambda or closure, else None.
 ## @version 5
-## @dg_internal
+## @utility
 def _entry_names(call_node: Any, index: int, src_bytes: bytes) -> tuple[str, str] | None:
     """Read the entry-function argument, unwrapping a `pointer_expression`
     (`&Class::method`) and reading a `qualified_identifier` down to its tail, OR
@@ -816,7 +816,7 @@ def _entry_names(call_node: Any, index: int, src_bytes: bytes) -> tuple[str, str
 ## @param src_bytes The file's raw source bytes.
 ## @return (qualified text, bare tail), or None when the arg names no function.
 ## @version 3
-## @dg_internal
+## @utility
 def _named_entry(arg: Any, src_bytes: bytes) -> tuple[str, str] | None:
     """Unwraps `&Class::method` to the inner name before reading it, so the
     qualified text used to name the thread does not carry the `&`.
@@ -862,7 +862,7 @@ def _named_entry(arg: Any, src_bytes: bytes) -> tuple[str, str] | None:
 ## @param src_bytes The file's raw source bytes.
 ## @return The assignment target's text, or "".
 ## @version 1
-## @dg_internal
+## @utility
 def _assignment_target(call_node: Any, src_bytes: bytes) -> str:
     """**THIS IS WHAT KEEPS AN UNNAMEABLE SPAWN FROM COLLAPSING INTO ONE ROW.** `threads` is
     UNIQUE(name, entry_memberdef_rowid, kind), so several lambda-bodied spawns with a NULL entry
@@ -907,7 +907,7 @@ def _assignment_target(call_node: Any, src_bytes: bytes) -> str:
 ## constant placeholder would have collapsed four threads into one — a fix reading as a success
 ## while undercounting by three.
 ## @version 4
-## @dg_internal
+## @utility
 def _resolve_spawn_site(
     call_node: Any,
     src_bytes: bytes,
@@ -967,7 +967,7 @@ def _resolve_spawn_site(
 ## @param src The file's raw bytes.
 ## @return The enclosing function's declarator name, or "" when there is none.
 ## @version 2
-## @dg_internal
+## @utility
 def _enclosing_function_name(node: Any, src: bytes) -> str:
     """REUSES `harvest.enclosing` and `locks.py`'s declarator-text reading rather than adding a
     third way to answer "which function is this in". Those two already agree, and a spawn site's
@@ -1009,7 +1009,7 @@ def _enclosing_function_name(node: Any, src: bytes) -> str:
 ## @brief Walk one parsed file, harvesting spawn call sites.
 ## @return List of [thread_name, entry_name, kind, qualified_entry, separator, spawn_line, spawn_function] septets.
 ## @version 8
-## @dg_internal
+## @utility
 def _walk_spawn_sites(
     tree: Any,
     src_bytes: bytes,
@@ -1098,7 +1098,7 @@ def _walk_spawn_sites(
 ## @param patterns_by_name Spawn patterns keyed by callee name.
 ## @return List of [thread_name, entry_name, kind, qualified_entry, separator, spawn_line, spawn_function] septets.
 ## @version 6
-## @dg_internal
+## @utility
 def _walk_py_spawn_sites(
     tree: Any,
     src_bytes: bytes,
@@ -1159,7 +1159,7 @@ def _walk_py_spawn_sites(
 ## @param patterns_by_name Spawn patterns keyed by callee name.
 ## @return Every SpawnPattern registered for this callee, possibly empty.
 ## @version 2
-## @dg_internal
+## @utility
 def _py_matched_patterns(
     node: Any,
     src_bytes: bytes,
@@ -1187,7 +1187,7 @@ def _py_matched_patterns(
 ## @param classes Class byte ranges, to qualify a `self.method` entry.
 ## @return The resolved spawn site, or None when the entry is not resolvable.
 ## @version 1
-## @dg_internal
+## @utility
 def _resolve_py_spawn_site(
     node: Any,
     src_bytes: bytes,
@@ -1242,7 +1242,7 @@ def _resolve_py_spawn_site(
 ## @param pattern The matched spawn pattern.
 ## @return The entry argument node, or None when the call passes none.
 ## @version 1
-## @dg_internal
+## @utility
 def _py_entry_argument(node: Any, pattern: SpawnPattern) -> Any | None:
     """@brief Read the entry argument by keyword, falling back to position.
 
@@ -1262,7 +1262,7 @@ def _py_entry_argument(node: Any, pattern: SpawnPattern) -> Any | None:
 ## @param pattern The matched spawn pattern.
 ## @return The name literal, or None when the call names the thread nothing.
 ## @version 1
-## @dg_internal
+## @utility
 def _py_thread_name(node: Any, src_bytes: bytes, pattern: SpawnPattern) -> str | None:
     """A non-literal name (`name=f"rx-{i}"`) resolves to None and the caller falls
     back to the qualified entry, rather than recording a template as a name.
@@ -1315,12 +1315,14 @@ class _SpawnHarvester(Harvester):
     ##    and `_SENTINEL_ENTRIES` gained the avr-libc attribute tokens. MEASURED ON RIOT: 104
     ##    interrupt rows cold against 79 from a warm v6 payload — a quarter of the roster
     ##    missing, silently, with the conflict layer running over what survives.
-    stage_version = 7
+    ## 8 (2.0.0, R5-CORE D1): `target=this.loop` is qualified by the class when `this` is the
+    ##    method's first parameter; a payload cached at 7 holds it unqualified.
+    stage_version = 8
     label = "thread spawns"
 
     ## @brief Store the spawn-pattern map plus the manifest-derived cache key.
     ## @version 1
-    ## @dg_internal
+    ## @utility
     def __init__(self, patterns_by_name: dict[str, list[SpawnPattern]], extra_key: str) -> None:
         super().__init__(extra_key)
         self.patterns_by_name = patterns_by_name
@@ -1364,7 +1366,7 @@ def spawn_harvester(thread_patterns_path: Path | dict | None = None) -> Harveste
 ## @brief Harvest every spawn call site across all indexed files, each with its spawning file.
 ## @return Flat list of _SpawnSite in path order.
 ## @version 8
-## @dg_internal
+## @utility
 def _harvest_all_spawn_sites(
     conn: sqlite3.Connection,
     repo_root: Path,
@@ -1431,7 +1433,7 @@ _IDENT_CHARS = frozenset("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ01
 ## @param qualified The `Class::method` entry text to locate.
 ## @return True if SOME occurrence of `qualified` is delimited by a non-identifier char (or the string edge) on BOTH sides — so `Owner::run` matches neither `CoOwner::run` (bad prefix) nor `Owner::run_t` (bad suffix).
 ## @version 2
-## @dg_internal
+## @utility
 def _qualified_at_boundary(definition: str, qualified: str) -> bool:
     """A bare `%Class::method` SQL LIKE also matches a class whose name merely
     ENDS with `Class` (`Owner::run` inside `CoOwner::run`), OR the qualified name
@@ -1465,7 +1467,7 @@ def _qualified_at_boundary(definition: str, qualified: str) -> bool:
 ## @param separator The scope separator that must be present to attempt this.
 ## @return The definition-preferring memberdef rowid whose `definition` contains the qualified entry at a token boundary — or, failing that, whose `scope` plus name IS it; None when neither matches.
 ## @version 7
-## @dg_internal
+## @utility
 def _resolve_qualified_entry(
     conn: sqlite3.Connection, qualified: str, separator: str = SCOPE_SEP_CPP
 ) -> int | None:
@@ -1512,7 +1514,7 @@ def _resolve_qualified_entry(
 ## @param cols The memberdef columns present in this database.
 ## @return The definition-preferring rowid whose scope+name is exactly `qualified`, or None.
 ## @version 1
-## @dg_internal
+## @utility
 def _scope_qualified_entry(
     conn: sqlite3.Connection,
     qualified: str,
@@ -1567,7 +1569,7 @@ _DEFINITION_SOURCES = frozenset({ISR_SOURCE_DECLARED, ISR_SOURCE_NAMED})
 ## @param site The harvested site.
 ## @return The definition's rowid, or None when the site is not a definition form.
 ## @version 1
-## @dg_internal
+## @utility
 def _definition_site_entry(file_funcs: dict, site: _SpawnSite) -> int | None:
     """MEASURED ON RIOT: five handlers carried no entry and therefore no closure, because two
     `#if` arms of one file define the same name twice (`isr_svc`, `isr_pendsv` in
@@ -1595,7 +1597,7 @@ def _definition_site_entry(file_funcs: dict, site: _SpawnSite) -> int | None:
 ## @param path_rowid The path the registration site sits in.
 ## @return That rowid, or None when the file does not disambiguate.
 ## @version 1
-## @dg_internal
+## @utility
 def _candidate_in_same_file(
     conn: sqlite3.Connection, candidates: list[int], path_rowid: int | None
 ) -> int | None:
@@ -1626,7 +1628,7 @@ def _candidate_in_same_file(
 
 ## @brief Insert harvested spawn sites as threads rows, each with its spawn site.
 ## @version 7
-## @dg_internal
+## @utility
 def _insert_threads(
     conn: sqlite3.Connection,
     sites: list[_SpawnSite],
@@ -1786,7 +1788,7 @@ def extract_threads(
 ## @brief Build a memberdef_rowid -> set(thread_id) membership map.
 ## @return A dict mapping each member function's rowid to the set of thread ids it belongs to.
 ## @version 1
-## @dg_internal
+## @utility
 def _membership_map(conn: sqlite3.Connection) -> dict[int, set[int]]:
     """@brief Load thread_membership into an in-memory rowid -> thread-ids map."""
     mapping: dict[int, set[int]] = {}
@@ -1799,7 +1801,7 @@ def _membership_map(conn: sqlite3.Connection) -> dict[int, set[int]]:
 
 ## @brief Compute (crosses_thread, to_thread_id) for one writer/reader pair.
 ## @version 1
-## @dg_internal
+## @utility
 def _boundary_flags(
     writer_threads: set[int],
     reader_threads: set[int],
@@ -1893,7 +1895,8 @@ _SPAWN_VERBS: tuple[str, ...] = ("create", "new", "begin", "spawn", "start", "la
 ## @param conn Open database connection.
 ## @param patterns The spawn patterns this build actually used.
 ## @return Candidate primitive names, sorted.
-## @version 3
+## v4 (2.0.0, R5-CORE D3): a name defined only in a `test_scope` file is not offered.
+## @version 4
 ## @req REQ-DDB-CONFIG-007
 def detect_undeclared_spawn_primitives(
     conn: sqlite3.Connection, patterns: list[SpawnPattern]
@@ -1943,9 +1946,12 @@ def detect_undeclared_spawn_primitives(
     (`thread_patterns`) and offers diagnostics as the secondary route, rather than promising a
     hint that a whole class of primitive cannot produce.
 
+    A NAME DEFINED ONLY IN A TEST FILE IS NOT OFFERED (2.0.0, R5-CORE D3): the `test_` prefix in
+    `_spawn_shaped` is one language's convention; `test_scope` knows the files.
+
     @brief Suggest spawn primitives this build's patterns did not cover.
     @return Candidate names, sorted.
-    @version 3
+    @version 4
     """
     covered = {p.name.lower() for p in patterns}
     ## A declared or default pattern may be dotted (`threading.Thread`) or qualified
@@ -1956,7 +1962,8 @@ def detect_undeclared_spawn_primitives(
         names = {
             row[0]
             for row in conn.execute(
-                "SELECT DISTINCT name FROM memberdef WHERE name<>'' AND kind IN (?, ?)",
+                "SELECT DISTINCT name FROM memberdef WHERE name<>'' AND kind IN (?, ?)"
+                + _OUTSIDE_TESTS.format(col="file_id") * _has_test_scope(conn),
                 _CALLABLE_KINDS,
             )
         }
@@ -1965,11 +1972,28 @@ def detect_undeclared_spawn_primitives(
     return [name for name in sorted(names) if name.lower() not in covered and _spawn_shaped(name)]
 
 
+## R5-CORE D3 (2.0.0): a definition in a file the build marks as a test (`test_scope`, from the
+## declared `tests.paths`) is not a spawn primitive, whatever its name.
+_OUTSIDE_TESTS = " AND ({col} IS NULL OR {col} NOT IN (SELECT path_rowid FROM test_scope))"
+
+
+## @brief Whether the index holds a `test_scope` table.
+## @param conn Open connection.
+## @return True when it exists (an absent table means "no layer", never "no tests").
+## @version 1
+## @utility
+def _has_test_scope(conn: sqlite3.Connection) -> bool:
+    """@brief Table probe. @return Bool."""
+    return (
+        conn.execute("SELECT 1 FROM sqlite_master WHERE name = 'test_scope'").fetchone() is not None
+    )
+
+
 ## @brief Whether a name is SHAPED like a spawn primitive rather than merely mentioning one.
 ## @param name The candidate name.
 ## @return True when a subject and a creation verb sit adjacent in it.
 ## @version 1
-## @dg_internal
+## @utility
 def _spawn_shaped(name: str) -> bool:
     """ADJACENCY, NOT CO-OCCURRENCE, and the first version got this wrong in a way only a real
     repository showed. "a subject word AND a creation verb, anywhere in the name" is satisfied by

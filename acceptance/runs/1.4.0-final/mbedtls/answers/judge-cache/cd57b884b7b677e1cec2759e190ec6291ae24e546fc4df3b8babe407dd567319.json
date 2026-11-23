@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"In the default configuration it expands to `private_##member`, so a public struct field is renamed.\" and \"`#ifdef  MBEDTLS_ALLOW_PRIVATE_ACCESS   -> MBEDTLS_PRIVATE(m) = m             (plain name)`\"\nVERDICT: HIT\nWHY: The answer states the default rename to private_<member> and that defining MBEDTLS_ALLOW_PRIVATE_ACCESS expands to the plain member name."
+}

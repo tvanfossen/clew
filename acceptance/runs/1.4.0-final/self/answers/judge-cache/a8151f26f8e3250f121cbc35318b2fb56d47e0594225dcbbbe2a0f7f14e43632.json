@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"A clew index can be out of date on three separate axes, and the tool checks all three on every query.\" and the table naming `data`, `schema`, `code` axes.\nVERDICT: HIT\nWHY: The answer explicitly states staleness has three distinguishable axes and names them data, schema, and code, with distinct detection and remedies."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"Caller \u2192 engine (buffers the engine will free, e.g. hook `modified_json`) | Must be allocated with `entropic_alloc()` (`malloc` at `entropic.cpp:1944`), or the engine's `free()` is undefined behaviour.\" and \"`_alloc_c_string` (`hooks.py:123`) and the trampoline (`:162`) use `entropic_alloc` and `memmove` the bytes\"\nVERDICT: HIT\nWHY: The answer states the rule that buffers the engine will free must come from entropic_alloc, and it names the Python location (`_alloc_c_string` in hooks.py:123, plus the trampoline) that does it."
+}

@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: Enabling it takes two settings, not one. `check_config.h:995-1010` requires `MBEDTLS_THREADING_C` plus exactly one of `MBEDTLS_THREADING_PTHREAD` or `MBEDTLS_THREADING_ALT`, and both of those are also off by default.\nVERDICT: HIT\nWHY: The answer names MBEDTLS_THREADING_C and MBEDTLS_THREADING_PTHREAD as the macros that gate threading support, which is the substance of the item."
+}

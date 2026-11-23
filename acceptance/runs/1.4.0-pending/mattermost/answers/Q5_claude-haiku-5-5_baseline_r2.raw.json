@@ -1,0 +1,102 @@
+{
+  "duration_api_ms": 22297,
+  "stop_reason": "end_turn",
+  "session_id": "e8b57696-05f0-450c-9033-0eb37f3a60a9",
+  "total_cost_usd": 0.008337250000000001,
+  "usage": {
+    "input_tokens": 12,
+    "cache_creation_input_tokens": 18167,
+    "cache_read_input_tokens": 277165,
+    "output_tokens": 3862,
+    "output_tokens_details": {
+      "thinking_tokens": 1032
+    },
+    "server_tool_use": {
+      "web_search_requests": 0,
+      "web_fetch_requests": 0
+    },
+    "service_tier": "standard",
+    "cache_creation": {
+      "ephemeral_1h_input_tokens": 18167,
+      "ephemeral_5m_input_tokens": 0
+    },
+    "inference_geo": "global",
+    "iterations": [
+      {
+        "input_tokens": 2,
+        "output_tokens": 2043,
+        "cache_read_input_tokens": 57164,
+        "cache_creation_input_tokens": 1916,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 1916
+        },
+        "type": "message"
+      }
+    ],
+    "speed": "standard",
+    "fallback_credit": null
+  },
+  "modelUsage": {
+    "claude-haiku-5-5": {
+      "inputTokens": 12,
+      "outputTokens": 3862,
+      "cacheReadInputTokens": 277165,
+      "cacheCreationInputTokens": 18167,
+      "webSearchRequests": 0,
+      "costUSD": 0.008337250000000001,
+      "contextWindow": 1000000,
+      "maxOutputTokens": 128000,
+      "thinkingTokens": 1032,
+      "cacheCreationEphemeral5mInputTokens": 0,
+      "cacheCreationEphemeral1hInputTokens": 18167,
+      "canonicalModel": "claude-haiku-5-5",
+      "provider": "firstParty",
+      "costBasis": "list"
+    }
+  },
+  "permission_denials": [],
+  "terminal_reason": "completed",
+  "fast_mode_state": "off",
+  "fast_mode_disabled_reason": "sdk_opt_in_required",
+  "subagent_stats": {
+    "spawned": 0,
+    "requested": {
+      "background": 0,
+      "foreground": 0,
+      "unset": 0
+    },
+    "started_in_background": 0,
+    "max_depth": 0,
+    "spawned_by_subagents": 0,
+    "completed": 0,
+    "failed": 0,
+    "killed": {
+      "parent": 0,
+      "user": 0,
+      "system": 0
+    },
+    "refused": {
+      "depth_limit": 0,
+      "concurrency_limit": 0,
+      "budget": 0
+    },
+    "by_type": {}
+  },
+  "safety_stops": 0,
+  "is_error": false,
+  "num_turns": 6,
+  "subtype": "success",
+  "api_error_status": null,
+  "result": "## How `ServerDataOperator` is built\n\n`ServerDataOperator` (`app/database/operator/server_data_operator/index.ts`) is a class assembled from mixins:\n\n```\nBaseDataOperator                          app/database/operator/base_data_operator/index.ts\n  \u2514\u2500 ServerDataOperatorBase               server_data_operator/handlers/index.ts\n       \u2514\u2500 + AgentsHandler, BoardsHandler, CategoryHandler, ChannelHandler, CustomProfileHandler,\n            GroupHandler, PlaybookHandler, PostHandler, PropertiesHandler, TeamHandler,\n            ThreadHandler, TeamThreadsSyncHandler, UserHandler\n          applied with mix(...).with(...)  (app/utils/mix.ts, a reduce over mixin functions)\n```\n\nEach mixin is a function `superclass => class extends superclass { handleX = ... }`. Each file also exports a `XHandlerMix` interface, and `index.ts` merges those interfaces into `ServerDataOperator` so TypeScript sees every `handleX` method. The constructor takes `(database, serverUrl?)` and sets `serverUrl`, which the base class declares.\n\n## Which handlers live elsewhere\n\nMost handlers are in `server_data_operator/handlers/` next to the index. Three are imported from product folders:\n\n| Mixin | Defined in |\n|---|---|\n| `AgentsHandler` | `app/products/agents/database/operators/handlers/index.ts` |\n| `BoardsHandler` | `app/products/boards/database/operators/handlers/index.ts` |\n| `PlaybookHandler` | `app/products/playbooks/database/operators/handlers/index.ts` |\n\nThe base `ServerDataOperatorBase` (`handlers/index.ts`) also holds some shared handlers, such as `handleRole`, `handleCustomEmojis`, `handleSystem`, `handleConfigs`, `handleReactions`, and `handleFiles`.\n\n## Who performs the database write\n\nThe write is not done in the handlers. They build models and hand them to a shared function:\n\n1. **Handler** (e.g. `handleAIBots`, `handleBoardViews`, `handleReactions`) turns raw API data into records.\n2. **`handleRecords` / `processRecords` / `prepareRecords`** (`base_data_operator/index.ts`) diff incoming raws against existing rows. They produce create and update pairs, call the table's transformer (`prepareCreate`/`prepareUpdate`, which do not write), and call `prepareDestroyPermanently()` for deletes. Nothing is persisted yet.\n3. **`batchRecords(models, description)`** (`base_data_operator/index.ts`, around line 191) is the actual write. It calls `this.database.write(async writer => writer.batch(...models), description)`. Failures are logged with `logWarning`. Database-corruption errors also emit `Events.DATABASE_CORRUPTION_DETECTED`. It only rethrows if `propagateError` is true, and by default it does not.\n\nHandlers take a `prepareRecordsOnly` flag. When it is true, they return the models without calling `batchRecords`, so the caller can combine them into one batch.\n\n## What else shares that write path\n\n- **All server handlers.** Every in-tree and product handler calls `this.batchRecords` or `this.handleRecords`. Examples are the reaction, file, property, group, post-scheduling, and channel-bookmark paths.\n- **`AppDataOperator`** (`app/database/operator/app_data_operator/index.ts`) extends `BaseDataOperator` directly, so it shares `batchRecords` and the diff/prepare helpers but not the server-only handlers.\n- **Direct callers outside the operator.** `app/products/playbooks/actions/websocket/runs.ts` and `actions/local/property_fields.ts` call `operator.batchRecords` themselves.\n- **Bypasses.** Playbook local actions in `app/products/playbooks/actions/local/*.ts` call `database.write(...)` directly and do not go through `batchRecords`. That means they skip the corruption-event handling and the error swallowing. This is the one inconsistency I noticed.\n\nI did not trace the callers of `ServerDataOperatorBase.execute`, so I can't say how widely it is used.",
+  "ttft_ms": 1885,
+  "type": "result",
+  "duration_ms": 23378,
+  "uuid": "43a2f149-4d55-471e-9be8-3564c11fc980",
+  "ttft_stream_ms": 1641,
+  "time_to_request_ms": 174,
+  "first_content_frame_ms": 1642,
+  "queued_turn_count": 0,
+  "result_index": 0,
+  "credential_expires_at": "2026-11-23T16:14:50.848Z"
+}

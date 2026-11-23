@@ -1,0 +1,4 @@
+{
+  "model": "claude-sonnet-5-5",
+  "text": "QUOTE: \"the reason string records it. The `_declaration_note` text says why nothing was found.\"\nVERDICT: HIT\nWHY: The answer says the whole-repo fallback carries a reason string recording the fallback and why nothing was found, including the rejection reason, so the scope is never silently guessed."
+}
