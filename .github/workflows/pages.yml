@@ -1,0 +1,57 @@
+# SPDX-License-Identifier: MIT
+#
+# clew's own wiki on GitHub Pages (owner 2026-11-23, "turn on GitHub pages"; the 2.0.0 cut the CI
+# wiki job's comment named, 2026-11-16). https://tvanfossen.github.io/clew/
+#
+# WHY A SEPARATE WORKFLOW, AFTER CI. CI's `wiki` job already builds the site from the gate's tests
+# with coverage and uploads it as the `clew-wiki` artifact. Deploying from inside ci.yml would
+# need `pages: write` and `id-token: write` on a job of a workflow that release.yml CALLS as its
+# gate with `contents: read` only — a called workflow cannot ask for more than its caller grants,
+# so the release gate itself could fail to start. Here, a successful CI run on `main` is picked
+# up after the fact and its artifact deployed: nothing is rebuilt, and nothing in the release
+# path changes.
+#
+# MAIN ONLY. A branch or a pull request never deploys; the site is what `main` is.
+
+name: Pages
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+
+# One deploy at a time; a newer main supersedes one still queued.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: deploy the wiki
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      # Read the CI run's artifact; publish to Pages with a short-lived OIDC identity.
+      actions: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: clew-wiki
+          path: site
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: site
+      - id: deploy
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

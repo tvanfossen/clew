@@ -393,3 +393,24 @@ def test_dependabot_watches_both_ecosystems() -> None:
         f"dependabot watches {sorted(watched)}; both `pip` and `github-actions` must be "
         "covered, the second because it is what can publish as this project"
     )
+
+
+def test_the_wiki_deploys_to_pages_from_a_green_main_only() -> None:
+    """OWNER 2026-11-23 ("turn on GitHub pages"): clew's own wiki is published from what CI built
+    on `main`, never from a branch or a pull request, and never by a job inside ci.yml — which
+    release.yml calls as its gate with `contents: read`, so a Pages job there asking for
+    `pages: write` could stop the release gate from starting.
+
+    @brief Pages deploys CI's artifact after a green main.
+    """
+    import yaml
+
+    flow = yaml.safe_load((REPO_ROOT / ".github" / "workflows" / "pages.yml").read_text())
+    trigger = flow[True]["workflow_run"]  # PyYAML reads the `on:` key as True
+    assert trigger["workflows"] == ["CI"] and trigger["branches"] == ["main"]
+    assert flow["permissions"] == {"contents": "read"}
+    job = flow["jobs"]["deploy"]
+    assert "conclusion == 'success'" in job["if"] and "event == 'push'" in job["if"]
+    assert job["permissions"] == {"actions": "read", "pages": "write", "id-token": "write"}
+    ci = (REPO_ROOT / ".github" / "workflows" / "ci.yml").read_text()
+    assert "pages: write" not in ci and "name: clew-wiki" in ci

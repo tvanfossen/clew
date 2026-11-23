@@ -63,7 +63,8 @@ jobs:
   # round 3, P6c: clew builds its OWN wiki from the checkout — the gate's tests with coverage,
   # the last commit's change impact, then the composite action adopters use (installing this
   # checkout, since the release it would pin is not published yet). The site is uploaded as an
-  # artifact; the Pages DEPLOY switches on at the 2.0.0 cut (owner 2026-11-16), not before.
+  # artifact, which pages.yml deploys to GitHub Pages after a green run on `main` (owner 2026-11-23;
+  # the deploy was meant to switch on at the 2.0.0 cut, owner 2026-11-16).
   wiki:
     name: wiki
     runs-on: ubuntu-24.04

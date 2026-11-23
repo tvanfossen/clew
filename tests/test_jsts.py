@@ -162,7 +162,9 @@ def test_render_doc_matches_doxygen_shapes_and_escapes():
     from clew.query._common import extract_version, strip_xml
 
     assert extract_version(detail) == "3"
-    assert "Map&lt;string" in strip_xml(detail), "escaped text survives the markup stripper"
+    ## SPEC CHANGED (owner Q/A 2026-11-23, 2.0.1): served text decodes entities, so the escaped
+    ## text survives the stripper AS THE SOURCE WROTE IT.
+    assert "Map<string, number> & friends" in strip_xml(detail), "escaped text survives, decoded"
 
 
 def test_render_doc_one_line_and_empty():
