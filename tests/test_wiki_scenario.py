@@ -103,17 +103,19 @@ def test_a_scenario_line_may_name_the_call_it_starts_at(tmp_path: Path) -> None:
     assert spec.scenario_at == ("", "_accepted_batch", "_batched_dossiers")
 
 
-def test_the_story_groups_steps_under_the_scenario_in_plain_words() -> None:
-    """X-1: a story view lists each step as its callee's brief, grouped under the scenario line whose
-    anchor begins it; steps before the first anchor join the first anchored line. Each step carries
-    `data-step`, so play lights it.
+def test_the_scenario_is_drawn_as_bands_in_the_diagram() -> None:
+    """X-1, SPEC CHANGED (owner 2026-11-22): "in plain words section on the wiki is a no, you've now
+    completely displaced the sequence diagram in exchange for a duplicated UI element". The story
+    list is gone; the scenario's anchored lines are drawn IN the sequence diagram as labelled bands,
+    each from its anchor's step to the next band.
 
-    @brief Story view.
+    @brief Scenario bands in the SVG; no story section.
     """
     from types import SimpleNamespace
 
+    from clew.wiki import flowpage
     from clew.wiki.config import FlowSpec
-    from clew.wiki.flowpage import _story
+    from clew.wiki.flowpage import _segments
 
     spec = FlowSpec(
         entry="dossier",
@@ -121,15 +123,13 @@ def test_the_story_groups_steps_under_the_scenario_in_plain_words() -> None:
         scenario_at=("", "_accepted_batch", "_batched_dossiers"),
     )
     steps = [
-        SimpleNamespace(callee=c, not_run=0)
-        for c in ("_accepted_batch", "_batched_dossiers", "batch_payload")
+        SimpleNamespace(callee=c) for c in ("_accepted_batch", "_batched_dossiers", "batch_payload")
     ]
-    data = [
-        {"brief": "Normalise the request."},
-        {"brief": "Several subjects in ONE reply."},
-        {"brief": ""},
-    ]
-    html = _story(spec, SimpleNamespace(steps=steps), data)
-    first, second = html.split("one reply answers them")
-    assert 'data-step="0"' in first and "Normalise the request." in first
-    assert 'data-step="1"' in second and 'data-step="2"' in second and "batch_payload" in second
+    assert _segments(spec, SimpleNamespace(steps=steps)) == {
+        0: "When names are asked about",
+        1: "Then one reply answers them",
+    }
+    assert (
+        not hasattr(flowpage, "_story")
+        and "In plain words" not in Path(flowpage.__file__).read_text()
+    )

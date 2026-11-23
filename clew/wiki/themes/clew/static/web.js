@@ -32,7 +32,7 @@ function draw(){
  ctx.save();ctx.translate(W()/2,H()/2);ctx.scale(k,k);ctx.translate(-cam.x,-cam.y);
  for(var r=0;r<=D.max_ring;r++){ctx.beginPath();ctx.arc(0,0,G.r0+r*G.band,0,7);ctx.strokeStyle=C["--rule2"];ctx.lineWidth=1/k;ctx.stroke();}
  B.forEach(function(b,i){wedge(b,G.r0-G.band/2,rMax);ctx.fillStyle=lit[i]?C["--accbg"]:(i%2?C["--paper"]:C["--muted"]);ctx.globalAlpha=zoomed?0.45:0.9;ctx.fill();ctx.globalAlpha=1;ctx.strokeStyle=C["--rule"];ctx.lineWidth=1/k;ctx.stroke();});
- if(!zoomed){if(lens!=="block"||rq>=0)pies();links();}else nodes();
+ if(!zoomed){if(lens!=="block"||rq>=0)pies();links();}else{if(window.webFiles)webFiles(ctx,k,D,C);nodes();}
  bounds(zoomed);ctx.restore();labels(zoomed);legend();
 }
 /* Vendor areas sit OUTSIDE the boundary (owner, round 5): one node each, sized by calls in. */
@@ -47,7 +47,7 @@ function links(){var idx={},bx={};B.forEach(function(b,i){idx[b.id]=i;});BD.forE
 function cat(n){if(rq>=0)return n.r&&n.r.indexOf(rq)>=0?["this requirement",C["--acc"]]:["other",C["--rule"]];if(lens==="owner")return n.owner?[n.owner,hue(n.owner)]:["no owner",C["--faint"]];if(lens==="changed")return n.changed?["changed",C["--warn"]]:["unchanged",C["--rule"]];if(lens==="block")return[B[n.block].id,n.block%2?C["--ink2"]:C["--faint"]];return n.tier?[n.tier,C[TIER[n.tier]||"--faint"]]:["no requirement",C["--faint"]];}
 function col(n){return cat(n)[1];}
 function tally(f){var m={},o=[];N.forEach(function(n){if(!f(n))return;var c=cat(n);if(!m[c[0]]){m[c[0]]=[c[0],c[1],0];o.push(m[c[0]]);}m[c[0]][2]++;});return o.sort(function(a,b){return a[0]<b[0]?-1:1;});}
-/* A held category is at least MINF of its wedge, so 2 changed of 3,096 stays visible; the legend keeps exact counts. */
+/* A held category is >= MINF of its wedge; the legend keeps exact counts. */
 var MINF=.04;function pies(){B.forEach(function(b,i){var s=tally(function(n){return n.block===i;}),t=0,a=b.a0,f;s.forEach(function(x){t+=x[2];});f=s.map(function(x){return Math.max(x[2]/t,MINF);});var u=f.reduce(function(p,q){return p+q;},0);s.forEach(function(x,j){var e=a+(b.a1-b.a0)*f[j]/u;wedge({a0:a,a1:e},G.r0,rMax);ctx.fillStyle=x[1];ctx.globalAlpha=.6;ctx.fill();a=e;});});ctx.globalAlpha=1;}
 function legend(){var el=root.querySelector("[data-web-legend]");if(!el)return;var o=lens==="block"&&rq<0?[]:tally(function(){return 1;});o.sort(function(a,b){return b[2]-a[2];});el.innerHTML=o.slice(0,10).map(function(x){return'<span><i style="background:'+x[1]+'"></i>'+esc(x[0])+" "+x[2]+"</span>";}).join("");}
 function nodes(){var k=cam.k,rad=Math.max(1.6,3.2/Math.sqrt(k))/1;

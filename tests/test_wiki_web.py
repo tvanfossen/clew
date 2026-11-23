@@ -264,3 +264,58 @@ def test_a_lens_link_opens_on_the_whole_system_and_a_rare_value_stays_visible() 
     """
     assert "lens=l;lensSel.value=l;fit();" in WEB_JS
     assert "MINF" in WEB_JS
+
+
+def test_each_file_is_one_slice_of_its_block(db: Path) -> None:
+    """OWNER (2026-11-22): "the by file divides and interconnects on zoom in the map". A file is one
+    contiguous slice of its block's wedge (ordered by file, sized by its functions, disjoint), the
+    same slice on every ring, and each of its functions sits inside it.
+
+    @brief Files as slices.
+    """
+    data = _data(db)
+    files = data["files"]
+    for bi, block in enumerate(data["blocks"]):
+        mine = [f for f in files if f["block"] == bi]
+        assert [f["file"] for f in mine] == sorted(f["file"] for f in mine)
+        assert abs(mine[0]["a0"] - block["a0"]) < 1e-6 and abs(mine[-1]["a1"] - block["a1"]) < 1e-6
+        assert all(mine[i]["a1"] <= mine[i + 1]["a0"] + 1e-9 for i in range(len(mine) - 1))
+    slices = {(f["block"], f["file"]): f for f in files}
+    for n in data["nodes"]:
+        s = slices[(n["block"], n["file"])]
+        angle = math.atan2(n["y"], n["x"]) % (2 * math.pi)
+        assert s["a0"] - 1e-6 <= angle <= s["a1"] + 1e-6, (n["name"], n["file"])
+
+
+def test_calls_between_files_are_counted(db: Path) -> None:
+    """@brief `file_links` = [from file slice, to file slice, calls], across files only."""
+    data = _data(db)
+    files = data["files"]
+    total = 0
+    for a, b, calls in data["file_links"]:
+        assert a != b and calls >= 1
+        total += calls
+    nodes = data["nodes"]
+    index = {(f["block"], f["file"]): i for i, f in enumerate(files)}
+    cross = sum(
+        1
+        for x, y in data["edges"]
+        if index[(nodes[x]["block"], nodes[x]["file"])]
+        != index[(nodes[y]["block"], nodes[y]["file"])]
+    )
+    assert total == cross and total > 0
+
+
+def test_the_file_layer_is_its_own_budgeted_script() -> None:
+    """web.js is at its 16 KB budget, so the file layer is a second script with its own budget (the
+    clew-views.js precedent), loaded BEFORE web.js; web.js calls it when zoomed in.
+
+    @brief web-files.js.
+    """
+    import clew.wiki
+
+    js = (Path(clew.wiki.__file__).parent / "themes/clew/static/web-files.js").read_text()
+    assert "function webFiles(" in js and len(js.encode()) <= 8192
+    assert "window.webFiles" in WEB_JS
+    page = web_html({"nodes": [], "blocks": [], "links": []})
+    assert page.index("web-files.js") < page.index("_static/web.js")

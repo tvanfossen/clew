@@ -59,7 +59,8 @@ _FLOOR = 0.025
 ## v3: owners overlay and vendor areas (2.0.0, P5)
 ## v4: vendor areas outside the boundary (2.0.0, P5, owner round-5 ruling)
 ## v5: requirement overlay (2.0.0, P5.4)
-## @version 5
+## v6: files as slices and their links (owner 2026-11-22)
+## @version 6
 ## @req REQ-DDB-WIKI-019
 def web_data(
     db: Path,
@@ -85,7 +86,7 @@ def web_data(
     edges = {(a, b) for a, b in all_edges if a in funcs and b in funcs}
     ring = _rings(funcs, edges, max_ring)
     _wedges(blocks, funcs, owner)
-    nodes, slot = _place(blocks, index, funcs, owner, ring, facts)
+    nodes, slot, files = _place(blocks, index, funcs, owner, ring, facts)
     boundary, crossing = _boundary(vendors, all_funcs, all_edges, owner, nodes, slot, ring)
     ## P5 (2.0.0): THE OWNERS OVERLAY: each node carries its file's first owner, unless the
     ## audience withholds them (`exclude_owners`), in which case no node carries one.
@@ -93,11 +94,15 @@ def web_data(
         if node["file"] in first_owner:
             node["owner"] = first_owner[node["file"]]
     req_ids = _index_requirements(nodes, facts)
+    node_edges = sorted({(slot[a], slot[b]) for a, b in edges if a in slot and b in slot})
     return {
         "req_ids": req_ids,
         "blocks": [_block_row(b) for b in blocks],
         "nodes": nodes,
-        "edges": sorted({(slot[a], slot[b]) for a, b in edges if a in slot and b in slot}),
+        "edges": node_edges,
+        ## Owner (2026-11-22): files as slices, and the calls between them, for the zoomed-in view.
+        "files": files,
+        "file_links": _file_links(nodes, node_edges, files),
         "links": [
             {"from": link["from"], "to": link["to"], "calls": link["calls"]}
             for link in graph["links"]
@@ -299,33 +304,122 @@ def _wedges(blocks: list[dict], funcs: dict, owner: dict[str, str]) -> None:
 ## @param owner file → block.
 ## @param ring rowid → ring.
 ## @param facts (name, file) → the graph's point (tier, changed).
-## @return (node rows, rowid → node index).
-## @version 1
+## @return (node rows, rowid → node index, file slices).
+## v2 (owner 2026-11-22, "the by file divides … on zoom in"): each file is ONE slice of its wedge.
+## @version 2
 ## @utility
-def _place(blocks, index, funcs, owner, ring, facts) -> tuple[list[dict], dict[int, int]]:
-    """FILE THEN NAME along each ring of a wedge; a crowded ring spreads over sub-rows inside its
-    band rather than overlapping, so every function stays a distinct target.
+def _place(
+    blocks, index, funcs, owner, ring, facts
+) -> tuple[list[dict], dict[int, int], list[dict]]:
+    """A FILE IS ONE SLICE of its block's wedge — ordered by file, sized by its functions, the same
+    slice on every ring — and its functions sit inside it on their rings, by line; a crowded ring
+    spreads over sub-rows inside its band rather than overlapping, so every function stays a
+    distinct target. Each ring used to sort by file on its own, so a file had no one place.
 
     @brief Positions.
-    @return Nodes and slots.
+    @return Nodes, slots and file slices.
     """
-    groups: dict[tuple[int, int], list[int]] = defaultdict(list)
-    for rowid in sorted(funcs, key=lambda r: (funcs[r][1], funcs[r][2], funcs[r][0])):
-        groups[(index[owner[funcs[rowid][1]]], ring[rowid])].append(rowid)
-    nodes, slot = [], {}
-    for (bi, r), rowids in sorted(groups.items()):
-        block = blocks[bi]
-        for rowid, (x, y) in zip(rowids, _arc(block["a0"], block["a1"], r, len(rowids))):
-            name, rel, line = funcs[rowid]
-            node = {"name": name, "file": rel, "line": line, "block": bi, "ring": r}
-            node["x"], node["y"] = round(x, 1), round(y, 1)
-            fact = facts.get((name, rel)) or {}
-            for key in ("tier", "changed"):
-                if key in fact:
-                    node[key] = fact[key]
-            slot[rowid] = len(nodes)
-            nodes.append(node)
-    return nodes, slot
+    by_file: dict[int, dict[str, list[int]]] = defaultdict(lambda: defaultdict(list))
+    for rowid, (_name, rel, _line) in funcs.items():
+        by_file[index[owner[rel]]][rel].append(rowid)
+    nodes, slot, files = [], {}, []
+    for bi, block in enumerate(blocks):
+        counts = {rel: len(rows) for rel, rows in by_file[bi].items()}
+        for rel, (a0, a1) in _file_spans(block["a0"], block["a1"], counts):
+            rings: dict[int, list[int]] = defaultdict(list)
+            for rowid in sorted(by_file[bi][rel], key=lambda r: (funcs[r][2], funcs[r][0])):
+                rings[ring[rowid]].append(rowid)
+            ## The rings the file's functions occupy: its slice is shaded and named over these only.
+            files.append(
+                {
+                    "block": bi,
+                    "file": rel,
+                    "a0": round(a0, 5),
+                    "a1": round(a1, 5),
+                    "r": [min(rings), max(rings)],
+                }
+            )
+            for r, rowids in sorted(rings.items()):
+                for rowid, (x, y) in zip(rowids, _arc(a0, a1, r, len(rowids))):
+                    slot[rowid] = len(nodes)
+                    nodes.append(_node(funcs[rowid], bi, r, x, y, facts))
+    return nodes, slot, files
+
+
+## @brief One node row.
+## @param func (name, file, line).
+## @param bi Its block's index.
+## @param r Its ring.
+## @param x Its x.
+## @param y Its y.
+## @param facts (name, file) → the graph's point (tier, changed).
+## @return The row.
+## @version 1
+## @utility
+def _node(func: tuple, bi: int, r: int, x: float, y: float, facts: dict) -> dict:
+    """@brief Node row. @return Row."""
+    name, rel, line = func
+    node = {
+        "name": name,
+        "file": rel,
+        "line": line,
+        "block": bi,
+        "ring": r,
+        "x": round(x, 1),
+        "y": round(y, 1),
+    }
+    fact = facts.get((name, rel)) or {}
+    for key in ("tier", "changed"):
+        if key in fact:
+            node[key] = fact[key]
+    return node
+
+
+## @brief A block's wedge split among its files, in file order, in proportion to their functions.
+## @param a0 The wedge's start angle.
+## @param a1 Its end angle.
+## @param counts file → functions.
+## @return [(file, (start, end))], contiguous from a0 to a1.
+## @version 1
+## @utility
+def _file_spans(
+    a0: float, a1: float, counts: dict[str, int]
+) -> list[tuple[str, tuple[float, float]]]:
+    """@brief File slices. @return Spans."""
+    total = sum(counts.values()) or 1
+    out, at = [], a0
+    for rel in sorted(counts):
+        end = at + (a1 - a0) * counts[rel] / total
+        out.append((rel, (at, end)))
+        at = end
+    if out:
+        out[-1] = (out[-1][0], (out[-1][1][0], a1))
+    return out
+
+
+## @brief Calls between file slices: [from slice, to slice, calls], across files only.
+## @param nodes The placed nodes.
+## @param edges Node-index call pairs.
+## @param files The file slices.
+## @return Links, heaviest first.
+## @version 1
+## @utility
+def _file_links(nodes: list[dict], edges: list, files: list[dict]) -> list[list[int]]:
+    """OWNER (2026-11-22): the "interconnects" between files, drawn when the map is zoomed in.
+
+    @brief File links.
+    @return Rows.
+    """
+    at = {(f["block"], f["file"]): i for i, f in enumerate(files)}
+    counts: dict[tuple[int, int], int] = defaultdict(int)
+    for a, b in edges:
+        fa, fb = (
+            at[(nodes[a]["block"], nodes[a]["file"])],
+            at[(nodes[b]["block"], nodes[b]["file"])],
+        )
+        if fa != fb:
+            counts[(fa, fb)] += 1
+    return [[a, b, n] for (a, b), n in sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))]
 
 
 ## @brief Give each implementing node indices into one sorted table of requirement ids.
@@ -396,7 +490,8 @@ def _block_row(b: dict) -> dict:
 ## @return HTML.
 ## v2: owners overlay and vendor areas (2.0.0, P5)
 ## v3: lens legend
-## @version 3
+## v4: loads web-files.js first
+## @version 4
 ## @req REQ-DDB-WIKI-021
 def web_html(data: dict[str, Any]) -> str:
     """THE DATA IS INLINE (`application/json`, never executed) and the script is local: the page
@@ -434,7 +529,9 @@ def web_html(data: dict[str, Any]) -> str:
         '<aside class="web-panel" data-web-panel hidden></aside>'
         '<div class="web-tip" data-web-tip hidden></div></div>'
         f'<script type="application/json" id="web-data">{payload}</script>'
-        "</div>" + _table(data) + '<script src="_static/web.js"></script>'
+        ## web-files.js (the zoomed-in file layer) BEFORE web.js, which calls it.
+        "</div>" + _table(data) + '<script src="_static/web-files.js"></script>'
+        '<script src="_static/web.js"></script>'
     )
 
 

@@ -35,6 +35,8 @@ from .flow import Flow, Step
 
 ## Row height per event, top of the first row, lane head height.
 _ROW = 30
+## X-1: the row a scenario band's label takes above its first step.
+_SEG_ROW = 40
 _TOP = 64
 _HEAD = 30
 _MIN_COL, _MAX_COL = 160, 380
@@ -51,6 +53,10 @@ _OPERATOR = {
 }
 _STYLE = (
     "<style>.seq g.nr{opacity:.45}.seq g.nr .lbl{font-style:italic}.seq g.dim{opacity:.28}"
+    ## X-1: scenario bands behind the lanes, alternate tints, keyword in the accent.
+    ".seq .segband rect{fill:var(--accbg,#E4EBD6);opacity:.55}.seq .segband.s1 rect{opacity:.25}"
+    ".seq .seglabel text{font-size:12.5px;font-weight:600}.seq .seglabel .kw{fill:var(--acc,#3D6B2E)}"
+    ".seq .seglabel .lbg{fill:var(--paper,#FBF6EA);stroke:var(--rule,#D8CDB4);opacity:.96}"
     ".seq g.ex .ca{stroke-width:2.6}.seq .ent{font-size:11px;font-weight:700;"
     "fill:var(--acc,#3D6B2E)}"
     ".seq text{font-family:var(--sans,sans-serif);font-size:12px;fill:var(--ink,#2A2118)}"
@@ -98,16 +104,34 @@ _ANIMATION = (
 ## @param marks Extra classes per step (round 5: `ex` / `dim` / `entry` for a test's slice).
 ## @param first The master-flow number of this flow's first step (a window keeps its numbering).
 ## v6 (round 5): `marks` and `first`, so a test's slice is drawn as a window of its master flow.
-## @version 6
+## v7: scenario bands in the diagram replace the story list (owner 2026-11-22)
+## v8: band labels drawn last
+## @version 8
 ## @req REQ-DDB-WIKI-008
 ## @req REQ-DDB-WIKI-041
 def flow_svg(
-    flow: Flow, animate: bool = False, marks: dict[int, str] | None = None, first: int = 0
+    flow: Flow,
+    animate: bool = False,
+    marks: dict[int, str] | None = None,
+    first: int = 0,
+    segments: dict[int, str] | None = None,
 ) -> str:
-    """@brief Lay out and draw the diagram. @return SVG text."""
+    """X-1 (owner 2026-11-22): `segments` (step index → a scenario line) draws the scenario IN the
+    diagram — a labelled band from that step to the next band — rather than as a separate list.
+
+    @brief Lay out and draw the diagram.
+    @return SVG text.
+    """
     marks = marks or {}
     runs = _runs(flow.steps, marks)
-    layout = _Layout(replace(flow, steps=tuple(flow.steps[start] for start, _n in runs)))
+    ## A segment starting inside a folded run starts at the run.
+    drawn = {
+        d: text
+        for d, (s, n) in enumerate(runs)
+        for i, text in (segments or {}).items()
+        if s <= i < s + n
+    }
+    layout = _Layout(replace(flow, steps=tuple(flow.steps[start] for start, _n in runs)), drawn)
     parts = [
         f'<svg class="seq" xmlns="http://www.w3.org/2000/svg" width="{layout.width}" '
         f'height="{layout.height}" viewBox="0 0 {layout.width} {layout.height}" role="img" '
@@ -116,6 +140,7 @@ def flow_svg(
     ]
     if animate:
         parts.append(_ANIMATION)
+    parts += layout.bands_markup()
     parts += layout.lanes_markup()
     parts += layout.frames_markup()
     parts += [layout.repeat_frame(d, n) for d, (_s, n) in enumerate(runs) if n > 1]
@@ -127,6 +152,7 @@ def flow_svg(
             shape += layout.entry_marker(d)
         group = _step_group(first + start, flow.steps[start], shape, animate, (d, n, mark))
         parts.append(group)
+    parts += layout.band_labels_markup()
     parts.append("</svg>")
     return "".join(parts)
 
@@ -188,12 +214,16 @@ class _Layout:
 
     ## @brief Compute lane columns, event rows and activation spans.
     ## @param flow The flow.
+    ## @param segments Drawn step index → the scenario line its band carries.
     ## v2: actor lane (2.0.0, P5.6)
-    ## @version 2
+    ## v3: scenario bands (X-1, owner 2026-11-22)
+    ## @version 3
     ## @utility
-    def __init__(self, flow: Flow) -> None:
+    def __init__(self, flow: Flow, segments: dict[int, str] | None = None) -> None:
         """@brief Lay out. @return None."""
         self.flow = flow
+        self.segments = segments or {}
+        self.seg_y: dict[int, float] = {}
         self.lanes = [lane.id for lane in flow.lanes] or [flow.entry]
         ## P5.6 (owner, round 5): THE ACTOR LANE leads, when the flow names who starts it.
         self.labels = {lane: lane for lane in self.lanes}
@@ -208,6 +238,50 @@ class _Layout:
         self._timeline()
         self.width = int(max(self.x.values()) + self._half(self.lanes[-1]) + 20)
         self.height = int(self.end_y + _HEAD + 24)
+
+    ## @brief The scenario's bands: a tinted strip per segment, labelled with its Gherkin line.
+    ## @return SVG fragments.
+    ## @version 1
+    ## @utility
+    def bands_markup(self) -> list[str]:
+        """X-1 (owner 2026-11-22): each band runs from its label row to the next band (or the end),
+        alternate bands in alternate tints, behind the lanes; the keyword is marked.
+
+        @brief Draw bands.
+        @return Fragments.
+        """
+        starts = sorted(self.seg_y)
+        out = []
+        for n, i in enumerate(starts):
+            y0 = self.seg_y[i]
+            y1 = self.seg_y[starts[n + 1]] if n + 1 < len(starts) else self.end_y
+            out.append(
+                f'<g class="segband s{n % 2}"><rect x="0" y="{y0:.0f}" width="{self.width}" '
+                f'height="{y1 - y0:.0f}"/></g>'
+            )
+        return out
+
+    ## @brief The scenario bands' labels, drawn last so no frame or step covers them.
+    ## @return SVG fragments.
+    ## @version 1
+    ## @utility
+    def band_labels_markup(self) -> list[str]:
+        """Owner screenshot 2026-11-22: labels ran under frame tags and step labels; each now sits on
+        a backing pill above everything else.
+
+        @brief Band labels.
+        @return Fragments.
+        """
+        out = []
+        for i, y0 in sorted(self.seg_y.items(), key=lambda kv: kv[1]):
+            kw, _sp, rest = self.segments[i].partition(" ")
+            width = _text_w(self.segments[i]) + 16
+            out.append(
+                f'<g class="seglabel"><rect class="lbg" x="4" y="{y0 + 3:.0f}" width="{width:.0f}" '
+                f'height="19" rx="5"/><text x="12" y="{y0 + 17:.0f}"><tspan class="kw">{escape(kw)}</tspan> '
+                f"{escape(rest)}</text></g>"
+            )
+        return out
 
     ## @brief Lane centres, each column fitted to its label and its neighbours' messages.
     ## @return {lane: x}.
@@ -244,7 +318,8 @@ class _Layout:
 
     ## @brief Walk the steps into call and return events with their rows.
     ## @return None.
-    ## @version 1
+    ## v2: band label rows
+    ## @version 2
     ## @utility
     def _timeline(self) -> None:
         """@brief Build the timeline. @return None."""
@@ -254,6 +329,10 @@ class _Layout:
         for i, step in enumerate(self.flow.steps):
             while open_ and self.flow.steps[open_[-1]].depth >= step.depth:
                 y = self._close(open_.pop(), y, nesting, i - 1)
+            if i in self.segments:
+                ## X-1: a band's label takes its own row above its first step.
+                self.seg_y[i] = y
+                y += _SEG_ROW
             y += _ROW / 2 if i == 0 else 0
             self.call_y[i] = y
             self.offset[i] = 6 * nesting.get(step.to_lane, 0)

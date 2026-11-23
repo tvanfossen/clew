@@ -79,7 +79,7 @@ document.querySelectorAll('.flow-block').forEach(function(block){
   dd.appendChild(el);dl.appendChild(dt);dl.appendChild(dd);}
  function at(i){return svg.querySelector('g[data-step="'+i+'"]');}
  /* LIVE SYNC (P5.6): the step table follows the diagram, and a row opens its step. */
- var trs=Array.prototype.slice.call(document.querySelectorAll('table.steps tr[data-step],ol.story li[data-step]'));
+ var trs=Array.prototype.slice.call(document.querySelectorAll('table.steps tr[data-step]'));
  function sync(g){var ids=(g.getAttribute('data-steps')||g.getAttribute('data-step')).split(' '),first=null;
   trs.forEach(function(r){var on=ids.indexOf(r.getAttribute('data-step'))>=0;r.classList.toggle('on',on);if(on&&!first)first=r;});
   }
@@ -108,9 +108,9 @@ document.querySelectorAll('.flow-block').forEach(function(block){
  function words(s){return [s.caller,s.callee,s.brief,s.call].join(' ').split(/\s+/).filter(Boolean).length;}
  function dwell(i){var s=data[i]||{},sp=speedEl?+speedEl.value:1;return Math.max(MIN_MS,words(s)/WPM*60000)/(sp||1);}
  function now(i){if(!presenting)return;var b=build(i),box=stage.querySelector('.flow-now');if(!b||!box)return;
-  box.textContent='';var li=document.querySelector('ol.story li[data-step="'+i+'"]'),seg=li&&li.closest('.seg');
+  box.textContent='';
   /* X-1: the scenario line this step builds, above the step itself. */
-  if(seg){var g=document.createElement('p');g.className='now-seg';g.textContent=seg.querySelector('.g').textContent;box.appendChild(g);}
+  if(data[i]&&data[i].seg){var g=document.createElement('p');g.className='now-seg';g.textContent=data[i].seg;box.appendChild(g);}
   var h=document.createElement('h3');h.textContent=b.title;box.appendChild(h);box.appendChild(b.node);}
  function show(i){if(!svg.classList.contains('stepping')){svg.classList.add('stepping');groups.forEach(function(g){g.classList.remove('on');});}
   groups.forEach(function(g,k){g.classList.toggle('on',k<=i);});sync(groups[i]);now(+groups[i].getAttribute('data-step'));}
@@ -205,7 +205,8 @@ def _executed(coverage: dict[str, dict[int, set[str]]]) -> dict[str, set[int]]:
 ## v18: call-site cell via _site_cell (W-8)
 ## v19: flow preface (W-1, W-5)
 ## v20: story view (X-1)
-## @version 20
+## v21: scenario bands in the diagram replace the story list (owner 2026-11-22)
+## @version 21
 ## @req REQ-DDB-WIKI-050
 ## @req REQ-DDB-WIKI-014
 ## @req REQ-DDB-WIKI-041
@@ -260,9 +261,7 @@ def flow_page(
         "```{raw} html",
         ## W-1/W-5: what the flow is for, its scenario and a worked example, above the diagram.
         _preface(spec),
-        ## X-1 (owner review 2, 2026-11-22): what each step does, in plain words, under the scenario.
-        _story(spec, flow, data),
-        _block(flow, data, spec.animate, test_node(spec)),
+        _block(flow, data, spec.animate, test_node(spec), _segments(spec, flow)),
         "```",
         "",
     ]
@@ -273,8 +272,10 @@ def flow_page(
         callee = f'<a href="{escape(symbol_href(step.callee, step.file))}">{code(step.callee)}</a>'
         if step.not_run:
             callee = f'<span class="nr">… {step.not_run} not run</span>'
-        rows.append([str(i), code(step.caller), callee, reqs, escape(row["frames"]), site])
-    head = ["#", "caller", "callee", "requirements", "frames", "call site"]
+        ## X-1: what the step does, in the table that already lists the steps.
+        what = escape(row.get("brief") or "")
+        rows.append([str(i), code(step.caller), callee, what, reqs, escape(row["frames"]), site])
+    head = ["#", "caller", "callee", "what it does", "requirements", "frames", "call site"]
     ## P5.6, LIVE SYNC: each row names its step, so the page script can light it as the diagram plays.
     marks = [f' data-step="{i}"' for i in range(len(rows))]
     steps_table = table(head, rows, cls="steps", numeric=("#",), row_attrs=marks)
@@ -460,20 +461,32 @@ def with_values(
 ## a dialog of its own; the diagram pans and zooms.
 ## v3: a test's flow names its test (`data-test-node`), so the hub can run it traced (P4b).
 ## v4: controls and present dialog (W-3, W-7)
-## @version 4
+## v5: scenario bands in the diagram replace the story list (owner 2026-11-22)
+## @version 5
 ## @utility
-def _block(flow: Flow, data: list[dict[str, Any]], animate: bool, node: str = "") -> str:
+def _block(
+    flow: Flow,
+    data: list[dict[str, Any]],
+    animate: bool,
+    node: str = "",
+    segments: dict | None = None,
+) -> str:
     """`<` IS ESCAPED IN THE JSON so no repository text can close the script element.
 
     @brief Assemble the block.
     @return HTML.
     """
+    ## X-1: each step carries the scenario line it builds, for present mode's step panel.
+    current = ""
+    for i, row in enumerate(data):
+        current = (segments or {}).get(i, current)
+        row["seg"] = current
     blob = json.dumps(data, ensure_ascii=False).replace("<", "\\u003c")
     attr = f' data-test-node="{escape(node)}"' if node else ""
 
     return (
         f'<div class="flow-block"{attr}>{_STYLE}<div class="flow-home">{_controls()}'
-        f'<div class="flow-wrap" data-pz>{flow_svg(flow, animate=animate)}</div></div>'
+        f'<div class="flow-wrap" data-pz>{flow_svg(flow, animate=animate, segments=segments)}</div></div>'
         f'<script type="application/json" class="flow-data">{blob}</script>'
         f"{_SCRIPT}</div>"
     )
@@ -558,67 +571,31 @@ def _preface(spec: Any) -> str:
     return f'<div class="flow-preface">{"".join(parts)}</div>' if parts else ""
 
 
-## @brief The flow in plain words: each step's brief, grouped under the scenario line it builds.
+## @brief Where each anchored scenario line begins in a flow: step index → the line.
 ## @param spec The flow (its scenario and anchors).
 ## @param flow The derived flow.
-## @param data Per-step data (`brief`).
-## @return HTML.
+## @return {step index: scenario line}.
 ## @version 1
 ## @utility
-def _story(spec: Any, flow: Any, data: list[dict[str, Any]]) -> str:
-    """X-1: A STEP BELONGS TO THE SCENARIO LINE whose anchor (`at`) most recently began, searching
-    forward; steps before the first anchor join the first anchored line. A line with no anchor (a
-    Given) heads no steps. Without anchors the story is one plain list. Each step names its callee and
-    says what it does (its brief); `data-step` lets play light it.
+def _segments(spec: Any, flow: Any) -> dict[int, str]:
+    """X-1 (owner 2026-11-22): an anchored line begins at the first step, searching forward from
+    the previous anchor, whose callee its `at` names; an anchor the flow never reaches draws nothing.
+    The segments are drawn IN the diagram as bands — the story list that duplicated the step table
+    is gone (owner: "a no").
 
-    @brief Story view.
-    @return HTML.
+    @brief Segment starts.
+    @return Map.
     """
-    lines = spec.scenario or ()
-    anchors = spec.scenario_at or ("",) * len(lines)
-    starts: dict[int, int] = {}
+    out: dict[int, str] = {}
     cursor = 0
-    for k, at in enumerate(anchors):
+    for line, at in zip(spec.scenario or (), spec.scenario_at or ()):
         hit = next(
             (i for i in range(cursor, len(flow.steps)) if at and flow.steps[i].callee == at), None
         )
         if hit is not None:
-            starts[k], cursor = hit, hit
-    owner = [None] * len(flow.steps)
-    order = sorted(starts, key=lambda k: starts[k])
-    for i in range(len(flow.steps)):
-        before = [k for k in order if starts[k] <= i]
-        owner[i] = before[-1] if before else (order[0] if order else None)
-    groups = [(k, lines[k], [i for i, o in enumerate(owner) if o == k]) for k in range(len(lines))]
-    if not order:
-        groups = [(None, "", list(range(len(flow.steps))))]
-    segs = []
-    for _k, line, idx in groups:
-        kw, _sp, rest = line.partition(" ")
-        head = f'<p class="g"><b class="kw">{escape(kw)}</b> {escape(rest)}</p>' if line else ""
-        items = "".join(_story_step(i, flow.steps[i], data[i]) for i in idx)
-        segs.append(
-            f'<li class="seg">{head}'
-            + (f'<ol class="steps">{items}</ol>' if items else "")
-            + "</li>"
-        )
-    return f'<section class="story"><h2>In plain words</h2><ol class="story">{"".join(segs)}</ol></section>'
-
-
-## @brief One story line: the callee and what it does.
-## @param i The step's index.
-## @param step The step.
-## @param row Its data (`brief`).
-## @return HTML.
-## @version 1
-## @utility
-def _story_step(i: int, step: Any, row: dict[str, Any]) -> str:
-    """@brief Story line. @return HTML."""
-    if step.not_run:
-        return f'<li data-step="{i}" class="nr">… {step.not_run} calls no test ran</li>'
-    brief = row.get("brief") or ""
-    what = f" — {escape(brief)}" if brief else ""
-    return f'<li data-step="{i}"><code>{escape(step.callee)}</code>{what}</li>'
+            out[hit] = line
+            cursor = hit
+    return out
 
 
 ## @brief A step row's call-site cell: a link to the line, plain text, or nothing for a stub.

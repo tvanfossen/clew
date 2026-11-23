@@ -49,3 +49,15 @@ def test_the_clew_domain_resolves_no_any_reference() -> None:
 
     assert ClewDomain.resolve_any_xref is not Domain.resolve_any_xref
     assert ClewDomain.resolve_any_xref(None, None, None, "x", None, None, None) == []
+
+
+def test_a_sequence_diagram_is_never_letterboxed() -> None:
+    """Owner review 2026-11-22 (screenshot of the dossier flow): the diagram opened under ~1,000 px of
+    empty space. The SVG's width was capped by a generic max-width while its height attribute stayed
+    8,701 px, so the drawing was scaled down and centred vertically. A sequence diagram keeps its own
+    size (the wrapper scrolls) and its height follows its width.
+
+    @brief svg.seq is never letterboxed.
+    """
+    css = _CSS.read_text(encoding="utf-8")
+    assert ".flow-wrap svg.seq{max-width:none;height:auto}" in css
