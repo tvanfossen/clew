@@ -25,6 +25,7 @@ Static SVG with the shared pan/zoom wrapper: no script of its own.
 
 from __future__ import annotations
 
+from collections import defaultdict
 from dataclasses import dataclass
 from html import escape
 from pathlib import Path
@@ -217,41 +218,139 @@ def _tooling(tooling: list[Entry]) -> str:
     )
 
 
-## @brief L3: the first-party blocks and their call links.
+## At most this many links drawn strong on L3 (the stronger half); the rest are faint (C-18).
+_STRONG = 8
+
+
+## @brief L3: the first-party blocks, layered by who calls whom, and their directed call links.
 ## @param comps The first-party components.
 ## @param links Component links (`from`, `to`, `calls`).
 ## @return HTML.
-## @version 1
+## v2: UX review C-18 (owner Q/A 2026-11-22) — the uniform grid with undirected crossing lines
+##     became layers (callers above what they call), arrows weighted by calls, the weaker links
+##     faint, the key before the diagram.
+## @version 2
 ## @utility
 def _components(comps: list[dict], links: list[dict]) -> str:
-    """@brief Component diagram: a grid, links as lines. @return HTML."""
+    """@brief Component diagram: layered, directed. @return HTML."""
     if not comps:
         return '<p class="none">No block was formed, so no component is drawn.</p>'
-    cols = 4
     w = _fit([c["id"] for c in comps])
-    at = {
-        c["id"]: (_GAP + (i % cols) * (w + _GAP), _GAP + (i // cols) * (_H + 2 * _GAP))
-        for i, c in enumerate(comps)
-    }
-    parts = []
-    for link in links:
-        a, b = at.get(link["from"]), at.get(link["to"])
-        if a and b:
-            parts.append(
-                f'<line class="c4-link" data-link="{escape(link["from"])}→{escape(link["to"])}" '
-                f'x1="{a[0] + w / 2:.0f}" y1="{a[1] + _H / 2:.0f}" x2="{b[0] + w / 2:.0f}" '
-                f'y2="{b[1] + _H / 2:.0f}"><title>{link.get("calls", 0)} calls</title></line>'
-            )
+    at, width, height = _layered_positions(comps, _layers(comps, links), w)
+    parts = [
+        '<defs><marker id="c4-arrow" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="7" '
+        'markerHeight="7" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z" '
+        'class="c4-arrowhead"/></marker></defs>'
+    ]
+    parts += _links_svg(links, at, w)
     for c in comps:
         kind = "declared" if c.get("declared") else "inferred"
         sub = f"{c.get('functions', 0)} functions · {c.get('files', 0)} files"
         parts.append(_box(*at[c["id"]], c["id"], f"c4-comp {kind}", None, sub, w))
-    rows = -(-len(comps) // cols)
     key = (
-        '<p class="note">Solid: a block the repository declares. Dashed: a block inferred from '
-        "coupling, which can be wrong — read it as a hint, not the architecture.</p>"
+        '<p class="note">Callers sit above what they call; an arrow is calls, thicker for more, the '
+        f"weaker half faint (at most {_STRONG} drawn strong). Solid: a block the repository declares. "
+        "Dashed: a block inferred from coupling, which can be wrong — read it as a hint, not the "
+        "architecture.</p>"
     )
-    return _svg(cols * (w + _GAP) + _GAP, rows * (_H + 2 * _GAP) + _GAP, parts, "components") + key
+    return key + _svg(width, height, parts, "components")
+
+
+## @brief Each component's layer: its call distance from the blocks nothing calls.
+## @param comps The components, in order.
+## @param links Component links.
+## @return {id: layer from 0}.
+## @version 1
+## @utility
+def _layers(comps: list[dict], links: list[dict]) -> dict[str, int]:
+    """SHORTEST, NOT LONGEST: a longest-path layering stacked clew's tightly coupled blocks into
+    one column ten deep (found by looking). Breadth-first from the blocks nothing else calls (the
+    first block when every block is called) keeps the drawing shallow; a block no root reaches sits
+    one layer below the rest.
+
+    @brief Layers.
+    @return Map.
+    """
+    ids = [c["id"] for c in comps]
+    out: dict[str, list[str]] = {i: [] for i in ids}
+    for link in links:
+        if link["from"] in out and link["to"] in out and link["from"] != link["to"]:
+            out[link["from"]].append(link["to"])
+    called = {b for a in ids for b in out[a]}
+    frontier = [i for i in ids if i not in called] or ids[:1]
+    layer = dict.fromkeys(frontier, 0)
+    while frontier:
+        nxt = []
+        for a in frontier:
+            for b in out[a]:
+                if b not in layer:
+                    layer[b] = layer[a] + 1
+                    nxt.append(b)
+        frontier = nxt
+    deepest = max(layer.values(), default=-1)
+    return {i: layer.get(i, deepest + 1) for i in ids}
+
+
+## @brief Box positions per layer, each layer centred.
+## @param comps The components.
+## @param layer Their layers.
+## @param w Box width.
+## @return (positions, width, height).
+## @version 1
+## @utility
+def _layered_positions(
+    comps: list[dict], layer: dict[str, int], w: float
+) -> tuple[dict, float, float]:
+    """@brief Positions. @return Triple."""
+    rows: dict[int, list[str]] = defaultdict(list)
+    for c in comps:
+        rows[layer[c["id"]]].append(c["id"])
+    widest = max(len(r) for r in rows.values())
+    width = widest * (w + _GAP) + _GAP
+    at = {}
+    for depth, ids in rows.items():
+        left = (width - len(ids) * (w + _GAP) + _GAP) / 2
+        for j, cid in enumerate(ids):
+            at[cid] = (left + j * (w + _GAP), _GAP + depth * (_H + 3 * _GAP))
+    return at, width, len(rows) * (_H + 3 * _GAP) + _GAP
+
+
+## @brief Directed links, width by calls, the weaker faint.
+## @param links Component links.
+## @param at Box positions.
+## @param w Box width.
+## @return SVG elements.
+## @version 1
+## @utility
+def _links_svg(links: list[dict], at: dict, w: float) -> list[str]:
+    """An arrow leaves the caller's bottom edge for the callee's top edge (or the reverse when the
+    callee sits higher — a back edge).
+
+    @brief Links.
+    @return Elements.
+    """
+    drawn = [lk for lk in links if lk["from"] in at and lk["to"] in at and lk["from"] != lk["to"]]
+    top = max((lk.get("calls", 0) for lk in drawn), default=1) or 1
+    strong = {
+        id(lk)
+        for lk in sorted(drawn, key=lambda lk: -lk.get("calls", 0))[
+            : min(_STRONG, -(-len(drawn) // 2))
+        ]
+    }
+    out = []
+    for lk in drawn:
+        (ax, ay), (bx, by) = at[lk["from"]], at[lk["to"]]
+        down = by > ay
+        y1, y2 = (ay + _H, by) if down else (ay, by + _H)
+        cls = "c4-link" if id(lk) in strong else "c4-link weak"
+        sw = 1 + 4 * (lk.get("calls", 0) / top) ** 0.5
+        out.append(
+            f'<line class="{cls}" data-link="{escape(lk["from"])}→{escape(lk["to"])}" '
+            f'x1="{ax + w / 2:.0f}" y1="{y1:.0f}" x2="{bx + w / 2:.0f}" y2="{y2:.0f}" '
+            f'style="stroke-width:{sw:.1f}px" marker-end="url(#c4-arrow)"><title>{lk.get("calls", 0)} calls'
+            "</title></line>"
+        )
+    return out
 
 
 ## @brief L4: the generated level — the map and the symbol pages.

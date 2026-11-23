@@ -117,3 +117,26 @@ def test_a_long_component_name_is_never_cut() -> None:
         l3.split('class="c4-comp declared"', 1)[1].split('width="', 1)[1].split('"', 1)[0]
     )
     assert width >= len(long) * 7, width
+
+
+def test_l3_is_layered_by_who_calls_whom_with_directed_weighted_links() -> None:
+    """UX review C-18 (owner Q/A 2026-11-22): L3 was a uniform grid with undirected crossing lines
+    and its key below. Callers sit above what they call; a link is an arrow, thicker for more
+    calls; the weaker links are faint; the key comes first.
+
+    @brief L3 layered layout.
+    """
+    from clew.wiki.architecture import _components, _layers
+
+    comps = [{"id": x, "functions": 1, "files": 1} for x in ("cli", "wiki", "query", "db")]
+    links = [
+        {"from": "cli", "to": "wiki", "calls": 9},
+        {"from": "wiki", "to": "query", "calls": 4},
+        {"from": "query", "to": "db", "calls": 1},
+        {"from": "db", "to": "query", "calls": 1},
+    ]
+    assert _layers(comps, links) == {"cli": 0, "wiki": 1, "query": 2, "db": 3}
+    html = _components(comps, links)
+    assert 'marker-end="url(#c4-arrow)"' in html and '<marker id="c4-arrow"' in html
+    assert html.index('class="note"') < html.index("<svg")
+    assert 'class="c4-link weak"' in html

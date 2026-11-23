@@ -491,7 +491,8 @@ def _block_row(b: dict) -> dict:
 ## v2: owners overlay and vendor areas (2.0.0, P5)
 ## v3: lens legend
 ## v4: loads web-files.js first
-## @version 4
+## v5: grouped zoom control (UX review C-14)
+## @version 5
 ## @req REQ-DDB-WIKI-021
 def web_html(data: dict[str, Any]) -> str:
     """THE DATA IS INLINE (`application/json`, never executed) and the script is local: the page
@@ -514,9 +515,10 @@ def web_html(data: dict[str, Any]) -> str:
     return (
         '<div class="web" data-web>'
         '<div class="web-bar"><input type="search" data-web-search placeholder="Find a function" '
-        'aria-label="Find a function"><button type="button" data-web-zoom="1.6">+</button>'
-        '<button type="button" data-web-zoom="0.625">&minus;</button>'
-        '<button type="button" data-web-fit>Whole system</button>'
+        ## C-14 (UX review, owner Q/A 2026-11-22): zoom is one grouped control.
+        'aria-label="Find a function"><span class="seg"><button type="button" data-web-zoom="1.6" '
+        'aria-label="Zoom in">+</button><button type="button" data-web-zoom="0.625" aria-label="Zoom out">'
+        '&minus;</button><button type="button" data-web-fit>Whole system</button></span>'
         '<label>Lens <select data-web-lens><option value="tier">Requirements</option>'
         '<option value="block">Blocks</option>'
         + ('<option value="changed">Change</option>' if _has(data, "changed") else "")

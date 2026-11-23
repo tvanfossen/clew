@@ -319,3 +319,31 @@ def test_the_file_layer_is_its_own_budgeted_script() -> None:
     assert "window.webFiles" in WEB_JS
     page = web_html({"nodes": [], "blocks": [], "links": []})
     assert page.index("web-files.js") < page.index("_static/web.js")
+
+
+def test_the_overview_keeps_blocks_as_the_figure() -> None:
+    """UX review C-5/C-6 (owner Q/A 2026-11-22): the edge bundle was the strongest mark at overview,
+    the call-depth rings could not be seen, and the "no requirement" brown read as background. Edges
+    are faint unless their block is selected; rings are drawn over the wedges; "no data" takes the
+    light neutral; the legend says what it counts.
+
+    @brief Overview figure-ground.
+    """
+    assert "ctx.globalAlpha=lit[idx[l.from]]||lit[idx[l.to]]?.6:.12" in WEB_JS
+    assert "rings();" in WEB_JS and "function rings()" in WEB_JS
+    ## no data: a neutral distinct from the wedge fills (--paper/--muted), found by looking.
+    assert '["no requirement",C["--rule2"]]' in WEB_JS
+    assert "<b>Functions</b>" in WEB_JS
+
+
+def test_the_map_controls_are_grouped_and_sized_to_content() -> None:
+    """@brief C-14: zoom as one group; labels never wrap a word per line; selects size to content."""
+    html = web_html({"nodes": [], "blocks": [], "links": []})
+    assert '<span class="seg">' in html
+    import clew.wiki
+
+    css = (Path(clew.wiki.__file__).parent / "themes/clew/static/clew.css").read_text()
+    assert (
+        ".web-bar label{white-space:nowrap}" in css
+        and ".web-bar select{width:auto;max-width:18rem}" in css
+    )

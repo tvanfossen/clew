@@ -26,13 +26,13 @@ function fitK(){return Math.min(W(),H())/(2*rOut+260);}
 function toS(x,y){return[(x-cam.x)*cam.k+W()/2,(y-cam.y)*cam.k+H()/2];}
 function toW(sx,sy){return[(sx-W()/2)/cam.k+cam.x,(sy-H()/2)/cam.k+cam.y];}
 function mid(b){var a=(b.a0+b.a1)/2,r=(G.r0+rMax)/2;return[r*Math.cos(a),r*Math.sin(a)];}
+function rings(){for(var r=0;r<=D.max_ring;r++){ctx.beginPath();ctx.arc(0,0,G.r0+r*G.band,0,7);ctx.strokeStyle=C["--rule"];ctx.lineWidth=1/cam.k;ctx.stroke();}}
 function wedge(b,r0,r1){ctx.beginPath();ctx.arc(0,0,r1,b.a0,b.a1);ctx.arc(0,0,r0,b.a1,b.a0,true);ctx.closePath();}
 function draw(){
  var k=cam.k,zoomed=k>=LOD*fitK()*2.2;ctx.clearRect(0,0,W(),H());
  ctx.save();ctx.translate(W()/2,H()/2);ctx.scale(k,k);ctx.translate(-cam.x,-cam.y);
- for(var r=0;r<=D.max_ring;r++){ctx.beginPath();ctx.arc(0,0,G.r0+r*G.band,0,7);ctx.strokeStyle=C["--rule2"];ctx.lineWidth=1/k;ctx.stroke();}
  B.forEach(function(b,i){wedge(b,G.r0-G.band/2,rMax);ctx.fillStyle=lit[i]?C["--accbg"]:(i%2?C["--paper"]:C["--muted"]);ctx.globalAlpha=zoomed?0.45:0.9;ctx.fill();ctx.globalAlpha=1;ctx.strokeStyle=C["--rule"];ctx.lineWidth=1/k;ctx.stroke();});
- if(!zoomed){if(lens!=="block"||rq>=0)pies();links();}else{if(window.webFiles)webFiles(ctx,k,D,C);nodes();}
+ if(!zoomed){if(lens!=="block"||rq>=0)pies();rings();links();}else{rings();if(window.webFiles)webFiles(ctx,k,D,C);nodes();}
  bounds(zoomed);ctx.restore();labels(zoomed);legend();
 }
 /* Vendor areas sit OUTSIDE the boundary (owner, round 5): one node each, sized by calls in. */
@@ -42,14 +42,14 @@ function bounds(zoomed){ctx.globalAlpha=0.5;ctx.strokeStyle=C["--rule"];ctx.line
 function links(){var idx={},bx={};B.forEach(function(b,i){idx[b.id]=i;});BD.forEach(function(b){bx[b.id]=[b.x,b.y];});var top=1;D.links.forEach(function(l){top=Math.max(top,l.calls);});
  D.links.forEach(function(l){var a=B[idx[l.from]],b=B[idx[l.to]];if(!a||(!b&&!bx[l.to]))return;var p=mid(a),q=b?mid(b):bx[l.to];
   ctx.beginPath();ctx.moveTo(p[0],p[1]);ctx.quadraticCurveTo((p[0]+q[0])*0.2,(p[1]+q[1])*0.2,q[0],q[1]);
-  ctx.strokeStyle=C["--ink2"];ctx.globalAlpha=0.35;ctx.lineWidth=(1+5*Math.sqrt(l.calls/top))/cam.k;ctx.stroke();ctx.globalAlpha=1;});}
+  ctx.strokeStyle=C["--ink2"];ctx.globalAlpha=lit[idx[l.from]]||lit[idx[l.to]]?.6:.12;ctx.lineWidth=(1+5*Math.sqrt(l.calls/top))/cam.k;ctx.stroke();ctx.globalAlpha=1;});}
 /* ONE CATEGORY per node and lens: dots, wedge pies and legend (owner map notes 2026-11-22). */
-function cat(n){if(rq>=0)return n.r&&n.r.indexOf(rq)>=0?["this requirement",C["--acc"]]:["other",C["--rule"]];if(lens==="owner")return n.owner?[n.owner,hue(n.owner)]:["no owner",C["--faint"]];if(lens==="changed")return n.changed?["changed",C["--warn"]]:["unchanged",C["--rule"]];if(lens==="block")return[B[n.block].id,n.block%2?C["--ink2"]:C["--faint"]];return n.tier?[n.tier,C[TIER[n.tier]||"--faint"]]:["no requirement",C["--faint"]];}
+function cat(n){if(rq>=0)return n.r&&n.r.indexOf(rq)>=0?["this requirement",C["--acc"]]:["other",C["--rule"]];if(lens==="owner")return n.owner?[n.owner,hue(n.owner)]:["no owner",C["--faint"]];if(lens==="changed")return n.changed?["changed",C["--warn"]]:["unchanged",C["--rule"]];if(lens==="block")return[B[n.block].id,n.block%2?C["--ink2"]:C["--faint"]];return n.tier?[n.tier,C[TIER[n.tier]||"--faint"]]:["no requirement",C["--rule2"]];}
 function col(n){return cat(n)[1];}
 function tally(f){var m={},o=[];N.forEach(function(n){if(!f(n))return;var c=cat(n);if(!m[c[0]]){m[c[0]]=[c[0],c[1],0];o.push(m[c[0]]);}m[c[0]][2]++;});return o.sort(function(a,b){return a[0]<b[0]?-1:1;});}
 /* A held category is >= MINF of its wedge; the legend keeps exact counts. */
 var MINF=.04;function pies(){B.forEach(function(b,i){var s=tally(function(n){return n.block===i;}),t=0,a=b.a0,f;s.forEach(function(x){t+=x[2];});f=s.map(function(x){return Math.max(x[2]/t,MINF);});var u=f.reduce(function(p,q){return p+q;},0);s.forEach(function(x,j){var e=a+(b.a1-b.a0)*f[j]/u;wedge({a0:a,a1:e},G.r0,rMax);ctx.fillStyle=x[1];ctx.globalAlpha=.6;ctx.fill();a=e;});});ctx.globalAlpha=1;}
-function legend(){var el=root.querySelector("[data-web-legend]");if(!el)return;var o=lens==="block"&&rq<0?[]:tally(function(){return 1;});o.sort(function(a,b){return b[2]-a[2];});el.innerHTML=o.slice(0,10).map(function(x){return'<span><i style="background:'+x[1]+'"></i>'+esc(x[0])+" "+x[2]+"</span>";}).join("");}
+function legend(){var el=root.querySelector("[data-web-legend]");if(!el)return;var o=lens==="block"&&rq<0?[]:tally(function(){return 1;});o.sort(function(a,b){return b[2]-a[2];});el.innerHTML="<b>Functions</b> "+o.slice(0,10).map(function(x){return'<span><i style="background:'+x[1]+'"></i>'+esc(x[0])+" "+x[2]+"</span>";}).join("");}
 function nodes(){var k=cam.k,rad=Math.max(1.6,3.2/Math.sqrt(k))/1;
  if(sel>=0){ctx.lineWidth=1.2/k;edgeSet(sel,outN,C["--acc"]);edgeSet(sel,inN,C["--root"]);}
  if(flow){ctx.beginPath();flow.steps.forEach(function(s,i){var n=N[s];if(i)ctx.lineTo(n.x,n.y);else ctx.moveTo(n.x,n.y);});ctx.strokeStyle=C["--err"];ctx.lineWidth=2/k;ctx.stroke();}
@@ -122,6 +122,6 @@ new MutationObserver(retheme).observe(document.documentElement,{attributes:true,
 /* W-2 (owner 2026-11-22): a map item's symbol section opens framed in the page's one modal. */
 var md=document.getElementById('clew-modal');if(md)md.addEventListener('close',function(){md.classList.remove('wide');});
 function frames(){if(window.clewModal)clewModal.register('frame-',function(k){var n=N[+k];if(!n||!n.href)return null;var f=document.createElement('iframe');f.src=n.href;f.className='sym-frame';f.title=n.name;if(md)md.classList.add('wide');return{title:n.name,node:f};});}
-/* web.js loads BEFORE clew.js defines clewModal, so the builder registers once the page is parsed. */
+/* web.js loads before clew.js: register once parsed. */
 if(window.clewModal)frames();else document.addEventListener('DOMContentLoaded',frames);
 })();
