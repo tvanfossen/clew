@@ -145,7 +145,11 @@ async def test_a_query_during_a_long_first_build_says_so_without_waiting_again(
     import threading
     import time
 
-    monkeypatch.setattr(server_module, "_FIRST_BUILD_WAIT_SECONDS", 0.2)
+    ## HEADROOM (owner Q/A 2026-11-23): the bound was 0.2 s and the check < 0.15 s, so 0.05 s of
+    ## headroom; the gate failed twice on 2026-11-23 at load ~13 (0.156 s), passing 5/5 alone. A
+    ## second query that WAITED would take >= the bound, so a 2.0 s bound and a < 1.0 s check
+    ## state the same property with 1.0 s of headroom.
+    monkeypatch.setattr(server_module, "_FIRST_BUILD_WAIT_SECONDS", 2.0)
     repo = _git_repo(tmp_path / "slow")
     _mcp, state = build_server(st.TargetRegistry(tmp_path / "state"))
     release = threading.Event()
@@ -160,7 +164,7 @@ async def test_a_query_during_a_long_first_build_says_so_without_waiting_again(
     await state._auto_refresh(str(repo))
     started = time.monotonic()
     await state._auto_refresh(str(repo))
-    assert time.monotonic() - started < 0.15, "a second query must not wait the bound again"
+    assert time.monotonic() - started < 1.0, "a second query must not wait the bound again"
     with pytest.raises(RuntimeError, match="being built in the background"):
         state.tools.dossier("sensor_poll", target=str(repo))
 
