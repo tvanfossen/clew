@@ -1,5 +1,9 @@
 # clew
 
+[![PyPI](https://img.shields.io/pypi/v/clew-trace)](https://pypi.org/project/clew-trace/)
+**[clew's own wiki](https://tvanfossen.github.io/clew/)** — built by clew from this repository on every green `main` ·
+**[clew-trace on PyPI](https://pypi.org/project/clew-trace/)**
+
 > *A **clew** is the ball of thread Ariadne gave Theseus to find his way out of the labyrinth —
 > the archaic spelling, and the direct ancestor, of the word "clue".*
 
