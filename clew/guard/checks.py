@@ -1097,16 +1097,46 @@ def _check_file_block_tags(file_path: str, lines: list[str], block_start: int) -
 
 
 ## @brief Extract file-level doxygen block text from lines.
-#  @version 1.1
+#  @details v1.2 (2.1, found by an adopter, glyph-animator 2026-11-23): a Python MODULE DOCSTRING
+#  is read to its closing quotes. It stopped at the first line not starting with `*`, `#` or `//`,
+#  so a docstring whose tags follow a blank line read as missing @file/@brief/@version, against
+#  GUARD.md's "PEP 257 leads".
+#  @version 1.2
 #  @utility
 #  @return The raw text of the doxygen block
 def _extract_file_block_text(lines: list[str], start: int) -> str:
+    if lines[start].strip().startswith(_DOCSTRING_QUOTES):
+        return _docstring_block(lines, start)
     block_lines: list[str] = []
     for i in range(start, min(start + 30, len(lines))):
         block_lines.append(lines[i])
         if "*/" in lines[i] or (i > start and not lines[i].strip().startswith(("*", "#", "//"))):
             break
     return "\n".join(block_lines)
+
+
+## The quotes a Python module docstring opens with, and the most lines one is read across.
+_DOCSTRING_QUOTES = ('"""', "'''")
+_DOCSTRING_MAX_LINES = 400
+
+
+## @brief A module docstring's text, from its opening quotes to its closing ones.
+#  @version 1.0
+#  @utility
+#  @return The text, quotes removed
+def _docstring_block(lines: list[str], start: int) -> str:
+    first = lines[start].strip()
+    quote = first[:3]
+    opened = first[3:]
+    if quote in opened:
+        return opened.split(quote, 1)[0]
+    body = [opened]
+    for line in lines[start + 1 : start + _DOCSTRING_MAX_LINES]:
+        if quote in line:
+            body.append(line.split(quote, 1)[0])
+            break
+        body.append(line)
+    return "\n".join(body)
 
 
 # In Rust only an INNER doc comment documents the file (its module): `///` and `/**` at the
