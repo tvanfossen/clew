@@ -231,7 +231,8 @@ EXEMPTION_REASON_SETTINGS: tuple[str, ...] = ("optional", "required")
 
 ## No floor unless declared (owner, 2.0.0): no standard sets a requirement ratio, and the measured
 ## values differ by repository, so a built-in number would be one repository's tuning.
-COVERAGE_DEFAULTS: dict[str, Any] = {"min_req_ratio": None}
+## `through_dependencies` (2.1, #73 item 2): opt-in coverage via a pinned dependency's requirement.
+COVERAGE_DEFAULTS: dict[str, Any] = {"min_req_ratio": None, "through_dependencies": False}
 
 ## `requirements` is the top-level catalog section, carried in the loaded config so every gate
 ## reader finds it in one place; None means no catalog is declared. It is not a `guard:` key, and
@@ -396,7 +397,7 @@ CONFIG_SCHEMA: dict[str, Any] = {
     },
     ## 2.0.0 (PG3): the requirement ratio floor. `object` here; `_ratio_errors` checks the value,
     ## because the schema's type check would refuse a YAML `1` as "expected float, got int".
-    "coverage": {"min_req_ratio": object},
+    "coverage": {"min_req_ratio": object, "through_dependencies": bool},
 }
 
 

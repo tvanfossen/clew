@@ -951,20 +951,34 @@ def _uncheckable(func: Function, file_path: str, req_id: str) -> Violation:
 
 ## @brief A catalogue entry's `satisfies` ids that no catalogue holds (GH #68).
 #  @details v1.1 (2.1, #72 item 13): `serves` is read as the same link (`requirements.link_ids`).
-#  @version 1.1
+#  v1.2 (2.1, #73 item 3): with a parent catalogue unchecked here, an unresolved link is a warning.
+#  @version 1.2
 #  @req REQ-DDB-SCHEMA-015
 #  @return One violation per unresolvable link, against the catalogue file
 def check_satisfies(
-    rows: dict[str, dict[str, str]], known: set[str], catalog_file: str
+    rows: dict[str, dict[str, str]],
+    known: set[str],
+    catalog_file: str,
+    unchecked: list[str] | None = None,
 ) -> list[Violation]:
     """A link names an id in the local or an external catalogue; `<catalog>:<id>` resolves by
-    its id. Anything else is a broken edge in the requirement tree."""
+    its id. Anything else is a broken edge in the requirement tree — unless a PARENT catalogue
+    could not be read here (`unchecked`), when it may be that parent's: reported unchecked, a
+    warning naming the parents, never a violation (#73 item 3)."""
     from ..requirements import link_ids
 
     out: list[Violation] = []
     for req_id, row in rows.items():
         for target in link_ids(row):
             if target in known or target.split(":", 1)[-1] in known:
+                continue
+            if unchecked:
+                logger.warning(
+                    "%s satisfies %s: unchecked — parent catalogue(s) %s not present here",
+                    req_id,
+                    target,
+                    ", ".join(unchecked),
+                )
                 continue
             out.append(
                 Violation(

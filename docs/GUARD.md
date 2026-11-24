@@ -447,6 +447,40 @@ a link no catalogue holds is a violation. The index records each link, and a req
 `dossier` carries both directions, `satisfies` and `satisfied_by`. `serves` is read as the same link (2.1), so a
 catalogue already written with `serves:` needs no rename; an entry may use either key, or both.
 
+A module's catalogue usually links up to a product's, and the product's clone is not on every
+machine the module's gate runs on. Mark that entry `parent: true` (2.1):
+
+```yaml
+requirements:
+  external:
+    - {name: product, repo: ../product, rev: <sha>, path: requirements.yaml, parent: true}
+```
+
+Where the clone is present, links into it are checked like any other. Where it is not, the gate
+does not fail: each link it cannot resolve is a warning, "unchecked — parent catalogue(s) product
+not present here". The product's own gate, where the clone is, still checks them. An entry not
+marked `parent` still refuses when it cannot be read.
+
+A product requirement that no product code implements, but a module's requirement satisfies, reads
+UNCOVERED. To count those, opt in (2.1):
+
+```yaml
+guard:
+  coverage:
+    through_dependencies: true
+```
+
+`clew guard coverage` then counts such a requirement as covered through the dependency when that
+dependency's satisfying requirement is either:
+
+- **implemented** — its code carries the requirement tag at the pinned revision. This is checked
+  with `git grep` in the local clone at that revision, never taken from the dependency's own
+  status field; or
+- **exempt** — exempt under this repository's `exempt_status` / `exempt_when`.
+
+It is reported in its own list, "REQ-PRD-001 via lib:REQ-LIB-001 (implemented)", never merged into
+`covered`. The option is off by default; without it, nothing changes and `covered_via` is absent.
+
 A missing file, an unknown format, a wrong shape, a missing `name`, or an id failing
 `validate.tags.req.pattern` raises `RequirementsError`. The run fails rather than continuing
 with an empty catalog.

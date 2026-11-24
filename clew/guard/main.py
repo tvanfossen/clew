@@ -291,7 +291,8 @@ def _report_skips(skipped: list[str]) -> None:
 #  v1.4: external catalogues' ids join the local catalogue's (GH #68).
 #  v1.5: the local catalogue's `satisfies` links are checked (GH #68).
 #  v1.6: reads the top-level requirements: section (2.0.0, R5-CFG F7)
-#  @version 1.6
+#  v1.7: an absent parent catalogue's links are unchecked, not refused (2.1, #73 item 3)
+#  @version 1.7
 #  @utility
 def _validate_files(
     file_paths: list[str],
@@ -304,10 +305,12 @@ def _validate_files(
     # catalogues were looked for and none exists — so the check reports each tag as uncheckable
     # rather than passing it; None is reserved for "no catalogue information supplied".
     local = load_requirements_full(config)
-    req_ids = set(local) | set(load_external_requirements(config))
+    ## #73 item 3 (2.1): a parent catalogue not cloned here is recorded, not refused.
+    unchecked: list[str] = []
+    req_ids = set(local) | set(load_external_requirements(config, unchecked))
     # GH #68: every `satisfies` link of the local catalogue must land in some catalogue.
     catalog_file = get_requirements(config).get("file", "")
-    violations: list[Violation] = check_satisfies(local, req_ids, catalog_file)
+    violations: list[Violation] = check_satisfies(local, req_ids, catalog_file, unchecked)
     skipped: list[str] = []
     for file_path in file_paths:
         if not Path(file_path).exists():

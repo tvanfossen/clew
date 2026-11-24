@@ -199,13 +199,21 @@ def _get_requirements_config(
 
 ## @brief The requirement ids of the external catalogues this repository names (GH #68).
 #  v1.1: reads the top-level requirements: section (2.0.0, R5-CFG F7)
-#  @version 1.1
+#  v1.2: a `parent: true` catalogue whose clone is absent is recorded unchecked (2.1, #73 item 3)
+#  @version 1.2
 #  @req REQ-DDB-GUARD-027
 #  @return Mapping of requirement ID to its row; empty when none is named
-def load_external_requirements(config: dict[str, Any]) -> dict[str, dict[str, str]]:
+def load_external_requirements(
+    config: dict[str, Any], unchecked: list[str] | None = None
+) -> dict[str, dict[str, str]]:
     """The consumer's catalogue, read where it is pinned: each entry is a path or {repo, rev,
     path} relative to the repository, through the reader the wiki uses. An unreadable one or a
-    URL is an error naming it, never an empty catalogue that would pass every tag."""
+    URL is an error naming it, never an empty catalogue that would pass every tag.
+
+    A PARENT (`parent: true`, #73 item 3, owner Q/A 2026-11-24) is the one exception: a module's
+    gate runs where the product's clone may not be, so an unreadable parent is recorded in
+    `unchecked` (by name) and its links are reported unchecked, never refused. The product's own
+    gate, where the clone is, still checks them."""
     from ..requirements import read_catalog_at
 
     req_config = get_requirements(config)
@@ -214,6 +222,15 @@ def load_external_requirements(config: dict[str, Any]) -> dict[str, dict[str, st
         try:
             out.update(read_catalog_at(Path.cwd(), source))
         except ValueError as exc:
+            if isinstance(source, dict) and source.get("parent") is True and unchecked is not None:
+                name = str(source.get("name") or Path(str(source.get("repo", "parent"))).name)
+                logger.warning(
+                    "parent catalogue %s is not readable here (%s); its links are unchecked",
+                    name,
+                    exc,
+                )
+                unchecked.append(name)
+                continue
             raise RequirementsError(f"impact.requirements.external: {exc}") from exc
     if out:
         logger.info("Loaded %d requirement(s) from external catalogues", len(out))
