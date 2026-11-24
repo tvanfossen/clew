@@ -269,7 +269,8 @@ def _step_values(expected: list[tuple[str, str]], spans: list[dict], names: dict
 ## @param repo_root The repository.
 ## @param globs The globs.
 ## @return (repo-relative file, document) pairs; an unreadable file is skipped with a warning.
-## @version 1
+## v2: recorded values redacted on load (2.1)
+## @version 2
 ## @req REQ-DDB-WIKI-036
 def load_traces(repo_root: Path, globs: tuple[str, ...]) -> list[tuple[str, dict[str, Any]]]:
     """@brief Load traces. @return Pairs."""
@@ -279,12 +280,45 @@ def load_traces(repo_root: Path, globs: tuple[str, ...]) -> list[tuple[str, dict
     out = []
     for path in sorted({p for g in globs for p in root.glob(g) if p.is_file()}):
         try:
-            out.append(
-                (path.relative_to(root).as_posix(), json.loads(path.read_text(encoding="utf-8")))
-            )
+            otlp = json.loads(path.read_text(encoding="utf-8"))
         except (OSError, ValueError) as exc:
             logging.getLogger(__name__).warning("trace %s skipped: %s", path, exc)
+            continue
+        ## 2.1: a recorded value carries no local path into a published site.
+        out.append((path.relative_to(root).as_posix(), redact_local_paths(otlp, root)))
     return out
+
+
+## @brief A recorded run with the repository's path as `<repo>` and the home directory as `~`.
+## @param otlp The recorded run.
+## @param repo_root The repository.
+## @return A copy, every string value redacted (keys untouched).
+## @version 1
+## @req REQ-DDB-WIKI-049
+def redact_local_paths(otlp: Any, repo_root: Path) -> Any:
+    """2.1 (disclosed with X-2 in 2.0.0): a traced value — a `Path`, a cache file — carried the
+    builder's absolute paths into a site meant to be published. The REPOSITORY first (it usually
+    sits under the home directory, and `<repo>/src/a.py` says more than `~/work/proj/src/a.py`),
+    then the HOME directory.
+
+    @brief Redact.
+    @return Copy.
+    """
+    pairs = [(str(Path(repo_root).resolve()), "<repo>"), (str(Path.home()), "~")]
+    pairs = [(old, new) for old, new in pairs if old not in ("", "/")]
+
+    def clean(node: Any) -> Any:
+        if isinstance(node, str):
+            for old, new in pairs:
+                node = node.replace(old, new)
+            return node
+        if isinstance(node, dict):
+            return {k: clean(v) for k, v in node.items()}
+        if isinstance(node, list):
+            return [clean(v) for v in node]
+        return node
+
+    return clean(otlp)
 
 
 ## @brief The name of a trace's root span (the test), or "".
