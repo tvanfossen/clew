@@ -364,3 +364,86 @@ def test_the_refresh_loop_tells_the_hub_what_it_refreshed(monkeypatch: pytest.Mo
 
     anyio.run(run)
     assert told and told[0] == ["a-123456"]
+
+
+def _post(
+    url: str, body: bytes, cookie: str = "", kind: str = "application/json", origin: str = ""
+) -> tuple[int, str]:
+    """@brief POST to the hub. @return (status, body)."""
+    request = urllib.request.Request(url, data=body, method="POST")
+    request.add_header("Content-Type", kind)
+    if cookie:
+        request.add_header("Cookie", cookie)
+    if origin:
+        request.add_header("Origin", origin)
+    try:
+        with urllib.request.urlopen(request, timeout=10) as reply:
+            return reply.status, reply.read().decode()
+    except urllib.error.HTTPError as exc:
+        return exc.code, exc.read().decode()
+
+
+def test_a_comment_posted_on_a_served_page_is_stored_for_the_agent(hub) -> None:  # noqa: ANN001
+    """2.1 (owner Q/A 2026-11-24): the page's comment control POSTs here; the hub stores it in the
+    repository's comment log, where the hook counts it and `index(action='comments')` reads it.
+
+    @brief Comment endpoint stores.
+    """
+    import json
+
+    from clew.mcp_server.comments import CommentStore
+
+    server, builder, live, _gone = hub
+    builder.release.set()
+    cookie = f"clew_wiki={server.token}"
+    body = json.dumps(
+        {"page": "test-x.html", "anchor": "checks", "quote": "a < 2", "body": "Bound?"}
+    )
+    status, reply = _post(
+        f"http://127.0.0.1:{server.port}/api/{live.slug}/comment", body.encode(), cookie
+    )
+    assert status == 201, reply
+    stored = CommentStore.for_repo(server.home, live.repo_path).unread()
+    assert [c["body"] for c in stored] == ["Bound?"] and stored[0]["page"] == "test-x.html"
+
+
+def test_the_comment_endpoint_refuses_what_it_must(hub) -> None:  # noqa: ANN001
+    """SAME DOOR AS EVERY PAGE: the session cookie, JSON only (a cross-site form cannot send it
+    without a preflight), the hub's own origin when one is sent, a size cap, and the store's own
+    refusals (empty, over the limit) passed back with their reason.
+
+    @brief Comment endpoint refusals.
+    """
+    import json
+
+    from clew.mcp_server.comments import CommentStore
+
+    server, builder, live, _gone = hub
+    builder.release.set()
+    url = f"http://127.0.0.1:{server.port}/api/{live.slug}/comment"
+    cookie = f"clew_wiki={server.token}"
+    good = json.dumps({"page": "a.html", "anchor": "", "quote": "", "body": "hi"}).encode()
+    assert _post(url, good)[0] == 403
+    assert _post(url, good, cookie, kind="text/plain")[0] == 415
+    assert _post(url, good, cookie, origin="http://evil.example")[0] == 403
+    assert _post(url, b"x" * 70_000, cookie)[0] == 413
+    empty = json.dumps({"page": "a.html", "anchor": "", "quote": "", "body": " "}).encode()
+    status, reply = _post(url, empty, cookie)
+    assert status == 400 and "empty" in reply
+    assert _post(f"http://127.0.0.1:{server.port}/api/nosuch/comment", good, cookie)[0] == 404
+    assert CommentStore.for_repo(server.home, live.repo_path).unread() == []
+
+
+def test_served_pages_carry_the_comment_control(hub) -> None:  # noqa: ANN001
+    """@brief The hub injects `/comment.js` with `/live.js`; the static site stays server-free."""
+    server, builder, live, _gone = hub
+    builder.release.set()
+    site = server.site_dir(live)
+    site.mkdir(parents=True, exist_ok=True)
+    (site / "index.html").write_text("<html><body><p>x</p></body></html>")
+    cookie = f"clew_wiki={server.token}"
+    _s, page, _h = _get(f"http://127.0.0.1:{server.port}/r/{live.slug}/", cookie)
+    assert '<script src="/comment.js"></script>' in page
+    status, script, headers = _get(f"http://127.0.0.1:{server.port}/comment.js", cookie)
+    assert status == 200 and "/comment" in script and "javascript" in headers["Content-Type"]
+    assert "textContent" in script and "innerHTML" not in script

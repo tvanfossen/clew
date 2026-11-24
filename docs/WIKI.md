@@ -41,6 +41,35 @@ looking here" link whenever a `dossier` reply names a function. It listens on 12
 behind a per-session token — see [SECURITY.md](SECURITY.md#9-the-wiki-hub-and-issue-fetching-reach-beyond-the-build).
 Reading never needs a server: the built site is static files.
 
+### Comment to the agent
+
+On a page the hub serves, the **Comment** button (bottom left) sends a note to the agent working
+on that repository. Select text first to quote it. The comment records the page, the section,
+the quoted text and your note.
+
+```mermaid
+sequenceDiagram
+  participant P as you, on a wiki page
+  participant H as hub (MCP server)
+  participant K as clew-hook
+  participant A as the agent
+  P->>H: Comment: "is this bound right?"
+  H->>H: append to the repository's comment log
+  A->>K: next tool call
+  K-->>A: "1 new wiki comments … index(action='comments')"
+  A->>H: index(action='comments')
+  H-->>A: page, section, quote, note (marked read)
+```
+
+- **The hook says how many, never what.** Its output is held to literals and integers (see
+  [SECURITY.md](SECURITY.md)), so it tells the agent only how many comments wait. The text
+  arrives through `index(action='comments')` as tool data, marked as a person's notes.
+- **The agent hears on its next tool call.** A hook cannot wake an idle session.
+- **Nothing is lost.** Comments are kept in an append-only log per repository under clew's state
+  directory (`comments/`). Reading one marks it read and never removes it.
+- **Limits refuse, they never cut.** An empty comment, or one over 4,000 characters, is refused
+  with the reason shown on the page.
+
 ## What the site holds
 
 ```mermaid

@@ -481,7 +481,8 @@ def test_every_declared_index_action_is_dispatched() -> None:
 
     ## 2.0.0 (owner 2026-11-16): `stats` and `cull` retired to the CLI; they are refused by name,
     ## never dispatched, so they may not also be declared actions.
-    assert INDEX_ACTIONS == ("status", "refresh", "targets")
+    ## SPEC CHANGED (2.1, owner Q/A 2026-11-24): `comments` reads a person's wiki comments.
+    assert INDEX_ACTIONS == ("status", "refresh", "targets", "comments")
     assert not set(RETIRED_INDEX_ACTIONS) & set(INDEX_ACTIONS)
     ## A ROUTING action misspelled here would be refused a target it is supposed to honour —
     ## the mirror of the defect the set exists to prevent, and silent in the same way, since

@@ -1098,6 +1098,21 @@ requirements:
     x-priority: P1
     x-status: implemented
     x-evidence: clew/wiki/apiref.py; tests/test_wiki_apiref.py.
+  REQ-DDB-WIKI-054:
+    subsystem: wiki
+    name: A comment left on a served wiki page reaches the agent
+    acceptance_criteria: 'A page served by the wiki hub carries a comment control. A comment
+      records its page, anchor, quoted text, body and time in an append-only log beside the
+      target''s index; an empty comment, or one over the size limit, is refused (never cut). The
+      PostToolUse hook tells the agent only how many comments are waiting (an integer), and
+      `index(action=''comments'')` returns their text and marks them read. A read never removes a
+      comment from the log. With `wiki.comments.deliver` naming `channel`, the server also pushes
+      each comment as a Claude Code channel notification.'
+    x-priority: P1
+    x-status: proposed
+    x-evidence: clew/mcp_server/comments.py; clew/mcp_server/wikihub.py; clew_hook.py;
+      tests/test_wiki_comments.py; tests/test_wiki_hub.py; tests/test_hook.py. The channel push is
+      not built yet; the status moves to implemented when it is.
   REQ-DDB-WIKI-048:
     subsystem: wiki
     name: Every function on a flow has a quick-view modal with the view strip

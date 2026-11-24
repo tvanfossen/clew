@@ -55,6 +55,9 @@ RUN_ENV = "CLEW_WIKI_RUN"
 WIKI_RECORD = "wiki.json"
 ## Seconds a wiki build may take before it is abandoned.
 _BUILD_TIMEOUT = 900
+## Largest comment request body read, in bytes (2.1): well above the store's own field limits,
+## so the store's refusal names the field; anything larger is refused unread.
+_COMMENT_MAX_BYTES = 64 * 1024
 
 Builder = Callable[[Target, Path], Path]
 
@@ -354,7 +357,8 @@ class _HubHandler(BaseHTTPRequestHandler):
     ## @brief Serve a GET.
     ## @return None.
     ## v2: `/api/`, `/events`, `/live.js` (P4c-2a).
-    ## @version 2
+    ## v3: wiki comments (2.1, owner Q/A 2026-11-24)
+    ## @version 3
     ## @utility
     def do_GET(self) -> None:  # noqa: N802 — the http.server spelling
         """@brief GET. @return None."""
@@ -375,8 +379,82 @@ class _HubHandler(BaseHTTPRequestHandler):
             self._events()
         elif path == "/live.js":
             self._send(200, _LIVE_JS.encode("utf-8"), "text/javascript")
+        elif path == "/comment.js":
+            self._send(200, _COMMENT_JS.encode("utf-8"), "text/javascript")
         else:
             self._send(404, "<p>Not found.</p>")
+
+    ## @brief Accept a comment from a served page (2.1).
+    ## @return None.
+    ## @version 1
+    ## @req REQ-DDB-WIKI-054
+    def do_POST(self) -> None:  # noqa: N802 — the http.server spelling
+        """THE SAME DOOR AS EVERY PAGE, plus what a write needs: the session cookie (a POST never
+        carries `?t=`), JSON only — a cross-site form cannot send it without a preflight the hub
+        never answers — the hub's own origin when the browser sends one, and a size cap read from
+        the header before any byte of the body. 2.1, owner Q/A 2026-11-24.
+
+        @brief POST.
+        @return None.
+        """
+        refusal = self._post_refusal()
+        if refusal is not None:
+            self._json(refusal[0], {"error": refusal[1]})
+            return
+        slug = unquote(urlsplit(self.path).path)[len("/api/") : -len("/comment")]
+        self._comment(slug)
+
+    ## @brief Why a POST is refused, or None when it may be read.
+    ## @return (status, reason), or None.
+    ## @version 1
+    ## @utility
+    def _post_refusal(self) -> tuple[int, str] | None:
+        """@brief POST checks. @return Refusal or None."""
+        path = unquote(urlsplit(self.path).path)
+        origin = self.headers.get("Origin")
+        checks = (
+            (
+                not secrets.compare_digest(self._cookie(), self.owner.token),
+                403,
+                "needs the session",
+            ),
+            (origin is not None and origin != _own_origin(self.owner), 403, "foreign origin"),
+            (not (path.startswith("/api/") and path.endswith("/comment")), 404, "not found"),
+            (
+                not (self.headers.get("Content-Type") or "").startswith("application/json"),
+                415,
+                "send JSON",
+            ),
+            (_length(self.headers) > _COMMENT_MAX_BYTES, 413, f"over {_COMMENT_MAX_BYTES} bytes"),
+        )
+        return next(((code, why) for failed, code, why in checks if failed), None)
+
+    ## @brief Store one comment for a target.
+    ## @param slug The target.
+    ## @return None.
+    ## @version 1
+    ## @utility
+    def _comment(self, slug: str) -> None:
+        """A STORE REFUSAL (empty, a field over its limit) is a 400 carrying its reason, so the page
+        can show the person why.
+
+        @brief Comment.
+        @return None.
+        """
+        from .comments import CommentStore
+
+        target = self.owner.find(slug)
+        if target is None or not Path(target.repo_path).is_dir():
+            self._json(404, {"error": f"no reachable repository {slug!r}"})
+            return
+        try:
+            fields = _comment_fields(self.rfile.read(_length(self.headers)))
+            stored = CommentStore.for_repo(self.owner.home, target.repo_path).add(**fields)
+        except ValueError as exc:
+            self._json(400, {"error": str(exc)})
+            return
+        logger.info("wiki comment %s stored for %s (%s)", stored["id"], target.slug, stored["page"])
+        self._json(201, {"id": stored["id"], "status": stored["status"]})
 
     ## @brief The session cookie's value, or "".
     ## @return The value.
@@ -596,13 +674,60 @@ def _traced(target: Target, nodeid: str) -> dict[str, Any]:
 ## @brief A page with the live script added before its closing body tag.
 ## @param data The page.
 ## @return The page.
-## @version 1
+## v2: wiki comments (2.1, owner Q/A 2026-11-24)
+## @version 2
 ## @utility
 def _with_live_script(data: bytes) -> bytes:
-    """@brief Inject. @return Page."""
-    tag = b'<script src="/live.js"></script></body>'
+    """2.1: the comment control rides with the live script.
+
+    @brief Inject.
+    @return Page.
+    """
+    tag = b'<script src="/comment.js"></script><script src="/live.js"></script></body>'
     at = data.rfind(b"</body>")
     return data[:at] + tag + data[at + len(b"</body>") :] if at >= 0 else data
+
+
+## @brief The hub's own origin, as a browser sends it.
+## @param hub The hub.
+## @return `http://host:port`.
+## @version 1
+## @utility
+def _own_origin(hub: WikiHub) -> str:
+    """@brief Origin. @return Text."""
+    return f"http://{hub.host}:{hub.port}"
+
+
+## @brief A request's declared body length, or 0.
+## @param headers The headers.
+## @return Bytes.
+## @version 1
+## @utility
+def _length(headers: Any) -> int:
+    """@brief Content-Length. @return Int."""
+    try:
+        return max(0, int(headers.get("Content-Length") or 0))
+    except ValueError:
+        return 0
+
+
+## @brief A comment request's four fields, each a string.
+## @param raw The request body.
+## @return {page, anchor, quote, body}.
+## @version 1
+## @utility
+def _comment_fields(raw: bytes) -> dict[str, str]:
+    """@brief Parse. @return Fields; ValueError on anything else."""
+    try:
+        data = json.loads(raw.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise ValueError(f"not JSON: {exc}") from exc
+    if not isinstance(data, dict):
+        raise ValueError("send a JSON object")
+    fields = {k: data.get(k, "") for k in ("page", "anchor", "quote", "body")}
+    if not all(isinstance(v, str) for v in fields.values()):
+        raise ValueError("page, anchor, quote and body must be strings")
+    return fields
 
 
 ## The live script: rebuilt pages offer a reload; the agent's focus is offered as a link; a test's
@@ -797,3 +922,65 @@ def read_wiki_file(registry: TargetRegistry, slug: str, rel: str) -> str:
     if not wanted.is_file():
         return f"The wiki of {slug} has no {rel!r}."
     return wanted.read_text(encoding="utf-8", errors="replace")
+
+
+## The comment control (2.1, owner Q/A 2026-11-24): a button on every served page; it sends the
+## page, the section it sits in, any selected text and the person's note to `/api/<slug>/comment`.
+## Text is written with `textContent` only — nothing a page or a reply holds becomes markup.
+_COMMENT_JS = """(function () {
+  var slug = (location.pathname.split('/')[2] || '');
+  if (!slug) return;
+  var page = location.pathname.split('/').slice(3).join('/') || 'index.html';
+  var css = document.createElement('style');
+  css.textContent = '.clew-c-btn{position:fixed;left:16px;bottom:16px;z-index:98;padding:8px 14px;' +
+    'border-radius:999px;border:1px solid #CFC0A0;background:#FBF6EA;font:600 13px system-ui;cursor:pointer}' +
+    '.clew-c{position:fixed;left:16px;bottom:60px;z-index:98;width:min(380px,calc(100vw - 32px));padding:12px;' +
+    'border-radius:12px;border:1px solid #CFC0A0;background:#FBF6EA;font:14px system-ui;box-shadow:0 6px 24px #0002}' +
+    '.clew-c textarea{width:100%;min-height:90px;box-sizing:border-box;font:14px system-ui}' +
+    '.clew-c .q{font:12px ui-monospace,monospace;color:#6B5E4D;margin:0 0 6px;max-height:60px;overflow:auto;' +
+    'overflow-wrap:anywhere}.clew-c button{margin-top:8px;padding:6px 12px;border-radius:8px;border:1px solid #3D6B2E;' +
+    'background:#3D6B2E;color:#fff;font:600 13px system-ui;cursor:pointer}.clew-c button:disabled{opacity:.6}';
+  document.head.appendChild(css);
+  var btn = document.createElement('button');
+  btn.type = 'button'; btn.className = 'clew-c-btn'; btn.textContent = 'Comment';
+  var box = document.createElement('div'); box.className = 'clew-c'; box.hidden = true;
+  var where = document.createElement('p'); where.className = 'q';
+  var text = document.createElement('textarea'); text.setAttribute('aria-label', 'Your comment for the agent');
+  var send = document.createElement('button'); send.type = 'button'; send.textContent = 'Send to the agent';
+  var said = document.createElement('p'); said.setAttribute('role', 'status');
+  box.appendChild(where); box.appendChild(text); box.appendChild(send); box.appendChild(said);
+  document.body.appendChild(box); document.body.appendChild(btn);
+  var quote = '', anchor = '';
+  function section(node) {
+    var el = node && (node.nodeType === 1 ? node : node.parentElement);
+    while (el && el !== document.body) {
+      var h = el.closest ? el.closest('section[id],[id]') : null;
+      if (h && h.id) return h.id;
+      el = el.parentElement;
+    }
+    return '';
+  }
+  btn.onclick = function () {
+    var sel = window.getSelection ? String(window.getSelection()) : '';
+    quote = sel.slice(0, 1000);
+    anchor = section(window.getSelection && window.getSelection().anchorNode) || (location.hash || '').slice(1);
+    where.textContent = page + (anchor ? ' #' + anchor : '') + (quote ? ' \u2014 \u201c' + quote + '\u201d' : '');
+    said.textContent = '';
+    box.hidden = !box.hidden;
+    if (!box.hidden) text.focus();
+  };
+  send.onclick = function () {
+    send.disabled = true; said.textContent = 'Sending\u2026';
+    fetch('/api/' + slug + '/comment', {
+      method: 'POST', credentials: 'same-origin', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({page: page, anchor: anchor, quote: quote, body: text.value})
+    }).then(function (r) { return r.json().then(function (j) { return [r.status, j]; }); })
+      .then(function (sj) {
+        send.disabled = false;
+        if (sj[0] === 201) { said.textContent = 'Sent. The agent is told on its next tool call.'; text.value = ''; }
+        else said.textContent = (sj[1] && sj[1].error) || 'Not sent.';
+      })
+      .catch(function () { send.disabled = false; said.textContent = 'Not sent: the hub did not answer.'; });
+  };
+})();
+"""

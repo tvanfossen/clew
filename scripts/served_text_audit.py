@@ -64,6 +64,10 @@ PLUMBING_MODULES = {
     "clew/mcp_server/state.py": "target resolution and registry bookkeeping",
     "clew/mcp_server/watcher.py": "file-change watching for the refresh loop; logs only (1.3.6)",
     "clew/mcp_server/wikihub.py": "HTML to a browser over loopback HTTP, never text to the model (P4c)",
+    "clew/mcp_server/comments.py": (
+        "stores wiki comments (2.1); its own messages are refusals shown in the browser. The comment "
+        "text the model reads is a person's data, returned by server.py's read_comments (scanned)"
+    ),
 }
 
 DESCRIPTIONS_DIR = REPO / "clew/mcp_server/descriptions"

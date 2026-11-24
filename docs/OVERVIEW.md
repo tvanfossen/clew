@@ -56,7 +56,7 @@ described in [WIKI.md](WIKI.md).
 |---|---|
 | **`dossier`** | Everything about one named symbol in ONE reply: body excerpt, brief, both edge directions, locks held, the thread it runs on, requirements and covering tests, liveness. There is no separate `callers` or `chain_trace` tool — this is why. |
 | **`search`** | Find the name when you do not have one, or enumerate a whole layer. `corpus=` picks: symbols, prose, files, config, locks, threads. An empty result is graded and says what it did *not* read. |
-| **`index(action=…)`** | Administration, not questions: `refresh` builds, `status` diagnoses, `targets` lists every indexed repo. Since 2.0.0, grading an index is `clew query stats` and deleting aged-out databases is `clew cull` — both CLI. |
+| **`index(action=…)`** | Administration, not questions: `refresh` builds, `status` diagnoses, `targets` lists every indexed repo. Since 2.1, `comments` reads the notes a person left on the repository's wiki pages (see [WIKI.md](WIKI.md#comment-to-the-agent)). Since 2.0.0, grading an index is `clew query stats` and deleting aged-out databases is `clew cull` — both CLI. |
 
 Since 2.0.0 the declaration proposer is an MCP **prompt**, `propose_declaration` (in Claude Code:
 `/mcp__clew__propose_declaration`), and the `clew propose` CLI: it reads the repo's evidence and

@@ -289,6 +289,11 @@ def test_the_hook_parses_only_what_it_names() -> None:
         and isinstance(node.args[0].value, str)
     }
     allowed = {"tool_input", "file_path", "path", "command", hook.DISABLE_ENV, hook._SESSION_ENV}
+    ## SPEC WIDENED, REVIEWED (2.1 wiki comments, owner Q/A 2026-11-24): two ENVIRONMENT keys that
+    ## locate clew's state root, where the MCP server writes the pending comment count. Same trust as
+    ## the session id — Claude Code's environment, never the event on stdin — and what is read from
+    ## the file they find is accepted only as digits (`_waiting`).
+    allowed |= {hook._STATE_ENV, "XDG_STATE_HOME"}
     assert read_keys <= allowed, (
         f"the hook reads event/environment keys it does not declare: {sorted(read_keys - allowed)}"
     )
@@ -1410,3 +1415,119 @@ def test_reads_inside_the_repository_still_count(tmp_path: Path) -> None:
     env = {"CLAUDE_CODE_SESSION_ID": "inside-session", "CLAUDE_PROJECT_DIR": str(repo)}
     spoke = [bool(_run(inside, state, env).stdout.strip()) for _ in range(hook._QUIET_BELOW)]
     assert any(spoke), "an in-tree read must still drive the note"
+
+
+## @brief Every function that renders hook output is one this file vets.
+## @return None.
+## @version 1
+def test_every_renderer_is_vetted() -> None:
+    """2.1 COMMENT NOTE (owner Q/A 2026-11-24). A second renderer is a second way for a value to
+    become TEXT, and `test_no_run_time_value_can_reach_the_output` scans `_payload_for` alone, so a
+    renderer it does not name would sit outside the security argument. Every function that calls
+    `json.dumps` must be named here; the comment renderer interpolates exactly one value, bound from
+    `int()`, and serialises once with no keywords.
+
+    @brief Renderers vetted.
+    @return None.
+    """
+    tree = ast.parse(HOOK_SOURCE.read_text(encoding="utf-8"))
+    functions = [n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)]
+
+    def dumps_in(fn: ast.FunctionDef) -> list[ast.Call]:
+        return [
+            n
+            for n in ast.walk(fn)
+            if isinstance(n, ast.Call)
+            and isinstance(n.func, ast.Attribute)
+            and n.func.attr == "dumps"
+        ]
+
+    renderers = {fn.name for fn in functions if dumps_in(fn)}
+    assert renderers == {"_payload_for", "_comments_payload"}, renderers
+    fn = next(f for f in functions if f.name == "_comments_payload")
+    subs = [n for n in ast.walk(fn) if isinstance(n, ast.BinOp) and isinstance(n.op, ast.Mod)]
+    assert len(subs) == 1 and isinstance(subs[0].right, ast.Name)
+    operand = subs[0].right.id
+    binds = [
+        n.value.func.id
+        for n in ast.walk(fn)
+        if isinstance(n, ast.Assign)
+        and isinstance(n.value, ast.Call)
+        and isinstance(n.value.func, ast.Name)
+        and any(isinstance(t, ast.Name) and t.id == operand for t in n.targets)
+    ]
+    assert binds == ["int"], f"{operand!r} must be bound from int() alone; bound from {binds}"
+    assert len(dumps_in(fn)) == 1 and not dumps_in(fn)[0].keywords
+
+
+def _comment_env(tmp_path: Path, waiting: str | None, session: str = "c1") -> dict[str, str]:
+    """@brief Environment for one repository with `waiting` in its pending-count file."""
+    from clew.mcp_server.comments import PENDING_DIR, pending_key
+
+    repo, state = tmp_path / "repo", tmp_path / "state"
+    repo.mkdir(parents=True, exist_ok=True)
+    if waiting is not None:
+        pending = state / PENDING_DIR / pending_key(str(repo))
+        pending.parent.mkdir(parents=True, exist_ok=True)
+        pending.write_text(waiting)
+    return {
+        "TMPDIR": str(tmp_path),
+        "CLAUDE_CODE_SESSION_ID": session,
+        "CLAUDE_PROJECT_DIR": str(repo),
+        "CLEW_STATE_HOME": str(state),
+    }
+
+
+def _hook_used(env: dict[str, str]) -> str:
+    """@brief One `--used` invocation (the path that never parses stdin). @return stdout."""
+    return subprocess.run(
+        [sys.executable, "-m", "clew_hook", "--used"],
+        input=json.dumps(HOSTILE_EVENT),
+        capture_output=True,
+        text=True,
+        env={**os.environ, **env},
+    ).stdout.strip()
+
+
+## @brief Waiting wiki comments are announced as a count, once per change.
+## @return None.
+## @version 1
+def test_waiting_wiki_comments_are_announced_by_count(tmp_path: Path) -> None:
+    """2.1 (owner Q/A 2026-11-24): the hook says how many comments wait and where to read them —
+    never their text. It speaks when the count changes, not on every call.
+
+    @brief Comment count note.
+    @return None.
+    """
+    env = _comment_env(tmp_path, "3")
+    note = json.loads(_hook_used(env))["hookSpecificOutput"]["additionalContext"]
+    assert "3 new wiki comments" in note and "action='comments'" in note
+    assert _hook_used(env) == "", "the same count is not repeated"
+    _comment_env(tmp_path, "4")
+    assert "4 new wiki comments" in _hook_used(env)
+    _comment_env(tmp_path, "0")
+    assert _hook_used(env) == ""
+
+
+## @brief A pending file that is not a number says nothing.
+## @return None.
+## @version 1
+def test_a_corrupt_pending_count_says_nothing(tmp_path: Path) -> None:
+    """@brief Only an integer can come out of the pending file; anything else is silence."""
+    for content in ("abc", "1; rm -rf /", "", "\x00"):
+        env = _comment_env(tmp_path, content, session=f"s{len(content)}")
+        assert _hook_used(env) == "", content
+    assert _hook_used(_comment_env(tmp_path / "none", None)) == ""
+
+
+## @brief The hook and the store agree on a repository's pending key.
+## @return None.
+## @version 1
+def test_the_hook_and_the_store_share_the_pending_key(tmp_path: Path) -> None:
+    """@brief The derivation is duplicated (the hook imports nothing from clew); pinned equal."""
+    from clew.mcp_server.comments import pending_key
+
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    assert hook._comment_key(str(repo)) == pending_key(str(repo))
+    assert hook._comment_key(str(repo / "..")) == pending_key(str(repo / ".."))
