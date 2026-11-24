@@ -174,6 +174,7 @@ from .reachability import (
 from .requirements import (
     resolve_catalog_path,
     import_req_edges,
+    warn_redefined_tags,
     import_req_test_edges,
     ingest_requirements_yaml,
     load_guard_config,
@@ -1993,7 +1994,8 @@ def _doxygen_meta(args) -> dict[str, str]:
 ## v71: the macro stage takes the build's test patterns (2.0.0)
 ## v72: the AST include stage (2.0.0, T3)
 ## v73: the property-key stage (2.0.0, F1-mm)
-## @version 73
+## v74: #72 bug 2: name an alias that rewrites the requirement tag (2.1)
+## @version 74
 ## @req REQ-DDB-PIPE-001
 ## @req REQ-DDB-MCP-004
 ## @req REQ-DDB-CONFIG-007
@@ -2423,6 +2425,8 @@ def _build_stages(
     ingest_requirements_yaml(output, requirements_yaml, guard_cfg)
     timer.mark("requirements")
     import_req_edges(output, req_id_pattern)
+    ## #72 bug 2 (2.1): an alias that rewrites @req before clew reads it is named, never silent.
+    warn_redefined_tags(doxyfile)
     timer.mark("req_edges")
     ## Round 4, R9: the SAME resolved test scope the `test_scope` stage stamps below decides
     ## which tagged functions are covering tests, so the two never disagree about a file.

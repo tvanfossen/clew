@@ -656,6 +656,64 @@ def _create_req_edges_table(conn: sqlite3.Connection) -> None:
     conn.commit()
 
 
+## clew's own tags: an alias redefining one makes doxygen rewrite it before clew reads it.
+CLEW_TAGS = ("req", "utility", "callback")
+## One `ALIASES` assignment (`=` or `+=`), continuation lines included.
+_ALIASES_LINE = re.compile(r"^\s*ALIASES\s*\+?=(.*(?:\\\n.*)*)", re.MULTILINE)
+## One alias entry, quoted or bare: `name=definition`.
+_ALIAS_ENTRY = re.compile(r'"((?:[^"\\]|\\.)*)"|(\S+)')
+
+
+## @brief The Doxyfile aliases that redefine one of clew's own tags.
+## @param doxyfile The target's Doxyfile.
+## @return {tag: definition}; empty for no such alias, or no readable Doxyfile.
+## @version 1
+## @req REQ-DDB-SCHEMA-006
+def redefined_clew_tags(doxyfile: Path) -> dict[str, str]:
+    """#72 bug 2 (an adopter, 2026-11-23). An unreadable or synthesised Doxyfile is a correct
+    negative, as in `event_edges.classify_aliases`.
+
+    @brief Redefined clew tags.
+    @return Map.
+    """
+    try:
+        text = Path(doxyfile).read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return {}
+    found: dict[str, str] = {}
+    for assignment in _ALIASES_LINE.findall(text):
+        for quoted, bare in _ALIAS_ENTRY.findall(assignment.replace("\\\n", " ")):
+            name, _eq, definition = (quoted or bare).partition("=")
+            if _eq and name.strip() in CLEW_TAGS:
+                found[name.strip()] = definition.replace('\\"', '"')
+    return found
+
+
+## @brief Warn, naming the alias, when the Doxyfile redefines one of clew's tags.
+## @param doxyfile The target's Doxyfile.
+## @return None.
+## @version 1
+## @req REQ-DDB-SCHEMA-006
+def warn_redefined_tags(doxyfile: Path) -> None:
+    """SAID, NEVER SILENT: the adopter's index reported `req_edges: 0` with 196 ids tagged, and every
+    requirement read MISSING with no reason given.
+
+    @brief Warn on redefined tags.
+    @return None.
+    """
+    for tag, definition in redefined_clew_tags(doxyfile).items():
+        logger.warning(
+            "%s defines ALIASES `%s=%s`: doxygen rewrites every @%s before clew reads it, so no "
+            "%s is taken from those tags. Remove that alias; clew reads @%s itself.",
+            doxyfile,
+            tag,
+            definition,
+            tag,
+            "requirement edge" if tag == "req" else "exemption",
+            tag,
+        )
+
+
 ## @brief Parse requirement-reference doxygen tags out of function descriptions.
 ## @param db_path Path to the clew.db being built.
 ## @param req_id_pattern Declared requirement-id pattern (permissive default if None).

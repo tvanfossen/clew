@@ -36,6 +36,7 @@ Gherkin scenarios, test layers) are parsed in `clew.wiki.imports` and joined her
 
 from __future__ import annotations
 
+import logging
 import re
 import xml.etree.ElementTree as ET
 from collections.abc import Iterator
@@ -47,6 +48,8 @@ from pathlib import Path
 
 from ..query._common import connect, table_exists
 from .config import DEFAULT_MAX_REPORT_MB, EvidenceInputs
+
+logger = logging.getLogger(__name__)
 
 ## A report larger than this is refused rather than parsed: `tests.max_report_mb` (R5-CFG C9,
 ## 2.0.0), default 64 MiB — per-test LCOV grows with the number of tests, so a mid-size C repo can
@@ -624,16 +627,42 @@ def _case_status(case: ET.Element) -> tuple[str, str]:
     return "passed", ""
 
 
-## @brief Parse one report, refusing an oversized one.
+## Terminal colour/cursor sequences, then every character XML 1.0 forbids (C0 controls but tab,
+## newline and carriage return): what a test runner copies from coloured stdout into its report.
+_ANSI = re.compile(r"\x1b\[[0-9;?]*[ -/]*[@-~]")
+_XML_ILLEGAL = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f]")
+
+
+## @brief Parse one report, refusing an oversized one; recover a runner's control characters.
 ## @param path The report.
 ## @return The XML root.
 ## v2: the cap is this build's tests.max_report_mb (2.0.0, R5-CFG C9)
-## @version 2
+## v3: #72 bug 3 (2.1) — control characters stripped and counted; unreadable XML refused by name
+## @version 3
 ## @utility
 def _root(path: Path) -> ET.Element:
-    """@brief Read XML with a size cap. @return Root element."""
+    """#72 (an adopter, 2026-11-23): Ceedling copies coloured stdout (`ESC[0m`) into its JUnit, which
+    is not XML 1.0, and the raw ParseError either killed `clew wiki trace` or left every linked
+    test NOT_RUN. Colour sequences and XML-illegal controls are REMOVED AND COUNTED (a warning names
+    the file); what still does not parse is a ValueError naming the file, line and column.
+
+    @brief Read XML with a size cap.
+    @return Root element.
+    """
     check_report_size(path)
-    return ET.parse(path).getroot()
+    raw = Path(path).read_bytes().decode("utf-8", errors="replace")
+    clean = _XML_ILLEGAL.sub("", _ANSI.sub("", raw))
+    if len(clean) != len(raw):
+        logger.warning(
+            "%s: removed %d terminal-colour or XML-illegal control characters before parsing",
+            path,
+            len(raw) - len(clean),
+        )
+    try:
+        return ET.fromstring(clean)
+    except ET.ParseError as exc:
+        line, column = exc.position
+        raise ValueError(f"{path}: not valid XML at line {line}, column {column}: {exc}") from exc
 
 
 ## @brief Every requirement id the index knows, with its title.

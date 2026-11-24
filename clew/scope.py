@@ -1259,7 +1259,8 @@ def _nested_repos_under(input_root: Path) -> list[Path]:
 ## @brief Whether a directory owns a git tree, as a SUBMODULE or as a clone.
 ## @param directory Directory to test.
 ## @return True when the directory holds a `.git` entry of either kind.
-## @version 2
+## v3: unreadable directory is no, said once (#72 bug 1)
+## @version 3
 ## @utility
 def _holds_git_tree(directory: Path) -> bool:
     """A SUBMODULE'S `.git` IS A FILE, NOT A DIRECTORY, and missing that made the
@@ -1285,11 +1286,19 @@ def _holds_git_tree(directory: Path) -> bool:
     see it whether or not the parent declared it. Ownership is a different question with a
     different predicate — see `_is_dependency_of_parent`.
 
+    UNREADABLE IS "NO", SAID ONCE (#72 bug 1, 2.1): a directory without the search bit (a device log
+    pulled in at mode 0644) raised PermissionError here and failed the whole index. It cannot hold a
+    tree clew could read, so the answer is no, with a warning naming it.
+
     @brief Test whether a directory holds its own git tree.
     @return True for a nested clone, submodule or worktree.
-    @version 2
+    @version 3
     """
-    return (directory / ".git").exists()
+    try:
+        return (directory / ".git").exists()
+    except OSError as exc:
+        logger.warning("skipping %s: it cannot be searched (%s)", directory, exc.strerror or exc)
+        return False
 
 
 ## @brief Does the enclosing repository record this directory as a gitlink (a submodule)?
