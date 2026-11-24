@@ -176,3 +176,71 @@ def _problems(tree: Composite) -> str:
     if not rows:
         return ""
     return f'<div class="ptree-problems"><b>Problems</b><ul>{"".join(rows)}</ul></div>'
+
+
+## @brief The Product trace as plain Markdown, for wikis that take only Markdown.
+## @param tree The composite.
+## @param rules The audience rules.
+## @return Markdown.
+## @version 1
+## @req REQ-DDB-WIKI-040
+def product_markdown(tree: Composite, rules: Audience) -> str:
+    """#73 item 1 (owner Q/A 2026-11-23, 2.1): an Azure DevOps code wiki takes Markdown only, and
+    the tree existed only in the HTML site. SAME TREE, SAME STATES, NO HTML: nested lists, the
+    evidence state in bold, why-not and the checkout on the line below.
+
+    @brief Product trace Markdown.
+    @return Markdown.
+    """
+    lines = ["# Product trace", "", _LEAD, ""]
+    for ref in tree.roots:
+        lines += _md_item(tree, ref, rules, set(), 0)
+    problems = [f"- `{a}` satisfies `{b}`, which no catalogue holds" for a, b in tree.dangling]
+    problems += [f"- {c}" for c in tree.conflicts]
+    for heading, refs in (
+        ("## Problems", None),
+        ("## Dependency requirements this repository implements", tree.implemented_here),
+        ("## Nothing on the tree reaches", tree.unreached),
+    ):
+        rows = problems if refs is None else [_md_line(tree.nodes[r], rules) for r in refs]
+        if rows:
+            lines += ["", heading, "", *rows]
+    return "\n".join(lines) + "\n"
+
+
+## @brief One tree item and what satisfies it, as nested list lines.
+## @param tree The composite.
+## @param ref The node.
+## @param rules The audience rules.
+## @param path Refs above this one (a cycle is drawn once).
+## @param depth Nesting depth.
+## @return Lines.
+## @version 1
+## @utility
+def _md_item(tree: Composite, ref: str, rules: Audience, path: set[str], depth: int) -> list[str]:
+    """@brief Item. @return Lines."""
+    node = tree.nodes[ref]
+    out = [_md_line(node, rules, depth)]
+    for below in node.satisfied_by:
+        if below not in path and below in tree.nodes:
+            out += _md_item(tree, below, rules, path | {ref}, depth + 1)
+    return out
+
+
+## @brief One requirement's list line: id, title, state, evidence.
+## @param node The node.
+## @param rules The audience rules.
+## @param depth Nesting depth.
+## @return The line.
+## @version 1
+## @utility
+def _md_line(node: Node, rules: Audience, depth: int = 0) -> str:
+    """@brief Line. @return Markdown."""
+    title = "" if rules.exclude_requirement_text or not node.title else f" {node.title}"
+    line = f"{'  ' * depth}- `{node.ref}`{title} **{node.evidence}**"
+    if node.implementers is None:
+        where = f" — local checkout `{node.link}`" if node.link else ""
+        return line + (f"<br>{node.note}{where}" if node.note else "")
+    funcs = ", ".join(f"`{n}`" for n in node.implementers) or "no function"
+    tests = ", ".join(f"`{n}`" for n in node.tests or ()) or "no test"
+    return f"{line} — {funcs} · {tests}"

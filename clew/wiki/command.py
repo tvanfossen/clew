@@ -49,7 +49,8 @@ WIKI_COMMAND = "wiki"
 ## v8: `build --format markdown --flavor` (round 3, P5b).
 ## v9: `check --before-tests` (round 3, P6c).
 ## v10: help text names the top-level tests: section (2.0.0)
-## @version 10
+## v11: #73 small items (2.1): --wiki-config
+## @version 11
 ## @utility
 def _parser() -> argparse.ArgumentParser:
     """@brief Build the parser. @return Parser."""
@@ -83,6 +84,7 @@ def _parser() -> argparse.ArgumentParser:
     check.add_argument("--index")
     check.add_argument("--repo-root")
     check.add_argument("--config", help="a file whose wiki: section applies")
+    check.add_argument("--wiki-config", help="a wiki: section layered over the repository's own")
     check.add_argument("--refresh", action="store_true", help="bring the index current first")
     check.add_argument(
         "--before-tests",
@@ -98,6 +100,7 @@ def _parser() -> argparse.ArgumentParser:
     build.add_argument("--audience", help="an audience from wiki.audiences")
     build.add_argument("--version", help="a version key: the site goes to <out>/<key>/")
     build.add_argument("--config", help="a file whose wiki: section applies")
+    build.add_argument("--wiki-config", help="a wiki: section layered over the repository's own")
     build.add_argument("--refresh", action="store_true", help="bring the index current first")
     build.add_argument("--index")
     build.add_argument("--repo-root")
@@ -127,7 +130,8 @@ def _parser() -> argparse.ArgumentParser:
 ## v6: `--refresh` refreshes the index before `check` / `build`.
 ## v7: `trace-run`, which needs no index (it overlays the expected flow when one exists).
 ## v8: `open` (round 3, P5a), dispatched before the parser: it owns its own arguments.
-## @version 8
+## v9: #73 small items (2.1): --wiki-config
+## @version 9
 ## @req REQ-DDB-WIKI-001
 def wiki_main(argv: list[str]) -> int:
     """@brief Dispatch a wiki verb. @return Exit status."""
@@ -151,7 +155,11 @@ def wiki_main(argv: list[str]) -> int:
         sys.stderr.write(f"clew wiki: no index at {db} — build one with `clew --repo-root`\n")
         return 1
     if args.verb in ("check", "build"):
-        return _site(args, db, repo or Path.cwd())
+        from .config import wiki_overlay
+
+        ## #73 item 5 (2.1): an organisation's wiki settings over the repository's own.
+        with wiki_overlay(Path(args.wiki_config) if args.wiki_config else None):
+            return _site(args, db, repo or Path.cwd())
     try:
         text = _flow(args, db, repo) if args.verb == "flow" else _json(_trace(args, db, repo), args)
     except (ValueError, OSError) as exc:

@@ -347,3 +347,54 @@ def test_a_requirement_with_a_page_here_links_to_it(tmp_path: Path) -> None:
     html = product_html(tree, Audience(), pages=frozenset({"REQ-PRD-001"}))
     assert '<a href="req-REQ-PRD-001.html"><code' in html
     assert 'href="req-lib' not in html and 'href="req-REQ-PRD-002' not in html
+
+
+def test_the_markdown_output_carries_the_product_trace(tmp_path: Path) -> None:
+    """#73 item 1 (owner Q/A 2026-11-23, 2.1): hosts that take only Markdown (an Azure DevOps code
+    wiki) could not show the cross-repository tree — it existed only in the HTML site. The Markdown
+    page has the same tree, the same states (indexed / unknown + why / absent) and the same lists.
+
+    @brief Product trace in Markdown.
+    """
+    from clew.wiki.config import Audience
+    from clew.wiki.productpage import product_markdown
+
+    def unknown(dep: Path, pin: str, sha: str | None):
+        return ("unknown", f"not indexed at pin {pin[:12]}; checkout is at 0000", Path("/x.db"))
+
+    tree, _pins = _tree(tmp_path, probe=unknown)
+    md = product_markdown(tree, Audience())
+    assert md.startswith("# Product trace")
+    assert (
+        md.index("`product:REQ-PRD-001`")
+        < md.index("`lib:REQ-LIB-001`")
+        < md.index("`hal:REQ-HAL-001`")
+    )
+    assert "\n  - `lib:REQ-LIB-001` Bounded retry **unknown**" in md
+    assert "not indexed at pin" in md and str((tmp_path / "lib").resolve()) in md
+    assert (
+        "REQ-PRD-999" in md and "## Nothing on the tree reaches" in md and "`lib:REQ-LIB-002`" in md
+    )
+    assert "<" not in md.replace("<br>", ""), (
+        "plain Markdown: no HTML a Markdown-only host would drop"
+    )
+    assert "Bounded retry" not in product_markdown(tree, Audience(exclude_requirement_text=True))
+
+
+def test_a_markdown_wiki_with_pinned_catalogues_has_the_product_trace_page(tmp_path: Path) -> None:
+    """@brief #73 item 1, built: the page is written and listed in the GitHub sidebar."""
+    from clew.cli import _build_argparser, _run_pipeline
+    from clew.wiki.markdown import build_markdown
+
+    product, pins = _fixture(tmp_path)
+    (product / "m.py").write_text('def go():\n    """Go."""\n    return 1\n')
+    (product / ".clew.yaml").write_text(
+        "requirements:\n  external:\n"
+        f"    - {{name: lib, repo: ../lib, rev: {pins['lib']}, path: requirements.yaml}}\n"
+    )
+    db = tmp_path / "product.db"
+    _run_pipeline(_build_argparser().parse_args(["--output", str(db), "--repo-root", str(product)]))
+    out = build_markdown(product, db, tmp_path / "md", "github")
+    page = (out / "Product-trace.md").read_text()
+    assert page.startswith("# Product trace") and "`lib:REQ-LIB-001`" in page
+    assert "Product-trace" in (out / "_Sidebar.md").read_text()

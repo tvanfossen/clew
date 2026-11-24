@@ -153,7 +153,8 @@
      "--out",
      "--refresh",
      "--repo-root",
-     "--version"
+     "--version",
+     "--wiki-config"
     ]
    },
    "check": {
@@ -163,7 +164,8 @@
      "--config",
      "--index",
      "--refresh",
-     "--repo-root"
+     "--repo-root",
+     "--wiki-config"
     ]
    },
    "diff": {

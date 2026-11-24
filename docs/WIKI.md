@@ -231,6 +231,7 @@ clew wiki check                                 # validate the wiki: section; no
 clew wiki build --out site                      # site/html
 clew wiki build --out sites --version v1.2.0    # one site per release, with a burndown
 clew wiki build --format markdown --flavor ado --out wiki
+clew wiki build --out site --wiki-config org-wiki.yaml   # an organisation's wiki: section over the repo's own
 clew wiki diff --out sites v1.1.0 v1.2.0        # what changed between two recorded versions
 clew wiki flow ENTRY --svg --animate            # one diagram, standalone
 clew wiki trace --config .clew.yaml             # the graded trace as JSON
@@ -241,6 +242,11 @@ clew wiki trace-run --test NODE --out spans.json
 `build` is a separate stage. Both take `--refresh` to bring the index current first. The hook
 passes `--before-tests`: test reports (JUnit, results, coverage, gcov) are what the test run
 writes, so before it they are not yet required; run `check` without it after the tests, in CI.
+
+`--wiki-config <file>` layers a file's `wiki:` section over the repository's own: mappings merge
+key by key, lists and values are replaced, and `requirements:` and `tests:` stay the repository's
+(an overlay naming them is refused). One organisation-wide theme in CI is then one file, not a
+merged copy of every repository's `.clew.yaml`. `--config` still replaces the whole file.
 
 ## The `wiki:` section of `.clew.yaml`
 
@@ -364,6 +370,10 @@ remote and no remote branch holds the commit it would name, so a published site 
 The default theme is clew's own, in the sassafras-class look, with Manrope, Newsreader and
 JetBrains Mono bundled under the SIL Open Font License. Palette tokens: `surface paper muted inset
 ink ink_soft faint rule rule_strong accent accent_bg accent_ink root root_bg error error_bg warning
-warning_bg` (2.0.0 renamed the abbreviations — `acc`, `accbg`, `rule2`, … — and names each old one
-with its replacement). Naming another
-theme leaves that theme's look untouched.
+warning_bg success success_bg info info_bg` (2.0.0 renamed the abbreviations — `acc`, `accbg`,
+`rule2`, … — and names each old one with its replacement). Since 2.1, the passed states are drawn in
+`success`, which defaults to the accent's green, so `accent` can be kept for links and interaction.
+Every colour in the stylesheet is one of these tokens, and each has a light and a dark value. Set
+each `*_bg` token yourself, since none is derived from its colour. The Markdown wiki carries no
+theme: a wiki host draws Markdown in its own style. Naming another theme leaves that theme's look
+untouched.

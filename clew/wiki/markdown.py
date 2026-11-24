@@ -3,8 +3,8 @@
 
 Owner 2026-11-15: serve the wiki directly on GH or ADO, replacing a doxygen-to-Pages pipeline. A
 wiki host renders Markdown and Mermaid, not a built site, so this writes the pages a wiki takes
-as they are — Home, Requirements, Flows (one page per flow, its sequence diagram in Mermaid) and
-Change impact — with no Sphinx and no HTML. The map, lenses and ego-graphs need the HTML site and
+as they are — Home, Requirements, Flows (one page per flow, its sequence diagram in Mermaid),
+Change impact and, with pinned catalogues, the Product trace (#73, 2.1) — with no Sphinx and no HTML. The map, lenses and ego-graphs need the HTML site and
 Home says so rather than leaving them silently out.
 
 The two hosts differ in three places only, so a flavour is a small subclass: how a page links
@@ -139,7 +139,8 @@ class _Ado(_Flavor):
 ## @param audience An audience from `wiki.audiences`, or None.
 ## @param config_path A file whose `wiki:` section applies, or None.
 ## @return The directory.
-## @version 1
+## v2: Product trace page (#73, 2.1)
+## @version 2
 ## @req REQ-DDB-WIKI-038
 def build_markdown(
     repo_root: Path,
@@ -178,6 +179,16 @@ def build_markdown(
     if trace.impact is not None:
         _write(out, "Change-impact", _impact(trace, rules))
         pages.append(("Change-impact", "Change impact"))
+    ## #73 item 1 (owner Q/A 2026-11-23, 2.1): the cross-repository tree, as on the HTML site.
+    if config.catalogs:
+        from .composite import compose
+        from .productpage import product_markdown
+
+        tree = compose(
+            Path(repo_root), Path(repo_root).name, list(config.catalogs), root_db=Path(db)
+        )
+        _write(out, "Product-trace", product_markdown(tree, rules))
+        pages.insert(2, ("Product-trace", "Product trace"))
     _write(out, "Home", _home(config.title, trace, len(flows), dialect, pages))
     dialect.order(out, pages + [(page, label) for page, label, _role in flows])
     return out

@@ -18,6 +18,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
+from collections.abc import Iterator
+from contextlib import contextmanager
+from contextvars import ContextVar
 from typing import Any
 
 from ..declaration import TESTS_KEYS, TESTS_PATHS
@@ -98,6 +101,11 @@ PALETTE = {
     "error_bg": "errbg",
     "warning": "warn",
     "warning_bg": "warnbg",
+    ## #73 item 4 (2.1): success (the passed states, which drew in `accent`) and info.
+    "success": "ok",
+    "success_bg": "okbg",
+    "info": "info",
+    "info_bg": "infobg",
 }
 THEME_TOKENS = tuple(PALETTE)
 ## An old abbreviation, refused with the word that replaced it.
@@ -393,7 +401,8 @@ class WikiConfig:
 ## v25: doc_tags (entropic's PAPI gaps 1-3 (2.0.0))
 ## v26: wiki.test_slices (slice cap (owner Q/A 2026-11-20, after P6))
 ## v27: wiki.comments.deliver (2.1)
-## @version 27
+## v28: #73 small items (2.1): --wiki-config overlay
+## @version 28
 ## @req REQ-DDB-WIKI-003
 def load_wiki_config(
     repo_root: Path, config_path: Path | None = None
@@ -406,6 +415,8 @@ def load_wiki_config(
     @version 15
     """
     raw, problems = _read_section(Path(config_path or Path(repo_root) / ".clew.yaml"))
+    ## #73 item 5 (2.1): an organisation's `--wiki-config` merged over this repository's section.
+    raw, problems = _overlaid(raw, problems)
     if problems:
         return WikiConfig(), problems
     problems = _renamed(raw, "wiki") + _unknown(
@@ -532,6 +543,80 @@ def _read_section(path: Path) -> tuple[dict[str, Any], list[str]]:
     if not isinstance(raw, dict):
         return {}, ["`wiki:` must be a mapping"]
     return raw, []
+
+
+## The `--wiki-config` file in force for this run, or None (#73 item 5, 2.1).
+_OVERLAY: ContextVar[Path | None] = ContextVar("clew_wiki_overlay", default=None)
+
+
+## @brief Layer a wiki-config file over every wiki section loaded inside this context.
+## @param path The overlay file (YAML with a `wiki:` section), or None for none.
+## @return A context manager.
+## @version 1
+## @req REQ-DDB-WIKI-003
+@contextmanager
+def wiki_overlay(path: Path | None) -> Iterator[None]:
+    """#73 item 5 (an adopter, 2026-11-23): `--config` REPLACES the whole `.clew.yaml`, so one
+    organisation-wide theme in CI meant a generated merged copy of every repository's config. A
+    context, not a parameter, so every loader call in the run sees it without a dozen call sites
+    threading one more argument.
+
+    @brief Overlay context.
+    @return Context manager.
+    """
+    token = _OVERLAY.set(Path(path) if path else None)
+    try:
+        yield
+    finally:
+        _OVERLAY.reset(token)
+
+
+## @brief The repository's wiki section with the overlay in force merged over it.
+## @param raw The repository's own `wiki:` section.
+## @param problems Problems so far.
+## @return (merged section, problems).
+## @version 1
+## @utility
+def _overlaid(raw: dict[str, Any], problems: list[str]) -> tuple[dict[str, Any], list[str]]:
+    """LAYERS `wiki:` ONLY: an overlay naming `requirements:` or `tests:` is refused by name, since
+    those stay the repository's. Mappings merge key by key; lists and values are replaced.
+
+    @brief Overlay.
+    @return Pair.
+    """
+    import yaml
+
+    path = _OVERLAY.get()
+    if path is None:
+        return raw, problems
+    try:
+        data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    except (OSError, yaml.YAMLError) as exc:
+        return raw, [*problems, f"--wiki-config {path} could not be read: {exc}"]
+    if not isinstance(data, dict):
+        return raw, [*problems, f"--wiki-config {path} must be a mapping with a `wiki:` section"]
+    extra = sorted(set(data) - {"wiki"})
+    if extra:
+        problems = [*problems, f"--wiki-config {path} layers `wiki:` only; it also names {extra}"]
+    section = data.get("wiki") or {}
+    if not isinstance(section, dict):
+        return raw, [*problems, f"--wiki-config {path}: `wiki:` must be a mapping"]
+    return _merge(raw, section), problems
+
+
+## @brief Merge two mappings: nested mappings key by key, anything else replaced by the second.
+## @param base The repository's.
+## @param over The overlay's.
+## @return The merge.
+## @version 1
+## @utility
+def _merge(base: dict[str, Any], over: dict[str, Any]) -> dict[str, Any]:
+    """@brief Merge. @return Dict."""
+    out = dict(base)
+    for key, value in over.items():
+        mergeable = isinstance(value, dict) and isinstance(out.get(key), dict)
+        out[key] = _merge(out[key], value) if mergeable else value
+    return out
 
 
 ## @brief Every audience's rules.
