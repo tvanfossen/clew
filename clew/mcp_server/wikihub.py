@@ -194,7 +194,8 @@ class WikiHub(_Live):
     ## @param home The state root (the registry and every target's wiki live under it).
     ## @param builder Builds one target's site; a subprocess build by default.
     ## v2: event subscribers (P4c-2a).
-    ## @version 2
+    ## v3: opt-in channel push of wiki comments (2.1, owner Q/A 2026-11-24)
+    ## @version 3
     ## @utility
     def __init__(self, home: Path, builder: Builder | None = None) -> None:
         """@brief Store. @return None."""
@@ -209,6 +210,8 @@ class WikiHub(_Live):
         self._subscribers: list[queue.Queue[dict | None]] = []
         self._server: ThreadingHTTPServer | None = None
         self._thread: threading.Thread | None = None
+        ## 2.1: called with (slug, comment) for a repository whose comments go to the channel.
+        self.on_comment: Callable[[str, dict], Any] | None = None
 
     ## @brief The hub's entry URL, token included.
     ## @return The URL.
@@ -432,7 +435,8 @@ class _HubHandler(BaseHTTPRequestHandler):
     ## @brief Store one comment for a target.
     ## @param slug The target.
     ## @return None.
-    ## @version 1
+    ## v2: opt-in channel push of wiki comments (2.1, owner Q/A 2026-11-24)
+    ## @version 2
     ## @utility
     def _comment(self, slug: str) -> None:
         """A STORE REFUSAL (empty, a field over its limit) is a 400 carrying its reason, so the page
@@ -447,13 +451,17 @@ class _HubHandler(BaseHTTPRequestHandler):
         if target is None or not Path(target.repo_path).is_dir():
             self._json(404, {"error": f"no reachable repository {slug!r}"})
             return
+        routes = _comment_routes(target.repo_path)
         try:
             fields = _comment_fields(self.rfile.read(_length(self.headers)))
-            stored = CommentStore.for_repo(self.owner.home, target.repo_path).add(**fields)
+            store = CommentStore.for_repo(self.owner.home, target.repo_path, "hook" in routes)
+            stored = store.add(**fields)
         except ValueError as exc:
             self._json(400, {"error": str(exc)})
             return
         logger.info("wiki comment %s stored for %s (%s)", stored["id"], target.slug, stored["page"])
+        if "channel" in routes and self.owner.on_comment is not None:
+            self.owner.on_comment(target.slug, stored)
         self._json(201, {"id": stored["id"], "status": stored["status"]})
 
     ## @brief The session cookie's value, or "".
@@ -696,6 +704,28 @@ def _with_live_script(data: bytes) -> bytes:
 def _own_origin(hub: WikiHub) -> str:
     """@brief Origin. @return Text."""
     return f"http://{hub.host}:{hub.port}"
+
+
+## @brief How a repository's comments reach the agent (`wiki.comments.deliver`).
+## @param repo_path The repository.
+## @return The routes; `("hook",)` when not declared or unreadable.
+## @version 1
+## @utility
+def _comment_routes(repo_path: str) -> tuple[str, ...]:
+    """An unreadable `.clew.yaml` falls back to the hook: the comment is still kept and counted.
+
+    @brief Routes.
+    @return Routes.
+    """
+    from ..wiki.config import load_wiki_config
+
+    try:
+        return load_wiki_config(Path(repo_path))[0].comments_deliver
+    except Exception as exc:  # noqa: BLE001 — a config error must not lose a comment
+        logger.warning(
+            "wiki comments for %s: .clew.yaml unreadable (%s); using the hook", repo_path, exc
+        )
+        return ("hook",)
 
 
 ## @brief A request's declared body length, or 0.

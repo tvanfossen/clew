@@ -112,6 +112,7 @@ from __future__ import annotations
 
 import argparse
 import functools
+import inspect
 import os
 import threading
 import time
@@ -141,6 +142,7 @@ from ..scope import (
     nested_tree_cache,
 )
 from ._sdk import Context, MCPServer, ToolError, lowlevel
+from .channel import CHANNEL
 from .descriptions import load_descriptions
 from .freshness import code_identity, notices, refused, stale_code_refusal
 from .routing import RepoIndexes, repo_indexes, unbuilt_refusal
@@ -516,7 +518,8 @@ ALWAYS_LOAD_META: dict[str, object] = {"anthropic/alwaysLoad": True}
 ## @param bound The bound QueryTools method to wrap.
 ## @param before Async hook awaited before the query runs.
 ## @return An async callable carrying the wrapped method's original signature.
-## @version 4
+## v5: opt-in channel push of wiki comments (2.1, owner Q/A 2026-11-24)
+## @version 5
 ## @req REQ-DDB-MCP-004
 def _answering_with_refresh(bound: Any, before: Any) -> Any:
     """Wrap one synchronous query tool so a stale index is refreshed before it answers.
@@ -541,6 +544,9 @@ def _answering_with_refresh(bound: Any, before: Any) -> Any:
 
     @functools.wraps(bound)
     async def answering(*args: Any, **kwargs: Any) -> Any:
+        ## 2.1 CHANNEL: the SDK injects `ctx` (declared below); its session is what a channel push
+        ## of a wiki comment is sent on. Taken off before the query sees its arguments.
+        CHANNEL.remember(kwargs.pop("ctx", None))
         ## BOTH KEYS, NOT ONLY `target`. Every tool call answers from ONE database — the target
         ## PLUS its sub_index when one was named — and refreshing on `target` alone would either
         ## rebuild the wrong sibling (a first-party call auto-refreshing a stale vendored index
@@ -567,7 +573,33 @@ def _answering_with_refresh(bound: Any, before: Any) -> Any:
             ## halves of the MCP surface get it.
             raise ToolError(refused(exc)) from exc
 
+    _take_context(answering, bound)
     return answering
+
+
+## @brief Declare an injected `ctx` on a wrapper, outside its schema.
+## @param wrapper The wrapping coroutine.
+## @param bound The wrapped method.
+## @return None.
+## @version 1
+## @req REQ-DDB-WIKI-054
+def _take_context(wrapper: Any, bound: Any) -> None:
+    """THROUGH THE SDK'S OWN CONTEXT INJECTION (2.1): `find_context_parameter` reads the type
+    hints, and the schema builder skips that parameter, so the tool's JSON Schema — the surface a
+    client cannot truncate — is unchanged. A copy of the annotations, never the bound method's own.
+
+    @brief Take ctx.
+    @return None.
+    """
+    ## EVALUATED, NOT STRINGS (found by the served-text ceiling): with this module's postponed
+    ## annotations, a string return annotation made the SDK wrap every reply's output schema as
+    ## `{"result": ...}`, 79 characters more per turn and a different shape for clients.
+    sig = inspect.signature(bound, eval_str=True)
+    params = list(sig.parameters.values())
+    ctx = inspect.Parameter("ctx", inspect.Parameter.KEYWORD_ONLY, default=None, annotation=Context)
+    at = next((i for i, p in enumerate(params) if p.kind is p.VAR_KEYWORD), len(params))
+    wrapper.__signature__ = sig.replace(parameters=[*params[:at], ctx, *params[at:]])
+    wrapper.__annotations__ = {**getattr(bound, "__annotations__", {}), "ctx": Context}
 
 
 ## @brief Wrap a tier-0 tool method so a deliberate refusal reaches the SDK as ToolError.
@@ -2817,7 +2849,8 @@ class DocsDbServer:
     ## route — and `max_age_days` / `include_stale` with them (`include_stale` was described
     ## as a `targets` filter and only ever read by `cull`).
     ## v7: index(action='comments') (2.1, owner Q/A 2026-11-24)
-    ## @version 7
+    ## v8: opt-in channel push of wiki comments (2.1, owner Q/A 2026-11-24)
+    ## @version 8
     ## @req REQ-DDB-MCP-002
     ## @req REQ-DDB-MCP-003
     async def index(
@@ -2901,6 +2934,9 @@ class DocsDbServer:
         @return The action's result, carrying `action`.
         @version 6
         """
+        ## 2.1 CHANNEL: `index` carries the session too, so a session that never queries can still
+        ## receive a comment's channel push.
+        CHANNEL.remember(ctx)
         if action in RETIRED_INDEX_ACTIONS:
             raise ValueError(
                 f"index action {action!r} was retired in 2.0.0: run "
@@ -3482,7 +3518,8 @@ def build_server(registry: TargetRegistry | None = None) -> tuple[MCPServer, Doc
 
 ## @brief Serve one MCP server instance over stdio, advertising tools/list_changed.
 ## @param mcp MCP server instance to serve.
-## @version 3
+## v4: opt-in channel push of wiki comments (2.1, owner Q/A 2026-11-24)
+## @version 4
 ## @req REQ-DDB-MCP-001
 async def run_stdio(mcp: MCPServer) -> None:
     """Run the stdio transport with `tools_changed=True` in the initialization
@@ -3498,16 +3535,31 @@ async def run_stdio(mcp: MCPServer) -> None:
     @brief Run the server over stdio with the tool-list-changed capability.
     @version 4
     """
-    from mcp.server.lowlevel.server import NotificationOptions
     from mcp.server.stdio import stdio_server
 
-    low = lowlevel(mcp)
     async with stdio_server() as (read_stream, write_stream):
-        await low.run(
-            read_stream,
-            write_stream,
-            low.create_initialization_options(NotificationOptions(tools_changed=True)),
-        )
+        await lowlevel(mcp).run(read_stream, write_stream, _init_options(mcp))
+
+
+## @brief The initialize options: tools.listChanged, and the channel capability when switched on.
+## @param mcp The MCP server.
+## @return InitializationOptions.
+## @version 1
+## @req REQ-DDB-WIKI-054
+def _init_options(mcp: MCPServer) -> Any:
+    """2.1: `CLEW_CHANNEL=1` adds Claude Code's experimental `claude/channel`; nothing else changes.
+
+    @brief Init options.
+    @return Options.
+    """
+    from mcp.server.lowlevel.server import NotificationOptions
+
+    from .channel import experimental_capabilities
+
+    return lowlevel(mcp).create_initialization_options(
+        NotificationOptions(tools_changed=True),
+        experimental_capabilities=experimental_capabilities(),
+    )
 
 
 ## @brief Serve one transport while keeping the session's indexes current in the background.
@@ -3519,7 +3571,8 @@ async def run_stdio(mcp: MCPServer) -> None:
 ## v2: the wiki hub (round 3, P4c) runs beside the transport when `CLEW_WIKI=1`, and stops
 ## with it.
 ## v3: the hub is attached to the tools (`wiki_url`) and the refresh loop (rebuilds), P4c-2a.
-## @version 3
+## v4: opt-in channel push of wiki comments (2.1, owner Q/A 2026-11-24)
+## @version 4
 ## @req REQ-DDB-MCP-004
 async def serve(
     mcp: MCPServer, state: DocsDbServer, interval: float, transport: Any = None
@@ -3538,6 +3591,12 @@ async def serve(
     serving = transport if transport is not None else run_stdio
     hub = wikihub.start_if_enabled(state_home())
     wikihub.attach(state, hub)
+    ## 2.1 CHANNEL (opt-in): the hub's HTTP thread hands a comment push to this loop.
+    from .channel import enabled
+
+    if hub is not None and enabled():
+        CHANNEL.attach_loop()
+        hub.on_comment = CHANNEL.push_from_thread
     try:
         async with anyio.create_task_group() as tg:
             if interval > 0:

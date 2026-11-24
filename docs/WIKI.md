@@ -70,6 +70,29 @@ sequenceDiagram
 - **Limits refuse, they never cut.** An empty comment, or one over 4,000 characters, is refused
   with the reason shown on the page.
 
+**Pushed, not waiting for a tool call (opt-in, research preview).** Claude Code's *channels* let
+a server put a message in front of the model unprompted. To use them for comments:
+
+1. Run the MCP server with `CLEW_CHANNEL=1` (alongside `CLEW_WIKI=1`). The server then declares
+   the experimental `claude/channel` capability.
+2. In the repository's `.clew.yaml`, choose the route:
+
+   ```yaml
+   wiki:
+     comments:
+       deliver: [hook, channel]   # default [hook]; [channel] alone drops the hook's count
+   ```
+
+3. Launch Claude Code with the channel flags. clew's plugin isn't on Anthropic's channel allowlist,
+   so it needs `--dangerously-load-development-channels plugin:clew@<marketplace>`. That works only
+   with claude.ai or Console API-key auth.
+
+Each comment then arrives as a `<channel>` event carrying the page, section, quote and note.
+Claude Code does not register a channel on a session that negotiated MCP revision 2026-07-28. On
+such a session clew logs that the channel is inactive and sends nothing. The hook count and
+`index(action='comments')` still deliver it. clew can't decline that revision: the SDK locks a
+connection's protocol on its first request.
+
 ## What the site holds
 
 ```mermaid
@@ -320,6 +343,8 @@ wiki:
   api: ["include/**"]           # public headers: an API reference page per header (off unless declared)
   body_lines: 120               # lines of a body bundled on its symbol page; past it, a link to the full source
   test_slices: 1                # master-flow slices drawn on a test page (most steps first); the rest are links
+  comments:                     # how a person's wiki comments reach the agent (see Comment to the agent)
+    deliver: [hook]             # hook (the hook's count, default) and/or channel (CLEW_CHANNEL=1)
   sbom:                         # the SBOM page renders the repo's own SBOM; it never writes one
     files: [sbom.spdx.json]     # SPDX 2.3 or CycloneDX JSON (default: sbom.spdx.json, bom.cdx.json at the root)
     accepted: [MIT, Apache-2.0] # else docs/sbom.toml's `accepted`; without either nothing is called unaccepted

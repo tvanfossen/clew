@@ -120,3 +120,37 @@ async def test_comments_are_read_without_a_built_index(tmp_path: Path) -> None:
     )
     reply = await server.index(None, action="comments", target=str(repo))
     assert reply["count"] == 1 and reply["comments"][0]["body"] == "hi"
+
+
+def _config(tmp_path: Path, wiki: str):  # noqa: ANN202
+    """@brief Load a repository's wiki config from a `wiki:` YAML fragment."""
+    from clew.wiki.config import load_wiki_config
+
+    repo = tmp_path / "cfg"
+    repo.mkdir(exist_ok=True)
+    (repo / ".clew.yaml").write_text("wiki:\n" + wiki)
+    return load_wiki_config(repo)
+
+
+def test_a_repository_chooses_how_its_comments_reach_the_agent(tmp_path: Path) -> None:
+    """2.1 (owner Q/A 2026-11-24): `wiki.comments.deliver` — `hook` (the default: the hook's
+    count) and/or `channel` (a Claude Code channel push, when the server runs with CLEW_CHANNEL=1).
+
+    @brief wiki.comments.deliver.
+    """
+    config, problems = _config(tmp_path, "  title: x\n")
+    assert config.comments_deliver == ("hook",) and not problems
+    config, problems = _config(tmp_path, "  comments:\n    deliver: [hook, channel]\n")
+    assert config.comments_deliver == ("hook", "channel") and not problems
+    config, problems = _config(tmp_path, "  comments:\n    deliver: [channel]\n")
+    assert config.comments_deliver == ("channel",)
+
+
+def test_an_unknown_delivery_is_refused_by_name(tmp_path: Path) -> None:
+    """@brief A closed vocabulary; a string where a list belongs is refused (F5)."""
+    _c, problems = _config(tmp_path, "  comments:\n    deliver: [email]\n")
+    assert any("email" in p and "hook" in p and "channel" in p for p in problems), problems
+    _c, problems = _config(tmp_path, "  comments:\n    deliver: hook\n")
+    assert any("list" in p for p in problems), problems
+    _c, problems = _config(tmp_path, "  comments:\n    via: [hook]\n")
+    assert any("via" in p for p in problems), problems

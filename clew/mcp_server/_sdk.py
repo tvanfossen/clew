@@ -112,4 +112,48 @@ def lowlevel(server: Any) -> Any:
         ) from exc
 
 
-__all__ = ["LOWLEVEL_ATTR", "MCP_SERVER_MODULE", "Context", "MCPServer", "ToolError", "lowlevel"]
+## @brief Send a notification the SDK has no type for, on a session's connection.
+## @param session A request's ServerSession.
+## @param method The notification method.
+## @param params Its params.
+## @return None.
+## @version 1
+## @req REQ-DDB-WIKI-054
+async def raw_notify(session: Any, method: str, params: dict[str, Any]) -> None:
+    """THE SECOND REACH THROUGH THE SDK'S PRIVACY, kept here beside the first (`lowlevel`). The
+    typed `send_notification` takes only the SDK's own notification union, and Claude Code's
+    `notifications/claude/channel` (2.1 wiki comments) is not in it; the session's connection
+    carries the raw `notify` the typed path itself ends in. Fails by name if a future SDK drops it.
+
+    @brief Raw notify.
+    @return None.
+    """
+    connection = getattr(session, "_connection", None)
+    if connection is None:  # pragma: no cover — a future SDK generation
+        raise AttributeError(
+            "the installed mcp SDK's session has no _connection; update clew.mcp_server._sdk"
+        )
+    await connection.outbound.notify(method, params)
+
+
+## @brief The protocol revision a session's connection negotiated, or "".
+## @param session A request's ServerSession.
+## @return The revision.
+## @version 1
+## @req REQ-DDB-WIKI-054
+def protocol_version(session: Any) -> str:
+    """@brief Negotiated revision. @return Text."""
+    connection = getattr(session, "_connection", None)
+    return str(getattr(connection, "protocol_version", "") or "")
+
+
+__all__ = [
+    "LOWLEVEL_ATTR",
+    "MCP_SERVER_MODULE",
+    "Context",
+    "MCPServer",
+    "ToolError",
+    "lowlevel",
+    "protocol_version",
+    "raw_notify",
+]

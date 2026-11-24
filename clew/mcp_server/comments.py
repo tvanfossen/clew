@@ -66,20 +66,23 @@ class CommentStore:
 
     path: Path
     pending: Path
+    ## Whether the hook's pending count is kept (`wiki.comments.deliver` names `hook`).
+    counted: bool = True
 
     ## @brief The store for one repository.
     ## @param state_root clew's state root.
     ## @param repo_path The repository.
+    ## @param counted Keep the hook's pending count (the `hook` route).
     ## @return The store.
-    ## @version 1
+    ## v2: opt-in channel push of wiki comments (2.1, owner Q/A 2026-11-24)
+    ## @version 2
     ## @req REQ-DDB-WIKI-054
     @classmethod
-    def for_repo(cls, state_root: Path, repo_path: str) -> CommentStore:
+    def for_repo(cls, state_root: Path, repo_path: str, counted: bool = True) -> CommentStore:
         """@brief Locate a repository's store. @return Store."""
         key = pending_key(repo_path)
-        return cls(
-            Path(state_root) / LOG_DIR / f"{key}.jsonl", Path(state_root) / PENDING_DIR / key
-        )
+        root = Path(state_root)
+        return cls(root / LOG_DIR / f"{key}.jsonl", root / PENDING_DIR / key, counted)
 
     ## @brief Record a comment.
     ## @param page The page it was made on.
@@ -173,10 +176,17 @@ class CommentStore:
 
     ## @brief Rewrite the pending count, atomically.
     ## @return None.
-    ## @version 1
+    ## v2: opt-in channel push of wiki comments (2.1, owner Q/A 2026-11-24)
+    ## @version 2
     ## @utility
     def _write_pending(self) -> None:
-        """@brief Pending count. @return None."""
+        """A REPOSITORY THAT DID NOT CHOOSE THE HOOK keeps no count, so the hook says nothing for it.
+
+        @brief Pending count.
+        @return None.
+        """
+        if not self.counted:
+            return
         self.pending.parent.mkdir(parents=True, exist_ok=True)
         fresh = self.pending.with_suffix(".new")
         fresh.write_text(str(len(self.unread())), encoding="utf-8")

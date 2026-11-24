@@ -59,6 +59,8 @@ _TOP = {
     ## V6 (2.0.0, owner Q/A 2026-11-20): how many lines of a body a symbol page bundles.
     "body_lines",
     "test_slices",
+    ## 2.1 (owner Q/A 2026-11-24): `comments: {deliver: [hook, channel]}`.
+    "comments",
 }
 ## Each tuning key's former constant — the default when it is not declared.
 TUNING_DEFAULTS = {
@@ -332,6 +334,9 @@ class WikiConfig:
     body_lines: int = 120
     ## OWNER Q/A 2026-11-20 (after P6): slices drawn on a test page; the rest are links.
     test_slices: int = 1
+    ## 2.1 (owner Q/A 2026-11-24): how a person's wiki comments reach the agent — `hook` (the
+    ## hook's count) and/or `channel` (a Claude Code channel push, with CLEW_CHANNEL=1).
+    comments_deliver: tuple[str, ...] = ("hook",)
     ## Entropic's gap 1: the repository's declared doc tags (`guard.validate.extra_tags`), shown as
     ## labelled fields on API pages. Read raw: the gate's own loader refuses doxygen-guard
     ## leftovers, and a wiki build must not fail on the gate's account.
@@ -387,7 +392,8 @@ class WikiConfig:
 ## v24: viewer caps V3/V5/V6 (2.0.0, owner Q/A 2026-11-20)
 ## v25: doc_tags (entropic's PAPI gaps 1-3 (2.0.0))
 ## v26: wiki.test_slices (slice cap (owner Q/A 2026-11-20, after P6))
-## @version 26
+## v27: wiki.comments.deliver (2.1)
+## @version 27
 ## @req REQ-DDB-WIKI-003
 def load_wiki_config(
     repo_root: Path, config_path: Path | None = None
@@ -442,6 +448,7 @@ def load_wiki_config(
         api=_strings(raw, "api", (), "wiki", problems),
         body_lines=_positive(raw, "body_lines", 120, problems),
         test_slices=_positive(raw, "test_slices", 1, problems),
+        comments_deliver=_comments(raw.get("comments"), problems),
         doc_tags=_doc_tags(Path(config_path or Path(repo_root) / ".clew.yaml")),
         tooling=_strings(raw, "tooling", DEFAULT_TOOLING, "wiki", problems),
         needs=str(requirements["needs"]) if requirements.get("needs") else None,
@@ -450,6 +457,41 @@ def load_wiki_config(
         **_tuning(raw, tests, problems),
     )
     return config, problems
+
+
+## The ways a comment can reach the agent (2.1).
+COMMENT_DELIVERY = ("hook", "channel")
+
+
+## @brief How the repository's wiki comments reach the agent.
+## @param raw The `comments` mapping, or None.
+## @param problems Appended to.
+## @return The delivery routes, in the order written; `("hook",)` when not declared.
+## @version 1
+## @req REQ-DDB-WIKI-054
+def _comments(raw: Any, problems: list[str]) -> tuple[str, ...]:
+    """A CLOSED VOCABULARY, refused by name: a route outside `COMMENT_DELIVERY`, a key other than
+    `deliver`, or a string where the list belongs (F5) is a problem, never a silent default.
+
+    @brief Comment delivery.
+    @return Routes.
+    """
+    if raw is None:
+        return ("hook",)
+    if not isinstance(raw, dict) or set(raw) - {"deliver"}:
+        extra = sorted(set(raw) - {"deliver"}) if isinstance(raw, dict) else raw
+        problems.append(f"`wiki.comments` takes only `deliver`; got {extra!r}")
+        return ("hook",)
+    routes = raw.get("deliver", ["hook"])
+    if not isinstance(routes, list) or not all(isinstance(r, str) for r in routes):
+        problems.append("`wiki.comments.deliver` must be a list of " + ", ".join(COMMENT_DELIVERY))
+        return ("hook",)
+    unknown = [r for r in routes if r not in COMMENT_DELIVERY]
+    if unknown:
+        problems.append(
+            f"`wiki.comments.deliver` names {unknown!r}; the routes are {', '.join(COMMENT_DELIVERY)}"
+        )
+    return tuple(dict.fromkeys(r for r in routes if r in COMMENT_DELIVERY))
 
 
 ## @brief The declared component groupings, in the order written.

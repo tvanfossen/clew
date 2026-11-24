@@ -1109,10 +1109,10 @@ requirements:
       comment from the log. With `wiki.comments.deliver` naming `channel`, the server also pushes
       each comment as a Claude Code channel notification.'
     x-priority: P1
-    x-status: proposed
-    x-evidence: clew/mcp_server/comments.py; clew/mcp_server/wikihub.py; clew_hook.py;
-      tests/test_wiki_comments.py; tests/test_wiki_hub.py; tests/test_hook.py. The channel push is
-      not built yet; the status moves to implemented when it is.
+    x-status: implemented
+    x-evidence: clew/mcp_server/comments.py; clew/mcp_server/wikihub.py; clew/mcp_server/channel.py;
+      clew_hook.py; tests/test_wiki_comments.py; tests/test_wiki_hub.py; tests/test_hook.py;
+      tests/test_wiki_channel.py.
   REQ-DDB-WIKI-048:
     subsystem: wiki
     name: Every function on a flow has a quick-view modal with the view strip

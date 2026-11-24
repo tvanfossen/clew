@@ -49,6 +49,8 @@ RUNTIME_SERVED_MODULES = (
     "clew/mcp_server/tools_query.py",
     "clew/mcp_server/server.py",
     "clew/mcp_server/routing.py",
+    ## 2.1: the channel push's `content` reaches the model.
+    "clew/mcp_server/channel.py",
 )
 
 ## The other half of the partition: package modules that serve NO text, each excluded for a
