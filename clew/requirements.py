@@ -36,7 +36,9 @@ from __future__ import annotations
 import json
 import re
 import sqlite3
+from collections.abc import Mapping
 from pathlib import Path
+from typing import Any
 
 from ._common import logger
 
@@ -264,6 +266,31 @@ def satisfies_ids(value: object) -> list[str]:
     return out
 
 
+## The keys an entry links upward with: `satisfies`, and `serves`, the same link by another name.
+LINK_KEYS = ("satisfies", "serves")
+
+
+## @brief The ids an entry links upward to, through `satisfies` or `serves`.
+## @param entry One catalogue entry.
+## @return The ids, in order, without duplicates.
+## @version 1
+## @req REQ-DDB-SCHEMA-015
+def link_ids(entry: Mapping[str, Any]) -> list[str]:
+    """#72 item 13 (an adopter, 2026-11-23): sub-catalogues written `serves: [REQ-…]` would each
+    have needed renaming. ONE READER for the index, the wiki and the gate, as `satisfies_ids` is
+    one normaliser, so the three never disagree about what an entry links to.
+
+    @brief Link ids.
+    @return Ids.
+    """
+    out: list[str] = []
+    for key in LINK_KEYS:
+        for target in satisfies_ids(entry.get(key)):
+            if target not in out:
+                out.append(target)
+    return out
+
+
 ## @brief First present, non-empty value among several candidate keys.
 ## @param entry One catalog entry.
 ## @param keys Candidate keys, most specific first.
@@ -382,7 +409,8 @@ def catalog_value(entry: dict, column: str) -> object:
 
 ## Keys a different reader consumes: `satisfies` (requirement_links), `version` (the gate's
 ## version field). Not "unread", so not disclosed as such.
-_READ_ELSEWHERE = ("satisfies", "version", "x-version")
+## `serves` (2.1, #72): the same upward link as `satisfies`, read by `link_ids`.
+_READ_ELSEWHERE = ("satisfies", "serves", "version", "x-version")
 
 
 ## @brief A catalog value as a column holds it: text as written, a list or mapping as JSON.
@@ -444,7 +472,8 @@ def _keyed_req_entries(data: object) -> list[dict]:
 ## @param requirements_yaml Path to requirements.yaml, or None if absent.
 ## @param guard_cfg Parsed `guard:` section of .clew.yaml (declares column mapping), or None.
 ## v7: also `requirement_links` from each entry's `satisfies` (GH #68), created on every build.
-## @version 7
+## v8: serves read as satisfies (#72 item 13, 2.1)
+## @version 8
 ## @req REQ-DDB-SCHEMA-015
 ## @req REQ-DDB-SCHEMA-006
 def ingest_requirements_yaml(
@@ -509,7 +538,7 @@ def ingest_requirements_yaml(
         if rid:
             conn.executemany(
                 "INSERT OR IGNORE INTO requirement_links (req_id, satisfies) VALUES (?, ?)",
-                [(str(rid), target) for target in satisfies_ids(entry.get("satisfies"))],
+                [(str(rid), target) for target in link_ids(entry)],
             )
     conn.commit()
     conn.close()

@@ -578,7 +578,8 @@ def _tier(statuses: tuple[tuple[str, str], ...], target_only: tuple[str, ...]) -
 ## @return The rows, EXEMPT where the status is exempt and no test is linked.
 ## Round 4, R8: the demo read 5 MISSING where `clew guard coverage` read 3 of them exempt.
 ## v2: reads the top-level requirements: section (2.0.0, R5-CFG F7)
-## @version 2
+## v3: exempt_when (2.1, #72 item 14)
+## @version 3
 ## @req REQ-DDB-WIKI-002
 def exempt_by_status(
     evidence: list[RequirementEvidence], declared: dict[str, dict], guard: dict | None
@@ -593,12 +594,13 @@ def exempt_by_status(
 
     from ..guard.config import get_requirements
 
-    req = get_requirements(guard)
-    statuses = set(req.get("exempt_status") or [])
-    field = req.get("status_field", "status")
+    from ..guard.config import exemption
 
+    req = get_requirements(guard)
+
+    ## 2.1 (#72 item 14): the gate's own predicate, so `exempt_when` fields exempt here too.
     def exempt(row: RequirementEvidence) -> bool:
-        return row.tier == "MISSING" and (declared.get(row.req_id) or {}).get(field) in statuses
+        return row.tier == "MISSING" and exemption(declared.get(row.req_id) or {}, req) is not None
 
     return [replace(r, tier="EXEMPT") if exempt(r) else r for r in evidence]
 

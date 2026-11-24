@@ -64,3 +64,21 @@ def test_without_a_declaration_nothing_is_exempt() -> None:
 def test_the_summary_counts_exempt_as_its_own_tier() -> None:
     """@brief EXEMPT is a tier the charts and group table count, not a hole in the total."""
     assert "EXEMPT" in TIERS
+
+
+def test_a_requirement_owned_elsewhere_is_exempt_by_its_field() -> None:
+    """2.1 (#72 item 14): `exempt_when` reaches the wiki through the gate's own predicate, so the
+    two still agree.
+
+    @brief exempt_when in the wiki.
+    """
+    guard = {
+        "requirements": {**_GUARD["requirements"], "exempt_when": {"responsibility": ["Cloud"]}}
+    }
+    evidence = [_row("R-CLOUD", "MISSING"), _row("R-OURS", "MISSING")]
+    declared = {
+        "R-CLOUD": {"x-status": "active", "responsibility": "Cloud"},
+        "R-OURS": {"x-status": "active", "responsibility": "Library"},
+    }
+    tiers = {r.req_id: r.tier for r in exempt_by_status(evidence, declared, guard)}
+    assert tiers == {"R-CLOUD": "EXEMPT", "R-OURS": "MISSING"}

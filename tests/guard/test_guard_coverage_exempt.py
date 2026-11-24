@@ -63,9 +63,11 @@ def test_an_exempt_status_is_listed_not_counted_as_a_gap(
     config = _config(tmp_path, _CATALOG, ["planned", "configuration"])
     report = analyze_coverage(["src"], config)
     assert report["uncovered"] == ["REQ-A-004"]
+    ## SPEC WIDENED, ADDITIVE (2.1, #72 item 14): each exempt row also says WHY (`reason`), since a
+    ## field (`exempt_when`) can exempt as well as the status. The listed rows are unchanged.
     assert report["exempt"] == [
-        {"req_id": "REQ-A-002", "status": "planned"},
-        {"req_id": "REQ-A-003", "status": "configuration"},
+        {"req_id": "REQ-A-002", "status": "planned", "reason": "x-status: planned"},
+        {"req_id": "REQ-A-003", "status": "configuration", "reason": "x-status: configuration"},
     ]
     assert run_coverage(["src"], config) == 1
 

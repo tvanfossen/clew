@@ -950,7 +950,8 @@ def _uncheckable(func: Function, file_path: str, req_id: str) -> Violation:
 
 
 ## @brief A catalogue entry's `satisfies` ids that no catalogue holds (GH #68).
-#  @version 1.0
+#  @details v1.1 (2.1, #72 item 13): `serves` is read as the same link (`requirements.link_ids`).
+#  @version 1.1
 #  @req REQ-DDB-SCHEMA-015
 #  @return One violation per unresolvable link, against the catalogue file
 def check_satisfies(
@@ -958,11 +959,11 @@ def check_satisfies(
 ) -> list[Violation]:
     """A link names an id in the local or an external catalogue; `<catalog>:<id>` resolves by
     its id. Anything else is a broken edge in the requirement tree."""
-    from ..requirements import satisfies_ids
+    from ..requirements import link_ids
 
     out: list[Violation] = []
     for req_id, row in rows.items():
-        for target in satisfies_ids(row.get("satisfies")):
+        for target in link_ids(row):
             if target in known or target.split(":", 1)[-1] in known:
                 continue
             out.append(

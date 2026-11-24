@@ -109,7 +109,8 @@ def build_schema_contract() -> dict[str, Any]:
 
 ## @brief Describe the requirements catalog as actually resolved from config.
 #  v1.1: reads the top-level requirements: section (2.0.0, R5-CFG F7)
-#  @version 1.1
+#  @details v1.2 (2.1, #72 item 14): `exempt_when` published beside `exempt_status`.
+#  @version 1.2
 #  @req REQ-DDB-GUARD-015
 #  @return Resolved catalog settings, or a declared=False marker
 def _effective_requirements(config: dict[str, Any]) -> dict[str, Any]:
@@ -124,6 +125,8 @@ def _effective_requirements(config: dict[str, Any]) -> dict[str, Any]:
         "name_column": req_config.get("name_column", REQUIREMENTS_NAME_COLUMN_DEFAULT),
         "status_field": req_config.get("status_field"),
         "exempt_status": list(req_config.get("exempt_status") or []),
+        ## 2.1 (#72 item 14): field-based exemptions, published beside the status ones.
+        "exempt_when": {k: list(v) for k, v in (req_config.get("exempt_when") or {}).items()},
         "version_field": req_config.get("version_field"),
         "external": list(req_config.get("external") or []),
         "needs": req_config.get("needs"),

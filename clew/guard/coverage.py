@@ -111,20 +111,23 @@ def traceability_line(trace: dict[str, Any]) -> str:
 
 ## @brief The untagged requirements whose declared status exempts them from coverage.
 #  v1.1: reads the top-level requirements: section (2.0.0, R5-CFG F7)
-#  @version 1.1
+#  v1.2: `exempt_when` fields too, each with its reason (2.1, #72 item 14)
+#  @version 1.2
 #  @req REQ-DDB-GUARD-022
 #  @return [{req_id, status}] sorted by id; [] when no exempt status is declared
 def _exempt(
     rows: dict[str, dict[str, str]], untagged: set[str], config: dict[str, Any]
 ) -> list[dict[str, str]]:
+    from .config import exemption
+
     req = get_requirements(config)
-    statuses = set(req.get("exempt_status") or [])
     field = req.get("status_field", "status")
-    return [
-        {"req_id": rid, "status": rows[rid].get(field, "")}
-        for rid in sorted(untagged)
-        if rows[rid].get(field) in statuses
-    ]
+    out = []
+    for rid in sorted(untagged):
+        reason = exemption(rows[rid], req)
+        if reason is not None:
+            out.append({"req_id": rid, "status": rows[rid].get(field, ""), "reason": reason})
+    return out
 
 
 ## @brief Collect all requirement IDs referenced across tagged functions.
@@ -154,7 +157,8 @@ def _collect_unmapped_functions(all_tagged: list[TaggedFunction]) -> set[str]:
 ## @brief Format coverage report as text.
 #  @details v1.2: exempt requirements listed with their status (round 3, P6c).
 #  v1.3: the requirement ratio and floor (2.0.0, PG3)
-#  @version 1.3
+#  v1.4: each exempt row says why — its status or an `exempt_when` field (2.1, #72 item 14)
+#  @version 1.4
 #  @req REQ-DDB-GUARD-022
 #  @return Formatted text report string
 def format_coverage_text(report: dict[str, Any]) -> str:
@@ -163,7 +167,10 @@ def format_coverage_text(report: dict[str, Any]) -> str:
         lines.append(traceability_line(report["traceability"]))
     sections = (
         ("Uncovered", report["uncovered"]),
-        ("Exempt by status", [f"{e['req_id']} ({e['status']})" for e in report.get("exempt", [])]),
+        (
+            "Exempt by status or field",
+            [f"{e['req_id']} ({_why(e)})" for e in report.get("exempt", [])],
+        ),
         ("Orphan @req refs", report["orphan_refs"]),
         ("Functions without @req", [f"{f}()" for f in report["unmapped_functions"]]),
     )
@@ -182,10 +189,19 @@ def format_coverage_json(report: dict[str, Any]) -> str:
     return json.dumps(report, indent=2)
 
 
+## @brief Why one exempt requirement is exempt: its reason, else its status.
+#  @version 1.0
+#  @utility
+#  @return Text
+def _why(row: dict[str, Any]) -> str:
+    return str(row.get("reason") or row.get("status") or "")
+
+
 ## @brief Format coverage report as markdown.
 #  @details v1.2: exempt requirements listed with their status.
 #  v1.3: the requirement ratio and floor (2.0.0, PG3)
-#  @version 1.3
+#  v1.4: each exempt row says why (2.1, #72 item 14)
+#  @version 1.4
 #  @req REQ-DDB-GUARD-022
 #  @return Markdown formatted coverage report string
 def format_coverage_markdown(report: dict[str, Any]) -> str:
@@ -197,8 +213,8 @@ def format_coverage_markdown(report: dict[str, Any]) -> str:
         for r in report["uncovered"]:
             lines.append(f"- {r}")
     if report.get("exempt"):
-        lines.append(f"\n## Exempt by status ({len(report['exempt'])})")
-        lines += [f"- {e['req_id']} ({e['status']})" for e in report["exempt"]]
+        lines.append(f"\n## Exempt by status or field ({len(report['exempt'])})")
+        lines += [f"- {e['req_id']} ({_why(e)})" for e in report["exempt"]]
     if report["orphan_refs"]:
         lines.append(f"\n## Orphan Refs ({len(report['orphan_refs'])})")
         for r in report["orphan_refs"]:

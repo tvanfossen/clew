@@ -416,6 +416,7 @@ refused with a pointer here). One path is the short form of `{file: <path>}`.
 | `external` | list | — | Catalogues this repository does not own: a path, or `{repo, rev, path, name}` read at that revision from a local clone or submodule. A URL is refused. Pinned entries are also the wiki's sub-catalogues |
 | `status_field` | string | `status` | The catalogue field that holds a requirement's status |
 | `exempt_status` | list | — | Statuses that exempt an untagged requirement from `clew guard coverage` (e.g. `planned`, `configuration`); each exemption is listed in the report, never dropped |
+| `exempt_when` | map of field → list | — | Exempt by any catalogue field (2.1): `{responsibility: [App, Cloud]}` keeps "not ours" apart from "ours and untested". Any listed field matching exempts; the report and the wiki give each exemption its reason (`responsibility: Cloud`) |
 | `version_field` | string | — | Catalog field naming the release a requirement becomes active in (with `guard.validate.current_version`) |
 | `needs` | string | — | A Sphinx-needs `needs.json` whose needs join the wiki's requirement trace |
 
@@ -443,7 +444,8 @@ requirements:
 
 `satisfies` names requirements in this catalogue, in an `external` one, or as `<catalog>:<id>`;
 a link no catalogue holds is a violation. The index records each link, and a requirement's
-`dossier` carries both directions, `satisfies` and `satisfied_by`.
+`dossier` carries both directions, `satisfies` and `satisfied_by`. `serves` is read as the same link (2.1), so a
+catalogue already written with `serves:` needs no rename; an entry may use either key, or both.
 
 A missing file, an unknown format, a wrong shape, a missing `name`, or an id failing
 `validate.tags.req.pattern` raises `RequirementsError`. The run fails rather than continuing

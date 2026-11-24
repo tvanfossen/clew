@@ -312,6 +312,11 @@ class _MapOf:
         self.schema = schema
 
 
+## 2.1 (#72 item 14): exempt by any catalogue field — `{responsibility: [App, Cloud]}` — so "not ours"
+## reads apart from "ours and untested". Any listed field matching exempts. Set here, after `_MapOf`.
+REQUIREMENTS_SCHEMA["exempt_when"] = _MapOf(list)
+
+
 ## The keys one `validate.tags.<tag>` entry may carry.
 TAG_SCHEMA: dict[str, Any] = {
     "pattern": str,
@@ -833,6 +838,24 @@ def impact_base(config: dict[str, Any] | None) -> str:
 #  @utility
 def get_requirements(config: dict[str, Any] | None) -> dict[str, Any]:
     return (config or {}).get(REQUIREMENTS_ROOT_KEY) or {}
+
+
+## @brief Why a catalogue row is exempt from coverage, or None: its status, or a named field.
+#  @details 2.1 (#72 item 14): ONE PREDICATE for the gate's coverage and the wiki's evidence, so the
+#  two never disagree about what is exempt. `exempt_status` matches `status_field`; each
+#  `exempt_when` field matches its own listed values.
+#  @version 1.0
+#  @req REQ-DDB-GUARD-022
+#  @return `"<field>: <value>"`, or None
+def exemption(row: dict[str, Any], requirements: dict[str, Any]) -> str | None:
+    field = requirements.get("status_field", "status")
+    rules = [(field, requirements.get("exempt_status") or [])]
+    rules += list((requirements.get("exempt_when") or {}).items())
+    for name, values in rules:
+        value = row.get(name)
+        if value is not None and str(value) in {str(v) for v in values}:
+            return f"{name}: {value}"
+    return None
 
 
 ## @brief Reject output paths containing directory traversal or absolute components.

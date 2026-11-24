@@ -30,7 +30,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from ..requirements import git_text, read_catalog_at, satisfies_ids
+from ..requirements import git_text, link_ids, read_catalog_at
 from .config import CatalogSpec
 
 ## (state, note, index path or None) — what is known about one dependency's index.
@@ -423,7 +423,8 @@ def _nested_specs(dep: Path, pin: str) -> list[CatalogSpec]:
 ## @param sources Every catalogue read.
 ## @param trace Requirement trace reader.
 ## @return (nodes by ref, dangling (ref, target) pairs).
-## @version 1
+## v2: serves read as satisfies (#72 item 13, 2.1)
+## @version 2
 ## @utility
 def _nodes(sources: list[_Source], trace: Trace) -> tuple[dict[str, Node], list[tuple[str, str]]]:
     """@brief Nodes and links. @return Nodes, dangling."""
@@ -434,7 +435,7 @@ def _nodes(sources: list[_Source], trace: Trace) -> tuple[dict[str, Node], list[
     for s in sources:
         for rid, row in s.rows.items():
             ref = f"{s.name}:{rid}"
-            for target in satisfies_ids(row.get("satisfies")):
+            for target in link_ids(row):
                 hit = _resolve(target, (s.parent, root, s.name), by_name)
                 if hit:
                     edges.setdefault(hit, []).append(ref)
