@@ -35,6 +35,8 @@ from ._common import (
     function_candidates,
     identity_rowids,
     is_overloaded,
+    line_column,
+    start_line,
     strip_xml,
     symbol_provenance,
     table_exists,
@@ -114,7 +116,8 @@ def _sibling_prose(conn: sqlite3.Connection, fn: str) -> tuple[str, str]:
 ## @return A dict of the function's identity columns, or None if the rowid has no memberdef row.
 ## Calls the shared `_common.capped_detail` since C1; the cap and the notice are unchanged.
 ## v5 (2.0.0, T2): `file` is the body's file when a body is recorded.
-## @version 5
+## v6: line_start is the declaration line when it leads the body (2.1)
+## @version 6
 ## @utility
 def _identity(conn: sqlite3.Connection, rowid: int) -> dict | None:
     """@brief Read one function's identity columns (definition row already chosen).
@@ -130,7 +133,8 @@ def _identity(conn: sqlite3.Connection, rowid: int) -> dict | None:
         "CASE WHEN COALESCE(m.bodyfile_id, 0) > 0 AND COALESCE(m.bodystart, 0) > 0 "
         "THEN COALESCE(b.name, p.name, '') ELSE COALESCE(p.name, '') END, "
         "m.bodystart, m.bodyend, m.briefdescription, m.detaileddescription, "
-        "m.kind, m.static FROM memberdef m LEFT JOIN path p ON p.rowid = m.file_id "
+        f"m.kind, m.static, {line_column(conn)}, m.file_id, m.bodyfile_id "
+        "FROM memberdef m LEFT JOIN path p ON p.rowid = m.file_id "
         "LEFT JOIN path b ON b.rowid = m.bodyfile_id "
         "WHERE m.rowid=?",
         (rowid,),
@@ -155,7 +159,8 @@ def _identity(conn: sqlite3.Connection, rowid: int) -> dict | None:
         "name": row[0],
         "signature": f"{row[1] or ''}{row[2] or ''}",
         "file": row[3],
-        "line_start": row[4],
+        ## 2.1: the declaration line, when it leads the body in the same file (`start_line`).
+        "line_start": start_line(row[10], row[4], row[11], row[12]) or row[4],
         "line_end": row[5],
         "brief": brief,
         "detail": detail,

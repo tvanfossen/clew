@@ -27,6 +27,8 @@ from ._common import (
     connect,
     function_candidates,
     is_overloaded,
+    line_column,
+    start_line,
     symbol_provenance,
     table_exists,
 )
@@ -94,7 +96,8 @@ def _anchored(name: str, lines: list[str]) -> bool:
 ## @param conn Open connection.
 ## @param rowid Canonical memberdef rowid.
 ## @return (name, repo-relative body file, start, end), or None when no body extent is recorded.
-## @version 1
+## v2: line_start is the declaration line when it leads the body (2.1)
+## @version 2
 ## @utility
 def _body_extent(conn: sqlite3.Connection, rowid: int) -> tuple[str, str, int, int] | None:
     """Resolve the body location doxygen recorded. A header-only declaration
@@ -106,7 +109,8 @@ def _body_extent(conn: sqlite3.Connection, rowid: int) -> tuple[str, str, int, i
     @version 1
     """
     row = conn.execute(
-        "SELECT m.name, COALESCE(bp.name, p.name, ''), m.bodystart, m.bodyend "
+        "SELECT m.name, COALESCE(bp.name, p.name, ''), m.bodystart, m.bodyend, "
+        f"{line_column(conn)}, m.file_id, m.bodyfile_id "
         "FROM memberdef m "
         "LEFT JOIN path bp ON bp.rowid = m.bodyfile_id "
         "LEFT JOIN path p ON p.rowid = m.file_id "
@@ -115,10 +119,12 @@ def _body_extent(conn: sqlite3.Connection, rowid: int) -> tuple[str, str, int, i
     ).fetchone()
     if row is None:
         return None
-    name, file, start, end = row
+    name, file, start, end = row[:4]
     if not file or not start:
         return None
-    return name, file, int(start), int(end or start)
+    ## 2.1: the excerpt begins where the dossier's `line_start` does — the `def`, not mid-signature.
+    begin = start_line(row[4], start, row[5], row[6])
+    return name, file, begin, int(end or start)
 
 
 ## @brief Slice a file's text to a body extent, capped at `max_lines`.

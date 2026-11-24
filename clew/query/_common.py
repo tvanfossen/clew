@@ -33,7 +33,7 @@ import re
 import sqlite3
 from collections.abc import Iterator
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from ..vocabulary import SYMBOL_SOURCE_AST, SYMBOL_SOURCE_COLUMN
 
@@ -834,6 +834,45 @@ def well_formed(xml: str) -> str:
         if len(re.findall(opens, text)) != text.count(f"</{name}>"):
             text = re.sub(opens, "&lt;", text)
     return text
+
+
+## @brief The SQL selecting a memberdef's declaration line, or 0 where the index has no `line` column.
+## @param conn Open connection.
+## @return `m.line` or `0`.
+## @version 1
+## @utility
+def line_column(conn: Any) -> str:
+    """ABSENT IS NOT EMPTY: an index without the column (a reduced fixture, an older build) reads as
+    "line unknown", so `start_line` falls back to the body's start — the pre-2.1 answer.
+
+    @brief Line column.
+    @return SQL.
+    """
+    return "m.line" if has_columns(conn, "memberdef", "line") else "0"
+
+
+## @brief Where a function starts for a reader: its declaration line, when that leads its body.
+## @param line The memberdef's declaration line.
+## @param bodystart Its body's first line.
+## @param file_id The declaring file.
+## @param bodyfile_id The body's file (0 or None: the declaring file).
+## @return The line a dossier reports and its body excerpt starts at.
+## @version 1
+## @req REQ-DDB-QUERY-003
+def start_line(line: Any, bodystart: Any, file_id: Any, bodyfile_id: Any) -> int:
+    """2.1 (roadmap; found with W-11 in 2.0.0): doxygen's `bodystart` for a Python function with a
+    multi-line signature is past the `def` — `derive_flow` declares at 127, its body starts at 142 —
+    so a dossier pointed at the docstring and its excerpt began mid-signature. ONE FILE, DECLARATION
+    FIRST: the declaration line leads. A member defined out of line keeps its body's line, since its
+    declaration is in another file.
+
+    @brief Start line.
+    @return Line.
+    """
+    same_file = not bodyfile_id or bodyfile_id == file_id
+    if same_file and line and bodystart and 0 < int(line) < int(bodystart):
+        return int(line)
+    return int(bodystart or 0)
 
 
 ## @brief Strip doxygen's XML-ish markup from a description column.
