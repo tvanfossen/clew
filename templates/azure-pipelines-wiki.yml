@@ -40,8 +40,17 @@ steps:
       clew --repo-root "$(Build.SourcesDirectory)"
       audience=()
       if [ -n "${{ parameters.audience }}" ]; then audience=(--audience "${{ parameters.audience }}"); fi
+      ## 2.1 (#72 item 12): the evidence summary on the run's summary tab, where the pinned
+      ## release has `--summary`.
+      summary=()
+      if clew wiki build --help | grep -q -- --summary; then
+        summary=(--summary "$(Agent.TempDirectory)/clew-summary.md")
+      fi
       clew wiki build --format markdown --flavor ado --repo-root "$(Build.SourcesDirectory)" \
-        --out "$(Agent.TempDirectory)/clew-wiki" "${audience[@]}"
+        --out "$(Agent.TempDirectory)/clew-wiki" "${audience[@]}" "${summary[@]}"
+      if [ -f "$(Agent.TempDirectory)/clew-summary.md" ]; then
+        echo "##vso[task.uploadsummary]$(Agent.TempDirectory)/clew-summary.md"
+      fi
     displayName: Build the clew wiki (Markdown, ADO flavour)
   - script: |
       set -euo pipefail

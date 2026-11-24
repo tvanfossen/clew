@@ -116,7 +116,7 @@ flowchart TB
 | **Flows** | A UML sequence diagram for every entry point and every root you declare, grouped by role — Product, Threads, Tooling, Tests. Every step is an index edge, badged with the requirements its callee implements; click one for the call it makes. Each flow is also exported as Mermaid and PlantUML. |
 | **Change impact** | From clew-guard's `impact.json`: each changed function, the requirements it implements and the flows it is on. Without a report it says *not measured*. |
 | **Map** | The repository web: every function in one zoomable view. Each wedge is a block of the system (declared in `wiki.components`; an undeclared file joins the block it shares the most calls with, and is listed as placed by coupling; an undeclared file inside a submodule the repository declares is the **Vendor** block, never folded into first-party code); rings run outward by call depth from the entry points. Zoomed out you see the blocks and the calls between them; zoom in and the functions appear. Click a function to see what it calls and what calls it and walk from there; search jumps the camera to a name; pick a flow to watch it travel. The same blocks are listed as a table below. Every page's sidebar lists the blocks, labelled, lighting the ones that page touches. |
-| **Docs** | Your prose grouped by kind (tutorial, how-to, reference, explanation), agent-facing documents apart, and the architecture decision records. |
+| **Docs** | Your prose grouped by kind (tutorial, how-to, reference, explanation), agent-facing documents apart, and the architecture decision records. A file inside the repository that a page links or embeds (a PDF, a video, an image) is published with it, at the path the link names. That covers Markdown links, raw-HTML `src`/`href`, reStructuredText links, `:download:`, and `image`/`figure` directives. |
 | **Model entries** | Some behaviour is defined by data — a key table, a command list, shipped models. Declare those files in `wiki.sources`; a function that implements a row says so with `@node <source>:<id>`. The page shows each row, the code realising it and the requirement it serves, with a count per source. It is built only when some function realises a row. |
 | **Test pages** | One per test: the packaged run's result (a failure's message in red), the checks it makes, and a drawing of what it reaches — from the test, through its calls, to each requirement's implementer. Reaching is not proving: without mutation records the page says what the test reaches; with them, which breaks it caught. |
 | **Symbol pages** | A section per referenced function: signature, source link, its callers and callees (each linked), a link to it on the map, its requirements and flows, and its body. Gherkin scenarios are shown as Gherkin. |
@@ -242,6 +242,13 @@ clew wiki trace-run --test NODE --out spans.json
 `build` is a separate stage. Both take `--refresh` to bring the index current first. The hook
 passes `--before-tests`: test reports (JUnit, results, coverage, gcov) are what the test run
 writes, so before it they are not yet required; run `check` without it after the tests, in CI.
+
+`clew wiki build` also writes a short evidence summary for a CI run's summary tab: requirements
+by tier, how many are implemented, this run's tests by result, and line and branch coverage from
+the Cobertura report. Anything not measured says so, never a zero. An HTML build writes it to
+`<out>/summary.md`; `--summary FILE` puts it anywhere, and a Markdown build writes it only there,
+since that build's own directory is the wiki's pages. The composite action appends it to
+`$GITHUB_STEP_SUMMARY`, and the Azure DevOps template uploads it with `##vso[task.uploadsummary]`.
 
 `--wiki-config <file>` layers a file's `wiki:` section over the repository's own: mappings merge
 key by key, lists and values are replaced, and `requirements:` and `tests:` stay the repository's

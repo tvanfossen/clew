@@ -153,6 +153,7 @@
      "--out",
      "--refresh",
      "--repo-root",
+     "--summary",
      "--version",
      "--wiki-config"
     ]

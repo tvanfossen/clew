@@ -140,7 +140,8 @@ class _Ado(_Flavor):
 ## @param config_path A file whose `wiki:` section applies, or None.
 ## @return The directory.
 ## v2: Product trace page (#73, 2.1)
-## @version 2
+## v3: #72 items 8 and 12 (2.1): --summary
+## @version 3
 ## @req REQ-DDB-WIKI-038
 def build_markdown(
     repo_root: Path,
@@ -149,6 +150,7 @@ def build_markdown(
     flavor: str,
     audience: str | None = None,
     config_path: Path | None = None,
+    summary: Path | None = None,
 ) -> Path:
     """REFUSES an unknown flavour by name, as the site refuses an unknown audience.
 
@@ -191,6 +193,11 @@ def build_markdown(
         pages.insert(2, ("Product-trace", "Product trace"))
     _write(out, "Home", _home(config.title, trace, len(flows), dialect, pages))
     dialect.order(out, pages + [(page, label) for page, label, _role in flows])
+    ## #72 item 12 (2.1): the CI evidence summary, where asked — never among the wiki's pages.
+    if summary is not None:
+        from .build import _write_ci_summary
+
+        _write_ci_summary(Path(summary), Path(repo_root), config, trace.evidence)
     return out
 
 

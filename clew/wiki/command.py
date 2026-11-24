@@ -50,7 +50,8 @@ WIKI_COMMAND = "wiki"
 ## v9: `check --before-tests` (round 3, P6c).
 ## v10: help text names the top-level tests: section (2.0.0)
 ## v11: #73 small items (2.1): --wiki-config
-## @version 11
+## v12: #72 items 8 and 12 (2.1): --summary
+## @version 12
 ## @utility
 def _parser() -> argparse.ArgumentParser:
     """@brief Build the parser. @return Parser."""
@@ -101,6 +102,9 @@ def _parser() -> argparse.ArgumentParser:
     build.add_argument("--version", help="a version key: the site goes to <out>/<key>/")
     build.add_argument("--config", help="a file whose wiki: section applies")
     build.add_argument("--wiki-config", help="a wiki: section layered over the repository's own")
+    build.add_argument(
+        "--summary", help="write the CI evidence summary here (default for HTML: <out>/summary.md)"
+    )
     build.add_argument("--refresh", action="store_true", help="bring the index current first")
     build.add_argument("--index")
     build.add_argument("--repo-root")
@@ -175,7 +179,8 @@ def wiki_main(argv: list[str]) -> int:
 ## @param repo The repository.
 ## @param config A config file, or None.
 ## @return Exit status: 0 written, 2 refused.
-## @version 1
+## v2: #72 items 8 and 12 (2.1): --summary
+## @version 2
 ## @req REQ-DDB-WIKI-038
 def _markdown(args: argparse.Namespace, db: Path, repo: Path, config: Path | None) -> int:
     """@brief Markdown build. @return Exit status."""
@@ -183,7 +188,13 @@ def _markdown(args: argparse.Namespace, db: Path, repo: Path, config: Path | Non
 
     try:
         out = build_markdown(
-            repo, db, Path(args.out), args.flavor, audience=args.audience, config_path=config
+            repo,
+            db,
+            Path(args.out),
+            args.flavor,
+            audience=args.audience,
+            config_path=config,
+            summary=Path(args.summary) if args.summary else None,
         )
     except ValueError as exc:
         sys.stderr.write(f"clew wiki: refused — {exc}\n")
@@ -356,7 +367,8 @@ def _ears_notes(repo: Path, db: Path, config_path: Path | None) -> list[str]:
 ## v3: `--format markdown` writes wiki pages instead.
 ## v4: `check --before-tests`.
 ## v5 (2.0.0, S9): `check` prints EARS notes on stderr when `wiki.check.ears` is on.
-## @version 5
+## v6: #72 items 8 and 12 (2.1): --summary
+## @version 6
 ## @utility
 def _site(args: argparse.Namespace, db: Path, repo: Path) -> int:
     """`check` PRINTS EVERY PROBLEM, one per line on stdout, and exits 1 when there is any — the
@@ -389,6 +401,7 @@ def _site(args: argparse.Namespace, db: Path, repo: Path) -> int:
             audience=args.audience,
             version=args.version,
             config_path=config,
+            summary=Path(args.summary) if args.summary else None,
         )
     except ValueError as exc:
         sys.stderr.write(f"clew wiki: refused — {exc}\n")

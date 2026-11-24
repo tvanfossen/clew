@@ -80,6 +80,11 @@ runs:
         if [ -n "$CLEW_CONFIG" ]; then args+=(--config "$CLEW_CONFIG"); fi
         if [ -n "$CLEW_AUDIENCE" ]; then args+=(--audience "$CLEW_AUDIENCE"); fi
         if [ -n "$CLEW_VERSION_KEY" ]; then args+=(--version "$CLEW_VERSION_KEY"); fi
+        ## 2.1 (#72 item 12): the evidence summary into the job's summary — only where the pinned
+        ## release has `--summary`, so an older pin still builds.
+        summary="$RUNNER_TEMP/clew-summary.md"
+        if clew wiki build --help | grep -q -- --summary; then args+=(--summary "$summary"); fi
         site="$(clew wiki build "${args[@]}" | tail -n 1)"
         if [ "$CLEW_FORMAT" = html ] && [ -n "$CLEW_VERSION_KEY" ]; then site="$CLEW_OUT"; fi
         echo "site=$site" >> "$GITHUB_OUTPUT"
+        if [ -f "$summary" ]; then cat "$summary" >> "$GITHUB_STEP_SUMMARY"; fi

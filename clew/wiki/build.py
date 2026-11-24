@@ -30,6 +30,7 @@ without the extra installed.
 from __future__ import annotations
 
 import dataclasses
+import logging
 import re
 import shutil
 import subprocess
@@ -37,6 +38,8 @@ from pathlib import Path
 from typing import Any
 
 from .config import DEFAULT_MAX_REPORT_MB, Audience, WikiConfig, load_wiki_config
+
+logger = logging.getLogger(__name__)
 
 ## Markdown table cells may not carry a bare pipe or newline.
 _CELL = str.maketrans({"|": "\\|", "\n": " "})
@@ -78,7 +81,8 @@ _CELL = str.maketrans({"|": "\\|", "\n": " "})
 ## v23 (round 5): per-test coverage feeds the master flows; each test's slices go to its page; only
 ## a traced test keeps a flow of its own.
 ## v24 (2.0.0): the body moved to `_build_site`; this scopes the report limit around it (R5-CFG C9).
-## @version 24
+## v25: #72 items 8 and 12 (2.1)
+## @version 25
 ## @req REQ-DDB-WIKI-003
 def build_wiki(
     repo_root: Path,
@@ -87,6 +91,7 @@ def build_wiki(
     audience: str | None = None,
     version: str | None = None,
     config_path: Path | None = None,
+    summary: Path | None = None,
 ) -> Path:
     """THE REPORT SIZE LIMIT (`tests.max_report_mb`) IS THIS BUILD'S: every report reader below
     consults it, so it is set around the whole build rather than threaded through each parser.
@@ -99,7 +104,7 @@ def build_wiki(
 
     config, problems = load_wiki_config(Path(repo_root), config_path)
     with report_limit(config.max_report_mb if not problems else DEFAULT_MAX_REPORT_MB):
-        return _build_site(repo_root, db, out_dir, audience, version, config_path)
+        return _build_site(repo_root, db, out_dir, audience, version, config_path, summary)
 
 
 ## @brief Write and render the site.
@@ -127,7 +132,8 @@ def build_wiki(
 ## v15: slice cap in the test-page context (owner Q/A 2026-11-20, after P6)
 ## v16: blocks to the requirement pages (W-9)
 ## v17: trace_for (X-2)
-## @version 17
+## v18: #72 items 8 and 12 (2.1)
+## @version 18
 ## @utility
 def _build_site(
     repo_root: Path,
@@ -136,6 +142,7 @@ def _build_site(
     audience: str | None = None,
     version: str | None = None,
     config_path: Path | None = None,
+    summary: Path | None = None,
 ) -> Path:
     """REFUSES rather than degrades: an invalid section, an unknown audience or a missing extra is
     an error naming itself, never a partial site that looks complete.
@@ -361,9 +368,30 @@ def _build_site(
         "clew_minimap_lit": _lit(pages, graph, config),
     }
     html = _render(source, site_dir / "html", config, repo_root, context)
+    ## #72 item 12 (2.1): the run's evidence summary, beside the site, for a CI summary tab.
+    _write_ci_summary(summary or site_dir / "summary.md", repo_root, config, trace.evidence)
     if version:
         record_version(out_dir, version, snapshot, config.title, milestones)
     return html
+
+
+## @brief Write the CI evidence summary: requirements, this run's tests, coverage.
+## @param path Where it goes (`<out>/summary.md` by default for the HTML site).
+## @param repo_root The repository.
+## @param config The section.
+## @param evidence The graded requirements.
+## @return None.
+## @version 1
+## @utility
+def _write_ci_summary(path: Path, repo_root: Path, config: WikiConfig, evidence: list) -> None:
+    """@brief CI summary. @return None."""
+    from .cisummary import ci_summary
+
+    coverage = repo_root / config.coverage if config.coverage else None
+    text = ci_summary(config.title, evidence, _test_results(repo_root, config), coverage)
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
+    Path(path).write_text(text, encoding="utf-8")
+    logger.info("wrote the CI evidence summary: %s", path)
 
 
 ## @brief The product trace page, when dependency catalogues are declared (GH #68).
@@ -688,7 +716,8 @@ def _prose(repo_root: Path, config: WikiConfig, source: Path) -> list[tuple[str,
 ## @param source The Sphinx source directory.
 ## @return Its page name.
 ## v2 (P6 findings, owner Q/A 2026-11-20): untitled Markdown is titled; linked local files come along.
-## @version 2
+## v3: #72 items 8 and 12 (2.1)
+## @version 3
 ## @utility
 def copy_prose(root: Path, rel: str, source: Path) -> str:
     """P6: sassafras-class's untitled release notes got NO link in the Docs toctree (and 1,040 of
@@ -710,43 +739,84 @@ def copy_prose(root: Path, rel: str, source: Path) -> str:
         if not _MD_HEADING.search(text):
             text = f"# {path.stem}\n\n{text}"
         target.write_text(text, encoding="utf-8")
-        _copy_linked(root, path, text, target.parent)
+        _copy_linked(root, path, text, target.parent, _extra_dir(source, target))
     else:
         shutil.copyfile(path, target)
+        ## #72 item 8 (2.1): a `.rst` page's links, downloads and images come along too.
+        if path.suffix.lower() == ".rst":
+            text = path.read_text(encoding="utf-8", errors="replace")
+            _copy_linked(root, path, text, target.parent, _extra_dir(source, target))
     return str(Path("prose") / Path(rel).with_suffix(""))
+
+
+## @brief Where a page's linked files are published verbatim: `_extra`, mirroring the page's place.
+## @param source The Sphinx source directory.
+## @param target The page's copy.
+## @return The directory.
+## @version 1
+## @utility
+def _extra_dir(source: Path, target: Path) -> Path:
+    """`html_extra_path` copies `_extra` to the site root as it is, so a file there sits exactly
+    where a raw `src="docs/demo.mp4"` or a reST link points — Sphinx copies only the downloads and
+    images it understands.
+
+    @brief Extra dir.
+    @return Path.
+    """
+    return source / "_extra" / target.parent.relative_to(source)
 
 
 ## A Markdown heading line (ATX), which Sphinx takes as the page's title.
 _MD_HEADING = re.compile(r"^#{1,6}\s+\S", re.M)
 ## A relative Markdown link target: no scheme, no anchor-only, no absolute path.
 _MD_LINK = re.compile(r"\]\((?![a-z][a-z0-9+.-]*:|#|/)([^)\s#]+)")
+## #72 item 8 (2.1): every other way prose links or embeds a file — raw HTML `src`/`href`, a reST
+## link target or `:download:`, and an `image`/`figure` directive.
+_LINKED = (
+    _MD_LINK,
+    re.compile(r"\b(?:src|href)=[\"']([^\"'#?]+)[\"']", re.I),
+    re.compile(r"<([^<>\s`]+)>`_{1,2}"),
+    re.compile(r":download:`[^`]*?<([^<>`]+)>`"),
+    re.compile(r"^\s*\.\.\s+(?:image|figure)::\s+(\S+)", re.M),
+)
+## A target that is a URL, an anchor or an absolute path: never a file of this repository.
+_NOT_LOCAL = re.compile(r"^(?:[a-z][a-z0-9+.-]*:|#|/)", re.I)
 
 
-## @brief Copy the local non-prose files a Markdown page links, beside its copy.
+## @brief Copy the local non-prose files a page links or embeds, beside its copy and into the site.
 ## @param root The repository.
 ## @param page The page's path in the repository.
 ## @param text Its text.
 ## @param dest The directory its copy is in.
+## @param extra Where the file is published as it is (`_extra`), or None.
 ## @return None.
-## @version 1
+## v2: every link form, and published verbatim too (#72 item 8, 2.1)
+## @version 2
 ## @utility
-def _copy_linked(root: Path, page: Path, text: str, dest: Path) -> None:
+def _copy_linked(root: Path, page: Path, text: str, dest: Path, extra: Path | None = None) -> None:
     """ONLY FILES INSIDE THE REPOSITORY, only ones that exist, and never prose (a linked page is its
-    own copied page): a link out of the tree is not the wiki's to publish.
+    own copied page): a link out of the tree, or a URL, is not the wiki's to publish.
+
+    #72 item 8 (MEASURED on v2.0.0): a raw `<video src>`, a reST link and a `:download:` pointed at
+    files the site did not hold. Every form in `_LINKED` is read; each file is copied beside the
+    page (where Sphinx resolves its own downloads and images) and into `extra` (where the site
+    serves it at the path the link names).
 
     @brief Copy linked files.
     @return None.
     """
     base = root.resolve()
-    for link in sorted(set(_MD_LINK.findall(text))):
+    links = {m for pattern in _LINKED for m in pattern.findall(text) if not _NOT_LOCAL.match(m)}
+    for link in sorted(links):
         found = (page.parent / link).resolve()
         if found.suffix.lower() in (".md", ".rst", ".html", ".htm") or not found.is_file():
             continue
         if not found.is_relative_to(base):
             continue
-        out = dest / link
-        out.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(found, out)
+        for out in (dest / link, extra / link if extra is not None else None):
+            if out is not None:
+                out.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(found, out)
 
 
 ## @brief The Docs page: the repository's prose grouped by kind, agent docs apart, decisions linked.
