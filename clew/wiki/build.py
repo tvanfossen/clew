@@ -717,9 +717,10 @@ def _prose(repo_root: Path, config: WikiConfig, source: Path) -> list[tuple[str,
 ## @return Its page name.
 ## v2 (P6 findings, owner Q/A 2026-11-20): untitled Markdown is titled; linked local files come along.
 ## v3: #72 items 8 and 12 (2.1)
-## @version 3
+## v4: linked pages as orphans; mermaid lexer (2.1)
+## @version 4
 ## @utility
-def copy_prose(root: Path, rel: str, source: Path) -> str:
+def copy_prose(root: Path, rel: str, source: Path, orphan: bool = False) -> str:
     """P6: sassafras-class's untitled release notes got NO link in the Docs toctree (and 1,040 of
     its 1,128 warnings); clew's OVERVIEW linked `wire-keys.json`, which was never copied, so the
     link went nowhere. Markdown with no heading is titled by its file name, and a local non-prose
@@ -738,14 +739,23 @@ def copy_prose(root: Path, rel: str, source: Path) -> str:
         text = path.read_text(encoding="utf-8", errors="replace")
         if not _MD_HEADING.search(text):
             text = f"# {path.stem}\n\n{text}"
-        target.write_text(text, encoding="utf-8")
-        _copy_linked(root, path, text, target.parent, _extra_dir(source, target))
+        ## 2.1: a page reached only by a link is an orphan — no toctree entry, and no warning.
+        body = _orphaned(text) if orphan else text
+        target.write_text(body, encoding="utf-8")
+        _copy_linked(root, path, text, target.parent, _extra_dir(source, target), source)
     else:
-        shutil.copyfile(path, target)
+        text = (
+            path.read_text(encoding="utf-8", errors="replace")
+            if path.suffix.lower() == ".rst"
+            else ""
+        )
+        if orphan and text:
+            target.write_text(f":orphan:\n\n{text}", encoding="utf-8")
+        else:
+            shutil.copyfile(path, target)
         ## #72 item 8 (2.1): a `.rst` page's links, downloads and images come along too.
-        if path.suffix.lower() == ".rst":
-            text = path.read_text(encoding="utf-8", errors="replace")
-            _copy_linked(root, path, text, target.parent, _extra_dir(source, target))
+        if text:
+            _copy_linked(root, path, text, target.parent, _extra_dir(source, target), source)
     return str(Path("prose") / Path(rel).with_suffix(""))
 
 
@@ -791,9 +801,17 @@ _NOT_LOCAL = re.compile(r"^(?:[a-z][a-z0-9+.-]*:|#|/)", re.I)
 ## @param extra Where the file is published as it is (`_extra`), or None.
 ## @return None.
 ## v2: every link form, and published verbatim too (#72 item 8, 2.1)
-## @version 2
+## v3: linked pages as orphans; mermaid lexer (2.1)
+## @version 3
 ## @utility
-def _copy_linked(root: Path, page: Path, text: str, dest: Path, extra: Path | None = None) -> None:
+def _copy_linked(
+    root: Path,
+    page: Path,
+    text: str,
+    dest: Path,
+    extra: Path | None = None,
+    source: Path | None = None,
+) -> None:
     """ONLY FILES INSIDE THE REPOSITORY, only ones that exist, and never prose (a linked page is its
     own copied page): a link out of the tree, or a URL, is not the wiki's to publish.
 
@@ -809,14 +827,54 @@ def _copy_linked(root: Path, page: Path, text: str, dest: Path, extra: Path | No
     links = {m for pattern in _LINKED for m in pattern.findall(text) if not _NOT_LOCAL.match(m)}
     for link in sorted(links):
         found = (page.parent / link).resolve()
-        if found.suffix.lower() in (".md", ".rst", ".html", ".htm") or not found.is_file():
+        if not found.is_file() or not found.is_relative_to(base):
             continue
-        if not found.is_relative_to(base):
+        if found.suffix.lower() in (".md", ".rst", ".html", ".htm"):
+            ## 2.1: a linked page outside the docs globs is copied as an orphan, so the link
+            ## resolves (clew's own build: 9 "cross-reference target not found"). An already
+            ## copied page is never overwritten; following links stays inside the repository.
+            _copy_linked_page(root, found, source)
             continue
         for out in (dest / link, extra / link if extra is not None else None):
             if out is not None:
                 out.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copyfile(found, out)
+
+
+## @brief A Markdown page marked `orphan`: inside its own front matter, else in a new block.
+## @param text The page.
+## @return The page, marked.
+## @version 1
+## @utility
+def _orphaned(text: str) -> str:
+    """FOUND in clew's own build: a second, prepended block made a page's own front matter read as
+    a heading. ONE BLOCK: `orphan: true` joins the existing one.
+
+    @brief Orphan.
+    @return Text.
+    """
+    if text.startswith("---\n") and "\n---\n" in text[4:]:
+        return "---\norphan: true\n" + text[4:]
+    return f"---\norphan: true\n---\n\n{text}"
+
+
+## @brief Copy a page another page links to, as an orphan, unless it is already copied.
+## @param root The repository.
+## @param found The linked page.
+## @param source The Sphinx source directory, or None (no page copying).
+## @return None.
+## @version 1
+## @utility
+def _copy_linked_page(root: Path, found: Path, source: Path | None) -> None:
+    """@brief Copy a linked page. @return None."""
+    if source is None:
+        return
+    rel = found.relative_to(root.resolve()).as_posix()
+    target = Path(source) / "prose" / rel
+    if found.suffix.lower() in (".html", ".htm"):
+        target = target.with_suffix(".md")
+    if not target.exists():
+        copy_prose(root, rel, source, orphan=True)
 
 
 ## @brief The Docs page: the repository's prose grouped by kind, agent docs apart, decisions linked.

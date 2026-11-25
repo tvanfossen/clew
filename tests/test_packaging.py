@@ -83,6 +83,10 @@ _JUSTIFIED_UNDECLARED = {
     # `clew.wiki.imports._contexts_from_data_file`, reached only when `wiki.tests.contexts` names
     # a data file; a JSON report needs no import at all.
     "coverage",
+    # DECLARED IN THE `wiki` EXTRA (2.1): `clew.wiki._sphinxsymbols.setup` registers `mermaid` as a
+    # plain-text Pygments lexer. The import sits inside that function, which only a Sphinx build
+    # runs (Sphinx itself requires Pygments >=2.17), so an install without the extra never reaches it.
+    "pygments",
 }
 
 

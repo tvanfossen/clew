@@ -99,6 +99,9 @@ clew-guard = "clew.guard.main:cli_main"
 wiki = [
     "sphinx>=7.3,<9",
     "myst-parser>=3,<5",
+    ## 2.1: the wiki registers `mermaid` as a plain-text Pygments lexer (`_sphinxsymbols.setup`).
+    ## Sphinx already brings it (7.3 needs >=2.17); declared because the wiki imports it (#77).
+    "pygments>=2.17,<3",
     ## Round 4: per-test contexts are read from coverage.py's own data file through its API.
     "coverage>=7.4,<8",
 ]
@@ -106,6 +109,7 @@ dev = [
     # The wiki renderer is exercised by the gate (tests/test_wiki_build.py), so dev pulls it in.
     "sphinx>=7.3,<9",
     "myst-parser>=3,<5",
+    "pygments>=2.17,<3",
     # BOUNDED LIKE THE RUNTIME SET, and for a reason that is not merely tidiness: these four
     # ARE the release gate. A pytest or pre-commit major landing unreviewed changes what
     # "green" means on the commit that ships, which is the one moment nobody re-reads the

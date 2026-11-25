@@ -105,11 +105,17 @@ def _rows(path: Path) -> list[dict[str, str]]:
 ## @param app The Sphinx application.
 ## @return Extension metadata.
 ## v2: keeps source bodies and diagram text out of the search index (2.0.0, P5.1b)
-## @version 2
+## v3: linked pages as orphans; mermaid lexer (2.1)
+## @version 3
 ## @req REQ-DDB-WIKI-025
 def setup(app: Any) -> dict[str, Any]:
     """@brief Sphinx entry point. @return Metadata."""
     app.add_domain(ClewDomain)
+    ## 2.1 roadmap: ```mermaid fences in prose warned "Pygments lexer name 'mermaid' is not known"
+    ## (9 in clew's own build). Highlighted as plain text: the diagram source shows, unwarned.
+    from pygments.lexers.special import TextLexer
+
+    app.add_lexer("mermaid", TextLexer)
     _keep_bodies_out_of_search()
     return {"version": "1", "parallel_read_safe": True, "parallel_write_safe": True}
 
