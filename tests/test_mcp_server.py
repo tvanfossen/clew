@@ -1456,9 +1456,15 @@ def test_wrappers_match_the_r2_library_exactly(
     ## the dispatch cannot quietly substitute one section for another.
     req = _payload(tools.dossier("REQ-0621"))
     assert req["subject_kind"] == "requirement"
-    assert {k: v for k, v in req.items() if k not in ADDED} == wire(
-        q.req_trace(rich_db, "REQ-0621")
-    )
+    ## A REQUIREMENT'S ABSENT KEYS, spelled out like ONE_SHOT: a field that does not apply is
+    ## dropped, not nulled. `failure_modes` (2.2) widened this set and failed here, the
+    ## mechanism working: a requirement that declares no modes carries no key.
+    REQ_ABSENT = ("mentioned_in", "satisfies", "satisfied_by", "failure_modes")
+    ref = wire(q.req_trace(rich_db, "REQ-0621"))
+    assert set(ref) - set(req) == {k for k in REQ_ABSENT if ref[k] is None}
+    assert {k: v for k, v in req.items() if k not in ADDED} == {
+        k: v for k, v in ref.items() if k in req
+    }
 
 
 def test_graph_stats_ships_its_zeroes_and_never_a_bare_edge_count(tools: QueryTools) -> None:

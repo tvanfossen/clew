@@ -440,7 +440,15 @@ requirements:
     acceptance_criteria: >-           # optional
       Undocumented functions produce presence violations
     satisfies: [REQ-PRD-004]          # optional: requirements this one serves
+    failure_modes:                    # optional (2.2): the ways it can fail
+      FM-VAL-001-1: an undocumented function passes
 ```
+
+`failure_modes` maps each id to a one-line meaning. The ids are declared here once. A test names
+the ones it guards with `@fails_when FM-VAL-001-1` in its doc comment (for a Catch2 case, in the
+comment block directly above it). The gate refuses an id no requirement declares, as it refuses
+an unknown `@req`, and the requirement's `dossier` lists each mode with the tests that name it.
+A CSV catalogue cannot nest the mapping, so it declares none.
 
 `satisfies` names requirements in this catalogue, in an `external` one, or as `<catalog>:<id>`;
 a link no catalogue holds is a violation. The index records each link, and a requirement's

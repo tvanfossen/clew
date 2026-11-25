@@ -24,6 +24,8 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
+from .failuremodes import fails_when_ids
+
 ## The case-defining macros. `TEST_CASE_METHOD`'s first argument is the fixture class, which is
 ## not a string literal, so the first literal is still the title.
 CASE_MACROS = ("TEST_CASE", "SCENARIO", "TEMPLATE_TEST_CASE", "TEST_CASE_METHOD")
@@ -51,13 +53,16 @@ class Catch2Case:
     tags: tuple[str, ...]
     reqs: tuple[str, ...]
     line: int
+    ## 2.2: the declared failure modes named by `@fails_when` in the comment block above.
+    fails_when: tuple[str, ...] = ()
 
 
 ## @brief The Catch2 case whose macro opens on a given line, if one does.
 ## @param lines The file's lines.
 ## @param line The 1-based line of the macro (doxygen's `memberdef.line`).
 ## @return The case, or None when that line opens no case macro.
-## @version 1
+## v2: declared failure modes (2.2, test flowchart F1)
+## @version 2
 ## @req REQ-DDB-SCHEMA-006
 def read_case(lines: list[str], line: int) -> Catch2Case | None:
     """The arguments may span lines (a title on one, tags on the next), so the text is read up to
@@ -72,7 +77,14 @@ def read_case(lines: list[str], line: int) -> Catch2Case | None:
     literals = _STRING.findall(args)
     title = literals[0] if literals else ""
     tags = tuple(_TAG.findall(literals[1])) if len(literals) > 1 else ()
-    return Catch2Case(title=title, tags=tags, reqs=_comment_reqs(lines, line), line=line)
+    block = _comment_block(lines, line)
+    return Catch2Case(
+        title=title,
+        tags=tags,
+        reqs=tuple(m for text in block for m in _REQ.findall(text)),
+        line=line,
+        fails_when=tuple(fails_when_ids("\n".join(block))),
+    )
 
 
 ## @brief Every Catch2 case in a file.
@@ -130,22 +142,23 @@ def _arguments(lines: list[str]) -> str:
     return text[start + 1 :]
 
 
-## @brief The `@req` ids in the comment block directly above a line.
+## @brief The comment block directly above a line, in file order.
 ## @param lines The file's lines.
 ## @param line The 1-based line of the macro.
-## @return The ids, in order.
-## @version 1
+## @return The block's lines.
+## v2 (2.2): returns the block, so `@req` and `@fails_when` are read from one walk.
+## @version 2
 ## @utility
-def _comment_reqs(lines: list[str], line: int) -> tuple[str, ...]:
+def _comment_block(lines: list[str], line: int) -> list[str]:
     """DIRECTLY ABOVE: the block ends at the first line that is not a comment, a blank line
     included, so a comment belonging to the previous case is never borrowed.
 
-    @brief Comment ids.
-    @return Ids.
+    @brief Comment block.
+    @return Lines.
     """
     block: list[str] = []
     n = line - 2
     while n >= 0 and _COMMENT.match(lines[n]):
         block.append(lines[n])
         n -= 1
-    return tuple(m for text in reversed(block) for m in _REQ.findall(text))
+    return list(reversed(block))

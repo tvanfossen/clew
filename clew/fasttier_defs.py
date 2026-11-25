@@ -43,6 +43,7 @@ MEMBERDEF_REFERENCES: dict[str, tuple[str, ...]] = {
     "reimplements": ("memberdef_rowid", "reimplemented_rowid"),
     "req_edges": ("memberdef_rowid",),
     "req_test_edges": ("test_memberdef_rowid",),
+    "test_failure_modes": ("test_memberdef_rowid",),
     "shared_key_edges": ("writer_rowid", "reader_rowid"),
     "symbol_liveness": ("memberdef_rowid",),
     "thread_membership": ("memberdef_rowid",),
@@ -82,6 +83,10 @@ NOT_MEMBERDEF_COLUMNS: frozenset[tuple[str, str]] = frozenset(
         ("req_edges", "req_id"),
         ("req_mentions", "req_id"),
         ("req_test_edges", "req_id"),
+        ## 2.2: a requirement id and a declared failure-mode id, not rowids.
+        ("failure_modes", "req_id"),
+        ("failure_modes", "mode_id"),
+        ("test_failure_modes", "mode_id"),
         ("requirement_links", "req_id"),
         ("shared_key_edges", "to_thread_id"),
         ("test_scope", "path_rowid"),

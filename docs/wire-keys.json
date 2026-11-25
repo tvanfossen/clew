@@ -235,6 +235,11 @@
    "name": "str",
    "call_lines": "tuple[int, ...]"
   },
+  "FailureModeRef": {
+   "id": "str",
+   "meaning": "str",
+   "tests": "list[str]"
+  },
   "FileEntry": {
    "path": "str",
    "symbol_count": "int",
@@ -475,7 +480,8 @@
    "rationale": "str",
    "verification": "str",
    "parent": "str",
-   "extra": "dict[str, Any] | None"
+   "extra": "dict[str, Any] | None",
+   "failure_modes": "list[FailureModeRef] | None"
   },
   "SectionCall": {
    "callee": "str",

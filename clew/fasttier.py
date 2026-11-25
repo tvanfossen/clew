@@ -143,6 +143,8 @@ TABLE_CLASSES: dict[str, str] = {
     "config_defaults": "config_defaults",
     "req_edges": "req_edges",
     "req_test_edges": "req_edges",
+    ## 2.2: read from doc text like req_test_edges, so stale on the same terms.
+    "test_failure_modes": "req_edges",
     ## Unchanged by an edit the fast tier accepts.
     "path": UNAFFECTED,  # the file set is unchanged
     "external_boundaries": UNAFFECTED,  # likewise
@@ -153,6 +155,7 @@ TABLE_CLASSES: dict[str, str] = {
     "compoundref": UNAFFECTED,
     "requirements": UNAFFECTED,  # the catalog is a configuration input (refused, W13)
     "requirement_links": UNAFFECTED,
+    "failure_modes": UNAFFECTED,  # 2.2: catalog input, like `requirements`
     "data_model_keys": UNAFFECTED,  # the data model is a configuration input
     "meta": UNAFFECTED,  # doxygen's own run record
     ## Read from CODEOWNERS / MAINTAINERS, which are not indexed source: an indexed-file edit

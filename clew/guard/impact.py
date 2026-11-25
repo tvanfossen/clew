@@ -318,6 +318,44 @@ _MAX_REPORTED_PROBLEMS = 10
 _MAX_ID_CHARS = 60
 
 
+## @brief Every failure-mode id the local catalogue declares.
+#  @details 2.2: read from each entry's `failure_modes` through `failuremodes.modes_of`, the
+#  parser the index uses, so the two cannot disagree on a shape. A CSV catalogue cannot nest a
+#  mapping and declares none. A malformed `failure_modes` is refused by name.
+#  @version 1.0
+#  @req REQ-DDB-GUARD-001
+#  @return Mode ids; empty when no catalogue is declared or it declares none
+def load_failure_mode_ids(config: dict[str, Any]) -> set[str]:
+    from ..failuremodes import modes_of
+
+    req_info = _get_requirements_config(config)
+    if req_info is None or req_info[1] == "csv":
+        return set()
+    path, fmt, id_col, _name = req_info
+    try:
+        with open(path) as f:
+            data = json.load(f) if fmt == "json" else yaml.safe_load(f)
+        entries = _raw_entries(data, id_col)
+        return {m.mode_id for rid, fields in entries for m in modes_of(rid, fields)}
+    except ValueError as e:
+        raise RequirementsError(f"Requirements catalog {path}: {e}") from e
+    except (OSError, yaml.YAMLError) as e:
+        raise RequirementsError(f"Could not read requirements catalog {path}: {e}") from e
+
+
+## @brief A catalogue's entries as (id, raw fields), in either catalogue shape.
+#  @version 1.0
+#  @utility
+#  @return Pairs; nested values kept as the catalogue holds them
+def _raw_entries(data: Any, id_col: str) -> list[tuple[str, dict[str, Any]]]:
+    if isinstance(data, dict) and isinstance(data.get(REQUIREMENTS_ROOT_KEY), dict):
+        node = data[REQUIREMENTS_ROOT_KEY]
+        return [(str(k), v) for k, v in node.items() if isinstance(v, dict)]
+    if isinstance(data, list):
+        return [(str(r[id_col]), r) for r in data if isinstance(r, dict) and r.get(id_col)]
+    return []
+
+
 ## @brief Render a catalog key for an error message, truncated and single-line.
 #  @version 1.0
 #  @req REQ-DDB-GUARD-016

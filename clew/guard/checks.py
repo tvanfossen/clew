@@ -716,6 +716,8 @@ _KNOWN_TAGS: frozenset[str] = EXEMPTION_TAGS | frozenset(
         "brief",
         "version",
         "req",
+        # 2.2: names a declared failure mode (`check_fails_when_exists`)
+        "fails_when",
         # Recognised but no longer an exemption — see EXEMPTION_TAGS
         "internal",
         "return",
@@ -1036,6 +1038,40 @@ def check_req_exists(
                 )
             )
     return violations
+
+
+## @brief Each `@fails_when` id must be a failure mode the catalogue declares.
+#  @details 2.2 (owner Q/A 2026-11-25): the ids are defined once, in the catalogue's
+#  `failure_modes`, so a test naming an id nothing declares is refused like an unknown `@req`.
+#  None skips (no catalogue information supplied); an EMPTY set means the catalogue declares no
+#  modes, and every reference is then named, never passed.
+#  @version 1.0
+#  @req REQ-DDB-GUARD-001
+#  @return One violation per undeclared id
+def check_fails_when_exists(
+    func: Function,
+    file_path: str,
+    config: dict[str, Any],
+    mode_ids: set[str] | None = None,
+) -> list[Violation]:
+    from ..failuremodes import TAG
+
+    if func.doxygen is None or mode_ids is None:
+        return []
+    return [
+        Violation(
+            file=file_path,
+            line=func.doxygen.start_line + 1,
+            check="tag",
+            qualified=func.qualified,
+            message=(
+                f"@{TAG} {mode} in {func.name}() names no failure mode the requirements catalogue "
+                "declares — add it under that requirement's `failure_modes`, or correct the id"
+            ),
+        )
+        for mode in func.doxygen.tags.get(TAG, [])
+        if mode not in mode_ids
+    ]
 
 
 ## @brief Check for file-level doxygen documentation block.

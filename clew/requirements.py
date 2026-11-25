@@ -410,7 +410,8 @@ def catalog_value(entry: dict, column: str) -> object:
 ## Keys a different reader consumes: `satisfies` (requirement_links), `version` (the gate's
 ## version field). Not "unread", so not disclosed as such.
 ## `serves` (2.1, #72): the same upward link as `satisfies`, read by `link_ids`.
-_READ_ELSEWHERE = ("satisfies", "serves", "version", "x-version")
+## `failure_modes` (2.2): read into its own table by `_insert_failure_modes`.
+_READ_ELSEWHERE = ("satisfies", "serves", "version", "x-version", "failure_modes")
 
 
 ## @brief A catalog value as a column holds it: text as written, a list or mapping as JSON.
@@ -473,7 +474,8 @@ def _keyed_req_entries(data: object) -> list[dict]:
 ## @param guard_cfg Parsed `guard:` section of .clew.yaml (declares column mapping), or None.
 ## v7: also `requirement_links` from each entry's `satisfies` (GH #68), created on every build.
 ## v8: serves read as satisfies (#72 item 13, 2.1)
-## @version 8
+## v9: declared failure modes (2.2, test flowchart F1)
+## @version 9
 ## @req REQ-DDB-SCHEMA-015
 ## @req REQ-DDB-SCHEMA-006
 def ingest_requirements_yaml(
@@ -509,6 +511,7 @@ def ingest_requirements_yaml(
     conn = sqlite3.connect(str(db_path))
     _create_requirements_table(conn)
     _create_links_table(conn)
+    _create_failure_modes_table(conn)
     if requirements_yaml is None or not requirements_yaml.exists():
         conn.close()
         logger.info("requirements: no requirements.yaml found — table empty")
@@ -540,6 +543,7 @@ def ingest_requirements_yaml(
                 "INSERT OR IGNORE INTO requirement_links (req_id, satisfies) VALUES (?, ?)",
                 [(str(rid), target) for target in link_ids(entry)],
             )
+            _insert_failure_modes(conn, str(rid), entry)
     conn.commit()
     conn.close()
     logger.info(
@@ -843,6 +847,122 @@ def _create_req_test_edges_table(conn: sqlite3.Connection) -> None:
         "CREATE INDEX IF NOT EXISTS idx_req_test_edges_req_id ON req_test_edges(req_id)",
     )
     conn.commit()
+
+
+## @brief Create (or reset) the `failure_modes` table.
+## @param conn Open connection.
+## @return None.
+## @version 1
+## @utility
+def _create_failure_modes_table(conn: sqlite3.Connection) -> None:
+    """2.2: created on every build, empty when the catalog declares no modes.
+
+    @brief Create failure_modes.
+    @return None.
+    """
+    conn.execute("DROP TABLE IF EXISTS failure_modes")
+    conn.execute(
+        "CREATE TABLE failure_modes (req_id TEXT NOT NULL, mode_id TEXT NOT NULL, "
+        "meaning TEXT NOT NULL, UNIQUE(mode_id))"
+    )
+
+
+## @brief Insert the failure modes one catalog entry declares.
+## @param conn Open connection.
+## @param req_id The entry's id.
+## @param entry The entry's fields.
+## @return None.
+## @version 1
+## @req REQ-DDB-SCHEMA-006
+def _insert_failure_modes(conn: sqlite3.Connection, req_id: str, entry: dict) -> None:
+    """A MALFORMED `failure_modes` IS LOGGED AND SKIPPED here; the gate refuses it (`clew guard`
+    reads it through the same `failuremodes.modes_of`). A mode id declared twice keeps the first
+    requirement, and the second is named.
+
+    @brief Insert declared modes.
+    @return None.
+    """
+    from .failuremodes import modes_of
+
+    try:
+        modes = modes_of(req_id, entry)
+    except ValueError as exc:
+        logger.warning("requirements: %s — its failure modes are not indexed", exc)
+        return
+    for mode in modes:
+        if not conn.execute(
+            "INSERT OR IGNORE INTO failure_modes VALUES (?, ?, ?)",
+            (mode.req_id, mode.mode_id, mode.meaning),
+        ).rowcount:
+            logger.warning(
+                "requirements: failure mode %s is declared again by %s; the first is kept",
+                mode.mode_id,
+                req_id,
+            )
+
+
+## @brief Link tests in test code to the declared failure modes they name with `@fails_when`.
+## @param db_path The index.
+## @param test_patterns The resolved test-path patterns, or None for the path heuristic.
+## @param repo_root The repository, to read Catch2 cases from; None skips them.
+## @return None.
+## @version 1
+## @req REQ-DDB-SCHEMA-006
+def import_test_failure_modes(
+    db_path: Path, test_patterns: tuple[str, ...] | None = None, repo_root: Path | None = None
+) -> None:
+    """2.2 (the test flowchart's fail branches). A test function names a mode in its doc text; a
+    Catch2 case, which has no doc text of its own, in the comment block directly above it. Only an
+    id the catalog declares links; any other is counted and logged, never linked. Created on every
+    build, so an absent table means an index from before the layer.
+
+    @brief Import test → failure-mode links.
+    @return None.
+    """
+    from .catch2 import CASE_MACROS, read_case
+    from .failuremodes import fails_when_ids
+
+    conn = sqlite3.connect(str(db_path))
+    conn.execute("DROP TABLE IF EXISTS test_failure_modes")
+    conn.execute(
+        "CREATE TABLE test_failure_modes (mode_id TEXT NOT NULL, "
+        "test_memberdef_rowid INTEGER NOT NULL REFERENCES memberdef(rowid), test_name TEXT NOT NULL, "
+        "UNIQUE(mode_id, test_memberdef_rowid))"
+    )
+    declared = (
+        {r[0] for r in conn.execute("SELECT mode_id FROM failure_modes")}
+        if _table_exists(conn, "failure_modes")
+        else set()
+    )
+    rows = conn.execute(
+        "SELECT m.rowid, m.name, m.line, COALESCE(m.briefdescription, ''), "
+        "COALESCE(m.detaileddescription, ''), p.name FROM memberdef m "
+        "JOIN path p ON p.rowid = COALESCE(NULLIF(m.bodyfile_id, 0), m.file_id) "
+        "WHERE m.kind = 'function'"
+    ).fetchall()
+    lines_of: dict[str, list[str]] = {}
+    links: list[tuple[str, int, str]] = []
+    for rowid, name, line, brief, detail, file_path in rows:
+        if not _is_test_file(str(file_path), test_patterns):
+            continue
+        ids, label = fails_when_ids(f"{brief} {detail}"), str(name)
+        if name in CASE_MACROS and repo_root is not None:
+            if file_path not in lines_of:
+                lines_of[file_path] = _source_lines(repo_root / str(file_path))
+            case = read_case(lines_of[file_path], int(line or 0))
+            ids, label = (list(case.fails_when), case.title) if case else (ids, label)
+        links += [(mode, int(rowid), label) for mode in dict.fromkeys(ids)]
+    known = [link for link in links if link[0] in declared]
+    conn.executemany("INSERT OR IGNORE INTO test_failure_modes VALUES (?, ?, ?)", known)
+    conn.commit()
+    conn.close()
+    if len(known) < len(links):
+        logger.warning(
+            "test_failure_modes: %d @fails_when reference(s) name no declared failure mode; "
+            "not linked",
+            len(links) - len(known),
+        )
+    logger.info("test_failure_modes: %d test → failure-mode link(s)", len(known))
 
 
 ## @brief Materialize the test-function subset of req_edges into req_test_edges.

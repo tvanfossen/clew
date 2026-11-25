@@ -776,6 +776,23 @@ class Implementer:
     liveness: str
 
 
+## @brief One declared failure mode of a requirement, and the tests that name it.
+## @version 1
+@dataclass(frozen=True)
+class FailureModeRef:
+    """2.2: from the catalog's `failure_modes`; `tests` are the tests naming the id with
+    `@fails_when`, each by its own name (a Catch2 case by its title). Empty `tests` means no test
+    names the mode, which is a finding, not an omission.
+
+    @brief A failure mode and its tests.
+    @version 1
+    """
+
+    id: str
+    meaning: str
+    tests: list[str]
+
+
 ## @brief Requirement traceability result.
 ## @version 1
 @dataclass(frozen=True)
@@ -809,6 +826,8 @@ class ReqTrace:
     parent: str = ""
     ## Every catalog key the reader does not map, verbatim. None when the entry had none.
     extra: dict[str, Any] | None = None
+    ## 2.2: the requirement's declared failure modes; ABSENT when the catalog declares none.
+    failure_modes: list[FailureModeRef] | None = None
 
 
 ## @brief One indexed file line that names a requirement.

@@ -176,6 +176,7 @@ from .requirements import (
     import_req_edges,
     warn_redefined_tags,
     import_req_test_edges,
+    import_test_failure_modes,
     ingest_requirements_yaml,
     load_guard_config,
     resolve_req_id_pattern,
@@ -1996,7 +1997,8 @@ def _doxygen_meta(args) -> dict[str, str]:
 ## v73: the property-key stage (2.0.0, F1-mm)
 ## v74: #72 bug 2: name an alias that rewrites the requirement tag (2.1)
 ## v75: Catch2 cases as covering tests (clew#74, 2.1)
-## @version 75
+## v76: declared failure modes (2.2, test flowchart F1)
+## @version 76
 ## @req REQ-DDB-PIPE-001
 ## @req REQ-DDB-MCP-004
 ## @req REQ-DDB-CONFIG-007
@@ -2433,6 +2435,9 @@ def _build_stages(
     ## which tagged functions are covering tests, so the two never disagree about a file.
     import_req_test_edges(output, tuple(_test_paths(args, decl).values), repo_root)
     timer.mark("req_test_edges")
+    ## 2.2: the declared failure modes each test names (`@fails_when`), for the test flowchart.
+    import_test_failure_modes(output, tuple(_test_paths(args, decl).values), repo_root)
+    timer.mark("test_failure_modes")
     ## EVERY INDEXED LINE THAT NAMES A KNOWN REQUIREMENT: docs, diagrams, build files, comments.
     record_req_mentions(output, repo_root, requirements_yaml, cache=cache)
     timer.mark("req_mentions")

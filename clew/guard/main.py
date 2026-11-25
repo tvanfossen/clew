@@ -26,6 +26,7 @@ from .checks import (
     check_exemption_reasons,
     check_removed_tags,
     check_req_coverage,
+    check_fails_when_exists,
     check_req_exists,
     check_satisfies,
     check_return_presence,
@@ -194,7 +195,8 @@ def _add_files_parser(subparsers: argparse._SubParsersAction) -> None:
 #  v1.17: check_removed_tags (2.0.0, PG1)
 #  v1.18: a validate.exclude match is counted as not checked (2.0.0, PG6)
 #  v1.19: check_exemption_reasons (2.0.0, PG3b)
-#  @version 1.19
+#  v1.20: check_fails_when_exists, against the catalogue's declared failure modes (2.2)
+#  @version 1.20
 #  @req REQ-DDB-GUARD-001
 def validate_file(
     file_path: str,
@@ -202,6 +204,7 @@ def validate_file(
     no_git: bool = False,
     req_ids: set[str] | None = None,
     skipped: list[str] | None = None,
+    mode_ids: set[str] | None = None,
 ) -> list[Violation]:
     validate = get_validate(config)
     pattern = excluded_by(file_path, validate.get("exclude", []))
@@ -252,6 +255,7 @@ def validate_file(
         violations.extend(check_exemption_reasons(func, file_path, config))
         violations.extend(check_duplicate_tags(func, file_path, config))
         violations.extend(check_req_exists(func, file_path, config, req_ids))
+        violations.extend(check_fails_when_exists(func, file_path, config, mode_ids))
 
     if not no_git and content is not None:
         head_content = get_file_at_revision(file_path)
@@ -292,14 +296,15 @@ def _report_skips(skipped: list[str]) -> None:
 #  v1.5: the local catalogue's `satisfies` links are checked (GH #68).
 #  v1.6: reads the top-level requirements: section (2.0.0, R5-CFG F7)
 #  v1.7: an absent parent catalogue's links are unchecked, not refused (2.1, #73 item 3)
-#  @version 1.7
+#  v1.8: loads the catalogue's declared failure modes for `@fails_when` (2.2)
+#  @version 1.8
 #  @utility
 def _validate_files(
     file_paths: list[str],
     config: dict[str, Any],
     no_git: bool = False,
 ) -> list[Violation]:
-    from .impact import load_external_requirements, load_requirements_full
+    from .impact import load_external_requirements, load_failure_mode_ids, load_requirements_full
 
     # THE LOCAL CATALOGUE AND EVERY EXTERNAL ONE (GH #68). The set is passed even when EMPTY —
     # catalogues were looked for and none exists — so the check reports each tag as uncheckable
@@ -311,13 +316,22 @@ def _validate_files(
     # GH #68: every `satisfies` link of the local catalogue must land in some catalogue.
     catalog_file = get_requirements(config).get("file", "")
     violations: list[Violation] = check_satisfies(local, req_ids, catalog_file, unchecked)
+    ## 2.2: the failure modes the local catalogue declares, for `@fails_when`.
+    mode_ids = load_failure_mode_ids(config)
     skipped: list[str] = []
     for file_path in file_paths:
         if not Path(file_path).exists():
             logger.warning("File not found: %s", file_path)
             continue
         violations.extend(
-            validate_file(file_path, config, no_git=no_git, req_ids=req_ids, skipped=skipped)
+            validate_file(
+                file_path,
+                config,
+                no_git=no_git,
+                req_ids=req_ids,
+                skipped=skipped,
+                mode_ids=mode_ids,
+            )
         )
     _report_skips(skipped)
     return violations

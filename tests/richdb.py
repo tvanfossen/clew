@@ -1108,6 +1108,7 @@ def run_real_stages(db: Path, repo_root: Path) -> None:
     from clew.requirements import (
         import_req_edges,
         import_req_test_edges,
+        import_test_failure_modes,
         ingest_requirements_yaml,
         load_guard_config,
         resolve_req_id_pattern,
@@ -1184,6 +1185,8 @@ def run_real_stages(db: Path, repo_root: Path) -> None:
     ingest_requirements_yaml(db, repo_root / "requirements.yaml", guard_cfg)
     import_req_edges(db, resolve_req_id_pattern(guard_cfg))
     import_req_test_edges(db)
+    ## 2.2: created on every real build, so the fixture runs it too (fixture fidelity).
+    import_test_failure_modes(db)
     ## REQUIREMENT MENTIONS, run for real as the CLI runs it: a real build always creates the
     ## table, and the wire-parity test caught this fixture without it.
     from clew.req_mentions import record_req_mentions

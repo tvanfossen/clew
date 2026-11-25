@@ -80,6 +80,7 @@ from .models import (
     OverrideRef,
     ReqEdge,
     ReqMention,
+    FailureModeRef,
     ReqTrace,
     SymbolHit,
     SymbolRef,
@@ -2057,7 +2058,8 @@ def _req_links(conn: sqlite3.Connection, req_id: str) -> tuple[list[str], list[s
 ## @brief Requirement traceability: metadata + implementers + covering tests + mentions + links.
 ## @return ReqTrace bundling the requirement's metadata (empty strings when absent), its implementing functions, covering test names, mentions and links.
 ## v6: Catch2 cases as covering tests (clew#74, 2.1)
-## @version 6
+## v7: declared failure modes (2.2, test flowchart F1)
+## @version 7
 ## @req REQ-DDB-QUERY-001
 def req_trace(db: DbSource, req_id: str) -> ReqTrace:
     """Trace one requirement to its implementing functions (with liveness)
@@ -2102,6 +2104,7 @@ def req_trace(db: DbSource, req_id: str) -> ReqTrace:
             else None
         )
         links = _req_links(conn, req_id)
+        modes = _req_failure_modes(conn, req_id)
     block, title, acceptance, priority = meta if meta else ("", "", "", "")
     return ReqTrace(
         req_id=req_id,
@@ -2114,8 +2117,41 @@ def req_trace(db: DbSource, req_id: str) -> ReqTrace:
         mentioned_in=mentions,
         satisfies=links[0] if links else None,
         satisfied_by=links[1] if links else None,
+        failure_modes=modes or None,
         **attrs,
     )
+
+
+## @brief A requirement's declared failure modes, each with the tests that name it.
+## @param conn Open connection.
+## @param req_id The requirement.
+## @return The modes in id order; empty when none are declared or the index predates them.
+## @version 1
+## @req REQ-DDB-SCHEMA-006
+def _req_failure_modes(conn: sqlite3.Connection, req_id: str) -> list[FailureModeRef]:
+    """@brief Failure modes. @return Refs."""
+    if not table_exists(conn, "failure_modes"):
+        return []
+    linked = table_exists(conn, "test_failure_modes")
+    modes = conn.execute(
+        "SELECT mode_id, meaning FROM failure_modes WHERE req_id = ? ORDER BY mode_id", (req_id,)
+    ).fetchall()
+    return [
+        FailureModeRef(
+            id=str(mode),
+            meaning=str(meaning),
+            tests=[
+                str(r[0])
+                for r in conn.execute(
+                    "SELECT DISTINCT test_name FROM test_failure_modes WHERE mode_id = ? ORDER BY 1",
+                    (mode,),
+                )
+            ]
+            if linked
+            else [],
+        )
+        for mode, meaning in modes
+    ]
 
 
 ## The IEEE 29148 columns P2 (S4) added to `requirements`.
