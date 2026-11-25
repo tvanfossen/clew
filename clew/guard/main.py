@@ -27,6 +27,7 @@ from .checks import (
     check_removed_tags,
     check_req_coverage,
     check_fails_when_exists,
+    check_fails_when_markers,
     check_req_exists,
     check_satisfies,
     check_return_presence,
@@ -196,7 +197,8 @@ def _add_files_parser(subparsers: argparse._SubParsersAction) -> None:
 #  v1.18: a validate.exclude match is counted as not checked (2.0.0, PG6)
 #  v1.19: check_exemption_reasons (2.0.0, PG3b)
 #  v1.20: check_fails_when_exists, against the catalogue's declared failure modes (2.2)
-#  @version 1.20
+#  v1.21: check_fails_when_markers, the inline per-assertion form (2.2, flowchart F2)
+#  @version 1.21
 #  @req REQ-DDB-GUARD-001
 def validate_file(
     file_path: str,
@@ -256,6 +258,10 @@ def validate_file(
         violations.extend(check_duplicate_tags(func, file_path, config))
         violations.extend(check_req_exists(func, file_path, config, req_ids))
         violations.extend(check_fails_when_exists(func, file_path, config, mode_ids))
+        if content is not None:
+            violations.extend(
+                check_fails_when_markers(func, file_path, content.splitlines(), mode_ids)
+            )
 
     if not no_git and content is not None:
         head_content = get_file_at_revision(file_path)

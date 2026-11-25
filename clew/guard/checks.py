@@ -1074,6 +1074,44 @@ def check_fails_when_exists(
     ]
 
 
+## @brief Each inline `fails_when:` marker in a function's body must name a declared mode.
+#  @details 2.2 (owner Q/A 2026-11-25, flowchart F2): `assert x  # fails_when: FM-1` (or `//` in
+#  C and C++) sends that assertion's failure into FM-1 on the test flowchart. The id is checked
+#  like `@fails_when`: None skips, an empty set names every marker.
+#  @version 1.0
+#  @req REQ-DDB-GUARD-001
+#  @return One violation per marker naming an undeclared mode, at the marker's line
+def check_fails_when_markers(
+    func: Function,
+    file_path: str,
+    lines: list[str],
+    mode_ids: set[str] | None = None,
+) -> list[Violation]:
+    from ..wiki.flowchart import marker
+
+    if mode_ids is None:
+        return []
+    out: list[Violation] = []
+    ## The parser's lines are 0-based (`check_req_exists` reports `start_line + 1` likewise).
+    for index in range(func.def_line, min(func.body_end + 1, len(lines))):
+        mode = marker(lines[index])
+        if mode is not None and mode not in mode_ids:
+            out.append(
+                Violation(
+                    file=file_path,
+                    line=index + 1,
+                    check="tag",
+                    qualified=func.qualified,
+                    message=(
+                        f"fails_when: {mode} in {func.name}() names no failure mode the "
+                        "requirements catalogue declares — add it under a requirement's "
+                        "`failure_modes`, or correct the id"
+                    ),
+                )
+            )
+    return out
+
+
 ## @brief Check for file-level doxygen documentation block.
 #  @version 1.4
 #  @req REQ-DDB-GUARD-006

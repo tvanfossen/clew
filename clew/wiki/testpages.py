@@ -65,7 +65,8 @@ def test_page_of(name: str, rel: str) -> str:
 ## v6: call flow plays in call order with briefs (X-3)
 ## v7: card at page level (owner review 3)
 ## v8: UX review group E (owner Q/A 2026-11-22)
-## @version 8
+## v9: the test flowchart (2.2, F2)
+## @version 9
 ## @req REQ-DDB-WIKI-026
 def test_pages(db: Path, repo_root: Path, ctx: dict[str, Any], source: Path) -> dict[str, str]:
     """ONE PAGE PER NAME: every definition of a test name in test code is drawn on it, so a link
@@ -88,6 +89,10 @@ def test_pages(db: Path, repo_root: Path, ctx: dict[str, Any], source: Path) -> 
         graph = _Edges(conn)
         ## X-3: what each function does, for the call-flow boxes.
         ctx = {**ctx, "briefs": _briefs(conn)}
+        ## 2.2: each test's declared failure modes, for its flowchart.
+        from .flowchart import load_modes
+
+        ctx = {**ctx, "modes": load_modes(conn)}
     ## An unlinked test (only under `all`) has no evidence facts: absent, no requirement.
     ctx = {**ctx, "tests": {**{d.name: TestFacts() for d in defs}, **ctx["tests"]}}
     by_name: dict[str, list] = defaultdict(list)
@@ -405,11 +410,13 @@ def _result(name: str, ctx: dict[str, Any]) -> str:
 ## v7: call flow plays in call order with briefs (X-3)
 ## v8: test card and declared-first requirements (owner review 3)
 ## v9: card at page level (owner review 3)
-## @version 9
+## v10: the test flowchart (2.2, F2)
+## @version 10
 ## @utility
 def _definition(d: Any, graph: _Edges, ctx: dict[str, Any], repo_root: Path) -> str:
     """@brief Definition block. @return HTML."""
     from .checkpins import pin_checks, traced_values
+    from .flowchart import flowchart_section
     from .testfacts import assertions
 
     url = source_url(ctx["template"], ctx["commit"], d.file, max(d.start, 1))
@@ -430,6 +437,10 @@ def _definition(d: Any, graph: _Edges, ctx: dict[str, Any], repo_root: Path) -> 
     count = len(pins) or len(checks)
     if count:
         out += f'<h2>What it checks ({count})</h2><ol class="asserts">{items}</ol>'
+    ## 2.2: the flowchart, each check failing into its declared mode.
+    by_test, meanings = ctx.get("modes") or ({}, {})
+    if pins:
+        out += flowchart_section(pins, lines, d.start, by_test.get(d.rowid, []), meanings)
     if candidates:
         out += _context(candidates, ctx.get("product_flows") or [])
         callees = sorted(graph.names[c] for c in graph.callees.get(d.rowid, ()) if c in graph.names)
