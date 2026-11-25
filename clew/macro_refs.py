@@ -222,7 +222,8 @@ def _identifiers_in(body: Any, src_bytes: bytes) -> list[tuple[str, int]]:
 # @param test_patterns The build's test-path patterns, or None to read `test_scope`.
 # @return {name: [memberdef rowids]}.
 # v2: config states in test files decide nothing; the build passes its test patterns (2.0.0, measured on mbedtls)
-# @version 2
+# v3: the gates are read once, not per definition (2.1, refresh cost; mbedtls 1.4 s)
+# @version 3
 # @req REQ-DDB-PIPE-003
 def macro_definitions(
     conn: sqlite3.Connection, test_patterns: tuple[str, ...] | list[str] | None = None
@@ -250,10 +251,15 @@ def macro_definitions(
     for rowid, name, file_path, line in conn.execute(query):
         by_name.setdefault(name, []).append((rowid, file_path or "", line or 0))
     states = _shipped_states(conn, test_patterns)
+    ## 2.1 (refresh cost): the gates are read ONCE, not once per same-name definition — measured
+    ## on mbedtls, 2,462 `_compiled` queries took 1.4 s of this stage's 2.1 s.
+    gates = _gates_by_file(conn)
     out = {}
     for name, defs in by_name.items():
         kept = [
-            d for d in defs if len(defs) == 1 or _compiled(conn, d[1], d[2], states) is not False
+            d
+            for d in defs
+            if len(defs) == 1 or _compiled(conn, d[1], d[2], states, gates) is not False
         ]
         out[name] = [d[0] for d in (kept or defs)]
     return out
@@ -305,21 +311,23 @@ def _shipped_states(
 ## @param file_path The definition's file.
 ## @param line Its line.
 ## @param states The shipped option states.
+## @param gates The gates by file (`_gates_by_file`), or None to query them here.
 ## @return False (excluded), else None (not known to be excluded).
-## @version 1
+## v2 (2.1, refresh cost): reads pre-loaded gates when the caller has them.
+## @version 2
 ## @utility
 def _compiled(
-    conn: sqlite3.Connection, file_path: str, line: int, states: dict[str, bool]
+    conn: sqlite3.Connection,
+    file_path: str,
+    line: int,
+    states: dict[str, bool],
+    gates: dict[str, list[tuple[int, int, str, str]]] | None = None,
 ) -> bool | None:
     """@brief Evaluate covering gates. @return False or None."""
-    try:
-        gates = conn.execute(
-            "SELECT macro, form FROM kconfig_gates WHERE file_path = ? AND line <= ? AND ? < end_line",
-            (file_path, line, line),
-        ).fetchall()
-    except sqlite3.OperationalError:
-        return None
-    for macro, form in gates:
+    if gates is None:
+        gates = _gates_by_file(conn, file_path)
+    covering = [(m, f) for start, end, m, f in gates.get(file_path, ()) if start <= line < end]
+    for macro, form in covering:
         on = states.get(macro)
         if on is None or form not in (KCONFIG_GATE_IFDEF, KCONFIG_GATE_IFNDEF):
             continue
@@ -328,15 +336,62 @@ def _compiled(
     return None
 
 
+## @brief Every gate, by file: {file: [(line, end_line, macro, form)]}.
+## @param conn Open connection.
+## @param file_path Only this file's gates, when given.
+## @return The map; empty when the index has no `kconfig_gates` table.
+## @version 1
+## @utility
+def _gates_by_file(
+    conn: sqlite3.Connection, file_path: str | None = None
+) -> dict[str, list[tuple[int, int, str, str]]]:
+    """@brief Gates by file. @return Map."""
+    query = "SELECT file_path, line, end_line, macro, form FROM kconfig_gates"
+    args: tuple[str, ...] = ()
+    if file_path is not None:
+        query, args = query + " WHERE file_path = ?", (file_path,)
+    out: dict[str, list[tuple[int, int, str, str]]] = {}
+    try:
+        for path, start, end, macro, form in conn.execute(query, args):
+            out.setdefault(path, []).append((int(start or 0), int(end or 0), macro, form))
+    except sqlite3.OperationalError:
+        return {}
+    return out
+
+
+## @brief Every macro definition's file: {rowid: (file_id, repo-relative path)}.
+## @param conn Open connection.
+## @return The map (path "" without a `path` table).
+## @version 1
+## @utility
+def _macro_sites(conn: sqlite3.Connection) -> dict[int, tuple[int | None, str]]:
+    """@brief Macro sites. @return Map."""
+    query = (
+        "SELECT m.rowid, m.file_id, p.name FROM memberdef m LEFT JOIN path p ON p.rowid = m.file_id "
+        "WHERE m.kind = 'macro definition'"
+        if _has_path(conn)
+        else "SELECT rowid, NULL, '' FROM memberdef WHERE kind = 'macro definition'"
+    )
+    return {r: (file_id, name or "") for r, file_id, name in conn.execute(query)}
+
+
 ## @brief A name's definitions, the referring file's own first when it has one.
 ## @param rowids The name's kept definitions.
 ## @param path_rowid The referring file.
 ## @param conn Open connection.
+## @param sites Every macro's file (`_macro_sites`), or None to query these rowids here.
 ## @return The definitions credited.
 ## v2 (2.0.0): a definition in a source file is credited only from that file.
-## @version 2
+## v3 (2.1, refresh cost): reads pre-loaded sites when the caller has them — measured on mbedtls,
+## 47,449 per-reference queries took 0.48 s.
+## @version 3
 ## @utility
-def _same_file_first(rowids: list[int], path_rowid: int, conn: sqlite3.Connection) -> list[int]:
+def _same_file_first(
+    rowids: list[int],
+    path_rowid: int,
+    conn: sqlite3.Connection,
+    sites: dict[int, tuple[int | None, str]] | None = None,
+) -> list[int]:
     """A REFERENCE IN THE FILE THAT DEFINES THE NAME means that file's definition; otherwise every
     kept definition is credited — several rows rather than one arbitrary pick.
 
@@ -350,16 +405,19 @@ def _same_file_first(rowids: list[int], path_rowid: int, conn: sqlite3.Connectio
     """
     if not rowids:
         return []
-    marks = ",".join("?" * len(rowids))
-    rows = (
-        conn.execute(
-            f"SELECT m.rowid, m.file_id, p.name FROM memberdef m LEFT JOIN path p ON p.rowid = m.file_id "
-            f"WHERE m.rowid IN ({marks})",
-            rowids,
-        ).fetchall()
-        if _has_path(conn)
-        else [(r, None, "") for r in rowids]
-    )
+    if sites is not None:
+        rows = [(r, *sites[r]) for r in rowids if r in sites]
+    else:
+        marks = ",".join("?" * len(rowids))
+        rows = (
+            conn.execute(
+                "SELECT m.rowid, m.file_id, p.name FROM memberdef m "
+                f"LEFT JOIN path p ON p.rowid = m.file_id WHERE m.rowid IN ({marks})",
+                rowids,
+            ).fetchall()
+            if _has_path(conn)
+            else [(r, None, "") for r in rowids]
+        )
     own = [r for r, file_id, _name in rows if file_id == path_rowid]
     visible = [
         r for r, file_id, name in rows if file_id == path_rowid or not _is_source_file(name or "")
@@ -434,7 +492,8 @@ def _has_path(conn: sqlite3.Connection) -> bool:
 # v4 (2.0.0, UPERF T5): same-name macros resolve by build activity (`macro_definitions`), and a
 # reference in the defining file means that file's definition.
 # v5: config states in test files decide nothing; the build passes its test patterns (2.0.0, measured on mbedtls)
-# @version 5
+# v6: macro sites read once, not per reference (2.1, refresh cost; mbedtls 0.48 s)
+# @version 6
 # @req REQ-DDB-PIPE-003
 def import_ast_macro_refs(
     db: Path,
@@ -487,6 +546,8 @@ def import_ast_macro_refs(
         ## name) still resolves when the name is unambiguous across the index.
         unique = {name: rowids[0] for name, rowids in by_name.items() if len(rowids) == 1}
 
+        ## Read once (2.1, refresh cost), not per reference.
+        sites = _macro_sites(conn)
         rows: list[tuple[int, int, str]] = []
         for path_rowid, payload in payloads:
             for fn_name, ident, _line in payload or ():
@@ -495,7 +556,7 @@ def import_ast_macro_refs(
                     continue
                 rows += [
                     (src, dst, AST_REF_CONTEXT)
-                    for dst in _same_file_first(macros.get(ident, ()), path_rowid, conn)
+                    for dst in _same_file_first(macros.get(ident, ()), path_rowid, conn, sites)
                     if dst != src
                 ]
 
