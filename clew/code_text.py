@@ -393,7 +393,8 @@ def _lines(path: Path) -> list[str] | None:
 ## @return Hits, or None when this index has no code corpus.
 ## Version 6 (1.3.10): file-scope matches follow function matches, as `kind: "file"` hits.
 ## v7: the MATCH expression is built by _match_query, shared with count_code (2.0.0, T1)
-## @version 7
+## v8: whole-word matches rank before prefix-only ones (2.1, mattermost Q3 replay)
+## @version 8
 ## @utility
 def search_code(
     conn: sqlite3.Connection, text: str, limit: int, repo_root: Path | None = None
@@ -431,12 +432,17 @@ def search_code(
     order = f"({end} - {start})"
     if _has_table(conn, "test_scope"):
         order = f"{_TEST_LAST}, {order}"
+    ## WHOLE WORDS FIRST (2.1, found replaying mattermost Q3): a body holding every word itself
+    ## ranks before one that matched only as a prefix (`NavigationHeaderTitle` for
+    ## `NavigationHeader`). Ranked, never dropped: the prefix family stays in the reply.
+    exact = " AND ".join(f'"{t}"' for t in tokens)
+    order = f"({TABLE}.rowid IN (SELECT rowid FROM {TABLE} WHERE {TABLE} MATCH ?)) DESC, {order}"
     rows = conn.execute(
         f"SELECT m.name, m.definition, m.kind, p.name, {start}, {end} "
         f"FROM {TABLE} JOIN memberdef m ON m.rowid = {TABLE}.rowid {extent}"
         "JOIN path p ON p.rowid = COALESCE(NULLIF(m.bodyfile_id, 0), m.file_id) "
         f"WHERE {TABLE} MATCH ? ORDER BY {order} LIMIT ?",
-        (query, max(1, limit)),
+        (query, exact, max(1, limit)),
     ).fetchall()
     hits = []
     for name, definition, kind, file, start, end in rows:

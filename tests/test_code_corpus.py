@@ -308,3 +308,29 @@ def test_a_preprocessor_line_outside_any_function_is_searchable(tmp_path: Path) 
     assert rows, "a macro tested at file scope must be findable by code search"
     assert rows[0]["kind"] == "file" and rows[0]["file"] == "src/gate.h", rows
     assert rows[0]["line"] == 3 and "FILE_SCOPE_ONLY_MARKER" in rows[0]["snippet"], rows
+
+
+def test_a_whole_word_match_ranks_before_a_prefix_only_match(tmp_path: Path) -> None:
+    """FOUND REPLAYING the 2.0.0 grid (mattermost Q3, "which files render NavigationHeader"): a
+    prefix-only body (`NavigationHeaderTitle`) is smaller, so it ranked first, and 24 of 110 rows
+    for `NavigationHeader` named only the longer identifiers. A body holding the word itself now
+    ranks first; prefix-only bodies follow, none dropped (`MBEDTLS_ERR_` still finds its family).
+
+    @brief Whole-word hits first.
+    """
+    import sqlite3
+
+    from clew.code_text import search_code
+
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "a.c").write_text(
+        "void NavigationHeaderTitle(void);\nvoid NavigationHeader(void);\n"
+        "void small(void) { NavigationHeaderTitle(); }\n"
+        "void large(void) {\n  int x = 0;\n  x++;\n  x++;\n  NavigationHeader();\n  x++;\n}\n"
+    )
+    db = tmp_path / "x.db"
+    _run_pipeline(_build_argparser().parse_args(["--output", str(db), "--repo-root", str(repo)]))
+    hits = search_code(sqlite3.connect(db), "NavigationHeader", 25, repo)
+    names = [h.name for h in hits if h.kind == "function"]
+    assert names[:2] == ["large", "small"], names
