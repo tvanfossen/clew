@@ -817,13 +817,14 @@ def _looks_like_test_function(name: str, file_path: str | None) -> bool:
 
 
 ## @brief Create (or reset) the `req_test_edges` table.
-## @version 1
+## v2: Catch2 cases as covering tests (clew#74, 2.1)
+## @version 2
 ## @utility
 def _create_req_test_edges_table(conn: sqlite3.Connection) -> None:
     """Create the req_test_edges table schema, dropping any prior rows.
 
     @brief Create the req_test_edges table.
-    @version 1
+    @version 2
     """
     conn.execute("DROP TABLE IF EXISTS req_test_edges")
     conn.execute(
@@ -831,6 +832,9 @@ def _create_req_test_edges_table(conn: sqlite3.Connection) -> None:
         CREATE TABLE req_test_edges (
             req_id             TEXT NOT NULL,
             test_memberdef_rowid INTEGER NOT NULL REFERENCES memberdef(rowid),
+            -- 2.1 (clew#74): the test's name when it is not the function's, a Catch2 case's
+            -- title. NULL for a test function, whose name is `memberdef.name`.
+            test_name          TEXT,
             UNIQUE(req_id, test_memberdef_rowid)
         )
         """,
@@ -844,11 +848,15 @@ def _create_req_test_edges_table(conn: sqlite3.Connection) -> None:
 ## @brief Materialize the test-function subset of req_edges into req_test_edges.
 ## @param db_path Path to the clew.db being built.
 ## @param test_patterns The resolved test-path patterns, or None for the name/path heuristic.
+## @param repo_root The repository, to read Catch2 cases from; None skips them.
 ## v3 (round 4, R9): with patterns, a covering test is a function in a file they match — the
 ## substring heuristic made clew/testscope.py's `mark_test_scope` its own covering test.
-## @version 3
+## v4 (2.1, clew#74): Catch2 cases are linked by their tags and comment `@req` (`catch2`).
+## @version 4
 ## @req REQ-DDB-SCHEMA-006
-def import_req_test_edges(db_path: Path, test_patterns: tuple[str, ...] | None = None) -> None:
+def import_req_test_edges(
+    db_path: Path, test_patterns: tuple[str, ...] | None = None, repo_root: Path | None = None
+) -> None:
     """Link test functions to requirements via req_edges → req_test_edges.
 
     For every req_edges row whose memberdef matches `_looks_like_test_function`,
@@ -893,9 +901,100 @@ def import_req_test_edges(db_path: Path, test_patterns: tuple[str, ...] | None =
             """,
             (row["req_id"], row["memberdef_rowid"]),
         ).rowcount
+    cases = _link_catch2_cases(conn, repo_root, test_patterns) if repo_root is not None else 0
     conn.commit()
     conn.close()
-    logger.info("req_test_edges: imported %d test-coverage edges", imported)
+    logger.info(
+        "req_test_edges: imported %d test-coverage edges (%d from Catch2 cases)",
+        imported + cases,
+        cases,
+    )
+
+
+## @brief Link the index's Catch2 cases in test code to the requirements they name.
+## @param conn Open connection (row factory set).
+## @param repo_root The repository.
+## @param test_patterns The resolved test-path patterns, or None for the path heuristic.
+## @return Rows inserted.
+## @version 1
+## @req REQ-DDB-SCHEMA-006
+def _link_catch2_cases(
+    conn: sqlite3.Connection, repo_root: Path, test_patterns: tuple[str, ...] | None
+) -> int:
+    """Doxygen records each case as a function named for its macro, at the macro's line, so the
+    row is there to link; the title and tags are read from that line (`catch2.read_case`). A tag
+    that is no catalog id is counted and logged, never linked.
+
+    @brief Link Catch2 cases.
+    @return Rows.
+    """
+    from .catch2 import CASE_MACROS, named_reqs, read_case
+
+    catalog = (
+        {r[0] for r in conn.execute("SELECT id FROM requirements")}
+        if _table_exists(conn, "requirements")
+        else set()
+    )
+    marks = ",".join("?" * len(CASE_MACROS))
+    rows = conn.execute(
+        f"SELECT m.rowid, m.line, p.name FROM memberdef m JOIN path p ON p.rowid = m.file_id "
+        f"WHERE m.kind = 'function' AND m.name IN ({marks})",
+        CASE_MACROS,
+    ).fetchall()
+    lines_of: dict[str, list[str]] = {}
+    inserted = unknown = 0
+    for rowid, line, file_path in rows:
+        if not _is_test_file(str(file_path), test_patterns):
+            continue
+        if file_path not in lines_of:
+            lines_of[file_path] = _source_lines(repo_root / str(file_path))
+        case = read_case(lines_of[file_path], int(line or 0))
+        if case is None:
+            continue
+        unknown += sum(1 for t in case.tags if t.upper().startswith("REQ") and t not in catalog)
+        for req_id in named_reqs(case, catalog):
+            inserted += conn.execute(
+                ## An UPSERT: a comment `@req` doxygen read onto the case's row is already linked
+                ## through `req_edges`, by the macro's name; it gains the title here.
+                "INSERT INTO req_test_edges (req_id, test_memberdef_rowid, test_name) "
+                "VALUES (?, ?, ?) ON CONFLICT(req_id, test_memberdef_rowid) "
+                "DO UPDATE SET test_name = excluded.test_name",
+                (req_id, rowid, case.title),
+            ).rowcount
+    if unknown:
+        logger.warning(
+            "req_test_edges: %d Catch2 tag(s) look like requirement ids but name none in the "
+            "catalog; not linked",
+            unknown,
+        )
+    return inserted
+
+
+## @brief Whether a file is test code, by the resolved patterns or the path heuristic.
+## @param file_path Repo-relative path.
+## @param test_patterns The patterns, or None.
+## @return Bool.
+## @version 1
+## @utility
+def _is_test_file(file_path: str, test_patterns: tuple[str, ...] | None) -> bool:
+    """@brief Test file. @return Bool."""
+    from .testscope import TEST_PATH_FACTS, is_test_path
+
+    return is_test_path(file_path, test_patterns if test_patterns is not None else TEST_PATH_FACTS)
+
+
+## @brief A file's lines, or none when it cannot be read.
+## @param path The file.
+## @return Lines.
+## @version 1
+## @utility
+def _source_lines(path: Path) -> list[str]:
+    """@brief Read lines. @return Lines."""
+    try:
+        return path.read_text(encoding="utf-8", errors="replace").splitlines()
+    except OSError as exc:
+        logger.warning("req_test_edges: cannot read %s for Catch2 cases: %s", path, exc)
+        return []
 
 
 ## @brief Return True if a table exists in the connected DB.

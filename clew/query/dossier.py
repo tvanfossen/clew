@@ -26,6 +26,7 @@ import sqlite3
 from pathlib import Path
 
 from ._common import (
+    test_name_sql,
     DbSource,
     candidate_rows,
     capped_detail,
@@ -204,7 +205,8 @@ def _declaration_sites(
 
 ## @brief Requirements (with titles) + covering tests for one function.
 ## @return A (ReqRef list, covering-test-name list) tuple; both empty when the req tables are absent or unmatched.
-## @version 2
+## v3: Catch2 cases as covering tests (clew#74, 2.1)
+## @version 3
 ## @req REQ-DDB-QUERY-004
 def _reqs_and_tests(conn: sqlite3.Connection, fn: str) -> tuple[list[ReqRef], list[str]]:
     """@brief Build the requirement refs + covering-test names for a function."""
@@ -225,11 +227,12 @@ def _reqs_and_tests(conn: sqlite3.Connection, fn: str) -> tuple[list[ReqRef], li
         tests = [
             r[0]
             for r in conn.execute(
-                "SELECT DISTINCT m.name FROM req_test_edges t "
+                ## 2.1 (clew#74): a Catch2 case by its title, not its macro's name.
+                f"SELECT DISTINCT {test_name_sql(conn)} FROM req_test_edges t "
                 "JOIN memberdef m ON m.rowid = t.test_memberdef_rowid "
                 "WHERE t.req_id IN (SELECT DISTINCT r2.req_id FROM req_edges r2 "
                 "JOIN memberdef m2 ON m2.rowid = r2.memberdef_rowid WHERE m2.name=?) "
-                "ORDER BY m.name",
+                "ORDER BY 1",
                 (fn,),
             )
         ]

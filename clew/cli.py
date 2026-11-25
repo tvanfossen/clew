@@ -1995,7 +1995,8 @@ def _doxygen_meta(args) -> dict[str, str]:
 ## v72: the AST include stage (2.0.0, T3)
 ## v73: the property-key stage (2.0.0, F1-mm)
 ## v74: #72 bug 2: name an alias that rewrites the requirement tag (2.1)
-## @version 74
+## v75: Catch2 cases as covering tests (clew#74, 2.1)
+## @version 75
 ## @req REQ-DDB-PIPE-001
 ## @req REQ-DDB-MCP-004
 ## @req REQ-DDB-CONFIG-007
@@ -2430,7 +2431,7 @@ def _build_stages(
     timer.mark("req_edges")
     ## Round 4, R9: the SAME resolved test scope the `test_scope` stage stamps below decides
     ## which tagged functions are covering tests, so the two never disagree about a file.
-    import_req_test_edges(output, tuple(_test_paths(args, decl).values))
+    import_req_test_edges(output, tuple(_test_paths(args, decl).values), repo_root)
     timer.mark("req_test_edges")
     ## EVERY INDEXED LINE THAT NAMES A KNOWN REQUIREMENT: docs, diagrams, build files, comments.
     record_req_mentions(output, repo_root, requirements_yaml, cache=cache)

@@ -86,6 +86,26 @@ def table_exists(conn: sqlite3.Connection, name: str) -> bool:
     )
 
 
+## @brief The SQL naming a covering test: its own name (a Catch2 case's title), else its function's.
+## @param conn Open connection.
+## @return An expression over `req_test_edges t` and `memberdef m`.
+## @version 1
+## @utility
+def test_name_sql(conn: sqlite3.Connection) -> str:
+    """2.1 (clew#74): `req_test_edges.test_name` holds a Catch2 case's title, which ctest and
+    Catch2's filter select on; the case's function row is named for its macro (`TEST_CASE`). An
+    index before the column serves the function's name, as it always did.
+
+    @brief Test-name expression.
+    @return SQL.
+    """
+    return (
+        "COALESCE(t.test_name, m.name)"
+        if has_columns(conn, "req_test_edges", "test_name")
+        else "m.name"
+    )
+
+
 ## @brief True when a table exists AND carries every named column.
 ## @param conn Open connection.
 ## @param table Table to inspect.

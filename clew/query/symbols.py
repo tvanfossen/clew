@@ -43,6 +43,7 @@ from ..vocabulary import (
     SEARCH_WEIGHT_TOKEN_IN_PATH,
 )
 from ._common import (
+    test_name_sql,
     DbSource,
     candidate_rows,
     connect,
@@ -2055,7 +2056,8 @@ def _req_links(conn: sqlite3.Connection, req_id: str) -> tuple[list[str], list[s
 ##
 ## @brief Requirement traceability: metadata + implementers + covering tests + mentions + links.
 ## @return ReqTrace bundling the requirement's metadata (empty strings when absent), its implementing functions, covering test names, mentions and links.
-## @version 5
+## v6: Catch2 cases as covering tests (clew#74, 2.1)
+## @version 6
 ## @req REQ-DDB-QUERY-001
 def req_trace(db: DbSource, req_id: str) -> ReqTrace:
     """Trace one requirement to its implementing functions (with liveness)
@@ -2074,20 +2076,20 @@ def req_trace(db: DbSource, req_id: str) -> ReqTrace:
                 (req_id,),
             ).fetchone()
             attrs = _req_attributes(conn, req_id)
-        tests = (
-            [
-                r[0]
-                for r in conn.execute(
-                    "SELECT DISTINCT m.name FROM req_test_edges t "
-                    "JOIN memberdef m ON m.rowid = t.test_memberdef_rowid "
-                    "WHERE t.req_id=? ORDER BY m.name",
-                    (req_id,),
-                )
-            ]
+        ## 2.1 (clew#74): each test by its own name (a Catch2 case's title) AND its function's, so
+        ## the implementers still leave out a case whose row is named `TEST_CASE`.
+        linked = (
+            conn.execute(
+                f"SELECT DISTINCT {test_name_sql(conn)}, m.name FROM req_test_edges t "
+                "JOIN memberdef m ON m.rowid = t.test_memberdef_rowid "
+                "WHERE t.req_id=? ORDER BY 1",
+                (req_id,),
+            ).fetchall()
             if table_exists(conn, "req_test_edges")
             else []
         )
-        implementers = _req_implementers(conn, req_id, set(tests))
+        tests = list(dict.fromkeys(str(r[0]) for r in linked))
+        implementers = _req_implementers(conn, req_id, set(tests) | {str(r[1]) for r in linked})
         mentions = (
             [
                 ReqMention(file=str(r[0]), line=int(r[1]), text=str(r[2]))
