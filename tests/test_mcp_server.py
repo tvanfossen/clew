@@ -3505,6 +3505,9 @@ def test_no_served_text_is_ever_truncated() -> None:
         ## 1.3.0, FROM THE TS-FIX2 TRANSCRIPTS: an index-only agent read `retryPolicyConfiguration`
         ## in a body and never followed it to the object that set it — a shell agent grepped.
         ("corpus='code'", "the route from a key or literal seen in a body to where it is set"),
+        ## 2.1, FROM THE 2.0.0 GRID (owner Q/A 2026-11-24): agents stopped on list-shaped replies
+        ## (self Q2 averaged 2.0 calls, entropic Q4 3.8) and answered from the rows alone.
+        ("A LIST IS WHERE TO LOOK, NOT THE ANSWER", "a search row is a candidate, not evidence"),
         ## M9, 1.1.0 SECURITY AUDIT. clew's thesis is putting a third party's prose into a
         ## model's context with authority, so the framing has to be IN the served text, where
         ## the reader is. It is not a filter and `docs/SECURITY.md` says so; it is the one
