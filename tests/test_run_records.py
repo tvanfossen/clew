@@ -76,7 +76,15 @@ def test_the_2_0_0_preregistration_pins_what_the_grid_runs() -> None:
             (_RUNS.parent / "targets" / target / "questions.yaml").read_text(encoding="utf-8")
         )
         assert f"`{rubric['judge']['model']}`" in text, target
-        assert f"{target} {rubric['version']}" in text, f"{target} rubric version not pinned"
+        ## SPEC CHANGED (2.1, self rubric 7.0.0, owner Q/A 2026-11-25): the version the grid RAN
+        ## is the one its own grade records carry, not whatever the tree holds today. Reading the
+        ## tree held only until a rubric moved on after the grid; the property is unchanged.
+        graded = {
+            json.loads(g.read_text(encoding="utf-8"))["rubric_version"]
+            for g in (_RUNS / "2.0.0" / target / "answers").glob("*.grade.json")
+        }
+        assert len(graded) == 1, (target, graded)
+        assert f"{target} {graded.pop()}" in text, f"{target} rubric version not pinned"
     replicates = re.findall(r"--replicates (\d+)", commands)
     assert replicates and set(replicates) == {"5"}, replicates
     assert "Replicates **5**" in text

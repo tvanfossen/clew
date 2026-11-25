@@ -74,12 +74,27 @@
 # history. Q5 precision: `.clew.yaml` is the file the prompt asks about and is not a stray.
 # WEIGHTS (saturated): Q1 M5 3->2, Q3 M5 3->2, Q3 M6 3->1, Q5 M2 3->2, Q5 M5 3->2, Q6 M2
 # 3->1, Q2 M6 2->1. Line and ref drift fixed throughout.
+#
+# 7.0.0 (2.1, owner Q/A 2026-11-25 "Apply all 16"). The 2.0.0 grid's 16 marks hit by at most 1
+# of 15 cells (35 of 131 weight), each re-checked against the source at the pin by a read-only
+# review and spot-verified. A grid graded on 6.0.0 does not compare directly with this version.
+# WRONG AT THE PIN: Q5 recorded tier (tiers.py:162, :246 stamp `{option}.tier` per option; only
+# the stated-options summary is derived) — rewritten; Q6's set counted clew/harvest.py and
+# clew/scriptast.py as strays though both take part and M2 cites the gate — now excluded from the
+# extract (neither credited nor penalised, as Q5 does for `.clew.yaml`; as graded members they
+# would have put 54% of Q6's weight on the set). REWORDED (grader too strict, or a detail
+# the question does not ask): Q3 freshness location, Q4 provenance rule, Q4 fuzzy edges, Q5
+# unknown-section reason, Q5 second refusal. WEIGHTS 3->1: Q2 downgrade ordering, Q3 shared
+# constants. DROPPED (outside the question, or history): Q1 containment pass removed, Q4 one
+# collapse for both surfaces, Q6 CMake name is an argument, Q6 one harvest partition, Q6
+# markdown has no path row, Q6 root node is no discriminator. KEPT: Q4 set member
+# clew/vocabulary.py.
 
 schema: 1
 
 target: tvanfossen/clew
 commit: a6dd8ed919e69dd0549ae2b14306c339c62db0a2
-version: 6.0.0
+version: 7.0.0
 
 ground_truth: |
   clew's own source at the commit above, read directly. Line numbers were taken from the
@@ -173,16 +188,6 @@ questions:
         refs: [["clew/scope.py", 22, 29], ["clew/scope.py", 651, 655]]
 
       - text: >-
-          conveys that the nested-repo containment pass (`_with_nested_repos_contained`) was
-          REMOVED rather than left in place with its callers dropped
-        type: conclusion
-        weight: 2
-        evidence: |
-          A containment call left in place with its callers removed is a safety property that
-          reads as enforced and is not. Stated explicitly in derive_scope's docstring.
-        refs: [["clew/scope.py", 653, 655]]
-
-      - text: >-
           states that the resolved scope is not the whole answer — within it, a file reaches the
           index only if something can read it, and names at least one of the two filters: the
           parse-built front end claiming the file types doxygen cannot read, or binary
@@ -268,7 +273,7 @@ questions:
           matching row in an unread corpus is a statement about THIS query and outranks
           statements about the index as a whole
         type: conclusion
-        weight: 3
+        weight: 1
         evidence: |
           If a typedef matched, saying "rebuild to get file docs" would send the caller to fix
           the wrong thing. Docstring :369-372; the code at :393-395 checks `unread` before
@@ -374,9 +379,8 @@ questions:
 
     marks:
       - text: >-
-          locates the staleness axes in clew/mcp_server/freshness.py, declared as stable tokens
-          (AXIS_DATA / AXIS_CODE / AXIS_SCHEMA) that a consumer branches on while the messages may
-          be reworded
+          locates the interpretation of the three staleness axes (data / code / schema) in
+          clew/mcp_server/freshness.py
         type: retrieval
         weight: 1
         evidence: |
@@ -423,7 +427,7 @@ questions:
           ONCE, as module constants shared by the notice and the refusal, so the two cannot drift
           apart
         type: conclusion
-        weight: 3
+        weight: 1
         evidence: |
           freshness.py:66-77: _READ_EXEMPTION ("query tools open the database per call and read it
           live") and _WRITE_HAZARD ("can silently DROP WHOLE LAYERS and then report the result as
@@ -590,9 +594,9 @@ questions:
           - ["clew/query/symbols.py", 458, 466]
 
       - text: >-
-          identifies that the collapsed row's provenance is chosen in Python by a ranking over
-          vocabulary values — confidence first (`CALL_MATCH.rank`: exact > resolved > fuzzy), then
-          the declared `CALL_SOURCE` order as a tie-break — not by SQL
+          states the rule that picks a collapsed row's provenance — highest confidence first
+          (exact > resolved > fuzzy), then the earlier layer in the declared CALL_SOURCE order as a
+          tie-break
         type: conclusion
         weight: 3
         evidence: |
@@ -611,25 +615,9 @@ questions:
           - ["clew/vocabulary.py", 216, 226]
 
       - text: >-
-          states that the same collapse function serves BOTH the flat neighbour surface and the
-          traversal surface, so a chain and a neighbour list cannot disagree about one edge's
-          provenance
-        type: conclusion
-        weight: 2
-        evidence: |
-          clew/query/symbols.py:279-285 gives the reason directly, and
-          clew/query/traversal.py:130 calls back into `symbols._collapse_variants`. On the
-          traversal side it was never an inflation bug but a DETERMINISM one: the hop dedup keeps
-          the first row it sees and the query ordered only by neighbour name, so which layer's
-          source a hop reported depended on SQLite's row order.
-        refs:
-          - ["clew/query/symbols.py", 279, 286]
-          - ["clew/query/traversal.py", 124, 138]
-
-      - text: >-
-          identifies that the flat surface KEEPS fuzzy-confidence edges while the traversal
-          surface excludes them, and gives the reason — a walk expands each hop, so one fuzzy
-          edge multiplies into a wrong subtree
+          identifies that the callers/callees surface deliberately KEEPS fuzzy-confidence edges,
+          unlike the traversal surface which excludes them, so a row may be a name-matched guess
+          rather than a confirmed call
         type: conclusion
         weight: 3
         evidence: |
@@ -850,9 +838,9 @@ questions:
           - ["clew/buildoptions.py", 10, 20]
 
       - text: >-
-          gives the reason an unknown SECTION is refused rather than ignored — an ignored section
-          builds with built-in defaults while reporting that the declaration was honoured — and
-          locates the check in clew/declaration.py
+          states that an unknown .clew.yaml section is refused by name rather than ignored, and
+          gives the reason — an ignored section would build with built-in defaults while
+          reporting the declaration honoured
         type: conclusion
         weight: 3
         evidence: |
@@ -866,10 +854,9 @@ questions:
           - ["clew/declaration.py", 345, 356]
 
       - text: >-
-          identifies a SECOND refusal one level down for the structured (inline) options form —
-          an unknown key inside a well-named manifest entry — while the file form still reads it
-          as absent; and that a correctly-spelled derived key is refused with its reason rather
-          than as unknown
+          identifies a second refusal one level down — an unknown key inside a manifest entry is
+          refused on the structured (inline) options form, while the file form's loaders read the
+          misspelling as absent
         type: conclusion
         weight: 3
         evidence: |
@@ -886,8 +873,8 @@ questions:
           - ["clew/buildoptions.py", 413, 430]
 
       - text: >-
-          states that the winning tier is RECORDED with the index, and that the record is derived
-          from the stored rows rather than stamped as a separate summary
+          states that the winning tier is recorded with the index per option
+          (`options.<name>.tier` in build_meta), so the build shows which tier set each value
         type: conclusion
         weight: 2
         evidence: |
@@ -971,18 +958,6 @@ questions:
           - ["clew/synth.py", 186, 199]
 
       - text: >-
-          states that markdown is deliberately NOT given a path row, because it is prose and a
-          path row would also count it as indexed source in coverage figures
-        type: conclusion
-        weight: 2
-        evidence: |
-          clew/synth.py:77-79. Markdown is excluded from `DATA_EXTS` on purpose and reaches the
-          FTS index through clew/prose.py instead. This is the third treatment, and it is the
-          one a reader who stops at "the new file types" misses entirely.
-        refs:
-          - ["clew/synth.py", 77, 80]
-
-      - text: >-
           concludes that an installation lacking the grammars DEGRADES rather than failing — the
           router consults a capability gate (`_grammar_available` -> substrate) before routing;
           those files stay registered in the file set with no symbols, and nothing raises
@@ -1014,38 +989,6 @@ questions:
           - ["clew/cli.py", 1905, 1911]
 
       - text: >-
-          states that the root node type cannot be the discriminator, because shell shares its
-          root with JavaScript and CMake shares its root with Rust
-        type: conclusion
-        weight: 3
-        evidence: |
-          clew/shast.py:42-50 — `SH_ROOT = "program"`, shared with javascript, typescript and
-          tsx, "a cheap pre-filter, never the discriminator". The test is the presence of a
-          `function_definition` whose `name` field is a `word` (:48-50), which is what separates
-          it from C's node of the same name.
-
-          clew/cmakeast.py:36-46 — `CMAKE_ROOT = "source_file"`, shared with rust, same wording.
-
-          A mark earns its place by what a complete answer contains: an answer that says "it
-          detects shell files" without this has not explained how, and the obvious mechanism is
-          wrong.
-        refs:
-          - ["clew/shast.py", 42, 50]
-          - ["clew/cmakeast.py", 36, 46]
-
-      - text: >-
-          states that CMake's definition name is an ARGUMENT of the command rather than a named
-          field of the node
-        type: retrieval
-        weight: 1
-        evidence: |
-          clew/cmakeast.py:43-46 maps each definition node to the command node holding its
-          argument list; the name is read out of that list rather than from a field, which is
-          where bash and CMake differ in shape.
-        refs:
-          - ["clew/cmakeast.py", 40, 49]
-
-      - text: >-
           states that a shell function is recorded with no argument list and no return, because
           the language has neither
         type: retrieval
@@ -1057,30 +1000,16 @@ questions:
         refs:
           - ["clew/shast.py", 127, 144]
 
-      - text: >-
-          states that both languages share ONE harvest partition, and gives the reason — a
-          second partition would write an empty payload row per file per index
-        type: conclusion
-        weight: 2
-        evidence: |
-          clew/vocabulary.py:692-698. Every stage in the vocabulary is harvested over every
-          indexed file, so a second partition on a 40,000-file target is 40,000 rows recording
-          that a C file defines no shell function. The stated cost of the choice is that the two
-          walkers are versioned together.
-
-          This is the component no single module states: the extension lists say nothing about
-          partitions, and the walkers say nothing about each other.
-        refs:
-          - ["clew/vocabulary.py", 692, 698]
-
       - text: the modules that decide how a non-C file type is read
         type: set
         weight: 1
         extract: |
           List every file path the answer names as taking part in deciding which file types the
           index covers, how a shell or CMake definition is recognised, or whether a grammar is
-          available. Paths only, one per line, exactly as the answer writes them. If the answer
-          names none, reply NONE.
+          available. Paths only, one per line, exactly as the answer writes them. Do NOT list
+          clew/harvest.py or clew/scriptast.py: they take part (the router's grammar gate, and the
+          walk primitives both walkers import), so naming them is never a stray, and M2 already
+          grades the gate. If the answer names none, reply NONE.
         members:
           - value: clew/synth.py
             evidence: "claims the file types, registers the path rows, writes the memberdef rows"
