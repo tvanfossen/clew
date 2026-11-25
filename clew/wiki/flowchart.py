@@ -84,10 +84,14 @@ def chart(pins: list[Any], lines: list[str], first_line: int, modes: list[str]) 
 ## @brief The flowchart as an inline SVG.
 ## @param nodes The chart (`chart`).
 ## @param meanings {mode id: meaning}, from the catalogue.
+## @param observed_line The line a recorded run failed at, or None.
 ## @return HTML; "" when the chart has no check.
-## @version 1
+## v2 (2.2, F3): the branch a recorded failure took is marked, and the chart plays.
+## @version 2
 ## @req REQ-DDB-WIKI-043
-def flowchart_html(nodes: list[Node], meanings: dict[str, str]) -> str:
+def flowchart_html(
+    nodes: list[Node], meanings: dict[str, str], observed_line: int | None = None
+) -> str:
     """A MODE IS DRAWN ONCE, however many checks fail into it, so the right column reads as the
     test's distinct ways to fail. An undeclared id still draws, with its id and no meaning.
 
@@ -102,14 +106,44 @@ def flowchart_html(nodes: list[Node], meanings: dict[str, str]) -> str:
     for i, n in enumerate(nodes):
         if n.kind == "check":
             rows_of.setdefault(str(n.fails_into), i)
-    parts = [_edges(nodes, rows_of)]
-    parts += [_node(i, n) for i, n in enumerate(nodes)]
-    parts += [_mode(row, m, meanings) for m, row in rows_of.items()]
-    height = len(nodes) * _ROW + 20
-    return (
-        f'<figure class="flowchart"><svg viewBox="0 0 {_MX + _W // 2 + 20} {height}" '
-        f'role="img" aria-label="test flowchart">{"".join(parts)}</svg></figure>'
+    ## F3: THE BRANCH A RECORDED RUN TOOK — the check on the failing line, and its mode.
+    hit = next(
+        (i for i, n in enumerate(nodes) if n.kind == "check" and n.line == observed_line), None
     )
+    hit_mode = str(nodes[hit].fails_into) if hit is not None else None
+    parts = [_edges(nodes, rows_of, hit)]
+    parts += [_node(i, n, i == hit) for i, n in enumerate(nodes)]
+    parts += [_mode(row, m, meanings, m == hit_mode) for m, row in rows_of.items()]
+    height = len(nodes) * _ROW + 20
+    observed = f' data-observed="{hit}"' if hit is not None else ""
+    note = (
+        f"<figcaption>The recorded run failed at line {observed_line}, into {escape(hit_mode)}."
+        "</figcaption>"
+        if hit is not None and hit_mode
+        else ""
+    )
+    return (
+        f'<figure class="flowchart"{observed}>'
+        '<button type="button" class="fc-play">play</button>'
+        f'<svg viewBox="0 0 {_MX + _W // 2 + 20} {height}" '
+        f'role="img" aria-label="test flowchart">{"".join(parts)}</svg>{note}{_PLAYER}</figure>'
+    )
+
+
+## THE PLAYER, inline with each figure (as the flow pages' player is): each `g[data-step]` lit in
+## pass order at reading pace (238 words a minute, Brysbaert 2019, as the flow player), stopping
+## at the observed check, when there is one, and then lighting the branch it took.
+_PLAYER = (
+    "<script>(function(f){var gs=[].slice.call(f.querySelectorAll('g[data-step]')),"
+    "o=f.getAttribute('data-observed'),b=f.querySelector('button.fc-play');"
+    "b.addEventListener('click',function(){var end=o===null?gs.length-1:+o,i=0;"
+    "f.classList.remove('fc-show-fail');"
+    "(function tick(){gs.forEach(function(g){g.classList.toggle('on',+g.getAttribute('data-step')===i);});"
+    "var w=(gs[i].textContent||'').split(/\\s+/).length;"
+    "if(i<end){i++;setTimeout(tick,Math.max(900,w*60000/238));}"
+    "else if(o!==null){f.classList.add('fc-show-fail');}})();});"
+    "})(document.currentScript.parentNode);</script>"
+)
 
 
 ## @brief The failure modes the index holds: each test's, and every mode's meaning.
@@ -141,10 +175,16 @@ def load_modes(conn: Any) -> tuple[dict[int, list[str]], dict[str, str]]:
 ## @param modes The modes its doc names.
 ## @param meanings {mode id: meaning}.
 ## @return HTML.
-## @version 1
+## v2: recorded-failure branch and playback (2.2, flowchart F3)
+## @version 2
 ## @req REQ-DDB-WIKI-043
 def flowchart_section(
-    pins: list[Any], lines: list[str], first_line: int, modes: list[str], meanings: dict[str, str]
+    pins: list[Any],
+    lines: list[str],
+    first_line: int,
+    modes: list[str],
+    meanings: dict[str, str],
+    failed_at: int | None = None,
 ) -> str:
     """DRAWN ONLY FOR A TEST THAT NAMES A MODE (in its doc or in a marker): on any other test
     every end would read "unassigned", which says nothing and costs a figure on every test page.
@@ -156,16 +196,41 @@ def flowchart_section(
     nodes = chart(pins, lines, first_line, modes)
     if all(n.fails_into in (None, UNASSIGNED) for n in nodes):
         return ""
-    return "<h2>How it can fail</h2>" + flowchart_html(nodes, meanings)
+    return "<h2>How it can fail</h2>" + flowchart_html(nodes, meanings, failed_at)
+
+
+## @brief The line in a test's own file where its recorded run failed.
+## @param where The failure's (path, line) locations, from its report.
+## @param file The test's repository-relative file.
+## @param first_line The test's first line.
+## @param last_line The test's last line.
+## @return The deepest location inside the test, or None.
+## @version 1
+## @utility
+def failed_line(where: Any, file: str, first_line: int, last_line: int) -> int | None:
+    """THE DEEPEST FRAME IN THE TEST ITSELF: a traceback lists the test's line, then the
+    product's frames below it; the assertion that failed is the last location inside the test's
+    own span. A report naming the file by another root still matches by its tail.
+
+    @brief Failed line.
+    @return Line or None.
+    """
+    inside = [
+        line
+        for path, line in where or ()
+        if (file.endswith(path) or path.endswith(file)) and first_line <= line <= last_line
+    ]
+    return inside[-1] if inside else None
 
 
 ## @brief One pass-path node as SVG: an oval, a box or a diamond.
 ## @param i Its step number.
 ## @param node The node.
 ## @return SVG.
-## @version 1
+## v2: recorded-failure branch and playback (2.2, flowchart F3)
+## @version 2
 ## @utility
-def _node(i: int, node: Node) -> str:
+def _node(i: int, node: Node, observed: bool = False) -> str:
     """@brief Node SVG. @return SVG."""
     y = 20 + i * _ROW + _H // 2
     label = node.text if len(node.text) <= _LABEL else node.text[: _LABEL - 1] + "…"
@@ -178,8 +243,10 @@ def _node(i: int, node: Node) -> str:
         hw, hh = _W // 2 + 10, _H // 2 + 6
         shape = f'<polygon points="{_X},{y - hh} {_X + hw},{y} {_X},{y + hh} {_X - hw},{y}"/>'
     where = f" (line {node.line})" if node.line else ""
+    where += " — failed here in the recorded run" if observed else ""
+    cls = f"fc-{node.kind}" + (" fc-observed" if observed else "")
     return (
-        f'<g class="fc-{node.kind}" data-step="{i}"><title>{escape(node.text)}{where}</title>'
+        f'<g class="{cls}" data-step="{i}"><title>{escape(node.text)}{where}</title>'
         f"{shape}{text}</g>"
     )
 
@@ -189,14 +256,17 @@ def _node(i: int, node: Node) -> str:
 ## @param mode The mode id, or UNASSIGNED.
 ## @param meanings {mode id: meaning}.
 ## @return SVG.
-## @version 1
+## v2: recorded-failure branch and playback (2.2, flowchart F3)
+## @version 2
 ## @utility
-def _mode(j: int, mode: str, meanings: dict[str, str]) -> str:
+def _mode(j: int, mode: str, meanings: dict[str, str], observed: bool = False) -> str:
     """@brief Mode SVG. @return SVG."""
     y = 20 + j * _ROW + _H // 2
     meaning = meanings.get(mode, "no mode is named here" if mode == UNASSIGNED else "")
     short = meaning if len(meaning) <= _LABEL else meaning[: _LABEL - 1] + "…"
-    cls = "fc-unassigned" if mode == UNASSIGNED else "fc-mode"
+    cls = ("fc-unassigned" if mode == UNASSIGNED else "fc-mode") + (
+        " fc-observed" if observed else ""
+    )
     return (
         f'<g class="{cls}" data-mode="{escape(mode)}"><title>{escape(mode)}: {escape(meaning)}</title>'
         f'<rect x="{_MX - _W // 2}" y="{y - _H // 2 - 6}" width="{_W}" height="{_H + 12}" rx="10"/>'
@@ -210,9 +280,10 @@ def _mode(j: int, mode: str, meanings: dict[str, str]) -> str:
 ## @param nodes The chart.
 ## @param rows_of {mode: the row it is drawn on}.
 ## @return SVG lines.
-## @version 1
+## v2: recorded-failure branch and playback (2.2, flowchart F3)
+## @version 2
 ## @utility
-def _edges(nodes: list[Node], rows_of: dict[str, int]) -> str:
+def _edges(nodes: list[Node], rows_of: dict[str, int], hit: int | None = None) -> str:
     """@brief Edge SVG. @return SVG."""
     out = []
     for i in range(len(nodes) - 1):
@@ -223,8 +294,9 @@ def _edges(nodes: list[Node], rows_of: dict[str, int]) -> str:
             continue
         y, my = 20 + i * _ROW + _H // 2, 20 + rows_of[str(node.fails_into)] * _ROW + _H // 2
         x1 = _X + _W // 2 + 10
+        taken = " fc-taken" if i == hit else ""
         out.append(
-            f'<line class="fc-fail" data-from="{i}" x1="{x1}" y1="{y}" '
+            f'<line class="fc-fail{taken}" data-from="{i}" x1="{x1}" y1="{y}" '
             f'x2="{_MX - _W // 2}" y2="{my}"/>'
             f'<text class="fc-label" x="{x1 + 8}" y="{y - 6}">fail</text>'
         )

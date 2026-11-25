@@ -80,10 +80,8 @@ def test_guard_refuses_a_marker_naming_an_undeclared_mode(tmp_path) -> None:
     assert "FM-NOPE" in bad.message and bad.line == 8
 
 
-def test_a_linked_test_page_draws_its_flowchart_and_a_test_naming_no_mode_does_not(
-    tmp_path,
-) -> None:
-    """@brief Built for real: the page that names a mode has the figure; its sibling has none."""
+def _site(tmp_path, junit: str | None = None) -> dict[str, str]:
+    """@brief Build the fixture site; return its test pages by file name. @return Pages."""
     from clew.cli import _build_argparser, _run_pipeline
     from clew.wiki.build import build_wiki
 
@@ -100,17 +98,75 @@ def test_a_linked_test_page_draws_its_flowchart_and_a_test_naming_no_mode_does_n
         "README.md": "# Flow\n",
         "reqs.yaml": "requirements:\n  REQ-A-001:\n    name: Add\n    failure_modes:\n"
         "      FM-A-001-1: wrong sum\n      FM-A-001-2: identity broken\n",
-        ".clew.yaml": "requirements:\n  file: reqs.yaml\n\nwiki:\n  title: Flow\n  docs: [README.md]\n",
+        ".clew.yaml": "requirements:\n  file: reqs.yaml\n\nwiki:\n  title: Flow\n  docs: [README.md]\n"
+        + ("tests:\n  junit: [junit.xml]\n" if junit else ""),
     }
+    if junit:
+        files["junit.xml"] = junit
     for rel, text in files.items():
         (repo / rel).parent.mkdir(parents=True, exist_ok=True)
         (repo / rel).write_text(text)
     db = tmp_path / "clew.db"
     _run_pipeline(_build_argparser().parse_args(["--output", str(db), "--repo-root", str(repo)]))
     html = build_wiki(repo, db, tmp_path / "out")
-    pages = {p.name: p.read_text() for p in html.rglob("test-*.html")}
+    return {p.name: p.read_text() for p in html.rglob("test-*.html")}
+
+
+def test_a_linked_test_page_draws_its_flowchart_and_a_test_naming_no_mode_does_not(
+    tmp_path,
+) -> None:
+    """@brief Built for real: the page that names a mode has the figure; its sibling has none."""
+    pages = _site(tmp_path)
     sums = next(v for k, v in pages.items() if "test_sums" in k)
     plain = next(v for k, v in pages.items() if "test_plain" in k)
     assert 'class="flowchart"' in sums and "How it can fail" in sums
     assert "wrong sum" in sums and "identity broken" in sums
     assert 'class="flowchart"' not in plain
+
+
+JUNIT_FAIL = """<?xml version="1.0"?><testsuites><testsuite name="t">
+<testcase classname="tests.test_add" name="test_sums" time="0.01">
+<failure message="assert 2 == 3">def test_sums():
+&gt;       assert add(1, 1) == 2  # fails_when: FM-A-001-2
+E       assert 2 == 3
+tests/test_add.py:13: AssertionError</failure></testcase>
+</testsuite></testsuites>"""
+
+
+def test_a_failure_s_location_is_read_from_its_traceback(tmp_path) -> None:
+    """F3: the JUnit failure's text names where it failed (`path:line: Error`); kept as `where`.
+
+    @brief Failure locations.
+    """
+    from clew.wiki.evidence import parse_junit
+
+    report = tmp_path / "junit.xml"
+    report.write_text(JUNIT_FAIL)
+    result = parse_junit([report])["test_sums"]
+    assert result.status == "failed" and ("tests/test_add.py", 13) in result.where
+
+
+def test_a_recorded_failure_marks_the_branch_it_took_and_the_chart_plays() -> None:
+    """F3 (owner Q/A 2026-11-25): the pass path plays at reading pace; a recorded failure plays the
+    failing assertion into its mode, marked observed.
+
+    @brief Observed branch and the player.
+    """
+    nodes = chart(_pins(), BODY, 10, ["FM-1"])
+    html = flowchart_html(nodes, MEANINGS, observed_line=13)
+    assert html.count("fc-observed") == 2, "the failing diamond and the mode it reached"
+    assert 'class="fc-fail fc-taken"' in html
+    assert 'data-observed="' in html and "<button" in html and "play" in html
+    assert "fc-observed" not in flowchart_html(nodes, MEANINGS)
+
+
+def test_a_page_marks_the_branch_its_recorded_run_failed_on(tmp_path) -> None:
+    """F3, built for real: a JUnit failure at test_sums's second assertion (line 11) marks that
+    diamond and FM-A-001-2, and says so in the caption.
+
+    @brief The recorded failure, on the page.
+    """
+    report = JUNIT_FAIL.replace("tests/test_add.py:13", "tests/test_add.py:11")
+    sums = next(v for k, v in _site(tmp_path, report).items() if "test_sums" in k)
+    assert sums.count("fc-observed") == 2 and "fc-taken" in sums
+    assert "failed at line 11, into FM-A-001-2" in sums

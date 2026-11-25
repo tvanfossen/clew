@@ -77,27 +77,38 @@ class Scenario:
 ## @param cases The cases.
 ## @return {name: CaseResult}.
 ## v2 (round 4): the worst non-passing case's message, a failure's included (only skips were).
-## @version 2
+## v3: recorded-failure branch and playback (2.2, flowchart F3)
+## @version 3
 ## @req REQ-DDB-WIKI-010
 def fold_cases(cases: Iterable[tuple[str, str, str]]) -> dict[str, Any]:
     """@brief Fold. @return Results."""
+
+    ## A fourth element, the failure's locations, is optional: only the JUnit reader has one.
+    folded: dict[str, list[tuple[str, str, tuple]]] = {}
+    for name, status, message, *rest in cases:
+        if name:
+            folded.setdefault(name, []).append((status, message, rest[0] if rest else ()))
+    return {name: _folded(name, rows) for name, rows in folded.items()}
+
+
+## @brief One test's folded result: its worst case's status, message and failure locations.
+## @param name The test.
+## @param rows (status, message, where) per case.
+## @return The CaseResult.
+## @version 1
+## @utility
+def _folded(name: str, rows: list[tuple[str, str, tuple]]) -> Any:
+    """@brief Fold one test. @return Result."""
     from .evidence import CaseResult
 
-    folded: dict[str, list[tuple[str, str]]] = {}
-    for name, status, message in cases:
-        if name:
-            folded.setdefault(name, []).append((status, message))
-    return {
-        name: CaseResult(
-            name=name,
-            status=min(rows, key=lambda r: _RANK[r[0]])[0],
-            cases=len(rows),
-            message=next(
-                (m for s, m in sorted(rows, key=lambda r: _RANK[r[0]]) if s != "passed" and m), ""
-            ),
-        )
-        for name, rows in folded.items()
-    }
+    worst = sorted(rows, key=lambda r: _RANK[r[0]])
+    return CaseResult(
+        name=name,
+        status=worst[0][0],
+        cases=len(rows),
+        message=next((m for s, m, _w in worst if s != "passed" and m), ""),
+        where=next((w for s, _m, w in worst if s != "passed" and w), ()),
+    )
 
 
 ## @brief Read one result report of a declared format.

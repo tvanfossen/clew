@@ -411,12 +411,13 @@ def _result(name: str, ctx: dict[str, Any]) -> str:
 ## v8: test card and declared-first requirements (owner review 3)
 ## v9: card at page level (owner review 3)
 ## v10: the test flowchart (2.2, F2)
-## @version 10
+## v11: recorded-failure branch and playback (2.2, flowchart F3)
+## @version 11
 ## @utility
 def _definition(d: Any, graph: _Edges, ctx: dict[str, Any], repo_root: Path) -> str:
     """@brief Definition block. @return HTML."""
     from .checkpins import pin_checks, traced_values
-    from .flowchart import flowchart_section
+    from .flowchart import failed_line, flowchart_section
     from .testfacts import assertions
 
     url = source_url(ctx["template"], ctx["commit"], d.file, max(d.start, 1))
@@ -440,7 +441,14 @@ def _definition(d: Any, graph: _Edges, ctx: dict[str, Any], repo_root: Path) -> 
     ## 2.2: the flowchart, each check failing into its declared mode.
     by_test, meanings = ctx.get("modes") or ({}, {})
     if pins:
-        out += flowchart_section(pins, lines, d.start, by_test.get(d.rowid, []), meanings)
+        ## F3: where the recorded run failed, when it did, inside this definition's own lines.
+        result = (ctx.get("results") or {}).get(d.name)
+        failed = (
+            failed_line(result.where, d.file, d.start, d.start + len(lines) - 1)
+            if result is not None and result.status in ("failed", "error")
+            else None
+        )
+        out += flowchart_section(pins, lines, d.start, by_test.get(d.rowid, []), meanings, failed)
     if candidates:
         out += _context(candidates, ctx.get("product_flows") or [])
         callees = sorted(graph.names[c] for c in graph.callees.get(d.rowid, ()) if c in graph.names)

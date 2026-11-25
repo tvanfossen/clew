@@ -110,6 +110,9 @@ class CaseResult:
     status: str
     cases: int
     message: str = ""
+    ## 2.2 (flowchart F3): the `path:line` locations a failure's traceback names, worst case's,
+    ## so a page can mark the assertion that failed; empty for a pass or a report without them.
+    where: tuple[tuple[str, int], ...] = ()
 
 
 ## @brief One requirement's graded evidence.
@@ -149,7 +152,8 @@ class RequirementEvidence:
 ## v2: folding shared with the W16 formats (`imports.fold_cases`).
 ## v3: JUnit 5 `name(args)[n]` folds to `name` (round 3, P3c).
 ## v4 (round 4): a Catch2 section path folds into its test case (`_case_name`).
-## @version 4
+## v5: recorded-failure branch and playback (2.2, flowchart F3)
+## @version 5
 ## @req REQ-DDB-WIKI-002
 def parse_junit(paths: list[Path]) -> dict[str, CaseResult]:
     """THE TEST NAME IS THE CASE NAME WITH ITS PARAMETERS DROPPED, the name the index knows as a
@@ -162,10 +166,34 @@ def parse_junit(paths: list[Path]) -> dict[str, CaseResult]:
     from .imports import fold_cases
 
     return fold_cases(
-        (_case_name(case), *_case_status(case))
+        (_case_name(case), *_case_status(case), _case_where(case))
         for path in paths
         for case in _root(path).iter("testcase")
     )
+
+
+## A `path:line` location in a failure's text (pytest's `tests/x.py:13: AssertionError`, a C
+## framework's `x.cpp:13`).
+_WHERE = re.compile(r"([\w./\\-]+\.[A-Za-z0-9+]+):(\d+)")
+
+
+## @brief The source locations a failed or errored testcase's report names.
+## @param case The element.
+## @return (path, line) pairs, in the order the report gives them; () for a pass.
+## @version 1
+## @utility
+def _case_where(case: ET.Element) -> tuple[tuple[str, int], ...]:
+    """2.2 (flowchart F3): read from the failure's message and its text (the traceback).
+
+    @brief Failure locations.
+    @return Pairs.
+    """
+    child = case.find("failure")
+    child = case.find("error") if child is None else child
+    if child is None:
+        return ()
+    text = f"{child.get('message') or ''}\n{child.text or ''}"
+    return tuple((path, int(line)) for path, line in _WHERE.findall(text))
 
 
 ## @brief A JUnit testcase's test name: parameters dropped, a Catch2 section path folded.
