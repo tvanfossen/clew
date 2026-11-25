@@ -30,19 +30,19 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  deploy:
-    name: deploy the wiki
+  # TWO JOBS, AS GITHUB'S OWN PAGES TEMPLATE HAS IT (2026-11-24, found in production): with the
+  # upload and the deploy in one job, the deploy listed this run's artifacts moments after the
+  # upload and found none — or found it and the deployment failed — across three attempts of run
+  # 45301424824. A second job that `needs` the first sees the artifact registered. It also keeps
+  # Pages write and the OIDC identity off the job that handles CI's artifact.
+  stage:
+    name: stage the wiki
     if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 10
     permissions:
-      # Read the CI run's artifact; publish to Pages with a short-lived OIDC identity.
+      # Read the CI run's artifact.
       actions: read
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}
     steps:
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
@@ -53,5 +53,19 @@ jobs:
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           path: site
+
+  deploy:
+    name: deploy the wiki
+    needs: stage
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      # Publish to Pages with a short-lived OIDC identity.
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
       - id: deploy
         uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

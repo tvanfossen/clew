@@ -413,8 +413,15 @@ def test_the_wiki_deploys_to_pages_from_a_green_main_only() -> None:
     trigger = flow[True]["workflow_run"]  # PyYAML reads the `on:` key as True
     assert trigger["workflows"] == ["CI"] and trigger["branches"] == ["main"]
     assert flow["permissions"] == {"contents": "read"}
-    job = flow["jobs"]["deploy"]
-    assert "conclusion == 'success'" in job["if"] and "event == 'push'" in job["if"]
-    assert job["permissions"] == {"actions": "read", "pages": "write", "id-token": "write"}
+    ## SPEC CHANGED (2026-11-24, found in production): upload and deploy in ONE job raced — the
+    ## deploy listed the run's artifacts right after the upload and found 0 (or found it and the
+    ## deployment failed), three attempts of run 45301424824. GitHub's own Pages template uploads
+    ## in one job and deploys in a second that `needs` it; the staging job also no longer holds
+    ## Pages write while it handles CI's artifact.
+    stage, deploy = flow["jobs"]["stage"], flow["jobs"]["deploy"]
+    assert "conclusion == 'success'" in stage["if"] and "event == 'push'" in stage["if"]
+    assert stage["permissions"] == {"actions": "read"}
+    assert deploy["needs"] == "stage"
+    assert deploy["permissions"] == {"pages": "write", "id-token": "write"}
     ci = (REPO_ROOT / ".github" / "workflows" / "ci.yml").read_text()
     assert "pages: write" not in ci and "name: clew-wiki" in ci
