@@ -55,7 +55,7 @@ from .impact import (
     collect_changed_functions,
     format_json,
     format_markdown,
-    impact_entries,
+    impact_report,
     format_report,
 )
 
@@ -571,22 +571,23 @@ def _parse_precommit_args(
 
 ## @brief Execute the impact subcommand.
 #  v1.5: prints by default, --write writes into report_dir (2.0.0, R5-CFG F9)
-#  @version 1.5
+#  v1.6: the full report — covering tests, `via`, unmapped (2.1, clew#74)
+#  @version 1.6
 #  @req REQ-DDB-GUARD-010
 #  @return Exit code: 0 on success, 1 if output path is invalid
 def _run_impact_command(args: argparse.Namespace, config: dict[str, Any]) -> int:
     file_paths = args.files or []
-    entries = impact_entries(
+    entries, extras = impact_report(
         file_paths=file_paths,
         config=config,
         staged=args.staged,
         diff_range=args.diff_range,
     )
     if args.write:
-        for written in _write_report(entries, report_dir(config)):
+        for written in _write_report(entries, report_dir(config), extras):
             print(f"Wrote report: {written.resolve()}")
     else:
-        print(format_report(entries, args.output_format))
+        print(format_report(entries, args.output_format, extras))
     return 0
 
 
@@ -595,17 +596,18 @@ def _run_impact_command(args: argparse.Namespace, config: dict[str, Any]) -> int
 #  committed `out/impact -> ../../elsewhere` passed a directory-only check, `mkdir` followed the
 #  symlink, and the gate wrote outside the repository as the committing user. One writer now
 #  serves the hook and `clew guard impact --write`, so the two cannot drift (R5-CFG F9).
-#  @version 1.0
+#  v1.1: the extras (unmapped changes and files) are written too (2.1, clew#74)
+#  @version 1.1
 #  @utility
 #  @return The two paths written
-def _write_report(entries: list[Any], base_dir: str) -> list[Path]:
+def _write_report(entries: list[Any], base_dir: str, extras: Any = None) -> list[Path]:
     out = Path(base_dir)
     md_path, json_path = out / REPORT_MARKDOWN, out / REPORT_JSON
     validate_output_path(str(md_path))
     validate_output_path(str(json_path))
     out.mkdir(parents=True, exist_ok=True)
-    md_path.write_text(format_markdown(entries))
-    json_path.write_text(format_json(entries))
+    md_path.write_text(format_markdown(entries, extras))
+    json_path.write_text(format_json(entries, extras))
     return [md_path, json_path]
 
 

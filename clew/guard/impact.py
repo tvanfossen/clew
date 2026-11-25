@@ -35,7 +35,8 @@ logger = logging.getLogger(__name__)
 
 
 ## @brief Tracks a changed function with its requirement tags and version info.
-#  @version 1.0
+#  v1.1: `via`, the callers through which an untagged change reaches this entry (2.1, clew#74)
+#  @version 1.1
 #  @utility
 @dataclass
 class ChangedFunction:
@@ -44,11 +45,14 @@ class ChangedFunction:
     reqs: list[str] = field(default_factory=list)
     old_version: str | None = None
     new_version: str | None = None
+    ## None: linked by its own `@req`. A list: reached through these callers (`reach.Reach.via`).
+    via: list[str] | None = None
 
 
 ## @brief Groups changed functions by requirement for the impact report.
 #  v1.2: `reviewers`, the owners of the changed files; None when the repo names no owners (2.0.0)
-#  @version 1.2
+#  v1.3: `tests`, the covering tests; None when the report did not read them (2.1, clew#74)
+#  @version 1.3
 #  @utility
 @dataclass
 class ImpactEntry:
@@ -56,6 +60,18 @@ class ImpactEntry:
     req_name: str | None = None
     functions: list[ChangedFunction] = field(default_factory=list)
     reviewers: list[str] | None = None
+    tests: list[Any] | None = None
+
+
+## @brief What a report names beside its entries: changes and files that reach no requirement.
+#  @details 2.1 (clew#74 items 3, 4). Present only when the reach step ran: an empty list then
+#  means "looked, found none", where an absent key means "never looked".
+#  @version 1.0
+#  @utility
+@dataclass
+class ImpactExtras:
+    unmapped: list[dict[str, str]] = field(default_factory=list)
+    unmapped_files: list[str] = field(default_factory=list)
 
 
 ## @brief Collect all changed lines for a file from branch diff and/or staged changes.
@@ -134,7 +150,8 @@ def _extract_changed_functions(
 
 
 ## @brief Parse source files and cross-reference with git diff to find changed functions.
-#  @version 1.2
+#  v1.3: the changes come from `collect_changes` (2.1, clew#74)
+#  @version 1.3
 #  @req REQ-DDB-GUARD-008
 def collect_changed_functions(
     file_paths: list[str],
@@ -143,18 +160,38 @@ def collect_changed_functions(
     staged: bool = False,
     run_command: RunCommand | None = None,
 ) -> list[ChangedFunction]:
-    changed_funcs: list[ChangedFunction] = []
+    return collect_changes(file_paths, config, diff_range, staged, run_command)[0]
 
+
+## @brief The changed functions, and the changed files that hold none of them.
+#  @details 2.1 (clew#74 item 4): a header of declarations, a CMake file, a YAML file and a
+#  deleted file change the build without changing a function, so a consumer selecting tests must
+#  be told about them rather than left to assume nothing changed.
+#  @version 1.0
+#  @req REQ-DDB-GUARD-010
+#  @return (changed functions, changed files with no changed function)
+def collect_changes(
+    file_paths: list[str],
+    config: dict[str, Any],
+    diff_range: str | None = None,
+    staged: bool = False,
+    run_command: RunCommand | None = None,
+) -> tuple[list[ChangedFunction], list[str]]:
+    changed_funcs: list[ChangedFunction] = []
+    unmapped_files: list[str] = []
     for file_path in file_paths:
         if not Path(file_path).exists():
             logger.warning("File not found: %s", file_path)
+            unmapped_files.append(file_path)
             continue
-
         changed_lines = _collect_changed_lines(file_path, staged, diff_range, run_command)
-        if changed_lines:
-            changed_funcs.extend(_extract_changed_functions(file_path, config, changed_lines))
-
-    return changed_funcs
+        found = (
+            _extract_changed_functions(file_path, config, changed_lines) if changed_lines else []
+        )
+        changed_funcs.extend(found)
+        if changed_lines and not found:
+            unmapped_files.append(file_path)
+    return changed_funcs, unmapped_files
 
 
 ## @brief Extract requirements config, raising if a declared catalog is unusable.
@@ -468,29 +505,72 @@ def _rows_from_mapping(node: Any, path: str) -> dict[str, dict[str, str]]:
 
 ## @brief Group changed functions by requirement for the impact report.
 #  v1.2: names each requirement's reviewers through `owners` (2.0.0, S2/S3 served)
-#  @version 1.2
+#  v1.3: built by `build_report` with no reach step (2.1, clew#74)
+#  @version 1.3
 #  @req REQ-DDB-GUARD-010
 def build_impact_report(
     changed_functions: list[ChangedFunction],
     config: dict[str, Any],
     owners: OwnerResolver | None = None,
 ) -> list[ImpactEntry]:
-    req_names = load_requirements(config)
+    return build_report(changed_functions, config, owners)[0]
 
+
+## @brief Group changes by requirement, and with a reach step, add tests, `via` and unmapped.
+#  @details 2.1 (clew#74 items 2-4). Without `reach`: the 2.0.0 entries and no extras. With it,
+#  a change with no `@req` is walked to the requirements its callers carry (`via`), each entry
+#  lists its covering tests, and whatever reaches nothing is reported, never dropped.
+#  @version 1.0
+#  @req REQ-DDB-GUARD-010
+#  @return (entries, extras or None when the reach step did not run)
+def build_report(
+    changed_functions: list[ChangedFunction],
+    config: dict[str, Any],
+    owners: OwnerResolver | None = None,
+    reach: Any = None,
+    unmapped_files: list[str] | None = None,
+) -> tuple[list[ImpactEntry], ImpactExtras | None]:
+    req_names = load_requirements(config)
+    extras = ImpactExtras(unmapped_files=list(unmapped_files or [])) if reach else None
     req_funcs: dict[str, list[ChangedFunction]] = {}
     for cf in changed_functions:
         for req in cf.reqs:
             req_funcs.setdefault(req, []).append(cf)
-
-    return [
+        if not cf.reqs and reach is not None:
+            _place_untagged(cf, reach, req_funcs, extras)
+    tests = reach.tests_for(set(req_funcs), set(req_names)) if reach else {}
+    entries = [
         ImpactEntry(
             req_id=req_id,
             req_name=req_names.get(req_id),
             functions=funcs,
             reviewers=_reviewers(owners, funcs),
+            tests=list(tests.get(req_id, [])) if reach else None,
         )
         for req_id, funcs in sorted(req_funcs.items())
     ]
+    return entries, extras
+
+
+## @brief File an untagged change under the requirements its callers reach, else as unmapped.
+#  @version 1.0
+#  @utility
+def _place_untagged(
+    cf: ChangedFunction, reach: Any, req_funcs: dict[str, list[ChangedFunction]], extras: Any
+) -> None:
+    from .reach import NO_CALLER, NO_INDEX, TEST_CODE
+
+    if reach.is_test(cf.file_path):
+        extras.unmapped.append({"name": cf.name, "file": cf.file_path, "reason": TEST_CODE})
+        return
+    reached = reach.via(cf)
+    for req_id, chain in reached:
+        req_funcs.setdefault(req_id, []).append(
+            ChangedFunction(cf.name, cf.file_path, [], cf.old_version, cf.new_version, chain)
+        )
+    if not reached:
+        reason = NO_INDEX if reach.db is None else NO_CALLER
+        extras.unmapped.append({"name": cf.name, "file": cf.file_path, "reason": reason})
 
 
 ## @brief The owners of a requirement's changed files, first-seen order, each once.
@@ -527,65 +607,112 @@ def _cell(text: str) -> str:
 
 ## @brief Render impact entries as a markdown table with summary.
 #  v1.4: reviewers from the owners files (2.0.0, S2/S3 served)
-#  @version 1.4
+#  v1.5: a Tests column, `via` beside a function, and the unmapped sections (2.1, clew#74)
+#  @version 1.5
 #  @req REQ-DDB-GUARD-010
 #  @return Markdown-formatted impact report string
-def format_markdown(entries: list[ImpactEntry]) -> str:
+def format_markdown(entries: list[ImpactEntry], extras: ImpactExtras | None = None) -> str:
     if not entries:
-        return "No requirements affected.\n"
+        return ("No requirements affected.\n" + _unmapped_markdown(extras)).rstrip("\n") + "\n"
 
-    ## A Reviewers column only when the repository names owners: see `_reviewers`.
+    ## A Reviewers column only when the repository names owners: see `_reviewers`. A Tests column
+    ## only when the report read them.
     owned = any(e.reviewers is not None for e in entries)
-    lines = ["## Change Impact Report", ""]
-    lines.append("| REQ | Name | Functions Changed |" + (" Reviewers |" if owned else ""))
-    lines.append("|-----|------|-------------------|" + ("-----------|" if owned else ""))
-
+    tested = any(e.tests is not None for e in entries)
+    head = "| REQ | Name | Functions Changed |" + (" Reviewers |" if owned else "")
+    rule = "|-----|------|-------------------|" + ("-----------|" if owned else "")
+    lines = ["## Change Impact Report", "", head + (" Tests |" if tested else "")]
+    lines.append(rule + ("-------|" if tested else ""))
     total_funcs = 0
     for entry in entries:
-        name = _cell(entry.req_name or "\u2014")
-        func_names = ", ".join(_cell(f.name) for f in entry.functions)
         total_funcs += len(entry.functions)
-        who = (
-            f" {', '.join(_cell(r) for r in entry.reviewers or []) or chr(0x2014)} |"
-            if owned
-            else ""
-        )
-        lines.append(f"| {_cell(entry.req_id)} | {name} | {func_names} |{who}")
-
+        lines.append(_markdown_row(entry, owned, tested))
     lines.append("")
     lines.append(
         f"**Total: {len(entries)} requirement(s) affected, {total_funcs} function(s) changed**"
     )
-    return "\n".join(lines) + "\n"
+    return "\n".join(lines) + "\n" + _unmapped_markdown(extras)
+
+
+## @brief One requirement's table row.
+#  @version 1.0
+#  @utility
+#  @return The row.
+def _markdown_row(entry: ImpactEntry, owned: bool, tested: bool) -> str:
+    name = _cell(entry.req_name or "\u2014")
+    func_names = ", ".join(
+        _cell(f.name) + (f" (via {_cell(' → '.join(f.via))})" if f.via else "")
+        for f in entry.functions
+    )
+    dash = chr(0x2014)
+    who = f" {', '.join(_cell(r) for r in entry.reviewers or []) or dash} |" if owned else ""
+    tests = f" {', '.join(_cell(t.name) for t in entry.tests or []) or dash} |" if tested else ""
+    return f"| {_cell(entry.req_id)} | {name} | {func_names} |{who}{tests}"
+
+
+## @brief The unmapped sections: changes and files that reach no requirement.
+#  @version 1.0
+#  @utility
+#  @return Markdown, "" when the reach step did not run or found nothing.
+def _unmapped_markdown(extras: ImpactExtras | None) -> str:
+    if extras is None:
+        return ""
+    lines: list[str] = []
+    if extras.unmapped:
+        lines += ["", "### Changes that reach no requirement", ""]
+        lines += [
+            f"- `{_cell(u['name'])}` ({_cell(u['file'])}): {_cell(u['reason'])}"
+            for u in extras.unmapped
+        ]
+    if extras.unmapped_files:
+        lines += ["", "### Changed files with no changed function", ""]
+        lines += [f"- {_cell(f)}" for f in extras.unmapped_files]
+    return "\n".join(lines) + ("\n" if lines else "")
 
 
 ## PS3 (2.0.0, owner Q/A 2026-11-19): impact.json's format version and its keys, which
 ## docs/wire-keys.json covers. A removed or renamed key moves the version; an added one is additive.
 IMPACT_SCHEMA_VERSION = 1
-IMPACT_ENTRY_KEYS = ("functions", "req_id", "req_name", "reviewers")
-IMPACT_FUNCTION_KEYS = ("file", "name", "version")
+IMPACT_ENTRY_KEYS = ("functions", "req_id", "req_name", "reviewers", "tests")
+IMPACT_FUNCTION_KEYS = ("file", "name", "version", "via")
+## 2.1 (clew#74): the report's own keys; `unmapped` and `unmapped_files` only after a reach step.
+IMPACT_REPORT_KEYS = ("entries", "schema_version", "unmapped", "unmapped_files")
 
 
 ## @brief Render impact entries as a versioned JSON object.
 #  v1.3: reviewers from the owners files (2.0.0, S2/S3 served)
 #  v2.0 (2.0.0, PS3): `{"schema_version": 1, "entries": [...]}` — the bare array had no version.
-#  @version 2.0
+#  v2.1 (2.1, clew#74): `tests`, `via`, `unmapped`, `unmapped_files`, each only when computed;
+#  additive, so schema_version stays 1.
+#  @version 2.1
 #  @req REQ-DDB-GUARD-010
 #  @return JSON-formatted impact report string
-def format_json(entries: list[ImpactEntry]) -> str:
+def format_json(entries: list[ImpactEntry], extras: ImpactExtras | None = None) -> str:
     rows = [
         {
             "req_id": entry.req_id,
             "req_name": entry.req_name,
             "functions": [
-                {"name": f.name, "file": f.file_path, "version": f.new_version}
+                {
+                    "name": f.name,
+                    "file": f.file_path,
+                    "version": f.new_version,
+                    **({"via": f.via} if f.via is not None else {}),
+                }
                 for f in entry.functions
             ],
             **({"reviewers": entry.reviewers} if entry.reviewers is not None else {}),
+            **(
+                {"tests": [{"name": t.name, "file": t.file} for t in entry.tests]}
+                if entry.tests is not None
+                else {}
+            ),
         }
         for entry in entries
     ]
-    data = {"schema_version": IMPACT_SCHEMA_VERSION, "entries": rows}
+    data: dict[str, Any] = {"schema_version": IMPACT_SCHEMA_VERSION, "entries": rows}
+    if extras is not None:
+        data.update(unmapped=extras.unmapped, unmapped_files=extras.unmapped_files)
     return json.dumps(data, indent=2) + "\n"
 
 
@@ -602,11 +729,15 @@ def format_text(entries: list[ImpactEntry]) -> str:
 
 ## @brief Dispatch to the appropriate formatter based on config.
 #  v1.3: the format is a parameter, not impact.output.format (2.0.0, R5-CFG F9)
-#  @version 1.3
+#  v1.4: the extras ride along to the formats that show them (2.1, clew#74)
+#  @version 1.4
 #  @utility
-def format_report(entries: list[ImpactEntry], fmt: str = "markdown") -> str:
-    formatters = {"json": format_json, "text": format_text}
-    return formatters.get(fmt, format_markdown)(entries)
+def format_report(
+    entries: list[ImpactEntry], fmt: str = "markdown", extras: ImpactExtras | None = None
+) -> str:
+    if fmt == "text":
+        return format_text(entries)
+    return (format_json if fmt == "json" else format_markdown)(entries, extras)
 
 
 ## @brief Orchestrate diff analysis, requirement mapping, and report generation.
@@ -614,7 +745,8 @@ def format_report(entries: list[ImpactEntry], fmt: str = "markdown") -> str:
 #  an empty report then means nothing changed, never that nothing was read.
 #  1.3 (2.0.0, R5-CFG F9): the format is the caller's (`fmt`), not a config key; the entries are
 #  built by `impact_entries`, which `clew guard impact --write` also uses.
-#  @version 1.3
+#  1.4 (2.1, clew#74): built by `impact_report`, with tests, `via` and the unmapped lists.
+#  @version 1.4
 #  @req REQ-DDB-GUARD-010
 def run_impact(
     file_paths: list[str],
@@ -624,12 +756,14 @@ def run_impact(
     run_command: RunCommand | None = None,
     fmt: str = "markdown",
 ) -> str:
-    return format_report(impact_entries(file_paths, config, staged, diff_range, run_command), fmt)
+    entries, extras = impact_report(file_paths, config, staged, diff_range, run_command)
+    return format_report(entries, fmt, extras)
 
 
 ## @brief Collect the changed functions and map them to the requirements they implement.
 #  v1.1: reviewers from the owners files (2.0.0, S2/S3 served)
-#  @version 1.1
+#  v1.2: the entries of `impact_report` (2.1, clew#74)
+#  @version 1.2
 #  @req REQ-DDB-GUARD-010
 #  @return One entry per changed function
 def impact_entries(
@@ -639,17 +773,31 @@ def impact_entries(
     diff_range: str | None = None,
     run_command: RunCommand | None = None,
 ) -> list[ImpactEntry]:
+    return impact_report(file_paths, config, staged, diff_range, run_command)[0]
+
+
+## @brief The full report: entries with covering tests and `via`, and the unmapped lists.
+#  @details 2.1 (clew#74). The gate runs at the repository root (pre-commit's working
+#  directory); the caller walk reads that repository's existing index, never builds one.
+#  @version 1.0
+#  @req REQ-DDB-GUARD-010
+#  @return (entries, extras)
+def impact_report(
+    file_paths: list[str],
+    config: dict[str, Any],
+    staged: bool = False,
+    diff_range: str | None = None,
+    run_command: RunCommand | None = None,
+) -> tuple[list[ImpactEntry], ImpactExtras | None]:
+    from ..indexlocate import find_index
+    from .reach import Reach
+
     if not file_paths and (staged or diff_range):
         from .git import get_changed_files
 
         file_paths = get_changed_files(diff_range, staged, run_command) or []
-    changed = collect_changed_functions(
-        file_paths,
-        config,
-        diff_range=diff_range,
-        staged=staged,
-        run_command=run_command,
-    )
-    ## The gate runs at the repository root (pre-commit's working directory).
-    owners = OwnerResolver.from_repo(Path.cwd(), config.get("owners"))
-    return build_impact_report(changed, config, owners)
+    changed, unmapped_files = collect_changes(file_paths, config, diff_range, staged, run_command)
+    root = Path.cwd()
+    owners = OwnerResolver.from_repo(root, config.get("owners"))
+    reach = Reach(find_index(root), repo_root=root, config=config)
+    return build_report(changed, config, owners, reach, unmapped_files)

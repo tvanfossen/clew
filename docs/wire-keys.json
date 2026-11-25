@@ -599,12 +599,20 @@
    "functions",
    "req_id",
    "req_name",
-   "reviewers"
+   "reviewers",
+   "tests"
   ],
   "function_keys": [
    "file",
    "name",
-   "version"
+   "version",
+   "via"
+  ],
+  "report_keys": [
+   "entries",
+   "schema_version",
+   "unmapped",
+   "unmapped_files"
   ]
  }
 }

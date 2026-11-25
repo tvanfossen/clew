@@ -188,7 +188,8 @@ def _emit(text: str, target: Path | None) -> None:
 ## @param explicit The --db value, or None.
 ## @param repo_root Repo being analysed.
 ## @return Path to an existing index, or None when there is none.
-## @version 2
+## v3 (2.1, clew#74): delegates to `clew.indexlocate.find_index`, shared with the impact gate.
+## @version 3
 ## @utility
 def _resolve_db(explicit: str | None, repo_root: Path) -> Path | None:
     """Discovery order: the explicit flag, then the MCP server's registry (the
@@ -199,37 +200,10 @@ def _resolve_db(explicit: str | None, repo_root: Path) -> Path | None:
     @brief Find the database a proposal can be measured against.
     @version 2
     """
-    if explicit:
-        candidate = Path(explicit).expanduser().resolve()
-        return candidate if candidate.is_file() else None
-    registered = _registered_db(repo_root)
-    local = repo_root / "clew.db"
-    return registered or (local if local.is_file() else None)
+    ## 2.1 (clew#74): one rule, shared with `clew guard impact` (`clew.indexlocate`).
+    from ..indexlocate import find_index
 
-
-## @brief The database the MCP target registry has allocated for a repo.
-## @param repo_root Repo being analysed.
-## @return Path to the registered database when it exists, else None.
-## @version 2
-## @utility
-def _registered_db(repo_root: Path) -> Path | None:
-    """Imported lazily and guarded: the registry lives under `mcp_server`, whose
-    package import pulls the optional MCP SDK. A core-only install must still be
-    able to run the proposer — it just cannot find an agent-built database.
-
-    @brief Look up the registered database for a repo.
-    @version 2
-    """
-    try:
-        from ..mcp_server.state import TargetRegistry
-    except ImportError:
-        return None
-    wanted = str(repo_root)
-    for target in TargetRegistry().targets():
-        path = Path(target.db_path)
-        if str(Path(target.repo_path).expanduser().resolve()) == wanted and path.is_file():
-            return path
-    return None
+    return find_index(repo_root, explicit)
 
 
 ## @brief Send logging to stderr so the draft on stdout stays parseable.

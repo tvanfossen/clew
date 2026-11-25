@@ -99,7 +99,8 @@ def _referenced(annotation: Any) -> list[type]:
 ## @brief Every field of every dataclass reachable from the reply roots.
 ## @return The manifest: version, envelope keys, and {class: {field: declared type}}.
 ## v2 (2.0.0, PS1/PS3): the `flow` and `impact` sections.
-## @version 2
+## v3 (2.1, clew#74): impact.json's report keys.
+## @version 3
 ## @req REQ-DDB-QUERY-014
 def wire_manifest() -> dict[str, Any]:
     """BREADTH-FIRST FROM THE ROOTS, so a nested dataclass (a caller row, a gate row) is covered
@@ -109,7 +110,12 @@ def wire_manifest() -> dict[str, Any]:
     @return The manifest dict.
     @version 1
     """
-    from ..guard.impact import IMPACT_ENTRY_KEYS, IMPACT_FUNCTION_KEYS, IMPACT_SCHEMA_VERSION
+    from ..guard.impact import (
+        IMPACT_ENTRY_KEYS,
+        IMPACT_FUNCTION_KEYS,
+        IMPACT_REPORT_KEYS,
+        IMPACT_SCHEMA_VERSION,
+    )
     from ..wiki import flow as flow_module
 
     return {
@@ -126,6 +132,8 @@ def wire_manifest() -> dict[str, Any]:
             "schema_version": IMPACT_SCHEMA_VERSION,
             "entry_keys": sorted(IMPACT_ENTRY_KEYS),
             "function_keys": sorted(IMPACT_FUNCTION_KEYS),
+            ## 2.1 (clew#74): the report's own keys, additive.
+            "report_keys": sorted(IMPACT_REPORT_KEYS),
         },
     }
 

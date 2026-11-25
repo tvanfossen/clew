@@ -232,5 +232,8 @@ def test_the_impact_report_shape_is_in_the_manifest() -> None:
 
     impact = wire_manifest()["impact"]
     assert impact["schema_version"] == IMPACT_SCHEMA_VERSION
-    assert impact["entry_keys"] == ["functions", "req_id", "req_name", "reviewers"]
-    assert impact["function_keys"] == ["file", "name", "version"]
+    ## SPEC CHANGED (2.1, clew#74, owner 2026-11-25): `tests` on an entry, `via` on a function,
+    ## and the report's own `unmapped` / `unmapped_files` — additive, so schema_version stays 1.
+    assert impact["entry_keys"] == ["functions", "req_id", "req_name", "reviewers", "tests"]
+    assert impact["function_keys"] == ["file", "name", "version", "via"]
+    assert impact["report_keys"] == ["entries", "schema_version", "unmapped", "unmapped_files"]
