@@ -43,6 +43,28 @@ the exit code.
 
 Full reference: `docs/WIKI.md`.
 
+## Failure modes and the test flowchart
+
+A requirement declares the ways it can fail in the catalogue (`failure_modes: {FM-ID: meaning}`).
+A test page draws "How it can fail" when the test names a mode: each assertion is a diamond whose
+failure ends at the mode its inline marker names (`# fails_when: FM-ID`, `// fails_when:` in C and
+C++), else the test's only `@fails_when` mode, else "unassigned".
+
+To fill in markers, draft them for a person to review. clew makes no model call; you propose and
+they decide:
+
+1. `clew wiki propose-modes [--files tests/test_x.py]` prints YAML: per test, its candidate modes
+   with meanings, and each unmarked assertion with `proposed: null`, `status: unreviewed`.
+2. For each assertion, read it and the meanings and set `proposed` to the ONE mode whose meaning
+   names what that assertion would catch failing. Leave it `null` when none fits; do not stretch a
+   meaning to fit. Do not change `status`.
+3. Show the person the draft: each assertion, your proposal and a one-line reason. They set
+   `status: accepted` or `rejected` per entry.
+4. `clew wiki propose-modes --apply reviewed.yaml` writes only the accepted entries as markers. A
+   line that no longer reads as its assertion is refused and named, and the run exits 2.
+
+The gate refuses a marker or `@fails_when` id the catalogue does not declare.
+
 ## Audiences
 
 `wiki.audiences` builds the same site with things withheld: `exclude_bodies` (source, activity

@@ -195,6 +195,15 @@
      "--svg"
     ]
    },
+   "propose-modes": {
+    "positionals": [],
+    "options": [
+     "--apply",
+     "--files",
+     "--index",
+     "--repo-root"
+    ]
+   },
    "trace": {
     "positionals": [],
     "options": [

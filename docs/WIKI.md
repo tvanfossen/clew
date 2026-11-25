@@ -223,6 +223,42 @@ text and each flow as resources, `clew://wiki/{slug}/llms.txt` and `clew://wiki/
 named `<file>::<name>`, plus the bare name where only one file defines it. Intersphinx and
 `sphobjinv` can then resolve a function to its section.
 
+## How a test can fail
+
+A requirement in the catalogue declares the ways it can fail:
+
+```yaml
+requirements:
+  REQ-A-001:
+    title: adds
+    failure_modes:
+      FM-A-001-1: wrong sum
+      FM-A-001-2: identity broken
+```
+
+A test names the modes it guards with `@fails_when FM-A-001-1` in its doc comment, and one
+assertion at a time with an inline marker, `assert add(1, 0) == 1  # fails_when: FM-A-001-2`
+(`//` in C and C++). Its page then draws **How it can fail**: ovals start and end the run, a box
+is the function an assertion observes, and a diamond is each assertion. Pass goes down; fail goes
+right, to the mode its marker names, else the test's only `@fails_when` mode, else an
+**unassigned** end. A test naming no mode draws no chart.
+
+When the JUnit report records the test failing, the assertion it failed at (read from the
+failure's traceback) and the mode it reached are marked, and a caption says so. **play** steps
+through the chart at reading pace, and for a failed run follows the branch the run took.
+
+To fill in markers, draft them rather than guess:
+
+```bash
+clew wiki propose-modes > draft.yaml               # per test: candidate modes, unmarked assertions
+clew wiki propose-modes --apply reviewed.yaml      # writes only `status: accepted` entries
+```
+
+The draft gives every unmarked assertion `proposed: null, status: unreviewed`. The clew-wiki skill
+has an agent fill `proposed`; a person accepts or rejects each. `--apply` refuses, by file and
+line, an entry whose line no longer reads as its assertion, and exits 2. `clew guard` refuses a
+marker or `@fails_when` id the catalogue does not declare.
+
 ## Commands
 
 ```bash
@@ -236,6 +272,7 @@ clew wiki diff --out sites v1.1.0 v1.2.0        # what changed between two recor
 clew wiki flow ENTRY --svg --animate            # one diagram, standalone
 clew wiki trace --config .clew.yaml             # the graded trace as JSON
 clew wiki trace-run --test NODE --out spans.json
+clew wiki propose-modes                         # a failure-mode marker draft, as YAML
 ```
 
 `check` is cheap and belongs in pre-commit (the `clew-wiki-check` hook) or a CI static stage;

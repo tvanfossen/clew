@@ -51,7 +51,8 @@ WIKI_COMMAND = "wiki"
 ## v10: help text names the top-level tests: section (2.0.0)
 ## v11: #73 small items (2.1): --wiki-config
 ## v12: #72 items 8 and 12 (2.1): --summary
-## @version 12
+## v13: propose-modes (2.2, flowchart F4)
+## @version 13
 ## @utility
 def _parser() -> argparse.ArgumentParser:
     """@brief Build the parser. @return Parser."""
@@ -116,6 +117,15 @@ def _parser() -> argparse.ArgumentParser:
     run.add_argument("--index")
     run.add_argument("--repo-root")
     run.add_argument("--indent", type=int, default=None)
+    ## 2.2 (flowchart F4): a reviewed draft of per-assertion failure-mode markers.
+    modes = sub.add_parser(
+        "propose-modes",
+        help="draft which assertion fails into which declared mode, as YAML; --apply a reviewed one",
+    )
+    modes.add_argument("--files", nargs="*", default=None, help="limit to these test files")
+    modes.add_argument("--apply", help="write the `accepted` entries of this reviewed draft")
+    modes.add_argument("--index")
+    modes.add_argument("--repo-root")
     diff = sub.add_parser("diff", help="compare two version-keyed builds")
     diff.add_argument("--out", required=True, help="the versioned output root")
     diff.add_argument("old")
@@ -135,7 +145,8 @@ def _parser() -> argparse.ArgumentParser:
 ## v7: `trace-run`, which needs no index (it overlays the expected flow when one exists).
 ## v8: `open` (round 3, P5a), dispatched before the parser: it owns its own arguments.
 ## v9: #73 small items (2.1): --wiki-config
-## @version 9
+## v10: propose-modes (2.2, flowchart F4)
+## @version 10
 ## @req REQ-DDB-WIKI-001
 def wiki_main(argv: list[str]) -> int:
     """@brief Dispatch a wiki verb. @return Exit status."""
@@ -158,6 +169,8 @@ def wiki_main(argv: list[str]) -> int:
     if not db.is_file():
         sys.stderr.write(f"clew wiki: no index at {db} — build one with `clew --repo-root`\n")
         return 1
+    if args.verb == "propose-modes":
+        return _propose_modes(args, db, repo or Path.cwd())
     if args.verb in ("check", "build"):
         from .config import wiki_overlay
 
@@ -171,6 +184,36 @@ def wiki_main(argv: list[str]) -> int:
         return 2
     sys.stdout.write(text + "\n")
     return 0
+
+
+## @brief Print a failure-mode draft, or apply a reviewed one.
+## @param args Parsed arguments.
+## @param db The index.
+## @param repo The repository.
+## @return Exit status: 0 printed or applied, 2 when any accepted entry was refused.
+## @version 1
+## @req REQ-DDB-WIKI-043
+def _propose_modes(args: argparse.Namespace, db: Path, repo: Path) -> int:
+    """A REFUSED ENTRY IS NAMED AND THE RUN FAILS (2), so a review applied to a file that moved
+    on is never reported as done; the entries that did apply stay applied.
+
+    @brief propose-modes verb.
+    @return Exit status.
+    """
+    import yaml
+
+    from .proposemodes import apply, proposals
+
+    if not args.apply:
+        draft = proposals(db, repo, args.files)
+        sys.stdout.write(yaml.safe_dump(draft, sort_keys=False, allow_unicode=True))
+        return 0
+    entries = yaml.safe_load(Path(args.apply).read_text(encoding="utf-8")) or []
+    written, refused = apply(repo, entries)
+    for line in refused:
+        sys.stderr.write(f"clew wiki: propose-modes refused — {line}\n")
+    sys.stdout.write(f"{written} marker(s) written\n")
+    return 2 if refused else 0
 
 
 ## @brief Write the wiki as Markdown pages for a GitHub or Azure DevOps wiki.
