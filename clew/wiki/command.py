@@ -206,7 +206,8 @@ def _markdown(args: argparse.Namespace, db: Path, repo: Path, config: Path | Non
 ## @brief Run one test traced, write its spans, print the run and its overlay.
 ## @param args Parsed arguments.
 ## @return Exit status: 0 ran (whatever the test's outcome), 2 the run could not happen.
-## @version 1
+## v2: creates the --out directory (2.1, found wiring CI)
+## @version 2
 ## @req REQ-DDB-WIKI-035
 def _trace_run(args: argparse.Namespace) -> int:
     """THE OVERLAY NEEDS AN INDEX, the run does not: without one the spans and checkpoints are
@@ -224,6 +225,8 @@ def _trace_run(args: argparse.Namespace) -> int:
     except (RuntimeError, OSError, subprocess.SubprocessError) as exc:
         sys.stderr.write(f"clew wiki: trace-run refused — {exc}\n")
         return 2
+    ## 2.1 (found wiring this into CI): a fresh checkout has no `build/traces/`.
+    Path(args.out).parent.mkdir(parents=True, exist_ok=True)
     Path(args.out).write_text(json.dumps(run["otlp"], indent=args.indent), encoding="utf-8")
     report = {k: run[k] for k in ("passed", "checkpoints", "failure", "dropped")}
     db, _repo = _locate(args)

@@ -88,6 +88,11 @@ jobs:
       - name: Change impact of the last commit
         run: |
           .venv/bin/python -m clew guard impact --range HEAD~1..HEAD $(git diff --name-only HEAD~1 HEAD -- 'clew/*.py')
+      # 2.1: the dossier flow's real values (X-2) come from this one traced test, written where
+      # `.clew.yaml` `tests.traces` reads; recorded here so the published wiki carries them.
+      - name: Traced run for the wiki's replay values
+        run: |
+          .venv/bin/clew wiki trace-run --test tests/test_mcp_server.py::test_the_dossier_body_caps_and_reports_truncation --out build/traces/dossier.json
       - uses: ./.github/actions/wiki
         id: wiki
         with:

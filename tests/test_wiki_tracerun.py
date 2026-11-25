@@ -538,3 +538,17 @@ def test_a_master_flow_takes_the_subtree_a_test_trace_reaches() -> None:
     assert sorted(s["name"] for s in spans_of(sub)) == ["_answered", "dossier"]
     assert trace_for("test_dossier_caps", traces) == traces["test_dossier_caps"]
     assert trace_for("absent", traces) is None
+
+
+def test_the_cli_creates_the_output_directory(repo: Path, tmp_path: Path) -> None:
+    """FOUND WIRING trace-run into CI (2.1): `--out build/traces/dossier.json` on a fresh checkout
+    crashed with a FileNotFoundError traceback, because nothing creates `build/traces/`.
+
+    @brief `--out` in a missing directory works.
+    """
+    from clew.wiki.command import wiki_main
+
+    out = tmp_path / "build" / "traces" / "spans.json"
+    args = ["trace-run", "--repo-root", str(repo), "--test", "tests/test_m.py::test_load"]
+    assert wiki_main([*args, "--out", str(out)]) == 0
+    assert json.loads(out.read_text())["resourceSpans"]

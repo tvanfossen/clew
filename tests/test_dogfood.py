@@ -106,3 +106,24 @@ def test_every_catalogued_requirement_has_an_implementer_or_an_exempt_status() -
     )
     assert out.returncode == 0, out.stdout + out.stderr
     assert "Exempt by status" in out.stdout
+
+
+def test_ci_records_the_traced_run_the_wiki_s_real_values_come_from() -> None:
+    """2.1 (roadmap: trace-run in CI). X-2 gave the dossier flow real values from one traced test,
+    recorded by hand: CI's site, and so the published wiki, had none. The wiki job now runs that
+    trace before building, to a path `tests.traces` in `.clew.yaml` reads.
+
+    @brief CI traces the dossier test before the wiki builds.
+    """
+    import fnmatch
+
+    ci = yaml.safe_load((REPO / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8"))
+    steps = ci["jobs"]["wiki"]["steps"]
+    runs = [s.get("run", "") for s in steps]
+    traced = next((i for i, r in enumerate(runs) if "clew wiki trace-run" in r), None)
+    assert traced is not None, "the wiki job runs no trace-run"
+    site = next(i for i, s in enumerate(steps) if s.get("uses") == "./.github/actions/wiki")
+    assert traced < site, "the trace must exist before the site is built"
+    out = runs[traced].split("--out", 1)[1].split()[0]
+    globs = _clew_yaml()["tests"]["traces"]
+    assert any(fnmatch.fnmatch(out, g) for g in globs), (out, globs)
