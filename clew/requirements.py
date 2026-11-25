@@ -852,7 +852,8 @@ def _create_req_test_edges_table(conn: sqlite3.Connection) -> None:
 ## v3 (round 4, R9): with patterns, a covering test is a function in a file they match — the
 ## substring heuristic made clew/testscope.py's `mark_test_scope` its own covering test.
 ## v4 (2.1, clew#74): Catch2 cases are linked by their tags and comment `@req` (`catch2`).
-## @version 4
+## v5: a function is judged by its body's file (2.1, entropic)
+## @version 5
 ## @req REQ-DDB-SCHEMA-006
 def import_req_test_edges(
     db_path: Path, test_patterns: tuple[str, ...] | None = None, repo_root: Path | None = None
@@ -876,12 +877,19 @@ def import_req_test_edges(
         logger.info("req_test_edges: req_edges table absent — skipping")
         return
 
+    ## THE BODY'S FILE DECIDES (2.1, found on entropic measuring clew#74): `file_id` is where a
+    ## function is DECLARED, so a production function re-declared in a test file read as a test
+    ## — 34 of 39 rows there — and dropped out of its requirement's implementers.
+    columns = {r[1] for r in conn.execute("PRAGMA table_info(memberdef)")}
+    where = (
+        "COALESCE(NULLIF(m.bodyfile_id, 0), m.file_id)" if "bodyfile_id" in columns else "m.file_id"
+    )
     rows = conn.execute(
-        """
+        f"""
         SELECT re.req_id, re.memberdef_rowid, m.name, p.name AS file_path
         FROM req_edges re
         JOIN memberdef m ON m.rowid = re.memberdef_rowid
-        LEFT JOIN path p ON p.rowid = m.file_id
+        LEFT JOIN path p ON p.rowid = {where}
         """,
     ).fetchall()
 

@@ -70,3 +70,30 @@ def test_without_patterns_the_legacy_heuristic_still_applies(tmp_path: Path) -> 
     import_req_edges(db)
     import_req_test_edges(db)
     assert "test_marks_scope" in _linked(db)
+
+
+def test_a_function_is_judged_by_its_body_s_file_not_a_declaration_s(tmp_path: Path) -> None:
+    """FOUND ON entropic (2.1, measuring clew#74): 34 of 39 covering-test rows were PRODUCTION
+    functions — `extract_final_text`, bodied in src/facade/final_text.h, re-declared in
+    tests/unit/api/final_text_test.cpp — because the test check read `file_id`, the declaring
+    file. They were listed as covering tests AND dropped from their requirement's implementers.
+
+    @brief The body's file decides.
+    """
+    db = tmp_path / "doxy.db"
+    with sqlite3.connect(db) as conn:
+        conn.executescript(
+            """
+            CREATE TABLE path (name TEXT);
+            CREATE TABLE memberdef (rowid INTEGER PRIMARY KEY, kind TEXT, name TEXT,
+                file_id INTEGER, bodyfile_id INTEGER, briefdescription TEXT,
+                detaileddescription TEXT);
+            INSERT INTO path (rowid, name) VALUES (1, 'tests/final_text_test.cpp'), (2, 'src/final_text.h');
+            INSERT INTO memberdef VALUES
+                (1, 'function', 'extract_final_text', 1, 2, '', '@req REQ-1'),
+                (2, 'function', 'test_helper', 1, 1, '', '@req REQ-1');
+            """
+        )
+    import_req_edges(db)
+    import_req_test_edges(db, test_patterns=TEST_PATH_FACTS)
+    assert _linked(db) == ["test_helper"]
