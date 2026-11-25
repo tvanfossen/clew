@@ -917,12 +917,15 @@ _THREAD_SITE_COLUMNS = f"{_THREAD_COLUMNS}, t.spawn_path_rowid, t.spawn_line"
 ## before build 48 has the file and line and not this, and selecting a missing column raises
 ## rather than degrading.
 _THREAD_SPAWNER_COLUMNS = f"{_THREAD_SITE_COLUMNS}, t.spawn_function"
+## And the tenth and eleventh (build 14, 2.1): how the thread ends, and where.
+_THREAD_LIFECYCLE_COLUMNS = f"{_THREAD_SPAWNER_COLUMNS}, t.lifecycle, t.lifecycle_line"
 
 
 ## @brief The threads column list this index can actually supply.
 ## @param conn Open connection.
 ## @return The column list, with the spawn-site and spawner columns only when they exist.
-## @version 2
+## v3: thread lifecycle (2.1 index pair): served
+## @version 3
 ## @utility
 def _thread_columns(conn: sqlite3.Connection) -> str:
     """An index predating build version 35 has no spawn-site columns, and one predating build 48
@@ -934,6 +937,8 @@ def _thread_columns(conn: sqlite3.Connection) -> str:
     @return SQL column list.
     @version 2
     """
+    if has_columns(conn, "threads", "lifecycle", "lifecycle_line"):
+        return _THREAD_LIFECYCLE_COLUMNS
     if has_columns(conn, "threads", "spawn_path_rowid", "spawn_line", "spawn_function"):
         return _THREAD_SPAWNER_COLUMNS
     if has_columns(conn, "threads", "spawn_path_rowid", "spawn_line"):
@@ -943,7 +948,8 @@ def _thread_columns(conn: sqlite3.Connection) -> str:
 
 ## @brief Assemble a Thread dataclass from a threads row (+ member count).
 ## @return Thread built from the row, with the entry function name resolved, its spawn site and spawning function attributed and its membership count populated.
-## @version 3
+## v4: thread lifecycle (2.1 index pair): served
+## @version 4
 ## @utility
 def _build_thread(conn: sqlite3.Connection, row: tuple) -> Thread:
     """A SHORT ROW IS FOLDED, NOT REJECTED. The spawn-site columns arrive at build version 35,
@@ -981,6 +987,9 @@ def _build_thread(conn: sqlite3.Connection, row: tuple) -> Thread:
         spawn_line=spawn_line,
         spawn_function=spawn_function,
         external_root=external_root,
+        ## Elements 10 and 11 arrive at build 14; a shorter row never looked.
+        lifecycle=row[9] if len(row) > 9 else None,
+        lifecycle_line=row[10] if len(row) > 10 else None,
     )
 
 

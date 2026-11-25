@@ -437,8 +437,10 @@ def test_the_spawn_site_names_its_enclosing_function() -> None:
     ## The ARITY MATTERS: the flattener folds positionally, so a walk that emitted one element
     ## fewer would silently drop the last field for every row. gh#47 made it an OCTET — the
     ## eighth is `threads.source`, which tells a registration call apart from a handler
-    ## recognised at its definition.
-    assert len(sites[0]) == 8, f"the payload must be an octet, got {len(sites[0])}"
+    ## recognised at its definition. 2.1 adds the ninth and tenth, the thread's lifecycle and its
+    ## line (`threadlife`).
+    assert len(sites[0]) == 10, f"the payload must have ten elements, got {len(sites[0])}"
+    assert sites[0][8:] == ["unknown", None], "a pthread_t nobody joins or detaches"
     assert sites[0][6] == "thread_create"
 
     ## FILE SCOPE: a spawn outside any function must report "" rather than borrow a name.

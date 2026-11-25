@@ -1786,7 +1786,9 @@ requirements:
     name: Threads, thread membership, and thread-boundary flags
     acceptance_criteria: threads + thread_membership populate from AST spawn-site harvest (POSIX/FreeRTOS/CMSIS
       defaults + declared --thread-patterns wrappers); shared_key_edges carry crosses_thread/to_thread_id
-      computed from membership.
+      computed from membership. Each spawned thread's row carries its lifecycle (joined / detached
+      / daemon / unknown) and the line that says so, read from the spawning file; NULL for a kind
+      that creates no thread (an interrupt or signal handler, a timer, main).
     x-priority: P0
     x-status: implemented
     x-evidence: clew/threads.py extract_threads/_populate_membership/annotate_thread_boundaries,

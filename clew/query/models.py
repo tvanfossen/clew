@@ -373,6 +373,11 @@ class Thread:
     ## '' for first party, else the external root owning the SPAWN SITE. Defaults first party
     ## for the same reason `LockEntry.external_root` does.
     external_root: str = ""
+    ## 2.1 (entropic Q4): how the thread ends — joined / detached / daemon / unknown — read from
+    ## the spawning file, and the line that says so. ABSENT on an index before build 14, and on
+    ## a row with no spawn call (an interrupt handler), where the question does not apply.
+    lifecycle: str | None = None
+    lifecycle_line: int | None = None
 
 
 ## @brief Every thread in the index, with the origin split beside it.

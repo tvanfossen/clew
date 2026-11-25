@@ -384,6 +384,17 @@ THREAD_STRENGTH = Vocabulary(
     reserved=frozenset({"low", "high"}),
 )
 
+## 2.1 (entropic Q4): how a spawned thread ends, read from the spawning file (`threadlife`).
+LIFECYCLE_JOINED, LIFECYCLE_DETACHED = "joined", "detached"
+LIFECYCLE_DAEMON, LIFECYCLE_UNKNOWN = "daemon", "unknown"
+
+THREAD_LIFECYCLE = Vocabulary(
+    id="thread_lifecycle",
+    values=(LIFECYCLE_JOINED, LIFECYCLE_DETACHED, LIFECYCLE_DAEMON, LIFECYCLE_UNKNOWN),
+    means="how a spawned thread ends: joined, detached, a Python daemon, or nothing in the spawning file says",
+    rank={LIFECYCLE_JOINED: 0, LIFECYCLE_DETACHED: 0, LIFECYCLE_DAEMON: 0, LIFECYCLE_UNKNOWN: 0},
+)
+
 MEMBERSHIP_SOURCE = Vocabulary(
     id="membership_source",
     values=("call_closure", "declared"),
@@ -1087,6 +1098,7 @@ VOCABULARIES: dict[str, Vocabulary] = {
         DISPATCH_MODE,
         THREAD_KIND,
         THREAD_SOURCE,
+        THREAD_LIFECYCLE,
         THREAD_STRENGTH,
         MEMBERSHIP_SOURCE,
         LOCK_KIND,
@@ -1139,6 +1151,7 @@ COLUMNS: dict[tuple[str, str], Vocabulary] = {
     ("threads", "kind"): THREAD_KIND,
     ("threads", "source"): THREAD_SOURCE,
     ("threads", "confidence"): THREAD_STRENGTH,
+    ("threads", "lifecycle"): THREAD_LIFECYCLE,
     ("thread_membership", "source"): MEMBERSHIP_SOURCE,
     ("blocking_calls", "wait"): BLOCKING_WAIT,
     ("context_conflicts", "verdict"): CONTEXT_VERDICT,

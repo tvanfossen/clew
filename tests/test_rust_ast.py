@@ -78,7 +78,9 @@ def test_thread_spawn_resolves_closure_entry():
     patterns = patterns_by_name(load_thread_patterns(None))
     sites = _walk_spawn_sites(tree, src, patterns)
     assert len(sites) == 1
-    thread_name, entry_name, kind, qualified_entry, _sep, line, spawn_fn, _source = sites[0]
+    ## Ten elements since 2.1: the last two are the lifecycle and its line (`threadlife`).
+    thread_name, entry_name, kind, qualified_entry, _sep, line, spawn_fn, _source = sites[0][:8]
+    assert len(sites[0]) == 10
     assert entry_name == "worker"
     assert kind == "pthread"
     assert spawn_fn == "main"

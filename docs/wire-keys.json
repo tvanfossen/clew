@@ -521,7 +521,9 @@
    "spawn_file": "str",
    "spawn_line": "int | None",
    "spawn_function": "str",
-   "external_root": "str"
+   "external_root": "str",
+   "lifecycle": "str | None",
+   "lifecycle_line": "int | None"
   },
   "ThreadInventory": {
    "threads": "tuple[Thread, ...]",

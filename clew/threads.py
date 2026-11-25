@@ -78,6 +78,7 @@ from .shared_key_edges import (
     _nth_call_argument,
     _resolve_literal_key,
 )
+from .threadlife import Lifecycles
 from .treescan import manifest_key
 from .vocabulary import (
     STAGE_THREADS,
@@ -492,7 +493,8 @@ def patterns_by_name(patterns: list[SpawnPattern]) -> dict[str, list[SpawnPatter
 
 
 ## @brief Create threads + thread_membership tables (+ indexes) if absent.
-## @version 6
+## v7: thread lifecycle (2.1 index pair)
+## @version 7
 ## @req REQ-DDB-SCHEMA-001
 ## @req REQ-DDB-SCHEMA-007
 ## @req REQ-DDB-QUERY-011
@@ -559,6 +561,10 @@ def _ensure_threads_tables(conn: sqlite3.Connection) -> None:
             -- a sample program is exactly the mbedtls case), and requiring a rowid would drop the
             -- row this column exists to serve.
             spawn_function        TEXT,
+            -- 2.1: how the thread ends (`threadlife`), and the line that says so. NULL for a row
+            -- with no spawn call (an interrupt handler): the question does not apply.
+            lifecycle             TEXT {check("threads", "lifecycle")},
+            lifecycle_line        INTEGER,
             UNIQUE(name, entry_memberdef_rowid, kind)
         )
         """,
@@ -600,6 +606,8 @@ class _SpawnSite:
         "name",
         "path_rowid",
         "qualified_entry",
+        "lifecycle",
+        "lifecycle_line",
         "separator",
         "source",
         "spawn_function",
@@ -614,7 +622,10 @@ class _SpawnSite:
     ## @param line 1-based line of the spawn call, or None when an older cached payload omitted it.
     ## @param path_rowid The spawning file's `path` rowid, filled in by the harvest flattener.
     ## @param spawn_function The name of the function the spawn call sits in, "" at file scope.
-    ## @version 5
+    ## @param lifecycle How the thread ends (`threadlife`), None where it does not apply.
+    ## @param lifecycle_line The line that says so, None when unknown.
+    ## v6 (2.1 index pair): carries the thread lifecycle and its line.
+    ## @version 6
     ## @utility
     def __init__(
         self,
@@ -627,8 +638,13 @@ class _SpawnSite:
         path_rowid: int | None = None,
         spawn_function: str = "",
         source: str = THREAD_SOURCE_SPAWN,
+        lifecycle: str | None = None,
+        lifecycle_line: int | None = None,
     ) -> None:
         self.name = name
+        ## 2.1: how the thread ends (`threadlife.Lifecycles.of`); None where it does not apply.
+        self.lifecycle = lifecycle
+        self.lifecycle_line = lifecycle_line
         ## HOW this execution context was found (gh#47): a spawn call, an interrupt attribute or
         ## handler-defining macro, or a handler naming convention. Three different strengths of
         ## evidence, and a reader weighing an interrupt-context conflict needs to know which one
@@ -1008,7 +1024,8 @@ def _enclosing_function_name(node: Any, src: bytes) -> str:
 
 ## @brief Walk one parsed file, harvesting spawn call sites.
 ## @return List of [thread_name, entry_name, kind, qualified_entry, separator, spawn_line, spawn_function] septets.
-## @version 8
+## v9: thread lifecycle (2.1 index pair)
+## @version 9
 ## @utility
 def _walk_spawn_sites(
     tree: Any,
@@ -1034,6 +1051,8 @@ def _walk_spawn_sites(
     ## is a heterogeneous positional row on its way through the cache, so annotating it `str`
     ## would be describing the shape it stopped having.
     sites: list[list[Any]] = []
+    ## Built on the first matched spawn only: a file with none pays no second walk.
+    life: Lifecycles | None = None
     stack = [tree.root_node]
     while stack:
         node = stack.pop()
@@ -1047,6 +1066,7 @@ def _walk_spawn_sites(
                 entry, source = declared
                 sites.append(
                     [entry, entry, "isr", entry, SCOPE_SEP_CPP, node.start_point[0] + 1, "", source]
+                    + [None, None]
                 )
             continue
         if node.type != "call_expression":
@@ -1073,6 +1093,7 @@ def _walk_spawn_sites(
             site = _resolve_spawn_site(node, src_bytes, pattern)
             if site is None:
                 continue
+            life = life or Lifecycles(tree.root_node, src_bytes)
             sites.append(
                 [
                     site.name,
@@ -1087,6 +1108,8 @@ def _walk_spawn_sites(
                     ## to ask a follow-up about, so it read the file instead.
                     _enclosing_function_name(node, src_bytes),
                     THREAD_SOURCE_SPAWN,
+                    ## 2.1: how the thread ends, and where (`threadlife`).
+                    *life.of(node, callee_name, _assignment_target(node, src_bytes), site.kind),
                 ]
             )
     return sites
@@ -1097,7 +1120,8 @@ def _walk_spawn_sites(
 ## @param src_bytes The file's raw bytes.
 ## @param patterns_by_name Spawn patterns keyed by callee name.
 ## @return List of [thread_name, entry_name, kind, qualified_entry, separator, spawn_line, spawn_function] septets.
-## @version 6
+## v7: thread lifecycle (2.1 index pair)
+## @version 7
 ## @utility
 def _walk_py_spawn_sites(
     tree: Any,
@@ -1122,6 +1146,7 @@ def _walk_py_spawn_sites(
     classes = class_ranges(tree, src_bytes)
     ## `Any`, not `str` — the sextet's last element is the spawn LINE. Same reason as the C++ walk.
     sites: list[list[Any]] = []
+    life: Lifecycles | None = None
     stack = [tree.root_node]
     while stack:
         node = stack.pop()
@@ -1132,6 +1157,7 @@ def _walk_py_spawn_sites(
             site = _resolve_py_spawn_site(node, src_bytes, pattern, classes, bindings)
             if site is None:
                 continue
+            life = life or Lifecycles(tree.root_node, src_bytes)
             sites.append(
                 [
                     site.name,
@@ -1147,6 +1173,8 @@ def _walk_py_spawn_sites(
                     ## `name` here where the C grammar has `declarator`, so one helper serves both.
                     _enclosing_function_name(node, src_bytes),
                     THREAD_SOURCE_SPAWN,
+                    ## 2.1: the same two lifecycle elements as the C++ walk.
+                    *life.of(node, "", "", site.kind),
                 ]
             )
     return sites
@@ -1317,7 +1345,10 @@ class _SpawnHarvester(Harvester):
     ##    missing, silently, with the conflict layer running over what survives.
     ## 8 (2.0.0, R5-CORE D1): `target=this.loop` is qualified by the class when `this` is the
     ##    method's first parameter; a payload cached at 7 holds it unqualified.
-    stage_version = 8
+    ## 10 (2.1): each site carries its lifecycle and line (`threadlife`); a payload cached at 8
+    ##    never looked, and folds to NULL rather than "unknown". (9 was this commit's development
+    ##    value: a local cache holds payloads from its unfinished detector, so it is skipped.)
+    stage_version = 10
     label = "thread spawns"
 
     ## @brief Store the spawn-pattern map plus the manifest-derived cache key.
@@ -1365,7 +1396,8 @@ def spawn_harvester(thread_patterns_path: Path | dict | None = None) -> Harveste
 
 ## @brief Harvest every spawn call site across all indexed files, each with its spawning file.
 ## @return Flat list of _SpawnSite in path order.
-## @version 8
+## v9: thread lifecycle (2.1 index pair)
+## @version 9
 ## @utility
 def _harvest_all_spawn_sites(
     conn: sqlite3.Connection,
@@ -1418,6 +1450,9 @@ def _harvest_all_spawn_sites(
             ## Absent on a payload cached before gh#47, which folds to the only source those
             ## payloads could have carried.
             row[7] if len(row) > 7 else THREAD_SOURCE_SPAWN,
+            ## 2.1: absent on a payload cached at stage_version 8, which never looked.
+            row[8] if len(row) > 8 else None,
+            row[9] if len(row) > 9 else None,
         )
         for path_rowid, payload in harvested
         for row in payload.get("sites", ())
@@ -1627,7 +1662,8 @@ def _candidate_in_same_file(
 
 
 ## @brief Insert harvested spawn sites as threads rows, each with its spawn site.
-## @version 7
+## v8: thread lifecycle (2.1 index pair)
+## @version 8
 ## @utility
 def _insert_threads(
     conn: sqlite3.Connection,
@@ -1686,12 +1722,15 @@ def _insert_threads(
                 ## "recorded as file scope" stay distinguishable — the same three-state discipline
                 ## the emptiness notes elsewhere depend on.
                 site.spawn_function or None,
+                site.lifecycle,
+                site.lifecycle_line,
             )
         )
     return conn.executemany(
         "INSERT OR IGNORE INTO threads (name, entry_memberdef_rowid, kind, "
-        "source, confidence, spawn_path_rowid, spawn_line, spawn_function) "
-        "VALUES (?, ?, ?, ?, 'medium', ?, ?, ?)",
+        "source, confidence, spawn_path_rowid, spawn_line, spawn_function, "
+        "lifecycle, lifecycle_line) "
+        "VALUES (?, ?, ?, ?, 'medium', ?, ?, ?, ?, ?)",
         rows,
     ).rowcount
 

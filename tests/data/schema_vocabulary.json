@@ -199,6 +199,12 @@
     "unknown",
     "win32"
   ],
+  "threads.lifecycle": [
+    "daemon",
+    "detached",
+    "joined",
+    "unknown"
+  ],
   "threads.source": [
     "ast_isr_decl",
     "ast_isr_name",
