@@ -492,7 +492,8 @@ def _file_members(conn: sqlite3.Connection, name: str) -> list[FileMember]:
 ## @return The rule, or None.
 ## v2: matches a self-declared row on its EXACT path and keeps it out of the basename join, which
 ## would otherwise mark every same-named file generated.
-## @version 2
+## v3: CMake arguments resolved (2.1 index pair): served
+## @version 3
 ## @req REQ-DDB-QUERY-004
 def generation_rule(conn: sqlite3.Connection, name: str) -> GenerationRule | None:
     """MATCHED ON BASENAME, AND THAT IS A STATED LIMIT RATHER THAN A SHORTCUT. A build file writes
@@ -514,7 +515,9 @@ def generation_rule(conn: sqlite3.Connection, name: str) -> GenerationRule | Non
         return None
     columns = (
         "SELECT output_name, output_literal, kind, source_file, source_line, "
-        "role, arg_name, arg_literal, unresolved FROM generated_files "
+        "role, arg_name, arg_literal, unresolved, "
+        f"{'arg_resolved' if has_columns(conn, 'generated_files', 'arg_resolved') else chr(39) * 2} "
+        "FROM generated_files "
     )
     ## A SELF-DECLARED ROW KNOWS ITS EXACT PATH, so it is matched on it — and kept OUT of the
     ## basename join below. Joined by basename, mattermost-mobile's one generated file,
@@ -540,7 +543,12 @@ def generation_rule(conn: sqlite3.Connection, name: str) -> GenerationRule | Non
         role = str(row[5])
         if role in args:
             args[role].append(
-                GenerationArg(literal=str(row[7]), name=str(row[6]), unresolved=bool(row[8]))
+                GenerationArg(
+                    literal=str(row[7]),
+                    name=str(row[6]),
+                    unresolved=bool(row[8]),
+                    resolved=str(row[9]) or None,
+                )
             )
     return GenerationRule(
         output_name=str(head[0]),

@@ -2160,6 +2160,9 @@ class GenerationArg:
     literal: str
     name: str = ""
     unresolved: bool = False
+    ## 2.1: the repository-relative path, when the build file alone settles it
+    ## (`cmakeast.resolve_argument`); absent when it does not.
+    resolved: str | None = None
 
 
 ## @brief The build rule that produces a file.

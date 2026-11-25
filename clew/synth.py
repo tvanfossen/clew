@@ -206,7 +206,8 @@ class _ScriptSymbolHarvester(Harvester):
     ## which files do not exist until something produces them. A cached v1 payload holds
     ## definitions and no rules, so reusing one would leave a rebuilt index silently without
     ## them, which is why the version is part of the cache key.
-    stage_version = 2
+    ## v3 (2.1): the CMake payload also carries the file's literal variables (`resolve_argument`).
+    stage_version = 3
     label = "shell/cmake definitions and generation rules"
 
     ## @brief Harvest one file's definitions, and a CMake file's generation rules.
@@ -335,7 +336,8 @@ def register_paths(db_path: Path, files: list[str]) -> int:
 ## @brief Create the `generated_files` table if it is absent.
 ## @param conn Open connection to the index.
 ## @return None.
-## @version 1
+## v2: CMake arguments resolved (2.1 index pair)
+## @version 2
 ## @req REQ-DDB-SCHEMA-014
 def ensure_generated_files_table(conn: sqlite3.Connection) -> None:
     """CREATED UNCONDITIONALLY, EVEN AT ZERO ROWS — the rule this codebase returns to most. An
@@ -361,7 +363,9 @@ def ensure_generated_files_table(conn: sqlite3.Connection) -> None:
         "  role           TEXT NOT NULL,"
         "  arg_name       TEXT NOT NULL,"
         "  arg_literal    TEXT NOT NULL,"
-        "  unresolved     INTEGER NOT NULL DEFAULT 0)"
+        "  unresolved     INTEGER NOT NULL DEFAULT 0,"
+        ## 2.1: the argument as a repository-relative path, when the build file alone settles it.
+        "  arg_resolved   TEXT NOT NULL DEFAULT '')"
     )
     conn.execute("CREATE INDEX IF NOT EXISTS idx_generated_output ON generated_files(output_name)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_generated_arg ON generated_files(arg_name)")
@@ -372,9 +376,16 @@ def ensure_generated_files_table(conn: sqlite3.Connection) -> None:
 ## @param source_file The repo-relative path of the build file holding the rules.
 ## @param rules The `generated` records from the harvest payload.
 ## @return Rows written.
-## @version 1
+## v2: CMake arguments resolved (2.1 index pair)
+## @version 2
 ## @req REQ-DDB-PIPE-012
-def _write_generation(conn: sqlite3.Connection, source_file: str, rules: list) -> int:
+def _write_generation(
+    conn: sqlite3.Connection,
+    source_file: str,
+    rules: list,
+    variables: dict | None = None,
+    root_has_cmake: bool = False,
+) -> int:
     """A RULE WITH NO OUTPUT STILL WRITES ITS ROWS. `add_custom_target` names no OUTPUT — it is
     the aggregate forcing the rules above it to run — and its row carries `output_name = ''` so
     the target's DEPENDS are still readable while `generation_rule`'s lookup, which requires a
@@ -384,6 +395,9 @@ def _write_generation(conn: sqlite3.Connection, source_file: str, rules: list) -
     @return Rows written.
     @version 1
     """
+    from .cmakeast import resolve_argument
+
+    cmake_dir = source_file.rsplit("/", 1)[0] if "/" in source_file else ""
     rows = []
     for rule in rules:
         outputs = rule.get("outputs") or [{"literal": "", "name": ""}]
@@ -401,10 +415,14 @@ def _write_generation(conn: sqlite3.Connection, source_file: str, rules: list) -
                             arg.get("name", ""),
                             arg.get("literal", ""),
                             1 if arg.get("unresolved") else 0,
+                            ## 2.1: the path the build file alone settles, or "".
+                            resolve_argument(
+                                arg.get("literal", ""), cmake_dir, variables or {}, root_has_cmake
+                            ),
                         )
                     )
     if rows:
-        conn.executemany("INSERT INTO generated_files VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", rows)
+        conn.executemany("INSERT INTO generated_files VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", rows)
     return len(rows)
 
 
@@ -417,7 +435,8 @@ def _write_generation(conn: sqlite3.Connection, source_file: str, rules: list) -
 ## that table unconditionally so an empty layer is distinguishable from an absent one.
 ## v5: creates `decl_extent` unconditionally, and clears it, as it does `generated_files`.
 ## v6: base links consult the declared dependencies (2.0.0, R5-CORE D7)
-## @version 6
+## v7: CMake arguments resolved (2.1 index pair)
+## @version 7
 ## @req REQ-DDB-PIPE-012
 def emit_definitions(db_path: Path, repo_root: Path, cache: Any = None) -> tuple[int, int]:
     """@brief Turn the cached js_symbols payloads into rows."""
@@ -456,7 +475,11 @@ def emit_definitions(db_path: Path, repo_root: Path, cache: Any = None) -> tuple
                         "SELECT name FROM path WHERE rowid = ?", (path_rowid,)
                     ).fetchone()
                     generated_rows += _write_generation(
-                        conn, str(row[0]) if row else "", payload["generated"]
+                        conn,
+                        str(row[0]) if row else "",
+                        payload["generated"],
+                        payload.get("cmake_variables") or {},
+                        (Path(repo_root) / "CMakeLists.txt").is_file(),
                     )
         writer.inheritance(declared_dependencies(conn, repo_root))
         conn.commit()

@@ -263,7 +263,8 @@
   "GenerationArg": {
    "literal": "str",
    "name": "str",
-   "unresolved": "bool"
+   "unresolved": "bool",
+   "resolved": "str | None"
   },
   "GenerationRule": {
    "output_name": "str",

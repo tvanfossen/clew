@@ -289,7 +289,8 @@ def _sections(args: list[str], *, first_is_name: bool) -> dict[str, list[dict[st
 ## @param tree The parsed tree.
 ## @param src_bytes The file's bytes.
 ## @return `{"generated": [...]}`, or `{}` when the file holds no generation rule.
-## @version 1
+## v2: CMake arguments resolved (2.1 index pair)
+## @version 2
 ## @req REQ-DDB-PIPE-012
 def harvest_generation(tree: Any, src_bytes: bytes) -> dict[str, list[dict[str, Any]]]:
     """WHAT A BUILD FILE SAYS THAT NO OTHER LAYER DOES: which files do not exist until something
@@ -337,4 +338,113 @@ def harvest_generation(tree: Any, src_bytes: bytes) -> dict[str, list[dict[str, 
                 "depends": sections.get("DEPENDS", []),
             }
         )
-    return {"generated": rules} if rules else {}
+    ## 2.1: the file's literal variable assignments ride along, for `resolve_argument` (not
+    ## `variables`, which a payload already uses for typed members).
+    return {"generated": rules, "cmake_variables": _variables(tree.root_node)} if rules else {}
+
+
+## The commands whose first argument names a variable this file assigns literally.
+_ASSIGNERS = {"set", "file"}
+## `file()` sub-commands that assign their result to the variable after them.
+_FILE_GLOBS = {"GLOB", "GLOB_RECURSE"}
+
+
+## @brief The variables a CMake file assigns literally: `set(NAME v…)`, `file(GLOB NAME p…)`.
+## @param root The file's root node.
+## @return {name: value as written}; the last assignment wins.
+## @version 1
+## @utility
+def _variables(root: Any) -> dict[str, str]:
+    """LITERAL ONLY, LAST WINS, NO CONDITIONS: an assignment inside an `if()` is still read, the
+    file's order decides, and `resolve_argument` refuses anything still unexpanded after one pass.
+    That is the build file's own text, never a configure result.
+
+    @brief Variables.
+    @return Map.
+    """
+    out: dict[str, str] = {}
+    for node in walk_nodes(root):
+        if node.type != _COMMAND:
+            continue
+        ident = next((c for c in node.children if c.type == _IDENTIFIER), None)
+        verb = node_text(ident).strip().lower() if ident is not None else ""
+        arg_list = next((c for c in node.children if c.type == _ARGUMENT_LIST), None)
+        if verb not in _ASSIGNERS or arg_list is None:
+            continue
+        args = [_unquoted(node_text(a)) for a in arg_list.children if a.type == _ARGUMENT]
+        if verb == "file":
+            args = args[1:] if args and args[0].upper() in _FILE_GLOBS else []
+        if len(args) >= 2 and "${" not in args[0]:
+            out[args[0]] = " ".join(
+                a for a in args[1:] if a.upper() not in ("CACHE", "PARENT_SCOPE")
+            )
+    return out
+
+
+## @brief A CMake argument without its surrounding quotes (a quoted argument is one string).
+## @param text The argument as written.
+## @return The text, quotes removed, stripped.
+## @version 1
+## @utility
+def _unquoted(text: str) -> str:
+    """FOUND MEASURING mbedtls: `"./framework/x.py"` and a quoted `set()` value kept their quotes as
+    part of the path. Doubled quotes are peeled too.
+
+    @brief Unquote.
+    @return Text.
+    """
+    text = text.strip()
+    while len(text) >= 2 and text[0] == text[-1] == '"':
+        text = text[1:-1].strip()
+    return text
+
+
+## The variables naming the file's own directory, and the top of the source tree.
+_HERE = ("CMAKE_CURRENT_SOURCE_DIR", "CMAKE_CURRENT_LIST_DIR")
+_ROOT = ("CMAKE_SOURCE_DIR", "PROJECT_SOURCE_DIR")
+
+
+## @brief A generation argument as a repository-relative path, when the build file alone settles it.
+## @param literal The argument as written.
+## @param cmake_dir The CMakeLists.txt's directory, repository-relative ("" for the root).
+## @param variables The file's literal assignments (`_variables`).
+## @param root_has_cmake Whether the repository root holds the top CMakeLists.txt.
+## @return The path, or "" when anything stays unexpanded or it would leave the tree.
+## @version 1
+## @req REQ-DDB-PIPE-012
+def resolve_argument(
+    literal: str, cmake_dir: str, variables: dict[str, str], root_has_cmake: bool
+) -> str:
+    """2.1 (the 2.0.0 grid, mbedtls Q4 −22.7): `${CMAKE_CURRENT_SOURCE_DIR}/../scripts/
+    generate_errors.pl` was stored only as written, so nothing joined it to the indexed script.
+    NEVER GUESSED: the binary dir and found programs (`${PERL_EXECUTABLE}`) need a configure step
+    the index never ran, so anything still holding `${` resolves to "", as does a path that would
+    leave the repository.
+
+    @brief Resolve an argument.
+    @return Path or "".
+    """
+    import posixpath
+
+    ## ONLY AN EXPANDED VARIABLE RESOLVES (found measuring mbedtls: command words like `sed` and
+    ## `-i.bak` passed through as "paths"). A literal without one already says all it can.
+    if "${" not in literal:
+        return ""
+    ## A QUOTED ARGUMENT'S QUOTES ARE NOT PART OF THE PATH (found measuring mbedtls:
+    ## `"./framework/scripts/generate_test_keys.py"`, sometimes doubled).
+    text = _unquoted(literal)
+    for _ in range(4):
+        for name in _HERE:
+            text = text.replace(f"${{{name}}}", cmake_dir or ".")
+        if root_has_cmake:
+            for name in _ROOT:
+                text = text.replace(f"${{{name}}}", ".")
+        for name, value in variables.items():
+            text = text.replace(f"${{{name}}}", value)
+        if "${" not in text:
+            break
+    text = _unquoted(text)
+    if "${" in text or not text or text.startswith("/"):
+        return ""
+    path = posixpath.normpath(text)
+    return "" if path == ".." or path.startswith("../") else path
