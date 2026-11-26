@@ -1456,9 +1456,11 @@ def test_wrappers_match_the_r2_library_exactly(
     ## the dispatch cannot quietly substitute one section for another.
     req = _payload(tools.dossier("REQ-0621"))
     assert req["subject_kind"] == "requirement"
-    ## A REQUIREMENT'S ABSENT KEYS, spelled out like ONE_SHOT: a field that does not apply is
+    ## THE ABSENT KEYS OF A REQUIREMENT, spelled out like ONE_SHOT: a field that does not apply is
     ## dropped, not nulled. `failure_modes` (2.2) widened this set and failed here, the
     ## mechanism working: a requirement that declares no modes carries no key.
+    ## NO APOSTROPHE IN A `##` LINE IN A BODY: doxygen 1.9.8 (CI) reads one as a string opener and
+    ## drops every later doc block in this file (2.2.0 CI: three test req edges lost).
     REQ_ABSENT = ("mentioned_in", "satisfies", "satisfied_by", "failure_modes")
     ref = wire(q.req_trace(rich_db, "REQ-0621"))
     assert set(ref) - set(req) == {k for k in REQ_ABSENT if ref[k] is None}

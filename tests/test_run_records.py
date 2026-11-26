@@ -52,7 +52,8 @@ _TARGETS_2_0_0 = ("mattermost", "mbedtls", "self", "entropic")
 
 ## @brief The 2.0.0 pre-registration pins what the grid will actually run.
 ## @return None.
-## @version 1
+## v2: the pinned rubric version is checked against tracked text; grade records only where present
+## @version 2
 def test_the_2_0_0_preregistration_pins_what_the_grid_runs() -> None:
     """Owner ruling 2026-11-17: a full fresh run, 5 replicates, standalone (no 1.4.0 comparator),
     grader `c10cf554ae6d` (then `1ac344ae8cf3`, a comment-only re-tag, 2026-11-19), judge
@@ -79,12 +80,19 @@ def test_the_2_0_0_preregistration_pins_what_the_grid_runs() -> None:
         ## SPEC CHANGED (2.1, self rubric 7.0.0, owner Q/A 2026-11-25): the version the grid RAN
         ## is the one its own grade records carry, not whatever the tree holds today. Reading the
         ## tree held only until a rubric moved on after the grid; the property is unchanged.
+        ## FIXED (2.2): the grade records are UNTRACKED, so CI has none and the set came back empty
+        ## (red on main from ef6ac28b). The TRACKED half: the pinned version is the one in the
+        ## tree, or one the changelog of the rubric records (`# 6.0.0 (`). Where the records exist,
+        ## they agree.
+        pinned = re.search(rf"{target} (\d+\.\d+\.\d+)", text)
+        assert pinned, f"{target} rubric version not pinned"
+        source = (_RUNS.parent / "targets" / target / "questions.yaml").read_text(encoding="utf-8")
+        assert rubric["version"] == pinned[1] or f"\n# {pinned[1]} (" in source, (target, pinned[1])
         graded = {
             json.loads(g.read_text(encoding="utf-8"))["rubric_version"]
             for g in (_RUNS / "2.0.0" / target / "answers").glob("*.grade.json")
         }
-        assert len(graded) == 1, (target, graded)
-        assert f"{target} {graded.pop()}" in text, f"{target} rubric version not pinned"
+        assert graded <= {pinned[1]}, (target, graded)
     replicates = re.findall(r"--replicates (\d+)", commands)
     assert replicates and set(replicates) == {"5"}, replicates
     assert "Replicates **5**" in text
