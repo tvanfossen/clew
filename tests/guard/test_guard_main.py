@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from textwrap import dedent
 
 from clew.guard.config import CONFIG_DEFAULTS, parse_source_file
@@ -223,6 +224,11 @@ class TestPrecommitPipeline:
         )
         result = main(["--config", str(config_file), str(c_file)])
         assert result == 0
+        ## THE HOOK WRITES THE FULL REPORT (2.2; entropic, after clew#74): the hook's
+        ## impact.json had no `unmapped`/`unmapped_files` (nor `tests`/`via`), which only the
+        ## `impact` subcommand produced, so a consumer reading the hook's file saw less.
+        doc = json.loads((tmp_path / "out" / "impact" / "impact.json").read_text())
+        assert {"unmapped", "unmapped_files"} <= set(doc)
 
     def test_a_symlinked_impact_directory_is_refused(self, tmp_path, monkeypatch):
         """M5, 1.1.0 SECURITY AUDIT. `run_precommit` validated `output_dir` and then wrote to

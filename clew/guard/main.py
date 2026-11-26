@@ -53,8 +53,6 @@ from .filters import excluded_by, gate_exclusion
 from .git import get_branch_diff_range, get_file_at_revision, git_add
 from .report_formats import FORMATS, render
 from .impact import (
-    build_impact_report,
-    collect_changed_functions,
     format_json,
     format_markdown,
     impact_report,
@@ -463,7 +461,8 @@ def resolve_version_gate(config: dict[str, Any]) -> None:
 #  v2.7: one report directory, guard.impact.report_dir; the writer is shared (2.0.0, R5-CFG F9)
 #  v2.8: diffs against guard.impact.base (2.0.0, R5-CFG W8)
 #  v2.9: runs the coverage gate (2.0.0, PG3)
-#  @version 2.9
+#  v2.10: writes the full report: tests, via, unmapped (entropic)
+#  @version 2.10
 #  @req REQ-DDB-GUARD-001
 #  @return Exit code: 0 if no violations, 1 if violations found
 def run_precommit(file_paths: list[str], config: dict[str, Any]) -> int:
@@ -478,20 +477,20 @@ def run_precommit(file_paths: list[str], config: dict[str, Any]) -> int:
     validate_output_path(base_dir)
 
     if get_requirements(config):
+        ## THE HOOK WRITES THE SUBCOMMAND'S REPORT (2.2; entropic, after clew#74): it built the
+        ## 2.0.0 entries alone, so its impact.json had no covering tests, `via` or unmapped lists.
         diff_range = get_branch_diff_range(impact_base(config))
-        if diff_range:
-            changed = collect_changed_functions(file_paths, config, diff_range=diff_range)
-        else:
-            changed = collect_changed_functions(file_paths, config, staged=True)
-        entries = build_impact_report(changed, config)
+        entries, extras = impact_report(
+            file_paths, config, staged=not diff_range, diff_range=diff_range or None
+        )
         ## THE FULL WRITE PATH IS VALIDATED, not just `output_dir` (1.1.0 audit, M5). The
         ## check above covers `out/`; the writes land in `out/impact/`, so a committed
         ## `out/impact -> ../../elsewhere` passed it, `mkdir(exist_ok=True)` followed the
         ## symlink, and the gate wrote the report outside the repository and `git add`ed it —
         ## as the committing user, configured by the branch under review. Same validation the
         ## sibling in `_run_impact_command` already applies to its `output.file`.
-        git_add([str(p) for p in _write_report(entries, base_dir)])
-        print(format_markdown(entries), file=sys.stderr)
+        git_add([str(p) for p in _write_report(entries, base_dir, extras)])
+        print(format_markdown(entries, extras), file=sys.stderr)
 
     ## COVERAGE IS PART OF THE HOOK (2.0.0, PG3, owner): uncovered catalog entries, `req` tag naming
     ## no entry, and a ratio below the declared floor fail the commit, so coverage is never a

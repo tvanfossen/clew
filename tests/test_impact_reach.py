@@ -172,3 +172,24 @@ def test_a_change_in_test_code_is_reported_as_test_code(tmp_path: Path) -> None:
     assert extras.unmapped == [
         {"name": "count_log_lines", "file": "tests/model/helpers.h", "reason": "test code"}
     ]
+
+
+def test_a_submodule_in_the_range_is_an_unmapped_file_never_opened(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """clew#75 (entropic, v2.1.0): a range holding a submodule bump (`extern/llama.cpp`, a
+    gitlink) crashed `guard impact --range` with IsADirectoryError — the path exists, as a
+    directory, so it was diffed and then parsed as a source file. A gitlink changes the build
+    without changing a function: it is listed under `unmapped_files` and no file is opened.
+
+    @brief A gitlink is an unmapped file.
+    """
+    from clew.guard.impact import collect_changes
+
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "extern" / "llama.cpp").mkdir(parents=True)
+    bump = "@@ -1 +1 @@\n-Subproject commit aaaa\n+Subproject commit bbbb\n"
+    changed, unmapped = collect_changes(
+        ["extern/llama.cpp"], {}, diff_range="A..B", run_command=lambda _argv: bump
+    )
+    assert (changed, unmapped) == ([], ["extern/llama.cpp"])

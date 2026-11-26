@@ -167,7 +167,8 @@ def collect_changed_functions(
 #  @details 2.1 (clew#74 item 4): a header of declarations, a CMake file, a YAML file and a
 #  deleted file change the build without changing a function, so a consumer selecting tests must
 #  be told about them rather than left to assume nothing changed.
-#  @version 1.0
+#  v1.1: a gitlink or deleted path is unmapped, never opened (clew#75)
+#  @version 1.1
 #  @req REQ-DDB-GUARD-010
 #  @return (changed functions, changed files with no changed function)
 def collect_changes(
@@ -180,8 +181,11 @@ def collect_changes(
     changed_funcs: list[ChangedFunction] = []
     unmapped_files: list[str] = []
     for file_path in file_paths:
-        if not Path(file_path).exists():
-            logger.warning("File not found: %s", file_path)
+        ## A REGULAR FILE OR NOTHING IS OPENED (2.2, clew#75): a submodule bump names the gitlink,
+        ## which exists as a DIRECTORY, so `exists()` let it through to be parsed as source and
+        ## IsADirectoryError ended the report. Deleted files and gitlinks alike are unmapped.
+        if not Path(file_path).is_file():
+            logger.warning("Not a regular file (deleted, or a submodule): %s", file_path)
             unmapped_files.append(file_path)
             continue
         changed_lines = _collect_changed_lines(file_path, staged, diff_range, run_command)
