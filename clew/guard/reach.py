@@ -162,7 +162,8 @@ class Reach:
         return is_test_path(_relative(file_path), patterns)
 
     ## @brief The requirements a function without `@req` reaches through its callers.
-    #  @version 1.0
+    #  v1.1: rows matched by identity (clew#76)
+    #  @version 1.1
     #  @req REQ-DDB-GUARD-010
     #  @param changed The changed function.
     #  @return [(req_id, caller chain ending at the `@req` function)], by requirement id.
@@ -171,9 +172,35 @@ class Reach:
             return []
         conn = sqlite3.connect(f"file:{self.db}?mode=ro", uri=True)
         try:
-            return _walk(conn, changed.name, _relative(changed.file_path))
+            return _walk(conn, _rowids(conn, changed))
         finally:
             conn.close()
+
+    ## @brief The requirements the changed function's own index row carries.
+    #  @details The index holds a declaration and its definition as ONE row, so a header
+    #  prototype without `@req` gets its definition's tags here (2.2, clew#76).
+    #  @version 1.0
+    #  @req REQ-DDB-GUARD-010
+    #  @param changed The changed function.
+    #  @return Requirement ids, sorted; empty with no index or no tagged row.
+    def own_reqs(self, changed: Any) -> list[str]:
+        if self.db is None:
+            return []
+        conn = sqlite3.connect(f"file:{self.db}?mode=ro", uri=True)
+        try:
+            rowids = _rowids(conn, changed)
+            marks = ",".join("?" * len(rowids))
+            rows = (
+                conn.execute(
+                    f"SELECT DISTINCT req_id FROM req_edges WHERE memberdef_rowid IN ({marks})",
+                    rowids,
+                ).fetchall()
+                if rowids
+                else []
+            )
+        finally:
+            conn.close()
+        return sorted(str(r) for (r,) in rows)
 
 
 ## @brief A changed file's path as the index names it.
@@ -191,14 +218,15 @@ def _relative(file_path: str) -> str:
 
 
 ## @brief Walk callers breadth-first to the nearest `@req` functions.
-#  @version 1.0
+#  v1.1: starts from the matched rows (2.2, clew#76: by identity, either of a row's two files)
+#  @version 1.1
 #  @utility
 #  @return [(req_id, chain)], the first (shortest) chain per requirement.
-def _walk(conn: sqlite3.Connection, name: str, file_path: str) -> list[tuple[str, list[str]]]:
+def _walk(conn: sqlite3.Connection, start: list[int]) -> list[tuple[str, list[str]]]:
     tagged: dict[int, list[str]] = {}
     for rowid, req_id in conn.execute("SELECT memberdef_rowid, req_id FROM req_edges"):
         tagged.setdefault(int(rowid), []).append(str(req_id))
-    frontier = [(rowid, []) for rowid in _rowids(conn, name, file_path)]
+    frontier: list[tuple[int, list[str]]] = [(rowid, []) for rowid in start]
     seen = {rowid for rowid, _ in frontier}
     found: dict[str, list[str]] = {}
     for _ in range(VIA_DEPTH):
@@ -236,16 +264,57 @@ def _step(
     return nxt
 
 
-## @brief The index rows for a changed function: by name in its file, else by a unique name.
+## @brief The index rows for a changed function.
+#  v1.1: matched in EITHER of a row's files, its declaration's or its body's, and narrowed by the
+#  parser's scope (2.2, clew#76: a header prototype's row has the .cpp as its body file, so
+#  `ServerManager::execute` in server_manager.h matched nothing, or a same-named `Other::execute`)
+#  @version 1.1
+#  @utility
+#  @return Rowids: in the changed file and scope, else the one function of that name.
+def _rowids(conn: sqlite3.Connection, changed: Any) -> list[int]:
+    file_path = _relative(changed.file_path)
+    rows = conn.execute(
+        "SELECT m.rowid, m.scope, d.name, b.name FROM memberdef m "
+        "LEFT JOIN path d ON d.rowid = m.file_id LEFT JOIN path b ON b.rowid = m.bodyfile_id "
+        "WHERE m.kind = 'function' AND m.name = ?",
+        (changed.name,),
+    ).fetchall()
+    scope = _scope(getattr(changed, "qualified", None))
+    here = [
+        int(r)
+        for r, row_scope, decl, body in rows
+        if file_path in (decl, body) and (scope is None or _same_scope(row_scope, scope))
+    ]
+    return here or ([int(rows[0][0])] if len(rows) == 1 else [])
+
+
+## @brief The class or namespace part of the parser's `Scope::name(params)`.
 #  @version 1.0
 #  @utility
-#  @return Rowids.
-def _rowids(conn: sqlite3.Connection, name: str, file_path: str) -> list[int]:
-    rows = conn.execute(
-        "SELECT m.rowid, p.name FROM memberdef m "
-        "JOIN path p ON p.rowid = COALESCE(NULLIF(m.bodyfile_id, 0), m.file_id) "
-        "WHERE m.kind = 'function' AND m.name = ?",
-        (name,),
-    ).fetchall()
-    here = [int(r) for r, p in rows if str(p) == file_path]
-    return here or ([int(rows[0][0])] if len(rows) == 1 else [])
+#  @return The scope, or None for an unscoped name.
+def _scope(qualified: str | None) -> str | None:
+    head = (qualified or "").split("(", 1)[0]
+    return head.rsplit("::", 1)[0] if "::" in head else None
+
+
+## @brief Whether an index row's scope is the parser's, which may omit outer namespaces.
+#  v1.1: template arguments are dropped from both (`SessionResidency< Tok >`; entropic, clew#76)
+#  @version 1.1
+#  @utility
+#  @return Bool.
+def _same_scope(row_scope: str | None, scope: str) -> bool:
+    row, want = _untemplated(str(row_scope or "")), _untemplated(scope)
+    return row == want or row.endswith(f"::{want}")
+
+
+## @brief A scope with every `<...>` argument list removed, nested ones included.
+#  @version 1.0
+#  @utility
+#  @return The bare scope.
+def _untemplated(scope: str) -> str:
+    out, depth = [], 0
+    for ch in scope:
+        depth += (ch == "<") - (ch == ">")
+        if depth == 0 and ch != ">":
+            out.append(ch)
+    return "".join(out).replace(" ", "")

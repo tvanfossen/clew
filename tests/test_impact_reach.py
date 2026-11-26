@@ -193,3 +193,68 @@ def test_a_submodule_in_the_range_is_an_unmapped_file_never_opened(
         ["extern/llama.cpp"], {}, diff_range="A..B", run_command=lambda _argv: bump
     )
     assert (changed, unmapped) == ([], ["extern/llama.cpp"])
+
+
+HEADER = """/// @brief A server.
+class ServerManager {
+public:
+    /// @brief Run one call.
+    /// @version 1.0
+    int execute(int x);
+};
+
+/// @brief Another owner of the same method name.
+class Other {
+public:
+    /// @brief Unrelated.
+    /// @version 1.0
+    /// @utility
+    int execute(int x) { return x; }
+};
+"""
+
+DEFINITION = """#include "server_manager.h"
+
+/// @brief Run one call.
+/// @version 1.0
+/// @req REQ-A-001
+int ServerManager::execute(int x) { return x + 1; }
+"""
+
+
+def test_a_changed_declaration_carries_its_definition_s_requirements(tmp_path: Path) -> None:
+    """clew#76 (entropic, 4th gap): ServerManager::execute's definition in the .cpp carries its
+    `@req`, and a change to its declaration in server_manager.h was reported unmapped — about 445
+    of entropic's 960 unmapped functions are in include/. Coverage already counts a declaration
+    and its definition as ONE function (PG2); impact now agrees: the declaration is linked by
+    its definition's requirements directly (no `via`), even where the bare name is not unique.
+
+    @brief A declaration inherits its definition's requirements.
+    """
+    repo = tmp_path / "repo"
+    (repo / "include").mkdir(parents=True)
+    (repo / "src").mkdir()
+    (repo / "include" / "server_manager.h").write_text(HEADER)
+    (repo / "src" / "server_manager.cpp").write_text(DEFINITION)
+    reach = Reach(_db(tmp_path, repo))
+    entries, extras = build_report(
+        [ChangedFunction(name="execute", file_path="include/server_manager.h")], {}, reach=reach
+    )
+    assert [(e.req_id, [(f.name, f.via) for f in e.functions]) for e in entries] == [
+        ("REQ-A-001", [("execute", None)])
+    ]
+    assert extras.unmapped == []
+
+
+def test_a_class_template_s_scope_matches_without_its_arguments() -> None:
+    """FOUND MEASURING clew#76 on entropic: `SessionResidency::slots()` (the parser) is
+    `entropic::SessionResidency< Tok >` in the index, so the scope filter dropped its row and
+    a change that reached four requirements through its callers reached none.
+
+    @brief Template arguments and outer namespaces are not part of the match.
+    """
+    from clew.guard.reach import _same_scope
+
+    assert _same_scope("entropic::SessionResidency< Tok >", "SessionResidency")
+    assert _same_scope("Map< K, Box< V > >", "Map")
+    assert not _same_scope("Other", "ServerManager")

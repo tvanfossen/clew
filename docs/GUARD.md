@@ -96,7 +96,9 @@ int Sensor_ReadTemperature(void) {
 `pre-commit run --all-files` prints violations to stderr and writes the impact report
 (`impact.md`, `impact.json`) to `guard.impact.report_dir`. It is the same report
 `clew guard impact` prints: each requirement's covering tests, `via` for an untagged change
-reached through its callers (read from the repository's existing index), and `unmapped` /
+reached through its callers (read from the repository's existing index; a declaration whose
+definition carries `@req`, or the reverse, is linked by those requirements directly, as coverage
+counts the two as one function), and `unmapped` /
 `unmapped_files` for changes that reach no requirement. A deleted path and a submodule bump are
 listed under `unmapped_files`; neither is opened.
 

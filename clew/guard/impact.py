@@ -36,7 +36,8 @@ logger = logging.getLogger(__name__)
 
 ## @brief Tracks a changed function with its requirement tags and version info.
 #  v1.1: `via`, the callers through which an untagged change reaches this entry (2.1, clew#74)
-#  @version 1.1
+#  v1.2: `qualified`, the parser's identity, for matching the index row (2.2, clew#76)
+#  @version 1.2
 #  @utility
 @dataclass
 class ChangedFunction:
@@ -47,6 +48,8 @@ class ChangedFunction:
     new_version: str | None = None
     ## None: linked by its own `@req`. A list: reached through these callers (`reach.Reach.via`).
     via: list[str] | None = None
+    ## The parser's identity, `Class::name(params)`, for matching the index row (2.2, clew#76).
+    qualified: str | None = None
 
 
 ## @brief Groups changed functions by requirement for the impact report.
@@ -115,7 +118,8 @@ def _get_file_diff(
 
 
 ## @brief Find changed functions in a single file given changed line numbers.
-#  @version 1.2
+#  v1.3: carries the parser's qualified identity (clew#76)
+#  @version 1.3
 #  @req REQ-DDB-GUARD-008
 def _extract_changed_functions(
     file_path: str,
@@ -144,6 +148,7 @@ def _extract_changed_functions(
                 file_path=file_path,
                 reqs=reqs,
                 new_version=version,
+                qualified=func.qualified,
             )
         )
     return result
@@ -595,7 +600,8 @@ def build_report(
 
 
 ## @brief File an untagged change under the requirements its callers reach, else as unmapped.
-#  @version 1.0
+#  v1.1: a declaration takes its definition's requirements (clew#76)
+#  @version 1.1
 #  @utility
 def _place_untagged(
     cf: ChangedFunction, reach: Any, req_funcs: dict[str, list[ChangedFunction]], extras: Any
@@ -604,6 +610,15 @@ def _place_untagged(
 
     if reach.is_test(cf.file_path):
         extras.unmapped.append({"name": cf.name, "file": cf.file_path, "reason": TEST_CODE})
+        return
+    ## ONE FUNCTION, TWO PLACES (2.2, clew#76): a declaration whose definition carries `@req`
+    ## (or the reverse) is linked by those requirements directly, as coverage counts it (PG2).
+    own = reach.own_reqs(cf)
+    if own:
+        for req_id in own:
+            req_funcs.setdefault(req_id, []).append(
+                ChangedFunction(cf.name, cf.file_path, [req_id], cf.old_version, cf.new_version)
+            )
         return
     reached = reach.via(cf)
     for req_id, chain in reached:
